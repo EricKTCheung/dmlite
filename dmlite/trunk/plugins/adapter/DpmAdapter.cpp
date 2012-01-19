@@ -34,6 +34,8 @@ DpmAdapterCatalog::DpmAdapterCatalog(const std::string& dpmHost, unsigned retryL
 
   setenv("DPMHOST",   this->dpmHost_.c_str(), 1);
   setenv("CSEC_MECH", "ID", 1);
+
+  dpm_client_resetAuthorizationId();
 }
 
 
@@ -151,8 +153,20 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   reqfile.f_lifetime     = 0;
   reqfile.ret_policy     = '\0';
   reqfile.ac_latency     = '\0';
+  reqfile.s_token[0]     = '\0';
 
-  strncpy(reqfile.s_token, this->spaceToken_.c_str(), sizeof(reqfile.s_token));
+  if (!this->spaceToken_.empty()) {
+    char **space_ids;
+
+    RETRY(dpm_getspacetoken(this->spaceToken_.c_str(), &nReplies, &space_ids),
+          this->retryLimit_);
+    
+    strncpy(reqfile.s_token, space_ids[0], sizeof(reqfile.s_token));
+
+    for(int i = 0; i < nReplies; ++i)
+      free(space_ids[i]);
+    free(space_ids);
+  }
 
   try {
     RETRY(dpm_put(1, &reqfile, 1, (char*[]){"rfio"}, "libdm::dummy::dpm::put", 0,

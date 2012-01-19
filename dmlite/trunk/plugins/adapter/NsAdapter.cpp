@@ -40,6 +40,8 @@ NsAdapterCatalog::NsAdapterCatalog(const std::string& nsHost, unsigned retryLimi
   this->fqans_  = 0x00;
   this->nFqans_ = 0;
   this->vo_     = 0x00;
+
+  dpns_client_resetAuthorizationId();
 }
 
 
@@ -507,7 +509,7 @@ void NsAdapterCatalog::setVomsData(const std::string& vo,
   }  
 
   // Pass the data
-  wrapCall(dpns_client_setVOMS_data((char*)this->vo_,
+  wrapCall(dpns_client_setVOMS_data(this->vo_,
                                     this->fqans_, this->nFqans_));
 }
 
