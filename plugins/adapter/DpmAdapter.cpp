@@ -52,6 +52,21 @@ std::string DpmAdapterCatalog::getImplId()
 
 
 
+void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmException)
+{
+  if (key == "SpaceToken") {
+    const char* sToken = va_arg(value, const char*);
+    if (sToken == 0x00)
+      this->spaceToken_.clear();
+    else
+      this->spaceToken_ = std::string(sToken);
+  }
+  else
+    NsAdapterCatalog::set(key, value);
+}
+
+
+
 FileReplica DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   struct dpm_getfilereq     request;
@@ -133,10 +148,11 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   reqfile.f_type         = 'P';
   reqfile.lifetime       = 0;
   reqfile.requested_size = 0;
-  reqfile.s_token[0]     = '\0';
   reqfile.f_lifetime     = 0;
   reqfile.ret_policy     = '\0';
   reqfile.ac_latency     = '\0';
+
+  strncpy(reqfile.s_token, this->spaceToken_.c_str(), sizeof(reqfile.s_token));
 
   try {
     RETRY(dpm_put(1, &reqfile, 1, (char*[]){"rfio"}, "libdm::dummy::dpm::put", 0,
