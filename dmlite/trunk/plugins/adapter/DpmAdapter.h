@@ -22,6 +22,8 @@ public:
 
   // Overload
   std::string getImplId(void);
+
+  void set(const std::string&, va_list) throw (DmException);
   
   FileReplica get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
@@ -38,6 +40,7 @@ public:
 protected:
 private:
   std::string dpmHost_;
+  std::string spaceToken_;
 };
 
 /// Used to retry n times before failing.
