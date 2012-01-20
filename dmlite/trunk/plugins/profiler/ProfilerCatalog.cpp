@@ -128,6 +128,14 @@ struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmExceptio
 }
 
 
+
+struct xstat ProfilerCatalog::extendedStat(const std::string& path) throw (DmException)
+{
+  PROFILE_RETURN(struct xstat, extendedStat, path);
+}
+
+
+
 void ProfilerCatalog::addReplica(const std::string& guid, int64_t id,
                               const std::string& server, const std::string& sfn,
                               const char status, const char fileType,

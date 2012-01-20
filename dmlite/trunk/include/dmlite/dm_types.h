@@ -24,11 +24,21 @@
 #define POLICY_MAX       16
 #define POOL_MAX         16
 #define FILESYSTEM_MAX   80
+#define SUMTYPE_MAX       3
+#define SUMVALUE_MAX     33
 
 /** Struct with basic information and detailed stats */
 struct direntstat {
   struct dirent dirent; /**< Basic information about the directory */
   struct stat   stat;   /**< Detailed stats                        */
+};
+
+/** Struct with extended status information */
+struct xstat {
+  struct stat stat;
+  char        guid     [GUID_MAX];
+  char        csumtype [SUMTYPE_MAX];
+  char        csumvalue[SUMVALUE_MAX];
 };
 
 /** Simplified URI struct */

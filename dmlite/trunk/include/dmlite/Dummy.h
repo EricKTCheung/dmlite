@@ -30,8 +30,9 @@ public:
   virtual void        changeDir    (const std::string&) throw (DmException);
   virtual std::string getWorkingDir(void)               throw (DmException);
 
-  virtual struct stat stat    (const std::string&) throw (DmException);
-  virtual struct stat linkStat(const std::string&) throw (DmException);
+  virtual struct stat  stat        (const std::string&) throw (DmException);
+  virtual struct stat  linkStat    (const std::string&) throw (DmException);
+  virtual struct xstat extendedStat(const std::string&) throw (DmException);
 
   virtual void addReplica(const std::string&, int64_t, const std::string&,
                           const std::string&, const char, const char,

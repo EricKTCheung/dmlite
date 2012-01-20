@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsMySql.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/NsMySql.conf)
+
 add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
@@ -29,3 +32,6 @@ target_link_libraries (test-poolcontainer dmlite dmlitecommon cppunit pthread)
 
 add_executable        (test-chdir test-chdir.cpp test-base.cpp)
 target_link_libraries (test-chdir dmlite dmlitecommon cppunit dl)
+
+add_executable        (test-guid test-guid.cpp test-base.cpp)
+target_link_libraries (test-guid dmlite dmlitecommon cppunit dl)

@@ -55,6 +55,11 @@ public:
   /// @return     The status of the link.
   virtual struct stat linkStat(const std::string& path) throw (DmException) = 0;
 
+  /// Do an extended stat of a file or directory.
+  /// @param path The path of the file or directory.
+  /// @return     The extended status of the file.
+  virtual struct xstat extendedStat(const std::string& path) throw (DmException) = 0;
+
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.
   /// @param id         The file ID within the NS.

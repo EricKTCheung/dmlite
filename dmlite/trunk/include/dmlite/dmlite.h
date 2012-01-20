@@ -123,6 +123,15 @@ int dm_stat(dm_context* context, const char* path, struct stat* buf);
 int dm_lstat(dm_context* context, const char* path, struct stat* buf);
 
 /**
+ * Do an extended stat of a file, directory or symbolic link.
+ * @param context The DM context.
+ * @param path    The path.
+ * @param buf     Where to put the retrieved information.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_xstat(dm_context* context, const char* path, struct xstat* buf);
+
+/**
  * Add a new replica to an entry.
  * @param context    The DM context.
  * @param guid       The Grid Unique IDentifier of the file. It can be NULL.

@@ -101,7 +101,35 @@ FileReplica DpmMySqlCatalog::get(const std::string& path) throw(DmException)
   }
 }
 
+std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
+{
+  // Try to delegate
+  try {
+    return this->decorated_->put(path, uri, guid);
+  }
+  catch (DmException e) {
+    // If not implemented, we take over, thanks
+    if (e.code() != DM_NOT_IMPLEMENTED)
+      throw;
+  }
 
+  // Do the regular PUT
+  std::string token = this->decorated_->put(path, uri);
+  
+  // The underlying layer probably created the entry already (DPM backend)
+  try {
+    this->setGuid(path, guid);
+  }
+  catch (DmException e) {
+    // It may be it doesn't work that way :(
+    // Just ignore it, although the GUID won't be there
+    // (Is this right?)
+    if (e.code() != DM_NO_SUCH_FILE)
+      throw;
+  } 
+
+  return token;
+}
 
 int DpmMySqlCatalog::getFsStatus(const std::string& pool, const std::string& server,
                                  const std::string& fs) throw(DmException)

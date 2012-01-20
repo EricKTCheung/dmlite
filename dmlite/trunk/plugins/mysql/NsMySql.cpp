@@ -25,6 +25,7 @@ enum {
   STMT_GET_FILE_REPLICAS,
   STMT_GET_FILE_REPLICAS_EXTENDED,
   STMT_GET_COMMENT,
+  STMT_SET_GUID,
   STMT_SENTINEL
 };
 
@@ -68,6 +69,9 @@ static const char* statements[] = {
   "SELECT comments\
         FROM Cns_user_metadata\
         WHERE u_fileid = ?",
+  "UPDATE Cns_file_metadata\
+        SET guid = ?\
+        WHERE fileid = ?",
 };
 
 
@@ -460,6 +464,22 @@ struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
   FileMetadata meta = this->parsePath(path, false);
   return meta.stStat;
 }
+
+
+
+struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmException)
+{
+  FileMetadata meta = this->parsePath(path);
+  struct xstat xStat;
+
+  xStat.stat = meta.stStat;
+  strncpy(xStat.csumtype,  meta.csumtype,  SUMTYPE_MAX);
+  strncpy(xStat.csumvalue, meta.csumvalue, SUMVALUE_MAX);
+  strncpy(xStat.guid,      meta.guid,      GUID_MAX);
+
+  return xStat;
+}
+
 
 
 void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
@@ -1084,4 +1104,27 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
   }
 
   return std::string(comment);
+}
+
+
+
+void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
+{
+  MYSQL_STMT   *stmt = this->getPreparedStatement(STMT_SET_GUID);
+  MYSQL_BIND    bindParam[2];
+  long unsigned guidLen = guid.length();
+  FileMetadata  meta    = this->parsePath(path);
+
+  memset(bindParam, 0, sizeof(bindParam));
+
+  bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
+  bindParam[0].length      = &guidLen;
+  bindParam[0].buffer      = (void*)guid.c_str();
+  bindParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
+  bindParam[1].buffer      = &meta.stStat.st_ino;
+
+  mysql_stmt_bind_param(stmt, bindParam);
+
+  if (mysql_stmt_execute(stmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));  
 }
