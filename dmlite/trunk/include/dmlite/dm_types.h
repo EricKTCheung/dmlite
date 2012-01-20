@@ -27,15 +27,27 @@
 #define SUMTYPE_MAX       3
 #define SUMVALUE_MAX     33
 
+#define TYPE_EXPERIMENT 1
+#define TYPE_USER       2
+
+#define STATUS_ONLINE   '-'
+#define STATUS_MIGRATED 'm'
+
 /** Struct with basic information and detailed stats */
 struct direntstat {
   struct dirent dirent; /**< Basic information about the directory */
   struct stat   stat;   /**< Detailed stats                        */
 };
 
-/** Struct with extended status information */
+/** Struct with extended status information
+ * @note It can be safely typecasted to struct stat.
+ */
 struct xstat {
   struct stat stat;
+  ino_t       parent;
+  short       type;
+  char        status;
+  char        name     [NAME_MAX];
   char        guid     [GUID_MAX];
   char        csumtype [SUMTYPE_MAX];
   char        csumvalue[SUMVALUE_MAX];

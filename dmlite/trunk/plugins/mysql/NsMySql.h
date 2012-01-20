@@ -21,22 +21,15 @@ struct SymLink {
 
 /// File metadata as is in the DB
 struct FileMetadata {
-  uint64_t    parentId;                  ///< The parent unique ID.
-  char        guid[GUID_MAX+1];          ///< The file GUID.
-  char        name[NAME_MAX+1];          ///< The file name.
-  short       fileClass;                 ///< The file class.
-  char        status;                    ///< The status of the file.
-  char        csumtype[3];               ///< Checksum type.
-  char        csumvalue[33];             ///< Checksum value.
-  char        acl[ACL_ENTRIES_MAX * 13]; ///< ACL
-  struct stat stStat;                    ///< File standard information.
+  struct xstat xStat;
+  char         acl[ACL_ENTRIES_MAX * 13];
 };
 
 /// Struct used internally to read directories.
 struct NsMySqlDir {
   uint64_t          dirId;         ///< The directory ID.
   FileMetadata      current;       ///< Current entry metadata.
-  struct direntstat extended;      ///< The structure used to hold the returned data.
+  struct direntstat ds;            ///< The structure used to hold the returned data.
   MYSQL_BIND        bindParam[0];  ///< Bind parameters.
   MYSQL_BIND        bindResult[17];///< Bind results.
   MYSQL_STMT       *statement;     ///< Statement.

@@ -143,72 +143,72 @@ static void bindMetadata(MYSQL_STMT* stmt, MYSQL_BIND* bindResult, FileMetadata*
   
   // fileid
   bindResult[ 0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 0].buffer      = &meta->stStat.st_ino;
+  bindResult[ 0].buffer      = &meta->xStat.stat.st_ino;
   // parent_fileid
   bindResult[ 1].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 1].buffer      = &meta->parentId;
+  bindResult[ 1].buffer      = &meta->xStat.parent;
   // guid
   bindResult[ 2].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[ 2].buffer_length = sizeof(meta->guid);
-  bindResult[ 2].buffer        = meta->guid;
+  bindResult[ 2].buffer_length = sizeof(meta->xStat.guid);
+  bindResult[ 2].buffer        = meta->xStat.guid;
   bindResult[ 2].length        = &length;
   bindResult[ 2].is_null       = &isNull;
   // name
   bindResult[ 3].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[ 3].buffer_length = sizeof(meta->name);
-  bindResult[ 3].buffer        = meta->name;
+  bindResult[ 3].buffer_length = sizeof(meta->xStat.name);
+  bindResult[ 3].buffer        = meta->xStat.name;
   bindResult[ 3].length        = &length;
   // filemode
   bindResult[ 4].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 4].buffer      = &meta->stStat.st_mode;
+  bindResult[ 4].buffer      = &meta->xStat.stat.st_mode;
   // nlink
   bindResult[ 5].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 5].buffer      = &meta->stStat.st_nlink;
+  bindResult[ 5].buffer      = &meta->xStat.stat.st_nlink;
   bindResult[ 5].is_null     = &isNull;
   // owner_uid
   bindResult[ 6].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 6].buffer      = &meta->stStat.st_uid;
+  bindResult[ 6].buffer      = &meta->xStat.stat.st_uid;
   bindResult[ 6].is_null     = &isNull;
   // gid
   bindResult[ 7].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 7].buffer      = &meta->stStat.st_gid;
+  bindResult[ 7].buffer      = &meta->xStat.stat.st_gid;
   bindResult[ 7].is_null     = &isNull;
   // filesize
   bindResult[ 8].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 8].buffer      = &meta->stStat.st_size;
+  bindResult[ 8].buffer      = &meta->xStat.stat.st_size;
   bindResult[ 8].is_null     = &isNull;
   // atime
   bindResult[ 9].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 9].buffer      = &meta->stStat.st_atime;
+  bindResult[ 9].buffer      = &meta->xStat.stat.st_atime;
   bindResult[ 9].is_null     = &isNull;
   // mtime
   bindResult[10].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[10].buffer      = &meta->stStat.st_mtime;
+  bindResult[10].buffer      = &meta->xStat.stat.st_mtime;
   bindResult[10].is_null     = &isNull;
   // ctime
   bindResult[11].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[11].buffer      = &meta->stStat.st_ctime;
+  bindResult[11].buffer      = &meta->xStat.stat.st_ctime;
   bindResult[11].is_null     = &isNull;
   // fileclass
   bindResult[12].buffer_type = MYSQL_TYPE_TINY;
-  bindResult[12].buffer      = &meta->fileClass;
+  bindResult[12].buffer      = &meta->xStat.type;
   bindResult[12].is_null     = &isNull;
   // status
   bindResult[13].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[13].buffer_length = sizeof(meta->status);
-  bindResult[13].buffer        = &meta->status;
+  bindResult[13].buffer_length = sizeof(meta->xStat.status);
+  bindResult[13].buffer        = &meta->xStat.status;
   bindResult[13].length        = &length;
   bindResult[13].is_null       = &isNull;
   // csumtype
   bindResult[14].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[14].buffer_length = sizeof(meta->csumtype);
-  bindResult[14].buffer        = meta->csumtype;
+  bindResult[14].buffer_length = sizeof(meta->xStat.csumtype);
+  bindResult[14].buffer        = meta->xStat.csumtype;
   bindResult[14].length        = &length;
   bindResult[14].is_null       = &isNull;
   // csumvalue
   bindResult[15].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[15].buffer_length = sizeof(meta->csumvalue);
-  bindResult[15].buffer        = meta->csumvalue;
+  bindResult[15].buffer_length = sizeof(meta->xStat.csumvalue);
+  bindResult[15].buffer        = meta->xStat.csumvalue;
   bindResult[15].length        = &length;
   bindResult[15].is_null       = &isNull;
   // acl
@@ -366,23 +366,23 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
     components.push_front("/");
     // Root parent "is" a dir and world-readable :)
     memset(&meta, 0x00, sizeof(FileMetadata));
-    meta.stStat.st_mode = S_IFDIR | 0555 ;
+    meta.xStat.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
   else {
     meta   = this->cwdMeta_;
-    parent = meta.stStat.st_ino;
+    parent = meta.xStat.stat.st_ino;
   }
   
 
   while (!components.empty()) {
     // Check that the parent is a directory first
-    if (!S_ISDIR(meta.stStat.st_mode) && !S_ISLNK(meta.stStat.st_mode))
-      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
+    if (!S_ISDIR(meta.xStat.stat.st_mode) && !S_ISLNK(meta.xStat.stat.st_mode))
+      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.xStat.name);
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.stStat, S_IEXEC) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
+                         meta.acl, meta.xStat.stat, S_IEXEC) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.xStat.name);
 
     // Pop next component
     c = components.front();
@@ -395,15 +395,15 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
     // Up one level
     else if (c == "..") {
       meta   = this->getFile(parent);
-      parent = meta.parentId;
+      parent = meta.xStat.parent;
     }
     // Regular entry
     else {
       meta = this->getFile(c, parent);
 
       // Symbolic link!, follow that instead
-      if (S_ISLNK(meta.stStat.st_mode) && followSym) {
-        SymLink link = this->getLink(meta.stStat.st_ino);
+      if (S_ISLNK(meta.xStat.stat.st_mode) && followSym) {
+        SymLink link = this->getLink(meta.xStat.stat.st_ino);
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
@@ -424,7 +424,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
       }
       // Next one!
       else {
-        parent = meta.stStat.st_ino;
+        parent = meta.xStat.stat.st_ino;
       }
     }
     
@@ -454,7 +454,7 @@ std::string NsMySqlCatalog::getWorkingDir(void) throw (DmException)
 struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
 {
   FileMetadata meta = this->parsePath(path);
-  return meta.stStat;
+  return meta.xStat.stat;
 }
 
 
@@ -462,7 +462,7 @@ struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
 struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
 {
   FileMetadata meta = this->getFile(inode);
-  return meta.stStat;
+  return meta.xStat.stat;
 }
 
 
@@ -470,7 +470,7 @@ struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
 struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
 {
   FileMetadata meta = this->parsePath(path, false);
-  return meta.stStat;
+  return meta.xStat.stat;
 }
 
 
@@ -478,14 +478,7 @@ struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
 struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
-  struct xstat xStat;
-
-  xStat.stat = meta.stStat;
-  strncpy(xStat.csumtype,  meta.csumtype,  SUMTYPE_MAX);
-  strncpy(xStat.csumvalue, meta.csumvalue, SUMVALUE_MAX);
-  strncpy(xStat.guid,      meta.guid,      GUID_MAX);
-
-  return xStat;
+  return meta.xStat;
 }
 
 
@@ -493,14 +486,7 @@ struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmExce
 struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
 {
   FileMetadata meta = this->getFile(inode);
-  struct xstat xStat;
-
-  xStat.stat = meta.stStat;
-  strncpy(xStat.csumtype,  meta.csumtype,  SUMTYPE_MAX);
-  strncpy(xStat.csumvalue, meta.csumvalue, SUMVALUE_MAX);
-  strncpy(xStat.guid,      meta.guid,      GUID_MAX);
-
-  return xStat;
+  return meta.xStat;
 }
 
 
@@ -533,14 +519,14 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
   
   // Can we read it?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stStat, S_IREAD) != 0) {
+                       meta.acl, meta.xStat.stat, S_IREAD) != 0) {
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
   }
 
   // Create the handle
   dir = new NsMySqlDir();
   memset(dir, 0x00, sizeof(NsMySqlDir));
-  dir->dirId = meta.stStat.st_ino;
+  dir->dirId = meta.xStat.stat.st_ino;
 
   try {
     // Pre-fetch the statement
@@ -593,7 +579,7 @@ struct dirent* NsMySqlCatalog::readDir(Directory* dir) throw(DmException)
   if (this->readDirx(dir) == 0)
     return 0x00;
   else
-    return &(((NsMySqlDir*)dir)->extended.dirent);
+    return &(((NsMySqlDir*)dir)->ds.dirent);
 }
 
 
@@ -612,14 +598,14 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
   switch (mysql_stmt_fetch(dirp->statement)) {
     case 0:
       // Set stat structure
-      memcpy(&dirp->extended.stat, &dirp->current.stStat, sizeof(struct stat));
+      memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
       // Set dirent structure
-      memset(&dirp->extended.dirent, 0x00, sizeof(struct dirent));      
-      dirp->extended.dirent.d_ino  = dirp->extended.stat.st_ino;
-      strncpy(dirp->extended.dirent.d_name,
-              dirp->current.name,
-              sizeof(dirp->extended.dirent.d_name));
-      return &dirp->extended;
+      memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
+      dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
+      strncpy(dirp->ds.dirent.d_name,
+              dirp->current.xStat.name,
+              sizeof(dirp->ds.dirent.d_name));
+      return &dirp->ds;
       break;
     case MYSQL_NO_DATA:
       return 0x00;
@@ -872,7 +858,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stStat, S_IREAD) != 0)
+                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
@@ -882,7 +868,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
   // Bind parameters
   memset(bindParam, 0, sizeof(bindParam));
   bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.stStat.st_ino);
+  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
 
   mysql_stmt_bind_param(stmt, bindParam);
 
@@ -977,7 +963,7 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stStat, S_IREAD) != 0)
+                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
@@ -987,7 +973,7 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
   // Bind parameters
   memset(bindParam, 0, sizeof(bindParam));
   bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.stStat.st_ino);
+  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
 
   mysql_stmt_bind_param(stmt, bindParam);
 
@@ -1084,13 +1070,13 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
 
   // Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stStat, S_IREAD) != 0)
+                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Bind params
   memset(bindParam, 0, sizeof(bindParam));
   bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.stStat.st_ino);
+  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
 
   mysql_stmt_bind_param(stmt, bindParam);
 
@@ -1144,7 +1130,7 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
   bindParam[0].length      = &guidLen;
   bindParam[0].buffer      = (void*)guid.c_str();
   bindParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[1].buffer      = &meta.stStat.st_ino;
+  bindParam[1].buffer      = &meta.xStat.stat.st_ino;
 
   mysql_stmt_bind_param(stmt, bindParam);
 
