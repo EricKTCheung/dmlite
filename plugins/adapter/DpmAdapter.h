@@ -27,9 +27,10 @@ public:
   
   FileReplica get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
+  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
   void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)              throw (DmException);
-  void        unlink   (const std::string&)                                  throw (DmException);
+  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        unlink   (const std::string&)                           throw (DmException);
 
   void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
   void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);

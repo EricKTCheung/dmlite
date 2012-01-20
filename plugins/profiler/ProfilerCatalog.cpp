@@ -183,6 +183,13 @@ std::string ProfilerCatalog::put(const std::string& path, Uri* uri) throw (DmExc
 
 
 
+std::string ProfilerCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
+{
+  PROFILE_RETURN(std::string, put, path, uri, guid);
+}
+
+
+
 void ProfilerCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   PROFILE(putStatus, path, token, uri);

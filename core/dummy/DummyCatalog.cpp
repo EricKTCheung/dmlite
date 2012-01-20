@@ -145,6 +145,13 @@ std::string DummyCatalog::put(const std::string& path, Uri* uri) throw (DmExcept
 
 
 
+std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
+{
+  DELEGATE_RETURN(put, path, uri, guid);
+}
+
+
+
 void DummyCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   DELEGATE(putStatus, path, token, uri);

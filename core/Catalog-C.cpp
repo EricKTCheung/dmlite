@@ -169,6 +169,16 @@ int dm_put(dm_context* context, const char* path, struct uri* uri, char* token)
 
 
 
+int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token)
+{
+  TRY(context, putg)
+  std::string t = context->catalog->put(path, uri, guid);
+  strcpy(token, t.c_str());
+  CATCH(context, putg)
+}
+
+
+
 int dm_putstatus(dm_context* context, const char* path, const char* token, struct uri* uri)
 {
   TRY(context, putstatus)
