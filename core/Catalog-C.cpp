@@ -181,7 +181,11 @@ int dm_put(dm_context* context, const char* path, struct uri* uri, char* token)
 int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token)
 {
   TRY(context, putg)
-  std::string t = context->catalog->put(path, uri, guid);
+  std::string t;
+  if (guid != NULL)
+    t = context->catalog->put(path, uri, guid);
+  else
+    t = context->catalog->put(path, uri);
   strcpy(token, t.c_str());
   CATCH(context, putg)
 }
