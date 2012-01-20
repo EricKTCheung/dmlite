@@ -43,6 +43,7 @@ public:
   std::string getImplId(void);
   
   FileReplica get (const std::string&) throw (DmException);
+  std::string put (const std::string&, Uri*, const std::string&) throw (DmException);
 
 protected:
 private:

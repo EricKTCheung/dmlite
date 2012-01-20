@@ -72,8 +72,9 @@ public:
   void        changeDir    (const std::string&) throw (DmException);
   std::string getWorkingDir(void)               throw (DmException);
   
-  struct stat stat    (const std::string&) throw (DmException);
-  struct stat linkStat(const std::string&) throw (DmException);
+  struct stat  stat        (const std::string&) throw (DmException);
+  struct stat  linkStat    (const std::string&) throw (DmException);
+  struct xstat extendedStat(const std::string&) throw (DmException);
 
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
@@ -95,6 +96,8 @@ public:
   void  setUserId     (uid_t, gid_t, const std::string&) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
+
+  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
   
 protected:
   UserInfo  user_;  ///< User.

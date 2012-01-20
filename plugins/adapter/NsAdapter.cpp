@@ -105,8 +105,7 @@ struct stat NsAdapterCatalog::stat(const std::string& path) throw (DmException)
   struct dpns_filestat dpnsStat;
   struct stat          stStat;
 
-  if (dpns_stat(path.c_str(), &dpnsStat) != 0)
-    ThrowExceptionFromSerrno(serrno);
+  wrapCall(dpns_stat(path.c_str(), &dpnsStat));
 
   stStat.st_atim.tv_sec = dpnsStat.atime;
   stStat.st_ctim.tv_sec = dpnsStat.ctime;
@@ -128,8 +127,7 @@ struct stat NsAdapterCatalog::linkStat(const std::string& path) throw (DmExcepti
   struct dpns_filestat dpnsStat;
   struct stat          stStat;
 
-  if (dpns_lstat(path.c_str(), &dpnsStat) != 0)
-    ThrowExceptionFromSerrno(serrno);
+  wrapCall(dpns_lstat(path.c_str(), &dpnsStat));
 
   stStat.st_atim.tv_sec = dpnsStat.atime;
   stStat.st_ctim.tv_sec = dpnsStat.ctime;
@@ -142,6 +140,32 @@ struct stat NsAdapterCatalog::linkStat(const std::string& path) throw (DmExcepti
   stStat.st_size  = dpnsStat.filesize;
 
   return stStat;
+}
+
+
+
+struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmException)
+{
+  struct dpns_filestatg dpnsStat;
+  struct xstat          xStat;
+
+  wrapCall(dpns_statr(path.c_str(), &dpnsStat));
+
+  xStat.stat.st_atim.tv_sec = dpnsStat.atime;
+  xStat.stat.st_ctim.tv_sec = dpnsStat.ctime;
+  xStat.stat.st_mtim.tv_sec = dpnsStat.mtime;
+  xStat.stat.st_gid   = dpnsStat.gid;
+  xStat.stat.st_uid   = dpnsStat.uid;
+  xStat.stat.st_nlink = dpnsStat.nlink;
+  xStat.stat.st_ino   = dpnsStat.fileid;
+  xStat.stat.st_mode  = dpnsStat.filemode;
+  xStat.stat.st_size  = dpnsStat.filesize;
+
+  strncpy(xStat.csumtype,  dpnsStat.csumtype,  SUMTYPE_MAX);
+  strncpy(xStat.csumvalue, dpnsStat.csumvalue, SUMVALUE_MAX);
+  strncpy(xStat.guid,      dpnsStat.guid,      GUID_MAX);
+
+  return xStat;
 }
 
 

@@ -99,6 +99,15 @@ int dm_lstat(dm_context* context, const char* path, struct stat* buf)
 
 
 
+int dm_xstat(dm_context* context, const char* path, struct xstat* buf)
+{
+  TRY(context, lstat)
+  *buf = context->catalog->extendedStat(path);
+  CATCH(context, lstat);
+}
+
+
+
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
                   const char* server, const char* path, const char status,
                   const char fileType, const char* poolName,

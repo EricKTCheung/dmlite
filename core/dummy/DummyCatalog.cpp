@@ -90,6 +90,14 @@ struct stat DummyCatalog::linkStat(const std::string& path) throw (DmException)
 }
 
 
+
+struct xstat DummyCatalog::extendedStat(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(extendedStat, path);
+}
+
+
+
 void DummyCatalog::addReplica(const std::string& guid, int64_t id,
                               const std::string& server, const std::string& sfn,
                               const char status, const char fileType,
