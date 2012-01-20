@@ -73,8 +73,10 @@ public:
   std::string getWorkingDir(void)               throw (DmException);
   
   struct stat  stat        (const std::string&) throw (DmException);
+  struct stat  stat        (ino_t)              throw (DmException);
   struct stat  linkStat    (const std::string&) throw (DmException);
   struct xstat extendedStat(const std::string&) throw (DmException);
+  struct xstat extendedStat(ino_t)              throw (DmException);
 
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
