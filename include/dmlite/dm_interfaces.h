@@ -50,6 +50,12 @@ public:
   /// @return     The status of the file.
   virtual struct stat stat(const std::string& path) throw (DmException) = 0;
 
+  /// Do a stat of an entry using its inode.
+  /// @param inode The entry inode.
+  /// @return      The status of the file.
+  /// @note        No security checks will be done.
+  virtual struct stat stat(ino_t inode) throw (DmException) = 0;
+
   /// Do a stat of a file or directory. Stats symbolic links.
   /// @param path The path of the file or direntory
   /// @return     The status of the link.
@@ -59,6 +65,12 @@ public:
   /// @param path The path of the file or directory.
   /// @return     The extended status of the file.
   virtual struct xstat extendedStat(const std::string& path) throw (DmException) = 0;
+
+  /// Do an extended stat of en entry using its inode.
+  /// @param inode The entry inode.
+  /// @return      The extended status of the file.
+  /// @note        No security checks will be done.
+  virtual struct xstat extendedStat(ino_t inode) throw (DmException) = 0;
 
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.

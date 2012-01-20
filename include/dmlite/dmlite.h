@@ -132,6 +132,28 @@ int dm_lstat(dm_context* context, const char* path, struct stat* buf);
 int dm_xstat(dm_context* context, const char* path, struct xstat* buf);
 
 /**
+ * Do a stat of an entry using the inode instead of the path.
+ * @param context The DM context.
+ * @param inode   The entry inode.
+ * @param buf     Where to put the retrieved information.
+ * @return        0 on success, error code otherwise.
+ * @note          Security checks won't be done if you use this function,
+ *                so keep in mind doing it yourself.
+ */
+int dm_istat(dm_context* context, ino_t inode, struct stat* buf);
+
+/**
+ * Do an extended stat of an entry using the inode instead of the path.
+ * @param context The DM context.
+ * @param inode   The entry inode.
+ * @param buf     Where to put the retrieved information.
+ * @return        0 on success, error code otherwise.
+ * @note          Security checks won't be done if you use this function,
+ *                so keep in mind doing it yourself.
+ */
+int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf);
+
+/**
  * Add a new replica to an entry.
  * @param context    The DM context.
  * @param guid       The Grid Unique IDentifier of the file. It can be NULL.

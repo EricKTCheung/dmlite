@@ -108,6 +108,24 @@ int dm_xstat(dm_context* context, const char* path, struct xstat* buf)
 
 
 
+int dm_istat(dm_context* context, ino_t inode, struct stat* buf)
+{
+  TRY(context, lstat)
+  *buf = context->catalog->stat(inode);
+  CATCH(context, lstat);
+}
+
+
+
+int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf)
+{
+  TRY(context, lstat)
+  *buf = context->catalog->extendedStat(inode);
+  CATCH(context, lstat);
+}
+
+
+
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
                   const char* server, const char* path, const char status,
                   const char fileType, const char* poolName,

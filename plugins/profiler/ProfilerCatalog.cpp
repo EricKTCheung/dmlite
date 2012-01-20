@@ -122,6 +122,13 @@ struct stat ProfilerCatalog::stat(const std::string& path) throw (DmException)
 
 
 
+struct stat ProfilerCatalog::stat(ino_t inode) throw (DmException)
+{
+  PROFILE_RETURN(struct stat, stat, inode);
+}
+
+
+
 struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(struct stat, linkStat, path);
@@ -132,6 +139,13 @@ struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmExceptio
 struct xstat ProfilerCatalog::extendedStat(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(struct xstat, extendedStat, path);
+}
+
+
+
+struct xstat ProfilerCatalog::extendedStat(ino_t inode) throw (DmException)
+{
+  PROFILE_RETURN(struct xstat, extendedStat, inode);
 }
 
 

@@ -40,8 +40,10 @@ public:
   std::string getWorkingDir(void)               throw (DmException);
 
   struct stat  stat        (const std::string&) throw (DmException);
+  struct stat  stat        (ino_t)              throw (DmException);
   struct stat  linkStat    (const std::string&) throw (DmException);
   struct xstat extendedStat(const std::string&) throw (DmException);
+  struct xstat extendedStat(ino_t)              throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,
                           const std::string&, const char, const char,

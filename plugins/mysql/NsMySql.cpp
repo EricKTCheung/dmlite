@@ -459,6 +459,14 @@ struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
 
 
 
+struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
+{
+  FileMetadata meta = this->getFile(inode);
+  return meta.stStat;
+}
+
+
+
 struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
 {
   FileMetadata meta = this->parsePath(path, false);
@@ -470,6 +478,21 @@ struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
 struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
+  struct xstat xStat;
+
+  xStat.stat = meta.stStat;
+  strncpy(xStat.csumtype,  meta.csumtype,  SUMTYPE_MAX);
+  strncpy(xStat.csumvalue, meta.csumvalue, SUMVALUE_MAX);
+  strncpy(xStat.guid,      meta.guid,      GUID_MAX);
+
+  return xStat;
+}
+
+
+
+struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
+{
+  FileMetadata meta = this->getFile(inode);
   struct xstat xStat;
 
   xStat.stat = meta.stStat;

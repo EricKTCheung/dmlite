@@ -84,6 +84,13 @@ struct stat DummyCatalog::stat(const std::string& path) throw (DmException)
 
 
 
+struct stat DummyCatalog::stat(ino_t inode) throw (DmException)
+{
+  DELEGATE_RETURN(stat, inode);
+}
+
+
+
 struct stat DummyCatalog::linkStat(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(linkStat, path);
@@ -94,6 +101,13 @@ struct stat DummyCatalog::linkStat(const std::string& path) throw (DmException)
 struct xstat DummyCatalog::extendedStat(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(extendedStat, path);
+}
+
+
+
+struct xstat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
+{
+  DELEGATE_RETURN(extendedStat, inode);
 }
 
 

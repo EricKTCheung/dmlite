@@ -122,6 +122,13 @@ struct stat NsAdapterCatalog::stat(const std::string& path) throw (DmException)
 
 
 
+struct stat NsAdapterCatalog::stat(ino_t) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
+}
+
+
+
 struct stat NsAdapterCatalog::linkStat(const std::string& path) throw (DmException)
 {
   struct dpns_filestat dpnsStat;
@@ -166,6 +173,13 @@ struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmEx
   strncpy(xStat.guid,      dpnsStat.guid,      GUID_MAX);
 
   return xStat;
+}
+
+
+
+struct xstat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
 }
 
 

@@ -6,7 +6,7 @@
 class TestStat: public TestBase
 {
 protected:
-  struct stat statBuf;
+  struct stat statBuf, iStat;
   const static int   MODE;
   const static char *FOLDER;
   const static char *NESTED;
@@ -96,11 +96,23 @@ public:
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
   }
 
+  void testIStat()
+  {
+    statBuf = this->catalog->stat(FOLDER);
+    iStat   = this->catalog->stat(statBuf.st_ino);
+
+    // Check some only, if they are fine, the rest should be fine.
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_ino,  iStat.st_ino);
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_mode, iStat.st_mode);
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_uid,  iStat.st_uid);
+  }
+
   CPPUNIT_TEST_SUITE(TestStat);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testDifferentUser);
   CPPUNIT_TEST(testSymLink);
   CPPUNIT_TEST(testRelative);
+  CPPUNIT_TEST(testIStat);
   CPPUNIT_TEST_SUITE_END();
 };
 
