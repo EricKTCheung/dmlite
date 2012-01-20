@@ -47,8 +47,9 @@ public:
   virtual void unlink (const std::string&)                     throw (DmException);
 
   virtual std::string put(const std::string&, Uri*)                           throw (DmException);
+  virtual std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);
   virtual void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  virtual void        putDone  (const std::string&, const std::string&)              throw (DmException);
+  virtual void        putDone  (const std::string&, const std::string&)       throw (DmException);
 
   virtual void changeMode     (const std::string&, mode_t)       throw (DmException);
   virtual void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);

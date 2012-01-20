@@ -206,6 +206,13 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
 
 
 
+std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapterCatalog");
+}
+
+
+
 void DpmAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   struct dpm_putfilestatus *statuses;

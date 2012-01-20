@@ -193,11 +193,22 @@ int dm_unlink(dm_context* context, const char* path);
  * Put a file (synchronous).
  * @param context The DM context.
  * @param path    The logical file name to put.
- * @param uri     Where to put the final detination.
+ * @param uri     Where to put the final destination.
  * @param token   Where to put the token identifying the request. It must be at least of size TOKEN_MAX.
  * @return        0 on success, error code otherwise.
  */
 int dm_put(dm_context* context, const char* path, struct uri* uri, char* token);
+
+/**
+ * Put a file (synchronous).
+ * @param context The DM context.
+ * @param path    The logical file name to put.
+ * @param uri     Where to put the final destination.
+ * @param guid    The Grid Unique ID.
+ * @param token   Where to put the token identifying the request. It must be at least of size TOKEN_MAX.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token);
 
 
 /**

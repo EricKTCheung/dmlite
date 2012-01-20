@@ -245,6 +245,13 @@ std::string NsAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmEx
 
 
 
+std::string NsAdapterCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "put not implemented for NsAdapterCatalog");
+}
+
+
+
 void NsAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "putStatus not implemented for NsAdapterCatalog");

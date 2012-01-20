@@ -99,6 +99,14 @@ public:
   /// @return      The PUT token.
   virtual std::string put(const std::string& path, Uri* uri) throw (DmException) = 0;
 
+  /// Start the PUT of a file.
+  /// @param path  The path of the file to create.
+  /// @param uri   The destination location will be put here.
+  /// @param guid  The Grid Unique ID.
+  /// @return      The PUT token.
+  virtual std::string put(const std::string& path, Uri* uri,
+                          const std::string& guid) throw (DmException) = 0;
+
   /// Get the PUT status
   /// @param path  The path of the file that was put
   /// @param token As returned by dm::Catalog::put
