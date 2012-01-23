@@ -15,7 +15,8 @@ Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:	cmake%{?_isa}
 BuildRequires:	dpm-devel%{?_isa}
 BuildRequires:	subversion%{?_isa}
-BuildRequires:  mysql-devel%{?_isa}
+BuildRequires:	mysql-devel%{?_isa}
+BuildRequires:	cppunit-devel%{?_isa}
 
 %description
 This package provides a set of libraries and plugins that implements
@@ -83,5 +84,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/dmlite
 
 %changelog
+* Mon Jan 23 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
+- Added cppunit-devel as a build dependency
 * Tue Jan 20 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Created spec file
