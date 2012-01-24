@@ -58,7 +58,7 @@ int dm_manager_set(dm_manager* handle, const char* key, const char* value)
   if (handle == NULL)
     return -1;
 
-  TRY_CATCH(handle, set, key, value);
+  TRY_CATCH(handle, configure, key, value);
 }
 
 
@@ -96,18 +96,21 @@ const char* dm_manager_error(dm_manager* handle)
 dm_context* dm_context_new(dm_manager* handle)
 {
   dm_context*         ctx;
-  dmlite::CatalogFactory* factory;
 
   if (handle == NULL)
     return NULL;
 
   ctx = new dm_context();
+  ctx->catalog = 0x00;
+  ctx->pool    = 0x00;
 
   try {
-    factory = handle->manager->getCatalogFactory();
-    ctx->catalog = factory->create();
+    ctx->catalog = handle->manager->getCatalogFactory()->createCatalog();
+    ctx->pool    = handle->manager->getPoolManagerFactory()->createPoolManager();
   }
   catch (dmlite::DmException e) {
+    if (ctx->catalog)
+      delete ctx->catalog;
     delete ctx;
     handle->errorCode   = e.code();
     handle->errorString = e.what();

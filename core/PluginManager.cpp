@@ -4,7 +4,6 @@
 #include <cstdarg>
 #include <dlfcn.h>
 #include <dmlite/dmlite++.h>
-#include <dmlite/dm_interfaces.h>
 #include <fstream>
 #include <sstream>
 
@@ -57,7 +56,7 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
 
 
 
-void PluginManager::set(const std::string& key, const std::string& value) throw(DmException)
+void PluginManager::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   std::list<CatalogFactory*>::const_iterator i;
   int r;
@@ -68,7 +67,7 @@ void PluginManager::set(const std::string& key, const std::string& value) throw(
        i != this->catalog_plugins_.end();
        ++i) {
     try {
-      (*i)->set(key, value);
+      (*i)->configure(key, value);
       r = 0; // At least one recognised this
     }
     catch (DmException) {
@@ -130,7 +129,7 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           std::string value;
           stream >> value;
           try {
-            this->set(parameter, value);
+            this->configure(parameter, value);
           }
           catch (DmException e) {
             // Error code is good, but error message can be better here.
@@ -159,9 +158,25 @@ void PluginManager::registerCatalogFactory(CatalogFactory* factory) throw(DmExce
 
 CatalogFactory* PluginManager::getCatalogFactory() throw(DmException)
 {
-  // Get the top one
   if (this->catalog_plugins_.empty())
     throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->catalog_plugins_.front();
+}
+
+
+
+void PluginManager::registerPoolFactory(PoolManagerFactory* factory) throw (DmException)
+{
+  this->pool_plugins_.push_front(factory);
+}
+
+
+
+PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
+{
+  if (this->pool_plugins_.empty())
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
+  else
+    return this->pool_plugins_.front();
 }

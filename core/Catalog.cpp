@@ -3,8 +3,9 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdarg>
 #include <cstdio>
-#include <dmlite/dm_errno.h>
-#include <dmlite/dm_interfaces.h>
+#include <dmlite/dm_catalog.h>
+
+#include "dmlite/dm_pool.h"
 
 using namespace dmlite;
 
@@ -19,6 +20,24 @@ Catalog::Catalog() throw (DmException): parent_(0x00)
 Catalog::~Catalog()
 {
   // Nothing
+}
+
+
+
+PoolManager::~PoolManager()
+{
+  // Nothing
+}
+
+
+
+void Catalog::set(const std::string& key, ...) throw (DmException)
+{
+  va_list vargs;
+
+  va_start(vargs, key);
+  this->set(key, vargs);
+  va_end(vargs);
 }
 
 
@@ -38,6 +57,20 @@ Catalog* Catalog::getParent(void)
 
 
 CatalogFactory::~CatalogFactory()
+{
+  // Nothing
+}
+
+
+
+AuthBase::~AuthBase()
+{
+  // Nothing
+}
+
+
+
+PoolManagerFactory::~PoolManagerFactory()
 {
   // Nothing
 }

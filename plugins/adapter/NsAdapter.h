@@ -4,7 +4,7 @@
 #ifndef NS_ADAPTER_H
 #define	NS_ADAPTER_H
 
-#include <dmlite/dm_interfaces.h>
+#include <dmlite/dm_catalog.h>
 #include <dpns_api.h>
 
 namespace dmlite {
@@ -31,7 +31,7 @@ public:
 
 
   // Overloading
-  std::string getImplId(void);
+  std::string getImplId(void) throw ();
 
   void set(const std::string&, ...)     throw (DmException);
   void set(const std::string&, va_list) throw (DmException);
@@ -92,9 +92,6 @@ public:
 
   void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
   void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
-
-  std::vector<Pool>       getPools(void)                         throw (DmException);
-  std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
   
 protected:
   unsigned    retryLimit_;

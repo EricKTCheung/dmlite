@@ -15,9 +15,10 @@ struct dm_manager {
 
 /// Context handle for C API.
 struct dm_context {
-  dmlite::Catalog* catalog;
-  int              errorCode;
-  std::string      errorString;
+  dmlite::Catalog*     catalog;
+  dmlite::PoolManager* pool;
+  int                  errorCode;
+  std::string          errorString;
 };
 
 #endif	/* PRIVATE_H */

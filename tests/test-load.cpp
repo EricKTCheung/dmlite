@@ -39,9 +39,9 @@ public:
       // Load second
       pluginManager->loadPlugin("../plugins/profiler/plugin_profiler.so", "plugin_profiler");
       // Configure (adapter should recognise)
-      pluginManager->set("Host", "arioch.cern.ch");
+      pluginManager->configure("Host", "arioch.cern.ch");
       // Get interface
-      catalog = pluginManager->getCatalogFactory()->create();
+      catalog = pluginManager->getCatalogFactory()->createCatalog();
       CPPUNIT_ASSERT(catalog != 0x00);
     }
     catch (dmlite::DmException exc) {

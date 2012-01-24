@@ -4,7 +4,7 @@
 #ifndef NSMYSQL_H
 #define	NSMYSQL_H
 
-#include <dmlite/Dummy.h>
+#include <dmlite/dummy/Dummy.h>
 #include <mysql/mysql.h>
 #include <vector>
 
@@ -60,7 +60,7 @@ public:
   ~NsMySqlCatalog() throw (DmException);
 
   // Overloading
-  std::string getImplId(void);
+  std::string getImplId(void) throw ();
 
   void        changeDir    (const std::string&) throw (DmException);
   std::string getWorkingDir(void)               throw (DmException);

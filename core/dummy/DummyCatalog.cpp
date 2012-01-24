@@ -3,7 +3,7 @@
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdarg>
-#include <dmlite/Dummy.h>
+#include <dmlite/dummy/Dummy.h>
 
 using namespace dmlite;
 
@@ -38,20 +38,9 @@ DummyCatalog::~DummyCatalog()
 
 
 
-std::string DummyCatalog::getImplId(void)
+std::string DummyCatalog::getImplId(void) throw ()
 {
   return std::string("Dummy");;
-}
-
-
-
-void DummyCatalog::set(const std::string& key, ...) throw (DmException)
-{
-  va_list vargs;
-
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
 }
 
 
@@ -319,18 +308,4 @@ void DummyCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw 
 void DummyCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
   DELEGATE(setVomsData, vo, fqans);
-}
-
-
-
-std::vector<Pool> DummyCatalog::getPools(void) throw (DmException)
-{
-  DELEGATE_RETURN(getPools);
-}
-
-
-
-std::vector<FileSystem> DummyCatalog::getPoolFilesystems(const std::string& poolname) throw (DmException)
-{
-  DELEGATE_RETURN(getPoolFilesystems, poolname);
 }

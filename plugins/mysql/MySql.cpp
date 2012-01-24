@@ -66,7 +66,7 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 
 NsMySqlFactory::NsMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
-  DummyFactory(catalogFactory),
+  nestedFactory_(catalogFactory),
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
   connectionPool_(&connectionFactory_, 25), nsDb_("cns_db")
 {
@@ -84,7 +84,7 @@ NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 
 
 
-void NsMySqlFactory::set(const std::string& key, const std::string& value) throw(DmException)
+void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   if (key == "Host")
     this->connectionFactory_.host = value;
@@ -105,12 +105,12 @@ void NsMySqlFactory::set(const std::string& key, const std::string& value) throw
 }
 
 
-Catalog* NsMySqlFactory::create() throw(DmException)
+Catalog* NsMySqlFactory::createCatalog() throw(DmException)
 {
   Catalog* nested = 0x00;
 
-  if (this->nested_factory_ != 0x00)
-    nested = this->nested_factory_->create();
+  if (this->nestedFactory_ != 0x00)
+    nested = this->nestedFactory_->createCatalog();
 
   return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
                             nested, this->symLinkLimit_);
@@ -133,22 +133,22 @@ DpmMySqlFactory::~DpmMySqlFactory() throw(DmException)
 
 
 
-void DpmMySqlFactory::set(const std::string& key, const std::string& value) throw(DmException)
+void DpmMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   if (key == "DpmDatabase")
     this->dpmDb_ = value;
   else
-    return NsMySqlFactory::set(key, value);
+    return NsMySqlFactory::configure(key, value);
 }
 
 
 
-Catalog* DpmMySqlFactory::create() throw(DmException)
+Catalog* DpmMySqlFactory::createCatalog() throw(DmException)
 {
   Catalog* nested = 0x00;
 
-  if (this->nested_factory_ != 0x00)
-    nested = this->nested_factory_->create();
+  if (this->nestedFactory_ != 0x00)
+    nested = this->nestedFactory_->createCatalog();
 
   return new DpmMySqlCatalog(&this->connectionPool_,
                              this->nsDb_, this->dpmDb_,

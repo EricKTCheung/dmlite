@@ -2,8 +2,8 @@
  *  @brief  Error codes.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */
-#ifndef DM_ERRNO_H
-#define	DM_ERRNO_H
+#ifndef DMLITE_ERRNO_H
+#define	DMLITE_ERRNO_H
 
 #define DM_NO_ERROR             0x0000
 #define DM_UNKNOWN_ERROR        0x0001
@@ -40,6 +40,6 @@
 #define DM_NO_SUCH_USER         0x1036
 #define DM_NO_SUCH_GROUP        0x1037
 #define DM_NO_COMMENT           0x1038
+#define DM_NO_SUCH_FS           0x1039
 
-#endif	/* DM_ERRNO_H */
-
+#endif	/* DMLITE_ERRNO_H */

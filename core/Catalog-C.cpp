@@ -435,7 +435,7 @@ int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int 
 int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
 {
   TRY(context, getpools)
-  std::vector<pool> poolSet = context->catalog->getPools();
+  std::vector<pool> poolSet = context->pool->getPools();
 
   *pools = new pool[poolSet.size()];
 
@@ -465,7 +465,7 @@ int dm_freepools(dm_context* context, int npools, struct pool* pools)
 int dm_getpoolfs(dm_context* context, const char *poolname, int *nbfs, struct filesystem **fs)
 {
   TRY(context, getpoolfs)
-  std::vector<filesystem> filesystems = context->catalog->getPoolFilesystems(poolname);
+  std::vector<filesystem> filesystems = context->pool->getPoolFilesystems(poolname);
 
   *fs = new filesystem[filesystems.size()];
 

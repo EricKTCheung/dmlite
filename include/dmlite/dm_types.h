@@ -2,8 +2,8 @@
  *  @brief  Types used by the dm API, common between C and C++.
  *  @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
  */
-#ifndef DM_TYPES_H
-#define	DM_TYPES_H
+#ifndef DMLITE_TYPES_H
+#define	DMLITE_TYPES_H
 
 #include <dirent.h>
 #include <limits.h>
@@ -140,4 +140,4 @@ inline bool operator < (const groupinfo &a, const groupinfo &b)
 }
 #endif
 
-#endif	/* DM_TYPES_H */
+#endif	/* DMLITE_TYPES_H */

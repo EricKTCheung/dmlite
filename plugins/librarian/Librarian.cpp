@@ -7,7 +7,7 @@ using namespace dmlite;
 
 
 LibrarianFactory::LibrarianFactory(CatalogFactory* catalogFactory) throw(DmException):
-     DummyFactory(catalogFactory)
+  nestedFactory_(catalogFactory)
 {
   // Nothing
 }
@@ -21,17 +21,17 @@ LibrarianFactory::~LibrarianFactory() throw(DmException)
 
 
 
-void LibrarianFactory::set(const std::string& key, const std::string& value) throw(DmException)
+void LibrarianFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
 
 
-Catalog* LibrarianFactory::create() throw(DmException)
+Catalog* LibrarianFactory::createCatalog() throw(DmException)
 {
-  if (this->nested_factory_ != 0x00)
-    return new LibrarianCatalog(this->nested_factory_->create());
+  if (this->nestedFactory_ != 0x00)
+    return new LibrarianCatalog(this->nestedFactory_->createCatalog());
   else
     return new LibrarianCatalog(0x00);
 }

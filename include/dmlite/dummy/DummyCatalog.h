@@ -1,9 +1,9 @@
-/// @file    include/dm/Dummy.h
+/// @file    include/dm/DummyCatalog.h
 /// @brief   A dummy plugin that just delegates calls to a decorated one.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DUMMY_H
-#define	DUMMY_H
+#ifndef DMLITE_DUMMY_CATALOG_H
+#define	DMLITE_DUMMY_CATALOG_H
 
 #include <dmlite/dmlite++.h>
 
@@ -22,9 +22,8 @@ public:
   virtual ~DummyCatalog();
 
   // Overloading
-  virtual std::string getImplId(void);
+  virtual std::string getImplId(void) throw ();
 
-  virtual void set(const std::string&, ...)     throw (DmException);
   virtual void set(const std::string&, va_list) throw (DmException);
 
   virtual void        changeDir    (const std::string&) throw (DmException);
@@ -82,31 +81,13 @@ public:
 
   virtual void setUserId  (uid_t, gid_t, const std::string&)                 throw (DmException);
   virtual void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
-
-  virtual std::vector<Pool>       getPools(void)                         throw (DmException);
-  virtual std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
-
+  
 protected:
   Catalog* decorated_;
 private:
 };
 
-/// Concrete factory for Dummy plugin
-class DummyFactory: public CatalogFactory {
-public:
-  /// Constructor
-  DummyFactory(CatalogFactory* catalogFactory) throw (DmException);
-  /// Destructor
-  ~DummyFactory() throw (DmException);
-
-  void     set(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* create() throw (DmException);
-protected:
-  CatalogFactory* nested_factory_;
-private:
-};
 
 };
 
-#endif	//DUMMY_H
-
+#endif	// DMLITE_DUMMY_CATALOG_H

@@ -5,8 +5,8 @@ add_library(dmlite SHARED PluginManager.cpp
                           Catalog.cpp
                           Catalog-C.cpp
                           Exceptions.cpp
-                          dummy/Dummy.cpp
-                          dummy/DummyCatalog.cpp)
+                          dummy/DummyCatalog.cpp
+                          dummy/DummyPool.cpp)
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${libdm_MAJOR}.${libdm_MINOR}.${libdm_PATCH}

@@ -8,9 +8,11 @@
 
 using namespace dmlite;
 
-ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory) throw (DmException)
+ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
+                                 PoolManagerFactory* poolManagerFactory) throw (DmException)
 {
-  this->nestedFactory_ = catalogFactory;
+  this->nestedCatalogFactory_     = catalogFactory;
+  this->nestedPoolManagerFactory_ = poolManagerFactory;
 }
 
 
@@ -22,16 +24,23 @@ ProfilerFactory::~ProfilerFactory()
 
 
 
-void ProfilerFactory::set(const std::string& key, const std::string& value) throw (DmException)
+void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + value);
 }
 
 
 
-Catalog* ProfilerFactory::create() throw (DmException)
+Catalog* ProfilerFactory::createCatalog() throw (DmException)
 {
-  return new ProfilerCatalog(this->nestedFactory_->create());
+  return new ProfilerCatalog(this->nestedCatalogFactory_->createCatalog());
+}
+
+
+
+PoolManager* ProfilerFactory::createPoolManager() throw (DmException)
+{
+  return new ProfilerPoolManager(this->nestedPoolManagerFactory_->createPoolManager());
 }
 
 
@@ -39,12 +48,18 @@ Catalog* ProfilerFactory::create() throw (DmException)
 static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
 {
   try {
-    pm->registerCatalogFactory(new ProfilerFactory(pm->getCatalogFactory()));
+    pm->registerCatalogFactory(new ProfilerFactory(pm->getCatalogFactory(), 0x00));
   }
   catch (DmException e) {
-    if (e.code() == DM_NO_FACTORY)
-      throw DmException(DM_NO_FACTORY, "Profiler can not be loaded first");
-    else
+    if (e.code() != DM_NO_FACTORY)
+      throw;
+  }
+
+  try {
+    pm->registerPoolFactory(new ProfilerFactory(0x00, pm->getPoolManagerFactory()));
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_FACTORY)
       throw;
   }
 }

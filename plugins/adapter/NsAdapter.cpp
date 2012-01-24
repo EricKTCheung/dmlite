@@ -59,7 +59,7 @@ NsAdapterCatalog::~NsAdapterCatalog()
 
 
 
-std::string NsAdapterCatalog::getImplId()
+std::string NsAdapterCatalog::getImplId() throw ()
 {
   return std::string("NsAdapterCatalog");
 }
@@ -556,18 +556,4 @@ void NsAdapterCatalog::setVomsData(const std::string& vo,
   // Pass the data
   wrapCall(dpns_client_setVOMS_data(this->vo_,
                                     this->fqans_, this->nFqans_));
-}
-
-
-
-std::vector<Pool> NsAdapterCatalog::getPools() throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::getPools no implemented");
-}
-
-
-
-std::vector<FileSystem> NsAdapterCatalog::getPoolFilesystems(const std::string&) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::getPoolFilesystems no implemented");
 }

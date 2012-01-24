@@ -1,62 +1,9 @@
 /// @file    plugins/profiler/ProfilerCatalog.cpp
 /// @brief   ProfilerCatalog implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <ctime>
-#include <string>
-#include <syslog.h>
-
 #include "Profiler.h"
 
 using namespace dmlite;
-
-
-
-/// Profiler macro
-#define PROFILE(method, ...)\
-struct timespec  start, end;\
-double           duration;\
-DmException exception;\
-bool             failed = false;\
-if (this->decorated_ == 0x00)\
-  throw DmException(DM_NULL_POINTER, std::string("There is no plugin to delegate the call "#method));\
-clock_gettime(CLOCK_REALTIME, &start);\
-try {\
-  this->decorated_->method(__VA_ARGS__);\
-} catch (DmException e) {\
-  exception = e;\
-  failed = true;\
-}\
-clock_gettime(CLOCK_REALTIME, &end);\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
-if (failed)\
-  throw exception;
-
-/// Profile with pointers
-#define PROFILE_RETURN(type, method, ...)\
-struct timespec start, end;\
-double          duration;\
-DmException     exception;\
-bool            failed = false;\
-type            ret;\
-if (this->decorated_ == 0x00)\
-  throw DmException(DM_NULL_POINTER, std::string("There is no plugin to delegate the call "#method));\
-clock_gettime(CLOCK_REALTIME, &start);\
-try {\
-  ret = this->decorated_->method(__VA_ARGS__);\
-} catch (DmException e) {\
-  exception = e;\
-  failed = true;\
-}\
-clock_gettime(CLOCK_REALTIME, &end);\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
-if (failed)\
-  throw exception;\
-return ret;
-
 
 
 ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
@@ -76,7 +23,7 @@ ProfilerCatalog::~ProfilerCatalog()
 
 
 
-std::string ProfilerCatalog::getImplId()
+std::string ProfilerCatalog::getImplId() throw ()
 {
   return std::string("ProfilerCatalog");
 }
@@ -357,18 +304,4 @@ void ProfilerCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) thr
 void ProfilerCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
   PROFILE(setVomsData, vo, fqans);
-}
-
-
-
-std::vector<Pool> ProfilerCatalog::getPools(void) throw (DmException)
-{
-  PROFILE_RETURN(std::vector<Pool>, getPools);
-}
-
-
-
-std::vector<FileSystem> ProfilerCatalog::getPoolFilesystems(const std::string& poolname) throw (DmException)
-{
-  PROFILE_RETURN(std::vector<FileSystem>, getPoolFilesystems, poolname);
 }

@@ -40,10 +40,13 @@ public:
   ~DpmMySqlCatalog() throw (DmException);
 
   // Overloading
-  std::string getImplId(void);
+  std::string getImplId(void) throw ();
   
   FileReplica get (const std::string&) throw (DmException);
   std::string put (const std::string&, Uri*, const std::string&) throw (DmException);
+
+  
+  int getFsStatus(const std::string&, const std::string& server, const std::string& fs) throw(DmException);
 
 protected:
 private:
@@ -60,13 +63,6 @@ private:
   /// @return     A pointer to a MySQL statement.
   MYSQL_STMT* getPreparedStatement(unsigned stId);
 
-  /// Get the status of a filesystem within a pool.
-  /// @param pool   The pool name.
-  /// @param server The disk server.
-  /// @param fs     The file system within the server.
-  /// @return       FS_ENABLED, FS_DISABLED or FS_RDONLY
-  int getFsStatus(const std::string&, const std::string& server, const std::string& fs) throw(DmException);
-  
 };
 
 };
