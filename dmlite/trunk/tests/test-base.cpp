@@ -18,7 +18,7 @@ void TestBase::setUp()
   pluginManager = new dmlite::PluginManager();
   pluginManager->loadConfiguration(TestBase::config);
   // Catalog
-  catalog = pluginManager->getCatalogFactory()->create();
+  catalog = pluginManager->getCatalogFactory()->createCatalog();
 }
 
 

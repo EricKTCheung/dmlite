@@ -1,5 +1,5 @@
 Name:		  dmlite
-Version:	0.1.0
+Version:	0.2.0
 Release:	1%{?dist}
 Summary:	Common libraries for LCGDM components.
 Group:		Applications/Internet
@@ -7,8 +7,8 @@ License:	ASL 2.0
 URL:		  https://svnweb.cern.ch/trac/lcgdm
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/libdm/tags/dmlite_0_1_0 dmlite-0.1.0
-# tar -czvf dmlite-0.1.0.tar.gz dmlite-0.1.0
+# svn export http://svn.cern.ch/guest/lcgdm/libdm/tags/dmlite_0_2_0 dmlite-0.2.0
+# tar -czvf dmlite-0.2.0.tar.gz dmlite-0.2.0
 Source0:	  %{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 

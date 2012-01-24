@@ -1,8 +1,8 @@
 /// @file   include/dm/exceptions.h
 /// @brief  Exceptions used by the API
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef EXCEPTIONS_H
-#define	EXCEPTIONS_H
+#ifndef DMLITE_EXCEPTIONS_H
+#define	DMLITE_EXCEPTIONS_H
 
 #include <cstdarg>
 #include <exception>
@@ -37,5 +37,4 @@ private:
 
 };
 
-#endif	// EXCEPTIONS_H
-
+#endif	// DMLITE_EXCEPTIONS_H

@@ -5,23 +5,24 @@
 #define	DPM_ADAPTER_H
 
 #include "NsAdapter.h"
+#include <dmlite/dm_pool.h>
 #include <syslog.h>
 
 namespace dmlite {
 
 /// Overrides some functions using the DPM API.
-class DpmAdapterCatalog: public NsAdapterCatalog {
+class DpmAdapter: public NsAdapterCatalog, public PoolManager {
 public:
   /// Constructor
   /// @param dpmHost    The DPM host
   /// @param retryLimit The limit of retrials.
-  DpmAdapterCatalog(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
+  DpmAdapter(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
 
   /// Destructor
-  ~DpmAdapterCatalog();
+  ~DpmAdapter();
 
   // Overload
-  std::string getImplId(void);
+  std::string getImplId(void) throw ();
 
   void set(const std::string&, va_list) throw (DmException);
   
@@ -35,8 +36,11 @@ public:
   void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
   void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
 
-  std::vector<Pool>       getPools(void)                         throw (DmException);
+  std::vector<Pool>       getPools          (void)               throw (DmException);
   std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
+  FileSystem              getFilesystem     (const std::string& pool,
+                                             const std::string& server,
+                                             const std::string& fs) throw(DmException);
 
 protected:
 private:

@@ -16,7 +16,7 @@ using namespace dmlite;
 
 
 
-DpmAdapterCatalog::DpmAdapterCatalog(const std::string& dpmHost, unsigned retryLimit)
+DpmAdapter::DpmAdapter(const std::string& dpmHost, unsigned retryLimit)
   throw (DmException): NsAdapterCatalog(dpmHost, retryLimit)
 {
   const char *envDpm;
@@ -40,21 +40,21 @@ DpmAdapterCatalog::DpmAdapterCatalog(const std::string& dpmHost, unsigned retryL
 
 
 
-DpmAdapterCatalog::~DpmAdapterCatalog()
+DpmAdapter::~DpmAdapter()
 {
   // Nothing
 }
 
 
 
-std::string DpmAdapterCatalog::getImplId()
+std::string DpmAdapter::getImplId() throw ()
 {
-  return std::string("DpmAdapterCatalog");
+  return std::string("DpmAdapter");
 }
 
 
 
-void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmException)
+void DpmAdapter::set(const std::string& key, va_list value) throw (DmException)
 {
   if (key == "SpaceToken") {
     const char* sToken = va_arg(value, const char*);
@@ -69,7 +69,7 @@ void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmExce
 
 
 
-FileReplica DpmAdapterCatalog::get(const std::string& path) throw (DmException)
+FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
 {
   struct dpm_getfilereq     request;
   struct dpm_getfilestatus *statuses = 0x00;
@@ -133,7 +133,7 @@ FileReplica DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 
 
 
-std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
+std::string DpmAdapter::put(const std::string& path, Uri* uri) throw (DmException)
 {
   struct dpm_putfilereq     reqfile;
   struct dpm_putfilestatus *statuses = 0x00;
@@ -206,14 +206,14 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
 
 
 
-std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException)
+std::string DpmAdapter::put(const std::string&, Uri*, const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapterCatalog");
+  throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapter");
 }
 
 
 
-void DpmAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
+void DpmAdapter::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   struct dpm_putfilestatus *statuses;
   int                       nReplies, status;
@@ -238,7 +238,7 @@ void DpmAdapterCatalog::putStatus(const std::string& path, const std::string& to
 
 
 
-void DpmAdapterCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
+void DpmAdapter::putDone(const std::string& path, const std::string& token) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
@@ -260,7 +260,7 @@ void DpmAdapterCatalog::putDone(const std::string& path, const std::string& toke
 
 
 
-void DpmAdapterCatalog::unlink(const std::string& path) throw (DmException)
+void DpmAdapter::unlink(const std::string& path) throw (DmException)
 {
   int                    nReplies;
   struct dpm_filestatus *statuses;
@@ -280,7 +280,7 @@ void DpmAdapterCatalog::unlink(const std::string& path) throw (DmException)
 
 
 
-void DpmAdapterCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
+void DpmAdapter::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
   NsAdapterCatalog::setUserId(uid, gid, dn);
   RETRY(dpm_client_setAuthorizationId(uid, gid, "GSI", (char*)dn.c_str()),
@@ -289,7 +289,7 @@ void DpmAdapterCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) t
 
 
 
-void DpmAdapterCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+void DpmAdapter::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
   NsAdapterCatalog::setVomsData(vo, fqans);
   RETRY(dpm_client_setVOMS_data((char*)this->vo_, this->fqans_, this->nFqans_),
@@ -298,7 +298,7 @@ void DpmAdapterCatalog::setVomsData(const std::string& vo, const std::vector<std
 
 
 
-std::vector<Pool> DpmAdapterCatalog::getPools(void) throw (DmException)
+std::vector<Pool> DpmAdapter::getPools(void) throw (DmException)
 {
   struct dpm_pool* dpmPools = 0x00;
   int              nPools;
@@ -343,7 +343,7 @@ std::vector<Pool> DpmAdapterCatalog::getPools(void) throw (DmException)
 
 
 
-std::vector<FileSystem> DpmAdapterCatalog::getPoolFilesystems(const std::string& poolname) throw (DmException)
+std::vector<FileSystem> DpmAdapter::getPoolFilesystems(const std::string& poolname) throw (DmException)
 {
   struct dpm_fs*          dpmFs;
   int                     nFs;
@@ -366,4 +366,21 @@ std::vector<FileSystem> DpmAdapterCatalog::getPoolFilesystems(const std::string&
 
   free(dpmFs);
   return filesystems;
+}
+
+
+
+FileSystem DpmAdapter::getFilesystem(const std::string& pool,
+                                     const std::string& server,
+                                     const std::string& fs) throw (DmException)
+{
+  std::vector<FileSystem> filesystems = this->getPoolFilesystems(pool);
+
+  std::vector<FileSystem>::const_iterator i;
+  for (i = filesystems.begin(); i != filesystems.end(); ++i) {
+    if (server == i->server && fs == i->fs)
+      return *i;
+  }
+
+  throw DmException(DM_NO_SUCH_FS, server + ":" + fs + " not found");
 }

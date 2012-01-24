@@ -67,7 +67,7 @@ DpmMySqlCatalog::~DpmMySqlCatalog() throw(DmException)
 
 
 
-std::string DpmMySqlCatalog::getImplId()
+std::string DpmMySqlCatalog::getImplId() throw ()
 {
   return std::string("DpmMySqlCatalog");
 }

@@ -16,8 +16,8 @@ public:
   /// Destructor
   ~NsAdapterFactory();
 
-  void set(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* create()                            throw (DmException);
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+  Catalog* createCatalog()                                         throw (DmException);
 
 protected:
   unsigned retryLimit_;
@@ -27,15 +27,17 @@ private:
 };
 
 /// Concrete factory for DPM wrapper
-class DpmAdapterFactory: public NsAdapterFactory {
+class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory {
 public:
   /// Constructor
   DpmAdapterFactory() throw (DmException);
   /// Destructor
   ~DpmAdapterFactory();
 
-  void set(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* create()                            throw (DmException);
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+
+  Catalog*     createCatalog()     throw (DmException);
+  PoolManager* createPoolManager() throw (DmException);
 
 protected:
   

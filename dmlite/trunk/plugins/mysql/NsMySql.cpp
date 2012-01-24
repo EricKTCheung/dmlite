@@ -122,7 +122,7 @@ NsMySqlCatalog::~NsMySqlCatalog() throw(DmException)
 
 
 
-std::string NsMySqlCatalog::getImplId()
+std::string NsMySqlCatalog::getImplId() throw ()
 {
   return std::string("NsMySqlCatalog");
 }

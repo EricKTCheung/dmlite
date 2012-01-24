@@ -1,23 +1,23 @@
-/// @file   include/dm/dm_interfaces.h
-/// @brief  API to be used by client code and implemented by plugins.
+/// @file   include/dm/dm_catalog.h
+/// @brief  Catalog API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef PLUGIN_H
-#define	PLUGIN_H
+#ifndef DMLITE_CATALOG_H
+#define	DMLITE_CATALOG_H
 
 #include <cstdarg>
+#include <string>
 #include <vector>
-#include "dm_types.h"
+#include "dm_auth.h"
 #include "dm_exceptions.h"
+#include "dm_types.h"
 
 namespace dmlite {
-
-const unsigned API_VERSION = 20120117;
 
 /// Typedef for directories
 typedef void Directory;
 
 /// Interface for Catalog (Namespaces)
-class Catalog {
+class Catalog: public AuthBase {
 public:
   /// Constructor.
   Catalog() throw (DmException);
@@ -26,11 +26,11 @@ public:
   virtual ~Catalog();
 
   /// String ID of the catalog implementation.
-  virtual std::string getImplId(void) = 0;
+  virtual std::string getImplId(void) throw() = 0;
 
   /// Set a configuration parameter.
   /// @param key   The configuration parameter.
-  virtual void set(const std::string& key, ...) throw (DmException) = 0;
+  virtual void set(const std::string& key, ...) throw (DmException);
 
   /// Set a configuration parameter.
   /// @param key   The configuration parameter.
@@ -221,33 +221,14 @@ public:
   /// @param path The path of the directory to remove.
   virtual void removeDir(const std::string& path) throw (DmException) = 0;
 
-  /// Set the user ID that will perform the actions.
-  /// @param uid The UID.
-  /// @param gid The GID.
-  /// @param dn  The full DN (i.e. /DC=ch/DC=cern/OU=Organic Units/...).
-  virtual void setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException) = 0;
-
-  /// Set the user associated VO data.
-  /// @param vo     The main Virtual Organization (i.e. dteam).
-  /// @param fqans  The FQANS.
-  virtual void setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException) = 0;
-
-  /// Get the list of pools.
-  /// @return A set with all the pools.
-  virtual std::vector<Pool> getPools(void) throw (DmException) = 0;
-
-  /// Get the list of filesystems in a pool.
-  /// @param poolname The pool name.
-  /// @return         A set with the filesystems that belong to the pool.
-  virtual std::vector<FileSystem> getPoolFilesystems(const std::string& poolname) throw (DmException) = 0;
-
 protected:
-  /// Can be used by decorators to let the underlying plugin know who is on top.
-  /// @param catalog The catalog on top.
-  virtual void setParent(Catalog* catalog);
+  /// The parent plugin can use this to let the decorated know
+  /// who is over.
+  virtual void setParent(Catalog* parent);
 
   /// Allow the plugin to get its parent.
   virtual Catalog* getParent(void);
+
 private:
   Catalog* parent_;
 };
@@ -262,25 +243,16 @@ public:
   /// Set a configuration parameter
   /// @param key   The configuration parameter
   /// @param value The value for the configuration parameter
-  virtual void set(const std::string& key, const std::string& value) throw (DmException) = 0;
+  virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
-  /// Instantiate a implementation of Interface
-  virtual Catalog* create() throw (DmException) = 0;
+  /// Instantiate a implementation of Catalog
+  virtual Catalog* createCatalog() throw (DmException) = 0;
 
 protected:
 private:
 };
 
-class PluginManager;
-/// This structure is the join between the plug-ins and libdm.
-struct PluginIdCard {
-  /// Used to make sure API is consistent.
-  unsigned const  ApiVersion;
-  /// Let the plug-in register itself and its concrete factories
-  void (*registerPlugin)(PluginManager* pm) throw (DmException);
 };
 
-};
-
-#endif	/* PLUGIN_H */
+#endif	// DMLITE_CATALOG_H
 

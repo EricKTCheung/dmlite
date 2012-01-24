@@ -35,7 +35,7 @@ NsAdapterFactory::~NsAdapterFactory()
 
 
 
-void NsAdapterFactory::set(const std::string& key, const std::string& value) throw (DmException)
+void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   if (key == "Host")
     this->nsHost_ = value;
@@ -51,7 +51,8 @@ void NsAdapterFactory::set(const std::string& key, const std::string& value) thr
 }
 
 
-Catalog* NsAdapterFactory::create() throw (DmException)
+
+Catalog* NsAdapterFactory::createCatalog() throw (DmException)
 {
   return new NsAdapterCatalog(this->nsHost_, this->retryLimit_);
 }
@@ -72,19 +73,26 @@ DpmAdapterFactory::~DpmAdapterFactory()
 
 
 
-void DpmAdapterFactory::set(const std::string& key, const std::string& value) throw (DmException)
+void DpmAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   if (key == "Host")
     this->dpmHost_ = value;
   else
-    NsAdapterFactory::set(key, value);
+    NsAdapterFactory::configure(key, value);
 }
 
 
 
-Catalog* DpmAdapterFactory::create() throw (DmException)
+Catalog* DpmAdapterFactory::createCatalog() throw (DmException)
 {
-  return new DpmAdapterCatalog(this->dpmHost_, this->retryLimit_);
+  return new DpmAdapter(this->dpmHost_, this->retryLimit_);
+}
+
+
+
+PoolManager* DpmAdapterFactory::createPoolManager() throw (DmException)
+{
+  return new DpmAdapter(this->dpmHost_, this->retryLimit_);
 }
 
 
@@ -95,9 +103,11 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 }
 
 
+
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
   pm->registerCatalogFactory(new DpmAdapterFactory());
+  pm->registerPoolFactory(new DpmAdapterFactory());
 }
 
 

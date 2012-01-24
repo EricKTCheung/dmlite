@@ -4,7 +4,7 @@ project (libdm)
 
 # Version
 set(libdm_MAJOR 0)
-set(libdm_MINOR 1)
+set(libdm_MINOR 2)
 set(libdm_PATCH 0)
 
 # Lib suffix

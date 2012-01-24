@@ -10,7 +10,7 @@ using namespace dmlite;
 
 
 
-LibrarianCatalog::LibrarianCatalog(Catalog* decorates) throw(DmException):
+LibrarianCatalog::LibrarianCatalog(Catalog* decorates) throw (DmException):
    DummyCatalog(decorates)
 {
   // Nothing
@@ -18,21 +18,21 @@ LibrarianCatalog::LibrarianCatalog(Catalog* decorates) throw(DmException):
 
 
 
-LibrarianCatalog::~LibrarianCatalog() throw(DmException)
+LibrarianCatalog::~LibrarianCatalog() throw (DmException)
 {
   // Nothing
 }
 
 
 
-std::string LibrarianCatalog::getImplId()
+std::string LibrarianCatalog::getImplId() throw ()
 {
   return std::string("LibrarianCatalog");
 }
 
 
 
-void LibrarianCatalog::set(const std::string& key, va_list vargs) throw(DmException)
+void LibrarianCatalog::set(const std::string& key, va_list vargs) throw (DmException)
 {
   if (key == "ExcludeReplicas") {
     int      n_list  = va_arg(vargs, int);
@@ -53,14 +53,14 @@ void LibrarianCatalog::set(const std::string& key, va_list vargs) throw(DmExcept
 
 
 
-void LibrarianCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
+void LibrarianCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
   this->decorated_->setUserId(uid, gid, dn);
 }
 
 
 
-std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) throw(DmException)
+std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   std::vector<FileReplica> replicas;
 
@@ -86,7 +86,7 @@ std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) 
 
 
 
-FileReplica LibrarianCatalog::get(const std::string& path) throw(DmException)
+FileReplica LibrarianCatalog::get(const std::string& path) throw (DmException)
 {
   std::vector<FileReplica> replicas;
 

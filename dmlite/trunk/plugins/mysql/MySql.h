@@ -5,7 +5,7 @@
 #define	MYSQL_H
 
 #include <dmlite/dmlite++.h>
-#include <dmlite/Dummy.h>
+#include <dmlite/dummy/Dummy.h>
 #include <mysql/mysql.h>
 
 #include "../common/PoolContainer.h"
@@ -34,17 +34,20 @@ private:
 };
 
 /// Concrete factory for DPNS/LFC.
-class NsMySqlFactory: public DummyFactory {
+class NsMySqlFactory: public CatalogFactory {
 public:
   /// Constructor
   NsMySqlFactory(CatalogFactory* catalogFactory) throw(DmException);
   /// Destructor
   ~NsMySqlFactory() throw(DmException);
 
-  void set(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* create() throw(DmException);
+  void configure(const std::string& key, const std::string& value) throw(DmException);
+  Catalog* createCatalog() throw(DmException);
 
 protected:
+  /// Decorated
+  CatalogFactory* nestedFactory_;
+
   /// Connection factory.
   MySqlConnectionFactory connectionFactory_;
 
@@ -69,8 +72,8 @@ public:
   /// Destructor
   ~DpmMySqlFactory() throw(DmException);
 
-  void set(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* create() throw(DmException);
+  void configure(const std::string& key, const std::string& value) throw(DmException);
+  Catalog* createCatalog() throw(DmException);
 
 protected:
   /// DPM db.

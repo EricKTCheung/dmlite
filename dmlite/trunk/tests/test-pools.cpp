@@ -15,13 +15,13 @@ int main(int argn, char **argv)
 
   // Load plugin
   dmlite::PluginManager manager;
-  dmlite::Catalog      *catalog;
+  dmlite::PoolManager  *poolManager;
 
   try {
     manager.loadPlugin(argv[1], argv[2]);
-    catalog = manager.getCatalogFactory()->create();
+    poolManager = manager.getPoolManagerFactory()->createPoolManager();
     // Ask for the pools
-    pools = catalog->getPools();
+    pools = poolManager->getPools();
   }
   catch (dmlite::DmException exc) {
     std::cerr << exc.what() << std::endl;
@@ -52,7 +52,7 @@ int main(int argn, char **argv)
     delete [] i->gids;
     delete [] i->elemp;
   }
-  delete catalog;
+  delete poolManager;
 
   // Done
   return 0;

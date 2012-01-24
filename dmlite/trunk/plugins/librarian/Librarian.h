@@ -5,7 +5,7 @@
 #define	LIBRARIAN_H
 
 #include <dmlite/dmlite++.h>
-#include <dmlite/Dummy.h>
+#include <dmlite/dummy/Dummy.h>
 #include <set>
 
 namespace dmlite {
@@ -15,15 +15,15 @@ class LibrarianCatalog: public DummyCatalog {
 public:
   /// Constructor
   /// @param decorates The underlying decorated catalog.
-  LibrarianCatalog(Catalog* decorates) throw(DmException);
+  LibrarianCatalog(Catalog* decorates) throw (DmException);
 
   /// Destructor
-  ~LibrarianCatalog() throw(DmException);
+  ~LibrarianCatalog() throw (DmException);
 
   // Overloading
-  std::string getImplId(void);
+  std::string getImplId(void) throw ();
   
-  void set      (const std::string&, va_list) throw(DmException);
+  void set      (const std::string&, va_list) throw (DmException);
 
   virtual std::vector<FileReplica> getReplicas(const std::string&)               throw (DmException);
   virtual FileReplica              get        (const std::string&)               throw (DmException);
@@ -38,16 +38,17 @@ private:
 };
 
 /// Concrete factory for the Librarian plugin.
-class LibrarianFactory: public DummyFactory {
+class LibrarianFactory: public CatalogFactory {
 public:
   /// Constructor
-  LibrarianFactory(CatalogFactory* catalogFactory) throw(DmException);
+  LibrarianFactory(CatalogFactory* catalogFactory) throw (DmException);
   /// Destructor
-  ~LibrarianFactory() throw(DmException);
+  ~LibrarianFactory() throw (DmException);
 
-  void set(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* create() throw(DmException);
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+  Catalog* createCatalog() throw (DmException);
 protected:
+  CatalogFactory* nestedFactory_;
 private:
 };
 
