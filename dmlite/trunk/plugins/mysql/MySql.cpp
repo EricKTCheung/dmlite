@@ -159,14 +159,30 @@ Catalog* DpmMySqlFactory::createCatalog() throw(DmException)
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsMySqlFactory(pm->getCatalogFactory()));
+  CatalogFactory* nested = 0x00;
+  try {
+    nested = pm->getCatalogFactory();
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_FACTORY)
+      throw;
+  }
+  pm->registerCatalogFactory(new NsMySqlFactory(nested));
 }
 
 
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new DpmMySqlFactory(pm->getCatalogFactory()));
+  CatalogFactory* nested = 0x00;
+  try {
+    nested = pm->getCatalogFactory();
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_FACTORY)
+      throw;
+  }
+  pm->registerCatalogFactory(new DpmMySqlFactory(nested));
 }
 
 
