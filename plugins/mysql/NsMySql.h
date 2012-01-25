@@ -91,6 +91,7 @@ public:
   void  setUserId     (uid_t, gid_t, const std::string&) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
+  void        setComment(const std::string&, const std::string&) throw (DmException);
 
   void setGuid(const std::string& path, const std::string &guid) throw (DmException);
   

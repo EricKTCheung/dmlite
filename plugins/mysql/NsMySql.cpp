@@ -26,6 +26,7 @@ enum {
   STMT_GET_FILE_REPLICAS_EXTENDED,
   STMT_GET_COMMENT,
   STMT_SET_GUID,
+  STMT_SET_COMMENT,
   STMT_SENTINEL
 };
 
@@ -72,6 +73,9 @@ static const char* statements[] = {
   "UPDATE Cns_file_metadata\
         SET guid = ?\
         WHERE fileid = ?",
+  "UPDATE Cns_user_metadata\
+        SET comments = ?\
+        WHERE u_fileid = ?",
 };
 
 
@@ -1062,11 +1066,10 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
 {
   MYSQL_STMT  *stmt = this->getPreparedStatement(STMT_GET_COMMENT);
   MYSQL_BIND   bindParam[1], bindResult[1];
-  FileMetadata meta;
   char         comment[COMMENT_MAX];
 
   // Get the file
-  meta = this->parsePath(path, true);
+  FileMetadata meta = this->parsePath(path, true);
 
   // Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
@@ -1117,6 +1120,32 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
 
 
 
+void NsMySqlCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
+{
+  MYSQL_STMT   *stmt = this->getPreparedStatement(STMT_SET_COMMENT);
+  MYSQL_BIND    bindParam[2];
+  long unsigned commentLen = comment.length();
+
+  FileMetadata meta = this->parsePath(path);
+
+  memset(bindParam, 0, sizeof(bindParam));
+  bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
+  bindParam[0].length      = &commentLen;
+  bindParam[0].buffer      = (void*)comment.c_str();
+  bindParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
+  bindParam[1].buffer      = &meta.xStat.stat.st_ino;
+
+  mysql_stmt_bind_param(stmt, bindParam);
+
+  if (mysql_stmt_execute(stmt) != 0) {
+    mysql_stmt_free_result(stmt);
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  }
+  mysql_stmt_free_result(stmt);
+}
+
+
+
 void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   MYSQL_STMT   *stmt = this->getPreparedStatement(STMT_SET_GUID);
@@ -1134,6 +1163,9 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
 
   mysql_stmt_bind_param(stmt, bindParam);
 
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));  
+  if (mysql_stmt_execute(stmt) != 0) {
+    mysql_stmt_free_result(stmt);
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  }
+  mysql_stmt_free_result(stmt);
 }
