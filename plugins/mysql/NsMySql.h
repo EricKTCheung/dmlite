@@ -88,7 +88,10 @@ public:
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
   FileReplica              get        (const std::string&) throw (DmException);
 
-  void  setUserId     (uid_t, gid_t, const std::string&) throw (DmException);
+  void symlink(const std::string&, const std::string&) throw (DmException);
+  void unlink (const std::string&)                     throw (DmException);
+
+  void  setUserId(uid_t, gid_t, const std::string&) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
@@ -136,33 +139,49 @@ private:
 
   /// Get a file using its unique ID.
   /// @param fileId The file unique ID.
-  FileMetadata getFile (uint64_t fileId) throw (DmException);
+  FileMetadata getFile(uint64_t fileId) throw (DmException);
 
   /// Get a file from a directory using its name.
   /// @param name     The file name (NOT path).
   /// @param parentId The parent directory unique ID.
-  FileMetadata getFile (const std::string& name, uint64_t parentId) throw (DmException);
+  FileMetadata getFile(const std::string& name, uint64_t parentId) throw (DmException);
 
   /// Get a symbolic link using its unique ID.
   /// @param linkId The link ID.
-  SymLink getLink (uint64_t linkId) throw (DmException);
+  SymLink getLink(uint64_t linkId) throw (DmException);
 
   /// Parses a path looking for a file, and returns its metadata.
   /// @param path     The file path.
   /// @param folloSym If symbolic links must be followed.
-  FileMetadata parsePath (const std::string& path, bool followSym = true) throw (DmException);
+  FileMetadata parsePath(const std::string& path, bool followSym = true) throw (DmException);
+
+  /// Create a file/directory and returns its metadata
+  /// @param parent    The parent file ID.
+  /// @param name      The new file name.
+  /// @param mode      The new file mode.
+  /// @param nlink     The number of links.
+  /// @param size      The file size.
+  /// @param type      The file type.
+  /// @param status    The file status.
+  /// @param csumtype  The checksum type.
+  /// @param csumvalue The checksum value.
+  /// @param acl       The access control list.
+  FileMetadata newFile(ino_t parent, const std::string& name, mode_t mode,
+                       long nlink, size_t size, short type, char status,
+                       const std::string& csumtype, const std::string& csumvalue,
+                       const std::string& acl) throw (DmException);
   
   /// Get a user from the database using the username or the user ID.
   /// @details If userName is empty, the uid will be used instead.
   /// @param userName The user name.
   /// @param uid      The user unique id. Used if userName is NULL.
-  UserInfo getUser (const std::string& userName, uid_t uid) throw (DmException);
+  UserInfo getUser(const std::string& userName, uid_t uid) throw (DmException);
 
   /// Get a group from the database using the groupname or the group ID.
   /// @details If groupName is empty, the gid will be used instead.
   /// @param groupName The group name.
   /// @param gid       The group unique id. Used if groupName is NULL.
-  GroupInfo getGroup (const std::string& groupName, gid_t gid) throw (DmException);
+  GroupInfo getGroup(const std::string& groupName, gid_t gid) throw (DmException);
 };
 
 };

@@ -46,11 +46,23 @@ public:
     if (this->catalog) {
       this->catalog->setUserId(uid, gid, TEST_USER);
 
-      this->catalog->unlink(SYMLINK);
-      this->catalog->unlink(SYMREL);
+      try {
+        this->catalog->unlink(SYMLINK);
+      }
+      catch (...) {}
+      try {
+        this->catalog->unlink(SYMREL);
+      }
+      catch (...) {}
 
-      this->catalog->removeDir(NESTED);
-      this->catalog->removeDir(FOLDER);
+      try {
+        this->catalog->removeDir(NESTED);
+      }
+      catch (...) {}
+      try {
+        this->catalog->removeDir(FOLDER);
+      }
+      catch (...) {}
     }
     TestBase::tearDown();
   }

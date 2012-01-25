@@ -4,7 +4,9 @@
 #include <cstring>
 #include <list>
 #include <string>
+#include <time.h>
 #include <vector>
+#include <mysql/mysql.h>
 #include "NsMySql.h"
 
 #include "../common/Uris.h"
@@ -27,6 +29,10 @@ enum {
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
+  STMT_INSERT_FILE,
+  STMT_INSERT_SYMLINK,
+  STMT_SELECT_UNIQ_ID_FOR_UPDATE,
+  STMT_UPDATE_UNIQ_ID,
   STMT_SENTINEL
 };
 
@@ -76,6 +82,19 @@ static const char* statements[] = {
   "UPDATE Cns_user_metadata\
         SET comments = ?\
         WHERE u_fileid = ?",
+  "INSERT INTO Cns_file_metadata\
+          (fileid, parent_fileid, name, filemode, nlink, owner_uid, gid,\
+           filesize, atime, mtime, ctime, fileclass, status,\
+           csumtype, csumvalue, acl)\
+        VALUES\
+          (?, ?, ?, ?, ?, ?, ?,\
+           ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "INSERT INTO Cns_symlinks\
+          (fileid, linkname)\
+        VALUES\
+          (?, ?)",
+  "SELECT id FROM Cns_unique_id FOR UPDATE",
+  "UPDATE Cns_unique_id SET id = ?",
 };
 
 
@@ -349,6 +368,124 @@ SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
 
   mysql_stmt_free_result(stmt);
   return link;
+}
+
+
+
+FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
+                                     mode_t mode, long nlink, size_t size,
+                                     short type, char status,
+                                     const std::string& csumtype,
+                                     const std::string& csumvalue,
+                                     const std::string& acl) throw (DmException)
+{
+  time_t        datetime = time(NULL);
+  size_t        nameLen  = name.length();
+  size_t        csumtLen = csumtype.length();
+  size_t        csumvLen = csumvalue.length();
+  size_t        aclLen   = acl.length();
+  size_t        one      = 1;
+  ino_t         newFileId;
+
+  // Destination must not exist!
+  try {
+    this->getFile(name, parent);
+    throw DmException(DM_EXISTS, name + " already exists");
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_SUCH_FILE)
+      throw;
+  }
+
+  // Check the parent! (Assume the traversing have been already done)
+  FileMetadata parentMeta = this->getFile(parent);
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       parentMeta.acl, parentMeta.xStat.stat,
+                       S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Need write access on the parent");
+
+  // Fetch the new file ID
+  MYSQL_STMT  *uniqueStmt = this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE);
+  MYSQL_BIND   uniqueResult[1];
+
+  if (mysql_stmt_execute(uniqueStmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uniqueStmt));
+
+  memset(uniqueResult, 0, sizeof(uniqueResult));
+  uniqueResult[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  uniqueResult[0].buffer      = &newFileId;
+  
+  mysql_stmt_bind_result(uniqueStmt, uniqueResult);
+
+  switch (mysql_stmt_fetch(uniqueStmt)) {
+    case 0:
+      break;
+    default:
+      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(uniqueStmt));
+  }
+
+  mysql_stmt_free_result(uniqueStmt);
+
+  // Update
+  newFileId++;
+  uniqueStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_ID);
+
+  mysql_stmt_bind_param(uniqueStmt, uniqueResult);
+  if (mysql_stmt_execute(uniqueStmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uniqueStmt));
+
+  // Create the entry
+  MYSQL_STMT   *fileStmt = this->getPreparedStatement(STMT_INSERT_FILE);
+  MYSQL_BIND    fileParam[16];
+
+  memset(fileParam, 0, sizeof(fileParam));
+  fileParam[ 0].buffer_type = MYSQL_TYPE_LONGLONG;
+  fileParam[ 0].buffer      = &newFileId;
+  fileParam[ 1].buffer_type = MYSQL_TYPE_LONGLONG;
+  fileParam[ 1].buffer      = &parent;
+  fileParam[ 2].buffer_type = MYSQL_TYPE_VARCHAR;
+  fileParam[ 2].buffer      = (void*)name.c_str();
+  fileParam[ 2].length      = &nameLen;
+  fileParam[ 3].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 3].buffer      = &mode;
+  fileParam[ 4].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 4].buffer      = &nlink;
+  fileParam[ 5].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 5].buffer      = &this->user_.uid;
+  fileParam[ 6].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 6].buffer      = &this->group_.gid;
+  fileParam[ 7].buffer_type = MYSQL_TYPE_LONGLONG;
+  fileParam[ 7].buffer      = &size;
+  fileParam[ 8].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 8].buffer      = &datetime;
+  fileParam[ 9].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[ 9].buffer      = &datetime;
+  fileParam[10].buffer_type = MYSQL_TYPE_LONG;
+  fileParam[10].buffer      = &datetime;
+  fileParam[11].buffer_type = MYSQL_TYPE_SHORT;
+  fileParam[11].buffer      = &type;
+  fileParam[12].buffer_type = MYSQL_TYPE_VARCHAR;
+  fileParam[12].buffer      = &status;
+  fileParam[12].length      = &one;
+  fileParam[13].buffer_type = MYSQL_TYPE_VARCHAR;
+  fileParam[13].buffer      = (void*)csumtype.c_str();
+  fileParam[13].length      = &csumtLen;
+  fileParam[14].buffer_type = MYSQL_TYPE_VARCHAR;
+  fileParam[14].buffer      = (void*)csumvalue.c_str();
+  fileParam[14].length      = &csumvLen;
+  fileParam[15].buffer_type = MYSQL_TYPE_VARCHAR;
+  fileParam[15].buffer      = (void*)acl.c_str();
+  fileParam[15].length      = &aclLen;
+
+  mysql_stmt_bind_param(fileStmt, fileParam);
+
+  if (mysql_stmt_execute(fileStmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(fileStmt));
+
+  mysql_stmt_free_result(fileStmt);
+
+  // Return back
+  return this->getFile(newFileId);
 }
 
 
@@ -952,6 +1089,63 @@ FileReplica NsMySqlCatalog::get(const std::string& path) throw(DmException)
 
 
 
+void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
+{
+  std::string parentPath, symName;
+
+  size_t lastSlash = newPath.rfind("/");
+  if (lastSlash != std::string::npos && lastSlash > 0) {
+    parentPath = newPath.substr(0, lastSlash);
+    symName    = newPath.substr(lastSlash + 1);
+  }
+  else {
+    parentPath = "/";
+    symName    = newPath;
+  }
+
+  // Check the file exists, plus we have write access for the parent
+  FileMetadata file   = this->parsePath(oldPath);
+  FileMetadata parent = this->parsePath(parentPath);
+
+  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
+                      parent.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
+
+  // Create the file entry
+  FileMetadata linkMeta = this->newFile(parent.xStat.stat.st_ino,
+                                        symName, 0777 | S_IFLNK,
+                                        1, 0, 0, '-',
+                                        "", "", "");
+  // Create the symlink entry
+  MYSQL_STMT   *symStmt = this->getPreparedStatement(STMT_INSERT_SYMLINK);
+  MYSQL_BIND    symParam[2];
+  unsigned long linkLen = oldPath.length();
+
+  memset(symParam, 0, sizeof(symParam));
+  symParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  symParam[0].buffer      = &linkMeta.xStat.stat.st_ino;
+  symParam[1].buffer_type = MYSQL_TYPE_VARCHAR;
+  symParam[1].buffer      = (void*)oldPath.c_str();
+  symParam[1].length      = &linkLen;
+
+  mysql_stmt_bind_param(symStmt, symParam);
+
+  if (mysql_stmt_execute(symStmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(symStmt));
+
+  mysql_stmt_free_result(symStmt);
+}
+
+
+
+void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
+{
+  if (this->decorated_)
+    this->decorated_->unlink(path);
+}
+
+
+
 std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& path) throw(DmException)
 {
   FileMetadata    meta;
@@ -1128,6 +1322,10 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
 
   FileMetadata meta = this->parsePath(path);
 
+  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
+                       meta.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+
   memset(bindParam, 0, sizeof(bindParam));
   bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
   bindParam[0].length      = &commentLen;
@@ -1137,10 +1335,8 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
 
   mysql_stmt_bind_param(stmt, bindParam);
 
-  if (mysql_stmt_execute(stmt) != 0) {
-    mysql_stmt_free_result(stmt);
+  if (mysql_stmt_execute(stmt) != 0)
     throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-  }
   mysql_stmt_free_result(stmt);
 }
 
@@ -1153,6 +1349,10 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
   long unsigned guidLen = guid.length();
   FileMetadata  meta    = this->parsePath(path);
 
+  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
+                       meta.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+
   memset(bindParam, 0, sizeof(bindParam));
 
   bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
@@ -1163,9 +1363,7 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
 
   mysql_stmt_bind_param(stmt, bindParam);
 
-  if (mysql_stmt_execute(stmt) != 0) {
-    mysql_stmt_free_result(stmt);
+  if (mysql_stmt_execute(stmt) != 0)
     throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-  }
   mysql_stmt_free_result(stmt);
 }
