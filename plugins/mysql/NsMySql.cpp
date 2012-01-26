@@ -7,6 +7,7 @@
 #include <time.h>
 #include <vector>
 #include <mysql/mysql.h>
+#include "MySql.h"
 #include "NsMySql.h"
 
 #include "../common/Uris.h"
@@ -411,6 +412,10 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
+  // Lock Cns_unique_id and Cns_file_metadata, and start
+  // transaction
+  TransactionAndLock lock(this->conn_, "Cns_file_metadata", "Cns_unique_id", NULL);
+
   // Fetch the new file ID
   MYSQL_STMT  *uniqueStmt = this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE);
   MYSQL_BIND   uniqueResult[1];
@@ -508,6 +513,9 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
     throw DmException(DM_QUERY_FAILED, mysql_stmt_error(fileStmt));
 
   mysql_stmt_free_result(nlinkStmt);
+
+  // Commit
+  lock.commit();
 
   // Return back
   return this->getFile(newFileId);
@@ -1231,6 +1239,9 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   }
 
   // All preconditions are good!
+  TransactionAndLock lock(this->conn_, "Cns_unique_id", "Cns_file_metadata",
+                          "Cns_symlinks", "Cns_user_metadata", NULL);
+
   // Bind parameter
   MYSQL_BIND  bindParam[1];
 
@@ -1274,6 +1285,9 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   if (mysql_stmt_execute(nlink) != 0)
     throw DmException(DM_QUERY_FAILED, mysql_stmt_error(nlink));
   mysql_stmt_free_result(nlink);
+
+  // Done!
+  lock.commit();
 }
 
 

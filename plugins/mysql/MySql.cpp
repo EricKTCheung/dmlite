@@ -65,6 +65,63 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 
 
+TransactionAndLock::TransactionAndLock(MYSQL* conn, ...) throw (DmException)
+{
+  this->connection = conn;
+  this->pending    = true;
+
+  std::string query("LOCK TABLES");
+  va_list tables;
+  va_start(tables, conn);
+
+  const char* table;
+  while ((table = va_arg(tables, const char*)) != NULL) {
+    query += " ";
+    query += table;
+    query += " WRITE,";
+  }
+
+  va_end(tables);
+
+  // Remove last ','
+  query[query.length() - 1] = '\0';
+
+  if (mysql_query(conn, query.c_str()) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
+  if (mysql_query(conn, "BEGIN") != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
+}
+
+
+
+TransactionAndLock::~TransactionAndLock() throw (DmException)
+{
+  if (this->pending)
+    this->rollback();
+  if (mysql_query(this->connection, "UNLOCK TABLES") != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
+}
+
+
+
+void TransactionAndLock::commit() throw (DmException)
+{
+  if (mysql_query(this->connection, "COMMIT") != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
+  this->pending = false;
+}
+
+
+
+void TransactionAndLock::rollback() throw (DmException)
+{
+  if (mysql_query(this->connection, "ROLLBACK") != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
+  this->pending = false;
+}
+
+
+
 NsMySqlFactory::NsMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
   nestedFactory_(catalogFactory),
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
