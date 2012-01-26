@@ -49,20 +49,32 @@ public:
       try {
         this->catalog->unlink(SYMLINK);
       }
-      catch (...) {}
+      catch (dmlite::DmException e)
+      {
+        if (e.code() != DM_NO_SUCH_FILE) throw;
+      }
       try {
         this->catalog->unlink(SYMREL);
       }
-      catch (...) {}
+      catch (dmlite::DmException e)
+      {
+        if (e.code() != DM_NO_SUCH_FILE) throw;
+      }
 
       try {
         this->catalog->removeDir(NESTED);
       }
-      catch (...) {}
+      catch (dmlite::DmException e)
+      {
+        if (e.code() != DM_NO_SUCH_FILE) throw;
+      }
       try {
         this->catalog->removeDir(FOLDER);
       }
-      catch (...) {}
+      catch (dmlite::DmException e)
+      {
+        if (e.code() != DM_NO_SUCH_FILE) throw;
+      }
     }
     TestBase::tearDown();
   }

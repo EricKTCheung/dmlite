@@ -155,8 +155,8 @@ private:
   /// @param folloSym If symbolic links must be followed.
   FileMetadata parsePath(const std::string& path, bool followSym = true) throw (DmException);
 
-  /// Create a file/directory and returns its metadata
-  /// @param parent    The parent file ID.
+  /// Create a file/directory and returns its metadata.
+  /// @param parent    The parent metadata.
   /// @param name      The new file name.
   /// @param mode      The new file mode.
   /// @param nlink     The number of links.
@@ -166,10 +166,18 @@ private:
   /// @param csumtype  The checksum type.
   /// @param csumvalue The checksum value.
   /// @param acl       The access control list.
-  FileMetadata newFile(ino_t parent, const std::string& name, mode_t mode,
+  FileMetadata newFile(FileMetadata& parent, const std::string& name, mode_t mode,
                        long nlink, size_t size, short type, char status,
                        const std::string& csumtype, const std::string& csumvalue,
                        const std::string& acl) throw (DmException);
+
+  /// Get the parent of a directory.
+  /// @param path       The path to split.
+  /// @param parentPath Where to put the parent path.
+  /// @param name       Where to put the file name (stripping last /).
+  /// @return           The parent metadata.
+  FileMetadata getParent(const std::string& path, std::string* parentPath,
+                         std::string* name) throw (DmException);
   
   /// Get a user from the database using the username or the user ID.
   /// @details If userName is empty, the uid will be used instead.
