@@ -33,6 +33,21 @@ protected:
 private:
 };
 
+/// Lock and transaction handler
+/// Used to avoid manual tracking of exit paths, so any destruction
+/// before a commit() call will be a rollback.
+class TransactionAndLock {
+public:
+  TransactionAndLock(MYSQL* conn, ...) throw (DmException);
+  ~TransactionAndLock() throw (DmException);
+
+  void commit(void) throw (DmException);
+  void rollback(void) throw (DmException);
+private:
+  bool   pending;
+  MYSQL *connection;
+};
+
 /// Concrete factory for DPNS/LFC.
 class NsMySqlFactory: public CatalogFactory {
 public:
