@@ -33,6 +33,10 @@ enum {
   STMT_INSERT_SYMLINK,
   STMT_SELECT_UNIQ_ID_FOR_UPDATE,
   STMT_UPDATE_UNIQ_ID,
+  STMT_DELETE_FILE,
+  STMT_DELETE_COMMENT,
+  STMT_DELETE_SYMLINK,
+  STMT_UPDATE_NLINK,
   STMT_SENTINEL
 };
 
@@ -95,6 +99,10 @@ static const char* statements[] = {
           (?, ?)",
   "SELECT id FROM Cns_unique_id FOR UPDATE",
   "UPDATE Cns_unique_id SET id = ?",
+  "DELETE FROM Cns_file_metadata WHERE fileid = ?",
+  "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
+  "DELETE FROM Cns_symlinks WHERE fileid = ?",
+  "UPDATE Cns_file_metadata SET nlink = ? WHERE fileid = ?",
 };
 
 
@@ -372,7 +380,7 @@ SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
 
 
 
-FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
+FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& name,
                                      mode_t mode, long nlink, size_t size,
                                      short type, char status,
                                      const std::string& csumtype,
@@ -389,7 +397,7 @@ FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
 
   // Destination must not exist!
   try {
-    this->getFile(name, parent);
+    this->getFile(name, parent.xStat.stat.st_ino);
     throw DmException(DM_EXISTS, name + " already exists");
   }
   catch (DmException e) {
@@ -397,10 +405,9 @@ FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
       throw;
   }
 
-  // Check the parent! (Assume the traversing have been already done)
-  FileMetadata parentMeta = this->getFile(parent);
+  // Check the parent!
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       parentMeta.acl, parentMeta.xStat.stat,
+                       parent.acl, parent.xStat.stat,
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
@@ -442,7 +449,7 @@ FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
   fileParam[ 0].buffer_type = MYSQL_TYPE_LONGLONG;
   fileParam[ 0].buffer      = &newFileId;
   fileParam[ 1].buffer_type = MYSQL_TYPE_LONGLONG;
-  fileParam[ 1].buffer      = &parent;
+  fileParam[ 1].buffer      = &parent.xStat.stat.st_ino;
   fileParam[ 2].buffer_type = MYSQL_TYPE_VARCHAR;
   fileParam[ 2].buffer      = (void*)name.c_str();
   fileParam[ 2].length      = &nameLen;
@@ -484,8 +491,61 @@ FileMetadata NsMySqlCatalog::newFile(ino_t parent, const std::string& name,
 
   mysql_stmt_free_result(fileStmt);
 
+  // Increment the nlink
+  MYSQL_STMT *nlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
+  MYSQL_BIND  nlinkParam[1];
+  parent.xStat.stat.st_nlink++;
+
+  memset(nlinkParam, 0, sizeof(nlinkParam));
+  nlinkParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  nlinkParam[0].buffer      = &parent.xStat.stat.st_nlink;
+  nlinkParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
+  nlinkParam[1].buffer      = &parent.xStat.stat.st_ino;
+
+  mysql_stmt_bind_param(nlinkStmt, nlinkParam);
+
+  if (mysql_stmt_execute(nlinkStmt) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(fileStmt));
+
+  mysql_stmt_free_result(nlinkStmt);
+
   // Return back
   return this->getFile(newFileId);
+}
+
+
+
+FileMetadata NsMySqlCatalog::getParent(const std::string& path,
+                                       std::string* parentPath,
+                                       std::string* name) throw (DmException)
+{
+  size_t lastSlash = path.rfind("/");
+  size_t nameLen;
+
+  if (lastSlash != std::string::npos && lastSlash > 0) {
+    *parentPath = path.substr(0, lastSlash);
+    *name       = path.substr(lastSlash + 1);
+    nameLen = name->length();
+    if ((*name)[nameLen -1 ] == '/')
+      (*name)[nameLen - 1] = '\0';
+    return this->parsePath(*parentPath);
+  }
+  else if (!this->cwdPath_.empty() && lastSlash != 0) {
+    *parentPath = this->cwdPath_;
+    *name       = path;
+    nameLen = name->length();
+    if ((*name)[nameLen -1 ] == '/')
+      (*name)[nameLen - 1] = '\0';
+    return this->cwdMeta_;
+  }
+  else {
+    *parentPath = "/";
+    *name       = path;
+    nameLen = name->length();
+    if ((*name)[nameLen -1 ] == '/')
+      (*name)[nameLen - 1] = '\0';
+    return this->parsePath(*parentPath);
+  }
 }
 
 
@@ -1092,27 +1152,18 @@ FileReplica NsMySqlCatalog::get(const std::string& path) throw(DmException)
 void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
   std::string parentPath, symName;
-
-  size_t lastSlash = newPath.rfind("/");
-  if (lastSlash != std::string::npos && lastSlash > 0) {
-    parentPath = newPath.substr(0, lastSlash);
-    symName    = newPath.substr(lastSlash + 1);
-  }
-  else {
-    parentPath = "/";
-    symName    = newPath;
-  }
-
-  // Check the file exists, plus we have write access for the parent
+  
+  // Get the parent of the destination and file
+  FileMetadata parent = this->getParent(newPath, &parentPath, &symName);
   FileMetadata file   = this->parsePath(oldPath);
-  FileMetadata parent = this->parsePath(parentPath);
 
+  // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
                       parent.xStat.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Create the file entry
-  FileMetadata linkMeta = this->newFile(parent.xStat.stat.st_ino,
+  FileMetadata linkMeta = this->newFile(parent,
                                         symName, 0777 | S_IFLNK,
                                         1, 0, 0, '-',
                                         "", "", "");
@@ -1140,8 +1191,89 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
 
 void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 {
-  if (this->decorated_)
-    this->decorated_->unlink(path);
+  std::string  parentPath, name;
+
+  // Get the parent
+  FileMetadata parent = this->getParent(path, &parentPath, &name);
+
+  // The file itself
+  FileMetadata file = this->getFile(name, parent.xStat.stat.st_ino);
+
+  // Directories can not be removed with this method!
+  if (S_ISDIR(file.xStat.stat.st_mode))
+    throw DmException(DM_IS_DIRECTORY, path + " is a directory, can not unlink");
+
+  // Check we can remove it
+  if (parent.xStat.stat.st_mode & S_ISVTX == S_ISVTX) {
+    // Sticky bit set
+    if (this->user_.uid != file.xStat.stat.st_uid &&
+        this->user_.uid != parent.xStat.stat.st_uid &&
+        checkPermissions(this->user_, this->group_, this->groups_, file.acl,
+                         file.xStat.stat, S_IWRITE) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
+                                      path + "( sticky bit set)");
+  }
+  else {
+    // No sticky bit
+    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
+                         parent.xStat.stat, S_IWRITE) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
+  }
+
+  // Check there are no replicas
+  try {
+    this->getReplicas(path);
+    throw DmException(DM_EXISTS, path + " has replicas, can not remove");
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_REPLICAS)
+      throw;
+  }
+
+  // All preconditions are good!
+  // Bind parameter
+  MYSQL_BIND  bindParam[1];
+
+  memset(bindParam, 0, sizeof(bindParam));
+  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  bindParam[0].buffer      = &file.xStat.stat.st_ino;
+
+  // Remove associated symlink
+  MYSQL_STMT *delSym = this->getPreparedStatement(STMT_DELETE_SYMLINK);
+  mysql_stmt_bind_param(delSym, bindParam);
+  if (mysql_stmt_execute(delSym) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delSym));
+  mysql_stmt_free_result(delSym);
+
+  // Remove associated comments
+  MYSQL_STMT *delCom = this->getPreparedStatement(STMT_DELETE_COMMENT);
+  mysql_stmt_bind_param(delCom, bindParam);
+  if (mysql_stmt_execute(delCom) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delCom));
+  mysql_stmt_free_result(delCom);
+
+  // Remove file itself
+  MYSQL_STMT *delFil = this->getPreparedStatement(STMT_DELETE_FILE);
+  mysql_stmt_bind_param(delFil, bindParam);
+  if (mysql_stmt_execute(delFil) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delFil));
+  mysql_stmt_free_result(delFil);
+
+  // And decrement nlink
+  MYSQL_STMT *nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
+  MYSQL_BIND  nlinkParam[2];
+  parent.xStat.stat.st_nlink--;
+
+  memset(nlinkParam, 0, sizeof(nlinkParam));
+  nlinkParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  nlinkParam[0].buffer      = &parent.xStat.stat.st_nlink;
+  nlinkParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
+  nlinkParam[1].buffer      = &parent.xStat.stat.st_ino;
+
+  mysql_stmt_bind_param(nlink, nlinkParam);
+  if (mysql_stmt_execute(nlink) != 0)
+    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(nlink));
+  mysql_stmt_free_result(nlink);
 }
 
 
@@ -1163,7 +1295,7 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
-                   "Not enough permissions to read " + path);
+                      "Not enough permissions to read " + path);
 
   // MySQL statement
   stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED);
