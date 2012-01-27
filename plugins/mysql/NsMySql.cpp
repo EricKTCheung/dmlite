@@ -7,7 +7,7 @@
 #include <time.h>
 #include <vector>
 #include <mysql/mysql.h>
-#include "MySql.h"
+#include "MySqlWrapper.h"
 #include "NsMySql.h"
 
 #include "../common/Uris.h"
@@ -161,135 +161,43 @@ std::string NsMySqlCatalog::getImplId() throw ()
 
 
 
-static void bindMetadata(MYSQL_STMT* stmt, MYSQL_BIND* bindResult, FileMetadata* meta) throw(DmException)
+static void bindMetadata(Statement& stmt, FileMetadata* meta) throw(DmException)
 {
-  // Values not used, so it doesn't really matter if they are not
-  // thread-safe.
-  // Beware!! These memory locations are used outside the scope of this function
-  // by MySQL bindings, so keep them static!
-  static unsigned long length;
-  static my_bool       isNull;
-  
-  memset(bindResult, 0x00, sizeof(MYSQL_BIND) * 17);
-  memset(meta,       0x00, sizeof(FileMetadata));
-  
-  // fileid
-  bindResult[ 0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 0].buffer      = &meta->xStat.stat.st_ino;
-  // parent_fileid
-  bindResult[ 1].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 1].buffer      = &meta->xStat.parent;
-  // guid
-  bindResult[ 2].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[ 2].buffer_length = sizeof(meta->xStat.guid);
-  bindResult[ 2].buffer        = meta->xStat.guid;
-  bindResult[ 2].length        = &length;
-  bindResult[ 2].is_null       = &isNull;
-  // name
-  bindResult[ 3].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[ 3].buffer_length = sizeof(meta->xStat.name);
-  bindResult[ 3].buffer        = meta->xStat.name;
-  bindResult[ 3].length        = &length;
-  // filemode
-  bindResult[ 4].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 4].buffer      = &meta->xStat.stat.st_mode;
-  // nlink
-  bindResult[ 5].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 5].buffer      = &meta->xStat.stat.st_nlink;
-  bindResult[ 5].is_null     = &isNull;
-  // owner_uid
-  bindResult[ 6].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 6].buffer      = &meta->xStat.stat.st_uid;
-  bindResult[ 6].is_null     = &isNull;
-  // gid
-  bindResult[ 7].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 7].buffer      = &meta->xStat.stat.st_gid;
-  bindResult[ 7].is_null     = &isNull;
-  // filesize
-  bindResult[ 8].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindResult[ 8].buffer      = &meta->xStat.stat.st_size;
-  bindResult[ 8].is_null     = &isNull;
-  // atime
-  bindResult[ 9].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[ 9].buffer      = &meta->xStat.stat.st_atime;
-  bindResult[ 9].is_null     = &isNull;
-  // mtime
-  bindResult[10].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[10].buffer      = &meta->xStat.stat.st_mtime;
-  bindResult[10].is_null     = &isNull;
-  // ctime
-  bindResult[11].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[11].buffer      = &meta->xStat.stat.st_ctime;
-  bindResult[11].is_null     = &isNull;
-  // fileclass
-  bindResult[12].buffer_type = MYSQL_TYPE_TINY;
-  bindResult[12].buffer      = &meta->xStat.type;
-  bindResult[12].is_null     = &isNull;
-  // status
-  bindResult[13].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[13].buffer_length = sizeof(meta->xStat.status);
-  bindResult[13].buffer        = &meta->xStat.status;
-  bindResult[13].length        = &length;
-  bindResult[13].is_null       = &isNull;
-  // csumtype
-  bindResult[14].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[14].buffer_length = sizeof(meta->xStat.csumtype);
-  bindResult[14].buffer        = meta->xStat.csumtype;
-  bindResult[14].length        = &length;
-  bindResult[14].is_null       = &isNull;
-  // csumvalue
-  bindResult[15].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[15].buffer_length = sizeof(meta->xStat.csumvalue);
-  bindResult[15].buffer        = meta->xStat.csumvalue;
-  bindResult[15].length        = &length;
-  bindResult[15].is_null       = &isNull;
-  // acl
-  bindResult[16].buffer_type   = MYSQL_TYPE_MEDIUM_BLOB;
-  bindResult[16].buffer_length = sizeof(meta->acl);
-  bindResult[16].buffer        = meta->acl;
-  bindResult[16].length        = &length;
-  bindResult[16].is_null       = &isNull;
-
-  if (mysql_stmt_bind_result(stmt, bindResult) != 0)
-    throw DmException(DM_INTERNAL_ERROR, "Could not bind the MySQL variables");
+  stmt.bindResult( 0, &meta->xStat.stat.st_ino);
+  stmt.bindResult( 1, &meta->xStat.parent);
+  stmt.bindResult( 2, meta->xStat.guid, sizeof(meta->xStat.guid));
+  stmt.bindResult( 3, meta->xStat.name, sizeof(meta->xStat.name));
+  stmt.bindResult( 4, &meta->xStat.stat.st_mode);
+  stmt.bindResult( 5, &meta->xStat.stat.st_nlink);
+  stmt.bindResult( 6, &meta->xStat.stat.st_uid);
+  stmt.bindResult( 7, &meta->xStat.stat.st_gid);
+  stmt.bindResult( 8, &meta->xStat.stat.st_size);
+  stmt.bindResult( 9, &meta->xStat.stat.st_atime);
+  stmt.bindResult(10, &meta->xStat.stat.st_mtime);
+  stmt.bindResult(11, &meta->xStat.stat.st_ctime);
+  stmt.bindResult(12, &meta->xStat.type);
+  stmt.bindResult(13, &meta->xStat.status, 1);
+  stmt.bindResult(14, meta->xStat.csumtype,  sizeof(meta->xStat.csumtype));
+  stmt.bindResult(15, meta->xStat.csumvalue, sizeof(meta->xStat.csumvalue));
+  stmt.bindResult(16, meta->acl, sizeof(meta->acl), 0);
 }
 
 
 
 FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
 {
-  MYSQL_STMT*  stmt = this->getPreparedStatement(STMT_GET_FILE_BY_ID);;
-  MYSQL_BIND   bindParam[1], bindResult[17];
+  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_ID));
   FileMetadata meta;
 
-  // Bind parameters (fileid)
-  memset(bindParam, 0, sizeof(bindParam));
-  
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer  = &fileId;
+  memset(&meta, 0x00, sizeof(FileMetadata));
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindParam(0, fileId);
+  stmt.execute();
+  bindMetadata(stmt, &meta);
 
-  // Execute the query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_FILE, "File %ld not found", fileId);
 
-  // Bind the result
-  bindMetadata(stmt, bindResult, &meta);
-
-  // Get the metadata
-  switch (mysql_stmt_fetch(stmt)) {
-    case 0:
-      break;
-    case MYSQL_NO_DATA:
-      throw DmException(DM_NO_SUCH_FILE, "No such file or directory: #%lu", fileId);
-      break;
-    default:
-      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(stmt));
-      break;
-  }
-
-  mysql_stmt_free_result(stmt);
   return meta;
 }
 
@@ -297,40 +205,20 @@ FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
 
 FileMetadata NsMySqlCatalog::getFile(const std::string& name, uint64_t parent) throw(DmException)
 {
-  MYSQL_STMT*   stmt = this->getPreparedStatement(STMT_GET_FILE_BY_NAME);;
-  MYSQL_BIND    bindParam[2], bindResult[17];
-  long unsigned nameLen;
-  FileMetadata  meta;
+  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_NAME));
+  FileMetadata meta;
 
-  // Bind parameters (parent_fileid and name)
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &parent;
-  bindParam[1].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[1].buffer      = (void*)name.c_str();
-  nameLen = name.size();
-  bindParam[1].length      = &nameLen;
+  memset(&meta, 0x00, sizeof(FileMetadata));
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindParam(0, parent);
+  stmt.bindParam(1, name);
+  stmt.execute();
 
-  // Execute the query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  bindMetadata(stmt, &meta);
 
-  // Bind the result
-  bindMetadata(stmt, bindResult, &meta);
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_FILE, name + " not found");
 
-  // Get the metadata
-  switch (mysql_stmt_fetch(stmt)) {
-    case 0:
-      break;
-    case MYSQL_NO_DATA:
-      throw DmException(DM_NO_SUCH_FILE, "No such file or directory: " + name);
-    default:
-      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(stmt));
-  }
-
-  mysql_stmt_free_result(stmt);
   return meta;
 }
 
@@ -338,44 +226,21 @@ FileMetadata NsMySqlCatalog::getFile(const std::string& name, uint64_t parent) t
 
 SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
 {
-  MYSQL_STMT* stmt = this->getPreparedStatement(STMT_GET_SYMLINK);;
-  MYSQL_BIND  bindParam[1], bindResult[2];
-  SymLink     link;
+  Statement stmt(this->getPreparedStatement(STMT_GET_SYMLINK));
+  SymLink   link;
 
-  memset(&link, 0, sizeof(SymLink));
+  memset(&link, 0x00, sizeof(SymLink));
 
-  // Bind parameters (fileid)
-  memset(bindParam, 0x00, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &linkId;
+  stmt.bindParam(0, linkId);
+  stmt.execute();
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindResult(0, &link.fileId);
+  stmt.bindResult(1, link.link, sizeof(link, link), 0);
 
-  // Execute the query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", linkId);
 
-  // Bind the result
-  memset(bindResult, 0x00, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_LONGLONG;
-  bindResult[0].buffer        = &link.fileId;
-  bindResult[1].buffer_type   = MYSQL_TYPE_BLOB;
-  bindResult[1].buffer        = link.link;
-  bindResult[1].buffer_length = sizeof(link.link);
 
-  mysql_stmt_bind_result(stmt, bindResult);
-
-  // Fetch
-  switch (mysql_stmt_fetch(stmt)) {
-    case 0:
-      break;
-    case MYSQL_NO_DATA:
-      throw DmException(DM_NO_SUCH_FILE, "No such symbolic link: #%ul", linkId);
-    default:
-      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(stmt));
-  }
-
-  mysql_stmt_free_result(stmt);
   return link;
 }
 
@@ -388,17 +253,12 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
                                      const std::string& csumvalue,
                                      const std::string& acl) throw (DmException)
 {
-  time_t        datetime = time(NULL);
-  size_t        nameLen  = name.length();
-  size_t        csumtLen = csumtype.length();
-  size_t        csumvLen = csumvalue.length();
-  size_t        aclLen   = acl.length();
-  size_t        one      = 1;
-  ino_t         newFileId;
+  time_t datetime = time(NULL);
+  ino_t  newFileId;
 
   // Destination must not exist!
   try {
-    this->getFile(name, parent.xStat.stat.st_ino);
+    FileMetadata f = this->getFile(name, parent.xStat.stat.st_ino);
     throw DmException(DM_EXISTS, name + " already exists");
   }
   catch (DmException e) {
@@ -417,106 +277,52 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   TransactionAndLock lock(this->conn_, "Cns_file_metadata", "Cns_unique_id", NULL);
 
   // Fetch the new file ID
-  MYSQL_STMT  *uniqueStmt = this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE);
-  MYSQL_BIND   uniqueResult[1];
+  Statement uniqueId(this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE));
 
-  if (mysql_stmt_execute(uniqueStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uniqueStmt));
-
-  memset(uniqueResult, 0, sizeof(uniqueResult));
-  uniqueResult[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  uniqueResult[0].buffer      = &newFileId;
-  
-  mysql_stmt_bind_result(uniqueStmt, uniqueResult);
-
-  switch (mysql_stmt_fetch(uniqueStmt)) {
-    case 0:
-      break;
-    default:
-      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(uniqueStmt));
-  }
-
-  mysql_stmt_free_result(uniqueStmt);
+  uniqueId.execute();
+  uniqueId.bindResult(0, &newFileId);
+  uniqueId.fetch();
 
   // Update
+  Statement updateUnique(this->getPreparedStatement(STMT_UPDATE_UNIQ_ID));
+  
   newFileId++;
-  uniqueStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_ID);
-
-  mysql_stmt_bind_param(uniqueStmt, uniqueResult);
-  if (mysql_stmt_execute(uniqueStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uniqueStmt));
+  updateUnique.bindParam(0, newFileId);
+  updateUnique.execute();
 
   // Create the entry
-  MYSQL_STMT   *fileStmt = this->getPreparedStatement(STMT_INSERT_FILE);
-  MYSQL_BIND    fileParam[16];
+  Statement fileStmt(this->getPreparedStatement(STMT_INSERT_FILE));
 
-  memset(fileParam, 0, sizeof(fileParam));
-  fileParam[ 0].buffer_type = MYSQL_TYPE_LONGLONG;
-  fileParam[ 0].buffer      = &newFileId;
-  fileParam[ 1].buffer_type = MYSQL_TYPE_LONGLONG;
-  fileParam[ 1].buffer      = &parent.xStat.stat.st_ino;
-  fileParam[ 2].buffer_type = MYSQL_TYPE_VARCHAR;
-  fileParam[ 2].buffer      = (void*)name.c_str();
-  fileParam[ 2].length      = &nameLen;
-  fileParam[ 3].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 3].buffer      = &mode;
-  fileParam[ 4].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 4].buffer      = &nlink;
-  fileParam[ 5].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 5].buffer      = &this->user_.uid;
-  fileParam[ 6].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 6].buffer      = &this->group_.gid;
-  fileParam[ 7].buffer_type = MYSQL_TYPE_LONGLONG;
-  fileParam[ 7].buffer      = &size;
-  fileParam[ 8].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 8].buffer      = &datetime;
-  fileParam[ 9].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[ 9].buffer      = &datetime;
-  fileParam[10].buffer_type = MYSQL_TYPE_LONG;
-  fileParam[10].buffer      = &datetime;
-  fileParam[11].buffer_type = MYSQL_TYPE_SHORT;
-  fileParam[11].buffer      = &type;
-  fileParam[12].buffer_type = MYSQL_TYPE_VARCHAR;
-  fileParam[12].buffer      = &status;
-  fileParam[12].length      = &one;
-  fileParam[13].buffer_type = MYSQL_TYPE_VARCHAR;
-  fileParam[13].buffer      = (void*)csumtype.c_str();
-  fileParam[13].length      = &csumtLen;
-  fileParam[14].buffer_type = MYSQL_TYPE_VARCHAR;
-  fileParam[14].buffer      = (void*)csumvalue.c_str();
-  fileParam[14].length      = &csumvLen;
-  fileParam[15].buffer_type = MYSQL_TYPE_VARCHAR;
-  fileParam[15].buffer      = (void*)acl.c_str();
-  fileParam[15].length      = &aclLen;
+  fileStmt.bindParam( 0, newFileId);
+  fileStmt.bindParam( 1, parent.xStat.stat.st_ino);
+  fileStmt.bindParam( 2, name);
+  fileStmt.bindParam( 3, mode);
+  fileStmt.bindParam( 4, nlink);
+  fileStmt.bindParam( 5, this->user_.uid);
+  fileStmt.bindParam( 6, this->group_.gid);
+  fileStmt.bindParam( 7, size);
+  fileStmt.bindParam( 8, datetime);
+  fileStmt.bindParam( 9, datetime);
+  fileStmt.bindParam(10, datetime);
+  fileStmt.bindParam(11, type);
+  fileStmt.bindParam(12, std::string(&status));
+  fileStmt.bindParam(13, csumtype);
+  fileStmt.bindParam(14, csumvalue);
+  fileStmt.bindParam(15, acl.data(), acl.size());
 
-  mysql_stmt_bind_param(fileStmt, fileParam);
-
-  if (mysql_stmt_execute(fileStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(fileStmt));
-
-  mysql_stmt_free_result(fileStmt);
-
+  fileStmt.execute();
+  
   // Increment the nlink
-  MYSQL_STMT *nlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  MYSQL_BIND  nlinkParam[1];
+  Statement nlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+
   parent.xStat.stat.st_nlink++;
+  nlinkStmt.bindParam(0, parent.xStat.stat.st_nlink);
+  nlinkStmt.bindParam(1, parent.xStat.stat.st_ino);
 
-  memset(nlinkParam, 0, sizeof(nlinkParam));
-  nlinkParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  nlinkParam[0].buffer      = &parent.xStat.stat.st_nlink;
-  nlinkParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
-  nlinkParam[1].buffer      = &parent.xStat.stat.st_ino;
-
-  mysql_stmt_bind_param(nlinkStmt, nlinkParam);
-
-  if (mysql_stmt_execute(nlinkStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(fileStmt));
-
-  mysql_stmt_free_result(nlinkStmt);
+  nlinkStmt.execute();
 
   // Commit
   lock.commit();
-
   // Return back
   return this->getFile(newFileId);
 }
@@ -710,7 +516,7 @@ void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) thro
 
   if (this->user_.name != dn) {
     throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
-                                        "the one associated with the id #%ul: "
+                                        "the one associated with the id #%ld: "
                                         "'%s' != '%s'",
                                         uid, dn.c_str(), this->user_.name);
   }
@@ -728,36 +534,18 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
   
   // Can we read it?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0) {
+                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
-  }
 
   // Create the handle
   dir = new NsMySqlDir();
-  memset(dir, 0x00, sizeof(NsMySqlDir));
   dir->dirId = meta.xStat.stat.st_ino;
-
+  
   try {
-    // Pre-fetch the statement
-    dir->statement = this->getPreparedStatement(STMT_GET_LIST_FILES);
-
-    // Bind the input variable (parent id)
-    memset(&dir->bindParam, 0x00, sizeof(dir->bindParam));
-    dir->bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-    dir->bindParam[0].buffer      = &dir->dirId;
-    mysql_stmt_bind_param(dir->statement, dir->bindParam);
-
-    // Execute the query
-    if (mysql_stmt_execute(dir->statement) != 0)
-      throw DmException(DM_QUERY_FAILED, mysql_stmt_error(dir->statement));
-
-    // Pre-bind the output variables
-    bindMetadata(dir->statement, dir->bindResult, &dir->current);
-
-    // Use buffering
-    mysql_stmt_store_result(dir->statement);
-
-    // Done here
+    dir->stmt = new Statement(this->getPreparedStatement(STMT_GET_LIST_FILES));
+    dir->stmt->bindParam(0, dir->dirId);
+    dir->stmt->execute();
+    bindMetadata(*dir->stmt, &dir->current);
     return dir;
   }
   catch (...) {
@@ -777,7 +565,7 @@ void NsMySqlCatalog::closeDir(Directory* dir) throw(DmException)
 
   dirp = (NsMySqlDir*)dir;
 
-  mysql_stmt_free_result(dirp->statement);
+  delete dirp->stmt;
   delete dirp;
 }
 
@@ -797,30 +585,22 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
 {
   NsMySqlDir *dirp;
 
-  if (dir == 0x00) {
+  if (dir == 0x00)
     throw DmException(DM_NULL_POINTER, "Tried to read a null dir");
-    return 0x00;
-  }
 
   dirp = (NsMySqlDir*)dir;
 
-  switch (mysql_stmt_fetch(dirp->statement)) {
-    case 0:
-      // Set stat structure
-      memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
-      // Set dirent structure
-      memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
-      dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
-      strncpy(dirp->ds.dirent.d_name,
-              dirp->current.xStat.name,
-              sizeof(dirp->ds.dirent.d_name));
-      return &dirp->ds;
-      break;
-    case MYSQL_NO_DATA:
-      return 0x00;
-    default:
-      throw DmException(DM_QUERY_FAILED, mysql_stmt_error(dirp->statement));
-      return 0x00;
+  if (dirp->stmt->fetch()) {
+    memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
+    memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
+    dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
+    strncpy(dirp->ds.dirent.d_name,
+            dirp->current.xStat.name,
+            sizeof(dirp->ds.dirent.d_name));
+    return &dirp->ds;
+  }
+  else {
+    return 0x00;
   }
 }
 
@@ -876,91 +656,40 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
 
 UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
 {
-  return this->getUser(userName, 0);
+  UserInfo  user;
+  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME));
+
+  stmt.bindParam(0, userName);
+  stmt.execute();
+
+  stmt.bindResult(0, &user.uid);
+  stmt.bindResult(1, user.name, sizeof(user.name));
+  stmt.bindResult(2, user.ca, sizeof(user.ca));
+  stmt.bindResult(3, &user.banned);
+
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
+
+  return user;
 }
 
 
 
 UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
 {
-  return this->getUser(std::string(), uid);
-}
+  UserInfo  user;
+  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
 
+  stmt.bindParam(0, uid);
+  stmt.execute();
 
+  stmt.bindResult(0, &user.uid);
+  stmt.bindResult(1, user.name, sizeof(user.name));
+  stmt.bindResult(2, user.ca, sizeof(user.ca));
+  stmt.bindResult(3, &user.banned);
 
-UserInfo NsMySqlCatalog::getUser(const std::string& userName, uid_t uid) throw(DmException)
-{
-  MYSQL_STMT*   uStmt;
-  MYSQL_BIND    bindParam[1], bindResult[4];
-  long unsigned len;
-  my_bool       isNull;
-  UserInfo      user;
-
-  // Get user info
-  memset(bindParam, 0, sizeof(bindParam));
-  memset(&user, 0, sizeof(UserInfo));
-
-  if (!userName.empty()) {
-    uStmt = this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME);
-    len = userName.size();
-    bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
-    bindParam[0].buffer      = (void*)userName.c_str();
-    bindParam[0].length      = &len;
-  }
-  else {
-    uStmt = this->getPreparedStatement(STMT_GET_USERINFO_BY_UID);
-    bindParam[0].buffer_type = MYSQL_TYPE_LONG;
-    bindParam[0].buffer      = &uid;
-  }
-
-  if (mysql_stmt_bind_param(uStmt, bindParam) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uStmt));
-
-  if (mysql_stmt_execute(uStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uStmt));
-
-  memset(bindResult, 0, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_LONG;
-  bindResult[0].buffer        = &user.uid;
-  bindResult[0].is_null       = &isNull;
-
-  bindResult[1].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[1].buffer        = user.name;
-  bindResult[1].buffer_length = sizeof(user.name);
-  bindResult[1].length        = &len;
-  bindResult[1].is_null       = &isNull;
-
-  bindResult[2].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[2].buffer        = user.ca;
-  bindResult[2].buffer_length = sizeof(user.ca);
-  bindResult[2].length        = &len;
-  bindResult[2].is_null       = &isNull;
-
-  bindResult[3].buffer_type   = MYSQL_TYPE_LONG;
-  bindResult[3].buffer        = &user.banned;
-  bindResult[3].is_null       = &isNull;
-
-  if (mysql_stmt_bind_result(uStmt, bindResult) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uStmt));
-
-  try {
-    switch (mysql_stmt_fetch(uStmt)) {
-      case 0:
-        break;
-      case MYSQL_NO_DATA:
-        if (!userName.empty())
-          throw DmException(DM_NO_SUCH_USER, "Could not find the user " + userName);
-        else
-          throw DmException(DM_NO_SUCH_USER, "Could not find the user #%lu", uid);
-      default:
-        throw DmException(DM_QUERY_FAILED, mysql_stmt_error(uStmt));
-    }
-    mysql_stmt_free_result(uStmt);
-  }
-  catch (...) {
-    mysql_stmt_free_result(uStmt);
-    throw;
-  }
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_USER, "User %ld not found", uid);
 
   return user;
 }
@@ -969,84 +698,35 @@ UserInfo NsMySqlCatalog::getUser(const std::string& userName, uid_t uid) throw(D
 
 GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmException)
 {
-  return this->getGroup(groupName, 0);
+  GroupInfo group;
+  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME));
+
+  stmt.bindParam(0, groupName);
+  stmt.execute();
+
+  stmt.bindResult(0, &group.gid);
+  stmt.bindResult(1, group.name, sizeof(group.name));
+  stmt.bindResult(2, &group.banned);
+
+  stmt.fetch();
+  return group;
 }
 
 
 
 GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
 {
-  return this->getGroup(std::string(), gid);
-}
+  GroupInfo group;
+  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID));
 
+  stmt.bindParam(0, gid);
+  stmt.execute();
 
-
-GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName, gid_t gid) throw(DmException)
-{
-  MYSQL_STMT*   gStmt;
-  MYSQL_BIND    bindParam[1], bindResult[3];
-  long unsigned len;
-  my_bool       isNull;
-  GroupInfo     group;
-
-  // Get user info
-  memset(bindParam, 0, sizeof(bindParam));
-  memset(&group, 0, sizeof(GroupInfo));
-
-  if (!groupName.empty()) {
-    gStmt = this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME);
-    len = groupName.size();
-    bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
-    bindParam[0].buffer      = (void*)groupName.c_str();
-    bindParam[0].length      = &len;
-  }
-  else {
-    gStmt = this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID);
-    bindParam[0].buffer_type   = MYSQL_TYPE_LONG;
-    bindParam[0].buffer        = &gid;
-  }
-
-  mysql_stmt_bind_param(gStmt, bindParam);
-
-  if (mysql_stmt_execute(gStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(gStmt));
-
-  memset(bindResult, 0, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_LONG;
-  bindResult[0].buffer        = &group.gid;
-  bindResult[0].is_null       = &isNull;
-
-  bindResult[1].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[1].buffer        = group.name;
-  bindResult[1].buffer_length = sizeof(group.name);
-  bindResult[1].length        = &len;
-  bindResult[1].is_null       = &isNull;
-
-  bindResult[2].buffer_type   = MYSQL_TYPE_LONG;
-  bindResult[2].buffer        = &group.banned;
-  bindResult[2].is_null       = &isNull;
-
-  mysql_stmt_bind_result(gStmt, bindResult);
-
-  try {
-    switch (mysql_stmt_fetch(gStmt)) {
-      case 0:
-        break;
-      case MYSQL_NO_DATA:
-        if (!groupName.empty())
-          throw DmException(DM_NO_SUCH_GROUP, "Could not find the group " + groupName);
-        else
-          throw DmException(DM_NO_SUCH_GROUP, "Could not find the group #%lu", gid);
-      default:
-        throw DmException(DM_QUERY_FAILED, mysql_stmt_error(gStmt));
-    }
-    mysql_stmt_free_result(gStmt);
-  }
-  catch (...) {
-    mysql_stmt_free_result(gStmt);
-    throw;
-  }
-
+  stmt.bindResult(0, &group.gid);
+  stmt.bindResult(1, group.name, sizeof(group.name));
+  stmt.bindResult(2, &group.banned);
+  
+  stmt.fetch();
   return group;
 }
 
@@ -1056,11 +736,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
 {
   FileMetadata  meta;
   FileReplica   replica;
-  MYSQL_STMT   *stmt;
-  MYSQL_BIND    bindParam[1], bindResult[4];
   int           r = 0, nReplicas;
-  unsigned long length;
-  my_bool       isNull;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
@@ -1072,73 +748,32 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
                    "Not enough permissions to read " + path);
 
   // MySQL statement
-  stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS);
-  
-  // Bind parameters
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
-
-  mysql_stmt_bind_param(stmt, bindParam);
+  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS));
 
   // Execute query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.execute();
 
   // Bind result
-  memset(bindResult, 0, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_LONGLONG;
-  bindResult[0].buffer        = &replica.replicaid;
+  stmt.bindResult(0, &replica.replicaid);
+  stmt.bindResult(1, &replica.fileid);
+  stmt.bindResult(2, &replica.status, 1);
+  stmt.bindResult(3, replica.unparsed_location, sizeof(replica.unparsed_location));
+  
+  std::vector<FileReplica> replicas;
 
-  bindResult[1].buffer_type   = MYSQL_TYPE_LONGLONG;
-  bindResult[1].buffer        = &replica.fileid;
+  if ((nReplicas = stmt.count()) == 0)
+    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
 
-  bindResult[2].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[2].buffer        = &replica.status;
-  bindResult[2].buffer_length = sizeof(replica.status);
-  bindResult[2].length        = &length;
-  bindResult[2].is_null       = &isNull;
+  // Fetch
+  int i = 0;
+  while (stmt.fetch()) {
+    replica.location = splitUri(replica.unparsed_location);
+    replicas.push_back(replica);
+    ++i;
+  };
 
-  bindResult[3].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[3].buffer        = replica.unparsed_location;
-  bindResult[3].buffer_length = sizeof(replica.unparsed_location);
-  bindResult[3].length        = &length;
-  bindResult[3].is_null       = &isNull;
-
-  mysql_stmt_bind_result(stmt, bindResult);
-  mysql_stmt_store_result(stmt);
-
-  try {
-    std::vector<FileReplica> replicas;
-    
-    nReplicas = mysql_stmt_num_rows(stmt);
-    if (nReplicas == 0)
-      throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
-
-    // Fetch
-    int i = 0;
-    while ((r = mysql_stmt_fetch(stmt)) == 0) {
-      replica.location = splitUri(replica.unparsed_location);
-      replicas.push_back(replica);
-      ++i;
-    };
-
-    switch (r) {
-      case MYSQL_NO_DATA:
-        break;
-      case MYSQL_DATA_TRUNCATED:
-        throw DmException(DM_QUERY_FAILED, std::string("getReplicas: Data truncated"));
-      default:
-        throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(stmt)));
-    }
-    mysql_stmt_free_result(stmt);
-
-    return replicas;
-  }
-  catch (...) {
-    mysql_stmt_free_result(stmt);
-    throw;
-  }
+  return replicas;
 }
 
 
@@ -1176,23 +811,12 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
                                         1, 0, 0, '-',
                                         "", "", "");
   // Create the symlink entry
-  MYSQL_STMT   *symStmt = this->getPreparedStatement(STMT_INSERT_SYMLINK);
-  MYSQL_BIND    symParam[2];
-  unsigned long linkLen = oldPath.length();
+  Statement stmt(this->getPreparedStatement(STMT_INSERT_SYMLINK));
 
-  memset(symParam, 0, sizeof(symParam));
-  symParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  symParam[0].buffer      = &linkMeta.xStat.stat.st_ino;
-  symParam[1].buffer_type = MYSQL_TYPE_VARCHAR;
-  symParam[1].buffer      = (void*)oldPath.c_str();
-  symParam[1].length      = &linkLen;
+  stmt.bindParam(0, linkMeta.xStat.stat.st_ino);
+  stmt.bindParam(1, oldPath);
 
-  mysql_stmt_bind_param(symStmt, symParam);
-
-  if (mysql_stmt_execute(symStmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(symStmt));
-
-  mysql_stmt_free_result(symStmt);
+  stmt.execute();
 }
 
 
@@ -1212,7 +836,7 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
     throw DmException(DM_IS_DIRECTORY, path + " is a directory, can not unlink");
 
   // Check we can remove it
-  if (parent.xStat.stat.st_mode & S_ISVTX == S_ISVTX) {
+  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
     if (this->user_.uid != file.xStat.stat.st_uid &&
         this->user_.uid != parent.xStat.stat.st_uid &&
@@ -1229,62 +853,42 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   }
 
   // Check there are no replicas
-  try {
-    this->getReplicas(path);
-    throw DmException(DM_EXISTS, path + " has replicas, can not remove");
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_REPLICAS)
-      throw;
+  if (!S_ISLNK(file.xStat.stat.st_mode)) {
+    try {
+      this->getReplicas(path);
+      throw DmException(DM_EXISTS, path + " has replicas, can not remove");
+    }
+    catch (DmException e) {
+      if (e.code() != DM_NO_REPLICAS)
+        throw;
+    }
   }
 
   // All preconditions are good!
-  TransactionAndLock lock(this->conn_, "Cns_unique_id", "Cns_file_metadata",
+  TransactionAndLock lock(this->conn_, "Cns_file_metadata",
                           "Cns_symlinks", "Cns_user_metadata", NULL);
 
-  // Bind parameter
-  MYSQL_BIND  bindParam[1];
-
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &file.xStat.stat.st_ino;
-
   // Remove associated symlink
-  MYSQL_STMT *delSym = this->getPreparedStatement(STMT_DELETE_SYMLINK);
-  mysql_stmt_bind_param(delSym, bindParam);
-  if (mysql_stmt_execute(delSym) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delSym));
-  mysql_stmt_free_result(delSym);
+  Statement delSymlink(this->getPreparedStatement(STMT_DELETE_SYMLINK));
+  delSymlink.bindParam(0, file.xStat.stat.st_ino);
+  delSymlink.execute();
 
   // Remove associated comments
-  MYSQL_STMT *delCom = this->getPreparedStatement(STMT_DELETE_COMMENT);
-  mysql_stmt_bind_param(delCom, bindParam);
-  if (mysql_stmt_execute(delCom) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delCom));
-  mysql_stmt_free_result(delCom);
+  Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
+  delComment.bindParam(0, file.xStat.stat.st_ino);
+  delComment.execute();
 
   // Remove file itself
-  MYSQL_STMT *delFil = this->getPreparedStatement(STMT_DELETE_FILE);
-  mysql_stmt_bind_param(delFil, bindParam);
-  if (mysql_stmt_execute(delFil) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(delFil));
-  mysql_stmt_free_result(delFil);
+  Statement delFile(this->getPreparedStatement(STMT_DELETE_FILE));
+  delFile.bindParam(0, file.xStat.stat.st_ino);
+  delFile.execute();
 
   // And decrement nlink
-  MYSQL_STMT *nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  MYSQL_BIND  nlinkParam[2];
+  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
   parent.xStat.stat.st_nlink--;
-
-  memset(nlinkParam, 0, sizeof(nlinkParam));
-  nlinkParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  nlinkParam[0].buffer      = &parent.xStat.stat.st_nlink;
-  nlinkParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
-  nlinkParam[1].buffer      = &parent.xStat.stat.st_ino;
-
-  mysql_stmt_bind_param(nlink, nlinkParam);
-  if (mysql_stmt_execute(nlink) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(nlink));
-  mysql_stmt_free_result(nlink);
+  nlink.bindParam(0, parent.xStat.stat.st_nlink);
+  nlink.bindParam(1, parent.xStat.stat.st_ino);
+  nlink.execute();
 
   // Done!
   lock.commit();
@@ -1296,11 +900,7 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 {
   FileMetadata    meta;
   ExtendedReplica replica;
-  MYSQL_STMT     *stmt;
-  MYSQL_BIND      bindParam[1], bindResult[7];
   int             r = 0, nReplicas;
-  unsigned long   length;
-  my_bool         isNull;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
@@ -1312,149 +912,60 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
                       "Not enough permissions to read " + path);
 
   // MySQL statement
-  stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED);
+  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED));
 
-  // Bind parameters
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
+  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.execute();
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindResult(0, &replica.replica.replicaid);
+  stmt.bindResult(1, &replica.replica.fileid);
+  stmt.bindResult(2, &replica.replica.status, 1);
+  stmt.bindResult(3, replica.replica.unparsed_location, sizeof(replica.replica.unparsed_location));
+  stmt.bindResult(4, replica.pool, sizeof(replica.pool));
+  stmt.bindResult(5, replica.host, sizeof(replica.host));
+  stmt.bindResult(6, replica.fs,   sizeof(replica.fs));
+  
+  std::vector<ExtendedReplica> replicas;
 
-  // Execute query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
+  nReplicas = stmt.count();
+  if (nReplicas == 0)
+    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
 
-  // Bind result
-  memset(bindResult, 0, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_LONGLONG;
-  bindResult[0].buffer        = &replica.replica.replicaid;
+  // Fetch
+  int i = 0;
+  while (stmt.fetch()) {
+    replica.replica.location = splitUri(replica.replica.unparsed_location);
+    replicas.push_back(replica);
+    ++i;
+  };
 
-  bindResult[1].buffer_type   = MYSQL_TYPE_LONGLONG;
-  bindResult[1].buffer        = &replica.replica.fileid;
-
-  bindResult[2].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[2].buffer        = &replica.replica.status;
-  bindResult[2].buffer_length = sizeof(replica.replica.status);
-  bindResult[2].length        = &length;
-  bindResult[2].is_null       = &isNull;
-
-  bindResult[3].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[3].buffer        = replica.replica.unparsed_location;
-  bindResult[3].buffer_length = sizeof(replica.replica.unparsed_location);
-  bindResult[3].length        = &length;
-  bindResult[3].is_null       = &isNull;
-
-  bindResult[4].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[4].buffer        = replica.pool;
-  bindResult[4].buffer_length = sizeof(replica.pool);
-  bindResult[4].length        = &length;
-  bindResult[4].is_null       = &isNull;
-
-  bindResult[5].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[5].buffer        = replica.host;
-  bindResult[5].buffer_length = sizeof(replica.host);
-  bindResult[5].length        = &length;
-  bindResult[5].is_null       = &isNull;
-
-  bindResult[6].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[6].buffer        = replica.fs;
-  bindResult[6].buffer_length = sizeof(replica.fs);
-  bindResult[6].length        = &length;
-  bindResult[6].is_null       = &isNull;
-
-
-  mysql_stmt_bind_result(stmt, bindResult);
-  mysql_stmt_store_result(stmt);
-
-  try {
-    std::vector<ExtendedReplica> replicas;
-
-    nReplicas = mysql_stmt_num_rows(stmt);
-    if (nReplicas == 0)
-      throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
-
-    // Fetch
-    int i = 0;
-    while ((r = mysql_stmt_fetch(stmt)) == 0) {
-      replica.replica.location = splitUri(replica.replica.unparsed_location);
-      replicas.push_back(replica);
-      ++i;
-    };
-
-    switch (r) {
-      case MYSQL_NO_DATA:
-        break;
-      case MYSQL_DATA_TRUNCATED:
-        throw DmException(DM_QUERY_FAILED, "getReplicas: Data truncated");
-      default:
-        throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-    }
-    mysql_stmt_free_result(stmt);
-
-    return replicas;
-  }
-  catch (...) {
-    mysql_stmt_free_result(stmt);
-    throw;
-  }
+  return replicas;
 }
 
 
 
 std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmException)
 {
-  MYSQL_STMT  *stmt = this->getPreparedStatement(STMT_GET_COMMENT);
-  MYSQL_BIND   bindParam[1], bindResult[1];
   char         comment[COMMENT_MAX];
-
-  // Get the file
+  
+  // Get the file and check we can read
   FileMetadata meta = this->parsePath(path, true);
-
-  // Check we can read
+  
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
-  // Bind params
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[0].buffer      = &(meta.xStat.stat.st_ino);
+  // Query
+  Statement stmt(this->getPreparedStatement(STMT_GET_COMMENT));
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.execute();
+  
+  stmt.bindResult(0, comment, COMMENT_MAX);
+  if (!stmt.fetch())
+    throw DmException(DM_NO_COMMENT, "There is no comment for " + path);
 
-  // Execute query
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-
-
-  // Bind result
-  memset(bindResult, 0, sizeof(bindResult));
-  bindResult[0].buffer_type   = MYSQL_TYPE_STRING;
-  bindResult[0].buffer        = comment;
-  bindResult[0].buffer_length = 256;
-
-  mysql_stmt_bind_result(stmt, bindResult);
-
-  // Fetch
-  try {
-    switch (mysql_stmt_fetch(stmt)) {
-      case 0:
-        break;
-      case MYSQL_NO_DATA:
-        throw DmException(DM_NO_COMMENT, "There is no comment for " + path);
-      case MYSQL_DATA_TRUNCATED:
-        throw DmException(DM_QUERY_FAILED, "getComment: Data truncated");
-      default:
-        throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-    }
-    mysql_stmt_free_result(stmt);
-  }
-  catch (...) {
-    mysql_stmt_free_result(stmt);
-    throw;
-  }
-
+  // Done here!
   return std::string(comment);
 }
 
@@ -1462,28 +973,20 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
 
 void NsMySqlCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
-  MYSQL_STMT   *stmt = this->getPreparedStatement(STMT_SET_COMMENT);
-  MYSQL_BIND    bindParam[2];
-  long unsigned commentLen = comment.length();
-
+  // Get the file and check we can write
   FileMetadata meta = this->parsePath(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
                        meta.xStat.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
-  memset(bindParam, 0, sizeof(bindParam));
-  bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[0].length      = &commentLen;
-  bindParam[0].buffer      = (void*)comment.c_str();
-  bindParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[1].buffer      = &meta.xStat.stat.st_ino;
+  // Query
+  Statement stmt(this->getPreparedStatement(STMT_SET_COMMENT));
 
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.bindParam(0, comment);
+  stmt.bindParam(1, meta.xStat.stat.st_ino);
 
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-  mysql_stmt_free_result(stmt);
+  stmt.execute();
 }
 
 
@@ -1512,4 +1015,78 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
   if (mysql_stmt_execute(stmt) != 0)
     throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
   mysql_stmt_free_result(stmt);
+}
+
+
+
+void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
+{
+  std::string parentPath, name;
+
+  // Get the parent of the new folder
+  FileMetadata parent = this->getParent(path, &parentPath, &name);
+
+  // Check we have write access for the parent
+  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
+                      parent.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
+
+  // Create the file entry
+  this->newFile(parent, name, (mode & ~S_IFMT) | S_IFDIR,
+                0, 0, 0, '-', "", "", parent.acl);
+}
+
+
+
+void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
+{
+  std::string parentPath, name;
+
+  // Get the parent of the new folder
+  FileMetadata parent = this->getParent(path, &parentPath, &name);
+
+  // Get the file, and check it is a directory and it is empty
+  FileMetadata entry = this->getFile(name, parent.xStat.stat.st_ino);
+
+  if (!S_ISDIR(entry.xStat.stat.st_mode))
+    throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
+
+  if (entry.xStat.stat.st_nlink > 0)
+    throw DmException(DM_NOT_EMPTY, path + " is not empty. Can not remove.");
+
+  // Check we can remove it
+  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
+    // Sticky bit set
+    if (this->user_.uid != entry.xStat.stat.st_uid &&
+        this->user_.uid != parent.xStat.stat.st_uid &&
+        checkPermissions(this->user_, this->group_, this->groups_, entry.acl,
+                         entry.xStat.stat, S_IWRITE) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
+                                      path + "( sticky bit set)");
+  }
+  else {
+    // No sticky bit
+    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
+                         parent.xStat.stat, S_IWRITE) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
+  }
+
+  // All preconditions are good!
+  TransactionAndLock lock(this->conn_, "Cns_file_metadata", NULL);
+
+
+  // Remove directory itself
+  Statement delDir(this->getPreparedStatement(STMT_DELETE_FILE));
+  delDir.bindParam(0, entry.xStat.stat.st_ino);
+  delDir.execute();
+
+  // And decrement nlink
+  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  parent.xStat.stat.st_nlink--;
+  nlink.bindParam(0, parent.xStat.stat.st_nlink);
+  nlink.bindParam(1, parent.xStat.stat.st_ino);
+  nlink.execute();
+
+  // Done!
+  lock.commit();
 }

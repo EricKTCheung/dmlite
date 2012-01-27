@@ -35,3 +35,6 @@ target_link_libraries (test-chdir dmlite dmlitecommon cppunit dl)
 
 add_executable        (test-guid test-guid.cpp test-base.cpp)
 target_link_libraries (test-guid dmlite dmlitecommon cppunit dl)
+
+add_executable        (test-create test-create.cpp test-base.cpp)
+target_link_libraries (test-create dmlite dmlitecommon cppunit dl)

@@ -46,35 +46,10 @@ public:
     if (this->catalog) {
       this->catalog->setUserId(uid, gid, TEST_USER);
 
-      try {
-        this->catalog->unlink(SYMLINK);
-      }
-      catch (dmlite::DmException e)
-      {
-        if (e.code() != DM_NO_SUCH_FILE) throw;
-      }
-      try {
-        this->catalog->unlink(SYMREL);
-      }
-      catch (dmlite::DmException e)
-      {
-        if (e.code() != DM_NO_SUCH_FILE) throw;
-      }
-
-      try {
-        this->catalog->removeDir(NESTED);
-      }
-      catch (dmlite::DmException e)
-      {
-        if (e.code() != DM_NO_SUCH_FILE) throw;
-      }
-      try {
-        this->catalog->removeDir(FOLDER);
-      }
-      catch (dmlite::DmException e)
-      {
-        if (e.code() != DM_NO_SUCH_FILE) throw;
-      }
+      this->catalog->unlink(SYMLINK);
+      this->catalog->unlink(SYMREL);
+      this->catalog->removeDir(NESTED);
+      this->catalog->removeDir(FOLDER);
     }
     TestBase::tearDown();
   }
