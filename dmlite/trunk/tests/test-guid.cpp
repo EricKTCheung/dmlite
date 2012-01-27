@@ -30,8 +30,9 @@ public:
     try {
       this->catalog->unlink(FILE);
     }
-    catch (...) {
-      // Nothing
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_SUCH_FILE)
+        throw;
     }
     TestBase::tearDown();
   }

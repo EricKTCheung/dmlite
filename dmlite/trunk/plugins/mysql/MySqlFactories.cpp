@@ -1,8 +1,8 @@
-/// @file    plugins/mysql/MySql.cpp
+/// @file    plugins/mysql/MySqlFactories.cpp
 /// @brief   MySQL backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include "MySql.h"
+#include "MySqlFactories.h"
 #include "NsMySql.h"
 #include "DpmMySql.h"
 
@@ -61,63 +61,6 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
   // Reconnect set to 1, so even if the connection dropped,
   // it will reconnect.
   return true;
-}
-
-
-
-TransactionAndLock::TransactionAndLock(MYSQL* conn, ...) throw (DmException)
-{
-  this->connection = conn;
-  this->pending    = true;
-
-  std::string query("LOCK TABLES");
-  va_list tables;
-  va_start(tables, conn);
-
-  const char* table;
-  while ((table = va_arg(tables, const char*)) != NULL) {
-    query += " ";
-    query += table;
-    query += " WRITE,";
-  }
-
-  va_end(tables);
-
-  // Remove last ','
-  query[query.length() - 1] = '\0';
-
-  if (mysql_query(conn, query.c_str()) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
-  if (mysql_query(conn, "BEGIN") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
-}
-
-
-
-TransactionAndLock::~TransactionAndLock() throw (DmException)
-{
-  if (this->pending)
-    this->rollback();
-  if (mysql_query(this->connection, "UNLOCK TABLES") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
-}
-
-
-
-void TransactionAndLock::commit() throw (DmException)
-{
-  if (mysql_query(this->connection, "COMMIT") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
-  this->pending = false;
-}
-
-
-
-void TransactionAndLock::rollback() throw (DmException)
-{
-  if (mysql_query(this->connection, "ROLLBACK") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection));
-  this->pending = false;
 }
 
 

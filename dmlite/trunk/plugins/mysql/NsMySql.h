@@ -11,6 +11,8 @@
 #include "../common/PoolContainer.h"
 #include "../common/Security.h"
 
+#include "MySqlWrapper.h"
+
 namespace dmlite {
 
 /// Symbolic links
@@ -30,9 +32,7 @@ struct NsMySqlDir {
   uint64_t          dirId;         ///< The directory ID.
   FileMetadata      current;       ///< Current entry metadata.
   struct direntstat ds;            ///< The structure used to hold the returned data.
-  MYSQL_BIND        bindParam[0];  ///< Bind parameters.
-  MYSQL_BIND        bindResult[17];///< Bind results.
-  MYSQL_STMT       *statement;     ///< Statement.
+  Statement        *stmt;          ///< The statement.
 };
 
 /// Replica extended information. Used by the DPM plugin.
@@ -97,6 +97,10 @@ public:
   void        setComment(const std::string&, const std::string&) throw (DmException);
 
   void setGuid(const std::string& path, const std::string &guid) throw (DmException);
+
+  void makeDir(const std::string&, mode_t) throw (DmException);
+
+  void removeDir(const std::string&) throw (DmException);
   
 protected:
   UserInfo  user_;  ///< User.
@@ -178,18 +182,7 @@ private:
   /// @return           The parent metadata.
   FileMetadata getParent(const std::string& path, std::string* parentPath,
                          std::string* name) throw (DmException);
-  
-  /// Get a user from the database using the username or the user ID.
-  /// @details If userName is empty, the uid will be used instead.
-  /// @param userName The user name.
-  /// @param uid      The user unique id. Used if userName is NULL.
-  UserInfo getUser(const std::string& userName, uid_t uid) throw (DmException);
 
-  /// Get a group from the database using the groupname or the group ID.
-  /// @details If groupName is empty, the gid will be used instead.
-  /// @param groupName The group name.
-  /// @param gid       The group unique id. Used if groupName is NULL.
-  GroupInfo getGroup(const std::string& groupName, gid_t gid) throw (DmException);
 };
 
 };
