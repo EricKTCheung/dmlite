@@ -183,7 +183,7 @@ void ProfilerCatalog::putDone(const std::string& path, const std::string& token)
 
 mode_t ProfilerCatalog::umask(mode_t mask) throw ()
 {
-  PROFILE(umask, mask);
+  PROFILE_RETURN(mode_t, umask, mask);
 }
 
 
