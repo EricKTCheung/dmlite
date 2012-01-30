@@ -2,6 +2,8 @@
 /// @brief   MySQL DPM Implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <vector>
+#include <stdlib.h>
+#include <string.h>
 
 #include "DpmMySql.h"
 

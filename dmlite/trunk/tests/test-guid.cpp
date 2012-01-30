@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include "test-base.h"
+#include <string.h>
 
 class TestGuid: public TestBase
 {

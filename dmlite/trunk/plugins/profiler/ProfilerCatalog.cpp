@@ -2,6 +2,7 @@
 /// @brief   ProfilerCatalog implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include "Profiler.h"
+#include <string.h>
 
 using namespace dmlite;
 

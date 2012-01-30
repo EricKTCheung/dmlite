@@ -92,7 +92,7 @@ FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
 
   try {
     // Request
-   RETRY(dpm_get(1, &request, 1, (char*[]){"rfio"}, "libdm::dummy::dpm::get", 0,
+   RETRY(dpm_get(1, &request, 1, (char*[]){(char *)"rfio"}, (char *)"libdm::dummy::dpm::get", 0,
                  r_token, &nReplies, &statuses), this->retryLimit_);
     if (nReplies < 1)
       throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
@@ -169,7 +169,7 @@ std::string DpmAdapter::put(const std::string& path, Uri* uri) throw (DmExceptio
   }
 
   try {
-    RETRY(dpm_put(1, &reqfile, 1, (char*[]){"rfio"}, "libdm::dummy::dpm::put", 0,
+    RETRY(dpm_put(1, &reqfile, 1, (char*[]){ (char *)"rfio"}, (char *)"libdm::dummy::dpm::put", 0,
                   0, token, &nReplies, &statuses), this->retryLimit_);
 
     wait = statuses[0].status == DPM_QUEUED  ||
