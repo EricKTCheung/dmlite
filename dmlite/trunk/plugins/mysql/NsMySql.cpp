@@ -158,8 +158,8 @@ MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
                                Catalog* decorates,
                                unsigned int symLinkLimit) throw(DmException):
-                DummyCatalog(decorates), nsDb_(db), symLinkLimit_(symLinkLimit),
-                preparedStmt_(STMT_SENTINEL, 0x00), umask_(022)
+                DummyCatalog(decorates), umask_(022),  nsDb_(db), symLinkLimit_(symLinkLimit),
+                preparedStmt_(STMT_SENTINEL, 0x00)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -283,7 +283,7 @@ SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
   stmt.execute();
 
   stmt.bindResult(0, &link.fileId);
-  stmt.bindResult(1, link.link, sizeof(link, link), 0);
+  stmt.bindResult(1, link.link, sizeof(link), 0);
 
   if (!stmt.fetch())
     throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", linkId);
@@ -867,7 +867,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
 {
   FileMetadata  meta;
   FileReplica   replica;
-  int           r = 0, nReplicas;
+  int           nReplicas;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
@@ -1036,7 +1036,7 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 {
   FileMetadata    meta;
   ExtendedReplica replica;
-  int             r = 0, nReplicas;
+  int             nReplicas;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
