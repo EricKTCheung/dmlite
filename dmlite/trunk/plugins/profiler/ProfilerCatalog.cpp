@@ -19,7 +19,7 @@ ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 ProfilerCatalog::~ProfilerCatalog()
 {
   delete this->decorated_;
-  delete this->decoratedId_;
+  delete [] this->decoratedId_;
 }
 
 

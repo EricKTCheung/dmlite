@@ -460,7 +460,8 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
 
 void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  this->decorated_->changeDir(path);
+  if (this->decorated_ != 0x00)
+    this->decorated_->changeDir(path);
   this->cwdMeta_ = this->parsePath(path);
   this->cwdPath_ = path;
 }
