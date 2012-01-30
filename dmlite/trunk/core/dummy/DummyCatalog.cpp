@@ -103,7 +103,7 @@ struct xstat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
 
 void DummyCatalog::addReplica(const std::string& guid, int64_t id,
                               const std::string& server, const std::string& sfn,
-                              const char status, const char fileType,
+                              char status, char fileType,
                               const std::string& poolName,
                               const std::string& fileSystem) throw (DmException)
 {
@@ -145,6 +145,13 @@ void DummyCatalog::symlink(const std::string& oldpath, const std::string& newpat
 void DummyCatalog::unlink(const std::string& path) throw (DmException)
 {
   DELEGATE(unlink, path);
+}
+
+
+
+void DummyCatalog::create(const std::string& path, mode_t mode) throw (DmException)
+{
+  DELEGATE(create, path, mode);
 }
 
 

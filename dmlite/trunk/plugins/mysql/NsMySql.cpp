@@ -19,6 +19,7 @@ using namespace dmlite;
 /// Used to keep prepared statements
 enum {
   STMT_GET_FILE_BY_ID = 0,
+  STMT_GET_FILE_BY_GUID,
   STMT_GET_FILE_BY_NAME,
   STMT_GET_LIST_FILES,
   STMT_GET_SYMLINK,
@@ -40,6 +41,8 @@ enum {
   STMT_DELETE_SYMLINK,
   STMT_UPDATE_NLINK,
   STMT_UPDATE_MODE,
+  STMT_DELETE_REPLICA,
+  STMT_ADD_REPLICA,
   STMT_SENTINEL
 };
 
@@ -51,6 +54,11 @@ static const char* statements[] = {
           csumtype, csumvalue, acl\
         FROM Cns_file_metadata\
         WHERE fileid = ?",
+  "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
+          filesize, atime, mtime, ctime, fileclass, status,\
+          csumtype, csumvalue, acl\
+        FROM Cns_file_metadata\
+        WHERE guid = ?",
   "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
           filesize, atime, mtime, ctime, fileclass, status,\
           csumtype, csumvalue, acl\
@@ -112,6 +120,18 @@ static const char* statements[] = {
   "UPDATE Cns_file_metadata\
         SET filemode = ?\
         WHERE fileid = ?",
+  "DELETE FROM Cns_file_replica\
+        WHERE fileid = ? AND sfn = ?",
+  "INSERT INTO Cns_file_replica\
+          (fileid, nbaccesses,\
+           ctime, atime, ptime, ltime,\
+           r_type, status, f_type,\
+           setname, poolname, host, fs, sfn)\
+        VALUES\
+          (?, 0,\
+           UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),\
+           ?, ?, ?,\
+           ?, ?, ?, ?, ?)",
 };
 
 
@@ -125,7 +145,7 @@ MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 
     this->preparedStmt_[stId] = mysql_stmt_init(this->conn_);
     if (mysql_stmt_prepare(this->preparedStmt_[stId],
-                           statements[stId], strlen(statements[stId])) != 0) {
+                           statements[stId], std::strlen(statements[stId])) != 0) {
       throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + mysql_stmt_error(this->preparedStmt_[stId]));
     }
   }
@@ -143,8 +163,8 @@ NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::strin
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
-  memset(&this->user_,  0x00, sizeof(UserInfo));
-  memset(&this->group_, 0x00, sizeof(GroupInfo));
+  std::memset(&this->user_,  0x00, sizeof(UserInfo));
+  std::memset(&this->group_, 0x00, sizeof(GroupInfo));
 }
 
 
@@ -205,6 +225,26 @@ FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
 
   if (!stmt.fetch())
     throw DmException(DM_NO_SUCH_FILE, "File %ld not found", fileId);
+
+  return meta;
+}
+
+
+
+FileMetadata NsMySqlCatalog::getFile(const std::string& guid) throw (DmException)
+{
+  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_GUID));
+  FileMetadata meta;
+
+  memset(&meta, 0x00, sizeof(FileMetadata));
+
+  stmt.bindParam(0, guid);
+  stmt.execute();
+
+  bindMetadata(stmt, &meta);
+
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_FILE, "File with guid " + guid + " not found");
 
   return meta;
 }
@@ -454,6 +494,22 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
   }
 
   return meta;
+}
+
+
+
+void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmException)
+{
+  FileMetadata current = meta;
+
+  // We want to check if we can arrive here...
+  while (current.xStat.parent != 0) {
+    current = this->getFile(current.xStat.parent);
+    if (checkPermissions(this->user_, this->group_, this->groups_,
+                         current.acl, current.xStat.stat, S_IEXEC))
+      throw DmException(DM_FORBIDDEN, "Can not access #%ld",
+                        current.xStat.stat.st_ino);
+  }
 }
 
 
@@ -737,6 +793,72 @@ GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
   
   stmt.fetch();
   return group;
+}
+
+
+
+void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
+                                const std::string& server, const std::string& sfn,
+                                char status, char fileType,
+                                const std::string& poolName,
+                                const std::string& fileSystem) throw (DmException)
+{
+  FileMetadata meta;
+
+  if (guid.empty())
+    meta = this->getFile(id);
+  else
+    meta = this->getFile(guid);
+
+  // Access has to be checked backwards!
+  this->traverseBackwards(meta);
+
+  // Can write?
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
+
+  // Add it
+  Statement statement(this->getPreparedStatement(STMT_ADD_REPLICA));
+
+  statement.bindParam(0, meta.xStat.stat.st_ino);
+  statement.bindParam(1, NULL, 0);
+  statement.bindParam(2, std::string(&status, 1));
+  statement.bindParam(3, std::string(&fileType, 1));
+  statement.bindParam(4, NULL, 0);
+  statement.bindParam(5, poolName);
+  statement.bindParam(6, server);
+  statement.bindParam(7, fileSystem);
+  statement.bindParam(8, sfn);
+
+  statement.execute();
+}
+
+
+
+void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
+                                   const std::string& sfn) throw (DmException)
+{
+  FileMetadata meta;
+
+  if (guid.empty())
+    meta = this->getFile(id);
+  else
+    meta = this->getFile(guid);
+
+  // Access has to be checked backwards!
+  this->traverseBackwards(meta);
+
+  // Can write?
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
+
+  // Remove
+  Statement statement(this->getPreparedStatement(STMT_DELETE_REPLICA));
+  statement.bindParam(0, meta.xStat.stat.st_ino);
+  statement.bindParam(1, sfn);
+  statement.execute();
 }
 
 

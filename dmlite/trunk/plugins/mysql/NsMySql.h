@@ -71,6 +71,16 @@ public:
   struct xstat extendedStat(const std::string&) throw (DmException);
   struct xstat extendedStat(ino_t)              throw (DmException);
 
+  void addReplica(const std::string&, int64_t, const std::string&,
+                  const std::string&, char, char,
+                  const std::string&, const std::string&) throw (DmException);
+
+  void deleteReplica(const std::string&, int64_t,
+                     const std::string&) throw (DmException);
+
+  std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  FileReplica              get        (const std::string&) throw (DmException);
+
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
@@ -84,9 +94,6 @@ public:
 
   void getIdMap     (const std::string&, const std::vector<std::string>&,
                      uid_t*, std::vector<gid_t>*) throw (DmException);
-
-  std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  FileReplica              get        (const std::string&) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
@@ -151,6 +158,10 @@ private:
   /// @param fileId The file unique ID.
   FileMetadata getFile(uint64_t fileId) throw (DmException);
 
+  /// Get a file using its GUID.
+  /// @param guid The file GUID.
+  FileMetadata getFile(const std::string& guid) throw (DmException);
+
   /// Get a file from a directory using its name.
   /// @param name     The file name (NOT path).
   /// @param parentId The parent directory unique ID.
@@ -188,6 +199,11 @@ private:
   /// @return           The parent metadata.
   FileMetadata getParent(const std::string& path, std::string* parentPath,
                          std::string* name) throw (DmException);
+
+  /// Traverse backwards to check permissions.
+  /// @param file The file at the end
+  /// @note       Throws an exception if it is not possible.
+  void traverseBackwards(const FileMetadata& meta) throw (DmException);
 
 };
 
