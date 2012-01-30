@@ -91,7 +91,9 @@ public:
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
 
-  void  setUserId(uid_t, gid_t, const std::string&) throw (DmException);
+  void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
+
+  mode_t umask(mode_t) throw ();
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
@@ -123,6 +125,9 @@ protected:
 
   /// Get a list of extended replicas
   std::vector<ExtendedReplica> getExReplicas (const std::string&) throw (DmException);
+
+  /// Umask
+  mode_t umask_;
 
 private:
   /// NS DB.

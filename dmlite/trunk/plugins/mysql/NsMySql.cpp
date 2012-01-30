@@ -93,7 +93,8 @@ static const char* statements[] = {
            csumtype, csumvalue, acl)\
         VALUES\
           (?, ?, ?, ?, ?, ?, ?,\
-           ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+           ?, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), ?, ?,\
+           ?, ?, ?)",
   "INSERT INTO Cns_symlinks\
           (fileid, linkname)\
         VALUES\
@@ -103,7 +104,9 @@ static const char* statements[] = {
   "DELETE FROM Cns_file_metadata WHERE fileid = ?",
   "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
   "DELETE FROM Cns_symlinks WHERE fileid = ?",
-  "UPDATE Cns_file_metadata SET nlink = ? WHERE fileid = ?",
+  "UPDATE Cns_file_metadata\
+        SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?",
 };
 
 
@@ -131,7 +134,7 @@ NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::strin
                                Catalog* decorates,
                                unsigned int symLinkLimit) throw(DmException):
                 DummyCatalog(decorates), nsDb_(db), symLinkLimit_(symLinkLimit),
-                preparedStmt_(STMT_SENTINEL, 0x00)
+                preparedStmt_(STMT_SENTINEL, 0x00), umask_(022)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -253,8 +256,8 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
                                      const std::string& csumvalue,
                                      const std::string& acl) throw (DmException)
 {
-  time_t datetime = time(NULL);
   ino_t  newFileId;
+  gid_t  egid;
 
   // Destination must not exist!
   try {
@@ -272,10 +275,6 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
-  // Lock Cns_unique_id and Cns_file_metadata, and start
-  // transaction
-  TransactionAndLock lock(this->conn_, "Cns_file_metadata", "Cns_unique_id", NULL);
-
   // Fetch the new file ID
   Statement uniqueId(this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE));
 
@@ -290,6 +289,15 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   updateUnique.bindParam(0, newFileId);
   updateUnique.execute();
 
+  // Check SGID
+  if (parent.xStat.stat.st_mode & S_ISGID) {
+    egid = parent.xStat.stat.st_gid;
+    mode |= S_ISGID;
+  }
+  else {
+    egid = this->group_.gid;
+  }
+
   // Create the entry
   Statement fileStmt(this->getPreparedStatement(STMT_INSERT_FILE));
 
@@ -299,16 +307,13 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   fileStmt.bindParam( 3, mode);
   fileStmt.bindParam( 4, nlink);
   fileStmt.bindParam( 5, this->user_.uid);
-  fileStmt.bindParam( 6, this->group_.gid);
+  fileStmt.bindParam( 6, egid);
   fileStmt.bindParam( 7, size);
-  fileStmt.bindParam( 8, datetime);
-  fileStmt.bindParam( 9, datetime);
-  fileStmt.bindParam(10, datetime);
-  fileStmt.bindParam(11, type);
-  fileStmt.bindParam(12, std::string(&status));
-  fileStmt.bindParam(13, csumtype);
-  fileStmt.bindParam(14, csumvalue);
-  fileStmt.bindParam(15, acl.data(), acl.size());
+  fileStmt.bindParam( 8, type);
+  fileStmt.bindParam( 9, std::string(&status));
+  fileStmt.bindParam(10, csumtype);
+  fileStmt.bindParam(11, csumvalue);
+  fileStmt.bindParam(12, acl.data(), acl.size());
 
   fileStmt.execute();
   
@@ -321,8 +326,6 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
 
   nlinkStmt.execute();
 
-  // Commit
-  lock.commit();
   // Return back
   return this->getFile(newFileId);
 }
@@ -805,6 +808,9 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
                       parent.xStat.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
+  // Transaction
+  Transaction transaction(this->conn_);
+
   // Create the file entry
   FileMetadata linkMeta = this->newFile(parent,
                                         symName, 0777 | S_IFLNK,
@@ -817,6 +823,9 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
   stmt.bindParam(1, oldPath);
 
   stmt.execute();
+
+  // Done
+  transaction.commit();
 }
 
 
@@ -864,9 +873,8 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
     }
   }
 
-  // All preconditions are good!
-  TransactionAndLock lock(this->conn_, "Cns_file_metadata",
-                          "Cns_symlinks", "Cns_user_metadata", NULL);
+  // All preconditions are good! Start transaction.
+  Transaction transaction(this->conn_);
 
   // Remove associated symlink
   Statement delSymlink(this->getPreparedStatement(STMT_DELETE_SYMLINK));
@@ -891,7 +899,7 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   nlink.execute();
 
   // Done!
-  lock.commit();
+  transaction.commit();
 }
 
 
@@ -940,6 +948,15 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
   };
 
   return replicas;
+}
+
+
+
+mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
+{
+  mode_t prev = this->umask_;
+  this->umask_ = mask & 0777;
+  return prev;
 }
 
 
@@ -1032,8 +1049,10 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Create the file entry
-  this->newFile(parent, name, (mode & ~S_IFMT) | S_IFDIR,
-                0, 0, 0, '-', "", "", parent.acl);
+  Transaction transaction(this->conn_);
+  this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
+                0, 0, parent.xStat.type, '-', "", "", parent.acl);
+  transaction.commit();
 }
 
 
@@ -1072,7 +1091,7 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   }
 
   // All preconditions are good!
-  TransactionAndLock lock(this->conn_, "Cns_file_metadata", NULL);
+  Transaction transaction(this->conn_);
 
 
   // Remove directory itself
@@ -1088,5 +1107,5 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   nlink.execute();
 
   // Done!
-  lock.commit();
+  transaction.commit();
 }

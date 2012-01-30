@@ -135,6 +135,11 @@ public:
   /// @param token As returned by dm::Catalog::put
   virtual void putDone(const std::string& path, const std::string& token) throw (DmException) = 0;
 
+  /// Sets the calling process’s file mode creation mask to mask & 0777.
+  /// @param mask The new mask.
+  /// @return     The value of the previous mask.
+  virtual mode_t umask(mode_t mask) throw () = 0;
+
   /// Change the mode of a file.
   /// @param path The file to change.
   /// @param mode The new mode as an integer (i.e. 0755)

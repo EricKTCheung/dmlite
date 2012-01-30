@@ -53,9 +53,10 @@ public:
   void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
   void        putDone  (const std::string&, const std::string&)       throw (DmException);
 
-  void changeMode     (const std::string&, mode_t)       throw (DmException);
-  void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  mode_t umask          (mode_t)                           throw ();
+  void   changeMode     (const std::string&, mode_t)       throw (DmException);
+  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
+  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
