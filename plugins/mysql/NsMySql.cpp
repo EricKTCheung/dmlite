@@ -9,6 +9,7 @@
 #include <mysql/mysql.h>
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
+#include <stdlib.h>
 
 #include "../common/Uris.h"
 

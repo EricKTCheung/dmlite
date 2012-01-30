@@ -6,6 +6,8 @@
 #include "NsMySql.h"
 #include "DpmMySql.h"
 
+#include <stdlib.h>
+
 using namespace dmlite;
 
 

@@ -9,6 +9,8 @@
 #include "NsAdapter.h"
 #include "DpmAdapter.h"
 
+#include <stdlib.h>
+
 using namespace dmlite;
 
 // Prototypes of Cthread methods (not in the headers)

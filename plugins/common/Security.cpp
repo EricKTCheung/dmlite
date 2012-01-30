@@ -8,6 +8,10 @@
 #include <dmlite/dm_errno.h>
 #include "Security.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 using namespace dmlite;
 
 

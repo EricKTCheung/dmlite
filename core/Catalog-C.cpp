@@ -10,6 +10,8 @@
 
 #include "Private.h"
 
+#include <string.h>
+
 
 /// Open the try statement.
 #define TRY(context, method)\

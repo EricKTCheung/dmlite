@@ -3,6 +3,9 @@
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include "MySqlWrapper.h"
 
+#include <string.h>
+#include <stdlib.h>
+
 using namespace dmlite;
 
 #define ASSIGN_POINTER_TYPECAST(type, where, value) (*((type*)where)) = value
@@ -79,9 +82,9 @@ Statement::~Statement() throw ()
   if (this->params_ != 0x00) {
     for (unsigned long i = 0; i < this->nParams_; ++i) {
       if (this->params_[i].buffer != 0x00)
-        std::free(this->params_[i].buffer);
+        free(this->params_[i].buffer);
       if (this->params_[i].length != 0x00)
-        std::free(this->params_[i].length);
+        free(this->params_[i].length);
     }
     delete [] this->params_;
   }
@@ -98,7 +101,7 @@ void Statement::bindParam(unsigned index, unsigned long value) throw (DmExceptio
 {
   BIND_PARAM_SANITY();
   params_[index].buffer_type = MYSQL_TYPE_LONG;
-  params_[index].buffer      = std::malloc(sizeof(unsigned long));
+  params_[index].buffer      = malloc(sizeof(unsigned long));
   params_[index].is_unsigned = true;
   ASSIGN_POINTER_TYPECAST(unsigned long, params_[index].buffer, value);
 }
@@ -111,11 +114,11 @@ void Statement::bindParam(unsigned index, const std::string& value) throw (DmExc
 
   size_t size = value.length();
   params_[index].buffer_type = MYSQL_TYPE_VARCHAR;
-  params_[index].length      = (unsigned long*)std::malloc(sizeof(unsigned long));
-  params_[index].buffer      = std::malloc(sizeof(char) * size);
+  params_[index].length      = (unsigned long*)malloc(sizeof(unsigned long));
+  params_[index].buffer      = malloc(sizeof(char) * size);
 
   ASSIGN_POINTER_TYPECAST(unsigned long, params_[index].length, size);
-  std::memcpy(params_[index].buffer, value.c_str(), size);
+  memcpy(params_[index].buffer, value.c_str(), size);
 }
 
 
@@ -126,9 +129,9 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
   params_[index].buffer_type  = MYSQL_TYPE_BLOB;
   params_[index].length_value = size;
-  params_[index].buffer       = std::malloc(sizeof(char) * size);
+  params_[index].buffer       = malloc(sizeof(char) * size);
 
-  std::memcpy(params_[index].buffer, value, size);
+  memcpy(params_[index].buffer, value, size);
 }
 
 
@@ -153,7 +156,7 @@ void Statement::execute(void) throw (DmException)
   else {
     this->nResults_ = mysql_num_fields(meta);
     this->results_  = new MYSQL_BIND[this->nResults_];
-    std::memset(this->results_, 0x00, sizeof(MYSQL_BIND) * this->nResults_);
+    memset(this->results_, 0x00, sizeof(MYSQL_BIND) * this->nResults_);
 
     mysql_free_result(meta);
 

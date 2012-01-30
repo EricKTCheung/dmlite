@@ -2,6 +2,7 @@
 #include <dmlite/dm_types.h>
 #include <iostream>
 #include "../plugins/common/Uris.h"
+#include <string.h>
 
 inline int Validate(const char* uri,
                     const char* scheme, const char* host, unsigned port,
