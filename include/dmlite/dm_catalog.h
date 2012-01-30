@@ -82,7 +82,7 @@ public:
   /// @param poolName   The pool where the replica is (not used for LFCs)
   /// @param fileSystem The filesystem where the replica is (not used for LFCs)
   virtual void addReplica(const std::string& guid, int64_t id, const std::string& server,
-                          const std::string& sfn, const char status, const char fileType,
+                          const std::string& sfn, char status, char fileType,
                           const std::string& poolName, const std::string& fileSystem) throw (DmException) = 0;
 
   /// Delete a replica.
@@ -109,6 +109,11 @@ public:
   /// Remove a file.
   /// @param path The path to remove.
   virtual void unlink(const std::string& path) throw (DmException) = 0;
+
+  /// Creates an entry in the catalog.
+  /// @param path The new file.
+  /// @param mode The creation mode.
+  virtual void create(const std::string& path, mode_t mode) throw (DmException) = 0;
 
   /// Start the PUT of a file.
   /// @param path  The path of the file to create.

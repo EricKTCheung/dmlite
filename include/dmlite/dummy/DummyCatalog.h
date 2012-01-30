@@ -36,7 +36,7 @@ public:
   virtual struct xstat extendedStat(ino_t)              throw (DmException);
 
   virtual void addReplica(const std::string&, int64_t, const std::string&,
-                          const std::string&, const char, const char,
+                          const std::string&, char, char,
                           const std::string&, const std::string&) throw (DmException);
 
   virtual void deleteReplica(const std::string&, int64_t,
@@ -47,6 +47,8 @@ public:
 
   virtual void symlink(const std::string&, const std::string&) throw (DmException);
   virtual void unlink (const std::string&)                     throw (DmException);
+
+  virtual void create(const std::string&, mode_t) throw (DmException);
 
   virtual std::string put(const std::string&, Uri*)                           throw (DmException);
   virtual std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);

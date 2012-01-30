@@ -185,9 +185,8 @@ struct xstat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
 
 
 void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
-                                  const std::string& server,
-                                  const std::string& sfn, const char status,
-                                  const char fileType,
+                                  const std::string& server, const std::string& sfn,
+                                  char status, char fileType,
                                   const std::string& poolName,
                                   const std::string& fileSystem) throw (DmException)
 {
@@ -272,6 +271,13 @@ void NsAdapterCatalog::symlink(const std::string& oldpath, const std::string& ne
 void NsAdapterCatalog::unlink(const std::string& path) throw (DmException)
 {
   wrapCall(dpns_unlink(path.c_str()));
+}
+
+
+
+void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmException)
+{
+  wrapCall(dpns_creat(path.c_str(), mode));
 }
 
 

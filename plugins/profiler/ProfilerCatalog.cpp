@@ -100,7 +100,7 @@ struct xstat ProfilerCatalog::extendedStat(ino_t inode) throw (DmException)
 
 void ProfilerCatalog::addReplica(const std::string& guid, int64_t id,
                               const std::string& server, const std::string& sfn,
-                              const char status, const char fileType,
+                              char status, char fileType,
                               const std::string& poolName,
                               const std::string& fileSystem) throw (DmException)
 {
@@ -142,6 +142,13 @@ void ProfilerCatalog::symlink(const std::string& oldpath, const std::string& new
 void ProfilerCatalog::unlink(const std::string& path) throw (DmException)
 {
   PROFILE(unlink, path);
+}
+
+
+
+void ProfilerCatalog::create(const std::string& path, mode_t mode) throw (DmException)
+{
+  PROFILE(create, path, mode);
 }
 
 
