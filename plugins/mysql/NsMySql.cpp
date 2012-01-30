@@ -38,6 +38,7 @@ enum {
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
   STMT_UPDATE_NLINK,
+  STMT_UPDATE_MODE,
   STMT_SENTINEL
 };
 
@@ -106,6 +107,9 @@ static const char* statements[] = {
   "DELETE FROM Cns_symlinks WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
         SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?",
+  "UPDATE Cns_file_metadata\
+        SET filemode = ?\
         WHERE fileid = ?",
 };
 
@@ -954,9 +958,40 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 
 mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
 {
+  if (this->decorated_ != 0x00)
+    this->decorated_->umask(mask);
+
   mode_t prev = this->umask_;
   this->umask_ = mask & 0777;
   return prev;
+}
+
+
+
+void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
+{
+  FileMetadata meta = this->parsePath(path);
+
+  // User has to be the owner, or root
+  if (this->user_.uid != meta.xStat.stat.st_uid && this->user_.uid != 0)
+    throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
+
+  // Clean up unwanted bits
+  mode &= ~S_IFMT;
+  if (!S_ISDIR(meta.xStat.stat.st_mode) && this->user_.uid != 0)
+    mode &= ~S_ISVTX;
+  if (this->user_.uid != 0 &&
+      meta.xStat.stat.st_gid != this->group_.gid &&
+      !gidInGroups(meta.xStat.stat.st_gid, this->groups_))
+    mode &= ~S_ISGID;
+
+  // Update, keeping type bits from db.
+  mode |= (meta.xStat.stat.st_mode & S_IFMT);
+
+  Statement statement(this->getPreparedStatement(STMT_UPDATE_MODE));
+  statement.bindParam(0, mode);
+  statement.bindParam(1, meta.xStat.stat.st_ino);
+  statement.execute();
 }
 
 

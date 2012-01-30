@@ -93,7 +93,8 @@ public:
 
   void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
 
-  mode_t umask(mode_t) throw ();
+  mode_t umask      (mode_t)                     throw ();
+  void   changeMode (const std::string&, mode_t) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
