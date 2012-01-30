@@ -304,6 +304,13 @@ void NsAdapterCatalog::putDone(const std::string& path, const std::string& token
 
 
 
+mode_t NsAdapterCatalog::umask(mode_t mask) throw ()
+{
+  return dpns_umask(mask);
+}
+
+
+
 void NsAdapterCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
   wrapCall(dpns_chmod(path.c_str(), mode));

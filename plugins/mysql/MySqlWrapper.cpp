@@ -24,46 +24,26 @@ if (index > this->nResults_)\
   throw DmException(DM_QUERY_FAILED, "Wrong index in bindResult");
 
 
-TransactionAndLock::TransactionAndLock(MYSQL* conn, ...) throw (DmException)
+Transaction::Transaction(MYSQL* conn) throw (DmException)
 {
   this->connection_ = conn;
   this->pending_    = true;
 
-  std::string query("LOCK TABLES");
-  va_list tables;
-  va_start(tables, conn);
-
-  const char* table;
-  while ((table = va_arg(tables, const char*)) != NULL) {
-    query += " ";
-    query += table;
-    query += " WRITE,";
-  }
-
-  va_end(tables);
-
-  // Remove last ','
-  query[query.length() - 1] = '\0';
-
-  if (mysql_query(conn, query.c_str()) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
   if (mysql_query(conn, "BEGIN") != 0)
     throw DmException(DM_QUERY_FAILED, mysql_error(conn));
 }
 
 
 
-TransactionAndLock::~TransactionAndLock() throw (DmException)
+Transaction::~Transaction() throw (DmException)
 {
   if (this->pending_)
     this->rollback();
-  if (mysql_query(this->connection_, "UNLOCK TABLES") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection_));
 }
 
 
 
-void TransactionAndLock::commit() throw (DmException)
+void Transaction::commit() throw (DmException)
 {
   if (mysql_query(this->connection_, "COMMIT") != 0)
     throw DmException(DM_QUERY_FAILED, mysql_error(this->connection_));
@@ -72,7 +52,7 @@ void TransactionAndLock::commit() throw (DmException)
 
 
 
-void TransactionAndLock::rollback() throw (DmException)
+void Transaction::rollback() throw (DmException)
 {
   if (mysql_query(this->connection_, "ROLLBACK") != 0)
     throw DmException(DM_QUERY_FAILED, mysql_error(this->connection_));

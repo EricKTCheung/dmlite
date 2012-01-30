@@ -177,6 +177,13 @@ void DummyCatalog::putDone(const std::string& path, const std::string& token) th
 
 
 
+mode_t DummyCatalog::umask(mode_t mask) throw ()
+{
+  DELEGATE_RETURN(umask, mask);
+}
+
+
+
 void DummyCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
   DELEGATE(changeMode, path, mode);

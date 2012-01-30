@@ -173,6 +173,13 @@ void ProfilerCatalog::putDone(const std::string& path, const std::string& token)
 
 
 
+mode_t ProfilerCatalog::umask(mode_t mask) throw ()
+{
+  PROFILE(umask, mask);
+}
+
+
+
 void ProfilerCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
   PROFILE(changeMode, path, mode);
