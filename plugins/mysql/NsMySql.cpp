@@ -315,7 +315,7 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   fileStmt.bindParam( 6, egid);
   fileStmt.bindParam( 7, size);
   fileStmt.bindParam( 8, type);
-  fileStmt.bindParam( 9, std::string(&status));
+  fileStmt.bindParam( 9, std::string(&status, 1));
   fileStmt.bindParam(10, csumtype);
   fileStmt.bindParam(11, csumvalue);
   fileStmt.bindParam(12, acl.data(), acl.size());
