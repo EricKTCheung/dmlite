@@ -57,8 +57,12 @@ public:
 protected:
 private:
   /// Internal list of loaded plug-ins.
-  std::list<CatalogFactory*> catalog_plugins_;
-  std::list<PoolManagerFactory*>    pool_plugins_;
+  std::list<CatalogFactory*>     catalog_plugins_;
+  std::list<PoolManagerFactory*> pool_plugins_;
+
+  /// Keep pointers returned by dlopen at hand to free on destruction
+  std::list<void*> dlHandles_;
+  
   /// Can not be copied
   PluginManager(const PluginManager&);
 };

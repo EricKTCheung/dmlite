@@ -45,6 +45,7 @@ Uri dmlite::splitUri(const std::string& uri)
     strncpy(parsed.path, p + matches[6].rm_so, PATH_MAX);
   }
 
+  regfree(&regexp);
   return parsed;
 }
 

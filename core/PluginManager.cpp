@@ -28,6 +28,13 @@ PluginManager::~PluginManager() throw()
        ++i) {
     delete *i;
   }
+
+  // dlclose
+  std::list<void*>::iterator j;
+  for (j = this->dlHandles_.begin();
+       j != this->dlHandles_.end();
+       ++j)
+    dlclose(*j);
 }
 
 
@@ -40,6 +47,7 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
   dl = dlopen(lib.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (dl == 0x00)
     throw DmException(DM_NO_SUCH_FILE, std::string(dlerror()));
+  this->dlHandles_.push_back(dl);
 
   idCard = static_cast<PluginIdCard*>(dlsym(dl, id.c_str()));
   if (idCard == 0x00)
