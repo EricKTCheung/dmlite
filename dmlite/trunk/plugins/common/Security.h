@@ -18,6 +18,8 @@ const char ACL_GROUP_OBJ = 3;
 const char ACL_GROUP     = 4;
 const char ACL_MASK      = 5;
 
+/// Return true if gid is in the set of groups.
+bool gidInGroups(gid_t gid, const std::vector<GroupInfo> &groups);
 
 /// Check if a specific user has the demanded rights.
 /// @param user   The user.
@@ -27,13 +29,15 @@ const char ACL_MASK      = 5;
 /// @param stat   A struct stat which mode will be checked.
 /// @param mode   The mode to be checked.
 /// @return       0 if the mode is allowed, 1 if not.
-int checkPermissions(UserInfo& user, GroupInfo& group, std::vector<GroupInfo>& groups,
-                     const std::string& acl, struct stat& stat,
+int checkPermissions(const UserInfo& user, const GroupInfo& group,
+                     const std::vector<GroupInfo>& groups,
+                     const std::string& acl, const struct stat& stat,
                      mode_t mode);
 
 /// Wrapper for checkPermissions accepting NULL pointers
-inline int checkPermissions(UserInfo& user, GroupInfo& group, std::vector<GroupInfo>& groups,
-                            const char* acl, struct stat& stat,
+inline int checkPermissions(const UserInfo& user, const GroupInfo& group,
+                            const std::vector<GroupInfo>& groups,
+                            const char* acl, const struct stat& stat,
                             mode_t mode)
 {
   if (acl == 0x00) acl = "";

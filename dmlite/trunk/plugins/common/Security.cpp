@@ -11,7 +11,7 @@
 using namespace dmlite;
 
 
-static inline bool gidInGroups(gid_t gid, std::vector<GroupInfo> &groups)
+bool dmlite::gidInGroups(gid_t gid, const std::vector<GroupInfo>& groups)
 {
   std::vector<GroupInfo>::const_iterator i;
 
@@ -21,8 +21,11 @@ static inline bool gidInGroups(gid_t gid, std::vector<GroupInfo> &groups)
   return false;
 }
 
-int dmlite::checkPermissions(UserInfo &user, GroupInfo &group, std::vector<GroupInfo> &groups,
-                             const std::string& acl, struct stat &stat,
+
+
+int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
+                             const std::vector<GroupInfo>& groups,
+                             const std::string& acl, const struct stat &stat,
                              mode_t mode)
 {
   size_t      iacl, p;

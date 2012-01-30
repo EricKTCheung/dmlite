@@ -71,6 +71,9 @@ public:
     struct stat s;
 
     this->catalog->changeMode(FOLDER, MODE | S_ISGID);
+    s = this->catalog->stat(FOLDER);
+    CPPUNIT_ASSERT_EQUAL(MODE | S_ISGID | S_IFDIR, (int)s.st_mode);
+
     this->catalog->makeDir(NESTED, MODE);
     s = this->catalog->stat(NESTED);
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFDIR | S_ISGID, (int)s.st_mode);
