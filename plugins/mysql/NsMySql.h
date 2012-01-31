@@ -81,6 +81,11 @@ public:
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
   FileReplica              get        (const std::string&) throw (DmException);
 
+  void symlink(const std::string&, const std::string&) throw (DmException);
+  void unlink (const std::string&)                     throw (DmException);
+
+  void create(const std::string&, mode_t) throw (DmException);
+
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
@@ -94,9 +99,6 @@ public:
 
   void getIdMap     (const std::string&, const std::vector<std::string>&,
                      uid_t*, std::vector<gid_t>*) throw (DmException);
-
-  void symlink(const std::string&, const std::string&) throw (DmException);
-  void unlink (const std::string&)                     throw (DmException);
 
   void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
 

@@ -1080,6 +1080,25 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 
 
 
+void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmException)
+{
+  std::string  parentPath, name;
+  FileMetadata parent = this->getParent(path, &parentPath, &name);
+
+  try {
+    this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
+                  1, 0, 0, '-',
+                  std::string(), std::string(),
+                  std::string());
+  }
+  catch (DmException e) {
+    if (e.code() == DM_EXISTS)
+      throw DmException(DM_NOT_IMPLEMENTED, "Truncation not supported yet");
+  }
+}
+
+
+
 mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
 {
   if (this->decorated_ != 0x00)
