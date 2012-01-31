@@ -11,9 +11,9 @@ add_library(dmlite SHARED PluginManager.cpp
 target_link_libraries(dmlite dl)
 
 set_target_properties(dmlite PROPERTIES
-                             VERSION ${libdm_MAJOR}.${libdm_MINOR}.${libdm_PATCH}
-                             SOVERSION ${libdm_MAJOR}
-                             SOVERSION ${libdm_MAJOR}.${libdm_MINOR})
+                             VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
+                             SOVERSION ${dmlite_MAJOR}
+                             SOVERSION ${dmlite_MAJOR}.${dmlite_MINOR})
 
 install(TARGETS       dmlite
         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}
