@@ -36,8 +36,20 @@ find_package (Doxygen)
 
 if (DOXYGEN_FOUND)
   configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-  add_custom_target(doc
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating API documentation with Doxygen" VERBATIM)
+
+  add_custom_target(doc ALL
+                    DEPENDS doc/html doc/man)
+
+  add_custom_command(OUTPUT doc/html doc/man
+                     COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                     COMMENT "Generating API documentation with Doxygen" VERBATIM)
+
+  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/html/
+           DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
+           COMPONENT   dmlite-devel)
+  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/man/
+           DESTINATION usr/share/man
+           COMPONENT   dmlite-devel)
+
 endif (DOXYGEN_FOUND)
