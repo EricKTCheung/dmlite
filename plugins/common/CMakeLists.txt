@@ -5,9 +5,9 @@ add_library(dmlitecommon SHARED Security.cpp Uris.cpp)
 target_link_libraries(dmlitecommon dmlite)
 
 set_target_properties(dmlitecommon PROPERTIES
-                                   VERSION ${libdm_MAJOR}.${libdm_MINOR}.${libdm_PATCH}
-                                   SOVERSION ${libdm_MAJOR}
-                                   SOVERSION ${libdm_MAJOR}.${libdm_MINOR})
+                                   VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
+                                   SOVERSION ${dmlite_MAJOR}
+                                   SOVERSION ${dmlite_MAJOR}.${dmlite_MINOR})
 
 install(TARGETS       dmlitecommon
         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}
