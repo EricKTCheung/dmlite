@@ -869,8 +869,6 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
 std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) throw(DmException)
 {
   FileMetadata  meta;
-  FileReplica   replica;
-  int           nReplicas;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
@@ -881,11 +879,28 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
+  try {
+    return this->getReplicas(meta.xStat.stat.st_ino);
+  }
+  catch (DmException e) {
+    if (e.code() == DM_NO_REPLICAS)
+      throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
+    throw;
+  }
+}
+
+
+
+std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmException)
+{
+  FileReplica   replica;
+  int           nReplicas;
+
   // MySQL statement
   Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS));
 
   // Execute query
-  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.bindParam(0, ino);
   stmt.execute();
 
   // Bind result
@@ -893,11 +908,11 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
   stmt.bindResult(1, &replica.fileid);
   stmt.bindResult(2, &replica.status, 1);
   stmt.bindResult(3, replica.unparsed_location, sizeof(replica.unparsed_location));
-  
+
   std::vector<FileReplica> replicas;
 
   if ((nReplicas = stmt.count()) == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
+    throw DmException(DM_NO_REPLICAS, "No replicas available for %ld", ino);
 
   // Fetch
   int i = 0;
@@ -995,7 +1010,7 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   // Check there are no replicas
   if (!S_ISLNK(file.xStat.stat.st_mode)) {
     try {
-      this->getReplicas(path);
+      this->getReplicas(file.xStat.stat.st_ino);
       throw DmException(DM_EXISTS, path + " has replicas, can not remove");
     }
     catch (DmException e) {
@@ -1093,7 +1108,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   try {
     file = this->getFile(name, parent.xStat.stat.st_ino);
     // File exists, check if it has replicas
-    this->getReplicas(path);
+    this->getReplicas(file.xStat.stat.st_ino);
     // It has replicas, so fail!
     throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
   }
