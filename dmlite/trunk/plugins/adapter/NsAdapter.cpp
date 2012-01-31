@@ -153,10 +153,10 @@ struct stat NsAdapterCatalog::linkStat(const std::string& path) throw (DmExcepti
 
 struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmException)
 {
-  struct dpns_filestatg dpnsStat;
-  struct xstat          xStat;
+  struct dpns_filestat dpnsStat;
+  struct xstat         xStat;
 
-  wrapCall(dpns_statr(path.c_str(), &dpnsStat));
+  wrapCall(dpns_stat(path.c_str(), &dpnsStat));
 
   xStat.stat.st_atim.tv_sec = dpnsStat.atime;
   xStat.stat.st_ctim.tv_sec = dpnsStat.ctime;
@@ -168,9 +168,9 @@ struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmEx
   xStat.stat.st_mode  = dpnsStat.filemode;
   xStat.stat.st_size  = dpnsStat.filesize;
 
-  strncpy(xStat.csumtype,  dpnsStat.csumtype,  SUMTYPE_MAX);
-  strncpy(xStat.csumvalue, dpnsStat.csumvalue, SUMVALUE_MAX);
-  strncpy(xStat.guid,      dpnsStat.guid,      GUID_MAX);
+  xStat.csumtype[0]  = '\0';
+  xStat.csumvalue[0] = '\0';
+  xStat.guid[0]      = '\0';
 
   return xStat;
 }
