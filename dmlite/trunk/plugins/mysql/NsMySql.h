@@ -136,6 +136,9 @@ protected:
   /// Get a list of extended replicas
   std::vector<ExtendedReplica> getExReplicas (const std::string&) throw (DmException);
 
+  /// Get a list of replicas using file id
+  std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
+
   /// Umask
   mode_t umask_;
 
