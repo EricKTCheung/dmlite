@@ -44,8 +44,7 @@ void LibrarianCatalog::set(const std::string& key, va_list vargs) throw (DmExcep
   else if (key == "ClearExcluded") {
     this->excluded_.clear();
   }
-  
-  if (this->decorated_ != 0x00)
+  else if (this->decorated_ != 0x00)
     this->decorated_->set(key, vargs);
   else
     throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
@@ -72,10 +71,11 @@ std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) 
 
   // Remove excluded
   std::vector<FileReplica>::iterator i;
-  for (i = replicas.begin(); i != replicas.end(); ++i) {
-    if (this->isExcluded(i->replicaid)) {
+  for (i = replicas.begin(); i != replicas.end();) {
+    if (this->isExcluded(i->replicaid))
       i = replicas.erase(i);
-    }
+    else
+      ++i;
   }
 
   // Return
