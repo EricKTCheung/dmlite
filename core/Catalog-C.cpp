@@ -436,6 +436,12 @@ int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int 
 
 int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
 {
+  if (context->pool == 0x00) {
+    context->errorCode   = DM_NO_POOL_MANAGER;
+    context->errorString = "There is no Pool Manager Plugin";
+    return -1;
+  }
+
   TRY(context, getpools)
   std::vector<pool> poolSet = context->pool->getPools();
 
@@ -466,6 +472,12 @@ int dm_freepools(dm_context* context, int npools, struct pool* pools)
 
 int dm_getpoolfs(dm_context* context, const char *poolname, int *nbfs, struct filesystem **fs)
 {
+  if (context->pool == 0x00) {
+    context->errorCode   = DM_NO_POOL_MANAGER;
+    context->errorString = "There is no Pool Manager Plugin";
+    return -1;
+  }
+  
   TRY(context, getpoolfs)
   std::vector<filesystem> filesystems = context->pool->getPoolFilesystems(poolname);
 
