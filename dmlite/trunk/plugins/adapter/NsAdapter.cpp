@@ -210,7 +210,10 @@ void NsAdapterCatalog::deleteReplica(const std::string& guid, int64_t id,
   uniqueId.fileid = id;
   strncpy(uniqueId.server, this->nsHost_.c_str(), sizeof(uniqueId.server));
 
-  wrapCall(dpns_delreplica(guid.c_str(), &uniqueId, sfn.c_str()));
+  if (guid.empty())
+    wrapCall(dpns_delreplica(NULL, &uniqueId, sfn.c_str()));
+  else
+    wrapCall(dpns_delreplica(guid.c_str(), &uniqueId, sfn.c_str()));
 }
 
 
