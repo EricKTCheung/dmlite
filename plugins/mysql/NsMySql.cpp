@@ -43,6 +43,7 @@ enum {
   STMT_UPDATE_MODE,
   STMT_DELETE_REPLICA,
   STMT_ADD_REPLICA,
+  STMT_TRUNCATE_FILE,
   STMT_SENTINEL
 };
 
@@ -132,6 +133,8 @@ static const char* statements[] = {
            UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),\
            ?, ?, ?,\
            ?, ?, ?, ?, ?)",
+  "UPDATE Cns_file_metadata\
+        SET filesize = 0 WHERE fileid = ?",
 };
 
 
@@ -1082,18 +1085,36 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
 
 void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
+  int          code;
   std::string  parentPath, name;
   FileMetadata parent = this->getParent(path, &parentPath, &name);
+  FileMetadata file;
 
   try {
+    file = this->getFile(name, parent.xStat.stat.st_ino);
+    // File exists, check if it has replicas
+    this->getReplicas(path);
+    // It has replicas, so fail!
+    throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
+  }
+  catch (DmException e) {
+    code = e.code();
+    if (code != DM_NO_SUCH_FILE && code != DM_NO_REPLICAS)
+      throw;
+  }
+
+  // Create new
+  if (code == DM_NO_SUCH_FILE) {
     this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
                   1, 0, 0, '-',
                   std::string(), std::string(),
                   std::string());
   }
-  catch (DmException e) {
-    if (e.code() == DM_EXISTS)
-      throw DmException(DM_NOT_IMPLEMENTED, "Truncation not supported yet");
+  // Truncate
+  else if (code == DM_NO_REPLICAS) {
+    Statement statement(this->getPreparedStatement(STMT_TRUNCATE_FILE));
+    statement.bindParam(0, file.xStat.stat.st_ino);
+    statement.execute();
   }
 }
 
