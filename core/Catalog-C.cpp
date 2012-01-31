@@ -144,7 +144,10 @@ int dm_delreplica(dm_context* context, const char* guid, int64_t id,
                   const char* path)
 {
   TRY(context, delreplica)
-  context->catalog->deleteReplica(guid, id, path);
+  if (guid != NULL)
+    context->catalog->deleteReplica(guid, id, path);
+  else
+    context->catalog->deleteReplica(std::string(), id, path);
   CATCH(context, delreplica)
 }
 
