@@ -12,6 +12,7 @@
 #define DM_NO_FACTORY           0x0004
 #define DM_UNEXPECTED_EXCEPTION 0x0005
 #define DM_RESOURCE_UNAVAILABLE 0x0006
+#define DM_NO_POOL_MANAGER      0x0007
 #define DM_NULL_POINTER         0x1000
 #define DM_OUT_OF_MEMORY        0x1001
 #define DM_NO_CATALOG           0x1002
