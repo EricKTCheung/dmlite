@@ -45,6 +45,13 @@ Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 %description plugins
 DMLite default set of plugins: MySQL, Adapter, Profiler and Librarian.
 
+%package docs
+Summary:	dmlite API documentation
+Group:		Applications/Internet
+
+%description docs
+DMLite man pages, and html documentation.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -83,7 +90,14 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/dmlite
 
+%files docs
+%defattr(-,root,root,-)
+%{_mandir}/man3/*
+%{_defaultdocdir}/%{name}-%{version}
+
 %changelog
+* Tue Jan 31 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.2.0-1
+- Added documentation to the build process
 * Mon Jan 23 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Added cppunit-devel as a build dependency
 * Tue Jan 20 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
