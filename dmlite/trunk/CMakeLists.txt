@@ -20,10 +20,11 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 include_directories (${CMAKE_SOURCE_DIR}/include/)
 
 # Subdirectories
+add_subdirectory (etc)
+add_subdirectory (common)
 add_subdirectory (core)
 add_subdirectory (plugins)
 add_subdirectory (tests)
-add_subdirectory (etc)
 
 # Install headers
 install (DIRECTORY   include/

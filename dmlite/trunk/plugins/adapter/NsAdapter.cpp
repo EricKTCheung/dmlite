@@ -1,17 +1,14 @@
 /// @file   plugins/adapter/NsAdapter.cpp
-
-#include <vector>
-
 /// @brief  Adapter Plugin: Cns wrapper implementation.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/dm_errno.h>
+#include <dmlite/common/Uris.h>
 #include <serrno.h>
 
 #include "Adapter.h"
 #include "NsAdapter.h"
-#include "../common/Uris.h"
 
 using namespace dmlite;
 

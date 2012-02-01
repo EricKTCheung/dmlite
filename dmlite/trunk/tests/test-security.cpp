@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include "../plugins/common/Security.h"
+#include <dmlite/common/Security.h>
 
 class Security: public CppUnit::TestFixture {
 protected:
