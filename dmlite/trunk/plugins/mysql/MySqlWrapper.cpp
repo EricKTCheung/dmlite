@@ -202,7 +202,7 @@ void Statement::bindResult(unsigned index, unsigned int* destination) throw (DmE
   results_[index].buffer_type = MYSQL_TYPE_LONG;
   results_[index].buffer      = destination;
   results_[index].is_unsigned = true;
-  this->status_ = STMT_RESULTS_UNBOUND; 
+  this->status_ = STMT_RESULTS_UNBOUND;
 }
 
 
@@ -224,7 +224,29 @@ void Statement::bindResult(unsigned index, unsigned long* destination) throw (Dm
   results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
   results_[index].buffer      = destination;
   results_[index].is_unsigned = true;
-  this->status_ = STMT_RESULTS_UNBOUND;  
+  this->status_ = STMT_RESULTS_UNBOUND;
+}
+
+
+
+void Statement::bindResult(unsigned index, signed long long* destination) throw (DmException)
+{
+  BIND_RESULT_SANITY();
+  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  results_[index].buffer      = destination;
+  results_[index].is_unsigned = false;
+  this->status_ = STMT_RESULTS_UNBOUND;
+}
+
+
+
+void Statement::bindResult(unsigned index, unsigned long long* destination) throw (DmException)
+{
+  BIND_RESULT_SANITY();
+  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  results_[index].buffer      = destination;
+  results_[index].is_unsigned = true;
+  this->status_ = STMT_RESULTS_UNBOUND;
 }
 
 
