@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Uris.h"
+#include <dmlite/common/Uris.h>
 
 Uri dmlite::splitUri(const std::string& uri)
 {

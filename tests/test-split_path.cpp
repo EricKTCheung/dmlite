@@ -2,7 +2,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <list>
-#include "../plugins/common/Uris.h"
+#include <dmlite/common/Uris.h>
 
 inline int Validate(const char* path, int n, ...)
 {

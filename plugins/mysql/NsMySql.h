@@ -4,12 +4,12 @@
 #ifndef NSMYSQL_H
 #define	NSMYSQL_H
 
+#include <dmlite/common/PoolContainer.h>
+#include <dmlite/common/Security.h>
 #include <dmlite/dummy/Dummy.h>
 #include <mysql/mysql.h>
 #include <vector>
 
-#include "../common/PoolContainer.h"
-#include "../common/Security.h"
 
 #include "MySqlWrapper.h"
 

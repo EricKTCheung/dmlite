@@ -7,11 +7,11 @@
 #include <time.h>
 #include <vector>
 #include <mysql/mysql.h>
+#include <stdlib.h>
+#include <dmlite/common/Uris.h>
+
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
-#include <stdlib.h>
-
-#include "../common/Uris.h"
 
 using namespace dmlite;
 

@@ -4,13 +4,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/dm_errno.h>
+#include <dmlite/common/Uris.h>
 #include <dpm_api.h>
 #include <serrno.h>
 #include <vector>
 
 #include "Adapter.h"
 #include "DpmAdapter.h"
-#include "../common/Uris.h"
 
 using namespace dmlite;
 

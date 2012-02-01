@@ -6,7 +6,7 @@
 #include <cerrno>
 #include <dmlite/dm_exceptions.h>
 #include <dmlite/dm_errno.h>
-#include "Security.h"
+#include <dmlite/common/Security.h>
 
 #include <stdlib.h>
 #include <stdio.h>

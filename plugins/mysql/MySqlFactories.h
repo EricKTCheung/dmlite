@@ -5,10 +5,10 @@
 #define	MYSQL_H
 
 #include <dmlite/dmlite++.h>
+#include <dmlite/common/PoolContainer.h>
 #include <dmlite/dummy/Dummy.h>
 #include <mysql/mysql.h>
 
-#include "../common/PoolContainer.h"
 
 namespace dmlite {
 
