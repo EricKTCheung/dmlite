@@ -6,6 +6,7 @@
 
 #include <dmlite/dm_exceptions.h>
 #include <mysql/mysql.h>
+#include <stdint.h>
 
 namespace dmlite {
 
@@ -36,13 +37,15 @@ public:
 
   void execute(void) throw (DmException);
 
-  void bindResult(unsigned index, short*     destination) throw (DmException);
-  void bindResult(unsigned index, signed int*    destination) throw (DmException);
-  void bindResult(unsigned index, unsigned int*  destination) throw (DmException);
-  void bindResult(unsigned index, signed long*   destination) throw (DmException);
-  void bindResult(unsigned index, unsigned long* destination) throw (DmException);
-  void bindResult(unsigned index, char*          destination, size_t size) throw (DmException);
-  void bindResult(unsigned index, char*          destination, size_t size, int) throw (DmException); // For blobs
+  void bindResult(unsigned index, short*              destination) throw (DmException);
+  void bindResult(unsigned index, signed int*         destination) throw (DmException);
+  void bindResult(unsigned index, unsigned int*       destination) throw (DmException);
+  void bindResult(unsigned index, signed long*        destination) throw (DmException);
+  void bindResult(unsigned index, unsigned long*      destination) throw (DmException);
+  void bindResult(unsigned index, signed long long*   destination) throw (DmException);
+  void bindResult(unsigned index, unsigned long long* destination) throw (DmException);
+  void bindResult(unsigned index, char*               destination, size_t size) throw (DmException);
+  void bindResult(unsigned index, char*               destination, size_t size, int) throw (DmException); // For blobs
 
   unsigned long count(void) throw ();
 
