@@ -8,7 +8,7 @@ add_library(dmlite SHARED PluginManager.cpp
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
 
-target_link_libraries(dmlite dl)
+target_link_libraries(dmlite dl pthread)
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
