@@ -21,15 +21,17 @@ public:
 
   void tearDown()
   {
-    try {
-      this->catalog->unlink(FILE);
-    }
-    catch (...) { }
+    if (this->catalog != 0x00) {
+      try {
+        this->catalog->unlink(FILE);
+      }
+      catch (...) { }
 
-    try {
-      this->catalog->removeDir(FOLDER);
+      try {
+        this->catalog->removeDir(FOLDER);
+      }
+      catch (...) { }
     }
-    catch (...) { }
     TestBase::tearDown();
   }
 

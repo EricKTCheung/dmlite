@@ -28,12 +28,14 @@ public:
 
   void tearDown()
   {
-    try {
-      this->catalog->unlink(FILE);
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_SUCH_FILE)
-        throw;
+    if (this->catalog != 0x00) {
+      try {
+        this->catalog->unlink(FILE);
+      }
+      catch (dmlite::DmException e) {
+        if (e.code() != DM_NO_SUCH_FILE)
+          throw;
+      }
     }
     TestBase::tearDown();
   }

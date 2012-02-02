@@ -23,23 +23,25 @@ public:
 
   void tearDown()
   {
-    try {
-      this->catalog->unlink(FILE);
-    }
-    catch (...) { }
+    if (this->catalog != 0x00) {
+      try {
+        this->catalog->unlink(FILE);
+      }
+      catch (...) { }
 
-    try {
-      this->catalog->unlink(SYMLINK);
-    }
-    catch (...) { }
+      try {
+        this->catalog->unlink(SYMLINK);
+      }
+      catch (...) { }
 
-    try {
-      this->catalog->removeDir(NESTED);
-    }
-    catch (...) { }
+      try {
+        this->catalog->removeDir(NESTED);
+      }
+      catch (...) { }
 
-    this->catalog->umask(022);
-    this->catalog->removeDir(FOLDER);
+      this->catalog->umask(022);
+      this->catalog->removeDir(FOLDER);
+    }
     TestBase::tearDown();
   }
 
