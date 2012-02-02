@@ -110,6 +110,7 @@ dm_context* dm_context_new(dm_manager* handle)
   catch (dmlite::DmException e) {
     handle->errorCode   = e.code();
     handle->errorString = e.what();
+    delete ctx;
     return NULL;
   }
 
@@ -119,8 +120,13 @@ dm_context* dm_context_new(dm_manager* handle)
     ctx->pool = handle->manager->getPoolManagerFactory()->createPoolManager();
   }
   catch (dmlite::DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
+    if (e.code() != DM_NO_FACTORY) {
+      handle->errorCode   = e.code();
+      handle->errorString = e.what();
+      delete ctx->catalog;
+      delete ctx;
+      return NULL;
+    }
     ctx->pool = 0x00;
   }
 
