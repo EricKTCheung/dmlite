@@ -17,6 +17,7 @@ BuildRequires:	dpm-devel%{?_isa}
 BuildRequires:	subversion%{?_isa}
 BuildRequires:	mysql-devel%{?_isa}
 BuildRequires:	cppunit-devel%{?_isa}
+BuildRequires:	doxygen%{?_isa}
 
 %description
 This package provides a set of libraries and plugins that implements
