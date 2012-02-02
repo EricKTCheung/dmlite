@@ -78,8 +78,9 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
       (*i)->configure(key, value);
       r = 0; // At least one recognised this
     }
-    catch (DmException) {
-      // Nothing
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
     }
     catch (...) {
       throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
