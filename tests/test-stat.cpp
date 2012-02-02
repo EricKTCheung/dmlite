@@ -28,10 +28,14 @@ public:
 
 
     this->catalog->getIdMap(TEST_USER, empty, &uid, &gids);
+    if (gids.size() == 0)
+      throw dmlite::DmException(DM_NO_SUCH_GROUP, std::string("No GID's given for ") + TEST_USER);
     gid = gids[0];
     this->catalog->setUserId(uid, gid, TEST_USER);
     
     this->catalog->getIdMap(TEST_USER_2, empty, &uid2, &gids);
+    if (gids.size() == 0)
+      throw dmlite::DmException(DM_NO_SUCH_GROUP, std::string("No GID's given for ") + TEST_USER_2);
     gid2 = gids[0];
 
     this->catalog->makeDir(FOLDER, MODE);

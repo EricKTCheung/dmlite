@@ -387,13 +387,21 @@ void NsAdapterCatalog::getIdMap(const std::string& userName,
                                 uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
 {
   int         nGroups = groups.size();
-  const char *groupNames[nGroups];
+  const char *groupNames[nGroups], **gnp;
   gid_t       gidsp[nGroups + 1];
 
   for (int i = 0; i < nGroups; ++i)
     groupNames[i] = groups[i].c_str();
 
-  wrapCall(dpns_getidmap(userName.c_str(), nGroups, groupNames, uid, gidsp));
+  if (nGroups == 0)
+    gnp = NULL;
+  else
+    gnp = groupNames;
+
+  wrapCall(dpns_getidmap(userName.c_str(), nGroups, gnp, uid, gidsp));
+
+  if (nGroups == 0)
+    nGroups = 1; // DPNS will push at least one
 
   gids->reserve(nGroups);
   for(int i = 0; i < nGroups; ++i)
