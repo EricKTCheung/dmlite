@@ -1,15 +1,15 @@
-Name:		  dmlite
+Name:		dmlite
 Version:	0.2.0
 Release:	1%{?dist}
-Summary:	Common libraries for LCGDM components.
+Summary:	Abstraction library for LCGDM components
 Group:		Applications/Internet
 License:	ASL 2.0
-URL:		  https://svnweb.cern.ch/trac/lcgdm
+URL:		https://svnweb.cern.ch/trac/lcgdm
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
 # svn export http://svn.cern.ch/guest/lcgdm/libdm/tags/dmlite_0_2_0 dmlite-0.2.0
 # tar -czvf dmlite-0.2.0.tar.gz dmlite-0.2.0
-Source0:	  %{name}-%{version}.tar.gz
+Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	cmake%{?_isa}
@@ -36,22 +36,22 @@ Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description devel
-DMLite development headers and libraries.
+Development headers and libraries for dmlite.
 
 %package plugins
-Summary:	Set of plugins for dmlite.
+Summary:	Set of plugins for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description plugins
-DMLite default set of plugins: MySQL, Adapter, Profiler and Librarian.
+Default set of plugins for dmlite: MySQL, Adapter, Profiler and Librarian.
 
 %package docs
-Summary:	dmlite API documentation
+Summary:	API documentation for dmlite
 Group:		Applications/Internet
 
 %description docs
-DMLite man pages, and html documentation.
+Man pages and HTML documentation for dmlite.
 
 %prep
 %setup -q -n %{name}-%{version}
