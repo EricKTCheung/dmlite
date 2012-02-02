@@ -233,7 +233,6 @@ int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* 
   TRY(context, putg)
   NOT_NULL(path);
   NOT_NULL(uri);
-  NOT_NULL(guid);
   NOT_NULL(token);
   std::string t;
   if (guid != NULL)
