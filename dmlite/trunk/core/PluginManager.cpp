@@ -149,7 +149,7 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           }
         }
       }
-    }    
+    }
     ++line;
   }
 
