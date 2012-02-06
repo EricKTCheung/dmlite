@@ -157,7 +157,7 @@ public:
 
 const int   TestCreate::MODE    = 0700;
 const char* TestCreate::FOLDER  = "/dpm/cern.ch/home/dteam/test-create";
-const char* TestCreate::NESTED  = "/dpm/cern.ch/home/dteam/test-create/nested";
+const char* TestCreate::NESTED  = "/dpm/cern.ch/home/dteam/test-create/nested/";
 const char* TestCreate::SYMLINK = "/dpm/cern.ch/home/dteam/test-create/test-link";
 const char* TestCreate::FILE    = "/dpm/cern.ch/home/dteam/test-create/test-file";
 

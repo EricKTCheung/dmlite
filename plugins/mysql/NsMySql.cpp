@@ -387,28 +387,32 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
   size_t lastSlash = path.rfind("/");
   size_t nameLen;
 
+  // Beware of paths that ends with /!
+  if (path[lastSlash + 1] == '\0')
+    lastSlash = path.rfind("/", lastSlash - 1);
+
   if (lastSlash != std::string::npos && lastSlash > 0) {
     *parentPath = path.substr(0, lastSlash);
     *name       = path.substr(lastSlash + 1);
     nameLen = name->length();
-    if ((*name)[nameLen -1 ] == '/')
-      (*name)[nameLen - 1] = '\0';
+    if ((*name)[nameLen - 1] == '/')
+      name->resize(nameLen - 1);
     return this->parsePath(*parentPath);
   }
   else if (!this->cwdPath_.empty() && lastSlash != 0) {
     *parentPath = this->cwdPath_;
     *name       = path;
     nameLen = name->length();
-    if ((*name)[nameLen -1 ] == '/')
-      (*name)[nameLen - 1] = '\0';
+    if ((*name)[nameLen - 1] == '/')
+      name->resize(nameLen - 1);
     return this->cwdMeta_;
   }
   else {
     *parentPath = "/";
     *name       = path;
     nameLen = name->length();
-    if ((*name)[nameLen -1 ] == '/')
-      (*name)[nameLen - 1] = '\0';
+    if ((*name)[nameLen -1] == '/')
+      name->resize(nameLen - 1);
     return this->parsePath(*parentPath);
   }
 }
