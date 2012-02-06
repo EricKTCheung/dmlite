@@ -384,37 +384,27 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
                                        std::string* parentPath,
                                        std::string* name) throw (DmException)
 {
-  size_t lastSlash = path.rfind("/");
-  size_t nameLen;
+  std::list<std::string> components = splitPath(path);
 
-  // Beware of paths that ends with /!
-  if (path[lastSlash + 1] == '\0')
-    lastSlash = path.rfind("/", lastSlash - 1);
+  parentPath->clear();
+  name->clear();
 
-  if (lastSlash != std::string::npos && lastSlash > 0) {
-    *parentPath = path.substr(0, lastSlash);
-    *name       = path.substr(lastSlash + 1);
-    nameLen = name->length();
-    if ((*name)[nameLen - 1] == '/')
-      name->resize(nameLen - 1);
-    return this->parsePath(*parentPath);
+  // Build parent (this is, skipping last one)
+  while (components.size() > 1) {
+    *parentPath += "/" + components.front();
+    components.pop_front();
   }
-  else if (!this->cwdPath_.empty() && lastSlash != 0) {
-    *parentPath = this->cwdPath_;
-    *name       = path;
-    nameLen = name->length();
-    if ((*name)[nameLen - 1] == '/')
-      name->resize(nameLen - 1);
+  
+  *name = components.front();
+  components.pop_front();
+
+  // Get the files now
+  if (!parentPath->empty())
+    return this->parsePath(*parentPath);
+  else if (!this->cwdPath_.empty())
     return this->cwdMeta_;
-  }
-  else {
-    *parentPath = "/";
-    *name       = path;
-    nameLen = name->length();
-    if ((*name)[nameLen -1] == '/')
-      name->resize(nameLen - 1);
-    return this->parsePath(*parentPath);
-  }
+  else
+    return this->parsePath("/");
 }
 
 
