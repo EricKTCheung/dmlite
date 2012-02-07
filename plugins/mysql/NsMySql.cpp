@@ -32,6 +32,7 @@ enum {
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
+  STMT_INSERT_COMMENT,
   STMT_INSERT_FILE,
   STMT_INSERT_SYMLINK,
   STMT_SELECT_UNIQ_ID_FOR_UPDATE,
@@ -98,6 +99,10 @@ static const char* statements[] = {
   "UPDATE Cns_user_metadata\
         SET comments = ?\
         WHERE u_fileid = ?",
+  "INSERT INTO Cns_user_metadata\
+          (u_fileid, comments)\
+        VALUES\
+          (?, ?)",
   "INSERT INTO Cns_file_metadata\
           (fileid, parent_fileid, name, filemode, nlink, owner_uid, gid,\
            filesize, atime, mtime, ctime, fileclass, status,\
@@ -1211,7 +1216,15 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
   stmt.bindParam(0, comment);
   stmt.bindParam(1, meta.xStat.stat.st_ino);
 
-  stmt.execute();
+  if (stmt.execute() == 0) {
+    // No update! Try inserting
+    Statement stmti(this->getPreparedStatement(STMT_INSERT_COMMENT));
+
+    stmti.bindParam(0, meta.xStat.stat.st_ino);
+    stmti.bindParam(1, comment);
+    
+    stmti.execute();
+  }
 }
 
 

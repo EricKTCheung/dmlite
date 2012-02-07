@@ -35,7 +35,7 @@ public:
   void bindParam(unsigned index, const std::string& value) throw (DmException);
   void bindParam(unsigned index, const char* value, size_t size) throw (DmException);
 
-  void execute(void) throw (DmException);
+  unsigned long execute(void) throw (DmException);
 
   void bindResult(unsigned index, short*              destination) throw (DmException);
   void bindResult(unsigned index, signed int*         destination) throw (DmException);

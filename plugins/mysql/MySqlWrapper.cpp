@@ -144,7 +144,7 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 
 
-void Statement::execute(void) throw (DmException)
+unsigned long Statement::execute(void) throw (DmException)
 {
   SANITY_CHECK(STMT_CREATED, execute);
 
@@ -170,6 +170,8 @@ void Statement::execute(void) throw (DmException)
 
     this->status_ = STMT_EXECUTED;
   }
+
+  return (unsigned long) mysql_stmt_affected_rows(this->stmt_);
 }
 
 
