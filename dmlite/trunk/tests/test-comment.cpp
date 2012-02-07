@@ -3,14 +3,29 @@
 
 class TestComment: public TestBase
 {
+private:
+  static const char* FILE;
+
 public:
+
+  void setUp()
+  {
+    TestBase::setUp();
+    this->catalog->create(FILE, 0755);
+  }
+
+  void tearDown()
+  {
+    this->catalog->unlink(FILE);
+    TestBase::tearDown();
+  }
 
   void testComment()
   {
     const std::string comment("This is a comment!@1234XX");
 
-    this->catalog->setComment("/dpm", comment);
-    CPPUNIT_ASSERT_EQUAL(comment, this->catalog->getComment("/dpm"));
+    this->catalog->setComment(FILE, comment);
+    CPPUNIT_ASSERT_EQUAL(comment, this->catalog->getComment(FILE));
   }
 
 
@@ -20,6 +35,8 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestComment);
+
+const char* TestComment::FILE = "/dpm/cern.ch/home/dteam/test-comment";
 
 int main(int argn, char **argv)
 {
