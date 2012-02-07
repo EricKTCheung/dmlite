@@ -146,12 +146,37 @@ public:
     this->catalog->deleteReplica("", s.st_ino, "sfn://something");
   }
 
+  void testPathDoesNotExist()
+  {
+    try {
+      this->catalog->create("/fake/something/else/file", MODE);
+      CPPUNIT_FAIL("Exception not thrown");
+    }
+    catch (dmlite::DmException e) {
+      CPPUNIT_ASSERT_EQUAL(DM_NO_SUCH_FILE, e.code());
+    }
+  }
+
+  void testPermissionDenied()
+  {
+    this->catalog->changeMode(FOLDER, 0400);
+    try {
+      this->catalog->create(FILE, MODE);
+      CPPUNIT_FAIL("Exception not thrown");
+    }
+    catch (dmlite::DmException e) {
+      CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
+    }
+  }
+
   CPPUNIT_TEST_SUITE(TestCreate);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testSetGid);
   CPPUNIT_TEST(testUmask);
   CPPUNIT_TEST(testExistsNoReplicas);
   CPPUNIT_TEST(testExistsWithReplicas);
+  CPPUNIT_TEST(testPathDoesNotExist);
+  CPPUNIT_TEST(testPermissionDenied);
   CPPUNIT_TEST_SUITE_END();
 };
 
