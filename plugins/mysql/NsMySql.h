@@ -192,6 +192,7 @@ private:
   /// @param csumtype  The checksum type.
   /// @param csumvalue The checksum value.
   /// @param acl       The access control list.
+  /// @note No transaction is used! Calling method is supposed to do it.
   FileMetadata newFile(FileMetadata& parent, const std::string& name, mode_t mode,
                        long nlink, size_t size, short type, char status,
                        const std::string& csumtype, const std::string& csumvalue,
@@ -204,6 +205,19 @@ private:
   /// @return           The parent metadata.
   FileMetadata getParent(const std::string& path, std::string* parentPath,
                          std::string* name) throw (DmException);
+
+  /// Add a new user.
+  /// @param uname The user name.
+  /// @param ca    The user CA.
+  /// @return      A UserInfo struct, including the new uid.
+  /// @note        Transactions are used.
+  UserInfo  newUser(const std::string& uname, const std::string& ca) throw (DmException);
+
+  /// Add a new group.
+  /// @param gname The group name.
+  /// @return      A GroupInfo struct, including the new gid.
+  /// @note        Transactions are used.
+  GroupInfo newGroup(const std::string& gname) throw (DmException);
 
   /// Traverse backwards to check permissions.
   /// @param file The file at the end

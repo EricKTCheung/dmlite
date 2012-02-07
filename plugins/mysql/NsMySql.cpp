@@ -37,6 +37,7 @@ enum {
   STMT_INSERT_SYMLINK,
   STMT_SELECT_UNIQ_ID_FOR_UPDATE,
   STMT_UPDATE_UNIQ_ID,
+  STMT_INSERT_UNIQ_ID,
   STMT_DELETE_FILE,
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
@@ -45,6 +46,14 @@ enum {
   STMT_DELETE_REPLICA,
   STMT_ADD_REPLICA,
   STMT_TRUNCATE_FILE,
+  STMT_GET_UNIQ_UID_FOR_UPDATE,
+  STMT_GET_UNIQ_GID_FOR_UPDATE,
+  STMT_UPDATE_UNIQ_UID,
+  STMT_UPDATE_UNIQ_GID,
+  STMT_INSERT_UNIQ_UID,
+  STMT_INSERT_UNIQ_GID,
+  STMT_INSERT_USER,
+  STMT_INSERT_GROUP,
   STMT_SENTINEL
 };
 
@@ -117,6 +126,7 @@ static const char* statements[] = {
           (?, ?)",
   "SELECT id FROM Cns_unique_id FOR UPDATE",
   "UPDATE Cns_unique_id SET id = ?",
+  "INSERT INTO Cns_unique_id (id) VALUES (?)",
   "DELETE FROM Cns_file_metadata WHERE fileid = ?",
   "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
   "DELETE FROM Cns_symlinks WHERE fileid = ?",
@@ -140,6 +150,20 @@ static const char* statements[] = {
            ?, ?, ?, ?, ?)",
   "UPDATE Cns_file_metadata\
         SET filesize = 0 WHERE fileid = ?",
+  "SELECT id FROM Cns_unique_uid FOR UPDATE",
+  "SELECT id FROM Cns_unique_gid FOR UPDATE",
+  "UPDATE Cns_unique_uid SET id = ?",
+  "UPDATE Cns_unique_gid SET id = ?",
+  "INSERT INTO Cns_unique_uid (id) VALUES (?)",
+  "INSERT INTO Cns_unique_gid (id) VALUES (?)",
+  "INSERT INTO Cns_userinfo\
+          (userid, username, user_ca, banned)\
+        VALUES\
+          (?, ?, ?, ?)",
+  "INSERT INTO Cns_groupinfo\
+          (gid, groupname, banned)\
+        VALUES\
+          (?, ?, ?)",
 };
 
 
@@ -333,14 +357,21 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
 
   uniqueId.execute();
   uniqueId.bindResult(0, &newFileId);
-  uniqueId.fetch();
 
-  // Update
-  Statement updateUnique(this->getPreparedStatement(STMT_UPDATE_UNIQ_ID));
-  
-  newFileId++;
-  updateUnique.bindParam(0, newFileId);
-  updateUnique.execute();
+  // Update the unique ID
+  if (uniqueId.fetch()) {
+    Statement updateUnique(this->getPreparedStatement(STMT_UPDATE_UNIQ_ID));
+    ++newFileId;
+    updateUnique.bindParam(0, newFileId);
+    updateUnique.execute();
+  }
+  // Couldn't get, so insert
+  else {
+    Statement insertUnique(this->getPreparedStatement(STMT_INSERT_UNIQ_ID));
+    newFileId = 1;
+    insertUnique.bindParam(0, newFileId);
+    insertUnique.execute();
+  }
 
   // Check SGID
   if (parent.xStat.stat.st_mode & S_ISGID) {
@@ -683,24 +714,28 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
   // User mapping
   try {
     user = this->getUser(userName);
-    *uid = user.uid;
   }
   catch (DmException e) {
-    // TODO: Add user
-    throw;
+    if (e.code() == DM_NO_SUCH_USER)
+      user = this->newUser(userName, "");
+    else
+      throw;
   }
+  *uid = user.uid;
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
     vo = voFromDn("/etc/lcgdm-mapfile", userName);
     try {
       group = this->getGroup(vo);
-      gids->push_back(group.gid);
     }
-    catch (DmException) {
-      // TODO: Add group
-      throw;
+    catch (DmException e) {
+      if (e.code() == DM_NO_SUCH_GROUP)
+        group = this->newGroup(vo);
+      else
+        throw;
     }
+    gids->push_back(group.gid);
   }
   else {
     // Get group info
@@ -709,12 +744,14 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
       vo = voFromRole(*i);
       try {
         group = this->getGroup(vo);
-        gids->push_back(group.gid);
       }
-      catch (DmException) {
-        // TODO: Add group
-        throw;
+      catch (DmException e) {
+        if (e.code() == DM_NO_SUCH_GROUP)
+          group = this->newGroup(vo);
+        else
+          throw;
       }
+      gids->push_back(group.gid);
     }
   }
 }
@@ -795,6 +832,106 @@ GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
   
   stmt.fetch();
   return group;
+}
+
+
+
+UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+{
+  Transaction transaction(this->conn_);
+
+  // Get the last uid, increment and update
+  Statement uidStmt(this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE));
+  uid_t     uid;
+
+  uidStmt.execute();
+  uidStmt.bindResult(0, &uid);
+
+  // Update the uid
+  if (uidStmt.fetch()) {
+    Statement updateUidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_UID));
+    ++uid;
+    updateUidStmt.bindParam(0, uid);
+    updateUidStmt.execute();
+  }
+  // Couldn't get, so insert it instead
+  else {
+    Statement insertUidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_UID));
+    uid = 1;
+    insertUidStmt.bindParam(0, uid);
+    insertUidStmt.execute();
+  }
+
+  // Insert the user
+  Statement userStmt(this->getPreparedStatement(STMT_INSERT_USER));
+
+  userStmt.bindParam(0, uid);
+  userStmt.bindParam(1, uname);
+  userStmt.bindParam(2, ca);
+  userStmt.bindParam(3, 0);
+  
+  userStmt.execute();
+
+  // Commit
+  transaction.commit();
+
+  // Build and return the UserInfo
+  UserInfo u;
+  u.uid = uid;
+  strncpy(u.name, uname.c_str(), sizeof(u.name));
+  strncpy(u.ca,   ca.c_str(),    sizeof(u.ca));
+  u.banned = 0;
+
+  return u;
+}
+
+
+
+GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
+{
+  Transaction transaction(this->conn_);
+
+  // Get the last gid, increment and update
+  Statement gidStmt(this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE));
+  gid_t     gid;
+
+  gidStmt.execute();
+  gidStmt.bindResult(0, &gid);
+
+  // Update the gid
+  if (gidStmt.fetch()) {
+    Statement updateGidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_GID));
+    ++gid;
+    updateGidStmt.bindParam(0, gid);
+    updateGidStmt.execute();
+  }
+  // Couldn't get, so insert it instead
+  else {
+    Statement insertGidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_GID));
+    gid = 1;
+    insertGidStmt.bindParam(0, gid);
+    insertGidStmt.execute();
+  }
+
+  // Insert the group
+  Statement groupStmt(this->getPreparedStatement(STMT_INSERT_GROUP));
+
+  groupStmt.bindParam(0, gid);
+  groupStmt.bindParam(1, gname);
+  groupStmt.bindParam(2, 0);
+
+  groupStmt.execute();
+
+  // Commit
+  transaction.commit();
+
+  // Build and return the GroupInfo
+  GroupInfo g;
+  g.gid = gid;
+  strncpy(g.name, gname.c_str(), sizeof(g.name));
+  g.banned = 0;
+
+  return g;
 }
 
 
@@ -1118,6 +1255,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
 
   // Create new
+  Transaction transaction(this->conn_);
   if (code == DM_NO_SUCH_FILE) {
     this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
                   1, 0, 0, '-',
@@ -1130,6 +1268,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     statement.bindParam(0, file.xStat.stat.st_ino);
     statement.execute();
   }
+  transaction.commit();
 }
 
 
