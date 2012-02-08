@@ -133,6 +133,15 @@ std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::s
   return token;
 }
 
+
+
+void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
+{
+  DummyCatalog::unlink(path);
+}
+
+
+
 int DpmMySqlCatalog::getFsStatus(const std::string& pool, const std::string& server,
                                  const std::string& fs) throw(DmException)
 {
