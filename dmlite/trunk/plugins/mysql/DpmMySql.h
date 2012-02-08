@@ -45,6 +45,7 @@ public:
   FileReplica get (const std::string&) throw (DmException);
   std::string put (const std::string&, Uri*, const std::string&) throw (DmException);
 
+  void unlink (const std::string&) throw (DmException);
   
   int getFsStatus(const std::string&, const std::string& server, const std::string& fs) throw(DmException);
 
