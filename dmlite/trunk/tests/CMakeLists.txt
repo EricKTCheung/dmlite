@@ -44,3 +44,6 @@ target_link_libraries (test-replicas dmlite dmlitecommon cppunit dl)
 
 add_executable        (test-rename test-rename.cpp test-base.cpp)
 target_link_libraries (test-rename dmlite dmlitecommon cppunit dl)
+
+add_executable        (test-chown test-chown.cpp test-base.cpp)
+target_link_libraries (test-chown dmlite dmlitecommon cppunit dl)
