@@ -69,7 +69,7 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db")
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"), symLinkLimit_(3)
 {
   // Initialize MySQL library
   mysql_library_init(0, NULL, NULL);
