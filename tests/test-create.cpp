@@ -18,6 +18,7 @@ public:
   void setUp()
   {
     TestBase::setUp();
+    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
     this->catalog->makeDir(FOLDER, MODE);
   }
 
