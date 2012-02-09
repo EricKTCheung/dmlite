@@ -49,8 +49,8 @@ MYSQL_STMT* DpmMySqlCatalog::getPreparedStatement(unsigned stId)
 DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& nsDb,
                                  const std::string& dpmDb, Catalog* decorates,
                                  unsigned int symLinkLimit) throw(DmException):
-  NsMySqlCatalog(connPool, nsDb, decorates, symLinkLimit), dpmDb_(dpmDb),
-  preparedStmt_(STMT_SENTINEL, 0x00)
+  NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb),
+  preparedStmt_(STMT_SENTINEL, 0x00), decorated_(decorates)
 {
   // Nothing
 }
@@ -137,7 +137,9 @@ std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::s
 
 void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
 {
-  DummyCatalog::unlink(path);
+  if (this->decorated_ == 0x00)
+    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::unlink Can not delegate");
+  this->decorated_->unlink(path);
 }
 
 

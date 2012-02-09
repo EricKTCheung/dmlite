@@ -57,6 +57,9 @@ private:
   /// Precompiled statements
   std::vector<MYSQL_STMT*> preparedStmt_;
 
+  /// Decorated catalog
+  Catalog* decorated_;
+
   // Private methods
 
   /// Returns the preparted statement with the specified ID.

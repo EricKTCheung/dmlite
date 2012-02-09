@@ -37,7 +37,7 @@ private:
 class NsMySqlFactory: public CatalogFactory {
 public:
   /// Constructor
-  NsMySqlFactory(CatalogFactory* catalogFactory) throw(DmException);
+  NsMySqlFactory() throw(DmException);
   /// Destructor
   ~NsMySqlFactory() throw(DmException);
 
@@ -45,9 +45,6 @@ public:
   Catalog* createCatalog() throw(DmException);
 
 protected:
-  /// Decorated
-  CatalogFactory* nestedFactory_;
-
   /// Connection factory.
   MySqlConnectionFactory connectionFactory_;
 
@@ -78,6 +75,9 @@ public:
 protected:
   /// DPM db.
   std::string dpmDb_;
+
+  /// Decorated
+  CatalogFactory* nestedFactory_;
 private:
 };
 

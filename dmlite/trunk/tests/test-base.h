@@ -5,6 +5,8 @@
 #include <dmlite/dmlite++.h>
 #include <dmlite/dm_exceptions.h>
 
+#define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException e) { if (e.code() != DM_NO_SUCH_FILE) throw; }
+
 
 class TestBase: public CppUnit::TestFixture {
 public:

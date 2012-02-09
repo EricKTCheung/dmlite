@@ -42,6 +42,6 @@
 #define DM_NO_SUCH_GROUP        0x1037
 #define DM_NO_COMMENT           0x1038
 #define DM_NO_SUCH_FS           0x1039
-#define DM_NOT_EMPTY            0x103F
+#define DM_IS_CWD               0x103A
 
 #endif	/* DMLITE_ERRNO_H */

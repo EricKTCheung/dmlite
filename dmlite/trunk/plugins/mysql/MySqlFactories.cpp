@@ -67,8 +67,7 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 
 
-NsMySqlFactory::NsMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
-  nestedFactory_(catalogFactory),
+NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
   connectionPool_(&connectionFactory_, 25), nsDb_("cns_db")
 {
@@ -109,19 +108,14 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
 
 Catalog* NsMySqlFactory::createCatalog() throw(DmException)
 {
-  Catalog* nested = 0x00;
-
-  if (this->nestedFactory_ != 0x00)
-    nested = this->nestedFactory_->createCatalog();
-
   return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
-                            nested, this->symLinkLimit_);
+                            this->symLinkLimit_);
 }
 
 
 
 DpmMySqlFactory::DpmMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
-                  NsMySqlFactory(catalogFactory), dpmDb_("dpm_db")
+                  dpmDb_("dpm_db")
 {
   // MySQL initialization done by NsMySqlFactory
 }
@@ -161,15 +155,7 @@ Catalog* DpmMySqlFactory::createCatalog() throw(DmException)
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  CatalogFactory* nested = 0x00;
-  try {
-    nested = pm->getCatalogFactory();
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-  }
-  pm->registerCatalogFactory(new NsMySqlFactory(nested));
+  pm->registerCatalogFactory(new NsMySqlFactory());
 }
 
 

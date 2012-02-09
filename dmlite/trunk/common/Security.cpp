@@ -38,6 +38,10 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
   int         accPerm;
   int         nGroups = 0;
 
+  // Root can do anything
+  if (user.uid == 0)
+    return 0;
+
   // Banned user, rejected
   if (user.banned)
     return 1;
