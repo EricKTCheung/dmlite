@@ -103,8 +103,22 @@ FileReplica DpmMySqlCatalog::get(const std::string& path) throw(DmException)
   }
 }
 
+
+
+std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri) throw (DmException)
+{
+  if (this->decorated_ == 0x00)
+    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::put Can not delegate");
+  return this->decorated_->put(path, uri);
+}
+
+
+
 std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
 {
+  if (this->decorated_ == 0x00)
+    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::put Can not delegate");
+  
   // Try to delegate
   try {
     return this->decorated_->put(path, uri, guid);
@@ -131,6 +145,24 @@ std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::s
   } 
 
   return token;
+}
+
+
+
+void DpmMySqlCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
+{
+  if (this->decorated_ == 0x00)
+    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::putStatus Can not delegate");
+  this->decorated_->putStatus(path, token, uri);
+}
+
+
+
+void DpmMySqlCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
+{
+  if (this->decorated_ == 0x00)
+    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::putDone Can not delegate");
+  this->decorated_->putDone(path, token);
 }
 
 
