@@ -13,6 +13,13 @@
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
 
+#define NOT_IMPLEMENTED(p)\
+p {\
+  throw DmException(DM_NOT_IMPLEMENTED, #p" not implemented");\
+}
+
+
+
 using namespace dmlite;
 
 
@@ -54,6 +61,8 @@ enum {
   STMT_INSERT_UNIQ_GID,
   STMT_INSERT_USER,
   STMT_INSERT_GROUP,
+  STMT_CHANGE_NAME,
+  STMT_CHANGE_PARENT,
   STMT_SENTINEL
 };
 
@@ -164,6 +173,12 @@ static const char* statements[] = {
           (gid, groupname, banned)\
         VALUES\
           (?, ?, ?)",
+  "UPDATE Cns_file_metadata\
+        SET name = ?\
+        WHERE fileid = ?",
+  "UPDATE Cns_file_metadata\
+        SET parent_fileid = ?\
+        WHERE fileid = ?"
 };
 
 
@@ -188,9 +203,8 @@ MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 
 
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
-                               Catalog* decorates,
                                unsigned int symLinkLimit) throw(DmException):
-                DummyCatalog(decorates), umask_(022),  nsDb_(db), symLinkLimit_(symLinkLimit),
+                umask_(022),  nsDb_(db), symLinkLimit_(symLinkLimit),
                 preparedStmt_(STMT_SENTINEL, 0x00)
 {
   this->connectionPool_ = connPool;
@@ -217,6 +231,13 @@ NsMySqlCatalog::~NsMySqlCatalog() throw(DmException)
 std::string NsMySqlCatalog::getImplId() throw ()
 {
   return std::string("NsMySqlCatalog");
+}
+
+
+
+void NsMySqlCatalog::set(const std::string& key, va_list varg) throw(DmException)
+{
+  throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
 }
 
 
@@ -549,8 +570,6 @@ void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmExcept
 
 void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  if (this->decorated_ != 0x00)
-    this->decorated_->changeDir(path);
   this->cwdMeta_ = this->parsePath(path);
   this->cwdPath_ = path;
 }
@@ -606,18 +625,18 @@ struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
 
 void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
 {
-  if (this->decorated_ != 0x00)
-    this->decorated_->setUserId(uid, gid, dn);
+  UserInfo  u = this->getUser(uid);
+  GroupInfo g = this->getGroup(gid);
 
-  this->user_  = this->getUser(uid);
-  this->group_ = this->getGroup(gid);
-
-  if (this->user_.name != dn) {
+  if (u.name != dn) {
     throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
                                         "the one associated with the id #%ld: "
                                         "'%s' != '%s'",
                                         uid, dn.c_str(), this->user_.name);
   }
+
+  this->user_  = u;
+  this->group_ = g;
 }
 
 
@@ -700,238 +719,6 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
   else {
     return 0x00;
   }
-}
-
-
-
-void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
-                              uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
-{
-  std::string vo;
-  UserInfo    user;
-  GroupInfo   group;
-
-  // User mapping
-  try {
-    user = this->getUser(userName);
-  }
-  catch (DmException e) {
-    if (e.code() == DM_NO_SUCH_USER)
-      user = this->newUser(userName, "");
-    else
-      throw;
-  }
-  *uid = user.uid;
-
-  // No VO information, so use the mapping file to get the group
-  if (groupNames.empty()) {
-    vo = voFromDn("/etc/lcgdm-mapfile", userName);
-    try {
-      group = this->getGroup(vo);
-    }
-    catch (DmException e) {
-      if (e.code() == DM_NO_SUCH_GROUP)
-        group = this->newGroup(vo);
-      else
-        throw;
-    }
-    gids->push_back(group.gid);
-  }
-  else {
-    // Get group info
-    std::vector<std::string>::const_iterator i;
-    for (i = groupNames.begin(); i != groupNames.end(); ++i) {
-      vo = voFromRole(*i);
-      try {
-        group = this->getGroup(vo);
-      }
-      catch (DmException e) {
-        if (e.code() == DM_NO_SUCH_GROUP)
-          group = this->newGroup(vo);
-        else
-          throw;
-      }
-      gids->push_back(group.gid);
-    }
-  }
-}
-
-
-
-UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
-{
-  UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME));
-
-  stmt.bindParam(0, userName);
-  stmt.execute();
-
-  stmt.bindResult(0, &user.uid);
-  stmt.bindResult(1, user.name, sizeof(user.name));
-  stmt.bindResult(2, user.ca, sizeof(user.ca));
-  stmt.bindResult(3, &user.banned);
-
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
-
-  return user;
-}
-
-
-
-UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
-{
-  UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
-
-  stmt.bindParam(0, uid);
-  stmt.execute();
-
-  stmt.bindResult(0, &user.uid);
-  stmt.bindResult(1, user.name, sizeof(user.name));
-  stmt.bindResult(2, user.ca, sizeof(user.ca));
-  stmt.bindResult(3, &user.banned);
-
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_USER, "User %ld not found", uid);
-
-  return user;
-}
-
-
-
-GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmException)
-{
-  GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME));
-
-  stmt.bindParam(0, groupName);
-  stmt.execute();
-
-  stmt.bindResult(0, &group.gid);
-  stmt.bindResult(1, group.name, sizeof(group.name));
-  stmt.bindResult(2, &group.banned);
-
-  stmt.fetch();
-  return group;
-}
-
-
-
-GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
-{
-  GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID));
-
-  stmt.bindParam(0, gid);
-  stmt.execute();
-
-  stmt.bindResult(0, &group.gid);
-  stmt.bindResult(1, group.name, sizeof(group.name));
-  stmt.bindResult(2, &group.banned);
-  
-  stmt.fetch();
-  return group;
-}
-
-
-
-UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
-{
-  Transaction transaction(this->conn_);
-
-  // Get the last uid, increment and update
-  Statement uidStmt(this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE));
-  uid_t     uid;
-
-  uidStmt.execute();
-  uidStmt.bindResult(0, &uid);
-
-  // Update the uid
-  if (uidStmt.fetch()) {
-    Statement updateUidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_UID));
-    ++uid;
-    updateUidStmt.bindParam(0, uid);
-    updateUidStmt.execute();
-  }
-  // Couldn't get, so insert it instead
-  else {
-    Statement insertUidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_UID));
-    uid = 1;
-    insertUidStmt.bindParam(0, uid);
-    insertUidStmt.execute();
-  }
-
-  // Insert the user
-  Statement userStmt(this->getPreparedStatement(STMT_INSERT_USER));
-
-  userStmt.bindParam(0, uid);
-  userStmt.bindParam(1, uname);
-  userStmt.bindParam(2, ca);
-  userStmt.bindParam(3, 0);
-  
-  userStmt.execute();
-
-  // Commit
-  transaction.commit();
-
-  // Build and return the UserInfo
-  UserInfo u;
-  u.uid = uid;
-  strncpy(u.name, uname.c_str(), sizeof(u.name));
-  strncpy(u.ca,   ca.c_str(),    sizeof(u.ca));
-  u.banned = 0;
-
-  return u;
-}
-
-
-
-GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
-{
-  Transaction transaction(this->conn_);
-
-  // Get the last gid, increment and update
-  Statement gidStmt(this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE));
-  gid_t     gid;
-
-  gidStmt.execute();
-  gidStmt.bindResult(0, &gid);
-
-  // Update the gid
-  if (gidStmt.fetch()) {
-    Statement updateGidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_GID));
-    ++gid;
-    updateGidStmt.bindParam(0, gid);
-    updateGidStmt.execute();
-  }
-  // Couldn't get, so insert it instead
-  else {
-    Statement insertGidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_GID));
-    gid = 1;
-    insertGidStmt.bindParam(0, gid);
-    insertGidStmt.execute();
-  }
-
-  // Insert the group
-  Statement groupStmt(this->getPreparedStatement(STMT_INSERT_GROUP));
-
-  groupStmt.bindParam(0, gid);
-  groupStmt.bindParam(1, gname);
-  groupStmt.bindParam(2, 0);
-
-  groupStmt.execute();
-
-  // Commit
-  transaction.commit();
-
-  // Build and return the GroupInfo
-  GroupInfo g;
-  g.gid = gid;
-  strncpy(g.name, gname.c_str(), sizeof(g.name));
-  g.banned = 0;
-
-  return g;
 }
 
 
@@ -1074,6 +861,13 @@ FileReplica NsMySqlCatalog::get(const std::string& path) throw(DmException)
   // Copy
   return replicas[i];
 }
+
+
+
+NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*) throw (DmException))
+NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException))
+NOT_IMPLEMENTED(void NsMySqlCatalog::putStatus(const std::string&, const std::string&, Uri*) throw (DmException))
+NOT_IMPLEMENTED(void NsMySqlCatalog::putDone(const std::string&, const std::string&) throw (DmException))
 
 
 
@@ -1275,9 +1069,6 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 
 mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
 {
-  if (this->decorated_ != 0x00)
-    this->decorated_->umask(mask);
-
   mode_t prev = this->umask_;
   this->umask_ = mask & 0777;
   return prev;
@@ -1313,12 +1104,28 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
 
 
 
+void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
+  throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "");
+}
+
+
+
+void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
+  throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "");
+}
+
+
+
 std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmException)
 {
   char         comment[COMMENT_MAX];
   
   // Get the file and check we can read
-  FileMetadata meta = this->parsePath(path, true);
+  FileMetadata meta = this->parsePath(path);
   
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.xStat.stat, S_IREAD) != 0)
@@ -1421,6 +1228,10 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
 {
   std::string parentPath, name;
 
+  // Fail inmediately with '/'
+  if (path == "/")
+    throw DmException(DM_INVALID_VALUE, "Can not remove '/'");
+
   // Get the parent of the new folder
   FileMetadata parent = this->getParent(path, &parentPath, &name);
 
@@ -1430,8 +1241,12 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   if (!S_ISDIR(entry.xStat.stat.st_mode))
     throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
 
+  if (!this->cwdPath_.empty() &&
+       this->cwdMeta_.xStat.stat.st_ino == entry.xStat.stat.st_ino)
+    throw DmException(DM_IS_CWD, "Can not remove the current working dir");
+
   if (entry.xStat.stat.st_nlink > 0)
-    throw DmException(DM_NOT_EMPTY, path + " is not empty. Can not remove.");
+    throw DmException(DM_EXISTS, path + " is not empty. Can not remove.");
 
   // Check we can remove it
   if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
@@ -1468,4 +1283,372 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
 
   // Done!
   transaction.commit();
+}
+
+
+
+void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
+{
+  std::string oldParentPath, newParentPath;
+  std::string oldName,       newName;
+
+  // Do not even bother with '/'
+  if (oldPath == "/" || newPath == "/")
+    throw DmException(DM_INVALID_VALUE, "Not the source, neither the destination, can be '/'");
+
+  // Get source and destination parent
+  FileMetadata oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
+  FileMetadata newParent = this->getParent(newPath, &oldParentPath, &newName);
+
+  // Source
+  FileMetadata old = this->getFile(oldName, oldParent.xStat.stat.st_ino);
+
+  // Is the cwd?
+  if (!this->cwdPath_.empty() && old.xStat.stat.st_ino == this->cwdMeta_.xStat.stat.st_ino) {
+    throw DmException(DM_IS_CWD, "Can not rename the current working directory");
+  }
+
+  // Need write permissions in both origin and destination
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       oldParent.acl, oldParent.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       newParent.acl, newParent.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
+
+  // If source is a directory, need write permissions there too
+  if (S_ISDIR(old.xStat.stat.st_mode)) {
+    if (checkPermissions(this->user_, this->group_, this->groups_,
+                        old.acl, old.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
+
+    // AND destination can not be a child
+    FileMetadata aux = newParent;
+
+    while (aux.xStat.parent > 0) {
+      if (aux.xStat.stat.st_ino == old.xStat.stat.st_ino)
+        throw DmException(DM_INVALID_VALUE, "Destination is descendant of source");
+      aux = this->getFile(aux.xStat.parent);
+    }
+  }
+
+  // Check sticky
+  if (oldParent.xStat.stat.st_mode & S_ISVTX &&
+      this->user_.uid != oldParent.xStat.stat.st_uid &&
+      this->user_.uid != old.xStat.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.xStat.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
+
+  // If the destination exists...
+  try {
+    FileMetadata newF = this->getFile(newName, newParent.xStat.stat.st_ino);
+
+    // If it is the same, leave the function
+    if (newF.xStat.stat.st_ino == old.xStat.stat.st_ino)
+      return;
+
+    // It does! It has to be the same type
+    if (newF.xStat.stat.st_mode & S_IFMT != old.xStat.stat.st_mode & S_IFMT) {
+      if (S_ISDIR(old.xStat.stat.st_mode))
+        throw DmException(DM_NOT_DIRECTORY, "Source is a directory and destination is not");
+      else
+        throw DmException(DM_IS_DIRECTORY, "Source is not directory and destination is");
+    }
+
+    // And it has to be empty. Just call remove or unlink
+    // and they will fail if it is not
+    if (S_ISDIR(newF.xStat.stat.st_mode))
+      this->removeDir(newPath);
+    else
+      this->unlink(newPath);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_SUCH_FILE)
+      throw;
+  }
+
+  // We are good, so we can move now
+  Transaction transaction(this->conn_);
+
+  // Change the name if needed
+  if (newName != oldName) {
+    Statement changeNameStmt(this->getPreparedStatement(STMT_CHANGE_NAME));
+
+    changeNameStmt.bindParam(0, newName);
+    changeNameStmt.bindParam(1, old.xStat.stat.st_ino);
+
+    if (changeNameStmt.execute() == 0)
+      throw DmException(DM_INTERNAL_ERROR, "Could not change the name");
+  }
+
+  // Change the parent if needed
+  if (newParent.xStat.stat.st_ino != oldParent.xStat.stat.st_ino) {
+    Statement changeParentStmt(this->getPreparedStatement(STMT_CHANGE_PARENT));
+
+    changeParentStmt.bindParam(0, newParent.xStat.stat.st_ino);
+    changeParentStmt.bindParam(1, old.xStat.stat.st_ino);
+
+    if (changeParentStmt.execute() == 0)
+      throw DmException(DM_INTERNAL_ERROR, "Could not update the parent ino!");
+
+    // Reduce nlinks from old
+    Statement oldNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+
+    oldNlinkStmt.bindParam(0, --oldParent.xStat.stat.st_nlink);
+    oldNlinkStmt.bindParam(1, oldParent.xStat.stat.st_ino);
+
+    if (oldNlinkStmt.execute() == 0)
+      throw DmException(DM_INTERNAL_ERROR, "Could not update the old parent nlink!");
+
+    // Increment from new
+    Statement newNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+
+    newNlinkStmt.bindParam(0, ++newParent.xStat.stat.st_nlink);
+    newNlinkStmt.bindParam(1, newParent.xStat.stat.st_ino);
+
+    if (newNlinkStmt.execute() == 0)
+      throw DmException(DM_INTERNAL_ERROR, "Could not update the new parent nlink!");
+  }
+
+  // Done!
+  transaction.commit();
+}
+
+
+
+void NsMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+{
+  // TODO: Guess what to do with this :/
+}
+
+
+
+void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
+                              uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
+{
+  std::string vo;
+  UserInfo    user;
+  GroupInfo   group;
+
+  // User mapping
+  try {
+    user = this->getUser(userName);
+  }
+  catch (DmException e) {
+    if (e.code() == DM_NO_SUCH_USER)
+      user = this->newUser(userName, "");
+    else
+      throw;
+  }
+  *uid = user.uid;
+
+  // No VO information, so use the mapping file to get the group
+  if (groupNames.empty()) {
+    vo = voFromDn("/etc/lcgdm-mapfile", userName);
+    try {
+      group = this->getGroup(vo);
+    }
+    catch (DmException e) {
+      if (e.code() == DM_NO_SUCH_GROUP)
+        group = this->newGroup(vo);
+      else
+        throw;
+    }
+    gids->push_back(group.gid);
+  }
+  else {
+    // Get group info
+    std::vector<std::string>::const_iterator i;
+    for (i = groupNames.begin(); i != groupNames.end(); ++i) {
+      vo = voFromRole(*i);
+      try {
+        group = this->getGroup(vo);
+      }
+      catch (DmException e) {
+        if (e.code() == DM_NO_SUCH_GROUP)
+          group = this->newGroup(vo);
+        else
+          throw;
+      }
+      gids->push_back(group.gid);
+    }
+  }
+}
+
+
+
+UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
+{
+  UserInfo  user;
+  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME));
+
+  stmt.bindParam(0, userName);
+  stmt.execute();
+
+  stmt.bindResult(0, &user.uid);
+  stmt.bindResult(1, user.name, sizeof(user.name));
+  stmt.bindResult(2, user.ca, sizeof(user.ca));
+  stmt.bindResult(3, &user.banned);
+
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
+
+  return user;
+}
+
+
+
+UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
+{
+  UserInfo  user;
+  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
+
+  stmt.bindParam(0, uid);
+  stmt.execute();
+
+  stmt.bindResult(0, &user.uid);
+  stmt.bindResult(1, user.name, sizeof(user.name));
+  stmt.bindResult(2, user.ca, sizeof(user.ca));
+  stmt.bindResult(3, &user.banned);
+
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_USER, "User %ld not found", uid);
+
+  return user;
+}
+
+
+
+GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmException)
+{
+  GroupInfo group;
+  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME));
+
+  stmt.bindParam(0, groupName);
+  stmt.execute();
+
+  stmt.bindResult(0, &group.gid);
+  stmt.bindResult(1, group.name, sizeof(group.name));
+  stmt.bindResult(2, &group.banned);
+
+  stmt.fetch();
+  return group;
+}
+
+
+
+GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
+{
+  GroupInfo group;
+  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID));
+
+  stmt.bindParam(0, gid);
+  stmt.execute();
+
+  stmt.bindResult(0, &group.gid);
+  stmt.bindResult(1, group.name, sizeof(group.name));
+  stmt.bindResult(2, &group.banned);
+
+  stmt.fetch();
+  return group;
+}
+
+
+
+UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+{
+  Transaction transaction(this->conn_);
+
+  // Get the last uid, increment and update
+  Statement uidStmt(this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE));
+  uid_t     uid;
+
+  uidStmt.execute();
+  uidStmt.bindResult(0, &uid);
+
+  // Update the uid
+  if (uidStmt.fetch()) {
+    Statement updateUidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_UID));
+    ++uid;
+    updateUidStmt.bindParam(0, uid);
+    updateUidStmt.execute();
+  }
+  // Couldn't get, so insert it instead
+  else {
+    Statement insertUidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_UID));
+    uid = 1;
+    insertUidStmt.bindParam(0, uid);
+    insertUidStmt.execute();
+  }
+
+  // Insert the user
+  Statement userStmt(this->getPreparedStatement(STMT_INSERT_USER));
+
+  userStmt.bindParam(0, uid);
+  userStmt.bindParam(1, uname);
+  userStmt.bindParam(2, ca);
+  userStmt.bindParam(3, 0);
+
+  userStmt.execute();
+
+  // Commit
+  transaction.commit();
+
+  // Build and return the UserInfo
+  UserInfo u;
+  u.uid = uid;
+  strncpy(u.name, uname.c_str(), sizeof(u.name));
+  strncpy(u.ca,   ca.c_str(),    sizeof(u.ca));
+  u.banned = 0;
+
+  return u;
+}
+
+
+
+GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
+{
+  Transaction transaction(this->conn_);
+
+  // Get the last gid, increment and update
+  Statement gidStmt(this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE));
+  gid_t     gid;
+
+  gidStmt.execute();
+  gidStmt.bindResult(0, &gid);
+
+  // Update the gid
+  if (gidStmt.fetch()) {
+    Statement updateGidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_GID));
+    ++gid;
+    updateGidStmt.bindParam(0, gid);
+    updateGidStmt.execute();
+  }
+  // Couldn't get, so insert it instead
+  else {
+    Statement insertGidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_GID));
+    gid = 1;
+    insertGidStmt.bindParam(0, gid);
+    insertGidStmt.execute();
+  }
+
+  // Insert the group
+  Statement groupStmt(this->getPreparedStatement(STMT_INSERT_GROUP));
+
+  groupStmt.bindParam(0, gid);
+  groupStmt.bindParam(1, gname);
+  groupStmt.bindParam(2, 0);
+
+  groupStmt.execute();
+
+  // Commit
+  transaction.commit();
+
+  // Build and return the GroupInfo
+  GroupInfo g;
+  g.gid = gid;
+  strncpy(g.name, gname.c_str(), sizeof(g.name));
+  g.banned = 0;
+
+  return g;
 }

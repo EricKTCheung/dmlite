@@ -6,7 +6,7 @@
 
 #include <dmlite/common/PoolContainer.h>
 #include <dmlite/common/Security.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/dm_catalog.h>
 #include <mysql/mysql.h>
 #include <vector>
 
@@ -44,23 +44,23 @@ struct ExtendedReplica {
 };
 
 /// Implementation of NS MySQL backend.
-class NsMySqlCatalog: public DummyCatalog {
+class NsMySqlCatalog: public Catalog {
 public:
 
   /// Constructor
   /// @param connPool  The MySQL connection pool.
   /// @param db        The MySQL db to use.
-  /// @param decorates The underlying decorated catalog.
   /// @param symLimit  The recursion limit for symbolic links.
   NsMySqlCatalog(PoolContainer<MYSQL*>* connPool,
-                 const std::string& db, Catalog* decorates,
-                 unsigned int symLimit) throw (DmException);
+                 const std::string& db, unsigned int symLimit) throw (DmException);
 
   /// Destructor
   ~NsMySqlCatalog() throw (DmException);
 
   // Overloading
   std::string getImplId(void) throw ();
+
+  void set(const std::string& key, va_list varg) throw (DmException);
 
   void        changeDir    (const std::string&) throw (DmException);
   std::string getWorkingDir(void)               throw (DmException);
@@ -86,11 +86,32 @@ public:
 
   void create(const std::string&, mode_t) throw (DmException);
 
+  std::string put      (const std::string&, Uri*)                     throw (DmException);
+  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
+  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
+  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
   struct dirent*     readDir (Directory*) throw (DmException);
   struct direntstat* readDirx(Directory*) throw (DmException);
+
+  mode_t umask(mode_t) throw ();
+
+  void   changeMode     (const std::string&, mode_t)       throw (DmException);
+  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
+  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+
+  std::string getComment(const std::string&)                     throw (DmException);
+  void        setComment(const std::string&, const std::string&) throw (DmException);
+
+  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
+
+  void makeDir  (const std::string&, mode_t) throw (DmException);
+  void removeDir(const std::string&)         throw (DmException);
+
+  void rename(const std::string&, const std::string&) throw (DmException);
 
   UserInfo  getUser (uid_t)              throw (DmException);
   UserInfo  getUser (const std::string&) throw (DmException);
@@ -100,19 +121,8 @@ public:
   void getIdMap     (const std::string&, const std::vector<std::string>&,
                      uid_t*, std::vector<gid_t>*) throw (DmException);
 
-  void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
-
-  mode_t umask      (mode_t)                     throw ();
-  void   changeMode (const std::string&, mode_t) throw (DmException);
-
-  std::string getComment(const std::string&)                     throw (DmException);
-  void        setComment(const std::string&, const std::string&) throw (DmException);
-
-  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
-
-  void makeDir(const std::string&, mode_t) throw (DmException);
-
-  void removeDir(const std::string&) throw (DmException);
+  void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
+  void setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException);
   
 protected:
   UserInfo  user_;  ///< User.
