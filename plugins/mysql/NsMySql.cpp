@@ -63,6 +63,7 @@ enum {
   STMT_INSERT_GROUP,
   STMT_CHANGE_NAME,
   STMT_CHANGE_PARENT,
+  STMT_CHANGE_OWNER,
   STMT_SENTINEL
 };
 
@@ -178,7 +179,10 @@ static const char* statements[] = {
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
         SET parent_fileid = ?\
-        WHERE fileid = ?"
+        WHERE fileid = ?",
+  "UPDATE Cns_file_metadata\
+        SET owner_uid = ?, gid = ?\
+        WHERE fileid = ?",
 };
 
 
@@ -619,24 +623,6 @@ struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
 {
   FileMetadata meta = this->getFile(inode);
   return meta.xStat;
-}
-
-
-
-void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
-{
-  UserInfo  u = this->getUser(uid);
-  GroupInfo g = this->getGroup(gid);
-
-  if (u.name != dn) {
-    throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
-                                        "the one associated with the id #%ld: "
-                                        "'%s' != '%s'",
-                                        uid, dn.c_str(), this->user_.name);
-  }
-
-  this->user_  = u;
-  this->group_ = g;
 }
 
 
@@ -1104,10 +1090,53 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
 
 
 
+void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
+  throw (DmException)
+{
+  // If -1, no changes
+  if (newUid == (uid_t)-1)
+    newUid = meta.xStat.stat.st_uid;
+  if (newGid == (gid_t)-1)
+    newGid = meta.xStat.stat.st_gid;
+
+  // Make sense?
+  if (newUid == meta.xStat.stat.st_uid && newGid == meta.xStat.stat.st_gid)
+    return;
+
+  // If root, skip all checks
+  if (this->user_.uid != 0) {
+    // Only root can change the owner
+    if (meta.xStat.stat.st_uid != newUid)
+      throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
+    // If the group is changing...
+    if (meta.xStat.stat.st_gid != newGid) {
+      // The user has to be the owner
+      if (meta.xStat.stat.st_uid != this->user_.uid)
+        throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
+      // AND it has to belong to that group
+      if (newGid != this->group_.gid && !gidInGroups(newGid, this->groups_))
+        throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
+      // If it does, the group exists :)
+    }
+  }
+
+  // Change!
+  Statement chownStmt(this->getPreparedStatement(STMT_CHANGE_OWNER));
+
+  chownStmt.bindParam(0, newUid);
+  chownStmt.bindParam(1, newGid);
+  chownStmt.bindParam(2, meta.xStat.stat.st_ino);
+
+  chownStmt.execute();
+}
+
+
+
 void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "");
+  FileMetadata meta = this->parsePath(path);
+  this->changeOwner(meta, newUid, newGid);
 }
 
 
@@ -1115,7 +1144,8 @@ void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t ne
 void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "");
+  FileMetadata meta = this->parsePath(path, false);
+  this->changeOwner(meta, newUid, newGid);
 }
 
 
@@ -1416,9 +1446,44 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
 
 
+void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
+{
+  UserInfo  u = this->getUser(uid);
+  GroupInfo g = this->getGroup(gid);
+
+  if (u.name != dn && uid != 0) {
+    throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
+                                        "the one associated with the id #%ld: "
+                                        "'%s' != '%s'",
+                                        uid, dn.c_str(), this->user_.name);
+  }
+
+  this->user_  = u;
+  this->group_ = g;
+  this->groups_.clear();
+}
+
+
+
 void NsMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
-  // TODO: Guess what to do with this :/
+  std::string group;
+
+  // First, set the main group
+  if (!vo.empty()) {
+    group = voFromRole(vo);
+    this->group_ = this->getGroup(group);
+  }
+
+  // Set the secondary
+  this->groups_.clear();
+
+  std::vector<std::string>::const_iterator i;
+
+  for (i = fqans.begin(); i != fqans.end(); ++i) {
+    group = voFromRole(*i);
+    this->groups_.push_back(this->getGroup(group));
+  }
 }
 
 

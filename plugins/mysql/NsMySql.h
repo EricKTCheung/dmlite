@@ -229,6 +229,12 @@ private:
   /// @note        Transactions are used.
   GroupInfo newGroup(const std::string& gname) throw (DmException);
 
+  /// Change the file owner
+  /// @param meta
+  /// @param newUid
+  /// @param newGid
+  void changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid) throw (DmException);
+
   /// Traverse backwards to check permissions.
   /// @param file The file at the end
   /// @note       Throws an exception if it is not possible.
