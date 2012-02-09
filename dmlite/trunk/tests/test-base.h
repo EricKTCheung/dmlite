@@ -17,6 +17,15 @@ public:
 protected:
   dmlite::PluginManager *pluginManager;
   dmlite::Catalog       *catalog;
+
+  const static char *TEST_USER;
+  const static char *TEST_USER_2;
+
+  uid_t uid1, uid2;
+  gid_t gid1_1, gid1_2, gid2;
+
+  std::vector<std::string> user_groups;
+
 private:
   friend int testBaseMain(int, char**);
   static const char *config;
