@@ -1,4 +1,4 @@
-/** @file   include/dm/dm_c.h
+/** @file   include/dmlite/dmlite.h
  *  @brief  C wrapper for dm::PluginManager.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */

@@ -1,4 +1,4 @@
-/// @file   plugins/common/Uris.h
+/// @file   include/dmlite/common/Uris.h
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef URIS_H

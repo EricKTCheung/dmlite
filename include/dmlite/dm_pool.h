@@ -1,4 +1,4 @@
-/// @file   include/dm/dm_pool.h
+/// @file   include/dmlite/dm_pool.h
 /// @brief  Pool API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef DMLITE_POOL_H

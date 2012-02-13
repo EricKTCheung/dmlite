@@ -1,4 +1,4 @@
-/** @file   include/dm/dm_types.h
+/** @file   include/dmlite/dm_types.h
  *  @brief  Types used by the dm API, common between C and C++.
  *  @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
  */

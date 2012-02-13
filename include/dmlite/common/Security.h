@@ -1,4 +1,4 @@
-/// @file    plugins/common/Security.h
+/// @file    include/dmlite/common/Security.h
 /// @brief   Security functionality shared between modules.
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>

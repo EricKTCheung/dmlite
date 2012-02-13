@@ -1,4 +1,4 @@
-/// @file   include/dm/dm_auth.h
+/// @file   include/dmlite/dm_auth.h
 /// @brief  Security API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef DMLITE_AUTH_H

@@ -1,4 +1,4 @@
-/// @file    plugins/common/Pool.h
+/// @file    include/dmlite/common/Pool.h
 /// @brief   Pooling
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
