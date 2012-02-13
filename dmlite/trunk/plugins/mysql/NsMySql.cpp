@@ -1378,7 +1378,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
       return;
 
     // It does! It has to be the same type
-    if (newF.xStat.stat.st_mode & S_IFMT != old.xStat.stat.st_mode & S_IFMT) {
+    if ((newF.xStat.stat.st_mode & S_IFMT) != (old.xStat.stat.st_mode & S_IFMT)) {
       if (S_ISDIR(old.xStat.stat.st_mode))
         throw DmException(DM_NOT_DIRECTORY, "Source is a directory and destination is not");
       else
