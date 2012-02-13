@@ -1,4 +1,4 @@
-/// @file   include/dm/exceptions.h
+/// @file   include/dmlite/dm_exceptions.h
 /// @brief  Exceptions used by the API
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef DMLITE_EXCEPTIONS_H

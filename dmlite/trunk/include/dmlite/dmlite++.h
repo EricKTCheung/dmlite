@@ -1,4 +1,4 @@
-/// @file   include/dm/dm.h
+/// @file   include/dmlite/dmlite++.h
 /// @brief  Interface between libdm and client code.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef DMLITEPP_H

@@ -1,4 +1,4 @@
-/// @file    plugins/common/Security.cpp
+/// @file    common/Security.cpp
 /// @brief   Security functionality shared between modules.
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>

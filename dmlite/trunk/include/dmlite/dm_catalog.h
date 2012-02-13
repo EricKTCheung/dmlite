@@ -1,4 +1,4 @@
-/// @file   include/dm/dm_catalog.h
+/// @file   include/dmlite/dm_catalog.h
 /// @brief  Catalog API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #ifndef DMLITE_CATALOG_H

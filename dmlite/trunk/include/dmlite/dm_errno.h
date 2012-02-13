@@ -1,4 +1,4 @@
-/** @file   include/dm/dm_errno.h
+/** @file   include/dmlite/dm_errno.h
  *  @brief  Error codes.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */

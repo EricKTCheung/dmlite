@@ -1,4 +1,4 @@
-/// @file   plugins/common/Uris.cpp
+/// @file   common/Uris.cpp
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <assert.h>
