@@ -115,7 +115,7 @@ Catalog* NsMySqlFactory::createCatalog() throw(DmException)
 
 
 DpmMySqlFactory::DpmMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
-                  dpmDb_("dpm_db")
+                  dpmDb_("dpm_db"), nestedFactory_(catalogFactory)
 {
   // MySQL initialization done by NsMySqlFactory
 }
