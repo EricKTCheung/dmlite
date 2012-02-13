@@ -184,11 +184,11 @@ int dm_delreplica(dm_context* context, const char* guid, int64_t id,
 
 /**
  * Get the replicas of a file.
- * @param context     The DM context.
- * @param path        The logical file name.
- * @param nbentries   The number of entries will be put here.
- * @param rep_entries An array with nbentries elements will be stored here. <b>Use dm_freereplicas to free it.</b>
- * @return            0 on success, error code otherwise.
+ * @param context      The DM context.
+ * @param path         The logical file name.
+ * @param nEntries     The number of entries will be put here.
+ * @param fileReplicas An array with nbentries elements will be stored here. <b>Use dm_freereplicas to free it.</b>
+ * @return             0 on success, error code otherwise.
  */
 int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
                   struct filereplica** fileReplicas);
@@ -303,7 +303,7 @@ int dm_getcomment(dm_context* context, const char* path, char* comment);
  * Set the comment associated with a file.
  * @param context The DM context.
  * @param path    The logical path.
- * @param comment The comment to associate. '\0' terminated string.
+ * @param comment The comment to associate. '\\0' terminated string.
  * @return        0 on success, error code otherwise.
  */
 int dm_setcomment(dm_context* context, const char* path, const char* comment);
@@ -329,7 +329,7 @@ int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid);
 /**
  * Map a user+groups to the corresponding uid+gids.
  * @param context    The DM context.
- * @param userName   The user name to map.
+ * @param username   The user name to map.
  * @param nGroups    The number of groups.
  * @param groupNames An array of nGroups group names.
  * @param uid        Where to put the user ID.
@@ -368,7 +368,7 @@ void* dm_opendir(dm_context* context, const char* path);
 /**
  * Close a directory and free the internal structures.
  * @param context The DM context.
- * @param dirp    The pointer returned by dm_opendir.
+ * @param dir     The pointer returned by dm_opendir.
  * @return        0 on success, error code otherwise.
  */
 int dm_closedir(dm_context* context, void* dir);
@@ -376,7 +376,7 @@ int dm_closedir(dm_context* context, void* dir);
 /**
  * Read an entry from a directory.
  * @param context The DM context.
- * @param dirp    The pointer returned by dm_opendir.
+ * @param dir     The pointer returned by dm_opendir.
  * @return        A pointer to a struct with the recovered data, or NULL on failure or end of directory. Do NOT free it.
   */
 struct dirent *dm_readdir(dm_context* context, void* dir);
@@ -384,7 +384,7 @@ struct dirent *dm_readdir(dm_context* context, void* dir);
 /**
  * Read an entry from a directory (extended data).
  * @param context The DM context.
- * @param dirp    The pointer returned by dm_opendir.
+ * @param dir     The pointer returned by dm_opendir.
  * @return        A pointer to a struct with the recovered data, or NULL on failure or end of directory. Do NOT free it.
  */
 struct direntstat *dm_readdirx(dm_context* context, void* dir);
@@ -440,7 +440,7 @@ int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int 
 /**
  * Get the list of pools.
  * @param context The DM context.
- * @param nbpools The number of pools.
+ * @param nPools  The number of pools.
  * @param pools   An array with the pools. <b>Use dm_freepools to free</b>.
  * @return        0 on succes, -1 on failure.
  */
@@ -459,7 +459,7 @@ int dm_freepools(dm_context* context, int nPools, struct pool* pools);
  * Get the list of filesystems in a pool.
  * @param context  The DM context.
  * @param poolname The pool name.
- * @param nbfs     The number of file systems returned in dpm_fs.
+ * @param nFs      The number of file systems returned in dpm_fs.
  * @param fs       An array with the filesystems. <b>Use dm_freefs to free</b>.
  * @return         0 on succes, -1 on failure.
  */
