@@ -70,6 +70,6 @@ int main(int argc, char **argv)
                 "file", "", 0, "/tmp/file");
   r += Validate("file:////tmp/file",
                 "file", "", 0, "//tmp/file");
-
+  r += Validate("fab-vm-slc564.cern.ch:/scratchdpmdata/dteam/2011-08-29/file1115.198.0", "", "fab-vm-slc564.cern.ch", 0, "/scratchdpmdata/dteam/2011-08-29/file1115.198.0");
   return r == 0;
 }
