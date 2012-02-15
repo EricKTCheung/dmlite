@@ -452,10 +452,12 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
 
   // Build parent (this is, skipping last one)
   while (components.size() > 1) {
-    *parentPath += "/" + components.front();
+    *parentPath += components.front() + "/";
     components.pop_front();
   }
-  
+  if (!path[0] == '/')
+    *parentPath = "/" + *parentPath;
+
   *name = components.front();
   components.pop_front();
 
@@ -1002,11 +1004,9 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
     throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
 
   // Fetch
-  int i = 0;
   while (stmt.fetch()) {
     replica.replica.location = splitUri(replica.replica.unparsed_location);
     replicas.push_back(replica);
-    ++i;
   };
 
   return replicas;
@@ -1207,28 +1207,19 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
 
 void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
-  MYSQL_STMT   *stmt = this->getPreparedStatement(STMT_SET_GUID);
-  MYSQL_BIND    bindParam[2];
-  long unsigned guidLen = guid.length();
-  FileMetadata  meta    = this->parsePath(path);
+  FileMetadata meta = this->parsePath(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
                        meta.xStat.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
-  memset(bindParam, 0, sizeof(bindParam));
+  // Query
+  Statement stmt(this->getPreparedStatement(STMT_SET_GUID));
 
-  bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[0].length      = &guidLen;
-  bindParam[0].buffer      = (void*)guid.c_str();
-  bindParam[1].buffer_type = MYSQL_TYPE_LONGLONG;
-  bindParam[1].buffer      = &meta.xStat.stat.st_ino;
+  stmt.bindParam(0, guid);
+  stmt.bindParam(1, meta.xStat.stat.st_ino);
 
-  mysql_stmt_bind_param(stmt, bindParam);
-
-  if (mysql_stmt_execute(stmt) != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-  mysql_stmt_free_result(stmt);
+  stmt.execute();
 }
 
 
@@ -1596,7 +1587,9 @@ GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmExcepti
   stmt.bindResult(1, group.name, sizeof(group.name));
   stmt.bindResult(2, &group.banned);
 
-  stmt.fetch();
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_GROUP, "Group " + groupName + " not found");
+  
   return group;
 }
 
@@ -1614,7 +1607,9 @@ GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
   stmt.bindResult(1, group.name, sizeof(group.name));
   stmt.bindResult(2, &group.banned);
 
-  stmt.fetch();
+  if (!stmt.fetch())
+    throw DmException(DM_NO_SUCH_GROUP, "Group %ld not found", gid);
+
   return group;
 }
 
