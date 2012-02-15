@@ -17,7 +17,7 @@ Uri dmlite::splitUri(const std::string& uri)
 
   // Compile the first time
   assert(regcomp(&regexp,
-                 "(([[:alnum:]]+):/{2})?([[:alnum:]]+(\\.[[:alnum:]]+)*)?(:[[:digit:]]*)?(/.*)?",
+                 "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(/.*)?",
                  REG_EXTENDED | REG_ICASE) == 0);
 
   // Match and extract
