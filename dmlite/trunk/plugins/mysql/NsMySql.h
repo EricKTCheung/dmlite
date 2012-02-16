@@ -140,8 +140,8 @@ protected:
   /// Current working dir (path)
   std::string cwdPath_;
 
-  /// Current working dir (metadata)
-  FileMetadata cwdMeta_;
+  /// Current working dir
+  ino_t cwd_;
 
   /// Get a list of extended replicas
   std::vector<ExtendedReplica> getExReplicas (const std::string&) throw (DmException);
