@@ -1,17 +1,12 @@
-/// @file    plugins/mysql/NsMySql.cpp
-/// @brief   MySQL NS Implementation.
+/// @file    plugins/oracle/NsOracle.cpp
+/// @brief   Oracle NS Implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <cstring>
-#include <list>
-#include <string>
-#include <time.h>
-#include <vector>
-#include <mysql/mysql.h>
-#include <stdlib.h>
+#include "NsOracle.h"
+#include <assert.h>
 #include <dmlite/common/Uris.h>
 
-#include "MySqlWrapper.h"
-#include "NsMySql.h"
+using namespace dmlite;
+using namespace oracle;
 
 #define NOT_IMPLEMENTED(p)\
 p {\
@@ -19,8 +14,34 @@ p {\
 }
 
 
+/// Just to do rollbacks easier, as they will happen
+/// by default on destruction (i.e. Exceptions)
+class Transaction {
+private:
+  occi::Connection* conn_;
+  bool              pending_;
+public:
+  Transaction(occi::Connection* conn): conn_(conn), pending_(true) {
+    // Nothing
+  }
 
-using namespace dmlite;
+  ~Transaction() {
+    if (this->pending_)
+      this->conn_->rollback();
+  }
+
+  void rollback() {
+    assert(this->pending_ == true);
+    this->conn_->rollback();
+    this->pending_ = false;
+  }
+
+  void commit() {
+    assert(this->pending_ == true);
+    this->conn_->commit();
+    this->pending_ = false;
+  }
+};
 
 
 /// Used to keep prepared statements
@@ -42,9 +63,6 @@ enum {
   STMT_INSERT_COMMENT,
   STMT_INSERT_FILE,
   STMT_INSERT_SYMLINK,
-  STMT_SELECT_UNIQ_ID_FOR_UPDATE,
-  STMT_UPDATE_UNIQ_ID,
-  STMT_INSERT_UNIQ_ID,
   STMT_DELETE_FILE,
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
@@ -74,291 +92,325 @@ static const char* statements[] = {
           filesize, atime, mtime, ctime, fileclass, status,\
           csumtype, csumvalue, acl\
         FROM Cns_file_metadata\
-        WHERE fileid = ?",
+        WHERE fileid = :b_fileid",
   "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
           filesize, atime, mtime, ctime, fileclass, status,\
           csumtype, csumvalue, acl\
         FROM Cns_file_metadata\
-        WHERE guid = ?",
+        WHERE guid = :b_guid",
   "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
           filesize, atime, mtime, ctime, fileclass, status,\
           csumtype, csumvalue, acl\
         FROM Cns_file_metadata \
-        WHERE parent_fileid = ? AND name = ?",
+        WHERE parent_fileid = :b_parent AND name = :b_name",
   "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
           filesize, atime, mtime, ctime, fileclass, status,\
           csumtype, csumvalue, acl\
         FROM Cns_file_metadata \
-        WHERE parent_fileid = ?",
-  "SELECT fileid, linkname FROM Cns_symlinks WHERE fileid = ?",
-  "SELECT userid, username, user_ca, banned\
+        WHERE parent_fileid = :b_parent",
+  "SELECT fileid, linkname FROM Cns_symlinks WHERE fileid = :b_fileid",
+  "SELECT userid, username, user_ca, NVL(banned, 0)\
         FROM Cns_userinfo\
-        WHERE username = ?",
-  "SELECT userid, username, user_ca, banned\
+        WHERE username = :b_username",
+  "SELECT userid, username, user_ca, NVL(banned, 0)\
         FROM Cns_userinfo\
-        WHERE userid = ?",
-  "SELECT gid, groupname, banned\
+        WHERE userid = :b_uid",
+  "SELECT gid, groupname, NVL(banned, 0)\
         FROM Cns_groupinfo\
-        WHERE groupname = ?",
-  "SELECT gid, groupname, banned\
+        WHERE groupname = :b_groupname",
+  "SELECT gid, groupname, NVL(banned, 0)\
         FROM Cns_groupinfo\
-        WHERE gid = ?",
-  "SELECT rowid, fileid, status, sfn\
+        WHERE gid = :b_gid",
+  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, status, sfn\
         FROM Cns_file_replica\
-        WHERE fileid = ?",
-  "SELECT rowid, fileid, status, sfn, poolname, host, fs\
+        WHERE fileid = :b_fileid",
+  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, status, sfn, poolname, host, fs\
         FROM Cns_file_replica\
-        WHERE fileid = ?",
+        WHERE fileid = :b_fileid",
   "SELECT comments\
         FROM Cns_user_metadata\
-        WHERE u_fileid = ?",
+        WHERE u_fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET guid = ?\
-        WHERE fileid = ?",
+        SET guid = :b_guid\
+        WHERE fileid = :b_fileid",
   "UPDATE Cns_user_metadata\
-        SET comments = ?\
-        WHERE u_fileid = ?",
+        SET comments = :b_comment\
+        WHERE u_fileid = :b_fileid",
   "INSERT INTO Cns_user_metadata\
           (u_fileid, comments)\
         VALUES\
-          (?, ?)",
+          (:b_fileid, :b_comment)",
   "INSERT INTO Cns_file_metadata\
           (fileid, parent_fileid, name, filemode, nlink, owner_uid, gid,\
            filesize, atime, mtime, ctime, fileclass, status,\
            csumtype, csumvalue, acl)\
         VALUES\
-          (?, ?, ?, ?, ?, ?, ?,\
-           ?, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), ?, ?,\
-           ?, ?, ?)",
+          (Cns_unique_id.nextval, :b_parentid, :b_name, :b_mode, :b_nlink, :b_uid, :b_gid,\
+           :b_size, :b_atime, :b_mtime, :b_ctime, :b_fclass, :b_status,\
+           :b_sumtype, :b_sumvalue, :b_acl)",
   "INSERT INTO Cns_symlinks\
           (fileid, linkname)\
         VALUES\
-          (?, ?)",
-  "SELECT id FROM Cns_unique_id FOR UPDATE",
-  "UPDATE Cns_unique_id SET id = ?",
-  "INSERT INTO Cns_unique_id (id) VALUES (?)",
-  "DELETE FROM Cns_file_metadata WHERE fileid = ?",
-  "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
-  "DELETE FROM Cns_symlinks WHERE fileid = ?",
+          (:b_fileid, :b_linkname)",
+  "DELETE FROM Cns_file_metadata WHERE fileid = :b_fileid",
+  "DELETE FROM Cns_user_metadata WHERE u_fileid = :b_fileid",
+  "DELETE FROM Cns_symlinks WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
+        SET nlink = :b_nlink, mtime = :b_mtime, ctime = :b_ctime\
+        WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET filemode = ?\
-        WHERE fileid = ?",
+        SET filemode = :b_mode\
+        WHERE fileid = :b_fileid",
   "DELETE FROM Cns_file_replica\
-        WHERE fileid = ? AND sfn = ?",
+        WHERE fileid = :b_fileid AND sfn = :b_sfn",
   "INSERT INTO Cns_file_replica\
           (fileid, nbaccesses,\
            ctime, atime, ptime, ltime,\
            r_type, status, f_type,\
            setname, poolname, host, fs, sfn)\
         VALUES\
-          (?, 0,\
-           UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),\
-           ?, ?, ?,\
-           ?, ?, ?, ?, ?)",
+          (:b_fileid, 0,\
+           :b_ctime, :b_atime, :b_ptime, :b_ltime,\
+           :b_rtype, :b_status, :b_ftype,\
+           :b_setname, :b_pool, :b_host, :b_fs, :b_sfn)",
   "UPDATE Cns_file_metadata\
-        SET filesize = 0 WHERE fileid = ?",
+        SET filesize = 0 WHERE fileid = :b_fileid",
   "SELECT id FROM Cns_unique_uid FOR UPDATE",
   "SELECT id FROM Cns_unique_gid FOR UPDATE",
-  "UPDATE Cns_unique_uid SET id = ?",
-  "UPDATE Cns_unique_gid SET id = ?",
-  "INSERT INTO Cns_unique_uid (id) VALUES (?)",
-  "INSERT INTO Cns_unique_gid (id) VALUES (?)",
+  "UPDATE Cns_unique_uid SET id = :b_uid",
+  "UPDATE Cns_unique_gid SET id = :b_gid",
+  "INSERT INTO Cns_unique_uid (id) VALUES (:b_uid)",
+  "INSERT INTO Cns_unique_gid (id) VALUES (:b_gid)",
   "INSERT INTO Cns_userinfo\
           (userid, username, user_ca, banned)\
         VALUES\
-          (?, ?, ?, ?)",
+          (:b_uid, :b_username, :b_ca, :b_banned)",
   "INSERT INTO Cns_groupinfo\
           (gid, groupname, banned)\
         VALUES\
-          (?, ?, ?)",
+          (:b_gid, :b_groupname, :b_banned)",
   "UPDATE Cns_file_metadata\
-        SET name = ?\
-        WHERE fileid = ?",
+        SET name = :b_name\
+        WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET parent_fileid = ?\
-        WHERE fileid = ?",
+        SET parent_fileid = :b_parent\
+        WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET owner_uid = ?, gid = ?\
-        WHERE fileid = ?",
+        SET owner_uid = :b_uid, gid = :b_gid\
+        WHERE fileid = :b_fileid",
 };
 
 
 
-MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
+occi::Statement* NsOracleCatalog::getPreparedStatement(unsigned stId)
 {
   if (this->preparedStmt_[stId] == 0x00) {
-
-    if (mysql_select_db(this->conn_, this->nsDb_.c_str()) != 0)
-      throw DmException(DM_QUERY_FAILED, std::string("Select DB: ") + mysql_error(this->conn_));
-
-    this->preparedStmt_[stId] = mysql_stmt_init(this->conn_);
-    if (mysql_stmt_prepare(this->preparedStmt_[stId],
-                           statements[stId], std::strlen(statements[stId])) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + mysql_stmt_error(this->preparedStmt_[stId]));
+    try {
+      this->preparedStmt_[stId] = this->conn_->createStatement(statements[stId]);
+      // Make sure autocommit is always disabled
+      this->preparedStmt_[stId]->setAutoCommit(false);
+    }
+    catch (occi::SQLException& ex) {
+      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + ex.getMessage());
     }
   }
-
   return this->preparedStmt_[stId];
 }
 
 
 
-NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
-                               unsigned int symLinkLimit) throw(DmException):
-                cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit),
-                preparedStmt_(STMT_SENTINEL, 0x00)
+NsOracleCatalog::NsOracleCatalog(oracle::occi::ConnectionPool* pool,
+                                 oracle::occi::Connection* conn,
+                                 unsigned int symLimit) throw (DmException):
+  pool_(pool), conn_(conn), cwd_(0), umask_(022), symLinkLimit_(symLimit),
+  preparedStmt_(STMT_SENTINEL, 0x00)
 {
-  this->connectionPool_ = connPool;
-  this->conn_           = connPool->acquire();
   std::memset(&this->user_,  0x00, sizeof(UserInfo));
   std::memset(&this->group_, 0x00, sizeof(GroupInfo));
 }
 
 
 
-NsMySqlCatalog::~NsMySqlCatalog() throw(DmException)
+NsOracleCatalog::~NsOracleCatalog() throw (DmException)
 {
-  std::vector<MYSQL_STMT*>::iterator i;
+  std::vector<occi::Statement*>::iterator i;
 
   for (i = this->preparedStmt_.begin(); i != this->preparedStmt_.end(); i++) {
     if (*i != 0x00)
-      mysql_stmt_close(*i);
+      this->conn_->terminateStatement(*i);
   }
-  this->connectionPool_->release(this->conn_);
+  this->pool_->terminateConnection(this->conn_);
 }
 
 
 
-std::string NsMySqlCatalog::getImplId() throw ()
+std::string NsOracleCatalog::getImplId() throw ()
 {
-  return std::string("NsMySqlCatalog");
+  return std::string("NsOracleCatalog");
 }
 
 
 
-void NsMySqlCatalog::set(const std::string& key, va_list varg) throw(DmException)
+void NsOracleCatalog::set(const std::string& key, va_list varg) throw(DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
 }
 
 
 
-static void bindMetadata(Statement& stmt, FileMetadata* meta) throw(DmException)
+static void getMetadata(occi::ResultSet* rs, FileMetadata* meta) throw(DmException)
 {
-  stmt.bindResult( 0, &meta->xStat.stat.st_ino);
-  stmt.bindResult( 1, &meta->xStat.parent);
-  stmt.bindResult( 2, meta->xStat.guid, sizeof(meta->xStat.guid));
-  stmt.bindResult( 3, meta->xStat.name, sizeof(meta->xStat.name));
-  stmt.bindResult( 4, &meta->xStat.stat.st_mode);
-  stmt.bindResult( 5, &meta->xStat.stat.st_nlink);
-  stmt.bindResult( 6, &meta->xStat.stat.st_uid);
-  stmt.bindResult( 7, &meta->xStat.stat.st_gid);
-  stmt.bindResult( 8, &meta->xStat.stat.st_size);
-  stmt.bindResult( 9, &meta->xStat.stat.st_atime);
-  stmt.bindResult(10, &meta->xStat.stat.st_mtime);
-  stmt.bindResult(11, &meta->xStat.stat.st_ctime);
-  stmt.bindResult(12, &meta->xStat.type);
-  stmt.bindResult(13, &meta->xStat.status, 1);
-  stmt.bindResult(14, meta->xStat.csumtype,  sizeof(meta->xStat.csumtype));
-  stmt.bindResult(15, meta->xStat.csumvalue, sizeof(meta->xStat.csumvalue));
-  stmt.bindResult(16, meta->acl, sizeof(meta->acl), 0);
+  meta->xStat.stat.st_ino   = rs->getNumber( 1);
+  meta->xStat.parent        = rs->getNumber( 2);
+
+  strncpy(meta->xStat.guid, rs->getString(3).c_str(), sizeof(meta->xStat.guid));
+  strncpy(meta->xStat.name, rs->getString(4).c_str(), sizeof(meta->xStat.name));
+
+  meta->xStat.stat.st_mode  = rs->getNumber( 5);
+  meta->xStat.stat.st_nlink = rs->getNumber( 6);
+  meta->xStat.stat.st_uid   = rs->getNumber( 7);
+  meta->xStat.stat.st_gid   = rs->getNumber( 8);
+  meta->xStat.stat.st_size  = rs->getNumber( 9);
+  meta->xStat.stat.st_atime = rs->getNumber(10);
+  meta->xStat.stat.st_mtime = rs->getNumber(11);
+  meta->xStat.stat.st_ctime = rs->getNumber(12);
+  meta->xStat.type          = rs->getNumber(13);
+  meta->xStat.status        = rs->getString(14)[0];
+
+  strncpy(meta->xStat.csumtype, rs->getString(15).c_str(), sizeof(meta->xStat.csumtype));
+  strncpy(meta->xStat.csumvalue, rs->getString(16).c_str(), sizeof(meta->xStat.csumvalue));
+  
+  strncpy(meta->acl, rs->getString(17).c_str(), sizeof(meta->acl));
 }
 
 
 
-FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
+FileMetadata NsOracleCatalog::getFile(uint64_t fileId) throw(DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_ID));
-  FileMetadata meta;
+  FileMetadata     meta;
+  occi::ResultSet* rs   = 0x00;
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_ID);
+
 
   memset(&meta, 0x00, sizeof(FileMetadata));
 
-  stmt.bindParam(0, fileId);
-  stmt.execute();
-  bindMetadata(stmt, &meta);
+  try {
+    stmt->setNumber(1, fileId);
+    rs = stmt->executeQuery();
+    if (!rs->next()) {
+      stmt->closeResultSet(rs);
+      throw DmException(DM_NO_SUCH_FILE, "File %ld not found", fileId);
+    }
+    getMetadata(rs, &meta);
+  }
+  catch (occi::SQLException& ex) {
+    if (rs)
+      stmt->closeResultSet(rs);
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_FILE, "File %ld not found", fileId);
-
+  stmt->closeResultSet(rs);
   return meta;
 }
 
 
 
-FileMetadata NsMySqlCatalog::getFile(const std::string& guid) throw (DmException)
+FileMetadata NsOracleCatalog::getFile(const std::string& guid) throw (DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_GUID));
-  FileMetadata meta;
+  FileMetadata     meta;
+  occi::ResultSet* rs   = 0x00;
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_GUID);
 
   memset(&meta, 0x00, sizeof(FileMetadata));
 
-  stmt.bindParam(0, guid);
-  stmt.execute();
+  try {
+    stmt->setString(1, guid);
+    rs = stmt->executeQuery();
+    if (!rs->next()) {
+      stmt->closeResultSet(rs);
+      throw DmException(DM_NO_SUCH_FILE, "File with guid " + guid + " not found");
+    }
+    getMetadata(rs, &meta);
+  }
+  catch (occi::SQLException& ex) {
+    if (rs)
+      stmt->closeResultSet(rs);
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 
-  bindMetadata(stmt, &meta);
-
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_FILE, "File with guid " + guid + " not found");
-
+  stmt->closeResultSet(rs);
   return meta;
 }
 
 
 
-FileMetadata NsMySqlCatalog::getFile(const std::string& name, uint64_t parent) throw(DmException)
+FileMetadata NsOracleCatalog::getFile(const std::string& name, uint64_t parent) throw(DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_NAME));
   FileMetadata meta;
+  occi::ResultSet* rs   = 0x00;
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_NAME);
 
   memset(&meta, 0x00, sizeof(FileMetadata));
 
-  stmt.bindParam(0, parent);
-  stmt.bindParam(1, name);
-  stmt.execute();
+  try {
+    stmt->setNumber(1, parent);
+    stmt->setString(2, name);
+    rs = stmt->executeQuery();
+    if (!rs->next()) {
+      stmt->closeResultSet(rs);
+      throw DmException(DM_NO_SUCH_FILE, name + " not found");
+    }
+    getMetadata(rs, &meta);
+  }
+  catch (occi::SQLException& ex) {
+    if (rs)
+      stmt->closeResultSet(rs);
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 
-  bindMetadata(stmt, &meta);
-
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_FILE, name + " not found");
-
+  stmt->closeResultSet(rs);
   return meta;
 }
 
 
 
-SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
+SymLink NsOracleCatalog::getLink(uint64_t linkId) throw(DmException)
 {
-  Statement stmt(this->getPreparedStatement(STMT_GET_SYMLINK));
-  SymLink   link;
+  SymLink link;
+  occi::ResultSet* rs   = 0x00;
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_SYMLINK);
 
   memset(&link, 0x00, sizeof(SymLink));
 
-  stmt.bindParam(0, linkId);
-  stmt.execute();
+  try {
+    stmt->setNumber(1, linkId);
+    rs = stmt->executeQuery();
+    if (!rs->next()) {
+      stmt->closeResultSet(rs);
+      throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", linkId);
+    }
+    link.fileId = rs->getNumber(1);
+    strncpy(link.link, rs->getString(2).c_str(), sizeof(link.link));
+  }
+  catch (occi::SQLException& ex) {
+    if (rs)
+      stmt->closeResultSet(rs);
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 
-  stmt.bindResult(0, &link.fileId);
-  stmt.bindResult(1, link.link, sizeof(link), 0);
-
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", linkId);
-
-
+  stmt->closeResultSet(rs);
   return link;
 }
 
 
 
-FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& name,
-                                     mode_t mode, long nlink, size_t size,
-                                     short type, char status,
-                                     const std::string& csumtype,
-                                     const std::string& csumvalue,
-                                     const std::string& acl) throw (DmException)
+FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& name,
+                                      mode_t mode, long nlink, size_t size,
+                                      short type, char status,
+                                      const std::string& csumtype,
+                                      const std::string& csumvalue,
+                                      const std::string& acl) throw (DmException)
 {
-  ino_t  newFileId;
   gid_t  egid;
 
   // Destination must not exist!
@@ -377,27 +429,6 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
-  // Fetch the new file ID
-  Statement uniqueId(this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE));
-
-  uniqueId.execute();
-  uniqueId.bindResult(0, &newFileId);
-
-  // Update the unique ID
-  if (uniqueId.fetch()) {
-    Statement updateUnique(this->getPreparedStatement(STMT_UPDATE_UNIQ_ID));
-    ++newFileId;
-    updateUnique.bindParam(0, newFileId);
-    updateUnique.execute();
-  }
-  // Couldn't get, so insert
-  else {
-    Statement insertUnique(this->getPreparedStatement(STMT_INSERT_UNIQ_ID));
-    newFileId = 1;
-    insertUnique.bindParam(0, newFileId);
-    insertUnique.execute();
-  }
-
   // Check SGID
   if (parent.xStat.stat.st_mode & S_ISGID) {
     egid = parent.xStat.stat.st_gid;
@@ -408,42 +439,46 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   }
 
   // Create the entry
-  Statement fileStmt(this->getPreparedStatement(STMT_INSERT_FILE));
+  occi::Statement* fileStmt = this->getPreparedStatement(STMT_INSERT_FILE);
 
-  fileStmt.bindParam( 0, newFileId);
-  fileStmt.bindParam( 1, parent.xStat.stat.st_ino);
-  fileStmt.bindParam( 2, name);
-  fileStmt.bindParam( 3, mode);
-  fileStmt.bindParam( 4, nlink);
-  fileStmt.bindParam( 5, this->user_.uid);
-  fileStmt.bindParam( 6, egid);
-  fileStmt.bindParam( 7, size);
-  fileStmt.bindParam( 8, type);
-  fileStmt.bindParam( 9, std::string(&status, 1));
-  fileStmt.bindParam(10, csumtype);
-  fileStmt.bindParam(11, csumvalue);
-  fileStmt.bindParam(12, acl.data(), acl.size());
+  fileStmt->setNumber( 1, parent.xStat.stat.st_ino);
+  fileStmt->setString( 2, name);
+  fileStmt->setNumber( 3, mode);
+  fileStmt->setNumber( 4, nlink);
+  fileStmt->setNumber( 5, this->user_.uid);
+  fileStmt->setNumber( 6, egid);
+  fileStmt->setNumber( 7, size);
+  fileStmt->setNumber( 8, time(NULL));
+  fileStmt->setNumber( 9, time(NULL));
+  fileStmt->setNumber(10, time(NULL));
+  fileStmt->setNumber(11, type);
+  fileStmt->setString(12, std::string(&status, 1));
+  fileStmt->setString(13, csumtype);
+  fileStmt->setString(14, csumvalue);
+  fileStmt->setString(15, acl);
 
-  fileStmt.execute();
-  
+  fileStmt->executeUpdate();
+
   // Increment the nlink
-  Statement nlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  occi::Statement* nlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
   parent.xStat.stat.st_nlink++;
-  nlinkStmt.bindParam(0, parent.xStat.stat.st_nlink);
-  nlinkStmt.bindParam(1, parent.xStat.stat.st_ino);
+  nlinkStmt->setNumber(1, parent.xStat.stat.st_nlink);
+  nlinkStmt->setNumber(2, time(NULL));
+  nlinkStmt->setNumber(3, time(NULL));
+  nlinkStmt->setNumber(4, parent.xStat.stat.st_ino);
 
-  nlinkStmt.execute();
+  nlinkStmt->executeUpdate();
 
   // Return back
-  return this->getFile(newFileId);
+  return this->getFile(name, parent.xStat.stat.st_ino);
 }
 
 
 
-FileMetadata NsMySqlCatalog::getParent(const std::string& path,
-                                       std::string* parentPath,
-                                       std::string* name) throw (DmException)
+FileMetadata NsOracleCatalog::getParent(const std::string& path,
+                                        std::string* parentPath,
+                                        std::string* name) throw (DmException)
 {
   std::list<std::string> components = splitPath(path);
 
@@ -472,7 +507,7 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
 
 
 
-FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) throw(DmException)
+FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym) throw(DmException)
 {
   // Split the path always assuming absolute
   std::list<std::string> components = splitPath(path);
@@ -496,7 +531,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
     parent = this->cwd_;
     meta   = this->getFile(parent);
   }
-  
+
 
   while (!components.empty()) {
     // Check that the parent is a directory first
@@ -550,7 +585,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
         parent = meta.xStat.stat.st_ino;
       }
     }
-    
+
   }
 
   return meta;
@@ -558,7 +593,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
 
 
 
-void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmException)
+void NsOracleCatalog::traverseBackwards(const FileMetadata& meta) throw (DmException)
 {
   FileMetadata current = meta;
 
@@ -574,23 +609,23 @@ void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmExcept
 
 
 
-void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
+void NsOracleCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  FileMetadata cwd = this->parsePath(path);
+  FileMetadata cwdMeta = this->parsePath(path);
   this->cwdPath_ = path;
-  this->cwd_     = cwd.xStat.stat.st_ino;
+  this->cwd_     = cwdMeta.xStat.stat.st_ino;
 }
 
 
 
-std::string NsMySqlCatalog::getWorkingDir(void) throw (DmException)
+std::string NsOracleCatalog::getWorkingDir(void) throw (DmException)
 {
   return this->cwdPath_;
 }
 
 
 
-struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
+struct stat NsOracleCatalog::stat(const std::string& path) throw(DmException)
 {
   FileMetadata meta = this->parsePath(path);
   return meta.xStat.stat;
@@ -598,7 +633,7 @@ struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
 
 
 
-struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
+struct stat NsOracleCatalog::stat(ino_t inode) throw (DmException)
 {
   FileMetadata meta = this->getFile(inode);
   return meta.xStat.stat;
@@ -606,7 +641,7 @@ struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
 
 
 
-struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
+struct stat NsOracleCatalog::linkStat(const std::string& path) throw(DmException)
 {
   FileMetadata meta = this->parsePath(path, false);
   return meta.xStat.stat;
@@ -614,7 +649,7 @@ struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
 
 
 
-struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmException)
+struct xstat NsOracleCatalog::extendedStat(const std::string& path) throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
   return meta.xStat;
@@ -622,7 +657,7 @@ struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmExce
 
 
 
-struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
+struct xstat NsOracleCatalog::extendedStat(ino_t inode) throw (DmException)
 {
   FileMetadata meta = this->getFile(inode);
   return meta.xStat;
@@ -630,28 +665,27 @@ struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
 
 
 
-Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
+Directory* NsOracleCatalog::openDir(const std::string& path) throw(DmException)
 {
-  NsMySqlDir  *dir;
+  NsOracleDir  *dir;
   FileMetadata meta;
 
   // Get the directory
   meta = this->parsePath(path);
-  
+
   // Can we read it?
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Create the handle
-  dir = new NsMySqlDir();
+  dir = new NsOracleDir();
   dir->dirId = meta.xStat.stat.st_ino;
-  
+
   try {
-    dir->stmt = new Statement(this->getPreparedStatement(STMT_GET_LIST_FILES));
-    dir->stmt->bindParam(0, dir->dirId);
-    dir->stmt->execute();
-    bindMetadata(*dir->stmt, &dir->current);
+    dir->stmt = this->getPreparedStatement(STMT_GET_LIST_FILES);
+    dir->stmt->setNumber(1, dir->dirId);
+    dir->rs = dir->stmt->executeQuery();
     return dir;
   }
   catch (...) {
@@ -662,41 +696,42 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
 
 
 
-void NsMySqlCatalog::closeDir(Directory* dir) throw(DmException)
+void NsOracleCatalog::closeDir(Directory* dir) throw(DmException)
 {
-  NsMySqlDir *dirp;
+  NsOracleDir *dirp;
 
   if (dir == 0x00)
     throw DmException(DM_NULL_POINTER, std::string("Tried to close a null dir"));
 
-  dirp = (NsMySqlDir*)dir;
+  dirp = (NsOracleDir*)dir;
 
-  delete dirp->stmt;
+  dirp->stmt->closeResultSet(dirp->rs);
   delete dirp;
 }
 
 
 
-struct dirent* NsMySqlCatalog::readDir(Directory* dir) throw(DmException)
+struct dirent* NsOracleCatalog::readDir(Directory* dir) throw(DmException)
 {
   if (this->readDirx(dir) == 0)
     return 0x00;
   else
-    return &(((NsMySqlDir*)dir)->ds.dirent);
+    return &(((NsOracleDir*)dir)->ds.dirent);
 }
 
 
 
-struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
+struct direntstat* NsOracleCatalog::readDirx(Directory* dir) throw(DmException)
 {
-  NsMySqlDir *dirp;
+  NsOracleDir *dirp;
 
   if (dir == 0x00)
     throw DmException(DM_NULL_POINTER, "Tried to read a null dir");
 
-  dirp = (NsMySqlDir*)dir;
+  dirp = (NsOracleDir*)dir;
 
-  if (dirp->stmt->fetch()) {
+  if (dirp->rs->next()) {
+    getMetadata(dirp->rs, &dirp->current);
     memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
     memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
     dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
@@ -712,11 +747,11 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
 
 
 
-void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
-                                const std::string& server, const std::string& sfn,
-                                char status, char fileType,
-                                const std::string& poolName,
-                                const std::string& fileSystem) throw (DmException)
+void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
+                                 const std::string& server, const std::string& sfn,
+                                 char status, char fileType,
+                                 const std::string& poolName,
+                                 const std::string& fileSystem) throw (DmException)
 {
   FileMetadata meta;
 
@@ -734,25 +769,39 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
   // Add it
-  Statement statement(this->getPreparedStatement(STMT_ADD_REPLICA));
+  try {
+    Transaction transaction(this->conn_);
+    
+    occi::Statement* stmt = this->getPreparedStatement(STMT_ADD_REPLICA);
 
-  statement.bindParam(0, meta.xStat.stat.st_ino);
-  statement.bindParam(1, NULL, 0);
-  statement.bindParam(2, std::string(&status, 1));
-  statement.bindParam(3, std::string(&fileType, 1));
-  statement.bindParam(4, NULL, 0);
-  statement.bindParam(5, poolName);
-  statement.bindParam(6, server);
-  statement.bindParam(7, fileSystem);
-  statement.bindParam(8, sfn);
+    stmt->setNumber( 1, meta.xStat.stat.st_ino);
+    stmt->setNumber( 2, time(NULL));
+    stmt->setNumber( 3, time(NULL));
+    stmt->setNumber( 4, time(NULL));
+    stmt->setNumber( 5, time(NULL));
 
-  statement.execute();
+    stmt->setNull  ( 6, occi::OCCISTRING);
+    stmt->setString( 7, std::string(&status, 1));
+    stmt->setString( 8, std::string(&fileType, 1));
+    stmt->setNull  ( 9, occi::OCCISTRING);
+    stmt->setString(10, poolName);
+    stmt->setString(11, server);
+    stmt->setString(12, fileSystem);
+    stmt->setString(13, sfn);
+
+    stmt->executeUpdate();
+    
+    transaction.commit();
+  }
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 }
 
 
 
-void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
-                                   const std::string& sfn) throw (DmException)
+void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
+                                    const std::string& sfn) throw (DmException)
 {
   FileMetadata meta;
 
@@ -770,15 +819,21 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
-  Statement statement(this->getPreparedStatement(STMT_DELETE_REPLICA));
-  statement.bindParam(0, meta.xStat.stat.st_ino);
-  statement.bindParam(1, sfn);
-  statement.execute();
+  Transaction transaction(this->conn_);
+
+  occi::Statement* stmt = this->getPreparedStatement(STMT_DELETE_REPLICA);
+
+  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  stmt->setString(2, sfn);
+  
+  stmt->executeUpdate();
+
+  transaction.commit();
 }
 
 
 
-std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) throw(DmException)
+std::vector<FileReplica> NsOracleCatalog::getReplicas(const std::string& path) throw(DmException)
 {
   FileMetadata  meta;
 
@@ -803,43 +858,45 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
 
 
 
-std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmException)
+std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmException)
 {
   FileReplica   replica;
-  int           nReplicas;
 
   // MySQL statement
-  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS);
+  occi::ResultSet* rs;
 
   // Execute query
-  stmt.bindParam(0, ino);
-  stmt.execute();
+  try {
+    stmt->setNumber(1, ino);
+    rs = stmt->executeQuery();
+  }
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_QUERY_FAILED, ex.getMessage());
+  }
 
   // Bind result
-  stmt.bindResult(0, &replica.replicaid);
-  stmt.bindResult(1, &replica.fileid);
-  stmt.bindResult(2, &replica.status, 1);
-  stmt.bindResult(3, replica.unparsed_location, sizeof(replica.unparsed_location));
-
   std::vector<FileReplica> replicas;
 
-  if ((nReplicas = stmt.count()) == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas available for %ld", ino);
-
-  // Fetch
-  int i = 0;
-  while (stmt.fetch()) {
+  while (rs->next()) {
+    replica.replicaid = rs->getNumber(1);
+    replica.fileid    = rs->getNumber(2);
+    replica.status    = rs->getString(3)[0];
+    strncpy(replica.unparsed_location, rs->getString(4).c_str(), sizeof(replica.unparsed_location));
     replica.location = splitUri(replica.unparsed_location);
     replicas.push_back(replica);
-    ++i;
-  };
+  }
+  stmt->closeResultSet(rs);
+
+  if (replicas.size() == 0)
+    throw DmException(DM_NO_REPLICAS, "No replicas available for %ld", ino);
 
   return replicas;
 }
 
 
 
-FileReplica NsMySqlCatalog::get(const std::string& path) throw(DmException)
+FileReplica NsOracleCatalog::get(const std::string& path) throw(DmException)
 {
   // Get all the replicas
   std::vector<FileReplica> replicas = this->getReplicas(path);
@@ -853,17 +910,17 @@ FileReplica NsMySqlCatalog::get(const std::string& path) throw(DmException)
 
 
 
-NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*) throw (DmException))
-NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException))
-NOT_IMPLEMENTED(void NsMySqlCatalog::putStatus(const std::string&, const std::string&, Uri*) throw (DmException))
-NOT_IMPLEMENTED(void NsMySqlCatalog::putDone(const std::string&, const std::string&) throw (DmException))
+NOT_IMPLEMENTED(std::string NsOracleCatalog::put(const std::string&, Uri*) throw (DmException))
+NOT_IMPLEMENTED(std::string NsOracleCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException))
+NOT_IMPLEMENTED(void NsOracleCatalog::putStatus(const std::string&, const std::string&, Uri*) throw (DmException))
+NOT_IMPLEMENTED(void NsOracleCatalog::putDone(const std::string&, const std::string&) throw (DmException))
 
 
 
-void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
+void NsOracleCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
   std::string parentPath, symName;
-  
+
   // Get the parent of the destination and file
   FileMetadata parent = this->getParent(newPath, &parentPath, &symName);
 
@@ -881,12 +938,12 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
                                         1, 0, 0, '-',
                                         "", "", "");
   // Create the symlink entry
-  Statement stmt(this->getPreparedStatement(STMT_INSERT_SYMLINK));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_INSERT_SYMLINK);
 
-  stmt.bindParam(0, linkMeta.xStat.stat.st_ino);
-  stmt.bindParam(1, oldPath);
-
-  stmt.execute();
+  stmt->setNumber(1, linkMeta.xStat.stat.st_ino);
+  stmt->setString(2, oldPath);
+  
+  stmt->executeUpdate();
 
   // Done
   transaction.commit();
@@ -894,7 +951,7 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
 
 
 
-void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
+void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
 {
   std::string  parentPath, name;
 
@@ -941,26 +998,28 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   Transaction transaction(this->conn_);
 
   // Remove associated symlink
-  Statement delSymlink(this->getPreparedStatement(STMT_DELETE_SYMLINK));
-  delSymlink.bindParam(0, file.xStat.stat.st_ino);
-  delSymlink.execute();
+  occi::Statement* delSymlink = this->getPreparedStatement(STMT_DELETE_SYMLINK);
+  delSymlink->setNumber(1, file.xStat.stat.st_ino);
+  delSymlink->executeUpdate();
 
   // Remove associated comments
-  Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
-  delComment.bindParam(0, file.xStat.stat.st_ino);
-  delComment.execute();
+  occi::Statement* delComment = this->getPreparedStatement(STMT_DELETE_COMMENT);
+  delComment->setNumber(1, file.xStat.stat.st_ino);
+  delComment->executeUpdate();
 
   // Remove file itself
-  Statement delFile(this->getPreparedStatement(STMT_DELETE_FILE));
-  delFile.bindParam(0, file.xStat.stat.st_ino);
-  delFile.execute();
+  occi::Statement* delFile = this->getPreparedStatement(STMT_DELETE_FILE);
+  delFile->setNumber(1, file.xStat.stat.st_ino);
+  delFile->executeUpdate();
 
   // And decrement nlink
-  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
   parent.xStat.stat.st_nlink--;
-  nlink.bindParam(0, parent.xStat.stat.st_nlink);
-  nlink.bindParam(1, parent.xStat.stat.st_ino);
-  nlink.execute();
+  nlink->setNumber(1, parent.xStat.stat.st_nlink);
+  nlink->setNumber(2, time(NULL));
+  nlink->setNumber(3, time(NULL));
+  nlink->setNumber(4, parent.xStat.stat.st_ino);
+  nlink->executeUpdate();
 
   // Done!
   transaction.commit();
@@ -968,11 +1027,10 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
 
 
-std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& path) throw(DmException)
+std::vector<ExtendedReplica> NsOracleCatalog::getExReplicas(const std::string& path) throw(DmException)
 {
   FileMetadata    meta;
   ExtendedReplica replica;
-  int             nReplicas;
 
   // Need to grab the file first
   meta = this->parsePath(path, true);
@@ -983,38 +1041,40 @@ std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& pa
     throw DmException(DM_FORBIDDEN,
                       "Not enough permissions to read " + path);
 
-  // MySQL statement
-  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED));
+  // Statement
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED);
 
-  stmt.bindParam(0, meta.xStat.stat.st_ino);
-  stmt.execute();
-
-  stmt.bindResult(0, &replica.replica.replicaid);
-  stmt.bindResult(1, &replica.replica.fileid);
-  stmt.bindResult(2, &replica.replica.status, 1);
-  stmt.bindResult(3, replica.replica.unparsed_location, sizeof(replica.replica.unparsed_location));
-  stmt.bindResult(4, replica.pool, sizeof(replica.pool));
-  stmt.bindResult(5, replica.host, sizeof(replica.host));
-  stmt.bindResult(6, replica.fs,   sizeof(replica.fs));
-  
-  std::vector<ExtendedReplica> replicas;
-
-  nReplicas = stmt.count();
-  if (nReplicas == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
+  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  occi::ResultSet* rs = stmt->executeQuery();
 
   // Fetch
-  while (stmt.fetch()) {
+  std::vector<ExtendedReplica> replicas;
+
+  while (rs->next()) {
+    replica.replica.replicaid = rs->getNumber(1);
+    replica.replica.fileid    = rs->getNumber(2);
+    replica.replica.status    = rs->getString(3)[0];
+    strncpy(replica.replica.unparsed_location, rs->getString(4).c_str(), sizeof(replica.replica.unparsed_location));
+    strncpy(replica.pool, rs->getString(5).c_str(), sizeof(replica.pool));
+    strncpy(replica.host, rs->getString(6).c_str(), sizeof(replica.host));
+    strncpy(replica.fs, rs->getString(7).c_str(), sizeof(replica.fs));
+
     replica.replica.location = splitUri(replica.replica.unparsed_location);
+
     replicas.push_back(replica);
-  };
+  }
+
+  stmt->closeResultSet(rs);
+
+  if (replicas.size() == 0)
+    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
 
   return replicas;
 }
 
 
 
-void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmException)
+void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   int          code;
   std::string  parentPath, name;
@@ -1036,6 +1096,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 
   // Create new
   Transaction transaction(this->conn_);
+  
   if (code == DM_NO_SUCH_FILE) {
     this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
                   1, 0, 0, '-',
@@ -1044,16 +1105,17 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
   // Truncate
   else if (code == DM_NO_REPLICAS) {
-    Statement statement(this->getPreparedStatement(STMT_TRUNCATE_FILE));
-    statement.bindParam(0, file.xStat.stat.st_ino);
-    statement.execute();
+    occi::Statement* stmt = this->getPreparedStatement(STMT_TRUNCATE_FILE);
+    stmt->setNumber(1, file.xStat.stat.st_ino);
+    stmt->executeUpdate();
   }
+  
   transaction.commit();
 }
 
 
 
-mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
+mode_t NsOracleCatalog::umask(mode_t mask) throw ()
 {
   mode_t prev = this->umask_;
   this->umask_ = mask & 0777;
@@ -1062,7 +1124,7 @@ mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
 
 
 
-void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
+void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
 
@@ -1082,15 +1144,19 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
   // Update, keeping type bits from db.
   mode |= (meta.xStat.stat.st_mode & S_IFMT);
 
-  Statement statement(this->getPreparedStatement(STMT_UPDATE_MODE));
-  statement.bindParam(0, mode);
-  statement.bindParam(1, meta.xStat.stat.st_ino);
-  statement.execute();
+  Transaction transaction(this->conn_);
+
+  occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_MODE);
+  stmt->setNumber(1, mode);
+  stmt->setNumber(2, meta.xStat.stat.st_ino);
+  stmt->executeUpdate();
+
+  transaction.commit();
 }
 
 
 
-void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
+void NsOracleCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
   // If -1, no changes
@@ -1121,18 +1187,22 @@ void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
   }
 
   // Change!
-  Statement chownStmt(this->getPreparedStatement(STMT_CHANGE_OWNER));
+  Transaction transaction(this->conn_);
 
-  chownStmt.bindParam(0, newUid);
-  chownStmt.bindParam(1, newGid);
-  chownStmt.bindParam(2, meta.xStat.stat.st_ino);
+  occi::Statement* chownStmt = this->getPreparedStatement(STMT_CHANGE_OWNER);
 
-  chownStmt.execute();
+  chownStmt->setNumber(1, newUid);
+  chownStmt->setNumber(2, newGid);
+  chownStmt->setNumber(3, meta.xStat.stat.st_ino);
+
+  chownStmt->executeUpdate();
+
+  transaction.commit();
 }
 
 
 
-void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
+void NsOracleCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
@@ -1141,7 +1211,7 @@ void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t ne
 
 
 
-void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
+void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
   FileMetadata meta = this->parsePath(path, false);
@@ -1150,34 +1220,35 @@ void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_
 
 
 
-std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmException)
+std::string NsOracleCatalog::getComment(const std::string& path) throw(DmException)
 {
-  char         comment[COMMENT_MAX];
-  
   // Get the file and check we can read
   FileMetadata meta = this->parsePath(path);
-  
+
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.xStat.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_GET_COMMENT));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_COMMENT);
 
-  stmt.bindParam(0, meta.xStat.stat.st_ino);
-  stmt.execute();
-  
-  stmt.bindResult(0, comment, COMMENT_MAX);
-  if (!stmt.fetch())
+  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  occi::ResultSet* rs = stmt->executeQuery();
+
+  if (!rs->next())
     throw DmException(DM_NO_COMMENT, "There is no comment for " + path);
 
+  std::string comment = rs->getString(1);
+  
+  stmt->closeResultSet(rs);
+
   // Done here!
-  return std::string(comment);
+  return comment;
 }
 
 
 
-void NsMySqlCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
+void NsOracleCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   // Get the file and check we can write
   FileMetadata meta = this->parsePath(path);
@@ -1187,25 +1258,29 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_SET_COMMENT));
+  Transaction transaction(this->conn_);
 
-  stmt.bindParam(0, comment);
-  stmt.bindParam(1, meta.xStat.stat.st_ino);
+  occi::Statement* stmt = this->getPreparedStatement(STMT_SET_COMMENT);
 
-  if (stmt.execute() == 0) {
+  stmt->setString(1, comment);
+  stmt->setNumber(2, meta.xStat.stat.st_ino);
+
+  if (stmt->executeUpdate() == 0) {
     // No update! Try inserting
-    Statement stmti(this->getPreparedStatement(STMT_INSERT_COMMENT));
+    occi::Statement* stmti = this->getPreparedStatement(STMT_INSERT_COMMENT);
 
-    stmti.bindParam(0, meta.xStat.stat.st_ino);
-    stmti.bindParam(1, comment);
-    
-    stmti.execute();
+    stmti->setNumber(1, meta.xStat.stat.st_ino);
+    stmti->setString(2, comment);
+
+    stmti->executeUpdate();
   }
+
+  transaction.commit();
 }
 
 
 
-void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
+void NsOracleCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   FileMetadata meta = this->parsePath(path);
 
@@ -1214,17 +1289,21 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_SET_GUID));
+  Transaction transaction(this->conn_);
 
-  stmt.bindParam(0, guid);
-  stmt.bindParam(1, meta.xStat.stat.st_ino);
+  occi::Statement* stmt = this->getPreparedStatement(STMT_SET_GUID);
 
-  stmt.execute();
+  stmt->setString(1, guid);
+  stmt->setNumber(2, meta.xStat.stat.st_ino);
+
+  stmt->executeUpdate();
+
+  transaction.commit();
 }
 
 
 
-void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
+void NsOracleCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
 {
   std::string parentPath, name;
 
@@ -1238,14 +1317,16 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
 
   // Create the file entry
   Transaction transaction(this->conn_);
+
   this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
                 0, 0, parent.xStat.type, '-', "", "", parent.acl);
+  
   transaction.commit();
 }
 
 
 
-void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
+void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
 {
   std::string parentPath, name;
 
@@ -1288,18 +1369,19 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   // All preconditions are good!
   Transaction transaction(this->conn_);
 
-
   // Remove directory itself
-  Statement delDir(this->getPreparedStatement(STMT_DELETE_FILE));
-  delDir.bindParam(0, entry.xStat.stat.st_ino);
-  delDir.execute();
+  occi::Statement* delDir = this->getPreparedStatement(STMT_DELETE_FILE);
+  delDir->setNumber(1, entry.xStat.stat.st_ino);
+  delDir->executeUpdate();
 
   // And decrement nlink
-  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
   parent.xStat.stat.st_nlink--;
-  nlink.bindParam(0, parent.xStat.stat.st_nlink);
-  nlink.bindParam(1, parent.xStat.stat.st_ino);
-  nlink.execute();
+  nlink->setNumber(1, parent.xStat.stat.st_nlink);
+  nlink->setNumber(2, time(NULL));
+  nlink->setNumber(3, time(NULL));
+  nlink->setNumber(4, parent.xStat.stat.st_ino);
+  nlink->executeUpdate();
 
   // Done!
   transaction.commit();
@@ -1307,7 +1389,7 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
-void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
+void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
   std::string oldParentPath, newParentPath;
   std::string oldName,       newName;
@@ -1392,42 +1474,42 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Change the name if needed
   if (newName != oldName) {
-    Statement changeNameStmt(this->getPreparedStatement(STMT_CHANGE_NAME));
+    occi::Statement* changeNameStmt = this->getPreparedStatement(STMT_CHANGE_NAME);
 
-    changeNameStmt.bindParam(0, newName);
-    changeNameStmt.bindParam(1, old.xStat.stat.st_ino);
+    changeNameStmt->setString(1, newName);
+    changeNameStmt->setNumber(2, old.xStat.stat.st_ino);
 
-    if (changeNameStmt.execute() == 0)
-      throw DmException(DM_INTERNAL_ERROR, "Could not change the name");
+    changeNameStmt->executeUpdate();
   }
 
   // Change the parent if needed
   if (newParent.xStat.stat.st_ino != oldParent.xStat.stat.st_ino) {
-    Statement changeParentStmt(this->getPreparedStatement(STMT_CHANGE_PARENT));
+    occi::Statement* changeParentStmt = this->getPreparedStatement(STMT_CHANGE_PARENT);
 
-    changeParentStmt.bindParam(0, newParent.xStat.stat.st_ino);
-    changeParentStmt.bindParam(1, old.xStat.stat.st_ino);
+    changeParentStmt->setNumber(1, newParent.xStat.stat.st_ino);
+    changeParentStmt->setNumber(2, old.xStat.stat.st_ino);
 
-    if (changeParentStmt.execute() == 0)
-      throw DmException(DM_INTERNAL_ERROR, "Could not update the parent ino!");
+    changeParentStmt->executeUpdate();
 
     // Reduce nlinks from old
-    Statement oldNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    occi::Statement* oldNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
-    oldNlinkStmt.bindParam(0, --oldParent.xStat.stat.st_nlink);
-    oldNlinkStmt.bindParam(1, oldParent.xStat.stat.st_ino);
+    oldNlinkStmt->setNumber(1, --oldParent.xStat.stat.st_nlink);
+    oldNlinkStmt->setNumber(2, time(NULL));
+    oldNlinkStmt->setNumber(3, time(NULL));
+    oldNlinkStmt->setNumber(4, oldParent.xStat.stat.st_ino);
 
-    if (oldNlinkStmt.execute() == 0)
-      throw DmException(DM_INTERNAL_ERROR, "Could not update the old parent nlink!");
+    oldNlinkStmt->executeUpdate();
 
     // Increment from new
-    Statement newNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    occi::Statement* newNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
-    newNlinkStmt.bindParam(0, ++newParent.xStat.stat.st_nlink);
-    newNlinkStmt.bindParam(1, newParent.xStat.stat.st_ino);
+    newNlinkStmt->setNumber(1, ++newParent.xStat.stat.st_nlink);
+    newNlinkStmt->setNumber(2, time(NULL));
+    newNlinkStmt->setNumber(3, time(NULL));
+    newNlinkStmt->setNumber(4, newParent.xStat.stat.st_ino);
 
-    if (newNlinkStmt.execute() == 0)
-      throw DmException(DM_INTERNAL_ERROR, "Could not update the new parent nlink!");
+    newNlinkStmt->executeUpdate();
   }
 
   // Done!
@@ -1436,7 +1518,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
 
 
-void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
+void NsOracleCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
 {
   UserInfo  u = this->getUser(uid);
   GroupInfo g = this->getGroup(gid);
@@ -1455,7 +1537,7 @@ void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) thro
 
 
 
-void NsMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+void NsOracleCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
   std::string group;
 
@@ -1478,7 +1560,7 @@ void NsMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::s
 
 
 
-void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
+void NsOracleCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
                               uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
 {
   std::string vo;
@@ -1535,123 +1617,135 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
 
 
 
-UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
+UserInfo NsOracleCatalog::getUser(const std::string& userName) throw(DmException)
 {
   UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME);
 
-  stmt.bindParam(0, userName);
-  stmt.execute();
+  stmt->setString(1, userName);
+  occi::ResultSet* rs = stmt->executeQuery();
 
-  stmt.bindResult(0, &user.uid);
-  stmt.bindResult(1, user.name, sizeof(user.name));
-  stmt.bindResult(2, user.ca, sizeof(user.ca));
-  stmt.bindResult(3, &user.banned);
-
-  if (!stmt.fetch())
+  if (!rs->next())
     throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
 
+  user.uid = rs->getNumber(1);
+  strncpy(user.name, rs->getString(2).c_str(), sizeof(user.name));
+  strncpy(user.ca, rs->getString(3).c_str(), sizeof(user.ca));
+  user.banned = rs->getNumber(4);
+
+  stmt->closeResultSet(rs);
+
   return user;
 }
 
 
 
-UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
+UserInfo NsOracleCatalog::getUser(uid_t uid) throw(DmException)
 {
   UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
+  occi::Statement* stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
 
-  stmt.bindParam(0, uid);
-  stmt.execute();
+  stmt->setNumber(1, uid);
+  occi::ResultSet* rs = stmt->executeQuery();
 
-  stmt.bindResult(0, &user.uid);
-  stmt.bindResult(1, user.name, sizeof(user.name));
-  stmt.bindResult(2, user.ca, sizeof(user.ca));
-  stmt.bindResult(3, &user.banned);
-
-  if (!stmt.fetch())
+  if (!rs->next())
     throw DmException(DM_NO_SUCH_USER, "User %ld not found", uid);
+
+  user.uid = rs->getNumber(1);
+  strncpy(user.name, rs->getString(2).c_str(), sizeof(user.name));
+  strncpy(user.ca, rs->getString(3).c_str(), sizeof(user.ca));
+  user.banned = rs->getNumber(4);
+
+  stmt->closeResultSet(rs);
 
   return user;
 }
 
 
 
-GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmException)
+GroupInfo NsOracleCatalog::getGroup(const std::string& groupName) throw(DmException)
 {
   GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME);
 
-  stmt.bindParam(0, groupName);
-  stmt.execute();
+  stmt->setString(1, groupName);
+  occi::ResultSet* rs = stmt->executeQuery();
 
-  stmt.bindResult(0, &group.gid);
-  stmt.bindResult(1, group.name, sizeof(group.name));
-  stmt.bindResult(2, &group.banned);
-
-  if (!stmt.fetch())
+  if (!rs->next())
     throw DmException(DM_NO_SUCH_GROUP, "Group " + groupName + " not found");
-  
+
+  group.gid = rs->getNumber(1);
+  strncpy(group.name, rs->getString(2).c_str(), sizeof(group.name));
+  group.banned = rs->getNumber(3);
+
+  stmt->closeResultSet(rs);
+
   return group;
 }
 
 
 
-GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
+GroupInfo NsOracleCatalog::getGroup(gid_t gid) throw(DmException)
 {
   GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID));
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID);
 
-  stmt.bindParam(0, gid);
-  stmt.execute();
+  stmt->setNumber(1, gid);
+  occi::ResultSet* rs = stmt->executeQuery();
 
-  stmt.bindResult(0, &group.gid);
-  stmt.bindResult(1, group.name, sizeof(group.name));
-  stmt.bindResult(2, &group.banned);
-
-  if (!stmt.fetch())
+  if (!rs->next())
     throw DmException(DM_NO_SUCH_GROUP, "Group %ld not found", gid);
 
+  group.gid = rs->getNumber(1);
+  strncpy(group.name, rs->getString(2).c_str(), sizeof(group.name));
+  group.banned = rs->getNumber(3);
+
+  stmt->closeResultSet(rs);
+
   return group;
 }
 
 
 
-UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+UserInfo NsOracleCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
 {
   Transaction transaction(this->conn_);
 
   // Get the last uid, increment and update
-  Statement uidStmt(this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE));
+  occi::Statement* uidStmt = this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE);
   uid_t     uid;
 
-  uidStmt.execute();
-  uidStmt.bindResult(0, &uid);
+  occi::ResultSet* rs = uidStmt->executeQuery();
 
   // Update the uid
-  if (uidStmt.fetch()) {
-    Statement updateUidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_UID));
+  if (rs->next()) {
+    uid = rs->getNumber(1);
     ++uid;
-    updateUidStmt.bindParam(0, uid);
-    updateUidStmt.execute();
+
+    occi::Statement* updateUidStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_UID);
+    updateUidStmt->setNumber(1, uid);
+    updateUidStmt->executeUpdate();
   }
   // Couldn't get, so insert it instead
   else {
-    Statement insertUidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_UID));
     uid = 1;
-    insertUidStmt.bindParam(0, uid);
-    insertUidStmt.execute();
+
+    occi::Statement* insertUidStmt = this->getPreparedStatement(STMT_INSERT_UNIQ_UID);
+    insertUidStmt->setNumber(1, uid);
+    insertUidStmt->executeUpdate();
   }
 
+  uidStmt->closeResultSet(rs);
+
   // Insert the user
-  Statement userStmt(this->getPreparedStatement(STMT_INSERT_USER));
+  occi::Statement* userStmt = this->getPreparedStatement(STMT_INSERT_USER);
 
-  userStmt.bindParam(0, uid);
-  userStmt.bindParam(1, uname);
-  userStmt.bindParam(2, ca);
-  userStmt.bindParam(3, 0);
+  userStmt->setNumber(1, uid);
+  userStmt->setString(2, uname);
+  userStmt->setString(3, ca);
+  userStmt->setNumber(4, 0);
 
-  userStmt.execute();
+  userStmt->executeUpdate();
 
   // Commit
   transaction.commit();
@@ -1668,40 +1762,43 @@ UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca
 
 
 
-GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
+GroupInfo NsOracleCatalog::newGroup(const std::string& gname) throw (DmException)
 {
   Transaction transaction(this->conn_);
 
   // Get the last gid, increment and update
-  Statement gidStmt(this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE));
+  occi::Statement* gidStmt = this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE);
   gid_t     gid;
 
-  gidStmt.execute();
-  gidStmt.bindResult(0, &gid);
+  occi::ResultSet* rs = gidStmt->executeQuery();
 
   // Update the gid
-  if (gidStmt.fetch()) {
-    Statement updateGidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_GID));
+  if (rs->next()) {
+    gid = rs->getNumber(1);
     ++gid;
-    updateGidStmt.bindParam(0, gid);
-    updateGidStmt.execute();
+
+    occi::Statement* updateGidStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_GID);
+    updateGidStmt->setNumber(1, gid);
+    updateGidStmt->executeUpdate();
   }
   // Couldn't get, so insert it instead
   else {
-    Statement insertGidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_GID));
     gid = 1;
-    insertGidStmt.bindParam(0, gid);
-    insertGidStmt.execute();
+    occi::Statement* insertGidStmt = this->getPreparedStatement(STMT_INSERT_UNIQ_GID);
+    insertGidStmt->setNumber(1, gid);
+    insertGidStmt->executeUpdate();
   }
 
+  gidStmt->closeResultSet(rs);
+
   // Insert the group
-  Statement groupStmt(this->getPreparedStatement(STMT_INSERT_GROUP));
+  occi::Statement* groupStmt = this->getPreparedStatement(STMT_INSERT_GROUP);
 
-  groupStmt.bindParam(0, gid);
-  groupStmt.bindParam(1, gname);
-  groupStmt.bindParam(2, 0);
+  groupStmt->setNumber(1, gid);
+  groupStmt->setString(2, gname);
+  groupStmt->setNumber(3, 0);
 
-  groupStmt.execute();
+  groupStmt->executeUpdate();
 
   // Commit
   transaction.commit();
