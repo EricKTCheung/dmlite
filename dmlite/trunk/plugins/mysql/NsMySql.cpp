@@ -455,7 +455,7 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
     *parentPath += components.front() + "/";
     components.pop_front();
   }
-  if (!path[0] == '/')
+  if (path[0] == '/')
     *parentPath = "/" + *parentPath;
 
   *name = components.front();
