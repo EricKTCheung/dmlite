@@ -11,7 +11,16 @@ const char* TestBase::TEST_USER_2 = "/C=CH/O=CERN/OU=GD/CN=Test user 1";
 
 TestBase::TestBase(): pluginManager(0x00), catalog(0x00)
 {
-  // Nothing
+  const char *testHome;
+
+  // Get the test root directory
+  if ((testHome = getenv("DPNS_HOME")) != NULL)
+    BASE_DIR = std::string(testHome);
+  else if ((testHome = getenv("LFC_HOME")) != NULL)
+    BASE_DIR = std::string(testHome);
+  else
+    throw dmlite::DmException(DM_INVALID_VALUE,
+                              "Could not guess the test directory. Try setting DPNS_HOME or LFC_HOME");
 }
 
 
@@ -44,6 +53,9 @@ void TestBase::setUp()
 
   user_groups.clear();
   user_groups.push_back("org.glite.voms-test");
+
+  // Change dir
+  this->catalog->changeDir(BASE_DIR);
 }
 
 

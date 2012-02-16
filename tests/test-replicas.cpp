@@ -64,8 +64,8 @@ public:
 };
 
 const int   TestReplicas::MODE   = 0700;
-const char* TestReplicas::FOLDER = "/dpm/cern.ch/home/dteam/test-replica";
-const char* TestReplicas::FILE   = "/dpm/cern.ch/home/dteam/test-replica/file";
+const char* TestReplicas::FOLDER = "test-replica";
+const char* TestReplicas::FILE   = "test-replica/file";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestReplicas);
 

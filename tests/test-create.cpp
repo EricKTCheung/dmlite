@@ -25,23 +25,12 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
-      try {
-        this->catalog->unlink(FILE);
-      }
-      catch (...) { }
-
-      try {
-        this->catalog->unlink(SYMLINK);
-      }
-      catch (...) { }
-
-      try {
-        this->catalog->removeDir(NESTED);
-      }
-      catch (...) { }
+      IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
+      IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
+      IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));
 
       this->catalog->umask(022);
-      this->catalog->removeDir(FOLDER);
+      IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
     }
     TestBase::tearDown();
   }
@@ -182,10 +171,10 @@ public:
 };
 
 const int   TestCreate::MODE    = 0700;
-const char* TestCreate::FOLDER  = "/dpm/cern.ch/home/dteam/test-create";
-const char* TestCreate::NESTED  = "/dpm/cern.ch/home/dteam/test-create/nested////";
-const char* TestCreate::SYMLINK = "/dpm/cern.ch/home/dteam/test-create/test-link";
-const char* TestCreate::FILE    = "/dpm/cern.ch/home/dteam/test-create/test-file";
+const char* TestCreate::FOLDER  = "test-create";
+const char* TestCreate::NESTED  = "test-create/nested////";
+const char* TestCreate::SYMLINK = "test-create/test-link";
+const char* TestCreate::FILE    = "test-create/test-file";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestCreate);
 

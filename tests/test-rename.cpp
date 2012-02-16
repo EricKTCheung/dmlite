@@ -135,13 +135,13 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestRename);
 
-const char* TestRename::SOURCE_FILE      = "/dpm/cern.ch/home/dteam/test-rename-source";
-const char* TestRename::DEST_FILE        = "/dpm/cern.ch/home/dteam/test-rename-dest";
-const char* TestRename::SOURCE_DIR       = "/dpm/cern.ch/home/dteam/test-dir-source";
-const char* TestRename::DEST_DIR         = "/dpm/cern.ch/home/dteam/test-dir-dest";
-const char* TestRename::NESTED_DIR       = "/dpm/cern.ch/home/dteam/test-dir-source/something";
-const char* TestRename::NESTED_FILE      = "/dpm/cern.ch/home/dteam/test-dir-source/something-else";
-const char* TestRename::NESTED_DEST_FILE = "/dpm/cern.ch/home/dteam/test-dir-dest/something-else";
+const char* TestRename::SOURCE_FILE      = "test-rename-source";
+const char* TestRename::DEST_FILE        = "test-rename-dest";
+const char* TestRename::SOURCE_DIR       = "test-dir-source";
+const char* TestRename::DEST_DIR         = "test-dir-dest";
+const char* TestRename::NESTED_DIR       = "test-dir-source/something";
+const char* TestRename::NESTED_FILE      = "test-dir-source/something-else";
+const char* TestRename::NESTED_DEST_FILE = "test-dir-dest/something-else";
 
 int main(int argn, char **argv)
 {

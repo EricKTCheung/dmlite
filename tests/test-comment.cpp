@@ -36,7 +36,7 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestComment);
 
-const char* TestComment::FILE = "/dpm/cern.ch/home/dteam/test-comment";
+const char* TestComment::FILE = "test-comment";
 
 int main(int argn, char **argv)
 {

@@ -70,7 +70,7 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
-const char* TestGuid::FILE = "/dpm/cern.ch/home/dteam/test-guid";
+const char* TestGuid::FILE = "test-guid";
 const char* TestGuid::GUID = "1234-5678-FF-4321";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestGuid);

@@ -13,31 +13,14 @@ protected:
   const static char *SYMLINK;
   const static char *RELATIVE;
   const static char *SYMREL;
-  const static char *TEST_USER;
-  const static char *TEST_USER_2;
 
-  uid_t uid, uid2;
-  gid_t gid, gid2;
 public:
 
   void setUp()
   {
     TestBase::setUp();
-    std::vector<std::string> empty;
-    std::vector<gid_t>       gids;
 
-
-    this->catalog->getIdMap(TEST_USER, empty, &uid, &gids);
-    if (gids.size() == 0)
-      throw dmlite::DmException(DM_NO_SUCH_GROUP, std::string("No GID's given for ") + TEST_USER);
-    gid = gids[0];
-    this->catalog->setUserId(uid, gid, TEST_USER);
-    
-    this->catalog->getIdMap(TEST_USER_2, empty, &uid2, &gids);
-    if (gids.size() == 0)
-      throw dmlite::DmException(DM_NO_SUCH_GROUP, std::string("No GID's given for ") + TEST_USER_2);
-    gid2 = gids[0];
-
+    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
     this->catalog->makeDir(FOLDER, MODE);
     this->catalog->makeDir(NESTED, MODE);
 
@@ -48,12 +31,12 @@ public:
   void tearDown()
   {
     if (this->catalog) {
-      this->catalog->setUserId(uid, gid, TEST_USER);
+      this->catalog->setUserId(uid1, gid1_1, TEST_USER);
 
-      this->catalog->unlink(SYMLINK);
-      this->catalog->unlink(SYMREL);
-      this->catalog->removeDir(NESTED);
-      this->catalog->removeDir(FOLDER);
+      IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
+      IGNORE_NOT_EXIST(this->catalog->unlink(SYMREL));
+      IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));
+      IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
     }
     TestBase::tearDown();
   }
@@ -119,14 +102,12 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
-const int   TestStat::MODE    = 0700;
-const char* TestStat::FOLDER  = "/dpm/cern.ch/home/dteam/test-stat";
-const char* TestStat::NESTED  = "/dpm/cern.ch/home/dteam/test-stat/nested";
-const char* TestStat::SYMLINK = "/dpm/cern.ch/home/dteam/test-link";
-const char* TestStat::RELATIVE = "/dpm/cern.ch/home/dteam/../../home/dteam/test-stat";
-const char* TestStat::SYMREL   = "/dpm/cern.ch/home/dteam/test-link-rel";
-const char* TestStat::TEST_USER   = "/C=CH/O=CERN/OU=GD/CN=Test user 0";
-const char* TestStat::TEST_USER_2 = "/C=CH/O=CERN/OU=GD/CN=Test user 1";
+const int   TestStat::MODE        = 0700;
+const char* TestStat::FOLDER      = "test-stat";
+const char* TestStat::NESTED      = "test-stat/nested";
+const char* TestStat::SYMLINK     = "test-link";
+const char* TestStat::RELATIVE    = "test-stat/../test-stat/nested";
+const char* TestStat::SYMREL      = "test-link-rel";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestStat);
 

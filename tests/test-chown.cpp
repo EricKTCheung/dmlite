@@ -114,7 +114,7 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestChown);
 
-const char* TestChown::FILE        = "/dpm/cern.ch/home/dteam/test-chown";
+const char* TestChown::FILE        = "test-chown";
 
 int main(int argn, char **argv)
 {
