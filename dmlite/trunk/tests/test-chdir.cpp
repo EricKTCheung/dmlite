@@ -7,58 +7,52 @@ class TestChDir: public TestBase
 {
 protected:
   struct stat statBuf;
-  const static int   MODE;
   const static char *FOLDER;
-  const static char *NESTED;
 
 public:
 
   void setUp()
   {
     TestBase::setUp();
-
-    try {
-      this->catalog->makeDir(FOLDER, MODE);
-    } catch (dmlite::DmException e) {
-      if (e.code() != DM_EXISTS)
-        throw;
-    }
-    try {
-      this->catalog->makeDir(std::string(FOLDER) + "/" + std::string(NESTED), MODE);
-    } catch (dmlite::DmException e) {
-      if (e.code() != DM_EXISTS)
-        throw;
-    }
   }
 
   void tearDown()
   {
-    if (this->catalog) {
-      this->catalog->changeDir("/");
-      this->catalog->removeDir(std::string(FOLDER) + "/" + std::string(NESTED));
-      this->catalog->removeDir(FOLDER);
-    }
+    this->catalog->changeDir(BASE_DIR);
+    IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
     TestBase::tearDown();
   }
 
   void testRegular()
   {
+    this->catalog->changeDir(BASE_DIR);
+    CPPUNIT_ASSERT_EQUAL(std::string(BASE_DIR), this->catalog->getWorkingDir());
+
+    statBuf = this->catalog->stat(".");
+    CPPUNIT_ASSERT_EQUAL(S_IFDIR, (int)statBuf.st_mode & S_IFMT);
+  }
+
+  void testRemoveCwd()
+  {
+    this->catalog->makeDir(FOLDER, 0775);
     this->catalog->changeDir(FOLDER);
 
-    statBuf = this->catalog->stat(NESTED);
-    CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
-
-    CPPUNIT_ASSERT_EQUAL(std::string(FOLDER), this->catalog->getWorkingDir());
+    try {
+      this->catalog->removeDir(std::string(BASE_DIR) + "/" + FOLDER);
+      CPPUNIT_FAIL("Should have failed");
+    }
+    catch (dmlite::DmException e) {
+      CPPUNIT_ASSERT_EQUAL(DM_IS_CWD, e.code());
+    }
   }
 
   CPPUNIT_TEST_SUITE(TestChDir);
   CPPUNIT_TEST(testRegular);
+  CPPUNIT_TEST(testRemoveCwd);
   CPPUNIT_TEST_SUITE_END();
 };
 
-const int   TestChDir::MODE    = 0755;
-const char* TestChDir::FOLDER  = "/dpm/cern.ch/home/dteam/test-chdir";
-const char* TestChDir::NESTED  = "chdir";
+const char* TestChDir::FOLDER  = "test-chdir";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestChDir);
 

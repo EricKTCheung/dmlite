@@ -26,6 +26,8 @@ protected:
 
   std::vector<std::string> user_groups;
 
+  std::string BASE_DIR;
+
 private:
   friend int testBaseMain(int, char**);
   static const char *config;
