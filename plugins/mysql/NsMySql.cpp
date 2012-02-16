@@ -208,7 +208,7 @@ MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
                                unsigned int symLinkLimit) throw(DmException):
-                umask_(022),  nsDb_(db), symLinkLimit_(symLinkLimit),
+                cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit),
                 preparedStmt_(STMT_SENTINEL, 0x00)
 {
   this->connectionPool_ = connPool;
@@ -465,7 +465,7 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
   if (!parentPath->empty())
     return this->parsePath(*parentPath);
   else if (!this->cwdPath_.empty())
-    return this->cwdMeta_;
+    return this->getFile(this->cwd_);
   else
     return this->parsePath("/");
 }
@@ -493,8 +493,8 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
   }
   // Relative, and cwd set, so start there
   else {
-    meta   = this->cwdMeta_;
-    parent = meta.xStat.stat.st_ino;
+    parent = this->cwd_;
+    meta   = this->getFile(parent);
   }
   
 
@@ -576,8 +576,9 @@ void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmExcept
 
 void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  this->cwdMeta_ = this->parsePath(path);
+  FileMetadata cwd = this->parsePath(path);
   this->cwdPath_ = path;
+  this->cwd_     = cwd.xStat.stat.st_ino;
 }
 
 
@@ -1262,8 +1263,7 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   if (!S_ISDIR(entry.xStat.stat.st_mode))
     throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
 
-  if (!this->cwdPath_.empty() &&
-       this->cwdMeta_.xStat.stat.st_ino == entry.xStat.stat.st_ino)
+  if (this->cwd_ == entry.xStat.stat.st_ino)
     throw DmException(DM_IS_CWD, "Can not remove the current working dir");
 
   if (entry.xStat.stat.st_nlink > 0)
@@ -1325,7 +1325,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
   FileMetadata old = this->getFile(oldName, oldParent.xStat.stat.st_ino);
 
   // Is the cwd?
-  if (!this->cwdPath_.empty() && old.xStat.stat.st_ino == this->cwdMeta_.xStat.stat.st_ino) {
+  if (old.xStat.stat.st_ino == this->cwd_) {
     throw DmException(DM_IS_CWD, "Can not rename the current working directory");
   }
 
