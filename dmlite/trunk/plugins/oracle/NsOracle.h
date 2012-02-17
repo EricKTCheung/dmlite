@@ -12,22 +12,10 @@
 
 namespace dmlite {
 
-/// Symbolic links
-struct SymLink {
-  uint64_t fileId;         ///< The file unique ID.
-  char     link[PATH_MAX]; ///< Where the link is pointing to.
-};
-
-/// File metadata as is in the DB
-struct FileMetadata {
-  struct xstat xStat;
-  char         acl[ACL_ENTRIES_MAX * 13];
-};
-
 /// Struct used internally to read directories.
 struct NsOracleDir {
   uint64_t                 dirId;         ///< The directory ID.
-  FileMetadata             current;       ///< Current entry metadata.
+  ExtendedStat             current;       ///< Current entry metadata.
   struct direntstat        ds;            ///< The structure used to hold the returned data.
   oracle::occi::Statement *stmt;          ///< The statement.
   oracle::occi::ResultSet *rs;            ///< The result set.
@@ -64,11 +52,11 @@ public:
   void        changeDir    (const std::string&) throw (DmException);
   std::string getWorkingDir(void)               throw (DmException);
 
-  struct stat  stat        (const std::string&) throw (DmException);
-  struct stat  stat        (ino_t)              throw (DmException);
-  struct stat  linkStat    (const std::string&) throw (DmException);
-  struct xstat extendedStat(const std::string&) throw (DmException);
-  struct xstat extendedStat(ino_t)              throw (DmException);
+  ExtendedStat extendedStat(const std::string&, bool = true) throw (DmException);
+  ExtendedStat extendedStat(ino_t)              throw (DmException);
+  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
+
+  SymLink readLink(ino_t) throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,
                   const std::string&, char, char,
@@ -165,27 +153,9 @@ private:
   /// @return     A pointer to a Oracle statement.
   oracle::occi::Statement* getPreparedStatement(unsigned stId);
 
-  /// Get a file using its unique ID.
-  /// @param fileId The file unique ID.
-  FileMetadata getFile(uint64_t fileId) throw (DmException);
-
   /// Get a file using its GUID.
   /// @param guid The file GUID.
-  FileMetadata getFile(const std::string& guid) throw (DmException);
-
-  /// Get a file from a directory using its name.
-  /// @param name     The file name (NOT path).
-  /// @param parentId The parent directory unique ID.
-  FileMetadata getFile(const std::string& name, uint64_t parentId) throw (DmException);
-
-  /// Get a symbolic link using its unique ID.
-  /// @param linkId The link ID.
-  SymLink getLink(uint64_t linkId) throw (DmException);
-
-  /// Parses a path looking for a file, and returns its metadata.
-  /// @param path     The file path.
-  /// @param folloSym If symbolic links must be followed.
-  FileMetadata parsePath(const std::string& path, bool followSym = true) throw (DmException);
+  ExtendedStat guidStat(const std::string& guid) throw (DmException);
 
   /// Create a file/directory and returns its metadata.
   /// @param parent    The parent metadata.
@@ -199,7 +169,7 @@ private:
   /// @param csumvalue The checksum value.
   /// @param acl       The access control list.
   /// @note No transaction is used! Calling method is supposed to do it.
-  FileMetadata newFile(FileMetadata& parent, const std::string& name, mode_t mode,
+  ExtendedStat newFile(ExtendedStat& parent, const std::string& name, mode_t mode,
                        long nlink, size_t size, short type, char status,
                        const std::string& csumtype, const std::string& csumvalue,
                        const std::string& acl) throw (DmException);
@@ -209,7 +179,7 @@ private:
   /// @param parentPath Where to put the parent path.
   /// @param name       Where to put the file name (stripping last /).
   /// @return           The parent metadata.
-  FileMetadata getParent(const std::string& path, std::string* parentPath,
+  ExtendedStat getParent(const std::string& path, std::string* parentPath,
                          std::string* name) throw (DmException);
 
   /// Add a new user.
@@ -229,12 +199,12 @@ private:
   /// @param meta
   /// @param newUid
   /// @param newGid
-  void changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid) throw (DmException);
+  void changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid) throw (DmException);
 
   /// Traverse backwards to check permissions.
   /// @param file The file at the end
   /// @note       Throws an exception if it is not possible.
-  void traverseBackwards(const FileMetadata& meta) throw (DmException);
+  void traverseBackwards(const ExtendedStat& meta) throw (DmException);
 
 };
 

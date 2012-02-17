@@ -97,63 +97,15 @@ std::string NsAdapterCatalog::getWorkingDir(void) throw (DmException)
 
 
 
-struct stat NsAdapterCatalog::stat(const std::string& path) throw (DmException)
-{
-  struct dpns_filestat dpnsStat;
-  struct stat          stStat;
-
-  wrapCall(dpns_stat(path.c_str(), &dpnsStat));
-
-  stStat.st_atim.tv_sec = dpnsStat.atime;
-  stStat.st_ctim.tv_sec = dpnsStat.ctime;
-  stStat.st_mtim.tv_sec = dpnsStat.mtime;
-  stStat.st_gid   = dpnsStat.gid;
-  stStat.st_uid   = dpnsStat.uid;
-  stStat.st_nlink = dpnsStat.nlink;
-  stStat.st_ino   = dpnsStat.fileid;
-  stStat.st_mode  = dpnsStat.filemode;
-  stStat.st_size  = dpnsStat.filesize;
-
-  return stStat;
-}
-
-
-
-struct stat NsAdapterCatalog::stat(ino_t) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
-struct stat NsAdapterCatalog::linkStat(const std::string& path) throw (DmException)
-{
-  struct dpns_filestat dpnsStat;
-  struct stat          stStat;
-
-  wrapCall(dpns_lstat(path.c_str(), &dpnsStat));
-
-  stStat.st_atim.tv_sec = dpnsStat.atime;
-  stStat.st_ctim.tv_sec = dpnsStat.ctime;
-  stStat.st_mtim.tv_sec = dpnsStat.mtime;
-  stStat.st_gid   = dpnsStat.gid;
-  stStat.st_uid   = dpnsStat.uid;
-  stStat.st_nlink = dpnsStat.nlink;
-  stStat.st_ino   = dpnsStat.fileid;
-  stStat.st_mode  = dpnsStat.filemode;
-  stStat.st_size  = dpnsStat.filesize;
-
-  return stStat;
-}
-
-
-
-struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmException)
+ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   struct dpns_filestat dpnsStat;
   struct xstat         xStat;
 
-  wrapCall(dpns_stat(path.c_str(), &dpnsStat));
+  if (follow)
+    wrapCall(dpns_stat(path.c_str(), &dpnsStat));
+  else
+    wrapCall(dpns_lstat(path.c_str(), &dpnsStat));
 
   xStat.stat.st_atim.tv_sec = dpnsStat.atime;
   xStat.stat.st_ctim.tv_sec = dpnsStat.ctime;
@@ -174,7 +126,21 @@ struct xstat NsAdapterCatalog::extendedStat(const std::string& path) throw (DmEx
 
 
 
-struct xstat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
+ExtendedStat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
+}
+
+
+
+ExtendedStat NsAdapterCatalog::extendedStat(ino_t, const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
+}
+
+
+
+SymLink NsAdapterCatalog::readLink(ino_t inode) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
 }

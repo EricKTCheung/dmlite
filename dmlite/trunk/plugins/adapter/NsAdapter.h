@@ -39,11 +39,11 @@ public:
   void        changeDir    (const std::string&) throw (DmException);
   std::string getWorkingDir(void)               throw (DmException);
 
-  struct stat  stat        (const std::string&) throw (DmException);
-  struct stat  stat        (ino_t)              throw (DmException);
-  struct stat  linkStat    (const std::string&) throw (DmException);
-  struct xstat extendedStat(const std::string&) throw (DmException);
-  struct xstat extendedStat(ino_t)              throw (DmException);
+  ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
+  ExtendedStat extendedStat(ino_t)              throw (DmException);
+  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
+
+  SymLink readLink(ino_t) throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,
                   const std::string&, char, char,

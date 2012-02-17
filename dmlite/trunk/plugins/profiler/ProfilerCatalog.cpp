@@ -77,6 +77,13 @@ struct stat ProfilerCatalog::stat(ino_t inode) throw (DmException)
 
 
 
+struct stat ProfilerCatalog::stat(ino_t parent, const std::string& name) throw (DmException)
+{
+  PROFILE_RETURN(struct stat, stat, parent, name);
+}
+
+
+
 struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(struct stat, linkStat, path);
@@ -84,16 +91,30 @@ struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmExceptio
 
 
 
-struct xstat ProfilerCatalog::extendedStat(const std::string& path) throw (DmException)
+ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
-  PROFILE_RETURN(struct xstat, extendedStat, path);
+  PROFILE_RETURN(ExtendedStat, extendedStat, path, follow);
 }
 
 
 
-struct xstat ProfilerCatalog::extendedStat(ino_t inode) throw (DmException)
+ExtendedStat ProfilerCatalog::extendedStat(ino_t inode) throw (DmException)
 {
-  PROFILE_RETURN(struct xstat, extendedStat, inode);
+  PROFILE_RETURN(ExtendedStat, extendedStat, inode);
+}
+
+
+
+ExtendedStat ProfilerCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
+{
+  PROFILE_RETURN(ExtendedStat, extendedStat, parent, name);
+}
+
+
+
+SymLink ProfilerCatalog::readLink(ino_t inode) throw (DmException)
+{
+  PROFILE_RETURN(SymLink, readLink, inode);
 }
 
 

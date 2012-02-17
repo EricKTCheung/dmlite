@@ -66,37 +66,30 @@ std::string DummyCatalog::getWorkingDir(void) throw (DmException)
 
 
 
-struct stat DummyCatalog::stat(const std::string& path) throw (DmException)
+ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
-  DELEGATE_RETURN(stat, path);
+  DELEGATE_RETURN(extendedStat, path, follow);
 }
 
 
 
-struct stat DummyCatalog::stat(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(stat, inode);
-}
-
-
-
-struct stat DummyCatalog::linkStat(const std::string& path) throw (DmException)
-{
-  DELEGATE_RETURN(linkStat, path);
-}
-
-
-
-struct xstat DummyCatalog::extendedStat(const std::string& path) throw (DmException)
-{
-  DELEGATE_RETURN(extendedStat, path);
-}
-
-
-
-struct xstat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
+ExtendedStat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
 {
   DELEGATE_RETURN(extendedStat, inode);
+}
+
+
+
+ExtendedStat DummyCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
+{
+  DELEGATE_RETURN(extendedStat, parent, name);
+}
+
+
+
+SymLink DummyCatalog::readLink(ino_t inode) throw (DmException)
+{
+  DELEGATE_RETURN(readLink, inode);
 }
 
 
