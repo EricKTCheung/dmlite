@@ -246,35 +246,35 @@ void NsMySqlCatalog::set(const std::string& key, va_list varg) throw(DmException
 
 
 
-static void bindMetadata(Statement& stmt, FileMetadata* meta) throw(DmException)
+static void bindMetadata(Statement& stmt, ExtendedStat* meta) throw(DmException)
 {
-  stmt.bindResult( 0, &meta->xStat.stat.st_ino);
-  stmt.bindResult( 1, &meta->xStat.parent);
-  stmt.bindResult( 2, meta->xStat.guid, sizeof(meta->xStat.guid));
-  stmt.bindResult( 3, meta->xStat.name, sizeof(meta->xStat.name));
-  stmt.bindResult( 4, &meta->xStat.stat.st_mode);
-  stmt.bindResult( 5, &meta->xStat.stat.st_nlink);
-  stmt.bindResult( 6, &meta->xStat.stat.st_uid);
-  stmt.bindResult( 7, &meta->xStat.stat.st_gid);
-  stmt.bindResult( 8, &meta->xStat.stat.st_size);
-  stmt.bindResult( 9, &meta->xStat.stat.st_atime);
-  stmt.bindResult(10, &meta->xStat.stat.st_mtime);
-  stmt.bindResult(11, &meta->xStat.stat.st_ctime);
-  stmt.bindResult(12, &meta->xStat.type);
-  stmt.bindResult(13, &meta->xStat.status, 1);
-  stmt.bindResult(14, meta->xStat.csumtype,  sizeof(meta->xStat.csumtype));
-  stmt.bindResult(15, meta->xStat.csumvalue, sizeof(meta->xStat.csumvalue));
+  stmt.bindResult( 0, &meta->stat.st_ino);
+  stmt.bindResult( 1, &meta->parent);
+  stmt.bindResult( 2, meta->guid, sizeof(meta->guid));
+  stmt.bindResult( 3, meta->name, sizeof(meta->name));
+  stmt.bindResult( 4, &meta->stat.st_mode);
+  stmt.bindResult( 5, &meta->stat.st_nlink);
+  stmt.bindResult( 6, &meta->stat.st_uid);
+  stmt.bindResult( 7, &meta->stat.st_gid);
+  stmt.bindResult( 8, &meta->stat.st_size);
+  stmt.bindResult( 9, &meta->stat.st_atime);
+  stmt.bindResult(10, &meta->stat.st_mtime);
+  stmt.bindResult(11, &meta->stat.st_ctime);
+  stmt.bindResult(12, &meta->type);
+  stmt.bindResult(13, &meta->status, 1);
+  stmt.bindResult(14, meta->csumtype,  sizeof(meta->csumtype));
+  stmt.bindResult(15, meta->csumvalue, sizeof(meta->csumvalue));
   stmt.bindResult(16, meta->acl, sizeof(meta->acl), 0);
 }
 
 
 
-FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
+ExtendedStat NsMySqlCatalog::extendedStat(uint64_t fileId) throw(DmException)
 {
   Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_ID));
-  FileMetadata meta;
+  ExtendedStat meta;
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   stmt.bindParam(0, fileId);
   stmt.execute();
@@ -288,12 +288,12 @@ FileMetadata NsMySqlCatalog::getFile(uint64_t fileId) throw(DmException)
 
 
 
-FileMetadata NsMySqlCatalog::getFile(const std::string& guid) throw (DmException)
+ExtendedStat NsMySqlCatalog::guidStat(const std::string& guid) throw (DmException)
 {
   Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_GUID));
-  FileMetadata meta;
+  ExtendedStat meta;
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   stmt.bindParam(0, guid);
   stmt.execute();
@@ -308,12 +308,12 @@ FileMetadata NsMySqlCatalog::getFile(const std::string& guid) throw (DmException
 
 
 
-FileMetadata NsMySqlCatalog::getFile(const std::string& name, uint64_t parent) throw(DmException)
+ExtendedStat NsMySqlCatalog::extendedStat(uint64_t parent, const std::string& name) throw(DmException)
 {
   Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_NAME));
-  FileMetadata meta;
+  ExtendedStat meta;
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   stmt.bindParam(0, parent);
   stmt.bindParam(1, name);
@@ -329,7 +329,7 @@ FileMetadata NsMySqlCatalog::getFile(const std::string& name, uint64_t parent) t
 
 
 
-SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
+SymLink NsMySqlCatalog::readLink(uint64_t linkId) throw(DmException)
 {
   Statement stmt(this->getPreparedStatement(STMT_GET_SYMLINK));
   SymLink   link;
@@ -351,7 +351,7 @@ SymLink NsMySqlCatalog::getLink(uint64_t linkId) throw(DmException)
 
 
 
-FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& name,
+ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& name,
                                      mode_t mode, long nlink, size_t size,
                                      short type, char status,
                                      const std::string& csumtype,
@@ -363,7 +363,7 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
 
   // Destination must not exist!
   try {
-    FileMetadata f = this->getFile(name, parent.xStat.stat.st_ino);
+    ExtendedStat f = this->extendedStat(parent.stat.st_ino, name);
     throw DmException(DM_EXISTS, name + " already exists");
   }
   catch (DmException e) {
@@ -373,7 +373,7 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
 
   // Check the parent!
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       parent.acl, parent.xStat.stat,
+                       parent.acl, parent.stat,
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
@@ -399,8 +399,8 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   }
 
   // Check SGID
-  if (parent.xStat.stat.st_mode & S_ISGID) {
-    egid = parent.xStat.stat.st_gid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
     mode |= S_ISGID;
   }
   else {
@@ -411,7 +411,7 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   Statement fileStmt(this->getPreparedStatement(STMT_INSERT_FILE));
 
   fileStmt.bindParam( 0, newFileId);
-  fileStmt.bindParam( 1, parent.xStat.stat.st_ino);
+  fileStmt.bindParam( 1, parent.stat.st_ino);
   fileStmt.bindParam( 2, name);
   fileStmt.bindParam( 3, mode);
   fileStmt.bindParam( 4, nlink);
@@ -429,19 +429,19 @@ FileMetadata NsMySqlCatalog::newFile(FileMetadata& parent, const std::string& na
   // Increment the nlink
   Statement nlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
-  parent.xStat.stat.st_nlink++;
-  nlinkStmt.bindParam(0, parent.xStat.stat.st_nlink);
-  nlinkStmt.bindParam(1, parent.xStat.stat.st_ino);
+  parent.stat.st_nlink++;
+  nlinkStmt.bindParam(0, parent.stat.st_nlink);
+  nlinkStmt.bindParam(1, parent.stat.st_ino);
 
   nlinkStmt.execute();
 
   // Return back
-  return this->getFile(newFileId);
+  return this->extendedStat(newFileId);
 }
 
 
 
-FileMetadata NsMySqlCatalog::getParent(const std::string& path,
+ExtendedStat NsMySqlCatalog::getParent(const std::string& path,
                                        std::string* parentPath,
                                        std::string* name) throw (DmException)
 {
@@ -463,16 +463,16 @@ FileMetadata NsMySqlCatalog::getParent(const std::string& path,
 
   // Get the files now
   if (!parentPath->empty())
-    return this->parsePath(*parentPath);
+    return this->extendedStat(*parentPath);
   else if (!this->cwdPath_.empty())
-    return this->getFile(this->cwd_);
+    return this->extendedStat(this->cwd_);
   else
-    return this->parsePath("/");
+    return this->extendedStat("/");
 }
 
 
 
-FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) throw(DmException)
+ExtendedStat NsMySqlCatalog::extendedStat(const std::string& path, bool followSym) throw(DmException)
 {
   // Split the path always assuming absolute
   std::list<std::string> components = splitPath(path);
@@ -480,7 +480,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
   // Iterate starting from absolute root (parent of /) (0)
   uint64_t     parent       = 0;
   unsigned     symLinkLevel = 0;
-  FileMetadata meta;
+  ExtendedStat meta;
   std::string  c;
 
   // If path is absolute OR cwd is empty, start in root
@@ -488,24 +488,24 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
     // Push "/", as we have to look for it too
     components.push_front("/");
     // Root parent "is" a dir and world-readable :)
-    memset(&meta, 0x00, sizeof(FileMetadata));
-    meta.xStat.stat.st_mode = S_IFDIR | 0555 ;
+    memset(&meta, 0x00, sizeof(ExtendedStat));
+    meta.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
   else {
     parent = this->cwd_;
-    meta   = this->getFile(parent);
+    meta   = this->extendedStat(parent);
   }
   
 
   while (!components.empty()) {
     // Check that the parent is a directory first
-    if (!S_ISDIR(meta.xStat.stat.st_mode) && !S_ISLNK(meta.xStat.stat.st_mode))
-      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.xStat.name);
+    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
+      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.xStat.stat, S_IEXEC) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.xStat.name);
+                         meta.acl, meta.stat, S_IEXEC) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
 
     // Pop next component
     c = components.front();
@@ -517,16 +517,16 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
     }
     // Up one level
     else if (c == "..") {
-      meta   = this->getFile(parent);
-      parent = meta.xStat.parent;
+      meta   = this->extendedStat(parent);
+      parent = meta.parent;
     }
     // Regular entry
     else {
-      meta = this->getFile(c, parent);
+      meta = this->extendedStat(parent, c);
 
       // Symbolic link!, follow that instead
-      if (S_ISLNK(meta.xStat.stat.st_mode) && followSym) {
-        SymLink link = this->getLink(meta.xStat.stat.st_ino);
+      if (S_ISLNK(meta.stat.st_mode) && followSym) {
+        SymLink link = this->readLink(meta.stat.st_ino);
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
@@ -547,7 +547,7 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
       }
       // Next one!
       else {
-        parent = meta.xStat.stat.st_ino;
+        parent = meta.stat.st_ino;
       }
     }
     
@@ -558,17 +558,17 @@ FileMetadata NsMySqlCatalog::parsePath(const std::string& path, bool followSym) 
 
 
 
-void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmException)
+void NsMySqlCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmException)
 {
-  FileMetadata current = meta;
+  ExtendedStat current = meta;
 
   // We want to check if we can arrive here...
-  while (current.xStat.parent != 0) {
-    current = this->getFile(current.xStat.parent);
+  while (current.parent != 0) {
+    current = this->extendedStat(current.parent);
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                         current.acl, current.xStat.stat, S_IEXEC))
+                         current.acl, current.stat, S_IEXEC))
       throw DmException(DM_FORBIDDEN, "Can not access #%ld",
-                        current.xStat.stat.st_ino);
+                        current.stat.st_ino);
   }
 }
 
@@ -576,9 +576,9 @@ void NsMySqlCatalog::traverseBackwards(const FileMetadata& meta) throw (DmExcept
 
 void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  FileMetadata cwd = this->parsePath(path);
+  ExtendedStat cwd = this->extendedStat(path);
   this->cwdPath_ = path;
-  this->cwd_     = cwd.xStat.stat.st_ino;
+  this->cwd_     = cwd.stat.st_ino;
 }
 
 
@@ -590,62 +590,22 @@ std::string NsMySqlCatalog::getWorkingDir(void) throw (DmException)
 
 
 
-struct stat NsMySqlCatalog::stat(const std::string& path) throw(DmException)
-{
-  FileMetadata meta = this->parsePath(path);
-  return meta.xStat.stat;
-}
-
-
-
-struct stat NsMySqlCatalog::stat(ino_t inode) throw (DmException)
-{
-  FileMetadata meta = this->getFile(inode);
-  return meta.xStat.stat;
-}
-
-
-
-struct stat NsMySqlCatalog::linkStat(const std::string& path) throw(DmException)
-{
-  FileMetadata meta = this->parsePath(path, false);
-  return meta.xStat.stat;
-}
-
-
-
-struct xstat NsMySqlCatalog::extendedStat(const std::string& path) throw (DmException)
-{
-  FileMetadata meta = this->parsePath(path);
-  return meta.xStat;
-}
-
-
-
-struct xstat NsMySqlCatalog::extendedStat(ino_t inode) throw (DmException)
-{
-  FileMetadata meta = this->getFile(inode);
-  return meta.xStat;
-}
-
-
-
 Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
 {
   NsMySqlDir  *dir;
-  FileMetadata meta;
+  ExtendedStat meta;
 
   // Get the directory
-  meta = this->parsePath(path);
+  meta = this->extendedStat(path);
   
   // Can we read it?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Create the handle
   dir = new NsMySqlDir();
-  dir->dirId = meta.xStat.stat.st_ino;
+  dir->dirId = meta.stat.st_ino;
   
   try {
     dir->stmt = new Statement(this->getPreparedStatement(STMT_GET_LIST_FILES));
@@ -697,11 +657,11 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
   dirp = (NsMySqlDir*)dir;
 
   if (dirp->stmt->fetch()) {
-    memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
+    memcpy(&dirp->ds.stat, &dirp->current.stat, sizeof(struct stat));
     memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
     dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
     strncpy(dirp->ds.dirent.d_name,
-            dirp->current.xStat.name,
+            dirp->current.name,
             sizeof(dirp->ds.dirent.d_name));
     return &dirp->ds;
   }
@@ -718,25 +678,25 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
                                 const std::string& poolName,
                                 const std::string& fileSystem) throw (DmException)
 {
-  FileMetadata meta;
+  ExtendedStat meta;
 
   if (guid.empty())
-    meta = this->getFile(id);
+    meta = this->extendedStat(id);
   else
-    meta = this->getFile(guid);
+    meta = this->guidStat(guid);
 
   // Access has to be checked backwards!
   this->traverseBackwards(meta);
 
   // Can write?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+                       meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
   // Add it
   Statement statement(this->getPreparedStatement(STMT_ADD_REPLICA));
 
-  statement.bindParam(0, meta.xStat.stat.st_ino);
+  statement.bindParam(0, meta.stat.st_ino);
   statement.bindParam(1, NULL, 0);
   statement.bindParam(2, std::string(&status, 1));
   statement.bindParam(3, std::string(&fileType, 1));
@@ -754,24 +714,24 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
 void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
                                    const std::string& sfn) throw (DmException)
 {
-  FileMetadata meta;
+  ExtendedStat meta;
 
   if (guid.empty())
-    meta = this->getFile(id);
+    meta = this->extendedStat(id);
   else
-    meta = this->getFile(guid);
+    meta = this->guidStat(guid);
 
   // Access has to be checked backwards!
   this->traverseBackwards(meta);
 
   // Can write?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+                       meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
   Statement statement(this->getPreparedStatement(STMT_DELETE_REPLICA));
-  statement.bindParam(0, meta.xStat.stat.st_ino);
+  statement.bindParam(0, meta.stat.st_ino);
   statement.bindParam(1, sfn);
   statement.execute();
 }
@@ -780,19 +740,19 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
 
 std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) throw(DmException)
 {
-  FileMetadata  meta;
+  ExtendedStat  meta;
 
   // Need to grab the file first
-  meta = this->parsePath(path, true);
+  meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
   try {
-    return this->getReplicas(meta.xStat.stat.st_ino);
+    return this->getReplicas(meta.stat.st_ino);
   }
   catch (DmException e) {
     if (e.code() == DM_NO_REPLICAS)
@@ -865,25 +825,25 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
   std::string parentPath, symName;
   
   // Get the parent of the destination and file
-  FileMetadata parent = this->getParent(newPath, &parentPath, &symName);
+  ExtendedStat parent = this->getParent(newPath, &parentPath, &symName);
 
   // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.xStat.stat, S_IWRITE) != 0)
+                      parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Transaction
   Transaction transaction(this->conn_);
 
   // Create the file entry
-  FileMetadata linkMeta = this->newFile(parent,
+  ExtendedStat linkMeta = this->newFile(parent,
                                         symName, 0777 | S_IFLNK,
                                         1, 0, 0, '-',
                                         "", "", "");
   // Create the symlink entry
   Statement stmt(this->getPreparedStatement(STMT_INSERT_SYMLINK));
 
-  stmt.bindParam(0, linkMeta.xStat.stat.st_ino);
+  stmt.bindParam(0, linkMeta.stat.st_ino);
   stmt.bindParam(1, oldPath);
 
   stmt.execute();
@@ -899,36 +859,36 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   std::string  parentPath, name;
 
   // Get the parent
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // The file itself
-  FileMetadata file = this->getFile(name, parent.xStat.stat.st_ino);
+  ExtendedStat file = this->extendedStat(parent.stat.st_ino, name);
 
   // Directories can not be removed with this method!
-  if (S_ISDIR(file.xStat.stat.st_mode))
+  if (S_ISDIR(file.stat.st_mode))
     throw DmException(DM_IS_DIRECTORY, path + " is a directory, can not unlink");
 
   // Check we can remove it
-  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
+  if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != file.xStat.stat.st_uid &&
-        this->user_.uid != parent.xStat.stat.st_uid &&
+    if (this->user_.uid != file.stat.st_uid &&
+        this->user_.uid != parent.stat.st_uid &&
         checkPermissions(this->user_, this->group_, this->groups_, file.acl,
-                         file.xStat.stat, S_IWRITE) != 0)
+                         file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.xStat.stat, S_IWRITE) != 0)
+                         parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
   }
 
   // Check there are no replicas
-  if (!S_ISLNK(file.xStat.stat.st_mode)) {
+  if (!S_ISLNK(file.stat.st_mode)) {
     try {
-      this->getReplicas(file.xStat.stat.st_ino);
+      this->getReplicas(file.stat.st_ino);
       throw DmException(DM_EXISTS, path + " has replicas, can not remove");
     }
     catch (DmException e) {
@@ -942,24 +902,24 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
   // Remove associated symlink
   Statement delSymlink(this->getPreparedStatement(STMT_DELETE_SYMLINK));
-  delSymlink.bindParam(0, file.xStat.stat.st_ino);
+  delSymlink.bindParam(0, file.stat.st_ino);
   delSymlink.execute();
 
   // Remove associated comments
   Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
-  delComment.bindParam(0, file.xStat.stat.st_ino);
+  delComment.bindParam(0, file.stat.st_ino);
   delComment.execute();
 
   // Remove file itself
   Statement delFile(this->getPreparedStatement(STMT_DELETE_FILE));
-  delFile.bindParam(0, file.xStat.stat.st_ino);
+  delFile.bindParam(0, file.stat.st_ino);
   delFile.execute();
 
   // And decrement nlink
   Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
-  parent.xStat.stat.st_nlink--;
-  nlink.bindParam(0, parent.xStat.stat.st_nlink);
-  nlink.bindParam(1, parent.xStat.stat.st_ino);
+  parent.stat.st_nlink--;
+  nlink.bindParam(0, parent.stat.st_nlink);
+  nlink.bindParam(1, parent.stat.st_ino);
   nlink.execute();
 
   // Done!
@@ -970,23 +930,23 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
 std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& path) throw(DmException)
 {
-  FileMetadata    meta;
+  ExtendedStat    meta;
   ExtendedReplica replica;
   int             nReplicas;
 
   // Need to grab the file first
-  meta = this->parsePath(path, true);
+  meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                       "Not enough permissions to read " + path);
 
   // MySQL statement
   Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED));
 
-  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.bindParam(0, meta.stat.st_ino);
   stmt.execute();
 
   stmt.bindResult(0, &replica.replica.replicaid);
@@ -1018,13 +978,13 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 {
   int          code;
   std::string  parentPath, name;
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
-  FileMetadata file;
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat file;
 
   try {
-    file = this->getFile(name, parent.xStat.stat.st_ino);
+    file = this->extendedStat(parent.stat.st_ino, name);
     // File exists, check if it has replicas
-    this->getReplicas(file.xStat.stat.st_ino);
+    this->getReplicas(file.stat.st_ino);
     // It has replicas, so fail!
     throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
   }
@@ -1045,7 +1005,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   // Truncate
   else if (code == DM_NO_REPLICAS) {
     Statement statement(this->getPreparedStatement(STMT_TRUNCATE_FILE));
-    statement.bindParam(0, file.xStat.stat.st_ino);
+    statement.bindParam(0, file.stat.st_ino);
     statement.execute();
   }
   transaction.commit();
@@ -1064,54 +1024,54 @@ mode_t NsMySqlCatalog::umask(mode_t mask) throw ()
 
 void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->user_.uid != meta.xStat.stat.st_uid && this->user_.uid != 0)
+  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.xStat.stat.st_mode) && this->user_.uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && this->user_.uid != 0)
     mode &= ~S_ISVTX;
   if (this->user_.uid != 0 &&
-      meta.xStat.stat.st_gid != this->group_.gid &&
-      !gidInGroups(meta.xStat.stat.st_gid, this->groups_))
+      meta.stat.st_gid != this->group_.gid &&
+      !gidInGroups(meta.stat.st_gid, this->groups_))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
-  mode |= (meta.xStat.stat.st_mode & S_IFMT);
+  mode |= (meta.stat.st_mode & S_IFMT);
 
   Statement statement(this->getPreparedStatement(STMT_UPDATE_MODE));
   statement.bindParam(0, mode);
-  statement.bindParam(1, meta.xStat.stat.st_ino);
+  statement.bindParam(1, meta.stat.st_ino);
   statement.execute();
 }
 
 
 
-void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
+void NsMySqlCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
   // If -1, no changes
   if (newUid == (uid_t)-1)
-    newUid = meta.xStat.stat.st_uid;
+    newUid = meta.stat.st_uid;
   if (newGid == (gid_t)-1)
-    newGid = meta.xStat.stat.st_gid;
+    newGid = meta.stat.st_gid;
 
   // Make sense?
-  if (newUid == meta.xStat.stat.st_uid && newGid == meta.xStat.stat.st_gid)
+  if (newUid == meta.stat.st_uid && newGid == meta.stat.st_gid)
     return;
 
   // If root, skip all checks
   if (this->user_.uid != 0) {
     // Only root can change the owner
-    if (meta.xStat.stat.st_uid != newUid)
+    if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
     // If the group is changing...
-    if (meta.xStat.stat.st_gid != newGid) {
+    if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.xStat.stat.st_uid != this->user_.uid)
+      if (meta.stat.st_uid != this->user_.uid)
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
       // AND it has to belong to that group
       if (newGid != this->group_.gid && !gidInGroups(newGid, this->groups_))
@@ -1125,7 +1085,7 @@ void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
 
   chownStmt.bindParam(0, newUid);
   chownStmt.bindParam(1, newGid);
-  chownStmt.bindParam(2, meta.xStat.stat.st_ino);
+  chownStmt.bindParam(2, meta.stat.st_ino);
 
   chownStmt.execute();
 }
@@ -1135,7 +1095,7 @@ void NsMySqlCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
 void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
   this->changeOwner(meta, newUid, newGid);
 }
 
@@ -1144,7 +1104,7 @@ void NsMySqlCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t ne
 void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path, false);
+  ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
 }
 
@@ -1155,16 +1115,16 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
   char         comment[COMMENT_MAX];
   
   // Get the file and check we can read
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
   
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
   Statement stmt(this->getPreparedStatement(STMT_GET_COMMENT));
 
-  stmt.bindParam(0, meta.xStat.stat.st_ino);
+  stmt.bindParam(0, meta.stat.st_ino);
   stmt.execute();
   
   stmt.bindResult(0, comment, COMMENT_MAX);
@@ -1180,23 +1140,23 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
 void NsMySqlCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   // Get the file and check we can write
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.xStat.stat, S_IWRITE) != 0)
+                       meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
   Statement stmt(this->getPreparedStatement(STMT_SET_COMMENT));
 
   stmt.bindParam(0, comment);
-  stmt.bindParam(1, meta.xStat.stat.st_ino);
+  stmt.bindParam(1, meta.stat.st_ino);
 
   if (stmt.execute() == 0) {
     // No update! Try inserting
     Statement stmti(this->getPreparedStatement(STMT_INSERT_COMMENT));
 
-    stmti.bindParam(0, meta.xStat.stat.st_ino);
+    stmti.bindParam(0, meta.stat.st_ino);
     stmti.bindParam(1, comment);
     
     stmti.execute();
@@ -1207,17 +1167,17 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
 
 void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.xStat.stat, S_IWRITE) != 0)
+                       meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
   Statement stmt(this->getPreparedStatement(STMT_SET_GUID));
 
   stmt.bindParam(0, guid);
-  stmt.bindParam(1, meta.xStat.stat.st_ino);
+  stmt.bindParam(1, meta.stat.st_ino);
 
   stmt.execute();
 }
@@ -1229,17 +1189,17 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   std::string parentPath, name;
 
   // Get the parent of the new folder
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.xStat.stat, S_IWRITE) != 0)
+                      parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Create the file entry
   Transaction transaction(this->conn_);
   this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
-                0, 0, parent.xStat.type, '-', "", "", parent.acl);
+                0, 0, parent.type, '-', "", "", parent.acl);
   transaction.commit();
 }
 
@@ -1254,34 +1214,34 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
     throw DmException(DM_INVALID_VALUE, "Can not remove '/'");
 
   // Get the parent of the new folder
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Get the file, and check it is a directory and it is empty
-  FileMetadata entry = this->getFile(name, parent.xStat.stat.st_ino);
+  ExtendedStat entry = this->extendedStat(parent.stat.st_ino, name);
 
-  if (!S_ISDIR(entry.xStat.stat.st_mode))
+  if (!S_ISDIR(entry.stat.st_mode))
     throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
 
-  if (this->cwd_ == entry.xStat.stat.st_ino)
+  if (this->cwd_ == entry.stat.st_ino)
     throw DmException(DM_IS_CWD, "Can not remove the current working dir");
 
-  if (entry.xStat.stat.st_nlink > 0)
+  if (entry.stat.st_nlink > 0)
     throw DmException(DM_EXISTS, path + " is not empty. Can not remove.");
 
   // Check we can remove it
-  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
+  if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != entry.xStat.stat.st_uid &&
-        this->user_.uid != parent.xStat.stat.st_uid &&
+    if (this->user_.uid != entry.stat.st_uid &&
+        this->user_.uid != parent.stat.st_uid &&
         checkPermissions(this->user_, this->group_, this->groups_, entry.acl,
-                         entry.xStat.stat, S_IWRITE) != 0)
+                         entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.xStat.stat, S_IWRITE) != 0)
+                         parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
   }
 
@@ -1291,14 +1251,14 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
 
   // Remove directory itself
   Statement delDir(this->getPreparedStatement(STMT_DELETE_FILE));
-  delDir.bindParam(0, entry.xStat.stat.st_ino);
+  delDir.bindParam(0, entry.stat.st_ino);
   delDir.execute();
 
   // And decrement nlink
   Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
-  parent.xStat.stat.st_nlink--;
-  nlink.bindParam(0, parent.xStat.stat.st_nlink);
-  nlink.bindParam(1, parent.xStat.stat.st_ino);
+  parent.stat.st_nlink--;
+  nlink.bindParam(0, parent.stat.st_nlink);
+  nlink.bindParam(1, parent.stat.st_ino);
   nlink.execute();
 
   // Done!
@@ -1317,59 +1277,59 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
     throw DmException(DM_INVALID_VALUE, "Not the source, neither the destination, can be '/'");
 
   // Get source and destination parent
-  FileMetadata oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
-  FileMetadata newParent = this->getParent(newPath, &oldParentPath, &newName);
+  ExtendedStat oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
+  ExtendedStat newParent = this->getParent(newPath, &oldParentPath, &newName);
 
   // Source
-  FileMetadata old = this->getFile(oldName, oldParent.xStat.stat.st_ino);
+  ExtendedStat old = this->extendedStat(oldParent.stat.st_ino, oldName);
 
   // Is the cwd?
-  if (old.xStat.stat.st_ino == this->cwd_) {
+  if (old.stat.st_ino == this->cwd_) {
     throw DmException(DM_IS_CWD, "Can not rename the current working directory");
   }
 
   // Need write permissions in both origin and destination
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       oldParent.acl, oldParent.xStat.stat, S_IWRITE) != 0)
+                       oldParent.acl, oldParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       newParent.acl, newParent.xStat.stat, S_IWRITE) != 0)
+                       newParent.acl, newParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
-  if (S_ISDIR(old.xStat.stat.st_mode)) {
+  if (S_ISDIR(old.stat.st_mode)) {
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                        old.acl, old.xStat.stat, S_IWRITE) != 0)
+                        old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
 
     // AND destination can not be a child
-    FileMetadata aux = newParent;
+    ExtendedStat aux = newParent;
 
-    while (aux.xStat.parent > 0) {
-      if (aux.xStat.stat.st_ino == old.xStat.stat.st_ino)
+    while (aux.parent > 0) {
+      if (aux.stat.st_ino == old.stat.st_ino)
         throw DmException(DM_INVALID_VALUE, "Destination is descendant of source");
-      aux = this->getFile(aux.xStat.parent);
+      aux = this->extendedStat(aux.parent);
     }
   }
 
   // Check sticky
-  if (oldParent.xStat.stat.st_mode & S_ISVTX &&
-      this->user_.uid != oldParent.xStat.stat.st_uid &&
-      this->user_.uid != old.xStat.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.xStat.stat, S_IWRITE) != 0)
+  if (oldParent.stat.st_mode & S_ISVTX &&
+      this->user_.uid != oldParent.stat.st_uid &&
+      this->user_.uid != old.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
   // If the destination exists...
   try {
-    FileMetadata newF = this->getFile(newName, newParent.xStat.stat.st_ino);
+    ExtendedStat newF = this->extendedStat(newParent.stat.st_ino, newName);
 
     // If it is the same, leave the function
-    if (newF.xStat.stat.st_ino == old.xStat.stat.st_ino)
+    if (newF.stat.st_ino == old.stat.st_ino)
       return;
 
     // It does! It has to be the same type
-    if ((newF.xStat.stat.st_mode & S_IFMT) != (old.xStat.stat.st_mode & S_IFMT)) {
-      if (S_ISDIR(old.xStat.stat.st_mode))
+    if ((newF.stat.st_mode & S_IFMT) != (old.stat.st_mode & S_IFMT)) {
+      if (S_ISDIR(old.stat.st_mode))
         throw DmException(DM_NOT_DIRECTORY, "Source is a directory and destination is not");
       else
         throw DmException(DM_IS_DIRECTORY, "Source is not directory and destination is");
@@ -1377,7 +1337,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
     // And it has to be empty. Just call remove or unlink
     // and they will fail if it is not
-    if (S_ISDIR(newF.xStat.stat.st_mode))
+    if (S_ISDIR(newF.stat.st_mode))
       this->removeDir(newPath);
     else
       this->unlink(newPath);
@@ -1395,18 +1355,18 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
     Statement changeNameStmt(this->getPreparedStatement(STMT_CHANGE_NAME));
 
     changeNameStmt.bindParam(0, newName);
-    changeNameStmt.bindParam(1, old.xStat.stat.st_ino);
+    changeNameStmt.bindParam(1, old.stat.st_ino);
 
     if (changeNameStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not change the name");
   }
 
   // Change the parent if needed
-  if (newParent.xStat.stat.st_ino != oldParent.xStat.stat.st_ino) {
+  if (newParent.stat.st_ino != oldParent.stat.st_ino) {
     Statement changeParentStmt(this->getPreparedStatement(STMT_CHANGE_PARENT));
 
-    changeParentStmt.bindParam(0, newParent.xStat.stat.st_ino);
-    changeParentStmt.bindParam(1, old.xStat.stat.st_ino);
+    changeParentStmt.bindParam(0, newParent.stat.st_ino);
+    changeParentStmt.bindParam(1, old.stat.st_ino);
 
     if (changeParentStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the parent ino!");
@@ -1414,8 +1374,8 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
     // Reduce nlinks from old
     Statement oldNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
-    oldNlinkStmt.bindParam(0, --oldParent.xStat.stat.st_nlink);
-    oldNlinkStmt.bindParam(1, oldParent.xStat.stat.st_ino);
+    oldNlinkStmt.bindParam(0, --oldParent.stat.st_nlink);
+    oldNlinkStmt.bindParam(1, oldParent.stat.st_ino);
 
     if (oldNlinkStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the old parent nlink!");
@@ -1423,8 +1383,8 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
     // Increment from new
     Statement newNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
-    newNlinkStmt.bindParam(0, ++newParent.xStat.stat.st_nlink);
-    newNlinkStmt.bindParam(1, newParent.xStat.stat.st_ino);
+    newNlinkStmt.bindParam(0, ++newParent.stat.st_nlink);
+    newNlinkStmt.bindParam(1, newParent.stat.st_ino);
 
     if (newNlinkStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the new parent nlink!");

@@ -45,32 +45,54 @@ public:
   /// @return The current working dir.
   virtual std::string getWorkingDir(void) throw (DmException) = 0;
 
+  // Stat calls are implemented by default as extendedStat(...).stat
+
   /// Do a stat of a file or directory.
   /// @param path The path of the file or directory.
   /// @return     The status of the file.
-  virtual struct stat stat(const std::string& path) throw (DmException) = 0;
+  virtual struct stat stat(const std::string& path) throw (DmException);
 
   /// Do a stat of an entry using its inode.
   /// @param inode The entry inode.
   /// @return      The status of the file.
   /// @note        No security checks will be done.
-  virtual struct stat stat(ino_t inode) throw (DmException) = 0;
+  virtual struct stat stat(ino_t inode) throw (DmException);
+
+  /// Do a stat of an entry using the parent inode and the name.
+  /// @param parent The parent inode.
+  /// @param name   The file or directory name.
+  /// @note         No security check will be done.
+  virtual struct stat stat(ino_t parent, const std::string& name) throw (DmException);
 
   /// Do a stat of a file or directory. Stats symbolic links.
   /// @param path The path of the file or direntory
   /// @return     The status of the link.
-  virtual struct stat linkStat(const std::string& path) throw (DmException) = 0;
+  /// @note       Implemented as extendedStat(path, false).stat
+  virtual struct stat linkStat(const std::string& path) throw (DmException);
 
   /// Do an extended stat of a file or directory.
-  /// @param path The path of the file or directory.
-  /// @return     The extended status of the file.
-  virtual struct xstat extendedStat(const std::string& path) throw (DmException) = 0;
+  /// @param path      The path of the file or directory.
+  /// @param followSym If true, symlinks will be followed.
+  /// @return          The extended status of the file.
+  virtual ExtendedStat extendedStat(const std::string& path, bool followSym = true) throw (DmException) = 0;
 
   /// Do an extended stat of en entry using its inode.
   /// @param inode The entry inode.
   /// @return      The extended status of the file.
   /// @note        No security checks will be done.
-  virtual struct xstat extendedStat(ino_t inode) throw (DmException) = 0;
+  virtual ExtendedStat extendedStat(ino_t inode) throw (DmException) = 0;
+
+  /// Do an extended stat of an entry using the parent inode and the name.
+  /// @param parent The parent inode.
+  /// @param name   The file or directory name.
+  /// @note         No security check will be done.
+  virtual ExtendedStat extendedStat(ino_t parent, const std::string& name) throw (DmException) = 0;
+
+  /// Get the symlink associated with a inode.
+  /// @param inode The inode to check.
+  /// @return      A SymLink struct.
+  /// @note        If inode is not a symlink, an exception will be thrown.
+  virtual SymLink readLink(ino_t inode) throw (DmException) = 0;
 
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.

@@ -258,41 +258,41 @@ void NsOracleCatalog::set(const std::string& key, va_list varg) throw(DmExceptio
 
 
 
-static void getMetadata(occi::ResultSet* rs, FileMetadata* meta) throw(DmException)
+static void getMetadata(occi::ResultSet* rs, ExtendedStat* meta) throw(DmException)
 {
-  meta->xStat.stat.st_ino   = rs->getNumber( 1);
-  meta->xStat.parent        = rs->getNumber( 2);
+  meta->stat.st_ino   = rs->getNumber( 1);
+  meta->parent        = rs->getNumber( 2);
 
-  strncpy(meta->xStat.guid, rs->getString(3).c_str(), sizeof(meta->xStat.guid));
-  strncpy(meta->xStat.name, rs->getString(4).c_str(), sizeof(meta->xStat.name));
+  strncpy(meta->guid, rs->getString(3).c_str(), sizeof(meta->guid));
+  strncpy(meta->name, rs->getString(4).c_str(), sizeof(meta->name));
 
-  meta->xStat.stat.st_mode  = rs->getNumber( 5);
-  meta->xStat.stat.st_nlink = rs->getNumber( 6);
-  meta->xStat.stat.st_uid   = rs->getNumber( 7);
-  meta->xStat.stat.st_gid   = rs->getNumber( 8);
-  meta->xStat.stat.st_size  = rs->getNumber( 9);
-  meta->xStat.stat.st_atime = rs->getNumber(10);
-  meta->xStat.stat.st_mtime = rs->getNumber(11);
-  meta->xStat.stat.st_ctime = rs->getNumber(12);
-  meta->xStat.type          = rs->getNumber(13);
-  meta->xStat.status        = rs->getString(14)[0];
+  meta->stat.st_mode  = rs->getNumber( 5);
+  meta->stat.st_nlink = rs->getNumber( 6);
+  meta->stat.st_uid   = rs->getNumber( 7);
+  meta->stat.st_gid   = rs->getNumber( 8);
+  meta->stat.st_size  = rs->getNumber( 9);
+  meta->stat.st_atime = rs->getNumber(10);
+  meta->stat.st_mtime = rs->getNumber(11);
+  meta->stat.st_ctime = rs->getNumber(12);
+  meta->type          = rs->getNumber(13);
+  meta->status        = rs->getString(14)[0];
 
-  strncpy(meta->xStat.csumtype, rs->getString(15).c_str(), sizeof(meta->xStat.csumtype));
-  strncpy(meta->xStat.csumvalue, rs->getString(16).c_str(), sizeof(meta->xStat.csumvalue));
+  strncpy(meta->csumtype, rs->getString(15).c_str(), sizeof(meta->csumtype));
+  strncpy(meta->csumvalue, rs->getString(16).c_str(), sizeof(meta->csumvalue));
   
   strncpy(meta->acl, rs->getString(17).c_str(), sizeof(meta->acl));
 }
 
 
 
-FileMetadata NsOracleCatalog::getFile(uint64_t fileId) throw(DmException)
+ExtendedStat NsOracleCatalog::extendedStat(uint64_t fileId) throw(DmException)
 {
-  FileMetadata     meta;
+  ExtendedStat     meta;
   occi::ResultSet* rs   = 0x00;
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_ID);
 
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   try {
     stmt->setNumber(1, fileId);
@@ -315,13 +315,13 @@ FileMetadata NsOracleCatalog::getFile(uint64_t fileId) throw(DmException)
 
 
 
-FileMetadata NsOracleCatalog::getFile(const std::string& guid) throw (DmException)
+ExtendedStat NsOracleCatalog::guidStat(const std::string& guid) throw (DmException)
 {
-  FileMetadata     meta;
+  ExtendedStat     meta;
   occi::ResultSet* rs   = 0x00;
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_GUID);
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   try {
     stmt->setString(1, guid);
@@ -344,13 +344,13 @@ FileMetadata NsOracleCatalog::getFile(const std::string& guid) throw (DmExceptio
 
 
 
-FileMetadata NsOracleCatalog::getFile(const std::string& name, uint64_t parent) throw(DmException)
+ExtendedStat NsOracleCatalog::extendedStat(uint64_t parent, const std::string& name) throw(DmException)
 {
-  FileMetadata meta;
+  ExtendedStat meta;
   occi::ResultSet* rs   = 0x00;
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_BY_NAME);
 
-  memset(&meta, 0x00, sizeof(FileMetadata));
+  memset(&meta, 0x00, sizeof(ExtendedStat));
 
   try {
     stmt->setNumber(1, parent);
@@ -374,7 +374,7 @@ FileMetadata NsOracleCatalog::getFile(const std::string& name, uint64_t parent) 
 
 
 
-SymLink NsOracleCatalog::getLink(uint64_t linkId) throw(DmException)
+SymLink NsOracleCatalog::readLink(uint64_t linkId) throw(DmException)
 {
   SymLink link;
   occi::ResultSet* rs   = 0x00;
@@ -404,7 +404,7 @@ SymLink NsOracleCatalog::getLink(uint64_t linkId) throw(DmException)
 
 
 
-FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& name,
+ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& name,
                                       mode_t mode, long nlink, size_t size,
                                       short type, char status,
                                       const std::string& csumtype,
@@ -415,7 +415,7 @@ FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& n
 
   // Destination must not exist!
   try {
-    FileMetadata f = this->getFile(name, parent.xStat.stat.st_ino);
+    ExtendedStat f = this->extendedStat(parent.stat.st_ino, name);
     throw DmException(DM_EXISTS, name + " already exists");
   }
   catch (DmException e) {
@@ -425,13 +425,13 @@ FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& n
 
   // Check the parent!
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       parent.acl, parent.xStat.stat,
+                       parent.acl, parent.stat,
                        S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
   // Check SGID
-  if (parent.xStat.stat.st_mode & S_ISGID) {
-    egid = parent.xStat.stat.st_gid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
     mode |= S_ISGID;
   }
   else {
@@ -441,7 +441,7 @@ FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& n
   // Create the entry
   occi::Statement* fileStmt = this->getPreparedStatement(STMT_INSERT_FILE);
 
-  fileStmt->setNumber( 1, parent.xStat.stat.st_ino);
+  fileStmt->setNumber( 1, parent.stat.st_ino);
   fileStmt->setString( 2, name);
   fileStmt->setNumber( 3, mode);
   fileStmt->setNumber( 4, nlink);
@@ -462,21 +462,21 @@ FileMetadata NsOracleCatalog::newFile(FileMetadata& parent, const std::string& n
   // Increment the nlink
   occi::Statement* nlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
-  parent.xStat.stat.st_nlink++;
-  nlinkStmt->setNumber(1, parent.xStat.stat.st_nlink);
+  parent.stat.st_nlink++;
+  nlinkStmt->setNumber(1, parent.stat.st_nlink);
   nlinkStmt->setNumber(2, time(NULL));
   nlinkStmt->setNumber(3, time(NULL));
-  nlinkStmt->setNumber(4, parent.xStat.stat.st_ino);
+  nlinkStmt->setNumber(4, parent.stat.st_ino);
 
   nlinkStmt->executeUpdate();
 
   // Return back
-  return this->getFile(name, parent.xStat.stat.st_ino);
+  return this->extendedStat(parent.stat.st_ino, name);
 }
 
 
 
-FileMetadata NsOracleCatalog::getParent(const std::string& path,
+ExtendedStat NsOracleCatalog::getParent(const std::string& path,
                                         std::string* parentPath,
                                         std::string* name) throw (DmException)
 {
@@ -498,16 +498,16 @@ FileMetadata NsOracleCatalog::getParent(const std::string& path,
 
   // Get the files now
   if (!parentPath->empty())
-    return this->parsePath(*parentPath);
+    return this->extendedStat(*parentPath);
   else if (!this->cwdPath_.empty())
-    return this->getFile(this->cwd_);
+    return this->extendedStat(this->cwd_);
   else
-    return this->parsePath("/");
+    return this->extendedStat("/");
 }
 
 
 
-FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym) throw(DmException)
+ExtendedStat NsOracleCatalog::extendedStat(const std::string& path, bool followSym) throw(DmException)
 {
   // Split the path always assuming absolute
   std::list<std::string> components = splitPath(path);
@@ -515,7 +515,7 @@ FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym)
   // Iterate starting from absolute root (parent of /) (0)
   uint64_t     parent       = 0;
   unsigned     symLinkLevel = 0;
-  FileMetadata meta;
+  ExtendedStat meta;
   std::string  c;
 
   // If path is absolute OR cwd is empty, start in root
@@ -523,24 +523,24 @@ FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym)
     // Push "/", as we have to look for it too
     components.push_front("/");
     // Root parent "is" a dir and world-readable :)
-    memset(&meta, 0x00, sizeof(FileMetadata));
-    meta.xStat.stat.st_mode = S_IFDIR | 0555 ;
+    memset(&meta, 0x00, sizeof(ExtendedStat));
+    meta.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
   else {
     parent = this->cwd_;
-    meta   = this->getFile(parent);
+    meta   = this->extendedStat(parent);
   }
 
 
   while (!components.empty()) {
     // Check that the parent is a directory first
-    if (!S_ISDIR(meta.xStat.stat.st_mode) && !S_ISLNK(meta.xStat.stat.st_mode))
-      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.xStat.name);
+    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
+      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.xStat.stat, S_IEXEC) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.xStat.name);
+                         meta.acl, meta.stat, S_IEXEC) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
 
     // Pop next component
     c = components.front();
@@ -552,16 +552,16 @@ FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym)
     }
     // Up one level
     else if (c == "..") {
-      meta   = this->getFile(parent);
-      parent = meta.xStat.parent;
+      meta   = this->extendedStat(parent);
+      parent = meta.parent;
     }
     // Regular entry
     else {
-      meta = this->getFile(c, parent);
+      meta = this->extendedStat(parent, c);
 
       // Symbolic link!, follow that instead
-      if (S_ISLNK(meta.xStat.stat.st_mode) && followSym) {
-        SymLink link = this->getLink(meta.xStat.stat.st_ino);
+      if (S_ISLNK(meta.stat.st_mode) && followSym) {
+        SymLink link = this->readLink(meta.stat.st_ino);
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
@@ -582,7 +582,7 @@ FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym)
       }
       // Next one!
       else {
-        parent = meta.xStat.stat.st_ino;
+        parent = meta.stat.st_ino;
       }
     }
 
@@ -593,17 +593,17 @@ FileMetadata NsOracleCatalog::parsePath(const std::string& path, bool followSym)
 
 
 
-void NsOracleCatalog::traverseBackwards(const FileMetadata& meta) throw (DmException)
+void NsOracleCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmException)
 {
-  FileMetadata current = meta;
+  ExtendedStat current = meta;
 
   // We want to check if we can arrive here...
-  while (current.xStat.parent != 0) {
-    current = this->getFile(current.xStat.parent);
+  while (current.parent != 0) {
+    current = this->extendedStat(current.parent);
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                         current.acl, current.xStat.stat, S_IEXEC))
+                         current.acl, current.stat, S_IEXEC))
       throw DmException(DM_FORBIDDEN, "Can not access #%ld",
-                        current.xStat.stat.st_ino);
+                        current.stat.st_ino);
   }
 }
 
@@ -611,9 +611,9 @@ void NsOracleCatalog::traverseBackwards(const FileMetadata& meta) throw (DmExcep
 
 void NsOracleCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  FileMetadata cwdMeta = this->parsePath(path);
+  ExtendedStat cwdMeta = this->extendedStat(path);
   this->cwdPath_ = path;
-  this->cwd_     = cwdMeta.xStat.stat.st_ino;
+  this->cwd_     = cwdMeta.stat.st_ino;
 }
 
 
@@ -625,62 +625,22 @@ std::string NsOracleCatalog::getWorkingDir(void) throw (DmException)
 
 
 
-struct stat NsOracleCatalog::stat(const std::string& path) throw(DmException)
-{
-  FileMetadata meta = this->parsePath(path);
-  return meta.xStat.stat;
-}
-
-
-
-struct stat NsOracleCatalog::stat(ino_t inode) throw (DmException)
-{
-  FileMetadata meta = this->getFile(inode);
-  return meta.xStat.stat;
-}
-
-
-
-struct stat NsOracleCatalog::linkStat(const std::string& path) throw(DmException)
-{
-  FileMetadata meta = this->parsePath(path, false);
-  return meta.xStat.stat;
-}
-
-
-
-struct xstat NsOracleCatalog::extendedStat(const std::string& path) throw (DmException)
-{
-  FileMetadata meta = this->parsePath(path);
-  return meta.xStat;
-}
-
-
-
-struct xstat NsOracleCatalog::extendedStat(ino_t inode) throw (DmException)
-{
-  FileMetadata meta = this->getFile(inode);
-  return meta.xStat;
-}
-
-
-
 Directory* NsOracleCatalog::openDir(const std::string& path) throw(DmException)
 {
   NsOracleDir  *dir;
-  FileMetadata meta;
+  ExtendedStat meta;
 
   // Get the directory
-  meta = this->parsePath(path);
+  meta = this->extendedStat(path);
 
   // Can we read it?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Create the handle
   dir = new NsOracleDir();
-  dir->dirId = meta.xStat.stat.st_ino;
+  dir->dirId = meta.stat.st_ino;
 
   try {
     dir->stmt = this->getPreparedStatement(STMT_GET_LIST_FILES);
@@ -732,11 +692,11 @@ struct direntstat* NsOracleCatalog::readDirx(Directory* dir) throw(DmException)
 
   if (dirp->rs->next()) {
     getMetadata(dirp->rs, &dirp->current);
-    memcpy(&dirp->ds.stat, &dirp->current.xStat.stat, sizeof(struct stat));
+    memcpy(&dirp->ds.stat, &dirp->current.stat, sizeof(struct stat));
     memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
     dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
     strncpy(dirp->ds.dirent.d_name,
-            dirp->current.xStat.name,
+            dirp->current.name,
             sizeof(dirp->ds.dirent.d_name));
     return &dirp->ds;
   }
@@ -753,19 +713,19 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
                                  const std::string& poolName,
                                  const std::string& fileSystem) throw (DmException)
 {
-  FileMetadata meta;
+  ExtendedStat meta;
 
   if (guid.empty())
-    meta = this->getFile(id);
+    meta = this->extendedStat(id);
   else
-    meta = this->getFile(guid);
+    meta = this->guidStat(guid);
 
   // Access has to be checked backwards!
   this->traverseBackwards(meta);
 
   // Can write?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+                       meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
   // Add it
@@ -774,7 +734,7 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
     
     occi::Statement* stmt = this->getPreparedStatement(STMT_ADD_REPLICA);
 
-    stmt->setNumber( 1, meta.xStat.stat.st_ino);
+    stmt->setNumber( 1, meta.stat.st_ino);
     stmt->setNumber( 2, time(NULL));
     stmt->setNumber( 3, time(NULL));
     stmt->setNumber( 4, time(NULL));
@@ -803,19 +763,19 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
 void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
                                     const std::string& sfn) throw (DmException)
 {
-  FileMetadata meta;
+  ExtendedStat meta;
 
   if (guid.empty())
-    meta = this->getFile(id);
+    meta = this->extendedStat(id);
   else
-    meta = this->getFile(guid);
+    meta = this->guidStat(guid);
 
   // Access has to be checked backwards!
   this->traverseBackwards(meta);
 
   // Can write?
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IWRITE) != 0)
+                       meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
@@ -823,7 +783,7 @@ void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
 
   occi::Statement* stmt = this->getPreparedStatement(STMT_DELETE_REPLICA);
 
-  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  stmt->setNumber(1, meta.stat.st_ino);
   stmt->setString(2, sfn);
   
   stmt->executeUpdate();
@@ -835,19 +795,19 @@ void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
 
 std::vector<FileReplica> NsOracleCatalog::getReplicas(const std::string& path) throw(DmException)
 {
-  FileMetadata  meta;
+  ExtendedStat  meta;
 
   // Need to grab the file first
-  meta = this->parsePath(path, true);
+  meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
   try {
-    return this->getReplicas(meta.xStat.stat.st_ino);
+    return this->getReplicas(meta.stat.st_ino);
   }
   catch (DmException e) {
     if (e.code() == DM_NO_REPLICAS)
@@ -922,25 +882,25 @@ void NsOracleCatalog::symlink(const std::string& oldPath, const std::string& new
   std::string parentPath, symName;
 
   // Get the parent of the destination and file
-  FileMetadata parent = this->getParent(newPath, &parentPath, &symName);
+  ExtendedStat parent = this->getParent(newPath, &parentPath, &symName);
 
   // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.xStat.stat, S_IWRITE) != 0)
+                      parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Transaction
   Transaction transaction(this->conn_);
 
   // Create the file entry
-  FileMetadata linkMeta = this->newFile(parent,
+  ExtendedStat linkMeta = this->newFile(parent,
                                         symName, 0777 | S_IFLNK,
                                         1, 0, 0, '-',
                                         "", "", "");
   // Create the symlink entry
   occi::Statement* stmt = this->getPreparedStatement(STMT_INSERT_SYMLINK);
 
-  stmt->setNumber(1, linkMeta.xStat.stat.st_ino);
+  stmt->setNumber(1, linkMeta.stat.st_ino);
   stmt->setString(2, oldPath);
   
   stmt->executeUpdate();
@@ -956,36 +916,36 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
   std::string  parentPath, name;
 
   // Get the parent
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // The file itself
-  FileMetadata file = this->getFile(name, parent.xStat.stat.st_ino);
+  ExtendedStat file = this->extendedStat(parent.stat.st_ino, name);
 
   // Directories can not be removed with this method!
-  if (S_ISDIR(file.xStat.stat.st_mode))
+  if (S_ISDIR(file.stat.st_mode))
     throw DmException(DM_IS_DIRECTORY, path + " is a directory, can not unlink");
 
   // Check we can remove it
-  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
+  if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != file.xStat.stat.st_uid &&
-        this->user_.uid != parent.xStat.stat.st_uid &&
+    if (this->user_.uid != file.stat.st_uid &&
+        this->user_.uid != parent.stat.st_uid &&
         checkPermissions(this->user_, this->group_, this->groups_, file.acl,
-                         file.xStat.stat, S_IWRITE) != 0)
+                         file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.xStat.stat, S_IWRITE) != 0)
+                         parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
   }
 
   // Check there are no replicas
-  if (!S_ISLNK(file.xStat.stat.st_mode)) {
+  if (!S_ISLNK(file.stat.st_mode)) {
     try {
-      this->getReplicas(file.xStat.stat.st_ino);
+      this->getReplicas(file.stat.st_ino);
       throw DmException(DM_EXISTS, path + " has replicas, can not remove");
     }
     catch (DmException e) {
@@ -999,26 +959,26 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
 
   // Remove associated symlink
   occi::Statement* delSymlink = this->getPreparedStatement(STMT_DELETE_SYMLINK);
-  delSymlink->setNumber(1, file.xStat.stat.st_ino);
+  delSymlink->setNumber(1, file.stat.st_ino);
   delSymlink->executeUpdate();
 
   // Remove associated comments
   occi::Statement* delComment = this->getPreparedStatement(STMT_DELETE_COMMENT);
-  delComment->setNumber(1, file.xStat.stat.st_ino);
+  delComment->setNumber(1, file.stat.st_ino);
   delComment->executeUpdate();
 
   // Remove file itself
   occi::Statement* delFile = this->getPreparedStatement(STMT_DELETE_FILE);
-  delFile->setNumber(1, file.xStat.stat.st_ino);
+  delFile->setNumber(1, file.stat.st_ino);
   delFile->executeUpdate();
 
   // And decrement nlink
   occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  parent.xStat.stat.st_nlink--;
-  nlink->setNumber(1, parent.xStat.stat.st_nlink);
+  parent.stat.st_nlink--;
+  nlink->setNumber(1, parent.stat.st_nlink);
   nlink->setNumber(2, time(NULL));
   nlink->setNumber(3, time(NULL));
-  nlink->setNumber(4, parent.xStat.stat.st_ino);
+  nlink->setNumber(4, parent.stat.st_ino);
   nlink->executeUpdate();
 
   // Done!
@@ -1029,22 +989,22 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
 
 std::vector<ExtendedReplica> NsOracleCatalog::getExReplicas(const std::string& path) throw(DmException)
 {
-  FileMetadata    meta;
+  ExtendedStat    meta;
   ExtendedReplica replica;
 
   // Need to grab the file first
-  meta = this->parsePath(path, true);
+  meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                       "Not enough permissions to read " + path);
 
   // Statement
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED);
 
-  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  stmt->setNumber(1, meta.stat.st_ino);
   occi::ResultSet* rs = stmt->executeQuery();
 
   // Fetch
@@ -1078,13 +1038,13 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
 {
   int          code;
   std::string  parentPath, name;
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
-  FileMetadata file;
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat file;
 
   try {
-    file = this->getFile(name, parent.xStat.stat.st_ino);
+    file = this->extendedStat(parent.stat.st_ino, name);
     // File exists, check if it has replicas
-    this->getReplicas(file.xStat.stat.st_ino);
+    this->getReplicas(file.stat.st_ino);
     // It has replicas, so fail!
     throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
   }
@@ -1106,7 +1066,7 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
   // Truncate
   else if (code == DM_NO_REPLICAS) {
     occi::Statement* stmt = this->getPreparedStatement(STMT_TRUNCATE_FILE);
-    stmt->setNumber(1, file.xStat.stat.st_ino);
+    stmt->setNumber(1, file.stat.st_ino);
     stmt->executeUpdate();
   }
   
@@ -1126,29 +1086,29 @@ mode_t NsOracleCatalog::umask(mode_t mask) throw ()
 
 void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->user_.uid != meta.xStat.stat.st_uid && this->user_.uid != 0)
+  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.xStat.stat.st_mode) && this->user_.uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && this->user_.uid != 0)
     mode &= ~S_ISVTX;
   if (this->user_.uid != 0 &&
-      meta.xStat.stat.st_gid != this->group_.gid &&
-      !gidInGroups(meta.xStat.stat.st_gid, this->groups_))
+      meta.stat.st_gid != this->group_.gid &&
+      !gidInGroups(meta.stat.st_gid, this->groups_))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
-  mode |= (meta.xStat.stat.st_mode & S_IFMT);
+  mode |= (meta.stat.st_mode & S_IFMT);
 
   Transaction transaction(this->conn_);
 
   occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_MODE);
   stmt->setNumber(1, mode);
-  stmt->setNumber(2, meta.xStat.stat.st_ino);
+  stmt->setNumber(2, meta.stat.st_ino);
   stmt->executeUpdate();
 
   transaction.commit();
@@ -1156,28 +1116,28 @@ void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
 
 
 
-void NsOracleCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid)
+void NsOracleCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
   // If -1, no changes
   if (newUid == (uid_t)-1)
-    newUid = meta.xStat.stat.st_uid;
+    newUid = meta.stat.st_uid;
   if (newGid == (gid_t)-1)
-    newGid = meta.xStat.stat.st_gid;
+    newGid = meta.stat.st_gid;
 
   // Make sense?
-  if (newUid == meta.xStat.stat.st_uid && newGid == meta.xStat.stat.st_gid)
+  if (newUid == meta.stat.st_uid && newGid == meta.stat.st_gid)
     return;
 
   // If root, skip all checks
   if (this->user_.uid != 0) {
     // Only root can change the owner
-    if (meta.xStat.stat.st_uid != newUid)
+    if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
     // If the group is changing...
-    if (meta.xStat.stat.st_gid != newGid) {
+    if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.xStat.stat.st_uid != this->user_.uid)
+      if (meta.stat.st_uid != this->user_.uid)
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
       // AND it has to belong to that group
       if (newGid != this->group_.gid && !gidInGroups(newGid, this->groups_))
@@ -1193,7 +1153,7 @@ void NsOracleCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid
 
   chownStmt->setNumber(1, newUid);
   chownStmt->setNumber(2, newGid);
-  chownStmt->setNumber(3, meta.xStat.stat.st_ino);
+  chownStmt->setNumber(3, meta.stat.st_ino);
 
   chownStmt->executeUpdate();
 
@@ -1205,7 +1165,7 @@ void NsOracleCatalog::changeOwner(FileMetadata& meta, uid_t newUid, gid_t newGid
 void NsOracleCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
   this->changeOwner(meta, newUid, newGid);
 }
 
@@ -1214,7 +1174,7 @@ void NsOracleCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t n
 void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path, false);
+  ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
 }
 
@@ -1223,16 +1183,16 @@ void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 std::string NsOracleCatalog::getComment(const std::string& path) throw(DmException)
 {
   // Get the file and check we can read
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.xStat.stat, S_IREAD) != 0)
+                       meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_COMMENT);
 
-  stmt->setNumber(1, meta.xStat.stat.st_ino);
+  stmt->setNumber(1, meta.stat.st_ino);
   occi::ResultSet* rs = stmt->executeQuery();
 
   if (!rs->next())
@@ -1251,10 +1211,10 @@ std::string NsOracleCatalog::getComment(const std::string& path) throw(DmExcepti
 void NsOracleCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   // Get the file and check we can write
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.xStat.stat, S_IWRITE) != 0)
+                       meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1263,13 +1223,13 @@ void NsOracleCatalog::setComment(const std::string& path, const std::string& com
   occi::Statement* stmt = this->getPreparedStatement(STMT_SET_COMMENT);
 
   stmt->setString(1, comment);
-  stmt->setNumber(2, meta.xStat.stat.st_ino);
+  stmt->setNumber(2, meta.stat.st_ino);
 
   if (stmt->executeUpdate() == 0) {
     // No update! Try inserting
     occi::Statement* stmti = this->getPreparedStatement(STMT_INSERT_COMMENT);
 
-    stmti->setNumber(1, meta.xStat.stat.st_ino);
+    stmti->setNumber(1, meta.stat.st_ino);
     stmti->setString(2, comment);
 
     stmti->executeUpdate();
@@ -1282,10 +1242,10 @@ void NsOracleCatalog::setComment(const std::string& path, const std::string& com
 
 void NsOracleCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
-  FileMetadata meta = this->parsePath(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.xStat.stat, S_IWRITE) != 0)
+                       meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1294,7 +1254,7 @@ void NsOracleCatalog::setGuid(const std::string& path, const std::string& guid) 
   occi::Statement* stmt = this->getPreparedStatement(STMT_SET_GUID);
 
   stmt->setString(1, guid);
-  stmt->setNumber(2, meta.xStat.stat.st_ino);
+  stmt->setNumber(2, meta.stat.st_ino);
 
   stmt->executeUpdate();
 
@@ -1308,18 +1268,18 @@ void NsOracleCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
   std::string parentPath, name;
 
   // Get the parent of the new folder
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.xStat.stat, S_IWRITE) != 0)
+                      parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Create the file entry
   Transaction transaction(this->conn_);
 
   this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
-                0, 0, parent.xStat.type, '-', "", "", parent.acl);
+                0, 0, parent.type, '-', "", "", parent.acl);
   
   transaction.commit();
 }
@@ -1335,34 +1295,34 @@ void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
     throw DmException(DM_INVALID_VALUE, "Can not remove '/'");
 
   // Get the parent of the new folder
-  FileMetadata parent = this->getParent(path, &parentPath, &name);
+  ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Get the file, and check it is a directory and it is empty
-  FileMetadata entry = this->getFile(name, parent.xStat.stat.st_ino);
+  ExtendedStat entry = this->extendedStat(parent.stat.st_ino, name);
 
-  if (!S_ISDIR(entry.xStat.stat.st_mode))
+  if (!S_ISDIR(entry.stat.st_mode))
     throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
 
-  if (this->cwd_ == entry.xStat.stat.st_ino)
+  if (this->cwd_ == entry.stat.st_ino)
     throw DmException(DM_IS_CWD, "Can not remove the current working dir");
 
-  if (entry.xStat.stat.st_nlink > 0)
+  if (entry.stat.st_nlink > 0)
     throw DmException(DM_EXISTS, path + " is not empty. Can not remove.");
 
   // Check we can remove it
-  if ((parent.xStat.stat.st_mode & S_ISVTX) == S_ISVTX) {
+  if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != entry.xStat.stat.st_uid &&
-        this->user_.uid != parent.xStat.stat.st_uid &&
+    if (this->user_.uid != entry.stat.st_uid &&
+        this->user_.uid != parent.stat.st_uid &&
         checkPermissions(this->user_, this->group_, this->groups_, entry.acl,
-                         entry.xStat.stat, S_IWRITE) != 0)
+                         entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.xStat.stat, S_IWRITE) != 0)
+                         parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
   }
 
@@ -1371,16 +1331,16 @@ void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
 
   // Remove directory itself
   occi::Statement* delDir = this->getPreparedStatement(STMT_DELETE_FILE);
-  delDir->setNumber(1, entry.xStat.stat.st_ino);
+  delDir->setNumber(1, entry.stat.st_ino);
   delDir->executeUpdate();
 
   // And decrement nlink
   occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  parent.xStat.stat.st_nlink--;
-  nlink->setNumber(1, parent.xStat.stat.st_nlink);
+  parent.stat.st_nlink--;
+  nlink->setNumber(1, parent.stat.st_nlink);
   nlink->setNumber(2, time(NULL));
   nlink->setNumber(3, time(NULL));
-  nlink->setNumber(4, parent.xStat.stat.st_ino);
+  nlink->setNumber(4, parent.stat.st_ino);
   nlink->executeUpdate();
 
   // Done!
@@ -1399,59 +1359,59 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     throw DmException(DM_INVALID_VALUE, "Not the source, neither the destination, can be '/'");
 
   // Get source and destination parent
-  FileMetadata oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
-  FileMetadata newParent = this->getParent(newPath, &oldParentPath, &newName);
+  ExtendedStat oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
+  ExtendedStat newParent = this->getParent(newPath, &oldParentPath, &newName);
 
   // Source
-  FileMetadata old = this->getFile(oldName, oldParent.xStat.stat.st_ino);
+  ExtendedStat old = this->extendedStat(oldParent.stat.st_ino, oldName);
 
   // Is the cwd?
-  if (old.xStat.stat.st_ino == this->cwd_) {
+  if (old.stat.st_ino == this->cwd_) {
     throw DmException(DM_IS_CWD, "Can not rename the current working directory");
   }
 
   // Need write permissions in both origin and destination
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       oldParent.acl, oldParent.xStat.stat, S_IWRITE) != 0)
+                       oldParent.acl, oldParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
   if (checkPermissions(this->user_, this->group_, this->groups_,
-                       newParent.acl, newParent.xStat.stat, S_IWRITE) != 0)
+                       newParent.acl, newParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
-  if (S_ISDIR(old.xStat.stat.st_mode)) {
+  if (S_ISDIR(old.stat.st_mode)) {
     if (checkPermissions(this->user_, this->group_, this->groups_,
-                        old.acl, old.xStat.stat, S_IWRITE) != 0)
+                        old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
 
     // AND destination can not be a child
-    FileMetadata aux = newParent;
+    ExtendedStat aux = newParent;
 
-    while (aux.xStat.parent > 0) {
-      if (aux.xStat.stat.st_ino == old.xStat.stat.st_ino)
+    while (aux.parent > 0) {
+      if (aux.stat.st_ino == old.stat.st_ino)
         throw DmException(DM_INVALID_VALUE, "Destination is descendant of source");
-      aux = this->getFile(aux.xStat.parent);
+      aux = this->extendedStat(aux.parent);
     }
   }
 
   // Check sticky
-  if (oldParent.xStat.stat.st_mode & S_ISVTX &&
-      this->user_.uid != oldParent.xStat.stat.st_uid &&
-      this->user_.uid != old.xStat.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.xStat.stat, S_IWRITE) != 0)
+  if (oldParent.stat.st_mode & S_ISVTX &&
+      this->user_.uid != oldParent.stat.st_uid &&
+      this->user_.uid != old.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
   // If the destination exists...
   try {
-    FileMetadata newF = this->getFile(newName, newParent.xStat.stat.st_ino);
+    ExtendedStat newF = this->extendedStat(newParent.stat.st_ino, newName);
 
     // If it is the same, leave the function
-    if (newF.xStat.stat.st_ino == old.xStat.stat.st_ino)
+    if (newF.stat.st_ino == old.stat.st_ino)
       return;
 
     // It does! It has to be the same type
-    if ((newF.xStat.stat.st_mode & S_IFMT) != (old.xStat.stat.st_mode & S_IFMT)) {
-      if (S_ISDIR(old.xStat.stat.st_mode))
+    if ((newF.stat.st_mode & S_IFMT) != (old.stat.st_mode & S_IFMT)) {
+      if (S_ISDIR(old.stat.st_mode))
         throw DmException(DM_NOT_DIRECTORY, "Source is a directory and destination is not");
       else
         throw DmException(DM_IS_DIRECTORY, "Source is not directory and destination is");
@@ -1459,7 +1419,7 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
 
     // And it has to be empty. Just call remove or unlink
     // and they will fail if it is not
-    if (S_ISDIR(newF.xStat.stat.st_mode))
+    if (S_ISDIR(newF.stat.st_mode))
       this->removeDir(newPath);
     else
       this->unlink(newPath);
@@ -1477,37 +1437,37 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     occi::Statement* changeNameStmt = this->getPreparedStatement(STMT_CHANGE_NAME);
 
     changeNameStmt->setString(1, newName);
-    changeNameStmt->setNumber(2, old.xStat.stat.st_ino);
+    changeNameStmt->setNumber(2, old.stat.st_ino);
 
     changeNameStmt->executeUpdate();
   }
 
   // Change the parent if needed
-  if (newParent.xStat.stat.st_ino != oldParent.xStat.stat.st_ino) {
+  if (newParent.stat.st_ino != oldParent.stat.st_ino) {
     occi::Statement* changeParentStmt = this->getPreparedStatement(STMT_CHANGE_PARENT);
 
-    changeParentStmt->setNumber(1, newParent.xStat.stat.st_ino);
-    changeParentStmt->setNumber(2, old.xStat.stat.st_ino);
+    changeParentStmt->setNumber(1, newParent.stat.st_ino);
+    changeParentStmt->setNumber(2, old.stat.st_ino);
 
     changeParentStmt->executeUpdate();
 
     // Reduce nlinks from old
     occi::Statement* oldNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
-    oldNlinkStmt->setNumber(1, --oldParent.xStat.stat.st_nlink);
+    oldNlinkStmt->setNumber(1, --oldParent.stat.st_nlink);
     oldNlinkStmt->setNumber(2, time(NULL));
     oldNlinkStmt->setNumber(3, time(NULL));
-    oldNlinkStmt->setNumber(4, oldParent.xStat.stat.st_ino);
+    oldNlinkStmt->setNumber(4, oldParent.stat.st_ino);
 
     oldNlinkStmt->executeUpdate();
 
     // Increment from new
     occi::Statement* newNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
-    newNlinkStmt->setNumber(1, ++newParent.xStat.stat.st_nlink);
+    newNlinkStmt->setNumber(1, ++newParent.stat.st_nlink);
     newNlinkStmt->setNumber(2, time(NULL));
     newNlinkStmt->setNumber(3, time(NULL));
-    newNlinkStmt->setNumber(4, newParent.xStat.stat.st_ino);
+    newNlinkStmt->setNumber(4, newParent.stat.st_ino);
 
     newNlinkStmt->executeUpdate();
   }

@@ -21,6 +21,7 @@
 #define URI_MAX        8192
 #define GUID_MAX         36
 #define ACL_ENTRIES_MAX 300
+#define ACL_SIZE         13
 #define POLICY_MAX       16
 #define POOL_MAX         16
 #define FILESYSTEM_MAX   80
@@ -51,7 +52,16 @@ struct xstat {
   char        guid     [GUID_MAX];
   char        csumtype [SUMTYPE_MAX];
   char        csumvalue[SUMVALUE_MAX];
+  char        acl      [ACL_ENTRIES_MAX * ACL_SIZE];
 };
+typedef struct xstat ExtendedStat;
+
+/** Symbolic links */
+struct symlink {
+  uint64_t fileId;         /**< The file unique ID. */
+  char     link[PATH_MAX]; /**< Where the link is pointing to. */
+};
+typedef struct symlink SymLink;
 
 /** Simplified URI struct */
 struct uri {
