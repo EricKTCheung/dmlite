@@ -50,3 +50,42 @@ target_link_libraries (test-rename dmlite dmlitecommon cppunit dl)
 
 add_executable        (test-chown test-chown.cpp test-base.cpp)
 target_link_libraries (test-chown dmlite dmlitecommon cppunit dl)
+
+# Configure CTest testing
+ENABLE_TESTING()
+
+# Set Test Parameters
+set (CONFIG MemcacheNsMySql.conf)
+set (PLUGIN plugin_adapter_dpm)
+set (PLUGIN_SO ../plugins/adapter/plugin_adapter.so)
+set (POOL pool1)
+
+# Add CTest tests
+ADD_TEST(test-chdir ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})
+SET_TESTS_PROPERTIES(test-chdir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-create ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
+SET_TESTS_PROPERTIES(test-create PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-load ${CMAKE_CURRENT_BINARY_DIR}/test-load ${CONFIG})
+SET_TESTS_PROPERTIES(test-load PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-comment ${CMAKE_CURRENT_BINARY_DIR}/test-comment ${CONFIG})
+SET_TESTS_PROPERTIES(test-comment PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-security ${CMAKE_CURRENT_BINARY_DIR}/test-security ${CONFIG})
+SET_TESTS_PROPERTIES(test-security PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-replicas ${CMAKE_CURRENT_BINARY_DIR}/test-replicas ${CONFIG})
+SET_TESTS_PROPERTIES(test-replicas PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-guid ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
+SET_TESTS_PROPERTIES(test-guid PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-stat ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
+SET_TESTS_PROPERTIES(test-stat PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-poolfs ${CMAKE_CURRENT_BINARY_DIR}/test-poolfs ${PLUGIN_SO} ${PLUGIN} ${POOL})
+SET_TESTS_PROPERTIES(test-poolfs PROPERTIES PASS_REGULAR_EXPRESSION
+"Pool;Filesystem")
+ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${PLUGIN_SO} ${PLUGIN} ${POOL})
+SET_TESTS_PROPERTIES(test-pools PROPERTIES PASS_REGULAR_EXPRESSION
+"Pool;Filesystem")
+ADD_TEST(test-poolcontainer ${CMAKE_CURRENT_BINARY_DIR}/test-poolcontainer ${PLUGIN_SO} ${PLUGIN} ${POOL})
+SET_TESTS_PROPERTIES(test-poolcontainer PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-split_path ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
+SET_TESTS_PROPERTIES(test-split_path PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-split_url ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
+SET_TESTS_PROPERTIES(test-split_url PROPERTIES PASS_REGULAR_EXPRESSION "OK")
