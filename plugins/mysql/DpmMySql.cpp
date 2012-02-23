@@ -179,71 +179,20 @@ void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
 int DpmMySqlCatalog::getFsStatus(const std::string& pool, const std::string& server,
                                  const std::string& fs) throw(DmException)
 {
-  MYSQL_STMT *stmt;
-  MYSQL_BIND  bindParam[3], bindResult[1];
-  int         status;
-  my_bool     isNull;
-  
-  long unsigned poolLen, serverLen, fsLen;
-
-  stmt = this->getPreparedStatement(STMT_GET_FS_STATUS);
+  Statement stmt(this->getPreparedStatement(STMT_GET_FS_STATUS));
+  int       status;
 
   // Bind the parameters
-  memset(bindParam, 0, sizeof(bindParam));
+  stmt.bindParam(0, pool);
+  stmt.bindParam(1, server);
+  stmt.bindParam(2, fs);
 
-  poolLen   = pool.size();
-  serverLen = server.size();
-  fsLen     = fs.size();
-
-  bindParam[0].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[0].buffer      = (void*)pool.c_str();
-  bindParam[0].length      = &poolLen;
-
-  bindParam[1].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[1].buffer      = (void*)server.c_str();
-  bindParam[1].length      = &serverLen;
-
-  bindParam[2].buffer_type = MYSQL_TYPE_VARCHAR;
-  bindParam[2].buffer      = (void*)fs.c_str();
-  bindParam[2].length      = &fsLen;
-
-  mysql_stmt_bind_param(stmt, bindParam);
+  stmt.execute();
   
-  // Execute query
-  if (mysql_stmt_execute(stmt) != 0) {
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-    return -1;
-  }
+  stmt.bindResult(0, &status);
 
-  // Bind the results
-  memset(bindResult, 0, sizeof(bindResult));
+  if (!stmt.fetch())
+    throw DmException(DM_INTERNAL_ERROR, "%s:%s:%s not found!", pool.c_str(), server.c_str(), fs.c_str());
 
-  bindResult[0].buffer_type = MYSQL_TYPE_LONG;
-  bindResult[0].buffer      = &status;
-  bindResult[0].is_null     = &isNull;
-
-  mysql_stmt_bind_result(stmt, bindResult);
-
-  // Fetch
-  try {
-    switch (mysql_stmt_fetch(stmt)) {
-      case 0:
-        break;
-      case MYSQL_NO_DATA:
-        throw DmException(DM_INTERNAL_ERROR, "%s:%s:%s not found!", pool.c_str(), server.c_str(), fs.c_str());
-      case MYSQL_DATA_TRUNCATED:
-        throw DmException(DM_QUERY_FAILED, "Data truncated");
-      default:
-        throw DmException(DM_QUERY_FAILED, mysql_stmt_error(stmt));
-    }
-
-    mysql_stmt_free_result(stmt);
-
-    // And done
-    return status;
-  }
-  catch (...) {
-    mysql_stmt_free_result(stmt);
-    throw;
-  }
+  return status;
 }
