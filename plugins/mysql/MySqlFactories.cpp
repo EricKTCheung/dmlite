@@ -2,13 +2,29 @@
 /// @brief   MySQL backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
+#include <pthread.h>
+#include <stdlib.h>
 #include "MySqlFactories.h"
 #include "NsMySql.h"
 #include "DpmMySql.h"
 
-#include <stdlib.h>
-
 using namespace dmlite;
+
+
+
+static pthread_once_t initialize_mysql_thread = PTHREAD_ONCE_INIT;
+static pthread_key_t  destructor_key;
+
+static void destroy_thread(void*)
+{
+  mysql_thread_end();
+}
+
+static void init_thread(void)
+{
+  mysql_thread_init();
+  pthread_key_create(&destructor_key, destroy_thread);
+}
 
 
 
@@ -108,6 +124,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
 
 Catalog* NsMySqlFactory::createCatalog() throw(DmException)
 {
+  pthread_once(&initialize_mysql_thread, init_thread);
   return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
                             this->symLinkLimit_);
 }
@@ -142,6 +159,8 @@ void DpmMySqlFactory::configure(const std::string& key, const std::string& value
 Catalog* DpmMySqlFactory::createCatalog() throw(DmException)
 {
   Catalog* nested = 0x00;
+
+  pthread_once(&initialize_mysql_thread, init_thread);
 
   if (this->nestedFactory_ != 0x00)
     nested = this->nestedFactory_->createCatalog();
