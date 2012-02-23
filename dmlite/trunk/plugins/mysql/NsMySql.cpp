@@ -1248,6 +1248,10 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   // All preconditions are good!
   Transaction transaction(this->conn_);
 
+  // Remove associated comments
+  Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
+  delComment.bindParam(0, entry.stat.st_ino);
+  delComment.execute();
 
   // Remove directory itself
   Statement delDir(this->getPreparedStatement(STMT_DELETE_FILE));
