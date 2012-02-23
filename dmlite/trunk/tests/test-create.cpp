@@ -8,6 +8,7 @@ class TestCreate: public TestBase
 protected:
   struct stat statBuf, iStat;
   const static int   MODE;
+  const static int   MODE_ALL;
   const static char *FOLDER;
   const static char *NESTED;
   const static char *SYMLINK;
@@ -92,6 +93,36 @@ public:
     this->catalog->removeDir(NESTED);
   }
 
+	void testChmodDifferentUser()
+	{
+		struct stat s;
+
+    this->catalog->create(FILE, MODE);
+    s = this->catalog->stat(FOLDER);
+    CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
+
+    // Change user
+    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+
+    // Nested file shouldn't pass
+    CPPUNIT_ASSERT_THROW(s = this->catalog->stat(NESTED), dmlite::DmException);
+
+    // Change user back 
+    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
+
+		// Changing the mode of the parent
+		this->catalog->changeMode(FILE, MODE_ALL);
+    s = this->catalog->stat(FOLDER);
+    CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
+
+    // Change user
+    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+
+		// Nested file should pass
+    s = this->catalog->stat(NESTED);
+    CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
+	}
+
   void testUmask()
   {
     struct stat s;
@@ -171,6 +202,7 @@ public:
 };
 
 const int   TestCreate::MODE    = 0700;
+const int   TestCreate::MODE_ALL = 0777;
 const char* TestCreate::FOLDER  = "test-create";
 const char* TestCreate::NESTED  = "test-create/nested////";
 const char* TestCreate::SYMLINK = "test-create/test-link";

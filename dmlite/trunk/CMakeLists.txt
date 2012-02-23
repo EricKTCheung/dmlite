@@ -61,3 +61,6 @@ if (DOXYGEN_FOUND)
            COMPONENT   dmlite-devel)
 
 endif (DOXYGEN_FOUND)
+
+# Configure CTest testing
+ENABLE_TESTING()
