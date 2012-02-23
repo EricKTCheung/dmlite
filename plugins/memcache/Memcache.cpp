@@ -75,7 +75,8 @@ bool MemcacheConnectionFactory::isValid(memcached_st* c)
 MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException):
 	nestedFactory_(catalogFactory),
 	connectionFactory_(std::vector<std::string>()),
-	connectionPool_(&connectionFactory_, 25) 
+	connectionPool_(&connectionFactory_, 25),
+	symLinkLimit_(3) 
 {
 	// Nothing
 }
@@ -90,9 +91,9 @@ MemcacheFactory::~MemcacheFactory() throw(DmException)
 void MemcacheFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
 	if (key == "MemcachedServer")
-	{	
 		this->connectionFactory_.hosts.push_back(value);
-	}
+  else if (key == "SymLinkLimit")
+    this->symLinkLimit_ = atoi(value.c_str());
 	else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -106,7 +107,7 @@ Catalog* MemcacheFactory::createCatalog() throw(DmException)
   if (this->nestedFactory_ != 0x00)
     nested = this->nestedFactory_->createCatalog();
 
-  return new MemcacheCatalog(&this->connectionPool_, nested);
+  return new MemcacheCatalog(&this->connectionPool_, nested, this->symLinkLimit_);
 }
 
 
