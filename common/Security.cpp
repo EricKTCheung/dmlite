@@ -11,8 +11,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <map>
 
 using namespace dmlite;
+
+struct MapFileEntry {
+  time_t      lastModified;
+  std::map<std::string, std::string> voForDn;
+};
+
 
 
 bool dmlite::gidInGroups(gid_t gid, const std::vector<GroupInfo>& groups)
@@ -125,56 +132,90 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
 
 std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
 {
-  char  buf[1024];
-  char *p, *q;
-  FILE *mf;
-  
-  if ((mf = fopen(mapfile.c_str(), "r")) == NULL)
-    throw DmException(DM_NO_SUCH_FILE, "Can not open " + mapfile);
+  static std::map<std::string, struct MapFileEntry*> cache;
 
-  while (fgets(buf, sizeof(buf), mf)) {
-    buf[strlen (buf) - 1] = '\0';
-    p = buf;
-
-    // Skip leading blanks
-    while (isspace(*p))
-      p++;
-
-    if (*p == '\0') continue; // Empty line
-    if (*p == '#') continue;  // Comment
-
-    if (*p == '"') {
-      q = p + 1;
-      if ((p = strrchr (q, '"')) == NULL) continue;
-    }
-    else {
-      q = p;
-      while (!isspace(*p) && *p != '\0')
-        p++;
-      if (*p == '\0') continue;	// No VO
-    }
-    
-    *p = '\0';
-
-    if (dn != q) continue; // DN does not match
-
-    p++;
-
-    // Skip blanks between DN and VO
-    while (isspace(*p))
-      p++;
-    q = p;
-
-    while (!isspace(*p) && *p != '\0' && *p != ',')
-      p++;
-    *p = '\0';
-
-    fclose (mf);
-    return std::string(q);
+  MapFileEntry* mfe = cache[mapfile];
+  if (mfe == 0x00) {
+    mfe = new MapFileEntry();
+    mfe->lastModified = 0;
+    cache[mapfile] = mfe;
   }
 
-  fclose (mf);
-  throw DmException(DM_NO_USER_MAPPING, "Could not map " + dn);
+  // Check the last modified time
+  struct stat mfStat;
+  if (stat(mapfile.c_str(), &mfStat) == -1)
+    throw DmException(DM_NO_SUCH_FILE, "Can not stat " + mapfile);
+
+  if (mfStat.st_mtime > mfe->lastModified) {
+    // Need to update the mapping!
+    static pthread_mutex_t update = PTHREAD_MUTEX_INITIALIZER;
+
+    // Do the update
+    if (pthread_mutex_trylock(&update) == 0) {
+      char  buf[1024];
+      char *p, *q;
+      char *user, *vo;
+      FILE *mf;
+
+      if ((mf = fopen(mapfile.c_str(), "r")) == NULL)
+        throw DmException(DM_NO_SUCH_FILE, "Can not open " + mapfile);
+
+      while (fgets(buf, sizeof(buf), mf)) {
+        buf[strlen (buf) - 1] = '\0';
+        p = buf;
+
+        // Skip leading blanks
+        while (isspace(*p))
+          p++;
+
+        if (*p == '\0') continue; // Empty line
+        if (*p == '#') continue;  // Comment
+
+        if (*p == '"') {
+          q = p + 1;
+          if ((p = strrchr (q, '"')) == NULL) continue;
+        }
+        else {
+          q = p;
+          while (!isspace(*p) && *p != '\0')
+            p++;
+          if (*p == '\0') continue;	// No VO
+        }
+
+        *p = '\0';
+        user = q;
+        p++;
+
+        // Skip blanks between DN and VO
+        while (isspace(*p))
+          p++;
+        q = p;
+
+        while (!isspace(*p) && *p != '\0' && *p != ',')
+          p++;
+        *p = '\0';
+        vo = q;
+
+        // Insert
+        mfe->voForDn[user] = vo;
+      }
+
+      fclose (mf);
+      mfe->lastModified = mfStat.st_mtime;
+      pthread_mutex_unlock(&update);
+    }
+    // Someone else is updating, so wait until they are done
+    else {
+      pthread_mutex_lock(&update);
+      pthread_mutex_unlock(&update);
+    }
+  }
+
+  // Done here
+  if (mfe->voForDn.count(dn) == 0)
+    throw DmException(DM_NO_USER_MAPPING, "Could not map " + dn);
+
+  return mfe->voForDn[dn];
 }
 
 
