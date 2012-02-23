@@ -6,7 +6,7 @@
 class TestStat: public TestBase
 {
 protected:
-  struct stat statBuf, iStat;
+  struct stat statBuf, statBufCached, iStat;
   const static int   MODE;
   const static char *FOLDER;
   const static char *NESTED;
@@ -21,7 +21,7 @@ public:
     TestBase::setUp();
 
     this->catalog->setUserId(uid1, gid1_1, TEST_USER);
-    this->catalog->makeDir(FOLDER, MODE);
+		this->catalog->makeDir(FOLDER, MODE);
     this->catalog->makeDir(NESTED, MODE);
 
     this->catalog->symlink(FOLDER, SYMLINK);
@@ -93,12 +93,48 @@ public:
     CPPUNIT_ASSERT_EQUAL(statBuf.st_uid,  iStat.st_uid);
   }
 
+	void testCacheRegular()
+	{
+    statBuf = this->catalog->stat(NESTED);
+    statBufCached = this->catalog->stat(NESTED);
+
+    CPPUNIT_ASSERT_EQUAL((int)statBuf.st_mode, (int)statBufCached.st_mode);
+    CPPUNIT_ASSERT_EQUAL((int)statBuf.st_ino, (int)statBufCached.st_ino);
+	}
+
+	void testCacheDifferentUser()
+	{
+    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
+
+		// stat to cache result
+    statBuf = this->catalog->stat(FOLDER);
+
+    // Change user
+    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+
+    // First level should pass
+    statBufCached = this->catalog->stat(FOLDER);
+    CPPUNIT_ASSERT_EQUAL((int)statBuf.st_mode, (int)statBufCached.st_mode);
+    CPPUNIT_ASSERT_EQUAL((int)statBuf.st_ino, (int)statBufCached.st_ino);
+
+		// switch user back to cache
+    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
+    statBuf = this->catalog->stat(NESTED);
+    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+
+    // Nested shouldn't
+    CPPUNIT_ASSERT_THROW(statBuf = this->catalog->stat(NESTED), dmlite::DmException);
+	}
+
+
   CPPUNIT_TEST_SUITE(TestStat);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testDifferentUser);
   CPPUNIT_TEST(testSymLink);
   CPPUNIT_TEST(testRelative);
   CPPUNIT_TEST(testIStat);
+  CPPUNIT_TEST(testCacheRegular);
+  CPPUNIT_TEST(testCacheDifferentUser);
   CPPUNIT_TEST_SUITE_END();
 };
 
