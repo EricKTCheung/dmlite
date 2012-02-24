@@ -117,9 +117,18 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
   xStat.stat.st_mode  = dpnsStat.filemode;
   xStat.stat.st_size  = dpnsStat.filesize;
 
+  xStat.acl[0]       = '\0';
   xStat.csumtype[0]  = '\0';
   xStat.csumvalue[0] = '\0';
   xStat.guid[0]      = '\0';
+
+  xStat.parent = 0;
+
+  xStat.status = dpnsStat.status;
+  xStat.type   = dpnsStat.fileclass;
+
+  std::list<std::string> components = splitPath(path);
+  strncpy(xStat.name, components.back().c_str(), sizeof(xStat.name));
 
   return xStat;
 }
