@@ -25,7 +25,7 @@
 
 namespace dmlite {
 
-#define MEMCACHE_EXPIRATION 60
+#define DEFAULT_MEMCACHED_EXPIRATION 60
 #define SERIALIZE_VERSION 1
 
 /// Memcache plugin
@@ -36,7 +36,9 @@ public:
   /// @param decorates The underlying decorated catalog.
   MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 									Catalog* decorates,
-									unsigned int symLinkLimit) throw (DmException);
+									unsigned int symLinkLimit,
+									time_t memcachedExpirationLimit)
+											throw (DmException);
 
   /// Destructor
   ~MemcacheCatalog() throw (DmException);
@@ -135,6 +137,9 @@ private:
 
   /// Symlink limit
   unsigned int symLinkLimit_;
+
+	/// The expiration limit for cached data on memcached in seconds.
+	time_t memcachedExpirationLimit_;
 };
 
 class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
@@ -176,6 +181,9 @@ protected:
 
   /// The recursion limit following symbolic links.
   unsigned int symLinkLimit_;
+
+	/// The expiration limit for cached data on memcached in seconds.
+	unsigned int memcachedExpirationLimit_;
 private:
 };
 
