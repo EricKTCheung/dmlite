@@ -47,6 +47,16 @@ void serialize(Archive& ar, SymLink& link, const unsigned int version)
 
 using namespace dmlite;
 
+/// Used to keep the Key Prefixes
+enum {
+	PRE_STAT = 0
+};
+
+/// Used internally to define Key Prefixes.
+/// Must match with PRE_* constants!
+static const char* key_prefix[] = {
+	"STAT"
+};
 
 /// Little of help here to avoid redundancy
 #define DELEGATE(method, ...) \
@@ -87,8 +97,12 @@ var = this->decorated_->method(__VA_ARGS__);
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool, 
 																 Catalog* decorates,
-																 unsigned int symLinkLimit) throw (DmException):
-   DummyCatalog(decorates), symLinkLimit_(symLinkLimit), cwd_(0)
+																 unsigned int symLinkLimit,
+																 time_t memcachedExpirationLimit) throw (DmException):
+   DummyCatalog(decorates),
+	 symLinkLimit_(symLinkLimit),
+	 cwd_(0), 
+	 memcachedExpirationLimit_(memcachedExpirationLimit)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -109,40 +123,20 @@ void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) thr
 	DELEGATE_ASSIGN(this->user_, getUser, uid);
 	DELEGATE_ASSIGN(this->group_, getGroup, gid);
   this->groups_.clear();
-  //printf("mem:uid = %d.\n", this->user_.uid);
-/*  printf("mem:uid = %d\n \
-mem:uname = %s\n \
-mem:ca = %s\n \
-mem:banned = %d\n \
-mem:gid = %d\n \
-mem:gname = %s\n \
-mem:banned = %d\n \
-mem:groups_no = %d\n\n",
-this->user_.uid,
-this->user_.name,
-this->user_.ca,
-this->user_.banned,
-this->group_.gid,
-this->group_.name,
-this->group_.banned,
-this->groups_.size());*/
 }
 
 void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
 {
 	DELEGATE(changeDir, path);
-//	printf("mem:path = %s.\n", path.c_str()); 
 
   ExtendedStat cwd = this->extendedStat(path);
   this->cwdPath_ = path;
   this->cwd_     = cwd.stat.st_ino;
-//	printf("mem:cwd = %d, mem:cwdPath = %s.\n", this->cwd_, this->cwdPath_.c_str());
 }
 
 
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
-//	printf("extStat begin: mem:path = '%s'.\n", path.c_str());
   // Split the path always assuming absolute
   std::list<std::string> components = splitPath(path);
 
@@ -166,20 +160,14 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
     meta   = this->extendedStat(parent);
   }
   
-//	printf("in extStat: mem:cwd = %d, mem:cwdPath = %s.\n", this->cwd_, this->cwdPath_.c_str());
-
   while (!components.empty()) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
       throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
-		//printf("mem:cur_inode = %d, mem:cur_name = '%s'.\n", meta.stat.st_ino,meta.name); 
-		//printf("mem:cur_perms = %o.\n", meta.stat.st_mode);
-		//printf("mem:extstat before ");
     if (checkPermissions(this->user_, this->group_, this->groups_,
                          meta.acl, meta.stat, S_IEXEC) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to list '%s'", meta.name);
-		//printf("after exc.\n");
 
     // Pop next component
     c = components.front();
@@ -227,8 +215,6 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
     
   }
 
-//	printf("in extStat end: mem:meta.ino = %d.\n", meta.stat.st_ino);
-
   return meta;
 }
 
@@ -240,7 +226,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
 
 	std::string valMemc;
 
-	const std::string key = keyFromAny("STAT", fileId); 
+	const std::string key = keyFromAny(key_prefix[PRE_STAT], fileId); 
 
 	valMemc = valFromMemcachedKey(key);
 	if (!valMemc.empty())
@@ -264,7 +250,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 
 	std::string valMemc;
 
-	const std::string key = keyFromAny("STAT", parent, name); 
+	const std::string key = keyFromAny(key_prefix[PRE_STAT], parent, name); 
 
 	valMemc = valFromMemcachedKey(key);
 	if (!valMemc.empty())
@@ -283,62 +269,62 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
 	DELEGATE(removeDir, path);
-	delMemcachedFromPath("STAT", path);
-	delMemcachedFromPath("STAT", getParent(path));
-}
-
-void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
-{
-	DELEGATE(unlink, path);
-	delMemcachedFromPath("STAT", path);
-	delMemcachedFromPath("STAT", getParent(path));
-}
-
-void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
-{
-	DELEGATE(rename, oldPath, newPath);
-	delMemcachedFromPath("STAT", oldPath);
-	delMemcachedFromPath("STAT", getParent(oldPath));
-	delMemcachedFromPath("STAT", getParent(newPath));
-}
-
-void MemcacheCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
-{
-	DELEGATE(makeDir, path, mode);
-	delMemcachedFromPath("STAT", getParent(path));
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
 }
 
 void MemcacheCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
 	DELEGATE(symlink, oldPath, newPath);
-	delMemcachedFromPath("STAT", getParent(oldPath));
-	delMemcachedFromPath("STAT", getParent(newPath));
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(oldPath));
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(newPath));
+}
+
+void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
+{
+	DELEGATE(unlink, path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
+}
+
+void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
+{
+	DELEGATE(rename, oldPath, newPath);
+	delMemcachedFromPath(key_prefix[PRE_STAT], oldPath);
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(oldPath));
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(newPath));
+}
+
+void MemcacheCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
+{
+	DELEGATE(makeDir, path, mode);
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
 }
 
 void MemcacheCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
 	DELEGATE(create, path, mode);
-	delMemcachedFromPath("STAT", getParent(path));
+	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
 }
 
 void MemcacheCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
 	DELEGATE(changeMode, path, mode);
-	delMemcachedFromPath("STAT", path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
 
 void MemcacheCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
 	DELEGATE(changeOwner, path, newUid, newGid);
-	delMemcachedFromPath("STAT", path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
 
 void MemcacheCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
 	DELEGATE(linkChangeOwner, path, newUid, newGid);
-	delMemcachedFromPath("STAT", path);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
 
 std::string MemcacheCatalog::getParent(const std::string& path)
@@ -367,9 +353,6 @@ ExtendedStat MemcacheCatalog::getParent(const std::string& path,
                                        std::string* parentPath,
                                        std::string* name) throw (DmException)
 {
-	//printf("mem:getParent path = %s.\n", path.c_str());
-	//printf("mem:getParent cwdPath_ = %s.\n", this->cwdPath_.c_str()); 
-	//printf("mem:getParent cwd_ = %d.\n", this->cwd_); 
 	std::list<std::string> components = splitPath(path);
 
   parentPath->clear();
@@ -480,12 +463,7 @@ const std::string MemcacheCatalog::valFromMemcachedKey(const std::string key)
 	if (valMemc != NULL)
 	{
 		valMemcStr.assign(valMemc);
-//		printf("	using cached value, key %s.\n", key.c_str());
-	} else
-	{
-//		printf("	using db value.\n");
 	}
-
 	return valMemcStr;
 }
 
@@ -497,7 +475,7 @@ void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
 													 key.data(),
 													 key.length(),
 													 strValue.data(), strValue.length(),
-													 (time_t)MEMCACHE_EXPIRATION,
+													 this->memcachedExpirationLimit_,
   												 (uint32_t)0);
 
 	if (statMemc != MEMCACHED_SUCCESS)
@@ -506,7 +484,6 @@ void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
 											std::string(memcached_strerror(this->conn_,
 																										 statMemc)));
 	}
-//	printf("	set value to cache, key %s.\n", key.c_str());
 
 	return;
 }
@@ -527,7 +504,6 @@ void MemcacheCatalog::delMemcachedFromKey(const std::string key)
 																										 statMemc)));
 	}
 	if (statMemc != MEMCACHED_NOTFOUND)
-//		printf("	deleted value %s from cache.\n", key.c_str());
 	
 	return;
 }

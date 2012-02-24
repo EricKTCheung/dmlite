@@ -76,7 +76,8 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmExcept
 	nestedFactory_(catalogFactory),
 	connectionFactory_(std::vector<std::string>()),
 	connectionPool_(&connectionFactory_, 25),
-	symLinkLimit_(3) 
+	symLinkLimit_(3),
+	memcachedExpirationLimit_(60)
 {
 	// Nothing
 }
@@ -94,6 +95,16 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 		this->connectionFactory_.hosts.push_back(value);
   else if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
+  else if (key == "MemcachedExpirationLimit")
+	{
+		unsigned int expLimit = atoi(value.c_str());
+		// 60*60*24*30 = 30 days from which on the expiration limit
+		// will be treated as a timestamp by memcached 
+		if (expLimit => 0 && expLimit < 60*60*24*30)
+			this->memcachedExpirationLimit_ = expLimit;
+		else
+			this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
+	}
 	else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -107,7 +118,7 @@ Catalog* MemcacheFactory::createCatalog() throw(DmException)
   if (this->nestedFactory_ != 0x00)
     nested = this->nestedFactory_->createCatalog();
 
-  return new MemcacheCatalog(&this->connectionPool_, nested, this->symLinkLimit_);
+  return new MemcacheCatalog(&this->connectionPool_, nested, this->symLinkLimit_, (time_t)this->memcachedExpirationLimit_);
 }
 
 
