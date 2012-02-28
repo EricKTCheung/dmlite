@@ -1,6 +1,6 @@
 Name:		dmlite
 Version:	0.2.0
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Abstraction library for LCGDM components
 Group:		Applications/Internet
 License:	ASL 2.0
@@ -141,6 +141,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_defaultdocdir}/%{name}-%{version}
 
 %changelog
+* Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
+- Split plugins into multiple packages, added dependencies
+- Updated package descriptions
 * Tue Jan 31 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.2.0-1
 - Added documentation to the build process
 * Mon Jan 23 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
