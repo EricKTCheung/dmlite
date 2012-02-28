@@ -28,7 +28,7 @@ Summary:	Libraries
 Group:		Applications/Internet
 
 %description libs
-DMLite libraries.
+This package provides the libraries used by DMLITE components.
 
 %package devel
 Summary:	Development libraries and headers for dmlite
@@ -36,15 +36,47 @@ Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description devel
-Development headers and libraries for dmlite.
+This package provides headers and development libraries for DMLITE.
 
-%package plugins
-Summary:	Set of plugins for dmlite
+%package plugins-adapter
+Summary:	Adapter plugin for DMLITE
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:	dpm-libs%{?isa}
+
+%description plugins-adapter
+This package provides the adapter plugin for DMLITE. This plugin provides both
+a namespace and pool management implementation which fallback to forwarding
+calls to the old DPNS and DPM daemons.
+
+%package plugins-librarian
+Summary:	Librarian plugin for DMLITE
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
-%description plugins
-Default set of plugins for dmlite: MySQL, Adapter, Profiler and Librarian.
+%description plugins-librarian
+This package provides the librarian plugin for DMLITE. This plugin handles
+the necessary logic to hop between difference replicas when accessing a file
+managed by the grid.
+
+%package plugins-mysql 
+Summary:	MySQL plugin for DMLITE
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:	mysql
+
+%description plugins-mysql
+This package provides the MySQL plugin for DMLITE.
+
+%package plugins-profiler
+Summary:	Profiler plugin for DMLITE
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+
+%description plugins-profiler
+This package provides the profiler plugin for DMLITE. This plugin is a simple
+wrapper around a real plugin implementation, and is used to do multiple
+measurements regarding the performance of each call to DMLITE.
 
 %package docs
 Summary:	API documentation for dmlite
@@ -87,9 +119,21 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libdmlite.so
 %{_libdir}/libdmlitecommon.so
 
-%files plugins
+%files plugins-adapter
 %defattr(-,root,root,-)
-%{_libdir}/dmlite
+%{_libdir}/dmlite/plugin_adapter.so
+
+%files plugins-librarian
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_librarian.so
+
+%files plugins-mysql
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_mysql.so
+
+%files plugins-profiler
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_profiler.so
 
 %files docs
 %defattr(-,root,root,-)
