@@ -2,6 +2,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <iostream>
+#include <stdlib.h>
 #include "test-base.h"
 
 const char *TestBase::config = 0x00;
