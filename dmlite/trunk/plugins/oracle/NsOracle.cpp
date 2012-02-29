@@ -627,6 +627,13 @@ std::string NsOracleCatalog::getWorkingDir(void) throw (DmException)
 
 
 
+ino_t NsOracleCatalog::getWorkingDirI(void) throw (DmException)
+{
+  return this->cwd_;
+}
+
+
+
 Directory* NsOracleCatalog::openDir(const std::string& path) throw(DmException)
 {
   NsOracleDir  *dir;
