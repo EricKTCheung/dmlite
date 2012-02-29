@@ -50,8 +50,9 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
-  void        changeDir    (const std::string&) throw (DmException);
-  std::string getWorkingDir(void)               throw (DmException);
+  void        changeDir     (const std::string&) throw (DmException);
+  std::string getWorkingDir (void)               throw (DmException);
+  ino_t       getWorkingDirI(void)               throw (DmException);
   
   ExtendedStat extendedStat(const std::string&, bool = true) throw (DmException);
   ExtendedStat extendedStat(ino_t)              throw (DmException);

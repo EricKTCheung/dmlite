@@ -97,6 +97,13 @@ std::string NsAdapterCatalog::getWorkingDir(void) throw (DmException)
 
 
 
+ino_t NsAdapterCatalog::getWorkingDirI() throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not implemented");
+}
+
+
+
 ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   struct dpns_filestat dpnsStat;

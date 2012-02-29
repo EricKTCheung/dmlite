@@ -30,6 +30,8 @@ public:
 
     statBuf = this->catalog->stat(".");
     CPPUNIT_ASSERT_EQUAL(S_IFDIR, (int)statBuf.st_mode & S_IFMT);
+
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, this->catalog->getWorkingDirI());
   }
 
   void testRemoveCwd()
