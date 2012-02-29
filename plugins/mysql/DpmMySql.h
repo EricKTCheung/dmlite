@@ -41,6 +41,8 @@ public:
 
   // Overloading
   std::string getImplId(void) throw ();
+
+  void set(const std::string& key, va_list varg) throw (DmException);
   
   FileReplica get (const std::string&) throw (DmException);
 
