@@ -14,7 +14,7 @@ using namespace oracle;
 NsOracleFactory::NsOracleFactory() throw(DmException):
   nsDb_("cns_db"), user_("root"), passwd_(""), pool_(0x00), symLinkLimit_(3)
 {
-  this->env_ = occi::Environment::createEnvironment(occi::Environment::DEFAULT);
+  this->env_ = occi::Environment::createEnvironment(occi::Environment::THREADED_MUTEXED);
 }
 
 
