@@ -26,8 +26,9 @@ public:
   void set(const std::string&, ...)     throw (DmException);
   void set(const std::string&, va_list) throw (DmException);
 
-  void        changeDir    (const std::string&) throw (DmException);
-  std::string getWorkingDir(void)               throw (DmException);
+  void        changeDir     (const std::string&) throw (DmException);
+  std::string getWorkingDir (void)               throw (DmException);
+  ino_t       getWorkingDirI(void)               throw (DmException);
 
   struct stat  stat        (const std::string&) throw (DmException);
   struct stat  stat        (ino_t)              throw (DmException);

@@ -26,8 +26,9 @@ public:
 
   virtual void set(const std::string&, va_list) throw (DmException);
 
-  virtual void        changeDir    (const std::string&) throw (DmException);
-  virtual std::string getWorkingDir(void)               throw (DmException);
+  virtual void        changeDir     (const std::string&) throw (DmException);
+  virtual std::string getWorkingDir (void)               throw (DmException);
+  virtual ino_t       getWorkingDirI(void)               throw (DmException);
 
   virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
   virtual ExtendedStat extendedStat(ino_t)              throw (DmException);

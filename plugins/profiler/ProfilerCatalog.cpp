@@ -63,6 +63,13 @@ std::string ProfilerCatalog::getWorkingDir(void) throw(DmException)
 
 
 
+ino_t ProfilerCatalog::getWorkingDirI(void) throw (DmException)
+{
+  PROFILE_RETURN(ino_t, getWorkingDirI);
+}
+
+
+
 struct stat ProfilerCatalog::stat(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(struct stat, stat, path);

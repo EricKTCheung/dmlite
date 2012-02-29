@@ -590,6 +590,13 @@ std::string NsMySqlCatalog::getWorkingDir(void) throw (DmException)
 
 
 
+ino_t NsMySqlCatalog::getWorkingDirI() throw (DmException)
+{
+  return this->cwd_;
+}
+
+
+
 Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
 {
   NsMySqlDir  *dir;

@@ -45,6 +45,10 @@ public:
   /// @return The current working dir.
   virtual std::string getWorkingDir(void) throw (DmException) = 0;
 
+  /// Get the current working dir inode.
+  /// @return The cwd inode.
+  virtual ino_t getWorkingDirI(void) throw (DmException) = 0;
+
   // Stat calls are implemented by default as extendedStat(...).stat
 
   /// Do a stat of a file or directory.
