@@ -52,6 +52,8 @@ public:
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
     CPPUNIT_ASSERT(s.st_mtime > ini_mtime);
+    CPPUNIT_ASSERT_EQUAL(uid1, s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(gid1_1, s.st_gid);
 
     // Add a symlink
     this->catalog->symlink(FOLDER, SYMLINK);
@@ -62,6 +64,8 @@ public:
     this->catalog->create(FILE, MODE);
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(3, (int)s.st_nlink);
+    CPPUNIT_ASSERT_EQUAL(uid1, s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(gid1_1, s.st_gid);
     
     // Remove the file
     this->catalog->unlink(FILE);
