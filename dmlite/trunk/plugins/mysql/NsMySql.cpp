@@ -269,7 +269,7 @@ static void bindMetadata(Statement& stmt, ExtendedStat* meta) throw(DmException)
 
 
 
-ExtendedStat NsMySqlCatalog::extendedStat(uint64_t fileId) throw(DmException)
+ExtendedStat NsMySqlCatalog::extendedStat(ino_t fileId) throw(DmException)
 {
   Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_ID));
   ExtendedStat meta;
@@ -308,7 +308,7 @@ ExtendedStat NsMySqlCatalog::guidStat(const std::string& guid) throw (DmExceptio
 
 
 
-ExtendedStat NsMySqlCatalog::extendedStat(uint64_t parent, const std::string& name) throw(DmException)
+ExtendedStat NsMySqlCatalog::extendedStat(ino_t parent, const std::string& name) throw(DmException)
 {
   Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_NAME));
   ExtendedStat meta;
@@ -329,7 +329,7 @@ ExtendedStat NsMySqlCatalog::extendedStat(uint64_t parent, const std::string& na
 
 
 
-SymLink NsMySqlCatalog::readLink(uint64_t linkId) throw(DmException)
+SymLink NsMySqlCatalog::readLink(ino_t linkId) throw(DmException)
 {
   Statement stmt(this->getPreparedStatement(STMT_GET_SYMLINK));
   SymLink   link;
