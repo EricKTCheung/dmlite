@@ -4,6 +4,8 @@
 #include "NsOracle.h"
 #include <assert.h>
 #include <dmlite/common/Uris.h>
+#include <string.h>
+#include <stdlib.h>
 
 using namespace dmlite;
 using namespace oracle;
@@ -225,8 +227,8 @@ NsOracleCatalog::NsOracleCatalog(oracle::occi::ConnectionPool* pool,
   pool_(pool), conn_(conn), cwd_(0), umask_(022), symLinkLimit_(symLimit),
   preparedStmt_(STMT_SENTINEL, 0x00)
 {
-  std::memset(&this->user_,  0x00, sizeof(UserInfo));
-  std::memset(&this->group_, 0x00, sizeof(GroupInfo));
+  memset(&this->user_,  0x00, sizeof(UserInfo));
+  memset(&this->group_, 0x00, sizeof(GroupInfo));
 }
 
 
