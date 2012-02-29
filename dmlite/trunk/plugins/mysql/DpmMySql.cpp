@@ -76,6 +76,18 @@ std::string DpmMySqlCatalog::getImplId() throw ()
 
 
 
+void DpmMySqlCatalog::set(const std::string& key, va_list varg) throw (DmException)
+{
+  if (this->decorated_ != 0x00) {
+    this->decorated_->set(key, varg);
+  }
+  else {
+    NsMySqlCatalog::set(key, varg);
+  }
+}
+
+
+
 FileReplica DpmMySqlCatalog::get(const std::string& path) throw(DmException)
 {
   // Get replicas
