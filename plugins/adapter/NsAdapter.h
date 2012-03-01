@@ -108,6 +108,10 @@ protected:
   int    nFqans_;
   char  *vo_;
 
+  uid_t uid;
+  gid_t gid;
+  std::string udn;
+
 private:
   std::string nsHost_;
 };

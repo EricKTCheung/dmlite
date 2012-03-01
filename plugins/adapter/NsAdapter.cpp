@@ -524,6 +524,10 @@ void NsAdapterCatalog::removeDir(const std::string& path) throw (DmException)
 
 void NsAdapterCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
+
+  this->uid = uid;
+  this->gid = gid;
+  this->udn = dn;
   wrapCall(dpns_client_setAuthorizationId(uid, gid, "GSI",
                                           (char*)dn.c_str()));
 }
