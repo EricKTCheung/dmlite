@@ -12,12 +12,14 @@ URL:		https://svnweb.cern.ch/trac/lcgdm
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+BuildRequires:	boost-devel%{?_isa}
 BuildRequires:	cmake%{?_isa}
-BuildRequires:	dpm-devel%{?_isa}
-BuildRequires:	subversion%{?_isa}
-BuildRequires:	mysql-devel%{?_isa}
 BuildRequires:	cppunit-devel%{?_isa}
 BuildRequires:	doxygen%{?_isa}
+BuildRequires:	dpm-devel%{?_isa}
+BuildRequires:	libmemcached-devel%{?_isa}
+BuildRequires:	mysql-devel%{?_isa}
+BuildRequires:	subversion%{?_isa}
 
 %description
 This package provides a set of libraries and plugins that implements
@@ -58,6 +60,15 @@ Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 This package provides the librarian plugin for DMLITE. This plugin handles
 the necessary logic to hop between difference replicas when accessing a file
 managed by the grid.
+
+%package plugins-memcached
+Summary:	Memcached plugin for DMLITE
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+
+%description plugins-memcached
+This package provides the memcached plugin for DMLITE. It provides a
+memcached based implementation of the NS interface.
 
 %package plugins-mysql 
 Summary:	MySQL plugin for DMLITE
@@ -126,6 +137,10 @@ rm -rf $RPM_BUILD_ROOT
 %files plugins-librarian
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_librarian.so
+
+%files plugins-memcached
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_memcache.so
 
 %files plugins-mysql
 %defattr(-,root,root,-)
