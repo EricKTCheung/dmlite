@@ -836,8 +836,8 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
 
   // Check we have write access for the parent
   if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
+                      parent.stat, S_IWRITE | S_IEXEC) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions on " + parentPath);
 
   // Transaction
   Transaction transaction(this->conn_);
@@ -867,6 +867,11 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
   // Get the parent
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
+
+  // Check we have exec access for the parent
+  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
+                       parent.stat, S_IEXEC) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to list " + parentPath);
 
   // The file itself
   ExtendedStat file = this->extendedStat(parent.stat.st_ino, name);
