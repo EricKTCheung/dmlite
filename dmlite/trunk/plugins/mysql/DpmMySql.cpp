@@ -181,9 +181,30 @@ void DpmMySqlCatalog::putDone(const std::string& path, const std::string& token)
 
 void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
 {
-  if (this->decorated_ == 0x00)
-    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::unlink Can not delegate");
-  this->decorated_->unlink(path);
+  // Stat without following
+  ExtendedStat stat = this->extendedStat(path, false);
+
+  switch (stat.stat.st_mode & S_IFMT) {
+    case S_IFDIR:
+      throw DmException(DM_IS_DIRECTORY, "Can not remove a directory");
+      break;
+    case S_IFLNK:
+      NsMySqlCatalog::unlink(path);
+      break;
+    default:
+      try {
+        this->getReplicas(path);
+        if (this->decorated_ == 0x00)
+          throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::unlink Can not delegate");
+        this->decorated_->unlink(path);
+      }
+      catch (DmException e) {
+        if (e.code() == DM_NO_REPLICAS)
+          NsMySqlCatalog::unlink(path);
+        else
+          throw;
+      }
+  }
 }
 
 

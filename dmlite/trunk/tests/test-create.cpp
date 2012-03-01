@@ -26,12 +26,15 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
+      this->catalog->changeMode(FOLDER, 0777);
+      
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
       IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));
 
-      this->catalog->umask(022);
       IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
+
+      this->catalog->umask(022);
     }
     TestBase::tearDown();
   }
@@ -97,9 +100,9 @@ public:
     this->catalog->removeDir(NESTED);
   }
 
-	void testChmodDifferentUser()
-	{
-		struct stat s;
+  void testChmodDifferentUser()
+  {
+          struct stat s;
 
     this->catalog->create(FILE, MODE);
     s = this->catalog->stat(FOLDER);
@@ -184,12 +187,22 @@ public:
 
   void testPermissionDenied()
   {
-    this->catalog->changeMode(FOLDER, 0400);
+    this->catalog->changeMode(FOLDER, 0500);
     try {
       this->catalog->create(FILE, MODE);
       CPPUNIT_FAIL("Exception not thrown");
     }
     catch (dmlite::DmException e) {
+      CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
+    }
+
+    this->catalog->changeMode(FOLDER, 0600);
+    try {
+      this->catalog->stat(FILE);
+      CPPUNIT_FAIL("Exception not thrown");
+    }
+    catch (dmlite::DmException e) {
+      // The problem should have been the S_IEXEC!!
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
   }
