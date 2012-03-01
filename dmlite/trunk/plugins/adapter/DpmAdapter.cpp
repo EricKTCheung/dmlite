@@ -169,6 +169,7 @@ std::string DpmAdapter::put(const std::string& path, Uri* uri) throw (DmExceptio
   }
 
   try {
+    //this->setUserId(this->uid, this->gid, this->udn);
     RETRY(dpm_put(1, &reqfile, 1, (char*[]){ (char *)"rfio"}, (char *)"libdm::dummy::dpm::put", 0,
                   0, token, &nReplies, &statuses), this->retryLimit_);
 
@@ -283,8 +284,7 @@ void DpmAdapter::unlink(const std::string& path) throw (DmException)
 void DpmAdapter::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
   NsAdapterCatalog::setUserId(uid, gid, dn);
-  RETRY(dpm_client_setAuthorizationId(uid, gid, "GSI", (char*)dn.c_str()),
-        this->retryLimit_);
+  wrapCall(dpm_client_setAuthorizationId(uid, gid, "GSI", (char*)dn.c_str()));
 }
 
 
@@ -292,8 +292,7 @@ void DpmAdapter::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (D
 void DpmAdapter::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
 {
   NsAdapterCatalog::setVomsData(vo, fqans);
-  RETRY(dpm_client_setVOMS_data((char*)this->vo_, this->fqans_, this->nFqans_),
-        this->retryLimit_);
+  wrapCall(dpm_client_setVOMS_data((char*)this->vo_, this->fqans_, this->nFqans_));
 }
 
 

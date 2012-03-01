@@ -111,7 +111,7 @@ public:
                      uid_t*, std::vector<gid_t>*) throw (DmException);
 
   void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
-  void setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException);
+  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
   
 protected:
   UserInfo  user_;  ///< User.

@@ -229,3 +229,21 @@ int DpmMySqlCatalog::getFsStatus(const std::string& pool, const std::string& ser
 
   return status;
 }
+
+
+
+void DpmMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
+{
+  if (this->decorated_ != 0x00)
+    this->decorated_->setUserId(uid, gid, dn);
+  NsMySqlCatalog::setUserId(uid, gid, dn);
+}
+
+
+
+void DpmMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+{
+  if (this->decorated_ != 0x00)
+    this->decorated_->setVomsData(vo, fqans);
+  NsMySqlCatalog::setVomsData(vo, fqans);
+}
