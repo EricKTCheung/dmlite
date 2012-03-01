@@ -37,6 +37,12 @@ protected:
   /// Oracle connection pool
   oracle::occi::ConnectionPool* pool_;
 
+  /// Minimum pool size
+  unsigned int minPool_;
+
+  /// Maximum pool size
+  unsigned int maxPool_;
+
   /// The recursion limit following symbolic links.
   unsigned int symLinkLimit_;
 
