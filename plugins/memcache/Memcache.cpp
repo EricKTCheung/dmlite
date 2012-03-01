@@ -100,7 +100,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 		unsigned int expLimit = atoi(value.c_str());
 		// 60*60*24*30 = 30 days from which on the expiration limit
 		// will be treated as a timestamp by memcached 
-		if (expLimit => 0 && expLimit < 60*60*24*30)
+		if (expLimit >= 0 && expLimit < 60*60*24*30)
 			this->memcachedExpirationLimit_ = expLimit;
 		else
 			this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
