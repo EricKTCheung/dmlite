@@ -10,10 +10,10 @@ add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
 add_executable        (test-split_path test-split_path.cpp)
-target_link_libraries (test-split_path dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-split_path dmlite dmlitecommon dl)
 
 add_executable        (test-split_url test-split_url.cpp)
-target_link_libraries (test-split_url dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-split_url dmlite dmlitecommon dl)
 
 add_executable        (test-security test-security.cpp)
 target_link_libraries (test-security dmlite dmlitecommon cppunit dl)
