@@ -215,6 +215,16 @@ int dm_get(dm_context* context, const char* path, struct filereplica* replica)
 
 
 
+int dm_create(dm_context* context, const char* path, mode_t mode)
+{
+  TRY(context, create)
+  NOT_NULL(path);
+  context->catalog->create(path, mode);
+  CATCH(context, create)
+}
+
+
+
 int dm_put(dm_context* context, const char* path, struct uri* uri, char* token)
 {
   TRY(context, put)

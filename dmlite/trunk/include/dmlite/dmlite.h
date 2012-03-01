@@ -221,6 +221,15 @@ int dm_unlink(dm_context* context, const char* path);
 
 
 /**
+ * Create a file in the catalog (no replicas).
+ * @param context The DM context.
+ * @param path    The logical file name.
+ * @param mode    The creation mode.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_create(dm_context* context, const char* path, mode_t mode);
+
+/**
  * Put a file (synchronous).
  * @param context The DM context.
  * @param path    The logical file name to put.
