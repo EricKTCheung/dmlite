@@ -49,13 +49,17 @@ using namespace dmlite;
 
 /// Used to keep the Key Prefixes
 enum {
-	PRE_STAT = 0
+	PRE_STAT = 0,
+  PRE_REPL,
+  PRE_REPL_LIST
 };
 
 /// Used internally to define Key Prefixes.
 /// Must match with PRE_* constants!
 static const char* key_prefix[] = {
-	"STAT"
+	"STAT",
+  "REPL",
+  "RPLI"
 };
 
 /// Little of help here to avoid redundancy
@@ -114,6 +118,7 @@ MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 
 MemcacheCatalog::~MemcacheCatalog() throw (DmException)
 {
+  this->connectionPool_->release(this->conn_);
 }
 
 void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
@@ -326,7 +331,48 @@ void MemcacheCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 	DELEGATE(linkChangeOwner, path, newUid, newGid);
 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
+/*
+void MemcacheCatalog::deleteReplica(const std::string& guid, int64_t id,
+                                   const std::string& sfn) throw (DmException)
+{
+  DELEGATE(deleteReplica, guid, id, sfn);
+  std::string key = keyFromAny(key_prefix[PRE_REPL], guid, id, sfn);
+  delMemcachedFromKey(key);
+}
 
+std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) throw(DmException)
+{
+  // Function copied from NsMySql.cpp
+  ExtendedStat  meta;
+
+  // Need to grab the file first
+  meta = this->extendedStat(path, true);
+
+  // The file exists, plus we have permissions to go there. Check we can read
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.stat, S_IREAD) != 0)
+    throw DmException(DM_FORBIDDEN,
+                   "Not enough permissions to read " + path);
+
+  try {
+    return this->getReplicas(meta.stat.st_ino);
+  }
+  catch (DmException e) {
+    if (e.code() == DM_NO_REPLICAS)
+      throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
+    throw;
+  }
+}
+
+std::vector<FileReplica> MemcacheCatalog::getReplicas(ino_t ino) throw (DmException)
+{
+}
+
+FileReplica MemcacheCatalog::get(const std::string& path) throw(DmException)
+{
+
+}
+*/
 std::string MemcacheCatalog::getParent(const std::string& path)
  																					throw (DmException)
 {
