@@ -105,6 +105,8 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 		else
 			this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
 	}
+  else if (key == "MemcachedPoolSize")
+    this->connectionPool_.resize(atoi(value.c_str()));
 	else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }

@@ -64,7 +64,13 @@ public:
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
   void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+/*
+  void deleteReplica(const std::string&, int64_t,
+                     const std::string&) throw (DmException);
 
+  std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  FileReplica              get        (const std::string&) throw (DmException);
+*/
 protected:
   /// The Memcached connection
   memcached_st* conn_;
@@ -83,6 +89,9 @@ protected:
 
   /// Current working dir
   ino_t cwd_;
+
+  /// Get a list of replicas using file id
+  std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
 private:
 	/// Converts a key prefix and an inode into a key for memcached.
 	/// @param preKey key prefix string.

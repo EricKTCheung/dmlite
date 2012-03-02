@@ -8,8 +8,7 @@ include_directories(${Boost_INCLUDE_DIR})
 
 target_link_libraries(memcache ${Boost_LIBRARIES})
 
-target_link_libraries (memcache dmlite)
-target_link_libraries (memcache memcached)
+target_link_libraries (memcache dmlite dmlitecommon memcached)
 set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       memcache
