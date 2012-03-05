@@ -61,6 +61,8 @@ public:
   virtual void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   virtual void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
 
+  virtual void utime(const std::string&, const struct utimbuf*) throw (DmException);
+
   virtual std::string getComment(const std::string&)                     throw (DmException);
   virtual void        setComment(const std::string&, const std::string&) throw (DmException);
 

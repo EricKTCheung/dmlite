@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <string>
 #include <vector>
+#include <utime.h>
 #include "dm_auth.h"
 #include "dm_exceptions.h"
 #include "dm_types.h"
@@ -187,6 +188,11 @@ public:
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
   virtual void linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
+
+  /// Change access and/or modification time.
+  /// @param path The file path.
+  /// @param buf  A struct holding the new times.
+  virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) = 0;
 
   /// Get the comment associated with a file.
   /// @param path The file or directory.

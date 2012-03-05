@@ -51,6 +51,9 @@ target_link_libraries (test-rename dmlite dmlitecommon cppunit dl)
 add_executable        (test-chown test-chown.cpp test-base.cpp)
 target_link_libraries (test-chown dmlite dmlitecommon cppunit dl)
 
+add_executable        (test-utime test-utime.cpp test-base.cpp)
+target_link_libraries (test-utime dmlite dmlitecommon cppunit dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 

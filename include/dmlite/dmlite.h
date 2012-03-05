@@ -6,6 +6,7 @@
 #define	DMLITE_H
 
 #include <sys/stat.h>
+#include <utime.h>
 #include "dm_errno.h"
 #include "dm_types.h"
 
@@ -298,6 +299,15 @@ int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
  * @return        0 on success, error code otherwise.
  */
 int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
+
+/**
+ * Change access and/or modification time
+ * @param context The DM context.
+ * @param path    The file path.
+ * @param buf     A struct holding the new times.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_utime(dm_context* context, const char* path, const struct utimbuf* buf);
 
 /**
  * Get the comment associated with a file.
