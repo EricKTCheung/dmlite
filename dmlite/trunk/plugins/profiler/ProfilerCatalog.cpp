@@ -237,6 +237,13 @@ void ProfilerCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 
 
 
+void ProfilerCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
+{
+  PROFILE(utime, path, buf);
+}
+
+
+
 std::string ProfilerCatalog::getComment(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(std::string, getComment, path);

@@ -317,6 +317,16 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 
 
 
+int dm_utime(dm_context* context, const char* path, const struct utimbuf* buf)
+{
+  TRY(context, utime)
+  NOT_NULL(path);
+  context->catalog->utime(path, buf);
+  CATCH(context, utime)
+}
+
+
+
 int dm_getcomment(dm_context* context, const char* path, char* comment)
 {
   TRY(context, getcomment)

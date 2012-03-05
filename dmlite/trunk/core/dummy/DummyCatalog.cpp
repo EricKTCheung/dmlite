@@ -212,6 +212,13 @@ void DummyCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t 
 
 
 
+void DummyCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
+{
+  DELEGATE(utime, path, buf);
+}
+
+
+
 std::string DummyCatalog::getComment(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(getComment, path);

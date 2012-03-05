@@ -320,6 +320,13 @@ void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gi
 
 
 
+void NsAdapterCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
+{
+  wrapCall(dpns_utime(path.c_str(), (struct utimbuf*)buf));
+}
+
+
+
 std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmException)
 {
   char comment[COMMENT_MAX];

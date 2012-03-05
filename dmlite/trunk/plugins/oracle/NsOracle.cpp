@@ -84,6 +84,7 @@ enum {
   STMT_CHANGE_NAME,
   STMT_CHANGE_PARENT,
   STMT_CHANGE_OWNER,
+  STMT_UTIME,
   STMT_SENTINEL
 };
 
@@ -199,6 +200,9 @@ static const char* statements[] = {
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
         SET owner_uid = :b_uid, gid = :b_gid\
+        WHERE fileid = :b_fileid",
+  "UPDATE Cns_file_metadata\
+        SET atime = :b_atime, mtime = :b_mtime\
         WHERE fileid = :b_fileid",
 };
 
@@ -1185,6 +1189,35 @@ void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 {
   ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
+}
+
+
+
+void NsOracleCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
+{
+    ExtendedStat meta = this->extendedStat(path);
+
+  // The user is the owner OR buf is NULL and has write permissions
+  if (this->user_.uid != meta.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
+
+  // If NULL, point to ours!
+  struct utimbuf internal;
+  if (buf == 0x00) {
+    buf = &internal;
+    internal.actime  = time(NULL);
+    internal.modtime = time(NULL);
+  }
+
+  // Change
+  occi::Statement* stmt = this->getPreparedStatement(STMT_UTIME);
+  stmt->setNumber(1, buf->actime);
+  stmt->setNumber(2, buf->modtime);
+  stmt->setNumber(3, meta.stat.st_ino);
+
+  stmt->executeUpdate();
 }
 
 
