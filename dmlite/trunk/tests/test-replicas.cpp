@@ -22,15 +22,8 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
-      try {
-        this->catalog->unlink(FILE);
-      }
-      catch (...) { }
-
-      try {
-        this->catalog->removeDir(FOLDER);
-      }
-      catch (...) { }
+      IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
+      IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
     }
     TestBase::tearDown();
   }
@@ -57,9 +50,30 @@ public:
     CPPUNIT_ASSERT_THROW(this->catalog->get(FILE), dmlite::DmException);
   }
 
+  void testAddNoHost()
+  {
+    struct stat s;
+
+    s = this->catalog->stat(FILE);
+
+    this->catalog->addReplica(std::string(), s.st_ino, std::string(),
+                              "http://a.host.com/replica", '-', 'P',
+                              "the-pool", "the-fs");
+
+    FileReplica replica = this->catalog->get(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
+                         std::string(replica.unparsed_location));
+    CPPUNIT_ASSERT_EQUAL(std::string("a.host.com"),
+                         std::string(replica.location.host));
+
+    this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
+  }
+
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
+  CPPUNIT_TEST(testAddNoHost);
   CPPUNIT_TEST_SUITE_END();
 };
 

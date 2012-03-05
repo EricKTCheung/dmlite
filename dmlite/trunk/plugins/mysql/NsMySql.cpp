@@ -686,6 +686,7 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
                                 const std::string& fileSystem) throw (DmException)
 {
   ExtendedStat meta;
+  std::string  host;
 
   if (guid.empty())
     meta = this->extendedStat(id);
@@ -700,6 +701,17 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
                        meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
+  // If server is empty, parse the surl
+  if (server.empty()) {
+    Uri u = splitUri(sfn);
+    host = u.host;
+    if (host.empty())
+      throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
+  }
+  else {
+    host = server;
+  }
+
   // Add it
   Statement statement(this->getPreparedStatement(STMT_ADD_REPLICA));
 
@@ -709,7 +721,7 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
   statement.bindParam(3, std::string(&fileType, 1));
   statement.bindParam(4, NULL, 0);
   statement.bindParam(5, poolName);
-  statement.bindParam(6, server);
+  statement.bindParam(6, host);
   statement.bindParam(7, fileSystem);
   statement.bindParam(8, sfn);
 
