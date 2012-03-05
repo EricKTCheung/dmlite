@@ -158,8 +158,8 @@ int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf);
  * @param context    The DM context.
  * @param guid       The Grid Unique IDentifier of the file. It can be NULL.
  * @param id         The file unique ID within the server.
- * @param server     The SE or disk hostname where the replica is.
- * @param path       Site URL (SE) or physical (Disk) path of the replica.
+ * @param server     The SE or disk hostname where the replica is (if NULL, it will be retrieved from the surl).
+ * @param surl       Site URL (SE) or physical (Disk) path of the replica.
  * @param status     '-' available; 'P' being populated; 'D' being deleted.
  * @param fileType   'V' volatile; 'D' durable; 'P' permanent.
  * @param poolName   The disk pool (only makes sense for DPM hosts).
@@ -167,7 +167,7 @@ int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf);
  * @return           0 on success, error code otherwise.
  */
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
-                   const char* server, const char* path, const char status,
+                   const char* server, const char* surlh, const char status,
                    const char fileType, const char* poolName,
                    const char* fileSystem);
 
@@ -176,11 +176,11 @@ int dm_addreplica(dm_context* context, const char* guid, int64_t id,
  * @param context The DM context.
  * @param guid    The Grid Unique IDentifier of the file.
  * @param id      The file unique ID within the server.
- * @param path    Site URL (SE) or physical (Disk) path of the replica.
+ * @param surl    Site URL (SE) or physical (Disk) path of the replica.
  * @return        0 on success, error code otherwise.
  */
 int dm_delreplica(dm_context* context, const char* guid, int64_t id,
-                  const char* path);
+                  const char* surl);
 
 /**
  * Get the replicas of a file.

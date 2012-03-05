@@ -146,15 +146,14 @@ int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf)
 
 
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
-                  const char* server, const char* path, const char status,
+                  const char* server, const char* surl, const char status,
                   const char fileType, const char* poolName,
                   const char* fileSystem)
 {
   TRY(context, addReplica)
-  NOT_NULL(server);
-  NOT_NULL(path);
-  context->catalog->addReplica(SAFE_STRING(guid), id, server,
-                               path, status, fileType,
+  NOT_NULL(surl);
+  context->catalog->addReplica(SAFE_STRING(guid), id, SAFE_STRING(server),
+                               surl, status, fileType,
                                SAFE_STRING(poolName), SAFE_STRING(fileSystem));
   CATCH(context, addReplica)
 }
@@ -162,11 +161,11 @@ int dm_addreplica(dm_context* context, const char* guid, int64_t id,
 
 
 int dm_delreplica(dm_context* context, const char* guid, int64_t id,
-                  const char* path)
+                  const char* surl)
 {
   TRY(context, delreplica)
-  NOT_NULL(path);
-  context->catalog->deleteReplica(SAFE_STRING(guid), id, path);
+  NOT_NULL(surl);
+  context->catalog->deleteReplica(SAFE_STRING(guid), id, surl);
   CATCH(context, delreplica)
 }
 

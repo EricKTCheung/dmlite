@@ -101,7 +101,7 @@ public:
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.
   /// @param id         The file ID within the NS.
-  /// @param server     The SE that hosts the file.
+  /// @param server     The SE that hosts the file (if NULL, it will be retrieved from the sfn).
   /// @param sfn        The SURL or physical path of the replica being added.
   /// @param status     '-' for available, 'P' for being populated, 'D' for being deleted.
   /// @param fileType   'V' for volatile, 'D' for durable, 'P' for permanent.
