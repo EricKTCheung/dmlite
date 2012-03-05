@@ -1,7 +1,6 @@
 /// @file   common/Uris.cpp
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <assert.h>
 #include <regex.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,9 +15,9 @@ Uri dmlite::splitUri(const std::string& uri)
   Uri         parsed;
 
   // Compile the first time
-  assert(regcomp(&regexp,
-                 "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(/.*)?",
-                 REG_EXTENDED | REG_ICASE) == 0);
+  regcomp(&regexp,
+          "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(/.*)?",
+          REG_EXTENDED | REG_ICASE);
 
   // Match and extract
   if (regexec(&regexp, p, 7, matches, 0) == 0) {
