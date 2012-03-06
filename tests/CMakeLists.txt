@@ -54,6 +54,9 @@ target_link_libraries (test-chown dmlite dmlitecommon cppunit dl)
 add_executable        (test-utime test-utime.cpp test-base.cpp)
 target_link_libraries (test-utime dmlite dmlitecommon cppunit dl)
 
+add_executable        (test-opendir test-opendir.cpp test-base.cpp)
+target_link_libraries (test-opendir dmlite dmlitecommon cppunit dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
@@ -92,3 +95,9 @@ ADD_TEST(test-split_path ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
 SET_TESTS_PROPERTIES(test-split_path PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-split_url ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
 SET_TESTS_PROPERTIES(test-split_url PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-chown ${CMAKE_CURRENT_BINARY_DIR}/test-chown ${CONFIG})
+SET_TESTS_PROPERTIES(test-chown PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-utime ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})
+SET_TESTS_PROPERTIES(test-utime PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-opendir ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
+SET_TESTS_PROPERTIES(test-opendir PROPERTIES PASS_REGULAR_EXPRESSION "OK")

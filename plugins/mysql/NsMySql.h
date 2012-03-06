@@ -93,6 +93,7 @@ public:
   void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
+  void utime(ino_t, const struct utimbuf*)              throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);

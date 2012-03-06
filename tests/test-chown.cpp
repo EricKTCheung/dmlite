@@ -105,10 +105,25 @@ public:
     }
   }
 
+  void testCTime()
+  {
+    // First stat
+    struct stat before = this->catalog->stat(FILE);
+    // Make sure the clock moves!
+    sleep(1);
+    // Change the owner
+    this->catalog->changeOwner(FILE, uid1, gid1_1);
+    // Second stat
+    struct stat after = this->catalog->stat(FILE);
+    // ctime should have incremented
+    CPPUNIT_ASSERT(before.st_ctime < after.st_ctime);
+  }
+
   CPPUNIT_TEST_SUITE(TestChown);
   CPPUNIT_TEST(testRoot);
   CPPUNIT_TEST(testOwner);
   CPPUNIT_TEST(testOther);
+  CPPUNIT_TEST(testCTime);
   CPPUNIT_TEST_SUITE_END();
 };
 

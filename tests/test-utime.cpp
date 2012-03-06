@@ -50,6 +50,7 @@ public:
 
     CPPUNIT_ASSERT(before.st_atime < after.st_atime);
     CPPUNIT_ASSERT(before.st_mtime < after.st_mtime);
+    CPPUNIT_ASSERT(before.st_ctime < after.st_ctime);
   }
 
 
