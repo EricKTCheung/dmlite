@@ -114,7 +114,7 @@ static const char* statements[] = {
         FROM Cns_user_metadata\
         WHERE u_fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET guid = ?\
+        SET guid = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_user_metadata\
         SET comments = ?\
@@ -145,7 +145,7 @@ static const char* statements[] = {
         SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET filemode = ?\
+        SET filemode = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "DELETE FROM Cns_file_replica\
         WHERE fileid = ? AND sfn = ?",
@@ -160,7 +160,8 @@ static const char* statements[] = {
            ?, ?, ?,\
            ?, ?, ?, ?, ?)",
   "UPDATE Cns_file_metadata\
-        SET filesize = 0 WHERE fileid = ?",
+        SET filesize = 0, ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?",
   "SELECT id FROM Cns_unique_uid FOR UPDATE",
   "SELECT id FROM Cns_unique_gid FOR UPDATE",
   "UPDATE Cns_unique_uid SET id = ?",
@@ -176,16 +177,16 @@ static const char* statements[] = {
         VALUES\
           (?, ?, ?)",
   "UPDATE Cns_file_metadata\
-        SET name = ?\
+        SET name = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET parent_fileid = ?\
+        SET parent_fileid = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET owner_uid = ?, gid = ?\
+        SET owner_uid = ?, gid = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET atime = ?, mtime = ?\
+        SET atime = ?, mtime = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
 };
 
@@ -613,6 +614,12 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
+
+  // Touch
+  struct utimbuf tim;
+  tim.actime  = time(NULL);
+  tim.modtime = meta.stat.st_mtime;
+  this->utime(meta.stat.st_ino, &tim);
 
   // Create the handle
   dir = new NsMySqlDir();
@@ -1148,6 +1155,14 @@ void NsMySqlCatalog::utime(const std::string& path, const struct utimbuf* buf) t
                        meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
+  // Touch
+  this->utime(meta.stat.st_ino, buf);
+}
+
+
+
+void NsMySqlCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
+{
   // If NULL, point to ours!
   struct utimbuf internal;
   if (buf == 0x00) {
@@ -1160,7 +1175,7 @@ void NsMySqlCatalog::utime(const std::string& path, const struct utimbuf* buf) t
   Statement stmt(this->getPreparedStatement(STMT_UTIME));
   stmt.bindParam(0, buf->actime);
   stmt.bindParam(1, buf->modtime);
-  stmt.bindParam(2, meta.stat.st_ino);
+  stmt.bindParam(2, inode);
 
   stmt.execute();
 }

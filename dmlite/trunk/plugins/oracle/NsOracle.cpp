@@ -162,7 +162,7 @@ static const char* statements[] = {
         SET nlink = :b_nlink, mtime = :b_mtime, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET filemode = :b_mode\
+        SET filemode = :b_mode, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "DELETE FROM Cns_file_replica\
         WHERE fileid = :b_fileid AND sfn = :b_sfn",
@@ -177,7 +177,8 @@ static const char* statements[] = {
            :b_rtype, :b_status, :b_ftype,\
            :b_setname, :b_pool, :b_host, :b_fs, :b_sfn)",
   "UPDATE Cns_file_metadata\
-        SET filesize = 0 WHERE fileid = :b_fileid",
+        SET filesize = 0, ctime = :b_ctime\
+        WHERE fileid = :b_fileid",
   "SELECT id FROM Cns_unique_uid FOR UPDATE",
   "SELECT id FROM Cns_unique_gid FOR UPDATE",
   "UPDATE Cns_unique_uid SET id = :b_uid",
@@ -193,16 +194,16 @@ static const char* statements[] = {
         VALUES\
           (:b_gid, :b_groupname, :b_banned)",
   "UPDATE Cns_file_metadata\
-        SET name = :b_name\
+        SET name = :b_name, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET parent_fileid = :b_parent\
+        SET parent_fileid = :b_parent, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET owner_uid = :b_uid, gid = :b_gid\
+        SET owner_uid = :b_uid, gid = :b_gid, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET atime = :b_atime, mtime = :b_mtime\
+        SET atime = :b_atime, mtime = :b_mtime, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
 };
 
@@ -651,6 +652,12 @@ Directory* NsOracleCatalog::openDir(const std::string& path) throw(DmException)
                        meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
+  // Touch
+  struct utimbuf tim;
+  tim.actime  = time(NULL);
+  tim.modtime = meta.stat.st_mtime;
+  this->utime(meta.stat.st_ino, &tim);
+
   // Create the handle
   dir = new NsOracleDir();
   dir->dirId = meta.stat.st_ino;
@@ -1079,7 +1086,8 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
   // Truncate
   else if (code == DM_NO_REPLICAS) {
     occi::Statement* stmt = this->getPreparedStatement(STMT_TRUNCATE_FILE);
-    stmt->setNumber(1, file.stat.st_ino);
+    stmt->setNumber(1, time(NULL));
+    stmt->setNumber(2, file.stat.st_ino);
     stmt->executeUpdate();
   }
   
@@ -1121,7 +1129,8 @@ void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
 
   occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_MODE);
   stmt->setNumber(1, mode);
-  stmt->setNumber(2, meta.stat.st_ino);
+  stmt->setNumber(2, time(NULL));
+  stmt->setNumber(3, meta.stat.st_ino);
   stmt->executeUpdate();
 
   transaction.commit();
@@ -1166,7 +1175,8 @@ void NsOracleCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid
 
   chownStmt->setNumber(1, newUid);
   chownStmt->setNumber(2, newGid);
-  chownStmt->setNumber(3, meta.stat.st_ino);
+  chownStmt->setNumber(3, time(NULL));
+  chownStmt->setNumber(4, meta.stat.st_ino);
 
   chownStmt->executeUpdate();
 
@@ -1195,7 +1205,7 @@ void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 
 void NsOracleCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
-    ExtendedStat meta = this->extendedStat(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   // The user is the owner OR buf is NULL and has write permissions
   if (this->user_.uid != meta.stat.st_uid &&
@@ -1203,6 +1213,14 @@ void NsOracleCatalog::utime(const std::string& path, const struct utimbuf* buf) 
                        meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
+  // Touch
+  this->utime(meta.stat.st_ino, buf);
+}
+
+
+
+void NsOracleCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
+{
   // If NULL, point to ours!
   struct utimbuf internal;
   if (buf == 0x00) {
@@ -1215,7 +1233,8 @@ void NsOracleCatalog::utime(const std::string& path, const struct utimbuf* buf) 
   occi::Statement* stmt = this->getPreparedStatement(STMT_UTIME);
   stmt->setNumber(1, buf->actime);
   stmt->setNumber(2, buf->modtime);
-  stmt->setNumber(3, meta.stat.st_ino);
+  stmt->setNumber(3, time(NULL));
+  stmt->setNumber(4, inode);
 
   stmt->executeUpdate();
 }
@@ -1479,7 +1498,8 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     occi::Statement* changeNameStmt = this->getPreparedStatement(STMT_CHANGE_NAME);
 
     changeNameStmt->setString(1, newName);
-    changeNameStmt->setNumber(2, old.stat.st_ino);
+    changeNameStmt->setNumber(2, time(NULL));
+    changeNameStmt->setNumber(3, old.stat.st_ino);
 
     changeNameStmt->executeUpdate();
   }
@@ -1489,7 +1509,8 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     occi::Statement* changeParentStmt = this->getPreparedStatement(STMT_CHANGE_PARENT);
 
     changeParentStmt->setNumber(1, newParent.stat.st_ino);
-    changeParentStmt->setNumber(2, old.stat.st_ino);
+    changeParentStmt->setNumber(2, time(NULL));
+    changeParentStmt->setNumber(3, old.stat.st_ino);
 
     changeParentStmt->executeUpdate();
 
