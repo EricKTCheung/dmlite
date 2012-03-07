@@ -263,6 +263,33 @@ public:
   /// @param path The path of the directory to remove.
   virtual void removeDir(const std::string& path) throw (DmException) = 0;
 
+  /// Set the life time of a replica
+  /// @param context The DM context.
+  /// @param replica The replica to modify.
+  /// @param ltime   The new life time.
+  /// @return        0 on success, error code otherwise.
+  virtual void replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException) = 0;
+
+  /// Set the access time of a replica
+  /// @param context The DM context.
+  /// @param replica The replica to modify.
+  /// @return        0 on success, error code otherwise.
+  virtual void replicaSetAccessTime(const std::string& replica) throw (DmException) = 0;
+
+  /// Set the type of a replica
+  /// @param context The DM context.
+  /// @param replica The replica to modify.
+  /// @param ftype   The new type ('V', 'D' or 'P')
+  /// @return        0 on success, error code otherwise.
+  virtual void replicaSetType(const std::string& replica, char type) throw (DmException) = 0;
+
+  /// Set the status of a replica.
+  /// @param context The DM context.
+  /// @param replica The replica to modify.
+  /// @param status  The new status ('-', 'P', 'D')
+  /// @return        0 on success, error code otherwise.
+  virtual void replicaSetStatus(const std::string& replica, char status) throw (DmException) = 0;
+
 protected:
   /// The parent plugin can use this to let the decorated know
   /// who is over.

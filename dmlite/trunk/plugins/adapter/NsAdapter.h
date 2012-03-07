@@ -96,6 +96,11 @@ public:
   void rename     (const std::string&, const std::string&) throw (DmException);
   void removeDir  (const std::string&)                     throw (DmException);
 
+  void replicaSetLifeTime  (const std::string&, time_t) throw (DmException);
+  void replicaSetAccessTime(const std::string&)         throw (DmException);
+  void replicaSetType      (const std::string&, char)   throw (DmException);
+  void replicaSetStatus    (const std::string&, char)   throw (DmException);
+
   void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
   void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
   

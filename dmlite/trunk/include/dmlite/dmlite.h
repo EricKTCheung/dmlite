@@ -168,7 +168,7 @@ int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf);
  * @return           0 on success, error code otherwise.
  */
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
-                   const char* server, const char* surlh, const char status,
+                   const char* server, const char* surl, const char status,
                    const char fileType, const char* poolName,
                    const char* fileSystem);
 
@@ -426,7 +426,6 @@ int dm_mkdir(dm_context* context, const char* path, mode_t mode);
  */
 int dm_rename(dm_context* context, const char* oldPath, const char* newPath);
 
-
 /**
  * Delete a directory. It must be empty.
  * @param context The DM context.
@@ -434,6 +433,41 @@ int dm_rename(dm_context* context, const char* oldPath, const char* newPath);
  * @return        0 on success, error code otherwise.
  */
 int dm_rmdir(dm_context* context, const char* path);
+
+/**
+ * Set the life time of a replica
+ * @param context The DM context.
+ * @param replica The replica to modify.
+ * @param ltime   The new life time.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_replica_setltime(dm_context* context, const char* replica, time_t ltime);
+
+/**
+ * Set the access time of a replica
+ * @param context The DM context.
+ * @param replica The replica to modify.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_replica_setatime(dm_context* context, const char* replica);
+
+/**
+ * Set the type of a replica
+ * @param context The DM context.
+ * @param replica The replica to modify.
+ * @param ftype   The new type ('V', 'D' or 'P')
+ * @return        0 on success, error code otherwise.
+ */
+int dm_replica_settype(dm_context* context, const char* replica, char ftype);
+
+/**
+ * Set the status of a replica.
+ * @param context The DM context.
+ * @param replica The replica to modify.
+ * @param status  The new status ('-', 'P', 'D')
+ * @return        0 on success, error code otherwise.
+ */
+int dm_replica_setstatus(dm_context* context, const char* replica, char status);
 
 /**
  * Set the user ID

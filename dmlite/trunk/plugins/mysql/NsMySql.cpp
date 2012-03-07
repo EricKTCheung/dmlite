@@ -35,6 +35,7 @@ enum {
   STMT_GET_GROUPINFO_BY_NAME,
   STMT_GET_GROUPINFO_BY_GID,
   STMT_GET_FILE_REPLICAS,
+  STMT_GET_REPLICA_BY_URL,
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
@@ -64,6 +65,7 @@ enum {
   STMT_CHANGE_PARENT,
   STMT_CHANGE_OWNER,
   STMT_UTIME,
+  STMT_UPDATE_REPLICA,
   STMT_SENTINEL
 };
 
@@ -103,9 +105,12 @@ static const char* statements[] = {
   "SELECT gid, groupname, banned\
         FROM Cns_groupinfo\
         WHERE gid = ?",
-  "SELECT rowid, fileid, nbaccesses, atime, ptime, status, f_type, poolname, host, fs, sfn\
+  "SELECT rowid, fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
         FROM Cns_file_replica\
         WHERE fileid = ?",
+  "SELECT rowid, fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
+        FROM Cns_file_replica\
+        WHERE sfn = ?",
   "SELECT comments\
         FROM Cns_user_metadata\
         WHERE u_fileid = ?",
@@ -184,6 +189,9 @@ static const char* statements[] = {
   "UPDATE Cns_file_metadata\
         SET atime = ?, mtime = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
+  "UPDATE Cns_file_replica\
+        SET atime = ?, ltime = ?, nbaccesses = ?, status = ?, f_type = ?\
+        WHERE rowid = ?"
 };
 
 
@@ -807,12 +815,13 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
   stmt.bindResult( 2, &replica.nbaccesses);
   stmt.bindResult( 3, &replica.atime);
   stmt.bindResult( 4, &replica.ptime);
-  stmt.bindResult( 5, &replica.status, 1);
-  stmt.bindResult( 6, &replica.ftype, 1);
-  stmt.bindResult( 7, replica.pool,       sizeof(replica.pool));
-  stmt.bindResult( 8, replica.server,     sizeof(replica.server));
-  stmt.bindResult( 9, replica.filesystem, sizeof(replica.filesystem));
-  stmt.bindResult(10, replica.url,        sizeof(replica.url));
+  stmt.bindResult( 5, &replica.ltime);
+  stmt.bindResult( 6, &replica.status, 1);
+  stmt.bindResult( 7, &replica.type, 1);
+  stmt.bindResult( 8, replica.pool,       sizeof(replica.pool));
+  stmt.bindResult( 9, replica.server,     sizeof(replica.server));
+  stmt.bindResult(10, replica.filesystem, sizeof(replica.filesystem));
+  stmt.bindResult(11, replica.url,        sizeof(replica.url));
 
   std::vector<FileReplica> replicas;
 
@@ -1424,6 +1433,100 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Done!
   transaction.commit();
+}
+
+
+
+FileReplica NsMySqlCatalog::replicaGet(const std::string& replica) throw (DmException)
+{
+  Statement stmt(this->getPreparedStatement(STMT_GET_REPLICA_BY_URL));
+  stmt.bindParam(0, replica);
+  
+  stmt.execute();
+
+  FileReplica r;
+
+  stmt.bindResult( 0, &r.replicaid);
+  stmt.bindResult( 1, &r.fileid);
+  stmt.bindResult( 2, &r.nbaccesses);
+  stmt.bindResult( 3, &r.atime);
+  stmt.bindResult( 4, &r.ptime);
+  stmt.bindResult( 5, &r.ltime);
+  stmt.bindResult( 6, &r.status, 1);
+  stmt.bindResult( 7, &r.type, 1);
+  stmt.bindResult( 8, r.pool,       sizeof(r.pool));
+  stmt.bindResult( 9, r.server,     sizeof(r.server));
+  stmt.bindResult(10, r.filesystem, sizeof(r.filesystem));
+  stmt.bindResult(11, r.url,        sizeof(r.url));
+
+  if (!stmt.fetch())
+    throw DmException(DM_NO_REPLICAS, "Replica " + replica + " not found");
+
+  return r;
+}
+
+
+
+void NsMySqlCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
+{
+  /* Get associated file */
+  ExtendedStat meta = this->extendedStat(rdata.fileid);
+
+  /* Check we can actually go here */
+  this->traverseBackwards(meta);
+
+  /* Check the user can modify */
+  if (this->user_.uid != meta.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the replica");
+
+  /* Update */
+  Statement stmt(this->getPreparedStatement(STMT_UPDATE_REPLICA));
+  stmt.bindParam(0, rdata.atime);
+  stmt.bindParam(1, rdata.ltime);
+  stmt.bindParam(2, rdata.nbaccesses);
+  stmt.bindParam(3, std::string(&rdata.status, 1));
+  stmt.bindParam(4, std::string(&rdata.type, 1));
+  stmt.bindParam(5, rdata.replicaid);
+
+  stmt.execute();
+}
+
+
+
+void NsMySqlCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.atime = time(NULL);
+  this->replicaSet(rdata);
+}
+
+
+
+void NsMySqlCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.ltime = ltime;
+  this->replicaSet(rdata);
+}
+
+
+
+void NsMySqlCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.status = status;
+  this->replicaSet(rdata);
+}
+
+
+
+void NsMySqlCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.type = type;
+  this->replicaSet(rdata);
 }
 
 

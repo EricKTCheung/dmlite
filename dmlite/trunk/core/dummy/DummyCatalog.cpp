@@ -319,6 +319,34 @@ void DummyCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
+void DummyCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  DELEGATE(replicaSetAccessTime, replica);
+}
+
+
+
+void DummyCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  DELEGATE(replicaSetLifeTime, replica, ltime);
+}
+
+
+
+void DummyCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  DELEGATE(replicaSetStatus, replica, status);
+}
+
+
+
+void DummyCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  DELEGATE(replicaSetType, replica, type);
+}
+
+
+
 void DummyCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
   DELEGATE(setUserId, uid, gid, dn);

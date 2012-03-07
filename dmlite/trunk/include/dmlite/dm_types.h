@@ -80,8 +80,9 @@ struct filereplica {
   int64_t    nbaccesses;
   time_t     atime;
   time_t     ptime;
+  time_t     ltime;
   char       status;
-  char       ftype;
+  char       type;
   char       pool      [POOL_MAX];
   char       server    [HOST_NAME_MAX];
   char       filesystem[FILESYSTEM_MAX];

@@ -89,10 +89,32 @@ public:
     this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
   }
 
+  void testModify()
+  {
+    struct stat s;
+
+    s = this->catalog->stat(FILE);
+
+    this->catalog->addReplica(std::string(), s.st_ino, std::string(),
+                              "https://a.host.com/replica", '-', 'P',
+                              "the-pool", "the-fs");
+
+    this->catalog->replicaSetLifeTime("https://a.host.com/replica", 12348);
+    this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
+    this->catalog->replicaSetType("https://a.host.com/replica", 'V');
+
+    FileReplica replica = this->catalog->get(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
+    CPPUNIT_ASSERT_EQUAL('D', replica.status);
+    CPPUNIT_ASSERT_EQUAL('V', replica.type);
+  }
+
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
   CPPUNIT_TEST(testAddNoHost);
+  CPPUNIT_TEST(testModify);
   CPPUNIT_TEST_SUITE_END();
 };
 
