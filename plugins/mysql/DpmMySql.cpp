@@ -91,7 +91,7 @@ void DpmMySqlCatalog::set(const std::string& key, va_list varg) throw (DmExcepti
 FileReplica DpmMySqlCatalog::get(const std::string& path) throw(DmException)
 {
   // Get replicas
-  std::vector<ExtendedReplica> replicas = this->getExReplicas(path);
+  std::vector<FileReplica> replicas = this->getReplicas(path);
 
   // Get the status for the Fs+Pool+Server for each replica
   std::vector<int> available;
@@ -100,15 +100,15 @@ FileReplica DpmMySqlCatalog::get(const std::string& path) throw(DmException)
   unsigned i;
   for (i = 0; i < replicas.size(); ++i) {
     if (this->getFsStatus(replicas[i].pool,
-                          replicas[i].host,
-                          replicas[i].fs) != FS_DISABLED)
+                          replicas[i].server,
+                          replicas[i].filesystem) != FS_DISABLED)
       available.push_back(i);
   }
 
   if (available.size() > 0) {
     // Pick a random one from the available
     i = rand() % available.size();
-    return replicas[i].replica;
+    return replicas[i];
   }
   else {
     throw DmException(DM_NO_REPLICAS, "No available replicas");

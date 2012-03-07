@@ -134,9 +134,6 @@ protected:
   /// Current working dir
   ino_t cwd_;
 
-  /// Get a list of extended replicas
-  std::vector<ExtendedReplica> getExReplicas (const std::string&) throw (DmException);
-
   /// Get a list of replicas using file id
   std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
 

@@ -23,14 +23,6 @@ struct NsMySqlDir {
   Statement        *stmt;          ///< The statement.
 };
 
-/// Replica extended information. Used by the DPM plugin.
-struct ExtendedReplica {
-  FileReplica replica;             ///< The regular replica information.
-  char        pool[16];            ///< The pool where the replica is.
-  char        host[HOST_NAME_MAX]; ///< The physicial host where the replica is.
-  char        fs  [80];            ///< The filesystem where the replica is.
-};
-
 /// Implementation of NS MySQL backend.
 class NsMySqlCatalog: public Catalog {
 public:
@@ -134,9 +126,6 @@ protected:
 
   /// Current working dir
   ino_t cwd_;
-
-  /// Get a list of extended replicas
-  std::vector<ExtendedReplica> getExReplicas (const std::string&) throw (DmException);
 
   /// Get a list of replicas using file id
   std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
