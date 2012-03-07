@@ -97,6 +97,11 @@ public:
 
   void rename(const std::string&, const std::string&) throw (DmException);
 
+  void replicaSetLifeTime  (const std::string&, time_t) throw (DmException);
+  void replicaSetAccessTime(const std::string&)         throw (DmException);
+  void replicaSetType      (const std::string&, char)   throw (DmException);
+  void replicaSetStatus    (const std::string&, char)   throw (DmException);
+
   UserInfo  getUser (uid_t)              throw (DmException);
   UserInfo  getUser (const std::string&) throw (DmException);
   GroupInfo getGroup(gid_t)              throw (DmException);
@@ -203,6 +208,12 @@ private:
   /// @note       Throws an exception if it is not possible.
   void traverseBackwards(const ExtendedStat& meta) throw (DmException);
 
+  /// Get a replica by its URL
+  /// @param replica The replica URL.
+  FileReplica replicaGet(const std::string& replica) throw (DmException);
+
+  /// Set the replica attributes
+  void replicaSet(const FileReplica& rdata) throw (DmException);
 };
 
 };

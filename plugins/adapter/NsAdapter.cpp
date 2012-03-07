@@ -216,7 +216,7 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
     replica.replicaid = i;
     replica.atime      = entries[i].atime;
     replica.fileid     = entries[i].fileid;
-    replica.ftype      = entries[i].f_type;
+    replica.type       = entries[i].f_type;
     replica.nbaccesses = entries[i].nbaccesses;
     replica.ptime      = entries[i].ptime;
     replica.status     = entries[i].status;
@@ -533,6 +533,34 @@ void NsAdapterCatalog::rename(const std::string& oldPath, const std::string& new
 void NsAdapterCatalog::removeDir(const std::string& path) throw (DmException)
 {
   wrapCall(dpns_rmdir(path.c_str()));
+}
+
+
+
+void NsAdapterCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  wrapCall(dpns_setratime(replica.c_str()));
+}
+
+
+
+void NsAdapterCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  wrapCall(dpns_setrltime(replica.c_str(), ltime));
+}
+
+
+
+void NsAdapterCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  wrapCall(dpns_setrstatus(replica.c_str(), status));
+}
+
+
+
+void NsAdapterCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  wrapCall(dpns_setrtype(replica.c_str(), type));
 }
 
 

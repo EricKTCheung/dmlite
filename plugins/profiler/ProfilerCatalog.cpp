@@ -344,6 +344,34 @@ void ProfilerCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
+void ProfilerCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  PROFILE(replicaSetAccessTime, replica);
+}
+
+
+
+void ProfilerCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  PROFILE(replicaSetLifeTime, replica, ltime);
+}
+
+
+
+void ProfilerCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  PROFILE(replicaSetStatus, replica, status);
+}
+
+
+
+void ProfilerCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  PROFILE(replicaSetType, replica, type);
+}
+
+
+
 void ProfilerCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
   PROFILE(setUserId, uid, gid, dn);

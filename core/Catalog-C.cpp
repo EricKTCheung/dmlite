@@ -495,6 +495,46 @@ int dm_rmdir(dm_context* context, const char* path)
 
 
 
+int dm_replica_setltime(dm_context* context, const char* replica, time_t ltime)
+{
+  TRY(context, setltime)
+  NOT_NULL(replica);
+  context->catalog->replicaSetLifeTime(replica, ltime);
+  CATCH(context, setltime);
+}
+
+
+
+int dm_replica_setatime(dm_context* context, const char* replica)
+{
+  TRY(context, setatime)
+  NOT_NULL(replica);
+  context->catalog->replicaSetAccessTime(replica);
+  CATCH(context, setatime);
+}
+
+
+
+int dm_replica_settype(dm_context* context, const char* replica, char ftype)
+{
+  TRY(context, settype)
+  NOT_NULL(replica);
+  context->catalog->replicaSetType(replica, ftype);
+  CATCH(context, settype);
+}
+
+
+
+int dm_replica_setstatus(dm_context* context, const char* replica, char status)
+{
+  TRY(context, setstatus)
+  NOT_NULL(replica);
+  context->catalog->replicaSetStatus(replica, status);
+  CATCH(context, setlstatus);
+}
+
+
+
 int dm_setuserid(dm_context* context, uid_t uid, gid_t gid, const char* dn)
 {
   TRY(context, setuserid)

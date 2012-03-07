@@ -6,6 +6,7 @@
 #include <dmlite/common/Uris.h>
 #include <string.h>
 #include <stdlib.h>
+#include <oracle/10.2.0.5/client/occiControl.h>
 
 using namespace dmlite;
 using namespace oracle;
@@ -58,6 +59,7 @@ enum {
   STMT_GET_GROUPINFO_BY_NAME,
   STMT_GET_GROUPINFO_BY_GID,
   STMT_GET_FILE_REPLICAS,
+  STMT_GET_REPLICA_BY_URL,
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
@@ -84,6 +86,7 @@ enum {
   STMT_CHANGE_PARENT,
   STMT_CHANGE_OWNER,
   STMT_UTIME,
+  STMT_UPDATE_REPLICA,
   STMT_SENTINEL
 };
 
@@ -123,9 +126,12 @@ static const char* statements[] = {
   "SELECT gid, groupname, NVL(banned, 0)\
         FROM Cns_groupinfo\
         WHERE gid = :b_gid",
-  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, nbaccesses, atime, ptime, status, f_type, poolname, host, fs, sfn\
+  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
         FROM Cns_file_replica\
         WHERE fileid = :b_fileid",
+  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
+        FROM Cns_file_replica\
+        WHERE sfn = :b_sfn",
   "SELECT comments\
         FROM Cns_user_metadata\
         WHERE u_fileid = :b_fileid",
@@ -201,6 +207,9 @@ static const char* statements[] = {
   "UPDATE Cns_file_metadata\
         SET atime = :b_atime, mtime = :b_mtime, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
+  "UPDATE Cns_file_replica\
+        SET atime = :b_atime, ltime = :b_ltime, nbaccesses = :b_nacc, status = :b_status, f_type = :b_type\
+        WHERE sfn = :b_sfn"
 };
 
 
@@ -873,12 +882,13 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmExcept
     replica.nbaccesses = rs->getNumber(3);
     replica.atime      = rs->getNumber(4);
     replica.ptime      = rs->getNumber(5);
-    replica.status     = rs->getString(6)[0];
-    replica.ftype      = rs->getString(7)[0];
-    strncpy(replica.pool,       rs->getString( 8).c_str(), sizeof(replica.pool));
-    strncpy(replica.server,     rs->getString( 9).c_str(), sizeof(replica.server));
-    strncpy(replica.filesystem, rs->getString(10).c_str(), sizeof(replica.filesystem));
-    strncpy(replica.url,        rs->getString(11).c_str(), sizeof(replica.url));
+    replica.ltime      = rs->getNumber(6);
+    replica.status     = rs->getString(7)[0];
+    replica.type       = rs->getString(8)[0];
+    strncpy(replica.pool,       rs->getString( 9).c_str(), sizeof(replica.pool));
+    strncpy(replica.server,     rs->getString(10).c_str(), sizeof(replica.server));
+    strncpy(replica.filesystem, rs->getString(11).c_str(), sizeof(replica.filesystem));
+    strncpy(replica.url,        rs->getString(12).c_str(), sizeof(replica.url));
 
     replicas.push_back(replica);
   }
@@ -1506,6 +1516,100 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
 
   // Done!
   transaction.commit();
+}
+
+
+
+FileReplica NsOracleCatalog::replicaGet(const std::string& replica) throw (DmException)
+{
+  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_REPLICA_BY_URL);
+  stmt->setString(1, replica);
+
+  occi::ResultSet* rs = stmt->executeQuery();
+
+  if (!rs->next())
+    throw DmException(DM_NO_REPLICAS, "Replica " + replica + " not found");
+  
+  FileReplica r;
+
+  r.replicaid  = rs->getNumber(1);
+  r.fileid     = rs->getNumber(2);
+  r.nbaccesses = rs->getNumber(3);
+  r.atime      = rs->getNumber(4);
+  r.ptime      = rs->getNumber(5);
+  r.ltime      = rs->getNumber(6);
+  r.status     = rs->getString(7)[0];
+  r.type       = rs->getString(8)[0];
+  strncpy(r.pool,       rs->getString( 9).c_str(), sizeof(r.pool));
+  strncpy(r.server,     rs->getString(10).c_str(), sizeof(r.server));
+  strncpy(r.filesystem, rs->getString(11).c_str(), sizeof(r.filesystem));
+  strncpy(r.url,        rs->getString(12).c_str(), sizeof(r.url));
+
+  return r;
+}
+
+
+
+void NsOracleCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
+{
+  /* Get associated file */
+  ExtendedStat meta = this->extendedStat(rdata.fileid);
+
+  /* Check we can actually go here */
+  this->traverseBackwards(meta);
+
+  /* Check the user can modify */
+  if (this->user_.uid != meta.stat.st_uid &&
+      checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the replica");
+
+  /* Update */
+  occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_REPLICA);
+  stmt->setNumber(1, rdata.atime);
+  stmt->setNumber(2, rdata.ltime);
+  stmt->setNumber(3, rdata.nbaccesses);
+  stmt->setString(4, std::string(&rdata.status, 1));
+  stmt->setString(5, std::string(&rdata.type, 1));
+  stmt->setString(6, rdata.url);
+
+  stmt->executeUpdate();
+}
+
+
+
+void NsOracleCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.atime = time(NULL);
+  this->replicaSet(rdata);
+}
+
+
+
+void NsOracleCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.ltime = ltime;
+  this->replicaSet(rdata);
+}
+
+
+
+void NsOracleCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.status = status;
+  this->replicaSet(rdata);
+}
+
+
+
+void NsOracleCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  FileReplica rdata = this->replicaGet(replica);
+  rdata.type = type;
+  this->replicaSet(rdata);
 }
 
 
