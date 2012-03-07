@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 2.6)
 
 add_library(dmlitecommon SHARED Security.cpp Uris.cpp)
 
-target_link_libraries(dmlitecommon dmlite)
-
 set_target_properties(dmlitecommon PROPERTIES
                                    VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
                                    SOVERSION ${dmlite_MAJOR}

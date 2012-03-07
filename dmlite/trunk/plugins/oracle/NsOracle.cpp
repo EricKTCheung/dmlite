@@ -58,7 +58,6 @@ enum {
   STMT_GET_GROUPINFO_BY_NAME,
   STMT_GET_GROUPINFO_BY_GID,
   STMT_GET_FILE_REPLICAS,
-  STMT_GET_FILE_REPLICAS_EXTENDED,
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
@@ -124,10 +123,7 @@ static const char* statements[] = {
   "SELECT gid, groupname, NVL(banned, 0)\
         FROM Cns_groupinfo\
         WHERE gid = :b_gid",
-  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, status, sfn\
-        FROM Cns_file_replica\
-        WHERE fileid = :b_fileid",
-  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, status, sfn, poolname, host, fs\
+  "SELECT DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid), fileid, nbaccesses, atime, ptime, status, f_type, poolname, host, fs, sfn\
         FROM Cns_file_replica\
         WHERE fileid = :b_fileid",
   "SELECT comments\
@@ -734,6 +730,7 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
                                  const std::string& fileSystem) throw (DmException)
 {
   ExtendedStat meta;
+  std::string  host;
 
   if (guid.empty())
     meta = this->extendedStat(id);
@@ -747,6 +744,17 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
   if (checkPermissions(this->user_, this->group_, this->groups_,
                        meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
+
+  // If server is empty, parse the surl
+  if (server.empty()) {
+    Uri u = splitUri(sfn);
+    host = u.host;
+    if (host.empty())
+      throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
+  }
+  else {
+    host = server;
+  }
 
   // Add it
   try {
@@ -765,7 +773,7 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
     stmt->setString( 8, std::string(&fileType, 1));
     stmt->setNull  ( 9, occi::OCCISTRING);
     stmt->setString(10, poolName);
-    stmt->setString(11, server);
+    stmt->setString(11, host);
     stmt->setString(12, fileSystem);
     stmt->setString(13, sfn);
 
@@ -859,11 +867,19 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmExcept
   std::vector<FileReplica> replicas;
 
   while (rs->next()) {
-    replica.replicaid = rs->getNumber(1);
-    replica.fileid    = rs->getNumber(2);
-    replica.status    = rs->getString(3)[0];
-    strncpy(replica.unparsed_location, rs->getString(4).c_str(), sizeof(replica.unparsed_location));
-    replica.location = splitUri(replica.unparsed_location);
+    memset(&replica, 0x00, sizeof(replica));
+    replica.replicaid  = rs->getNumber(1);
+    replica.fileid     = rs->getNumber(2);
+    replica.nbaccesses = rs->getNumber(3);
+    replica.atime      = rs->getNumber(4);
+    replica.ptime      = rs->getNumber(5);
+    replica.status     = rs->getString(6)[0];
+    replica.ftype      = rs->getString(7)[0];
+    strncpy(replica.pool,       rs->getString( 8).c_str(), sizeof(replica.pool));
+    strncpy(replica.server,     rs->getString( 9).c_str(), sizeof(replica.server));
+    strncpy(replica.filesystem, rs->getString(10).c_str(), sizeof(replica.filesystem));
+    strncpy(replica.url,        rs->getString(11).c_str(), sizeof(replica.url));
+
     replicas.push_back(replica);
   }
   stmt->closeResultSet(rs);
@@ -1003,53 +1019,6 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
 
   // Done!
   transaction.commit();
-}
-
-
-
-std::vector<ExtendedReplica> NsOracleCatalog::getExReplicas(const std::string& path) throw(DmException)
-{
-  ExtendedStat    meta;
-  ExtendedReplica replica;
-
-  // Need to grab the file first
-  meta = this->extendedStat(path, true);
-
-  // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
-    throw DmException(DM_FORBIDDEN,
-                      "Not enough permissions to read " + path);
-
-  // Statement
-  occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED);
-
-  stmt->setNumber(1, meta.stat.st_ino);
-  occi::ResultSet* rs = stmt->executeQuery();
-
-  // Fetch
-  std::vector<ExtendedReplica> replicas;
-
-  while (rs->next()) {
-    replica.replica.replicaid = rs->getNumber(1);
-    replica.replica.fileid    = rs->getNumber(2);
-    replica.replica.status    = rs->getString(3)[0];
-    strncpy(replica.replica.unparsed_location, rs->getString(4).c_str(), sizeof(replica.replica.unparsed_location));
-    strncpy(replica.pool, rs->getString(5).c_str(), sizeof(replica.pool));
-    strncpy(replica.host, rs->getString(6).c_str(), sizeof(replica.host));
-    strncpy(replica.fs, rs->getString(7).c_str(), sizeof(replica.fs));
-
-    replica.replica.location = splitUri(replica.replica.unparsed_location);
-
-    replicas.push_back(replica);
-  }
-
-  stmt->closeResultSet(rs);
-
-  if (replicas.size() == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
-
-  return replicas;
 }
 
 

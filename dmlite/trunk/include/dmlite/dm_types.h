@@ -27,6 +27,7 @@
 #define FILESYSTEM_MAX   80
 #define SUMTYPE_MAX       3
 #define SUMVALUE_MAX     33
+#define SETNAME_MAX      36
 
 #define TYPE_EXPERIMENT 1
 #define TYPE_USER       2
@@ -76,9 +77,15 @@ typedef struct uri Uri;
 struct filereplica {
   int64_t    replicaid;
   int64_t    fileid;
+  int64_t    nbaccesses;
+  time_t     atime;
+  time_t     ptime;
   char       status;
-  struct uri location;
-  char       unparsed_location[URI_MAX];
+  char       ftype;
+  char       pool      [POOL_MAX];
+  char       server    [HOST_NAME_MAX];
+  char       filesystem[FILESYSTEM_MAX];
+  char       url       [URI_MAX];
 };
 typedef struct filereplica FileReplica;
 

@@ -54,9 +54,11 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
     throw DmException(DM_NO_SUCH_SYMBOL, std::string(dlerror()));
 
   if (idCard->ApiVersion < API_VERSION)
-    throw DmException(DM_API_VERSION_MISMATCH, std::string("Plugin version < API version - Consider upgrading the plug-in ") + lib);
+    throw DmException(DM_API_VERSION_MISMATCH, "Plugin version (%d) < API version (%d) - Consider upgrading the plug-in %s",
+                      idCard->ApiVersion, API_VERSION, lib.c_str());
   else if (idCard->ApiVersion > API_VERSION)
-    throw DmException(DM_API_VERSION_MISMATCH, std::string("Plugin version > API version - Consider upgrading libdm or downgrading the plugin ") + lib);
+    throw DmException(DM_API_VERSION_MISMATCH, "Plugin version (%d) > API version (%d) - Consider upgrading dmlite or downgrading the plugin %s",
+                      idCard->ApiVersion, API_VERSION, lib.c_str());
 
   // Call the registerer
   idCard->registerPlugin(this);

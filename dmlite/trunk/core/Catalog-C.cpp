@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Private.h"
+#include "dmlite/common/Uris.h"
 
 #include <string.h>
 
@@ -611,4 +612,11 @@ const char* dm_error(dm_context* context)
   if (context->catalog == NULL)
     return "There is no catalog implementation";
   return context->errorString.c_str();
+}
+
+
+
+void dm_parse_uri(const char* source, struct uri* dest)
+{
+  *dest = dmlite::splitUri(source);
 }

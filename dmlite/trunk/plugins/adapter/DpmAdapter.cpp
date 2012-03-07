@@ -92,7 +92,7 @@ FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
 
   try {
     // Request
-   RETRY(dpm_get(1, &request, 1, (char*[]){(char *)"rfio"}, (char *)"libdm::dummy::dpm::get", 0,
+    RETRY(dpm_get(1, &request, 1, (char*[]){(char *)"rfio"}, (char *)"libdm::dummy::dpm::get", 0,
                  r_token, &nReplies, &statuses), this->retryLimit_);
     if (nReplies < 1)
       throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
@@ -115,8 +115,8 @@ FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
       }
     }
 
-    replica.location = splitUri(statuses[0].turl);
-    strncpy(replica.unparsed_location, statuses[0].turl, URI_MAX);
+    memset(&replica, 0x00, sizeof(replica));
+    strncpy(replica.url, statuses[0].turl, URI_MAX);
     replica.fileid = -1;
     replica.status = statuses[0].status;
     dpm_free_gfilest(nReplies, statuses);

@@ -22,6 +22,22 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
+      try {
+        struct stat s = this->catalog->stat(FILE);
+        std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
+        for (unsigned i = 0; i < replicas.size(); ++i) {
+          this->catalog->deleteReplica("", s.st_ino, replicas[i].url);
+        }
+      }
+      catch (dmlite::DmException e) {
+        switch (e.code()) {
+          case DM_NO_SUCH_FILE: case DM_NO_REPLICAS:
+            break;
+          default:
+            throw;
+        }
+      }
+
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
       IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
     }
@@ -34,7 +50,7 @@ public:
 
     s = this->catalog->stat(FILE);
 
-    this->catalog->addReplica(std::string(), s.st_ino, "a.host.com",
+    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
                               "http://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 
@@ -42,8 +58,11 @@ public:
 
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
-                         std::string(replica.unparsed_location));
+                         std::string(replica.url));
     CPPUNIT_ASSERT_EQUAL('-', replica.status);
+    CPPUNIT_ASSERT_EQUAL(std::string("the-fs"), std::string(replica.filesystem));
+    CPPUNIT_ASSERT_EQUAL(std::string("the-pool"), std::string(replica.pool));
+    CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
 
     this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
 
@@ -63,9 +82,9 @@ public:
     FileReplica replica = this->catalog->get(FILE);
 
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
-                         std::string(replica.unparsed_location));
+                         std::string(replica.url));
     CPPUNIT_ASSERT_EQUAL(std::string("a.host.com"),
-                         std::string(replica.location.host));
+                         std::string(replica.server));
 
     this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
   }

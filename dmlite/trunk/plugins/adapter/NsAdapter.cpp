@@ -213,11 +213,19 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
   for (int i = 0; i < nEntries; ++i) {
     FileReplica replica;
 
-    replica.replicaid = i; /* Assuming the order is kept */
-    replica.fileid    = entries[i].fileid;
-    replica.status    = entries[i].status;
-    replica.location  = splitUri(std::string(entries[i].sfn));
-    strncpy(replica.unparsed_location, entries[i].sfn, URI_MAX);
+    replica.replicaid = i;
+    replica.atime      = entries[i].atime;
+    replica.fileid     = entries[i].fileid;
+    replica.ftype      = entries[i].f_type;
+    replica.nbaccesses = entries[i].nbaccesses;
+    replica.ptime      = entries[i].ptime;
+    replica.status     = entries[i].status;
+
+
+    strncpy(replica.filesystem, entries[i].fs,       sizeof(replica.filesystem));
+    strncpy(replica.pool,       entries[i].poolname, sizeof(replica.pool));
+    strncpy(replica.server,     entries[i].host,     sizeof(replica.server));
+    strncpy(replica.url,        entries[i].sfn,      sizeof(replica.url));
 
     replicas.push_back(replica);
   }

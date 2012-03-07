@@ -507,6 +507,13 @@ int dm_errno(dm_context* context);
  */
 const char* dm_error(dm_context* context);
 
+/**
+ * Parses a URI.
+ * @param source Original URI.
+ * @param dest   Parsed URI.
+ */
+void dm_parse_uri(const char* source, struct uri* dest);
+
 #ifdef	__cplusplus
 }
 #endif

@@ -35,7 +35,6 @@ enum {
   STMT_GET_GROUPINFO_BY_NAME,
   STMT_GET_GROUPINFO_BY_GID,
   STMT_GET_FILE_REPLICAS,
-  STMT_GET_FILE_REPLICAS_EXTENDED,
   STMT_GET_COMMENT,
   STMT_SET_GUID,
   STMT_SET_COMMENT,
@@ -104,10 +103,7 @@ static const char* statements[] = {
   "SELECT gid, groupname, banned\
         FROM Cns_groupinfo\
         WHERE gid = ?",
-  "SELECT rowid, fileid, status, sfn\
-        FROM Cns_file_replica\
-        WHERE fileid = ?",
-  "SELECT rowid, fileid, status, sfn, poolname, host, fs\
+  "SELECT rowid, fileid, nbaccesses, atime, ptime, status, f_type, poolname, host, fs, sfn\
         FROM Cns_file_replica\
         WHERE fileid = ?",
   "SELECT comments\
@@ -806,10 +802,17 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
   stmt.execute();
 
   // Bind result
-  stmt.bindResult(0, &replica.replicaid);
-  stmt.bindResult(1, &replica.fileid);
-  stmt.bindResult(2, &replica.status, 1);
-  stmt.bindResult(3, replica.unparsed_location, sizeof(replica.unparsed_location));
+  stmt.bindResult( 0, &replica.replicaid);
+  stmt.bindResult( 1, &replica.fileid);
+  stmt.bindResult( 2, &replica.nbaccesses);
+  stmt.bindResult( 3, &replica.atime);
+  stmt.bindResult( 4, &replica.ptime);
+  stmt.bindResult( 5, &replica.status, 1);
+  stmt.bindResult( 6, &replica.ftype, 1);
+  stmt.bindResult( 7, replica.pool,       sizeof(replica.pool));
+  stmt.bindResult( 8, replica.server,     sizeof(replica.server));
+  stmt.bindResult( 9, replica.filesystem, sizeof(replica.filesystem));
+  stmt.bindResult(10, replica.url,        sizeof(replica.url));
 
   std::vector<FileReplica> replicas;
 
@@ -819,7 +822,6 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
   // Fetch
   int i = 0;
   while (stmt.fetch()) {
-    replica.location = splitUri(replica.unparsed_location);
     replicas.push_back(replica);
     ++i;
   };
@@ -959,52 +961,6 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
   // Done!
   transaction.commit();
-}
-
-
-
-std::vector<ExtendedReplica> NsMySqlCatalog::getExReplicas(const std::string& path) throw(DmException)
-{
-  ExtendedStat    meta;
-  ExtendedReplica replica;
-  int             nReplicas;
-
-  // Need to grab the file first
-  meta = this->extendedStat(path, true);
-
-  // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
-    throw DmException(DM_FORBIDDEN,
-                      "Not enough permissions to read " + path);
-
-  // MySQL statement
-  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS_EXTENDED));
-
-  stmt.bindParam(0, meta.stat.st_ino);
-  stmt.execute();
-
-  stmt.bindResult(0, &replica.replica.replicaid);
-  stmt.bindResult(1, &replica.replica.fileid);
-  stmt.bindResult(2, &replica.replica.status, 1);
-  stmt.bindResult(3, replica.replica.unparsed_location, sizeof(replica.replica.unparsed_location));
-  stmt.bindResult(4, replica.pool, sizeof(replica.pool));
-  stmt.bindResult(5, replica.host, sizeof(replica.host));
-  stmt.bindResult(6, replica.fs,   sizeof(replica.fs));
-  
-  std::vector<ExtendedReplica> replicas;
-
-  nReplicas = stmt.count();
-  if (nReplicas == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
-
-  // Fetch
-  while (stmt.fetch()) {
-    replica.replica.location = splitUri(replica.replica.unparsed_location);
-    replicas.push_back(replica);
-  };
-
-  return replicas;
 }
 
 
