@@ -195,8 +195,6 @@ public:
                                                      S_IREAD | S_IEXEC));
   }
 
-
-
   void testGetVoFromRole()
   {
     std::string vo;
@@ -204,6 +202,45 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("dteam"), vo);
   }
 
+
+  void testAclSerialization()
+  {
+    // Test deserialization
+    std::vector<Acl> acls = dmlite::deserializeAcl("A6101,B6101,C4101,D7101,E70,F40");
+
+    CPPUNIT_ASSERT_EQUAL(6ul, acls.size());
+
+    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ, (int)acls[0].type);
+    CPPUNIT_ASSERT_EQUAL(101u,         acls[0].id);
+    CPPUNIT_ASSERT_EQUAL(6,            (int)acls[0].perm);
+
+    CPPUNIT_ASSERT_EQUAL(ACL_USER, (int)acls[1].type);
+    CPPUNIT_ASSERT_EQUAL(101u,     acls[1].id);
+    CPPUNIT_ASSERT_EQUAL(6,        (int)acls[1].perm);
+
+    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ, (int)acls[2].type);
+    CPPUNIT_ASSERT_EQUAL(101u,          acls[2].id);
+    CPPUNIT_ASSERT_EQUAL(4,             (int)acls[2].perm);
+
+    CPPUNIT_ASSERT_EQUAL(ACL_GROUP, (int)acls[3].type);
+    CPPUNIT_ASSERT_EQUAL(101u,      acls[3].id);
+    CPPUNIT_ASSERT_EQUAL(7,         (int)acls[3].perm);
+
+    CPPUNIT_ASSERT_EQUAL(ACL_MASK, (int)acls[4].type);
+    CPPUNIT_ASSERT_EQUAL(0u,       acls[4].id);
+    CPPUNIT_ASSERT_EQUAL(7,        (int)acls[4].perm);
+
+    CPPUNIT_ASSERT_EQUAL(ACL_OTHER, (int)acls[5].type);
+    CPPUNIT_ASSERT_EQUAL(0u,        acls[5].id);
+    CPPUNIT_ASSERT_EQUAL(4,         (int)acls[5].perm);
+
+    // Test serialization
+    acls.insert(acls.begin(), acls.back());
+    acls.pop_back();
+
+    std::string serial = dmlite::serializeAcl(acls);
+    CPPUNIT_ASSERT_EQUAL(std::string("A6101,B6101,C4101,D7101,E70,F40"), serial);
+  }
 
 
   CPPUNIT_TEST_SUITE(Security);
@@ -216,6 +253,7 @@ public:
   CPPUNIT_TEST(testSecondaryBanned);
   CPPUNIT_TEST(testAclBanned);
   CPPUNIT_TEST(testGetVoFromRole);
+  CPPUNIT_TEST(testAclSerialization);
   CPPUNIT_TEST_SUITE_END();
 };
 

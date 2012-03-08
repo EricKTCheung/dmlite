@@ -144,6 +144,23 @@ struct groupinfo {
 };
 typedef struct groupinfo GroupInfo;
 
+// ACL masks
+#define ACL_USER_OBJ  1
+#define ACL_USER      2
+#define ACL_GROUP_OBJ 3
+#define ACL_GROUP     4
+#define ACL_MASK      5
+#define ACL_OTHER     6
+#define ACL_DEFAULT   0x20
+
+// ACL struct
+struct dm_acl {
+  unsigned char type;
+  unsigned char perm;
+  uint32_t      id;
+};
+typedef dm_acl Acl;
+
 #ifdef __cplusplus
 /// Operator < for UserInfo (needed for sets)
 inline bool operator < (const userinfo &a, const userinfo &b)
