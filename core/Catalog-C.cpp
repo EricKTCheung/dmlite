@@ -10,6 +10,7 @@
 
 #include "Private.h"
 #include "dmlite/common/Uris.h"
+#include "dmlite/common/Security.h"
 
 #include <string.h>
 
@@ -183,13 +184,9 @@ int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
   std::vector<filereplica> replicaSet = context->catalog->getReplicas(path);
 
   *fileReplicas = new filereplica[replicaSet.size()];
+  *nEntries = replicaSet.size();
 
-  std::vector<filereplica>::const_iterator i;
-  for (i = replicaSet.begin(), *nEntries = 0;
-       i != replicaSet.end();
-       ++i, ++*nEntries) {
-    (*fileReplicas)[*nEntries] = *i;
-  }
+  std::copy(replicaSet.begin(), replicaSet.end(), *fileReplicas);
 
   CATCH(context, getreplicas)
 }
@@ -392,10 +389,7 @@ int dm_getidmap(dm_context* context, const char* username, int nGroups,
 
   context->catalog->getIdMap(username, groupSet, uid, &gidSet);
 
-  int i;
-  std::vector<gid_t>::const_iterator j;
-  for (i = 0, j = gidSet.begin(); j != gidSet.end(); ++i, ++j)
-    gids[i] = *j;
+  std::copy(gidSet.begin(), gidSet.end(), gids);
 
   CATCH(context, getidmap)
 }
@@ -549,10 +543,9 @@ int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int 
   TRY(context, setvomsdata)
   NOT_NULL(vo);
   if (nFqans > 0) NOT_NULL(fqans);
-  std::vector<std::string> fqansSet;
 
-  for (int i = 0; i < nFqans; ++i)
-    fqansSet.push_back(fqans[i]);
+  std::vector<std::string> fqansSet(nFqans);
+  fqansSet.assign(fqans, fqans + nFqans);
 
   context->catalog->setVomsData(vo, fqansSet);
   CATCH(context, setvomsdata)
@@ -574,14 +567,11 @@ int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
   
   std::vector<pool> poolSet = context->pool->getPools();
 
-  *pools = new pool[poolSet.size()];
+  *pools   = new pool[poolSet.size()];
+  *nbpools = poolSet.size();
 
-  std::vector<pool>::const_iterator i;
-  for (i = poolSet.begin(), *nbpools = 0;
-       i != poolSet.end();
-       ++i, ++*nbpools) {
-    (*pools)[*nbpools] = *i;
-  }
+  std::copy(poolSet.begin(), poolSet.end(), *pools);
+
   CATCH(context, getpools)
 }
 
@@ -614,14 +604,10 @@ int dm_getpoolfs(dm_context* context, const char *poolname, int *nbfs, struct fi
 
   std::vector<filesystem> filesystems = context->pool->getPoolFilesystems(poolname);
 
-  *fs = new filesystem[filesystems.size()];
+  *fs   = new filesystem[filesystems.size()];
+  *nbfs = filesystems.size();
+  std::copy(filesystems.begin(), filesystems.end(), *fs);
 
-  std::vector<filesystem>::const_iterator i;
-  for (i = filesystems.begin(), *nbfs = 0;
-       i != filesystems.end();
-       ++i, ++*nbfs) {
-    (*fs)[*nbfs] = *i;
-  }
   CATCH(context, getpoolfs)
 }
 
@@ -659,4 +645,33 @@ const char* dm_error(dm_context* context)
 void dm_parse_uri(const char* source, struct uri* dest)
 {
   *dest = dmlite::splitUri(source);
+}
+
+
+
+void dm_serialize_acls(int nAcls, struct dm_acl* acls, char* buffer, size_t bsize)
+{
+  std::vector<Acl> aclV(nAcls);
+  aclV.assign(acls, acls + nAcls);
+
+  std::string aclStr = dmlite::serializeAcl(aclV);
+
+  std::strncpy(buffer, aclStr.c_str(), bsize);
+}
+
+void dm_deserialize_acls(const char* buffer, int* nAcls, struct dm_acl** acls)
+{
+  std::vector<Acl> aclV = dmlite::deserializeAcl(buffer);
+
+  *nAcls = aclV.size();
+  *acls  = new Acl[*nAcls];
+
+  std::copy(aclV.begin(), aclV.end(), *acls);
+}
+
+
+
+void dm_freeacls(int nAcls, struct dm_acl* acls)
+{
+  delete [] acls;
 }

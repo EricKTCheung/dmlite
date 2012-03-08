@@ -12,12 +12,6 @@
 
 namespace dmlite {
 
-// ACL masks
-const char ACL_USER      = 2;
-const char ACL_GROUP_OBJ = 3;
-const char ACL_GROUP     = 4;
-const char ACL_MASK      = 5;
-
 /// Return true if gid is in the set of groups.
 bool gidInGroups(gid_t gid, const std::vector<GroupInfo> &groups);
 
@@ -55,6 +49,11 @@ std::string voFromDn(const std::string& mapfile, const std::string& dn);
 /// @return     The VO.
 std::string voFromRole(const std::string& role);
 
+/// Get an array of Acl structs from the string serialization.
+std::vector<Acl> deserializeAcl(const std::string& aclStr);
+
+/// Get the string serialization of the array of acls.
+std::string serializeAcl(const std::vector<Acl>& acls);
 };
 
 #endif	// SECURITY_H

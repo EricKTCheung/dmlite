@@ -11,7 +11,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
 #include <map>
+#include <sstream>
+#include <queue>
 
 using namespace dmlite;
 
@@ -234,4 +237,56 @@ std::string dmlite::voFromRole(const std::string& role)
     return vo.substr(0, i);
   else
     return vo;
+}
+
+
+
+std::vector<Acl> dmlite::deserializeAcl(const std::string& aclStr)
+{
+  std::vector<Acl> acls;
+  Acl              acl;
+
+  size_t i = 0;
+  while (i < aclStr.length()) {
+    acl.type = aclStr[i++] - '@';
+    acl.perm = aclStr[i++] - '0';
+    acl.id   = atoi(aclStr.c_str() + i);
+    acls.push_back(acl);
+    if ((i = aclStr.find(',', i)) != std::string::npos)
+      ++i;
+  }
+
+  return acls;
+}
+
+
+
+static bool aclCompare(const Acl& a, const Acl& b)
+{
+  return a.type < b.type;
+}
+
+
+
+std::string dmlite::serializeAcl(const std::vector<Acl>& acls)
+{
+  // First, we need a sorted copy of acls by type
+  std::vector<Acl> copy(acls);
+  std::sort(copy.begin(), copy.end(), aclCompare);
+
+  // Build the ACL string from the sorted
+  std::stringstream aclStr;
+  size_t            i;
+
+  for (i = 0; i < copy.size(); ++i) {
+    aclStr << (char)('@' + copy[i].type)
+           << (char)('0' + copy[i].perm)
+           << copy[i].id;
+
+    if (i + 1 < copy.size())
+      aclStr <<  ',';
+  }
+
+  // Return
+  return aclStr.str();
 }
