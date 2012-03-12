@@ -95,7 +95,7 @@ public:
 
     s = this->catalog->stat(FILE);
 
-    this->catalog->addReplica(std::string(), s.st_ino, std::string(),
+    this->catalog->addReplica(std::string(), s.st_ino, "a.host",
                               "https://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 

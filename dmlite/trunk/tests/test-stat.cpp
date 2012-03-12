@@ -82,6 +82,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
   }
 
+  /// @note Adapter will not pass this since it does not implement inode access
   void testIStat()
   {
     statBuf = this->catalog->stat(FOLDER);

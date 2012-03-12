@@ -26,12 +26,26 @@ public:
   void testRegular()
   {
     this->catalog->changeDir(BASE_DIR);
-    CPPUNIT_ASSERT_EQUAL(std::string(BASE_DIR), this->catalog->getWorkingDir());
+
+    // Beware: some plugins may strip the last '/', so tolerate that!
+    std::string cwd = this->catalog->getWorkingDir();
+    if (cwd.length() == BASE_DIR.length() - 1)
+      CPPUNIT_ASSERT_EQUAL(BASE_DIR, cwd + "/");
+    else
+      CPPUNIT_ASSERT_EQUAL(BASE_DIR, cwd);
 
     statBuf = this->catalog->stat(".");
     CPPUNIT_ASSERT_EQUAL(S_IFDIR, (int)statBuf.st_mode & S_IFMT);
 
-    CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, this->catalog->getWorkingDirI());
+    // Adapter doesn't implement
+    try {
+      CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, this->catalog->getWorkingDirI());
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NOT_IMPLEMENTED)
+        throw;
+      CPPUNIT_NS::Message("Access by inode not implemented. Ignoring.");
+    }
   }
 
   void testRemoveCwd()
