@@ -290,3 +290,175 @@ std::string dmlite::serializeAcl(const std::vector<Acl>& acls)
   // Return
   return aclStr.str();
 }
+
+
+
+void dmlite::validateAcl(const std::string& acl) throw (DmException)
+{
+  dmlite::validateAcl(dmlite::deserializeAcl(acl));
+}
+
+
+
+void dmlite::validateAcl(const std::vector<Acl>& acls) throw (DmException)
+{
+  if (acls.empty())
+    return;
+
+  int ndefs = 0;
+  int ndg = 0;
+  int ndgo = 0;
+  int ndm = 0;
+  int ndo = 0;
+  int ndu = 0;
+  int nduo = 0;
+  int ng = 0;
+  int ngo = 0;
+  int nm = 0;
+  int no = 0;
+  int nu = 0;
+  int nuo = 0;
+  std::vector<Acl>::const_iterator i;
+
+  for (i = acls.begin(); i != acls.end(); ++i) {
+    switch (i->type) {
+      case ACL_USER_OBJ:
+        nuo++;
+        break;
+      case ACL_USER:
+        nu++;
+        break;
+      case ACL_GROUP_OBJ:
+        ngo++;
+        break;
+      case ACL_GROUP:
+        ng++;
+        break;
+      case ACL_MASK:
+        nm++;
+        break;
+      case ACL_OTHER:
+        no++;
+        break;
+      case ACL_DEFAULT | ACL_USER_OBJ:
+        ndefs++;
+        nduo++;
+        break;
+      case ACL_DEFAULT | ACL_USER:
+        ndefs++;
+        ndu++;
+        break;
+      case ACL_DEFAULT | ACL_GROUP_OBJ:
+        ndefs++;
+        ndgo++;
+        break;
+      case ACL_DEFAULT | ACL_GROUP:
+        ndefs++;
+        ndg++;
+        break;
+      case ACL_DEFAULT | ACL_MASK:
+        ndefs++;
+        ndm++;
+        break;
+      case ACL_DEFAULT | ACL_OTHER:
+        ndefs++;
+        ndo++;
+        break;
+      default:
+        throw DmException(DM_INVALID_ACL, "Invalid ACL type: %c", i->type);
+    }
+    // Check perm
+    if (i->perm > 7)
+      throw DmException(DM_INVALID_ACL, "Invalid permission: %d", i->perm);
+
+    // Check it isn't duplicated
+    if (i != acls.begin()) {
+      if (i->type == (i - 1)->type && i->id == (i - 1)->id)
+        throw DmException(DM_INVALID_ACL, "Duplicated USER or GROUP entry: %c%d", i->type, i->id);
+    }
+  }
+
+  // There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER
+  if (nuo != 1 || ngo != 1 || no != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER");
+  
+  // If there is any USER or GROUP entry, there must be a MASK entry
+  if ((nu || ng) && nm != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "If there is any USER or GROUP entry, there must be a MASK entry");
+
+  // If there are any default ACL entries, there must be one and only one
+  // entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER
+  if (ndefs && (nduo != 1 || ndgo != 1 || ndo != 1))
+    throw DmException(DM_INVALID_ACL,
+                      "If there are any default ACL entries, there must be one and only one entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER");
+
+  if ((ndu || ndg) && ndm != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "If there is any default USER or default GROUP entry, there must be a default MASK entry");
+}
+
+
+
+std::vector<Acl> dmlite::inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid, gid_t gid, mode_t* fmode, mode_t mode)
+{
+  std::vector<Acl> childAcl;
+  std::vector<Acl>::const_iterator i;
+  bool thereIsMask = false;
+
+  // Search for the mask
+  for (i = parentAcl.begin(); i != parentAcl.end() && !thereIsMask; ++i) {
+    thereIsMask = (i->type == (ACL_DEFAULT | ACL_MASK));
+  }
+
+  // If directory, or default mask
+  if (thereIsMask || S_ISDIR(*fmode)) {
+    Acl acl;
+    
+    for (i = parentAcl.begin(); i != parentAcl.end(); ++i) {
+      if (i->type & ACL_DEFAULT) {
+        acl.id   = i->id;
+        acl.type = i->type & ~ACL_DEFAULT;
+
+        switch (i->type) {
+          case ACL_DEFAULT | ACL_USER_OBJ:
+            *fmode   = *fmode & 0177077 | (mode & i->perm << 6);
+            acl.id   = uid;
+            acl.perm = i->perm & (mode >> 6 & 7);
+            break;
+          case ACL_DEFAULT | ACL_GROUP_OBJ:
+            *fmode   = *fmode & 0177707 | (mode & i->perm << 3);
+            acl.id   = gid;
+            acl.perm = i->perm & (mode >> 3 & 7);
+            break;
+          case ACL_DEFAULT | ACL_OTHER:
+            *fmode   = *fmode & 0177770 | (mode & i->perm);
+            acl.perm = i->perm & (mode & 7);
+            break;
+        }
+
+        childAcl.push_back(acl);
+        childAcl.push_back(*i); // Need to copy defaults
+      }
+    }
+  }
+  // Else, just set the mode
+  else {
+    for (i = parentAcl.begin(); i != parentAcl.end(); ++i) {
+      switch (i->type) {
+        case ACL_DEFAULT | ACL_USER_OBJ:
+          *fmode   = *fmode & 0177077 | (mode & i->perm << 6);
+          break;
+        case ACL_DEFAULT | ACL_GROUP_OBJ:
+          *fmode   = *fmode & 0177707 | (mode & i->perm << 3);
+          break;
+        case ACL_DEFAULT | ACL_OTHER:
+          *fmode   = *fmode & 0177770 | (mode & i->perm);
+          break;
+      }
+    }
+  }
+
+  return childAcl;
+}

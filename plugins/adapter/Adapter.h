@@ -46,7 +46,7 @@ private:
 };
 
 void ThrowExceptionFromSerrno(int serr) throw(DmException);
-void  wrapCall(int   ret) throw (DmException);
+int   wrapCall(int   ret) throw (DmException);
 void* wrapCall(void* ret) throw (DmException);
 
 };

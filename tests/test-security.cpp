@@ -242,6 +242,36 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("A6101,B6101,C4101,D7101,E70,F40"), serial);
   }
 
+  void testAclValidation()
+  {
+    // Empty is good
+    dmlite::validateAcl("");
+    // Good
+    dmlite::validateAcl("A6101,B6101,C4101,D7101,E70,F40");
+    // Good too
+    dmlite::validateAcl("A6101,B6101,B6100,C4101,D7101,D4200,E70,F40");
+    // With defaults
+    dmlite::validateAcl("A6101,B6101,C4101,D7101,E70,F40,a00,c50,f60");
+    // Invalid value
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A8101,A6200,B6101,C4101,D7101,E70,F40"), dmlite::DmException);
+    // Invalid type
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,A6200,B6101,C4101,D7101,E70,F40,Z40"), dmlite::DmException);
+    // Duplicated ACL_USER_OBJ
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,A6200,B6101,C4101,D7101,E70,F40"), dmlite::DmException);
+    // Duplicated ACL_GROUP_OBJ
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,C5200,D7101,E70,F40"), dmlite::DmException);
+    // Twice the same user ID
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,B6101,C4101,D7101,E70,F40"), dmlite::DmException);
+    // Twice the same group ID
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,D7101,D5101,E70,F40"), dmlite::DmException);
+    // No mask
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,D7101,F40"), dmlite::DmException);
+    // No other
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,D7101,E70"), dmlite::DmException);
+    // Missing other defaults
+    CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,D7101,E70,F40,a00,c50"), dmlite::DmException);
+  }
+
 
   CPPUNIT_TEST_SUITE(Security);
   CPPUNIT_TEST(testOwner);
@@ -254,6 +284,7 @@ public:
   CPPUNIT_TEST(testAclBanned);
   CPPUNIT_TEST(testGetVoFromRole);
   CPPUNIT_TEST(testAclSerialization);
+  CPPUNIT_TEST(testAclValidation);
   CPPUNIT_TEST_SUITE_END();
 };
 

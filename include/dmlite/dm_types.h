@@ -159,7 +159,7 @@ struct dm_acl {
   unsigned char perm;
   uint32_t      id;
 };
-typedef dm_acl Acl;
+typedef struct dm_acl Acl;
 
 #ifdef __cplusplus
 /// Operator < for UserInfo (needed for sets)

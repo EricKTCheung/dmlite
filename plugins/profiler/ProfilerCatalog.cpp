@@ -237,6 +237,13 @@ void ProfilerCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 
 
 
+void ProfilerCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+{
+  PROFILE(setAcl, path, acls);
+}
+
+
+
 void ProfilerCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
   PROFILE(utime, path, buf);

@@ -57,10 +57,11 @@ void dmlite::ThrowExceptionFromSerrno(int serr) throw(DmException)
 
 
 
-void dmlite::wrapCall(int r) throw (DmException)
+int dmlite::wrapCall(int r) throw (DmException)
 {
   if (r < 0)
     ThrowExceptionFromSerrno(serrno);
+  return r;
 }
 
 

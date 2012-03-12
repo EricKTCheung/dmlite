@@ -5,6 +5,7 @@
 #ifndef SECURITY_H
 #define	SECURITY_H
 
+#include <dmlite/dm_exceptions.h>
 #include <dmlite/dm_types.h>
 #include <string>
 #include <sys/stat.h>
@@ -53,7 +54,23 @@ std::string voFromRole(const std::string& role);
 std::vector<Acl> deserializeAcl(const std::string& aclStr);
 
 /// Get the string serialization of the array of acls.
-std::string serializeAcl(const std::vector<Acl>& acls);
+std::string serializeAcl(const std::vector<Acl>& acl);
+
+/// Validate an ACL string.
+void validateAcl(const std::string& acl) throw (DmException);
+
+/// Validate an ACL vector.
+void validateAcl(const std::vector<Acl>& acl) throw (DmException);
+
+/// Inherit ACL.
+/// @param parentAcl The parent's ACL vector.
+/// @param uid       The current user uid.
+/// @param gid       The current user gid.
+/// @param fmode     The current file mode. It will be modified to fit the inheritance.
+/// @param mode      The creation mode.
+/// @return          A vector with the inherited mode, and fmode set properly.
+std::vector<Acl> inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid, gid_t gid, mode_t* fmode, mode_t mode);
+
 };
 
 #endif	// SECURITY_H
