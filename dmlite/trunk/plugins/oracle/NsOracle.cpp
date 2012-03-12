@@ -70,7 +70,7 @@ enum {
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
   STMT_UPDATE_NLINK,
-  STMT_UPDATE_MODE,
+  STMT_UPDATE_PERMS,
   STMT_DELETE_REPLICA,
   STMT_ADD_REPLICA,
   STMT_TRUNCATE_FILE,
@@ -84,7 +84,6 @@ enum {
   STMT_INSERT_GROUP,
   STMT_CHANGE_NAME,
   STMT_CHANGE_PARENT,
-  STMT_CHANGE_OWNER,
   STMT_UTIME,
   STMT_UPDATE_REPLICA,
   STMT_SENTINEL
@@ -164,7 +163,7 @@ static const char* statements[] = {
         SET nlink = :b_nlink, mtime = :b_mtime, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
-        SET filemode = :b_mode, ctime = :b_ctime\
+        SET owner_uid = :b_uid, gid = :b_gid, filemode = :b_mode, acl = :b_acl, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "DELETE FROM Cns_file_replica\
         WHERE fileid = :b_fileid AND sfn = :b_sfn",
@@ -200,9 +199,6 @@ static const char* statements[] = {
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
         SET parent_fileid = :b_parent, ctime = :b_ctime\
-        WHERE fileid = :b_fileid",
-  "UPDATE Cns_file_metadata\
-        SET owner_uid = :b_uid, gid = :b_gid, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
   "UPDATE Cns_file_metadata\
         SET atime = :b_atime, mtime = :b_mtime, ctime = :b_ctime\
@@ -1057,10 +1053,20 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
   Transaction transaction(this->conn_);
   
   if (code == DM_NO_SUCH_FILE) {
+    mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_);
+
+    // Generate inherited ACL's if there are defaults
+    std::string aclStr;
+    if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
+      aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
+                                       this->user_.uid, this->group_.gid,
+                                       &newMode, mode));
+    }
+    
     this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
                   1, 0, 0, '-',
                   std::string(), std::string(),
-                  std::string());
+                  aclStr);
   }
   // Truncate
   else if (code == DM_NO_REPLICAS) {
@@ -1104,14 +1110,39 @@ void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
   // Update, keeping type bits from db.
   mode |= (meta.stat.st_mode & S_IFMT);
 
+  // Update the ACL
+  std::string aclStr;
+  if (meta.acl[0] != '\0') {
+    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
+    for (size_t i = 0; i < acls.size(); ++i) {
+      switch (acls[i].type) {
+        case ACL_USER_OBJ:
+          acls[i].perm = mode >> 6 & 07;
+          break;
+        case ACL_GROUP_OBJ:
+        case ACL_MASK:
+          acls[i].perm = mode >> 3 & 07;
+          break;
+        case ACL_OTHER:
+          acls[i].perm = mode & 07;
+          break;
+      }
+    }
+    aclStr = dmlite::serializeAcl(acls);
+  }
+
+  // Update DB.
   Transaction transaction(this->conn_);
 
-  occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_MODE);
-  stmt->setNumber(1, mode);
-  stmt->setNumber(2, time(NULL));
-  stmt->setNumber(3, meta.stat.st_ino);
+  occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_PERMS);
+  stmt->setNumber(1, meta.stat.st_uid);
+  stmt->setNumber(2, meta.stat.st_gid);
+  stmt->setNumber(3, mode);
+  stmt->setString(4, aclStr);
+  stmt->setNumber(5, time(NULL));
+  stmt->setNumber(6, meta.stat.st_ino);
   stmt->executeUpdate();
-
+  
   transaction.commit();
 }
 
@@ -1147,15 +1178,30 @@ void NsOracleCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid
     }
   }
 
+  // Update the ACL's if there is any
+  std::string aclStr;
+  if (meta.acl[0] != '\0') {
+    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
+    for (size_t i = 0; i < acls.size(); ++i) {
+      if (acls[i].type == ACL_USER_OBJ)
+        acls[i].id = newUid;
+      else if (acls[i].type == ACL_GROUP_OBJ)
+        acls[i].id = newGid;
+    }
+    aclStr = dmlite::serializeAcl(acls);
+  }
+
   // Change!
   Transaction transaction(this->conn_);
 
-  occi::Statement* chownStmt = this->getPreparedStatement(STMT_CHANGE_OWNER);
+  occi::Statement* chownStmt = this->getPreparedStatement(STMT_UPDATE_PERMS);
 
   chownStmt->setNumber(1, newUid);
   chownStmt->setNumber(2, newGid);
-  chownStmt->setNumber(3, time(NULL));
-  chownStmt->setNumber(4, meta.stat.st_ino);
+  chownStmt->setNumber(3, meta.stat.st_mode);
+  chownStmt->setString(4, aclStr);
+  chownStmt->setNumber(5, time(NULL));
+  chownStmt->setNumber(6, meta.stat.st_ino);
 
   chownStmt->executeUpdate();
 
@@ -1178,6 +1224,71 @@ void NsOracleCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 {
   ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
+}
+
+
+
+void NsOracleCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path);
+
+  // Check we can change it
+  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+    throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
+
+  std::vector<Acl> aclsCopy(acls);
+
+  // Make sure the owner and group matches!
+  for (size_t i = 0; i < aclsCopy.size(); ++i) {
+    if (aclsCopy[i].type == ACL_USER_OBJ)
+      aclsCopy[i].id = meta.stat.st_uid;
+    else if (aclsCopy[i].type == ACL_GROUP_OBJ)
+      aclsCopy[i].id = meta.stat.st_gid;
+    else if (aclsCopy[i].type & ACL_DEFAULT && !S_ISDIR(meta.stat.st_mode))
+      throw DmException(DM_INVALID_ACL, "Defaults can be only applied to directories");
+  }
+
+  // Validate the ACL
+  dmlite::validateAcl(aclsCopy);
+
+  // Update the file mode
+  for (size_t i = 0; i < aclsCopy.size(); ++i) {
+    switch (aclsCopy[i].type) {
+      case ACL_USER_OBJ:
+        meta.stat.st_mode = meta.stat.st_mode & 0177077 | (aclsCopy[i].perm << 6);
+        break;
+      case ACL_GROUP_OBJ:
+        meta.stat.st_mode = meta.stat.st_mode & 0177707 | (aclsCopy[i].perm << 3);
+        break;
+      case ACL_MASK:
+        meta.stat.st_mode = (meta.stat.st_mode & ~070) | (meta.stat.st_mode & aclsCopy[i].perm << 3);
+        break;
+      case ACL_OTHER:
+        meta.stat.st_mode = meta.stat.st_mode & 0177770 | (aclsCopy[i].perm);
+        break;
+    }
+  }
+
+  // If only 3 entries, no extended ACL
+  std::string aclStr;
+  if (aclsCopy.size() > 3)
+    aclStr = dmlite::serializeAcl(aclsCopy);
+
+  // Update the DB
+  Transaction transaction(this->conn_);
+
+  occi::Statement* stmt = this->getPreparedStatement(STMT_UPDATE_PERMS);
+
+  stmt->setNumber(1, meta.stat.st_uid);
+  stmt->setNumber(2, meta.stat.st_gid);
+  stmt->setNumber(3, meta.stat.st_mode);
+  stmt->setString(4, aclStr);
+  stmt->setNumber(5, time(NULL));
+  stmt->setNumber(6, meta.stat.st_ino);
+
+  stmt->executeUpdate();
+
+  transaction.commit();
 }
 
 
@@ -1315,11 +1426,22 @@ void NsOracleCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
                       parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
+  // Mode
+  mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFDIR;
+
+  // Generate inherited ACL's if there are defaults
+  std::string aclStr;
+  if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
+    aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
+                                     this->user_.uid, this->group_.gid,
+                                     &newMode, mode));
+  }
+
   // Create the file entry
   Transaction transaction(this->conn_);
 
-  this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
-                0, 0, parent.type, '-', "", "", parent.acl);
+  this->newFile(parent, name, newMode,
+                0, 0, parent.type, '-', "", "", aclStr);
   
   transaction.commit();
 }

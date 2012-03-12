@@ -6,6 +6,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsMySql.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/MemcacheNsMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/MemcacheNsMySql.conf)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsAdapter.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/NsAdapter.conf)
+
 add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
@@ -57,6 +60,9 @@ target_link_libraries (test-utime dmlite dmlitecommon cppunit dl)
 add_executable        (test-opendir test-opendir.cpp test-base.cpp)
 target_link_libraries (test-opendir dmlite dmlitecommon cppunit dl)
 
+add_executable        (test-acls test-acls.cpp test-base.cpp)
+target_link_libraries (test-acls dmlite dmlitecommon cppunit dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
@@ -101,3 +107,5 @@ ADD_TEST(test-utime ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})
 SET_TESTS_PROPERTIES(test-utime PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-opendir ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
 SET_TESTS_PROPERTIES(test-opendir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-acls ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
+SET_TESTS_PROPERTIES(test-acls PROPERTIES PASS_REGULAR_EXPRESSION "OK")

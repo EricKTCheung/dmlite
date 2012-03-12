@@ -2,6 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <sys/stat.h>
 #include "test-base.h"
+#include "dmlite/common/Security.h"
 
 class TestCreate: public TestBase
 {
@@ -21,6 +22,10 @@ public:
     TestBase::setUp();
     this->catalog->setUserId(uid1, gid1_1, TEST_USER);
     this->catalog->makeDir(FOLDER, MODE);
+    // Reset ACL in case FOLDER inherited some (may break some tests)
+    std::stringstream ss;
+    ss << "A7" << uid1 << ",C0" << gid1_1 << ",E70,F00";
+    this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ss.str()));
   }
 
   void tearDown()

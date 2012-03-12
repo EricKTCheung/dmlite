@@ -301,6 +301,16 @@ int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
 int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
 
 /**
+ * Change the ACL of a file.
+ * @param context  The DM context.
+ * @param path     The logical path.
+ * @param nEntries The number of entries in the acl array.
+ * @param acl      An ACL array.
+ * @return         0 on success, error code otherwise.
+ */
+int dm_setacl(dm_context* context, const char* path, int nEntries, struct dm_acl* acl);
+
+/**
  * Change access and/or modification time
  * @param context The DM context.
  * @param path    The file path.

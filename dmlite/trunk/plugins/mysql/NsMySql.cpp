@@ -49,7 +49,7 @@ enum {
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
   STMT_UPDATE_NLINK,
-  STMT_UPDATE_MODE,
+  STMT_UPDATE_PERMS,
   STMT_DELETE_REPLICA,
   STMT_ADD_REPLICA,
   STMT_TRUNCATE_FILE,
@@ -63,7 +63,6 @@ enum {
   STMT_INSERT_GROUP,
   STMT_CHANGE_NAME,
   STMT_CHANGE_PARENT,
-  STMT_CHANGE_OWNER,
   STMT_UTIME,
   STMT_UPDATE_REPLICA,
   STMT_SENTINEL
@@ -146,7 +145,7 @@ static const char* statements[] = {
         SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
-        SET filemode = ?, ctime = UNIX_TIMESTAMP()\
+        SET owner_uid = ?, gid = ?, filemode = ?, acl = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "DELETE FROM Cns_file_replica\
         WHERE fileid = ? AND sfn = ?",
@@ -182,9 +181,6 @@ static const char* statements[] = {
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
         SET parent_fileid = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_file_metadata\
-        SET owner_uid = ?, gid = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
   "UPDATE Cns_file_metadata\
         SET atime = ?, mtime = ?, ctime = UNIX_TIMESTAMP()\
@@ -431,7 +427,7 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
   fileStmt.bindParam( 9, std::string(&status, 1));
   fileStmt.bindParam(10, csumtype);
   fileStmt.bindParam(11, csumvalue);
-  fileStmt.bindParam(12, acl.data(), acl.size());
+  fileStmt.bindParam(12, acl);
 
   fileStmt.execute();
   
@@ -997,10 +993,20 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   // Create new
   Transaction transaction(this->conn_);
   if (code == DM_NO_SUCH_FILE) {
-    this->newFile(parent, name, (mode & ~S_IFMT) & ~this->umask_,
+    mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_);
+
+    // Generate inherited ACL's if there are defaults
+    std::string aclStr;
+    if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
+      aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
+                                       this->user_.uid, this->group_.gid,
+                                       &newMode, mode));
+    }
+
+    this->newFile(parent, name, newMode,
                   1, 0, 0, '-',
                   std::string(), std::string(),
-                  std::string());
+                  aclStr);
   }
   // Truncate
   else if (code == DM_NO_REPLICAS) {
@@ -1042,10 +1048,35 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
   // Update, keeping type bits from db.
   mode |= (meta.stat.st_mode & S_IFMT);
 
-  Statement statement(this->getPreparedStatement(STMT_UPDATE_MODE));
-  statement.bindParam(0, mode);
-  statement.bindParam(1, meta.stat.st_ino);
-  statement.execute();
+  // Update the ACL
+  std::string aclStr;
+  if (meta.acl[0] != '\0') {
+    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
+    for (size_t i = 0; i < acls.size(); ++i) {
+      switch (acls[i].type) {
+        case ACL_USER_OBJ:
+          acls[i].perm = mode >> 6 & 07;
+          break;
+        case ACL_GROUP_OBJ:
+        case ACL_MASK:
+          acls[i].perm = mode >> 3 & 07;
+          break;
+        case ACL_OTHER:
+          acls[i].perm = mode & 07;
+          break;
+      }
+    }
+    aclStr = dmlite::serializeAcl(acls);
+  }
+
+  // Update DB
+  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  stmt.bindParam(0, meta.stat.st_uid);
+  stmt.bindParam(1, meta.stat.st_gid);
+  stmt.bindParam(2, mode);
+  stmt.bindParam(3, aclStr);
+  stmt.bindParam(4, meta.stat.st_ino);
+  stmt.execute();
 }
 
 
@@ -1080,14 +1111,27 @@ void NsMySqlCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
     }
   }
 
+  // Update the ACL's if there is any
+  std::string aclStr;
+  if (meta.acl[0] != '\0') {
+    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
+    for (size_t i = 0; i < acls.size(); ++i) {
+      if (acls[i].type == ACL_USER_OBJ)
+        acls[i].id = newUid;
+      else if (acls[i].type == ACL_GROUP_OBJ)
+        acls[i].id = newGid;
+    }
+    aclStr = dmlite::serializeAcl(acls);
+  }
+
   // Change!
-  Statement chownStmt(this->getPreparedStatement(STMT_CHANGE_OWNER));
-
-  chownStmt.bindParam(0, newUid);
-  chownStmt.bindParam(1, newGid);
-  chownStmt.bindParam(2, meta.stat.st_ino);
-
-  chownStmt.execute();
+  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  stmt.bindParam(0, newUid);
+  stmt.bindParam(1, newGid);
+  stmt.bindParam(2, meta.stat.st_mode);
+  stmt.bindParam(3, aclStr);
+  stmt.bindParam(4, meta.stat.st_ino);
+  stmt.execute();
 }
 
 
@@ -1106,6 +1150,65 @@ void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_
 {
   ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
+}
+
+
+
+void NsMySqlCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path);
+
+  // Check we can change it
+  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+    throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
+
+  std::vector<Acl> aclsCopy(acls);
+
+  // Make sure the owner and group matches!
+  for (size_t i = 0; i < aclsCopy.size(); ++i) {
+    if (aclsCopy[i].type == ACL_USER_OBJ)
+      aclsCopy[i].id = meta.stat.st_uid;
+    else if (aclsCopy[i].type == ACL_GROUP_OBJ)
+      aclsCopy[i].id = meta.stat.st_gid;
+    else if (aclsCopy[i].type & ACL_DEFAULT && !S_ISDIR(meta.stat.st_mode))
+      throw DmException(DM_INVALID_ACL, "Defaults can be only applied to directories");
+  }
+
+  // Validate the ACL
+  dmlite::validateAcl(aclsCopy);
+
+  // Update the file mode
+  for (size_t i = 0; i < aclsCopy.size(); ++i) {
+    switch (aclsCopy[i].type) {
+      case ACL_USER_OBJ:
+        meta.stat.st_mode = meta.stat.st_mode & 0177077 | (aclsCopy[i].perm << 6);
+        break;
+      case ACL_GROUP_OBJ:
+        meta.stat.st_mode = meta.stat.st_mode & 0177707 | (aclsCopy[i].perm << 3);
+        break;
+      case ACL_MASK:
+        meta.stat.st_mode = (meta.stat.st_mode & ~070) | (meta.stat.st_mode & aclsCopy[i].perm << 3);
+        break;
+      case ACL_OTHER:
+        meta.stat.st_mode = meta.stat.st_mode & 0177770 | (aclsCopy[i].perm);
+        break;
+    }
+  }
+
+  // If only 3 entries, no extended ACL
+  std::string aclStr;
+  if (aclsCopy.size() > 3)
+    aclStr = dmlite::serializeAcl(aclsCopy);
+
+  // Update the DB
+  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  stmt.bindParam(0, meta.stat.st_uid);
+  stmt.bindParam(1, meta.stat.st_gid);
+  stmt.bindParam(2, meta.stat.st_mode);
+  stmt.bindParam(3, aclStr);
+  stmt.bindParam(4, meta.stat.st_ino);
+  
+  stmt.execute();
 }
 
 
@@ -1233,10 +1336,21 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
                       parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
+  // Mode
+  mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFDIR;
+
+  // Generate inherited ACL's if there are defaults
+  std::string aclStr;
+  if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
+    aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
+                                     this->user_.uid, this->group_.gid,
+                                     &newMode, mode));
+  }
+
   // Create the file entry
   Transaction transaction(this->conn_);
-  this->newFile(parent, name, (mode & ~this->umask_) | S_IFDIR,
-                0, 0, parent.type, '-', "", "", parent.acl);
+  this->newFile(parent, name, newMode,
+                0, 0, parent.type, '-', "", "", aclStr);
   transaction.commit();
 }
 

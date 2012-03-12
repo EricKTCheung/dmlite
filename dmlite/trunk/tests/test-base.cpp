@@ -53,6 +53,7 @@ void TestBase::setUp()
   gid2 = gids[0];
 
   user_groups.clear();
+  user_groups.push_back("dteam");
   user_groups.push_back("org.glite.voms-test");
 
   // Change dir

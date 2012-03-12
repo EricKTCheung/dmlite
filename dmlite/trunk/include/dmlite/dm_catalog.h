@@ -189,6 +189,11 @@ public:
   /// @param newGid The gid of the new group.
   virtual void linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
 
+  /// Change the ACLs
+  /// @param path The file to change.
+  /// @param acls The ACL's.
+  virtual void setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException) = 0;
+
   /// Change access and/or modification time.
   /// @param path The file path.
   /// @param buf  A struct holding the new times.

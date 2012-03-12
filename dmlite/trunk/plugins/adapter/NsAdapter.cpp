@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/dm_errno.h>
+#include <dmlite/common/Security.h>
 #include <dmlite/common/Uris.h>
 #include <serrno.h>
 
@@ -136,6 +137,21 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
 
   std::list<std::string> components = splitPath(path);
   strncpy(xStat.name, components.back().c_str(), sizeof(xStat.name));
+
+  // Get the ACL
+  struct dpns_acl dpnsAcls[ACL_ENTRIES_MAX];
+  int n = wrapCall(dpns_getacl(path.c_str(), ACL_ENTRIES_MAX, dpnsAcls));
+
+  std::vector<Acl> dmAcls;
+  for (int i = 0; i < n; ++i) {
+    Acl acl;
+    acl.id   = dpnsAcls[i].a_id;
+    acl.perm = dpnsAcls[i].a_perm;
+    acl.type = dpnsAcls[i].a_type;
+    dmAcls.push_back(acl);
+  }
+
+  strncpy(xStat.acl, dmlite::serializeAcl(dmAcls).c_str(), sizeof(xStat.acl));
 
   return xStat;
 }
@@ -324,6 +340,28 @@ void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t 
 void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
 {
   wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
+}
+
+
+
+void NsAdapterCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+{
+  struct dpns_acl *aclp;
+  int    nAcls;
+  size_t i;
+
+  nAcls = acls.size();
+  aclp = new dpns_acl[nAcls];
+
+  for (i = 0; i < acls.size(); ++i) {
+    aclp[i].a_id   = acls[i].id;
+    aclp[i].a_perm = acls[i].perm;
+    aclp[i].a_type = acls[i].type;
+  }
+
+  int r = dpns_setacl(path.c_str(), nAcls, aclp);
+  delete [] aclp;
+  wrapCall(r);
 }
 
 

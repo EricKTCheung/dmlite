@@ -315,6 +315,23 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 
 
 
+int dm_setacl(dm_context* context, const char* path, int nEntries, struct dm_acl* acl)
+{
+  TRY(context, setacl)
+  NOT_NULL(path);
+  NOT_NULL(acl);
+
+  std::vector<Acl> aclV(nEntries);
+  for (int i = 0; i < nEntries; ++i)
+    aclV.push_back(acl[i]);
+
+  context->catalog->setAcl(path, aclV);
+
+  CATCH(context, setacl)
+}
+
+
+
 int dm_utime(dm_context* context, const char* path, const struct utimbuf* buf)
 {
   TRY(context, utime)
