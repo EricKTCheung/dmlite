@@ -615,12 +615,6 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
                        meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
-  // Touch
-  struct utimbuf tim;
-  tim.actime  = time(NULL);
-  tim.modtime = meta.stat.st_mtime;
-  this->utime(meta.stat.st_ino, &tim);
-
   // Create the handle
   dir = new NsMySqlDir();
   dir->dirId = meta.stat.st_ino;
@@ -681,6 +675,13 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
     strncpy(dirp->ds.dirent.d_name,
             dirp->current.name,
             sizeof(dirp->ds.dirent.d_name));
+
+    // Touch
+    struct utimbuf tim;
+    tim.actime  = time(NULL);
+    tim.modtime = dirp->ds.stat.st_mtime;
+    this->utime(dirp->dirId, &tim);
+
     return &dirp->ds;
   }
   else {
