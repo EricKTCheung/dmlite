@@ -187,10 +187,22 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
 {
   struct dpns_fileid uniqueId;
 
+  // If server is empty, parse the surl
+  std::string host;
+  if (server.empty()) {
+    Uri u = splitUri(sfn);
+    host = u.host;
+    if (host.empty())
+      throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
+  }
+  else {
+    host = server;
+  }
+
   uniqueId.fileid = id;
   strncpy(uniqueId.server, this->nsHost_.c_str(), sizeof(uniqueId.server));
 
-  wrapCall(dpns_addreplica(guid.c_str(), &uniqueId, server.c_str(),
+  wrapCall(dpns_addreplica(guid.c_str(), &uniqueId, host.c_str(),
                            sfn.c_str(), status, fileType,
                            poolName.c_str(), fileSystem.c_str()));
 }
@@ -215,11 +227,11 @@ void NsAdapterCatalog::deleteReplica(const std::string& guid, int64_t id,
 
 std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) throw (DmException)
 {
-  struct dpns_filereplica *entries;
-  int                      nEntries;
-  std::vector<FileReplica> replicas;
+  struct dpns_filereplicax *entries;
+  int                       nEntries;
+  std::vector<FileReplica>  replicas;
 
-  if (dpns_getreplica (path.c_str(), NULL, NULL, &nEntries, &entries) != 0)
+  if (dpns_getreplicax (path.c_str(), NULL, NULL, &nEntries, &entries) != 0)
     ThrowExceptionFromSerrno(serrno);
   if (nEntries == 0)
     throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
@@ -235,6 +247,7 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
     replica.type       = entries[i].f_type;
     replica.nbaccesses = entries[i].nbaccesses;
     replica.ptime      = entries[i].ptime;
+    replica.ltime      = entries[i].ltime;
     replica.status     = entries[i].status;
 
 
@@ -570,7 +583,14 @@ void NsAdapterCatalog::rename(const std::string& oldPath, const std::string& new
 
 void NsAdapterCatalog::removeDir(const std::string& path) throw (DmException)
 {
-  wrapCall(dpns_rmdir(path.c_str()));
+  try {
+    wrapCall(dpns_rmdir(path.c_str()));
+  }
+  catch (DmException e) {
+    if (e.code() == DM_INVALID_VALUE)
+      throw DmException(DM_IS_CWD, e.what());
+    throw;
+  }
 }
 
 

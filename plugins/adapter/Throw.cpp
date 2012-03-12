@@ -68,7 +68,7 @@ int dmlite::wrapCall(int r) throw (DmException)
 
 void* dmlite::wrapCall(void* p) throw (DmException)
 {
-  if (p == NULL)
+  if (p == NULL && serrno != 0)
     ThrowExceptionFromSerrno(serrno);
   return p;
 }

@@ -24,7 +24,7 @@ public:
     TestBase::tearDown();
   }
 
-  void testDefault()
+  void testOnlyOpen()
   {
     struct stat before, after;
 
@@ -36,12 +36,29 @@ public:
 
     after = this->catalog->stat(FOLDER);
 
-    CPPUNIT_ASSERT(before.st_atime < after.st_atime);
+    CPPUNIT_ASSERT(before.st_atime == after.st_atime);
+  }
+
+  void testOpenAndRead()
+  {
+    struct stat before, after;
+
+    before = this->catalog->stat(FOLDER);
+
+    sleep(1);
+    dmlite::Directory* d = this->catalog->openDir(FOLDER);
+    this->catalog->readDir(d);
+    this->catalog->closeDir(d);
+
+    after = this->catalog->stat(FOLDER);
+
+    CPPUNIT_ASSERT(before.st_atime <= after.st_atime);
   }
 
 
   CPPUNIT_TEST_SUITE(TestOpendir);
-  CPPUNIT_TEST(testDefault);
+  CPPUNIT_TEST(testOnlyOpen);
+  CPPUNIT_TEST(testOpenAndRead);
   CPPUNIT_TEST_SUITE_END();
 };
 
