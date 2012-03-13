@@ -27,8 +27,8 @@ find_library(DPM_LIBRARIES
 # -----------------------------------------------------
 find_path(DPM_INCLUDE_DIR 
     NAMES dpm/dpm_api.h 
-    HINTS ${DPM_LOCATION} ${DPM_LOCATION}/include ${DPM_LOCATION}/include/
-          /opt/lcg/include/*
+    HINTS ${DPM_LOCATION} ${DPM_LOCATION}/include ${DPM_LOCATION}/include/*
+          /opt/lcg/include/
     DOC "The dpm include directory"
 )
 if(DPM_INCLUDE_DIR)
