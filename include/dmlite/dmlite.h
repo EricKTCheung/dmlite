@@ -19,6 +19,10 @@ typedef struct dm_manager dm_manager;
 /** Handle for a initialized context. */
 typedef struct dm_context dm_context;
 
+/**
+ * Get the API version.
+ */
+unsigned dm_api_version(void);
 
 /**
  * Initialize a dm_manager.
