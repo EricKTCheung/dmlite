@@ -2,6 +2,7 @@
 /// @brief  C wrapper for dmlite::Catalog.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstdarg>
+#include <cstring>
 #include <dmlite/dmlite++.h>
 #include <dmlite/dmlite.h>
 #include <dmlite/dm_exceptions.h>
@@ -12,7 +13,6 @@
 #include "dmlite/common/Uris.h"
 #include "dmlite/common/Security.h"
 
-#include <string.h>
 
 
 /// Open the try statement.

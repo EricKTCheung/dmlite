@@ -208,7 +208,7 @@ public:
     // Test deserialization
     std::vector<Acl> acls = dmlite::deserializeAcl("A6101,B6101,C4101,D7101,E70,F40");
 
-    CPPUNIT_ASSERT_EQUAL(6ul, acls.size());
+    CPPUNIT_ASSERT_EQUAL((size_t)6, acls.size());
 
     CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ, (int)acls[0].type);
     CPPUNIT_ASSERT_EQUAL(101u,         acls[0].id);
