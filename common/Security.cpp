@@ -423,17 +423,17 @@ std::vector<Acl> dmlite::inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid
 
         switch (i->type) {
           case ACL_DEFAULT | ACL_USER_OBJ:
-            *fmode   = *fmode & 0177077 | (mode & i->perm << 6);
+            *fmode   = (*fmode & 0177077) | (mode & i->perm << 6);
             acl.id   = uid;
             acl.perm = i->perm & (mode >> 6 & 7);
             break;
           case ACL_DEFAULT | ACL_GROUP_OBJ:
-            *fmode   = *fmode & 0177707 | (mode & i->perm << 3);
+            *fmode   = (*fmode & 0177707) | (mode & i->perm << 3);
             acl.id   = gid;
             acl.perm = i->perm & (mode >> 3 & 7);
             break;
           case ACL_DEFAULT | ACL_OTHER:
-            *fmode   = *fmode & 0177770 | (mode & i->perm);
+            *fmode   = (*fmode & 0177770) | (mode & i->perm);
             acl.perm = i->perm & (mode & 7);
             break;
         }
@@ -448,13 +448,13 @@ std::vector<Acl> dmlite::inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid
     for (i = parentAcl.begin(); i != parentAcl.end(); ++i) {
       switch (i->type) {
         case ACL_DEFAULT | ACL_USER_OBJ:
-          *fmode   = *fmode & 0177077 | (mode & i->perm << 6);
+          *fmode   = (*fmode & 0177077) | (mode & i->perm << 6);
           break;
         case ACL_DEFAULT | ACL_GROUP_OBJ:
-          *fmode   = *fmode & 0177707 | (mode & i->perm << 3);
+          *fmode   = (*fmode & 0177707) | (mode & i->perm << 3);
           break;
         case ACL_DEFAULT | ACL_OTHER:
-          *fmode   = *fmode & 0177770 | (mode & i->perm);
+          *fmode   = (*fmode & 0177770) | (mode & i->perm);
           break;
       }
     }

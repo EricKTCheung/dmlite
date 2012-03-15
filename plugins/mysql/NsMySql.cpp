@@ -1182,16 +1182,16 @@ void NsMySqlCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
   for (size_t i = 0; i < aclsCopy.size(); ++i) {
     switch (aclsCopy[i].type) {
       case ACL_USER_OBJ:
-        meta.stat.st_mode = meta.stat.st_mode & 0177077 | (aclsCopy[i].perm << 6);
+        meta.stat.st_mode = (meta.stat.st_mode & 0177077) | (aclsCopy[i].perm << 6);
         break;
       case ACL_GROUP_OBJ:
-        meta.stat.st_mode = meta.stat.st_mode & 0177707 | (aclsCopy[i].perm << 3);
+        meta.stat.st_mode = (meta.stat.st_mode & 0177707) | (aclsCopy[i].perm << 3);
         break;
       case ACL_MASK:
         meta.stat.st_mode = (meta.stat.st_mode & ~070) | (meta.stat.st_mode & aclsCopy[i].perm << 3);
         break;
       case ACL_OTHER:
-        meta.stat.st_mode = meta.stat.st_mode & 0177770 | (aclsCopy[i].perm);
+        meta.stat.st_mode = (meta.stat.st_mode & 0177770) | (aclsCopy[i].perm);
         break;
     }
   }
