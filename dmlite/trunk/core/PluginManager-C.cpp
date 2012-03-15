@@ -21,6 +21,13 @@ catch (...) {\
 return DM_NO_ERROR;
 
 
+unsigned dm_api_version(void)
+{
+  return dmlite::API_VERSION;
+}
+
+
+
 dm_manager* dm_manager_new(void)
 {
   dm_manager* handle;
