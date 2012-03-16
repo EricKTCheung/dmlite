@@ -18,8 +18,10 @@ public:
 
   void tearDown()
   {
-    this->catalog->changeDir(BASE_DIR);
-    IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
+    if (this->catalog != 0x00) {
+      this->catalog->changeDir(BASE_DIR);
+      IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
+    }
     TestBase::tearDown();
   }
 
