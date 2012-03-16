@@ -137,6 +137,8 @@ dm_context* dm_context_new(dm_manager* handle)
     ctx->pool = 0x00;
   }
 
+  ctx->io = handle->manager->getIOFactory();
+
   return ctx;
 }
 

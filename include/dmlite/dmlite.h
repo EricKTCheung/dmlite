@@ -18,6 +18,8 @@ extern "C" {
 typedef struct dm_manager dm_manager;
 /** Handle for a initialized context. */
 typedef struct dm_context dm_context;
+/** Handle for a file descriptor. */
+typedef struct dm_fd dm_fd;
 
 /**
  * Get the API version.
@@ -540,6 +542,56 @@ int dm_getpoolfs(dm_context* context, const char* poolname, int* nFs, struct fil
  * @return        0 on sucess,  error code otherwise.
  */
 int dm_freefs(dm_context* context, int nFs, struct filesystem* fs);
+
+/**
+ * Open a file.
+ * @param context The DM context.
+ * @param path    The path to open.
+ * @param flags   See open()
+ * @return        An opaque handler for the file, NULL on failure.
+ */
+dm_fd* dm_fopen(dm_context* context, const char* path, int flags);
+
+/**
+ * Close a file.
+ * @param fd The file descriptor as returned by dm_open.
+ * @return   0 on sucess,  error code otherwise.
+ */
+int dm_fclose(dm_fd* fd);
+
+/**
+ * Set the file position.
+ * @param fd     The file descriptor.
+ * @param offset The offset.
+ * @param whence See fseek()
+ * @return       0 on sucess,  error code otherwise.
+ */
+int dm_fseek(dm_fd* fd, long offset, int whence);
+
+/**
+ * Read from a file.
+ * @param fd     The file descriptor.
+ * @param buffer Where to put the data.
+ * @param count  Number of bytes to read.
+ * @return       Number of bytes actually read on success. -1 on failure.
+ */
+int dm_fread(dm_fd* fd, void* buffer, size_t count);
+
+/**
+ * Write to a file.
+ * @param fd     The file descriptor.
+ * @param buffer A pointer to the data.
+ * @param count  Number of bytes to write.
+ * @return       Number of bytes actually written. -1 on failure.
+ */
+int dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
+
+/**
+ * Return 1 if EOF.
+ * @param fd The file descriptor.
+ * @return   0 if there is more to read. 1 if EOF.
+ */
+int dm_feof(dm_fd* fd);
 
 /**
  * Return the error code from the last failure.

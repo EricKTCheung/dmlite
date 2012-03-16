@@ -7,13 +7,16 @@
 #include <fstream>
 #include <sstream>
 
+#include "Private.h"
+
 using namespace dmlite;
 
 
 
 PluginManager::PluginManager() throw()
 {
-  // Nothing
+  // Register built-in plugins
+  this->registerIOFactory(new StdIOFactory());
 }
 
 
@@ -21,12 +24,26 @@ PluginManager::PluginManager() throw()
 PluginManager::~PluginManager() throw()
 {
   // Delete the instantiated factories
-  std::list<CatalogFactory*>::const_iterator i;
+  std::list<CatalogFactory*>::iterator ci;
 
-  for (i = this->catalog_plugins_.begin();
-       i != this->catalog_plugins_.end();
-       ++i) {
-    delete *i;
+  for (ci = this->catalog_plugins_.begin();
+       ci != this->catalog_plugins_.end();
+       ++ci) {
+    delete *ci;
+  }
+
+  std::list<PoolManagerFactory*>::iterator pi;
+  for (pi = this->pool_plugins_.begin();
+       pi != this->pool_plugins_.end();
+       ++pi) {
+    delete *pi;
+  }
+
+  std::list<IOFactory*>::iterator ii;
+  for (ii = this->io_plugins_.begin();
+       ii != this->io_plugins_.end();
+       ++ii) {
+    delete *ii;
   }
 
   // dlclose
@@ -190,4 +207,21 @@ PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
     throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->pool_plugins_.front();
+}
+
+
+
+void PluginManager::registerIOFactory(IOFactory* factory) throw (DmException)
+{
+  this->io_plugins_.push_front(factory);
+}
+
+
+
+IOFactory* PluginManager::getIOFactory() throw (DmException)
+{
+  if (this->io_plugins_.empty())
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
+  else
+    return this->io_plugins_.front();
 }

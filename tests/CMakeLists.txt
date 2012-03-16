@@ -63,6 +63,9 @@ target_link_libraries (test-opendir dmlite dmlitecommon cppunit dl)
 add_executable        (test-acls test-acls.cpp test-base.cpp)
 target_link_libraries (test-acls dmlite dmlitecommon cppunit dl)
 
+add_executable        (test-io test-io.cpp)
+target_link_libraries (test-io dmlite dmlitecommon cppunit dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
