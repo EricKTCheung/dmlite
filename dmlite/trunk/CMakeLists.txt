@@ -19,6 +19,9 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 # Include path
 include_directories (${CMAKE_SOURCE_DIR}/include/)
 
+# Definitions
+add_definitions (-D_REENTRANT)
+
 # Subdirectories
 add_subdirectory (etc)
 add_subdirectory (common)

@@ -5,6 +5,8 @@ add_library(dmlite SHARED PluginManager.cpp
                           Catalog.cpp
                           Catalog-C.cpp
                           Exceptions.cpp
+                          IO.cpp
+                          IO-C.cpp
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
 

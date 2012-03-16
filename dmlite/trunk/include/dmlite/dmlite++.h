@@ -9,13 +9,14 @@
 #include "dm_catalog.h"
 #include "dm_errno.h"
 #include "dm_exceptions.h"
+#include "dm_io.h"
 #include "dm_pool.h"
 #include "dm_types.h"
 
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120309;
+const unsigned API_VERSION = 20120316;
 
 /// CatalogInterface can only be instantiated through this class.
 class PluginManager {
@@ -44,21 +45,29 @@ public:
   /// @param factory The catalog concrete factory.
   void registerCatalogFactory(CatalogFactory* factory) throw (DmException);
 
-  // Register a pool factory.
+  /// Register a pool factory.
   /// @param factory The pool concrete factory.
   void registerPoolFactory(PoolManagerFactory* factory) throw (DmException);
+
+  /// Register a IO factory.
+  /// @param factory The IO concrete factory.
+  void registerIOFactory(IOFactory* factory) throw (DmException);
 
   /// Get the CatalogFactory implementation on top of the plugin stack.
   CatalogFactory* getCatalogFactory() throw (DmException);
 
   /// Get the PoolFactory implementation on top of the plugin stack.
   PoolManagerFactory* getPoolManagerFactory() throw (DmException);
+
+  /// Get the IOFactory implementation on top of the plugin stack.
+  IOFactory* getIOFactory() throw (DmException);
   
 protected:
 private:
   /// Internal list of loaded plug-ins.
   std::list<CatalogFactory*>     catalog_plugins_;
   std::list<PoolManagerFactory*> pool_plugins_;
+  std::list<IOFactory*>          io_plugins_;
 
   /// Keep pointers returned by dlopen at hand to free on destruction
   std::list<void*> dlHandles_;

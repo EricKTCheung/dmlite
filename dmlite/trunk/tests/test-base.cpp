@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "test-base.h"
 
-const char *TestBase::config = 0x00;
+const char* TestBase::config = 0x00;
 const char* TestBase::TEST_USER   = "/C=CH/O=CERN/OU=GD/CN=Test user 0";
 const char* TestBase::TEST_USER_2 = "/C=CH/O=CERN/OU=GD/CN=Test user 1";
 
