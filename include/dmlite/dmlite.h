@@ -569,13 +569,20 @@ int dm_fclose(dm_fd* fd);
 int dm_fseek(dm_fd* fd, long offset, int whence);
 
 /**
+ * Return the cursor position.
+ * @param fd The file descriptor.
+ * @return   The cursor position, or -1 on error.
+ */
+long dm_ftell(dm_fd* fd);
+
+/**
  * Read from a file.
  * @param fd     The file descriptor.
  * @param buffer Where to put the data.
  * @param count  Number of bytes to read.
  * @return       Number of bytes actually read on success. -1 on failure.
  */
-int dm_fread(dm_fd* fd, void* buffer, size_t count);
+size_t dm_fread(dm_fd* fd, void* buffer, size_t count);
 
 /**
  * Write to a file.
@@ -584,7 +591,7 @@ int dm_fread(dm_fd* fd, void* buffer, size_t count);
  * @param count  Number of bytes to write.
  * @return       Number of bytes actually written. -1 on failure.
  */
-int dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
+size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
 
 /**
  * Return 1 if EOF.
