@@ -5,6 +5,7 @@
 #define	PRIVATE_H
 
 #include <dmlite/dmlite++.h>
+#include <fstream>
 #include <string>
 
 /// Open the try statement.
@@ -73,9 +74,26 @@ public:
   StdIOFactory();
   ~StdIOFactory();
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  std::iostream* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
+  IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
 protected:
 private:
+};
+
+
+
+class StdIOHandler: public IOHandler {
+public:
+  StdIOHandler(const std::string& path, std::iostream::openmode openmode) throw (DmException);
+  ~StdIOHandler();
+  void   close(void) throw (DmException);
+  size_t read (char* buffer, size_t count) throw (DmException);
+  size_t write(const char* buffer, size_t count) throw (DmException);
+  void   seek (long offset, std::ios_base::seekdir whence) throw (DmException);
+  long   tell (void) throw (DmException);
+  void   flush(void) throw (DmException);
+  bool   eof  (void) throw (DmException);
+protected:
+  std::fstream stream_;
 };
 
 };

@@ -8,6 +8,14 @@
 
 using namespace dmlite;
 
+
+IOHandler::~IOHandler()
+{
+  // Nothing
+}
+
+
+
 IOFactory::~IOFactory()
 {
   // Nothing
@@ -36,20 +44,76 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
 
 
 
-std::iostream* StdIOFactory::createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
+IOHandler* StdIOFactory::createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
 {
-  std::iostream* stream;
+  return new StdIOHandler(uri, openmode);
+}
 
-  stream = new std::fstream(uri.c_str(), openmode);
-  if (stream->fail()) {
-    delete stream;
-    switch (errno) {
-      case ENOENT:
-        throw DmException(DM_NO_SUCH_FILE, uri + " not found");
-      default:
-        throw DmException(DM_BAD_OPERATION, "Could not open %s (%d)", uri.c_str(), errno);
-    }
+
+
+StdIOHandler::StdIOHandler(const std::string& path, std::iostream::openmode openmode) throw (DmException):
+  stream_(path.c_str(), openmode)
+{
+  // Check we actually opened
+  if (this->stream_.fail()) {
+    throw DmException(DM_NO_SUCH_FILE, "Could not open " + path);
   }
+}
 
-  return stream;
+
+
+StdIOHandler::~StdIOHandler()
+{
+  this->close();
+}
+
+
+
+void StdIOHandler::close() throw (DmException)
+{
+  this->stream_.close();
+}
+
+
+
+size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
+{
+  return this->stream_.read(buffer, count).gcount();
+}
+
+
+
+size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
+{
+  this->stream_.write(buffer, count);
+  return count;
+}
+
+
+
+void StdIOHandler::seek(long offset, std::ios_base::seekdir whence) throw (DmException)
+{
+  this->stream_.seekg(offset, whence);
+  this->stream_.seekp(offset, whence);
+}
+
+
+
+long StdIOHandler::tell(void) throw (DmException)
+{
+  return this->stream_.tellg();
+}
+
+
+
+void StdIOHandler::flush(void) throw (DmException)
+{
+  this->stream_.flush();
+}
+
+
+
+bool StdIOHandler::eof(void) throw (DmException)
+{
+  return this->stream_.eof();
 }

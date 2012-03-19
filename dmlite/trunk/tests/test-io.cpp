@@ -33,9 +33,9 @@ public:
   {
     char b;
 
-    std::istream* s = io->createIO("/dev/zero", std::ios_base::in);
+    dmlite::IOHandler* s = io->createIO("/dev/zero", std::ios_base::in);
 
-    *s >> b;
+    s->read(&b, sizeof(char));
     CPPUNIT_ASSERT_EQUAL((char)0, b);
     
     delete s;
@@ -49,19 +49,21 @@ public:
 
   void testWriteAndRead(void)
   {
-    std::string istring;
-    std::string ostring;
+    const char ostring[] = "This-is-the-string-to-be-checked!";
 
     // Open to write
-    ostring = "This-is-the-string-to-be-checked!";
-    std::ostream* os = io->createIO("/tmp/test-io-wr", std::ios_base::out | std::ios_base::trunc);
-    *os << ostring;
+    dmlite::IOHandler* os = io->createIO("/tmp/test-io-wr", std::ios_base::out | std::ios_base::trunc);
+    os->write(ostring, strlen(ostring));
     delete os;
 
     // Open to read
-    std::istream* is = io->createIO("/tmp/test-io-wr", std::ios_base::in);
-    *is >> istring;
-    CPPUNIT_ASSERT_EQUAL(ostring, istring);
+    char buffer[512];
+    dmlite::IOHandler* is = io->createIO("/tmp/test-io-wr", std::ios_base::in);
+    size_t nb = is->read(buffer, sizeof(buffer));
+
+    CPPUNIT_ASSERT_EQUAL(strlen(ostring), nb);
+    CPPUNIT_ASSERT_EQUAL(std::string(ostring), std::string(buffer));
+
     delete is;
   }
 

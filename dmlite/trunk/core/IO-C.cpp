@@ -6,8 +6,8 @@
 #include "Private.h"
 
 struct dm_fd {
-  dm_context*    context;
-  std::iostream* stream;
+  dm_context*        context;
+  dmlite::IOHandler* stream;
 };
 
 
@@ -35,7 +35,7 @@ dm_fd* dm_fopen(dm_context* context, const char* path, int flags)
 
   TRY(context, fopen)
   NOT_NULL(path);
-  std::iostream* stream = context->io->createIO(path, openmode);
+  dmlite::IOHandler* stream = context->io->createIO(path, openmode);
   dm_fd* iofd = new dm_fd();
   iofd->context = context;
   iofd->stream  = stream;
@@ -47,21 +47,20 @@ dm_fd* dm_fopen(dm_context* context, const char* path, int flags)
 
 int dm_fclose(dm_fd* fd)
 {
-  if (fd == NULL)
-    return DM_NULL_POINTER;
-  
-  fd->stream->flush();
+  TRY(fd->context, fclose)
+  NOT_NULL(fd);
+  fd->stream->close();
   delete fd->stream;
   delete fd;
-  return 0;
+  CATCH(fd->context, fclose)
 }
 
 
 
 int dm_fseek(dm_fd* fd, long offset, int whence)
 {
-  if (fd == NULL)
-    return DM_NULL_POINTER;
+  TRY(fd->context, fseek)
+  NOT_NULL(fd);
 
   std::ios_base::seekdir seek;
 
@@ -78,52 +77,49 @@ int dm_fseek(dm_fd* fd, long offset, int whence)
     default:
       return DM_INVALID_VALUE;
   }
-
-  fd->stream->seekg(offset, seek);
-  fd->stream->seekp(offset, seek);
-  return 0;
+  
+  fd->stream->seek(offset, seek);
+  CATCH(fd->context, fseek)
 }
 
 
 
-int dm_fread(dm_fd* fd, void* buffer, size_t count)
+long dm_ftell(dm_fd* fd)
 {
-  if (fd == NULL)
-    return DM_NULL_POINTER;
-
-  size_t r = fd->stream->read((char*)buffer, count).gcount();
-
-  if (fd->stream->bad()) {
-    fd->context->errorCode   = DM_INTERNAL_ERROR;
-    fd->context->errorString = "Could not read from the file descriptor";
-    return -1;
-  }
-
-  return r;
+  TRY(fd->context, ftell)
+  NOT_NULL(fd);
+  return fd->stream->tell();
+  CATCH(fd->context, ftell)
 }
 
 
 
-int dm_fwrite(dm_fd* fd, const void* buffer, size_t count)
+size_t dm_fread(dm_fd* fd, void* buffer, size_t count)
 {
-  if (fd == NULL)
-    return DM_NULL_POINTER;
+  TRY(fd->context, fread)
+  NOT_NULL(fd);
+  NOT_NULL(buffer);
+  return fd->stream->read((char*)buffer, count);
+  CATCH(fd->context, fread)
+}
 
-  fd->stream->write((char*)buffer, count);
-  if (fd->stream->bad()) {
-    fd->context->errorCode   = DM_INTERNAL_ERROR;
-    fd->context->errorString = "Could not write to the file descriptor";
-    return -1;
-  }
-  return count;
+
+
+size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count)
+{
+  TRY(fd->context, fwrite)
+  NOT_NULL(fd);
+  NOT_NULL(buffer);
+  return fd->stream->write((char*)buffer, count);
+  CATCH(fd->context, fwrite)
 }
 
 
 
 int dm_feof(dm_fd* fd)
 {
-  if (fd == NULL)
-    return DM_NULL_POINTER;
-
+  TRY(fd->context, feof)
+  NOT_NULL(fd);
   return fd->stream->eof();
+  CATCH(fd->context, feof)
 }
