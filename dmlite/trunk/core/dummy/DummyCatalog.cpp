@@ -298,7 +298,7 @@ struct dirent* DummyCatalog::readDir(Directory* dir) throw (DmException)
 
 
 
-struct direntstat* DummyCatalog::readDirx(Directory* dir) throw (DmException)
+struct xstat* DummyCatalog::readDirx(Directory* dir) throw (DmException)
 {
   DELEGATE_RETURN(readDirx, dir);
 }

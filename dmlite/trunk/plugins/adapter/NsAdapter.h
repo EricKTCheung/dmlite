@@ -12,8 +12,8 @@ namespace dmlite {
 /// @brief The private structure used by NsDummy to handle
 ///        openDir/readDir/closeDir
 struct PrivateDir {
-  dpns_DIR *dpnsDir;            ///< Used for calls to the dpns API.
-  struct direntstat direntstat; ///< Where the data is actually stored.
+  dpns_DIR    *dpnsDir; ///< Used for calls to the dpns API.
+  struct xstat stat;    ///< Where the data is actually stored.
 };
 
 /// Catalog implemented as a wrapper around Cns API
@@ -90,8 +90,8 @@ public:
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
-  struct dirent*     readDir (Directory*) throw (DmException);
-  struct direntstat* readDirx(Directory*) throw (DmException);
+  struct dirent* readDir (Directory*) throw (DmException);
+  ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   void makeDir(const std::string&, mode_t) throw (DmException);
 

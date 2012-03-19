@@ -252,7 +252,7 @@ public:
   /// Read next entry from a directory (stat information added).
   /// @param dir The directory handle as returned by NsInterface::openDir.
   /// @return    0x00 on failure (and errno is set) or end of directory.
-  virtual struct direntstat* readDirx(Directory* dir) throw (DmException) = 0;
+  virtual ExtendedStat* readDirx(Directory* dir) throw (DmException) = 0;
 
   /// Create a new empty directory.
   /// @param path The path of the new directory.

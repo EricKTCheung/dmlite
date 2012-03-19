@@ -323,9 +323,9 @@ struct dirent* ProfilerCatalog::readDir(Directory* dir) throw (DmException)
 
 
 
-struct direntstat* ProfilerCatalog::readDirx(Directory* dir) throw (DmException)
+ExtendedStat* ProfilerCatalog::readDirx(Directory* dir) throw (DmException)
 {
-  PROFILE_RETURN(struct direntstat*, readDirx, dir);
+  PROFILE_RETURN(ExtendedStat*, readDirx, dir);
 }
 
 

@@ -422,7 +422,7 @@ struct dirent *dm_readdir(dm_context* context, void* dir);
  * @param dir     The pointer returned by dm_opendir.
  * @return        A pointer to a struct with the recovered data, or NULL on failure or end of directory. Do NOT free it.
  */
-struct direntstat *dm_readdirx(dm_context* context, void* dir);
+struct xstat *dm_readdirx(dm_context* context, void* dir);
 
 /**
  * Create a new directory.

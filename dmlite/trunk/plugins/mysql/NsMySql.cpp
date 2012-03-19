@@ -654,12 +654,12 @@ struct dirent* NsMySqlCatalog::readDir(Directory* dir) throw(DmException)
   if (this->readDirx(dir) == 0)
     return 0x00;
   else
-    return &(((NsMySqlDir*)dir)->ds.dirent);
+    return &(((NsMySqlDir*)dir)->ds);
 }
 
 
 
-struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
+ExtendedStat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
 {
   NsMySqlDir *dirp;
 
@@ -669,20 +669,19 @@ struct direntstat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
   dirp = (NsMySqlDir*)dir;
 
   if (dirp->stmt->fetch()) {
-    memcpy(&dirp->ds.stat, &dirp->current.stat, sizeof(struct stat));
-    memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
-    dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
-    strncpy(dirp->ds.dirent.d_name,
+    memset(&dirp->ds, 0x00, sizeof(struct dirent));
+    dirp->ds.d_ino  = dirp->current.stat.st_ino;
+    strncpy(dirp->ds.d_name,
             dirp->current.name,
-            sizeof(dirp->ds.dirent.d_name));
+            sizeof(dirp->ds.d_name));
 
     // Touch
     struct utimbuf tim;
     tim.actime  = time(NULL);
-    tim.modtime = dirp->ds.stat.st_mtime;
+    tim.modtime = dirp->current.stat.st_mtime;
     this->utime(dirp->dirId, &tim);
 
-    return &dirp->ds;
+    return &dirp->current;
   }
   else {
     return 0x00;
