@@ -79,8 +79,8 @@ public:
   virtual Directory* openDir (const std::string&) throw (DmException);
   virtual void       closeDir(Directory*)         throw (DmException);
 
-  virtual struct dirent*     readDir (Directory*) throw (DmException);
-  virtual struct direntstat* readDirx(Directory*) throw (DmException);
+  virtual struct dirent* readDir (Directory*) throw (DmException);
+  virtual ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   virtual void makeDir(const std::string&, mode_t) throw (DmException);
 

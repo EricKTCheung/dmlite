@@ -35,11 +35,6 @@
 #define STATUS_ONLINE   '-'
 #define STATUS_MIGRATED 'm'
 
-/** Struct with basic information and detailed stats */
-struct direntstat {
-  struct dirent dirent; /**< Basic information about the directory */
-  struct stat   stat;   /**< Detailed stats                        */
-};
 
 /** Struct with extended status information
  * @note It can be safely typecasted to struct stat.

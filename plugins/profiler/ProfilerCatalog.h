@@ -84,8 +84,8 @@ public:
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
-  struct dirent*     readDir (Directory*) throw (DmException);
-  struct direntstat* readDirx(Directory*) throw (DmException);
+  struct dirent* readDir (Directory*) throw (DmException);
+  ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   void makeDir(const std::string&, mode_t) throw (DmException);
 

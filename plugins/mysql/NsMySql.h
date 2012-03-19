@@ -17,10 +17,10 @@ namespace dmlite {
 
 /// Struct used internally to read directories.
 struct NsMySqlDir {
-  uint64_t          dirId;         ///< The directory ID.
-  ExtendedStat      current;       ///< Current entry metadata.
-  struct direntstat ds;            ///< The structure used to hold the returned data.
-  Statement        *stmt;          ///< The statement.
+  uint64_t      dirId;         ///< The directory ID.
+  ExtendedStat  current;       ///< Current entry metadata.
+  struct dirent ds;            ///< The structure used to hold the returned data.
+  Statement    *stmt;          ///< The statement.
 };
 
 /// Implementation of NS MySQL backend.
@@ -75,8 +75,8 @@ public:
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
-  struct dirent*     readDir (Directory*) throw (DmException);
-  struct direntstat* readDirx(Directory*) throw (DmException);
+  struct dirent* readDir (Directory*) throw (DmException);
+  ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   mode_t umask(mode_t) throw ();
 

@@ -422,7 +422,7 @@ struct dirent* dm_readdir(dm_context* context, void* dir)
 
 
 
-struct direntstat* dm_readdirx(dm_context* context, void* dir)
+struct xstat* dm_readdirx(dm_context* context, void* dir)
 {
   TRY(context, readdirx)
   NOT_NULL(dir);

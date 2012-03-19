@@ -532,7 +532,7 @@ struct dirent* NsAdapterCatalog::readDir(Directory* dir) throw (DmException)
 
 
 
-struct direntstat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException)
+ExtendedStat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException)
 {
   PrivateDir            *privateDir = static_cast<PrivateDir*>(dir);
   struct dpns_direnstat *direnstat;
@@ -541,28 +541,23 @@ struct direntstat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException
   if (direnstat == 0x00)
     throw DmException(DM_NULL_POINTER, "Tried to read a null directory");
 
-  privateDir->direntstat.dirent.d_ino = direnstat->fileid;
-  strncpy(privateDir->direntstat.dirent.d_name, direnstat->d_name,
-          sizeof(privateDir->direntstat.dirent.d_name));
+  privateDir->stat.stat.st_ino = direnstat->fileid;
+  strncpy(privateDir->stat.name, direnstat->d_name,
+          sizeof(privateDir->stat.name));
 
-  privateDir->direntstat.dirent.d_reclen = direnstat->d_reclen;
-  privateDir->direntstat.dirent.d_type   = 0x00;
-  privateDir->direntstat.dirent.d_off    = 0x00;
+  privateDir->stat.status = direnstat->status;
+  privateDir->stat.type   = direnstat->fileclass;
 
-  privateDir->direntstat.stat.st_atim.tv_sec = direnstat->mtime;
-  privateDir->direntstat.stat.st_ctim.tv_sec = direnstat->ctime;
-  privateDir->direntstat.stat.st_mtim.tv_sec = direnstat->mtime;
-
-  privateDir->direntstat.stat.st_gid  = direnstat->gid;
-  privateDir->direntstat.stat.st_uid  = direnstat->uid;
-
-  privateDir->direntstat.stat.st_mode  = direnstat->filemode;
-  privateDir->direntstat.stat.st_size  = direnstat->filesize;
-  privateDir->direntstat.stat.st_nlink = direnstat->nlink;
-
-  privateDir->direntstat.stat.st_ino = privateDir->direntstat.dirent.d_ino;
-
-  return &(privateDir->direntstat);
+  privateDir->stat.stat.st_atime = direnstat->atime;
+  privateDir->stat.stat.st_ctime = direnstat->ctime;
+  privateDir->stat.stat.st_mtime = direnstat->mtime;
+  privateDir->stat.stat.st_mode  = direnstat->filemode;
+  privateDir->stat.stat.st_size  = direnstat->filesize;
+  privateDir->stat.stat.st_uid   = direnstat->uid;
+  privateDir->stat.stat.st_gid   = direnstat->gid;
+  privateDir->stat.stat.st_nlink = direnstat->nlink;
+  
+  return &(privateDir->stat);
 }
 
 
