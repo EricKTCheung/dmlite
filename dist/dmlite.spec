@@ -12,13 +12,13 @@ URL:		https://svnweb.cern.ch/trac/lcgdm
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:	boost-devel%{?_isa}
 BuildRequires:	cmake%{?_isa}
 BuildRequires:	cppunit-devel%{?_isa}
 BuildRequires:	doxygen%{?_isa}
 BuildRequires:	dpm-devel%{?_isa}
 BuildRequires:	libmemcached-devel%{?_isa}
 BuildRequires:	mysql-devel%{?_isa}
+BuildRequires:	protobuf-devel%{?_isa}
 BuildRequires:	subversion%{?_isa}
 
 %description

@@ -4,46 +4,8 @@
 #include <vector>
 
 #include "Memcache.h"
+#include "MemcacheCatalog.pb.h"
 
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void serialize(Archive& ar, struct stat& stStat, const unsigned int version)
-{
-  ar & stStat.st_atim.tv_sec;
-  ar & stStat.st_ctim.tv_sec;
-  ar & stStat.st_mtim.tv_sec;
-  ar & stStat.st_gid;
-  ar & stStat.st_uid;
-  ar & stStat.st_nlink;
-  ar & stStat.st_ino;
-  ar & stStat.st_mode;
-  ar & stStat.st_size;
-}
-
-template<class Archive>
-void serialize(Archive& ar, ExtendedStat& xStat, const unsigned int version)
-{
-  ar & xStat.stat;
-  ar & xStat.parent;
-  ar & xStat.type;
-  ar & xStat.status;
-  ar & xStat.name;
-  ar & xStat.guid;
-  ar & xStat.csumtype;
-  ar & xStat.csumvalue;
-  ar & xStat.acl;
-}
-
-template<class Archive>
-void serialize(Archive& ar, SymLink& link, const unsigned int version)
-{
-	ar & link.fileId;
-	ar & link.link;
-}
-} // namespace serialization
-} // namespace boost
 
 using namespace dmlite;
 
@@ -51,7 +13,8 @@ using namespace dmlite;
 enum {
 	PRE_STAT = 0,
   PRE_REPL,
-  PRE_REPL_LIST
+  PRE_REPL_LIST,
+  PRE_REPL_BLACK_LIST
 };
 
 /// Used internally to define Key Prefixes.
@@ -59,7 +22,8 @@ enum {
 static const char* key_prefix[] = {
 	"STAT",
   "REPL",
-  "RPLI"
+  "RPLI",
+  "RPBL"
 };
 
 /// Little of help here to avoid redundancy
@@ -82,22 +46,6 @@ if (this->decorated_ == 0x00)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 var = this->decorated_->method(__VA_ARGS__);
 
-// Serialize anything with a serialize function into an std::string
-#define SERIALIZE(serial_str, var, version) \
-	serial_str.clear(); \
-	boost::iostreams::back_insert_device<std::string> inserter(serial_str); \
-	boost::iostreams::stream<boost::iostreams::back_insert_device<std::string> > s(inserter); \
-	boost::archive::text_oarchive oa(s); \
-	boost::serialization::serialize(oa, var, version); \
-	s.flush();
-
-// Deserialize anything with a serialize function from an std::string
-#define DESERIALIZE(serial_str, var, version) \
-	boost::iostreams::basic_array_source<char> device(serial_str.data(), serial_str.size()); \
-	boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(device); \
-	boost::archive::text_iarchive ia(s); \
-	boost::serialization::serialize(ia, var, version);
-
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool, 
 																 Catalog* decorates,
@@ -105,7 +53,7 @@ MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 																 time_t memcachedExpirationLimit) throw (DmException):
    DummyCatalog(decorates),
 	 symLinkLimit_(symLinkLimit),
-	 cwd_(0), 
+//	 cwd_(0), 
 	 memcachedExpirationLimit_(memcachedExpirationLimit)
 {
   this->connectionPool_ = connPool;
@@ -130,18 +78,271 @@ void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) thr
   this->groups_.clear();
 }
 
-void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
+std::string MemcacheCatalog::serialize(const ExtendedStat& var)
 {
-	DELEGATE(changeDir, path);
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ExtendedStat cwd = this->extendedStat(path);
-  this->cwdPath_ = path;
-  this->cwd_     = cwd.stat.st_ino;
+  std::string serialString;
+  SerialExtendedStat seStat;
+  SerialStat* pntSerialStat;
+
+  pntSerialStat = seStat.mutable_stat();
+  seStat.set_parent(var.parent);
+  seStat.set_type(var.type);
+  seStat.set_status(std::string(1,var.status));
+  seStat.set_name(var.name);
+  seStat.set_guid(var.guid);
+  seStat.set_csumtype(var.csumtype);
+  seStat.set_csumvalue(var.csumvalue);
+  seStat.set_acl(var.acl);
+
+  pntSerialStat->set_st_dev(var.stat.st_dev);
+  pntSerialStat->set_st_ino(var.stat.st_ino);
+  pntSerialStat->set_st_mode(var.stat.st_mode);
+  pntSerialStat->set_st_nlink(var.stat.st_nlink);
+  pntSerialStat->set_st_uid(var.stat.st_uid);
+  pntSerialStat->set_st_gid(var.stat.st_gid);
+  pntSerialStat->set_st_rdev(var.stat.st_rdev);
+  pntSerialStat->set_st_size(var.stat.st_size);
+  pntSerialStat->set_st_access_time(var.stat.st_atime);
+  pntSerialStat->set_st_modified_time(var.stat.st_mtime);
+  pntSerialStat->set_st_change_time(var.stat.st_ctime);
+  pntSerialStat->set_st_blksize(var.stat.st_blksize);
+  pntSerialStat->set_st_blocks(var.stat.st_blocks);
+
+  serialString = seStat.SerializeAsString();
+//  seStat.PrintDebugString();
+
+  return serialString;
+}
+
+void MemcacheCatalog::deserialize(std::string& serial_str, ExtendedStat& var)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialExtendedStat seStat;
+  const SerialStat* pntSerialStat;
+
+  seStat.ParseFromString(serial_str);
+//  seStat.PrintDebugString();
+
+  pntSerialStat = &seStat.stat();
+  
+  var.stat.st_dev = pntSerialStat->st_dev();
+  var.stat.st_ino = pntSerialStat->st_ino();
+  var.stat.st_mode = pntSerialStat->st_mode();
+  var.stat.st_nlink = pntSerialStat->st_nlink();
+  var.stat.st_uid = pntSerialStat->st_uid();
+  var.stat.st_gid = pntSerialStat->st_gid();
+  var.stat.st_rdev = pntSerialStat->st_rdev();
+  var.stat.st_size = pntSerialStat->st_size();
+  var.stat.st_atime = pntSerialStat->st_access_time();
+  var.stat.st_mtime = pntSerialStat->st_modified_time();
+  var.stat.st_ctime = pntSerialStat->st_change_time();
+  var.stat.st_blksize = pntSerialStat->st_blksize();
+  var.stat.st_blocks = pntSerialStat->st_blocks();
+
+  var.parent = seStat.parent();
+  var.type = seStat.type();
+  var.status = seStat.status()[0]; // status is only one char
+  std::memcpy(&var.name, seStat.name().c_str(), seStat.name().length()+1);
+  std::memcpy(&var.guid, seStat.guid().c_str(), seStat.guid().length()+1);
+  std::memcpy(&var.csumtype, seStat.csumtype().c_str(), seStat.csumtype().length()+1);
+  std::memcpy(&var.csumvalue, seStat.csumvalue().c_str(), seStat.csumvalue().length()+1);
+  std::memcpy(&var.acl, seStat.acl().c_str(), seStat.acl().length()+1);
+}
+/*
+std::string MemcacheCatalog::serializeKey(const std::string& key)
+{
+  SerialKey serialKey;
+  serialKey.set_key(key);
+  serialKey.set_white(true);
+  return serialKey.SerializeAsString();
+} 
+
+std::string MemcacheCatalog::serializeBlackKey(const std::string& key)
+{
+  SerialKey serialKey;
+  serialKey.set_key(key);
+  serialKey.set_white(false);
+  return serialKey.SerializeAsString();
+} 
+
+std::string MemcacheCatalog::deserializeKey(const std::string& serialKey)
+{
+  SerialKey sKey;
+  sKey.ParseFromString(serialKey);
+  return sKey.key();
+}
+*/
+std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, const bool isWhite)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialKey* pntKey;
+  SerialKeyList list;
+  std::string serialList;
+  std::vector<std::string>::iterator itKeyList;
+
+  for (itKeyList = keyList.begin();
+       itKeyList != keyList.end();
+       itKeyList++)
+  {
+    pntKey = list.add_key(); 
+    pntKey->set_key(*itKeyList);
+    pntKey->set_white(isWhite);
+  }
+
+  serialList = list.SerializeAsString();
+//  list.PrintDebugString();
+
+  return serialList;
+}
+
+std::vector<std::string> MemcacheCatalog::deserializeList(std::string& serialList)
+{
+  std::vector<std::string> keyList;
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialKey key;
+  SerialKeyList list;
+  list.ParseFromString(serialList);
+
+  for (int i = 0; i < list.key_size(); i++) 
+  {
+    key = list.key(i);
+    keyList.push_back(key.key());
+  }
+//  list.PrintDebugString();
+  return keyList;
+}
+
+std::vector<std::string> MemcacheCatalog::deserializeBlackList(std::string& serialList)
+{
+  SerialKey key;
+  std::set<std::string> bkeySet;
+  std::set<std::string> keySet;
+  std::vector<std::string> keyList;
+  std::vector<std::string>::iterator keyListEnd; 
+
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+//  SerialBlackKey bkey;
+  SerialKeyList list;
+  list.ParseFromString(serialList);
+//  list.PrintDebugString();
+
+  for (int i = 0; i < list.key_size(); i++) 
+  {
+    key = list.key(i);
+    if (key.white())
+      keySet.insert(key.key());
+    else
+      bkeySet.insert(key.key());
+  }
+
+  keyList.resize(keySet.size());
+
+  keyListEnd = std::set_difference(keySet.begin(), keySet.end(),
+                                   bkeySet.begin(), bkeySet.end(),
+                                   keyList.begin());  
+
+  keyList.resize(keyListEnd - keyList.begin());
+
+  return keyList;
 }
 
 
+std::string MemcacheCatalog::serializeFileReplica(const FileReplica& replica)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialFileReplica repl;
+  repl.set_replicaid(replica.replicaid);
+  repl.set_fileid(replica.fileid);
+  repl.set_nbaccesses(replica.nbaccesses);
+  repl.set_atime(replica.atime);
+  repl.set_ptime(replica.ptime);
+  repl.set_ltime(replica.ltime);
+  repl.set_status(std::string(1,replica.status));
+  repl.set_type(std::string(1,replica.type));
+  repl.set_pool(replica.pool);
+  repl.set_server(replica.server);
+  repl.set_filesystem(replica.filesystem);
+  repl.set_url(replica.url);
+
+//  repl.PrintDebugString();
+  
+  return repl.SerializeAsString();
+}
+
+FileReplica MemcacheCatalog::deserializeFileReplica(std::string& serial)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  FileReplica repl;
+  SerialFileReplica serialRepl;
+
+  serialRepl.ParseFromString(serial);
+//  serialRepl.PrintDebugString();
+
+  repl.replicaid = serialRepl.replicaid();
+  repl.fileid = serialRepl.fileid();
+  repl.nbaccesses = serialRepl.nbaccesses();
+  repl.atime = serialRepl.atime();
+  repl.ptime = serialRepl.ptime();
+  repl.ltime = serialRepl.ltime();
+  repl.status = serialRepl.status()[0];
+  repl.type = serialRepl.type()[0];
+  std::memcpy(&repl.pool, serialRepl.pool().c_str(), serialRepl.pool().length()+1); 
+  std::memcpy(&repl.server, serialRepl.server().c_str(), serialRepl.server().length()+1); 
+  std::memcpy(&repl.filesystem, serialRepl.filesystem().c_str(), serialRepl.filesystem().length()+1); 
+  std::memcpy(&repl.url, serialRepl.url().c_str(), serialRepl.url().length()+1); 
+
+  return repl;
+}
+/*
+std::vector<FileReplica> MemcacheCatalog::deserialize(std::vector<std::string>& serialReplicas)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  std::vector<FileReplica> replicas;
+  SerialFileReplica serialRepl;
+  FileReplica repl;
+
+  std::vector<std::string>::iterator itSerialReps;
+  for (itSerialReps = serialReplicas.begin();
+       itSerialReps < serialReplicas.end();
+       itSerialReps++)
+  {
+    serialRepl.ParseFromString(*itSerialReps);
+//    serialRepl.PrintDebugString();
+
+    repl.replicaid = serialRepl.replicaid();
+    repl.fileid = serialRepl.fileid();
+    repl.nbaccesses = serialRepl.nbaccesses();
+    repl.atime = serialRepl.atime();
+    repl.ptime = serialRepl.ptime();
+    repl.ltime = serialRepl.ltime();
+    repl.status = serialRepl.status()[0];
+    repl.type = serialRepl.type()[0];
+    std::memcpy(&repl.pool, serialRepl.pool().c_str(), serialRepl.pool().length()+1); 
+    std::memcpy(&repl.server, serialRepl.server().c_str(), serialRepl.server().length()+1); 
+    std::memcpy(&repl.filesystem, serialRepl.filesystem().c_str(), serialRepl.filesystem().length()+1); 
+    std::memcpy(&repl.url, serialRepl.url().c_str(), serialRepl.url().length()+1); 
+
+    replicas.push_back(repl); 
+  }
+  return replicas;
+}
+*/
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
+	std::string cwdPath;
+  DELEGATE_ASSIGN(cwdPath, getWorkingDir); 
+	ino_t cwd;
+  DELEGATE_ASSIGN(cwd, getWorkingDirI); 
+
   // Split the path always assuming absolute
   std::list<std::string> components = splitPath(path);
 
@@ -152,7 +353,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   std::string  c;
 
   // If path is absolute OR cwd is empty, start in root
-  if (path[0] == '/' || this->cwdPath_.empty()) {
+  if (path[0] == '/' || cwdPath.empty()) {
     // Push "/", as we have to look for it too
     components.push_front("/");
     // Root parent "is" a dir and world-readable :)
@@ -161,7 +362,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   }
   // Relative, and cwd set, so start there
   else {
-    parent = this->cwd_;
+    parent = cwd;
     meta   = this->extendedStat(parent);
   }
   
@@ -201,11 +402,6 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
                            "Symbolic links limit exceeded: > %d",
                            this->symLinkLimit_);
         }
-
-        // We have the symbolic link now. Split it and push
-        // into the component
-        std::list<std::string> symPath = splitPath(link.link);
-        components.splice(components.begin(), symPath);
         // Push / if absolute
         if (link.link[0] == '/') {
           parent = 0;
@@ -233,15 +429,15 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
 
 	const std::string key = keyFromAny(key_prefix[PRE_STAT], fileId); 
 
-	valMemc = valFromMemcachedKey(key);
+	valMemc = getValFromMemcachedVersionedKey(key);
 	if (!valMemc.empty())
 	{
-		DESERIALIZE(valMemc, meta, SERIALIZE_VERSION);
+		deserialize(valMemc, meta);
 	} else // valMemc was not in memcached
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, fileId);
-		SERIALIZE(valMemc, meta, SERIALIZE_VERSION);
-		setMemcachedFromKeyValue(key, valMemc);
+		valMemc = serialize(meta);
+		setMemcachedFromVersionedKeyValue(key, valMemc);
 	}
 
   return meta;
@@ -255,17 +451,17 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 
 	std::string valMemc;
 
-	const std::string key = keyFromAny(key_prefix[PRE_STAT], parent, name); 
+	const std::string key = keyFromAny(key_prefix[PRE_STAT], parent, name);
 
-	valMemc = valFromMemcachedKey(key);
+	valMemc = getValFromMemcachedVersionedKey(key);
 	if (!valMemc.empty())
 	{
-		DESERIALIZE(valMemc, meta, SERIALIZE_VERSION);
+		deserialize(valMemc, meta);
 	} else // valMemc was not in memcached
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, parent, name);
-		SERIALIZE(valMemc, meta, SERIALIZE_VERSION);
-		setMemcachedFromKeyValue(key, valMemc);
+		valMemc = serialize(meta);
+		setMemcachedFromVersionedKeyValue(key, valMemc);
 	}
 
   return meta;
@@ -273,8 +469,8 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 
 void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
-	DELEGATE(removeDir, path);
 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	DELEGATE(removeDir, path);
 	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
 }
 
@@ -287,9 +483,9 @@ void MemcacheCatalog::symlink(const std::string& oldPath, const std::string& new
 
 void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
 {
+ 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 	DELEGATE(unlink, path);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
+ 	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));  
 }
 
 void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
@@ -331,13 +527,42 @@ void MemcacheCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 	DELEGATE(linkChangeOwner, path, newUid, newGid);
 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
+
+void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
+{
+  DELEGATE(utime, path, buf);
+  delMemcachedFromPath(key_prefix[PRE_STAT], path);
+}
 /*
+void MemcacheCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
+{
+  DELEGATE(utime, inode, buf);
+  const std::string key = keyFromAny(key_prefix[PRE_STAT], inode);
+  delMemcachedFromKey(key);
+}
+*/
+
+void MemcacheCatalog::addReplica(const std::string& guid, int64_t id,
+                                 const std::string& server, const std::string& sfn,
+                                 char status, char fileType,
+                                 const std::string& poolName,
+                                 const std::string& fileSystem) throw (DmException)
+{
+  DELEGATE(addReplica, guid, id, server, sfn, status,
+           fileType, poolName, fileSystem);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], sfn);
+  std::string listKey = keyFromAny(key_prefix[PRE_REPL_LIST], id);
+  addToListFromMemcachedKey(listKey, key);
+}
+
 void MemcacheCatalog::deleteReplica(const std::string& guid, int64_t id,
                                    const std::string& sfn) throw (DmException)
 {
   DELEGATE(deleteReplica, guid, id, sfn);
-  std::string key = keyFromAny(key_prefix[PRE_REPL], guid, id, sfn);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], sfn);
+  std::string listKey = keyFromAny(key_prefix[PRE_REPL_LIST], id);
   delMemcachedFromKey(key);
+  removeListItemFromMemcachedKey(listKey, key);
 }
 
 std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) throw(DmException)
@@ -355,7 +580,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
                    "Not enough permissions to read " + path);
 
   try {
-    return this->getReplicas(meta.stat.st_ino);
+    return this->getReplicas(path, meta.stat.st_ino);
   }
   catch (DmException e) {
     if (e.code() == DM_NO_REPLICAS)
@@ -364,18 +589,94 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
   }
 }
 
-std::vector<FileReplica> MemcacheCatalog::getReplicas(ino_t ino) throw (DmException)
+std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, ino_t inode) throw (DmException)
 {
+  std::vector<FileReplica> replicas;
+  std::vector<std::string> vecValMemc;
+  FileReplica repl;
+
+  // get replica list from memcached
+  const std::string listKey = keyFromAny(key_prefix[PRE_REPL_LIST],
+                                         inode);
+
+  vecValMemc = getListFromMemcachedKey(listKey);
+
+	if (vecValMemc.size() > 0)
+	{
+    std::vector<std::string>::iterator itRepl;
+    for (itRepl = vecValMemc.begin();
+         itRepl != vecValMemc.end();
+         itRepl++)
+    { 
+      repl = deserializeFileReplica(*itRepl);
+      replicas.push_back(repl);
+    }
+//    replicas = deserialize(vecValMemc);
+  } else
+  {
+    // otherwise, get replicas from mysql
+    DELEGATE_ASSIGN(replicas, getReplicas, path);
+
+    // save replicas in memcached
+    setMemcachedFromReplicas(replicas, inode);
+  } 
+  
+  return replicas;
 }
 
 FileReplica MemcacheCatalog::get(const std::string& path) throw(DmException)
 {
+  // Get all the replicas
+  std::vector<FileReplica> replicas = this->getReplicas(path);
 
+  // Pick a random one
+  int i = rand() % replicas.size();
+
+  // Copy
+  return replicas[i];
 }
-*/
+
+void MemcacheCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+{
+  DELEGATE(replicaSetAccessTime, replica);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], replica);
+  delMemcachedFromKey(key);
+}
+
+
+
+void MemcacheCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+{
+  DELEGATE(replicaSetLifeTime, replica, ltime);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], replica);
+  delMemcachedFromKey(key);
+}
+
+
+
+void MemcacheCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
+{
+  DELEGATE(replicaSetStatus, replica, status);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], replica);
+  delMemcachedFromKey(key);
+}
+
+
+
+void MemcacheCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
+{
+  DELEGATE(replicaSetType, replica, type);
+  std::string key = keyFromURI(key_prefix[PRE_REPL], replica);
+  delMemcachedFromKey(key);
+}
+
+
 std::string MemcacheCatalog::getParent(const std::string& path)
  																					throw (DmException)
 {
+	std::string cwdPath;
+  DELEGATE_ASSIGN(cwdPath, getWorkingDir); 
+
 	std::list<std::string> components = splitPath(path);
 	std::string parentPath;
 
@@ -389,16 +690,22 @@ std::string MemcacheCatalog::getParent(const std::string& path)
   // Get the files now
   if (!parentPath.empty())
     return parentPath;
-  else if (!this->cwdPath_.empty())
-    return this->cwdPath_;
+  else if (!cwdPath.empty())
+    return cwdPath;
   else
     return std::string("/");
 }
 	
 ExtendedStat MemcacheCatalog::getParent(const std::string& path,
-                                       std::string* parentPath,
-                                       std::string* name) throw (DmException)
+                                        std::string* parentPath,
+                                        std::string* name)
+                                        throw (DmException)
 {
+	std::string cwdPath;
+  DELEGATE_ASSIGN(cwdPath, getWorkingDir); 
+	ino_t cwd;
+  DELEGATE_ASSIGN(cwd, getWorkingDirI); 
+
 	std::list<std::string> components = splitPath(path);
 
   parentPath->clear();
@@ -418,10 +725,19 @@ ExtendedStat MemcacheCatalog::getParent(const std::string& path,
   // Get the files now
   if (!parentPath->empty())
     return this->extendedStat(*parentPath);
-  else if (!this->cwdPath_.empty())
-    return this->extendedStat(this->cwd_);
+  else if (!cwdPath.empty())
+    return this->extendedStat(cwd);
   else
     return this->extendedStat("/");
+}
+
+const std::string MemcacheCatalog::versionedKeyFromAny(uint64_t version,
+                                                    const std::string key)
+{
+  std::stringstream streamKey;
+  streamKey << version << ':' << key;
+
+  return streamKey.str();
 }
 
 const std::string MemcacheCatalog::keyFromAny(const char* preKey,
@@ -453,19 +769,20 @@ const std::string MemcacheCatalog::keyFromAny(const char* preKey,
 																							const std::string& path)
 {
 	std::stringstream streamKey;
-
 	std::string key_path;
-	const std::string cwd(this->decorated_->getWorkingDir());
+
+	std::string cwdPath;
+  DELEGATE_ASSIGN(cwdPath, getWorkingDir); 
 
 	// add prefix
 	streamKey << preKey << ':';
 	
-  if (path[0] == '/' || cwd.empty())
+  if (path[0] == '/' || cwdPath.empty())
 	{
 	  key_path = path;
 	} else
 	{
-		key_path = cwd;
+		key_path = cwdPath;
 		if (key_path[key_path.length()-1] != '/') 
 			key_path.append("/");
 
@@ -483,7 +800,29 @@ const std::string MemcacheCatalog::keyFromAny(const char* preKey,
 	return streamKey.str();
 }
 
-const std::string MemcacheCatalog::valFromMemcachedKey(const std::string key)
+const std::string MemcacheCatalog::keyFromURI(const char* preKey,
+																							const std::string& uri)
+{
+	std::stringstream streamKey;
+	std::string key_path;
+
+  key_path.append(uri);
+
+	// add prefix
+	streamKey << preKey << ':';
+	
+	const unsigned int strlen_path = key_path.length();
+	int idx_path_substr = strlen_path - (250 - 50);
+
+	if (idx_path_substr < 0)
+		idx_path_substr = 0;
+
+	streamKey << key_path.substr(idx_path_substr);
+
+	return streamKey.str();
+}
+
+const std::string MemcacheCatalog::getValFromMemcachedKey(const std::string key)
 {
 	memcached_return statMemc;
 	size_t lenValue;
@@ -506,20 +845,222 @@ const std::string MemcacheCatalog::valFromMemcachedKey(const std::string key)
 																										 statMemc)));
 	}
 
-	if (valMemc != NULL)
+	if (lenValue > 0)
 	{
-		valMemcStr.assign(valMemc);
+		valMemcStr.assign(valMemc, lenValue);
 	}
 	return valMemcStr;
 }
 
+const std::string MemcacheCatalog::getValFromMemcachedVersionedKey(const std::string key)
+{
+	memcached_return statMemc;
+	size_t lenValue;
+	uint32_t flags;
+	char* valMemc;
+	std::string valMemcStr;
+  uint64_t version;
+  std::string versionedKey;
+
+  statMemc = 
+      memcached_increment(this->conn_,
+                          key.data(),
+                          key.length(),
+                          0, // offset: only get value, don't incr
+                          &version);
+
+  // if the memcached call fails, the value does not exist,
+  // error message is NOTFOUND,
+  // thus we should not try to fetch it
+  // return "" to fetch it later from the db
+	if (statMemc != MEMCACHED_SUCCESS)
+	{
+    if (statMemc != MEMCACHED_NOTFOUND)
+    {
+  	  throw DmException(DM_UNKNOWN_ERROR,
+	    								std::string(memcached_strerror(this->conn_,
+		    																						 statMemc)));
+    }
+  } else // retrieve value 
+  {
+    versionedKey = versionedKeyFromAny(version, key);
+
+  	valMemc = memcached_get(this->conn_,
+	  												versionedKey.data(),
+													  versionedKey.length(),
+													  &lenValue,
+													  &flags,
+													  &statMemc);
+
+	  if (statMemc != MEMCACHED_SUCCESS &&
+		  	statMemc != MEMCACHED_NOTFOUND)
+	  {
+		  throw DmException(DM_UNKNOWN_ERROR,
+			  								std::string(memcached_strerror(this->conn_,
+				  																						 statMemc)));
+	  }
+
+	  if (lenValue > 0)
+	  {
+		  valMemcStr.assign(valMemc, lenValue);
+	  }
+  }
+	return valMemcStr;
+}
+
+std::vector<std::string> 
+   MemcacheCatalog::getValListFromMultipleMemcachedKeys(
+                            const std::vector<std::string>& keyList)
+{
+  std::vector<std::string> vecValMemc;
+  std::vector<char*> keys;
+  char* pntKey; 
+  memcached_return statMemc;
+	char* valMemc;
+  size_t key_length[keyList.size()];
+
+  // get size needed for keys, create key_length 
+  // memcpy keys
+  size_t keys_size = 0;
+  for (int i = 0; i < keyList.size(); i++)
+  {
+    key_length[i] = keyList[i].size();
+    keys_size += keyList[i].size();
+    pntKey = (char*) malloc(keyList[i].size());
+    std::memset(pntKey, 0x00, keyList[i].size());
+    std::memcpy(pntKey, keyList[i].data(), keyList[i].size());
+    keys.push_back(pntKey);
+  }
+
+  // mget results 
+  statMemc = memcached_mget(this->conn_,
+                            &keys[0],
+                            key_length,
+                            keyList.size());
+
+	if (statMemc != MEMCACHED_SUCCESS)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
+
+  for (int i = 0; i < keyList.size(); i++)
+  {
+    free(keys[i]);
+  }
+ 
+  // actually fetch results in std::vector
+
+  char return_key[MEMCACHED_MAX_KEY];
+  size_t return_key_length;
+  char *return_value;
+  size_t lenValue;
+	uint32_t flags;
+	std::string valMemcStr;
+  std::set<std::string> foundKeys;
+
+  while (valMemc = memcached_fetch(this->conn_,
+                                   return_key,
+                                   &return_key_length,
+                                   &lenValue,
+                                   &flags,
+                                   &statMemc))
+  {
+	  if (statMemc != MEMCACHED_SUCCESS)
+	  {
+		  throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	  } else
+    {
+		  valMemcStr.assign(valMemc, lenValue);
+      vecValMemc.push_back(valMemcStr);
+      free(valMemc);
+      foundKeys.insert(std::string(return_key, return_key_length));
+    }
+  }
+
+  // invalidate result if not all keys are found
+  if (foundKeys.size() < keyList.size())
+    vecValMemc.resize(0);  
+
+  //return vector
+  return vecValMemc;
+}
+
 void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
-							  						  const std::string strValue)
+							  						  const std::string value)
 {
 	memcached_return statMemc;
 	statMemc = memcached_set(this->conn_,
 													 key.data(),
 													 key.length(),
+													 value.data(), value.length(),
+													 this->memcachedExpirationLimit_,
+  												 (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
+
+	return;
+}
+
+void MemcacheCatalog::setMemcachedFromVersionedKeyValue(const std::string key,
+							  						  const std::string strValue)
+{
+	memcached_return statMemc;
+  uint64_t version;
+  std::string versionedKey;
+
+  // memcached_incr_with_initial does not work
+  // with the memcached text protocol, thus it is
+  // faked with the following calls
+  /*
+  statMemc = 
+      memcached_increment_with_initial(this->conn_,
+                                       key.data(),
+                                       key.length(),
+                                       (uint64_t) 1, // offset
+                                       (uint64_t) 2, // initial value
+                                       this->memcachedExpirationLimit_,
+                                       &version);
+  */
+  statMemc = 
+      memcached_increment(this->conn_,
+                          key.data(),
+                          key.length(),
+                          1, // offset
+                          &version);
+
+  if (statMemc == MEMCACHED_NOTFOUND)
+  {
+    std::string strVersion("1");
+    version = 1;
+	  statMemc = memcached_set(this->conn_,
+		  											 key.data(),
+			  										 key.length(),
+				  									 strVersion.data(), strVersion.length(),
+					  								 this->memcachedExpirationLimit_,
+    												 (uint32_t)0);
+  }
+  
+	if (statMemc != MEMCACHED_SUCCESS)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
+
+  versionedKey = versionedKeyFromAny(version, key);
+
+	statMemc = memcached_set(this->conn_,
+													 versionedKey.data(),
+													 versionedKey.length(),
 													 strValue.data(), strValue.length(),
 													 this->memcachedExpirationLimit_,
   												 (uint32_t)0);
@@ -532,6 +1073,24 @@ void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
 	}
 
 	return;
+}
+
+void MemcacheCatalog::setMemcachedFromReplicas(std::vector<FileReplica> replicas, ino_t inode)
+{
+  std::string serialList;
+  std::string serialReplica;
+  std::vector<std::string> keys;
+
+  for (int i = 0; i < replicas.size(); i++)
+  {
+    serialReplica =  serializeFileReplica(replicas[i]);
+    keys.push_back(keyFromURI(key_prefix[PRE_REPL], replicas[i].url));
+
+    setMemcachedFromKeyValue(keys.back(), serialReplica);
+  }
+  serialList = serializeList(keys);
+  setMemcachedFromKeyValue(keyFromAny(key_prefix[PRE_REPL_LIST], inode),
+                           serialList);
 }
 
 void MemcacheCatalog::delMemcachedFromKey(const std::string key)
@@ -549,26 +1108,129 @@ void MemcacheCatalog::delMemcachedFromKey(const std::string key)
 											std::string(memcached_strerror(this->conn_,
 																										 statMemc)));
 	}
-	if (statMemc != MEMCACHED_NOTFOUND)
-	
-	return;
+}
+
+void MemcacheCatalog::delMemcachedFromVersionedKey(const std::string key)
+{
+	memcached_return statMemc;
+  uint64_t version;
+
+  statMemc = 
+      memcached_increment(this->conn_,
+                          key.data(),
+                          key.length(),
+                          1, // offset
+                          &version);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTFOUND)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
 }
 
 void MemcacheCatalog::delMemcachedFromPath(const char* preKey, const std::string& path)
 {
   std::string name;
   std::string parentPath;
+  ino_t inode;
 	ExtendedStat parent;
 	std::memset(&parent, 0x00, sizeof(ExtendedStat));
 
 	// delete entry cached with inode
-	const std::string key1(keyFromAny(preKey, path));
-	delMemcachedFromKey(key1);
+  try
+  {  
+    inode = this->extendedStat(path).stat.st_ino;
+  } catch (DmException e)
+  {
+    int code = e.code();
+    if (code != DM_NO_SUCH_FILE)
+      throw;
+  }
+  const std::string key1(keyFromAny(preKey, inode));
+	delMemcachedFromVersionedKey(key1);
 
 	// delete entry cached with parent_inode + filename
 	parent = this->getParent(path, &parentPath, &name);
 	const std::string key2(keyFromAny(preKey, parent.stat.st_ino, name));
-	delMemcachedFromKey(key2);
+	delMemcachedFromVersionedKey(key2);
+}
 
-	return;
+std::vector<std::string> MemcacheCatalog::getListFromMemcachedKey(const std::string& listKey)
+        throw (DmException)
+{
+  std::string valMemc;
+  std::vector<std::string> keyList; 
+  std::vector<std::string> vecValMemc; 
+
+  valMemc = getValFromMemcachedKey(listKey);
+
+  if (!valMemc.empty())
+  {
+    keyList = deserializeBlackList(valMemc);
+
+    // get values
+    if (keyList.size() > 0)
+      vecValMemc = getValListFromMultipleMemcachedKeys(keyList);
+  }
+
+  return vecValMemc;
+}
+
+void MemcacheCatalog::addToListFromMemcachedKey(const std::string& listKey, const std::string& key)
+{
+	memcached_return statMemc;
+  uint64_t version;
+  std::string serialKey;
+
+  std::vector<std::string> keyList;
+  keyList.push_back(key);
+  serialKey = serializeList(keyList);
+
+  statMemc = 
+      memcached_append(this->conn_,
+                       listKey.data(),
+                       listKey.length(),
+                       serialKey.data(),
+                       serialKey.length(),
+                       this->memcachedExpirationLimit_, 
+                       (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTSTORED)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
+}
+
+void MemcacheCatalog::removeListItemFromMemcachedKey(const std::string& listKey, std::string& key)
+{
+	memcached_return statMemc;
+  uint64_t version;
+  std::string serialKey;
+
+  std::vector<std::string> keyList;
+  keyList.push_back(key);
+  serialKey = serializeList(keyList, false);
+
+  statMemc = 
+      memcached_append(this->conn_,
+                       listKey.data(),
+                       listKey.length(),
+                       serialKey.data(),
+                       serialKey.length(),
+                       this->memcachedExpirationLimit_, 
+                       (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTSTORED)
+	{
+		throw DmException(DM_UNKNOWN_ERROR,
+											std::string(memcached_strerror(this->conn_,
+																										 statMemc)));
+	}
 }

@@ -24,6 +24,12 @@ memcached_st* MemcacheConnectionFactory::create()
 	// Passing NULL means dynamically allocating space
 	c = memcached_create(NULL);
 
+  // Configure the memcached behaviour
+  memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 0);
+
+	if (memc_return_val != MEMCACHED_SUCCESS)
+		throw DmException(DM_UNKNOWN_ERROR, std::string(memcached_strerror(c, memc_return_val)));
+
 	// Add memcached TCP hosts
 	std::vector<std::string>::iterator i;
 	for (i = this->hosts.begin(); i != this->hosts.end(); i++)
