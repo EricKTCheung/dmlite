@@ -110,11 +110,67 @@ public:
     CPPUNIT_ASSERT_EQUAL('V', replica.type);
   }
 
+  void testCachedEntries()
+  {
+    struct stat s;
+
+    s = this->catalog->stat(FILE);
+
+    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
+                              "http://a.host.com/replica", '-', 'P',
+                              "the-pool", "the-fs");
+
+    FileReplica replica = this->catalog->get(FILE);
+    FileReplica replicaCached = this->catalog->get(FILE);
+
+    CPPUNIT_ASSERT_EQUAL((unsigned)replicaCached.fileid, (unsigned)replica.fileid);
+    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.url),
+                         std::string(replica.url));
+    CPPUNIT_ASSERT_EQUAL(replicaCached.status, replica.status);
+    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.filesystem), std::string(replica.filesystem));
+    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.pool), std::string(replica.pool));
+    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.server), std::string(replica.server));
+
+    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
+                              "http://a.host.com/replica2", '-', 'P',
+                              "the-pool", "the-fs");
+
+    std::vector<FileReplica> replicaVector = this->catalog->getReplicas(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(2, (int) replicaVector.size());
+  }
+
+  void testCachedModify()
+  {
+    struct stat s;
+
+    s = this->catalog->stat(FILE);
+
+    this->catalog->addReplica(std::string(), s.st_ino, "a.host",
+                              "https://a.host.com/replica", '-', 'P',
+                              "the-pool", "the-fs");
+
+    // value might be cached
+    FileReplica replica = this->catalog->get(FILE);
+
+    this->catalog->replicaSetLifeTime("https://a.host.com/replica", 12348);
+    this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
+    this->catalog->replicaSetType("https://a.host.com/replica", 'V');
+
+    replica = this->catalog->get(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
+    CPPUNIT_ASSERT_EQUAL('D', replica.status);
+    CPPUNIT_ASSERT_EQUAL('V', replica.type);
+  }
+
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
   CPPUNIT_TEST(testAddNoHost);
   CPPUNIT_TEST(testModify);
+  CPPUNIT_TEST(testCachedEntries);
+  CPPUNIT_TEST(testCachedModify);
   CPPUNIT_TEST_SUITE_END();
 };
 
