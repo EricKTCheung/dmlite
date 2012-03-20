@@ -6,6 +6,7 @@
 #include <iostream>
 #include <ios>
 #include <iosfwd>
+#include <string.h>
 
 class TestIO: public CppUnit::TestFixture
 {
