@@ -1,14 +1,16 @@
 cmake_minimum_required (VERSION 2.6)
 
-add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp)
+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+find_package(Protobuf REQUIRED)
 
-find_package(Boost COMPONENTS wserialization REQUIRED)
+# build the protobuf *.pb.(h|cc) files
+wrap_proto(PROTO_SRC MemcacheCatalog.proto)
+
+add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
+ ${PROTO_SRC})
+
 #find_package(Memcache)
-include_directories(${Boost_INCLUDE_DIR})
-
-target_link_libraries(memcache ${Boost_LIBRARIES})
-
-target_link_libraries (memcache dmlite dmlitecommon memcached)
+target_link_libraries (memcache dmlite dmlitecommon memcached protobuf pthread)
 set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       memcache
