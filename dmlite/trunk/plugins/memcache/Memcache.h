@@ -34,28 +34,17 @@ public:
   ~MemcacheCatalog() throw (DmException);
 
   // Overloading 
-	void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
+  std::string getImplId(void) throw ();
+
+  void set(const std::string& key, va_list varg) throw (DmException);
+
 //  void        changeDir    (const std::string&) throw (DmException);
 
   ExtendedStat extendedStat(const std::string&, bool = true) throw (DmException);
   ExtendedStat extendedStat(ino_t)              throw (DmException);
   ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
+  SymLink readLink(ino_t) throw (DmException);
 
-  void makeDir  (const std::string&, mode_t) throw (DmException);
-  void removeDir(const std::string&) throw (DmException);
-
-  void symlink(const std::string&, const std::string&) throw (DmException);
-  void unlink (const std::string&) throw (DmException);
-
-  void rename(const std::string&, const std::string&) throw (DmException);
-
-  void create(const std::string&, mode_t) throw (DmException);
-
-  void changeMode     (const std::string&, mode_t)       throw (DmException);
-  void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
-  void utime(const std::string&, const struct utimbuf*) throw (DmException);
-//  void utime(ino_t, const struct utimbuf*)              throw (DmException);
   void addReplica(const std::string&, int64_t, const std::string&,
                   const std::string&, char, char,
                   const std::string&, const std::string&) throw (DmException);
@@ -67,11 +56,42 @@ public:
   
   FileReplica              get        (const std::string&) throw (DmException);
 
+  void symlink(const std::string&, const std::string&) throw (DmException);
+  void unlink (const std::string&) throw (DmException);
+
+  void create(const std::string&, mode_t) throw (DmException);
+
+  // missing put functions 
+
+  // missing openDir, closeDir and readDir
+
+  void changeMode     (const std::string&, mode_t)       throw (DmException);
+  void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
+  void linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+
+  void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
+
+  void utime(const std::string&, const struct utimbuf*) throw (DmException);
+//  void utime(ino_t, const struct utimbuf*)              throw (DmException);
+  
+  std::string getComment(const std::string&)                     throw (DmException);
+  void        setComment(const std::string&, const std::string&) throw (DmException);
+
+//  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
+  
+  void makeDir  (const std::string&, mode_t) throw (DmException);
+  void removeDir(const std::string&) throw (DmException);
+
+  void rename(const std::string&, const std::string&) throw (DmException);
+
   void replicaSetLifeTime  (const std::string&, time_t) throw (DmException);
   void replicaSetAccessTime(const std::string&)         throw (DmException);
   void replicaSetType      (const std::string&, char)   throw (DmException);
   void replicaSetStatus    (const std::string&, char)   throw (DmException);
+  
+  // missing User and Group Info
 
+	void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
 protected:
   /// The Memcached connection
   memcached_st* conn_;
@@ -104,6 +124,26 @@ private:
   /// @param serial_str The serialized object as string.
   /// @param var The deserialized object.
   void deserialize(std::string& serial_str, ExtendedStat& var);
+
+  /// Serialize a SymLink object into a string.
+  /// @param var The object to serialize.
+  /// @return The serialized object as string.
+  std::string serializeLink(const SymLink& var);
+
+  /// Create an object from a serialized string.
+  /// @param serial_str The serialized object as string.
+  /// @param var The deserialized object.
+  void deserializeLink(std::string& serial_str, SymLink& var);
+
+  /// Serialize a Comment object into a string.
+  /// @param var The object to serialize.
+  /// @return The serialized object as string.
+  std::string serializeComment(const std::string& var);
+
+  /// Create an object from a serialized string.
+  /// @param serial_str The serialized object as string.
+  /// @param var The deserialized object.
+  void deserializeComment(std::string& serial_str, std::string& var);
 
   /// Serialize a list of keys (strings) into a string.
   /// The keys can be either 'white' items or
