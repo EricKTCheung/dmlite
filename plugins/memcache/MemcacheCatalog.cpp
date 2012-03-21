@@ -14,7 +14,9 @@ enum {
 	PRE_STAT = 0,
   PRE_REPL,
   PRE_REPL_LIST,
-  PRE_REPL_BLACK_LIST
+  PRE_REPL_BLACK_LIST,
+  PRE_LINK,
+  PRE_COMMENT
 };
 
 /// Used internally to define Key Prefixes.
@@ -23,7 +25,9 @@ static const char* key_prefix[] = {
 	"STAT",
   "REPL",
   "RPLI",
-  "RPBL"
+  "RPBL",
+  "LINK",
+  "CMNT"
 };
 
 /// Little of help here to avoid redundancy
@@ -151,6 +155,61 @@ void MemcacheCatalog::deserialize(std::string& serial_str, ExtendedStat& var)
   std::memcpy(&var.csumvalue, seStat.csumvalue().c_str(), seStat.csumvalue().length()+1);
   std::memcpy(&var.acl, seStat.acl().c_str(), seStat.acl().length()+1);
 }
+
+std::string MemcacheCatalog::serializeLink(const SymLink& var)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  std::string serialString;
+  SerialSymLink seLink;
+
+  seLink.set_fileid(var.fileId);
+  seLink.set_link(var.link);
+
+  return seLink.SerializeAsString();
+}
+
+void MemcacheCatalog::deserializeLink(std::string& serial_str,
+                                      SymLink& var)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialSymLink seLink;
+
+  seLink.ParseFromString(serial_str);
+//  seStat.PrintDebugString();
+
+  var.fileId = seLink.fileid();
+  std::memcpy(&var.link, seLink.link().c_str(),
+              seLink.link().length()+1);
+}
+
+std::string MemcacheCatalog::serializeComment(const std::string& var)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  std::string serialString;
+  SerialComment seComment;
+
+  seComment.set_comment(var);
+
+  return seComment.SerializeAsString();
+}
+
+void MemcacheCatalog::deserializeComment(std::string& serial_str,
+                                         std::string& var)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialComment seComment;
+
+  seComment.ParseFromString(serial_str);
+//  seStat.PrintDebugString();
+
+  var = seComment.comment();
+}
+
+
 /*
 std::string MemcacheCatalog::serializeKey(const std::string& key)
 {
@@ -336,6 +395,17 @@ std::vector<FileReplica> MemcacheCatalog::deserialize(std::vector<std::string>& 
   return replicas;
 }
 */
+std::string MemcacheCatalog::getImplId() throw ()
+{
+  return std::string("MemcacheCatalog");
+}
+
+void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmException)
+{
+  throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
+}
+
+
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
 	std::string cwdPath;
@@ -421,7 +491,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
 
 ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
 {
- ExtendedStat meta; 
+  ExtendedStat meta; 
 
   memset(&meta, 0x00, sizeof(ExtendedStat));
 
@@ -461,6 +531,30 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, parent, name);
 		valMemc = serialize(meta);
+		setMemcachedFromVersionedKeyValue(key, valMemc);
+	}
+
+  return meta;
+}
+
+SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
+{
+  SymLink meta; 
+
+  memset(&meta, 0x00, sizeof(SymLink));
+
+	std::string valMemc;
+
+	const std::string key = keyFromAny(key_prefix[PRE_LINK], linkId); 
+
+	valMemc = getValFromMemcachedVersionedKey(key);
+	if (!valMemc.empty())
+	{
+		deserializeLink(valMemc, meta);
+	} else // valMemc was not in memcached
+	{
+		DELEGATE_ASSIGN(meta, readLink, linkId);
+		valMemc = serializeLink(meta);
 		setMemcachedFromVersionedKeyValue(key, valMemc);
 	}
 
@@ -528,6 +622,12 @@ void MemcacheCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
 }
 
+void MemcacheCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+{
+  DELEGATE(setAcl, path, acls);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+}
+
 void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
   DELEGATE(utime, path, buf);
@@ -541,7 +641,46 @@ void MemcacheCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmExc
   delMemcachedFromKey(key);
 }
 */
+std::string MemcacheCatalog::getComment(const std::string& path) throw(DmException)
+{
+  // Get the file and check we can read
+  ExtendedStat meta = this->extendedStat(path);
+  
+  if (checkPermissions(this->user_, this->group_, this->groups_,
+                       meta.acl, meta.stat, S_IREAD) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
+  // Query
+  std::string comment;
+	std::string valMemc;
+
+	const std::string key = keyFromAny(key_prefix[PRE_COMMENT], meta.stat.st_ino); 
+
+	valMemc = getValFromMemcachedVersionedKey(key);
+	if (!valMemc.empty())
+	{
+		deserializeComment(valMemc, comment);
+	} else // valMemc was not in memcached
+	{
+		DELEGATE_ASSIGN(comment, getComment, path);
+		valMemc = serializeComment(comment);
+		setMemcachedFromVersionedKeyValue(key, valMemc);
+	}
+  return comment;
+}
+
+void MemcacheCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
+{
+  DELEGATE(setComment, path, comment);
+	delMemcachedFromPath(key_prefix[PRE_COMMENT], path);
+}
+/*
+void MemcacheCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
+{
+  DELEGATE(setGuid, path, guid);
+	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+}
+*/
 void MemcacheCatalog::addReplica(const std::string& guid, int64_t id,
                                  const std::string& server, const std::string& sfn,
                                  char status, char fileType,
