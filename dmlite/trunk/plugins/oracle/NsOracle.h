@@ -16,7 +16,7 @@ namespace dmlite {
 struct NsOracleDir {
   uint64_t                 dirId;         ///< The directory ID.
   ExtendedStat             current;       ///< Current entry metadata.
-  struct direntstat        ds;            ///< The structure used to hold the returned data.
+  struct dirent            ds;            ///< The structure used to hold the returned data.
   oracle::occi::Statement *stmt;          ///< The statement.
   oracle::occi::ResultSet *rs;            ///< The result set.
 };
@@ -48,6 +48,10 @@ public:
   std::string getImplId(void) throw ();
 
   void set(const std::string& key, va_list varg) throw (DmException);
+
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  const SecurityContext& getSecurityContext() throw (DmException);
+  void setSecurityContext(const SecurityContext&);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
@@ -82,8 +86,8 @@ public:
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
 
-  struct dirent*     readDir (Directory*) throw (DmException);
-  struct direntstat* readDirx(Directory*) throw (DmException);
+  struct dirent* readDir (Directory*) throw (DmException);
+  ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   mode_t umask(mode_t) throw ();
 
@@ -116,18 +120,9 @@ public:
   GroupInfo getGroup(gid_t)              throw (DmException);
   GroupInfo getGroup(const std::string&) throw (DmException);
 
-  void getIdMap     (const std::string&, const std::vector<std::string>&,
-                     uid_t*, std::vector<gid_t>*) throw (DmException);
-
-  void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
-  void setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException);
-
 protected:
-  UserInfo  user_;  ///< User.
-  GroupInfo group_; ///< User main group.
-
-  /// User secondary groups.
-  std::vector<GroupInfo> groups_;
+  /// Security context
+  SecurityContext secCtx_;
 
   /// The Oracle connection pool.
   oracle::occi::ConnectionPool* pool_;
@@ -220,6 +215,10 @@ private:
 
   /// Set the replica attributes
   void replicaSet(const FileReplica& rdata) throw (DmException);
+
+  /// Get user mapping.
+  void getIdMap(const std::string&, const std::vector<std::string>&,
+                UserInfo*, std::vector<GroupInfo>*) throw (DmException);
 };
 
 };
