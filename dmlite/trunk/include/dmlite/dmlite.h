@@ -362,19 +362,6 @@ int dm_getgrpbygid(dm_context* context, gid_t gid, char* groupName);
 int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid);
 
 /**
- * Map a user+groups to the corresponding uid+gids.
- * @param context    The DM context.
- * @param username   The user name to map.
- * @param nGroups    The number of groups.
- * @param groupNames An array of nGroups group names.
- * @param uid        Where to put the user ID.
- * @param gids       An array of, at least, nGroups elements (minimum is 1).
- * @return           0 on success, error code otherwise.
- */
-int dm_getidmap(dm_context* context, const char* username, int nGroups,
-                const char* *groupNames, uid_t* uid, gid_t* gids);
-
-/**
  * Get the user id.
  * @param context  The DM context.
  * @param userName The user name.
@@ -488,23 +475,10 @@ int dm_replica_setstatus(dm_context* context, const char* replica, char status);
 /**
  * Set the user ID
  * @param context The DM context.
- * @param uid     The UID
- * @param gid     The GID
- * @param dn      The full DN (i.e. /DC=ch/DC=cern/OU=Organic Units/...)
+ * @param cred    The security credentials.
  * @return        0 on success, error code otherwise.
  */
-int dm_setuserid(dm_context* context, uid_t uid, gid_t gid, const char* dn);
-
-/**
- * Set the user associated VO data.
- * @param context The DM context.
- * @param vo      The main VO
- * @param fqans   The FQANS
- * @param nFqans  The number of FQANS
- * @return        0 on succes, -1 on failure
- */
-int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int nFqans);
-
+int dm_setcredentials(dm_context* context, struct credentials* cred);
 
 /**
  * Get the list of pools.

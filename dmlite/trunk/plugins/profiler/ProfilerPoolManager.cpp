@@ -33,16 +33,23 @@ std::string ProfilerPoolManager::getImplId() throw ()
 
 
 
-void ProfilerPoolManager::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
+void ProfilerPoolManager::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
-  PROFILE(setUserId, uid, gid, dn);
+  PROFILE(setSecurityCredentials, cred);
 }
 
 
 
-void ProfilerPoolManager::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+void ProfilerPoolManager::setSecurityContext(const SecurityContext& ctx)
 {
-  PROFILE(setVomsData, vo, fqans);
+  PROFILE(setSecurityContext, ctx);
+}
+
+
+
+const SecurityContext& ProfilerPoolManager::getSecurityContext() throw (DmException)
+{
+  return this->decorated_->getSecurityContext();
 }
 
 

@@ -52,6 +52,27 @@ void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException
 
 
 
+void DummyCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  DELEGATE(setSecurityCredentials, cred);
+}
+
+
+
+const SecurityContext& DummyCatalog::getSecurityContext() throw (DmException)
+{
+  DELEGATE_RETURN(getSecurityContext);
+}
+
+
+
+void DummyCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  DELEGATE(setSecurityContext, ctx);
+}
+
+
+
 void DummyCatalog::changeDir(const std::string& path) throw (DmException)
 {
   DELEGATE(changeDir, path);
@@ -226,6 +247,13 @@ void DummyCatalog::utime(const std::string& path, const struct utimbuf* buf) thr
 
 
 
+void DummyCatalog::utime(ino_t inode, const utimbuf* buf) throw (DmException)
+{
+  DELEGATE(utime, inode, buf);
+}
+
+
+
 std::string DummyCatalog::getComment(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(getComment, path);
@@ -240,6 +268,13 @@ void DummyCatalog::setComment(const std::string& path, const std::string& commen
 
 
 
+void DummyCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
+{
+  DELEGATE(setGuid, path, guid);
+}
+
+
+
 GroupInfo DummyCatalog::getGroup(gid_t gid) throw (DmException)
 {
   DELEGATE_RETURN(getGroup, gid);
@@ -250,15 +285,6 @@ GroupInfo DummyCatalog::getGroup(gid_t gid) throw (DmException)
 GroupInfo DummyCatalog::getGroup(const std::string& groupName) throw (DmException)
 {
   DELEGATE_RETURN(getGroup, groupName);
-}
-
-
-
-void DummyCatalog::getIdMap(const std::string& userName,
-                            const std::vector<std::string>& groupNames,
-                            uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
-{
-  DELEGATE(getIdMap, userName, groupNames, uid, gids);
 }
 
 
@@ -350,18 +376,4 @@ void DummyCatalog::replicaSetStatus(const std::string& replica, char status) thr
 void DummyCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
 {
   DELEGATE(replicaSetType, replica, type);
-}
-
-
-
-void DummyCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
-{
-  DELEGATE(setUserId, uid, gid, dn);
-}
-
-
-
-void DummyCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
-{
-  DELEGATE(setVomsData, vo, fqans);
 }

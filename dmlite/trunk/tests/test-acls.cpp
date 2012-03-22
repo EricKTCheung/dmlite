@@ -14,18 +14,22 @@ protected:
 
   std::string ACL_STRING;
 
+  const dmlite::SecurityContext* ctx;
+
 public:
 
   void setUp()
   {
     TestBase::setUp();
 
+    this->catalog->setSecurityCredentials(cred1);
+
+    ctx = &this->catalog->getSecurityContext();
+
     std::stringstream ss;
-    ss << "A7" << uid1 << ",C0" << gid1_1 << ",E70,F50";
+    ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F50";
     ACL_STRING = ss.str();
 
-    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
-    this->catalog->setVomsData("dteam", user_groups);
     this->catalog->makeDir(FOLDER, 0700);
     this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ACL_STRING));
   }
@@ -50,19 +54,19 @@ public:
 
   void testChown()
   {
-    this->catalog->changeOwner(FOLDER, -1, gid1_2);
+    this->catalog->changeOwner(FOLDER, -1, ctx->getGroup(1).gid);
     ExtendedStat stat = this->catalog->extendedStat(FOLDER);
     std::vector<Acl> acls = dmlite::deserializeAcl(stat.acl);
 
     CPPUNIT_ASSERT_EQUAL((size_t)4, acls.size());
 
-    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ, (int)acls[0].type);
-    CPPUNIT_ASSERT_EQUAL(uid1,              acls[0].id);
-    CPPUNIT_ASSERT_EQUAL(7,            (int)acls[0].perm);
+    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ,  (int)acls[0].type);
+    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, acls[0].id);
+    CPPUNIT_ASSERT_EQUAL(7,             (int)acls[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ, (int)acls[1].type);
-    CPPUNIT_ASSERT_EQUAL(gid1_2,             acls[1].id);
-    CPPUNIT_ASSERT_EQUAL(0,             (int)acls[1].perm);
+    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ,   (int)acls[1].type);
+    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, acls[1].id);
+    CPPUNIT_ASSERT_EQUAL(0,               (int)acls[1].perm);
   }
 
   void testChmod()
@@ -73,13 +77,13 @@ public:
 
     CPPUNIT_ASSERT_EQUAL((size_t)4, acls.size());
 
-    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ, (int)acls[0].type);
-    CPPUNIT_ASSERT_EQUAL(uid1,              acls[0].id);
-    CPPUNIT_ASSERT_EQUAL(5,            (int)acls[0].perm);
+    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ,  (int)acls[0].type);
+    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, acls[0].id);
+    CPPUNIT_ASSERT_EQUAL(5,             (int)acls[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ, (int)acls[1].type);
-    CPPUNIT_ASSERT_EQUAL(gid1_1,             acls[1].id);
-    CPPUNIT_ASSERT_EQUAL(5,             (int)acls[1].perm);
+    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ,   (int)acls[1].type);
+    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, acls[1].id);
+    CPPUNIT_ASSERT_EQUAL(5,               (int)acls[1].perm);
 
     CPPUNIT_ASSERT_EQUAL(ACL_OTHER, (int)acls[3].type);
     CPPUNIT_ASSERT_EQUAL(5,         (int)acls[3].perm);
@@ -95,7 +99,7 @@ public:
 
     // Assert resulting ACL
     std::stringstream acl;
-    acl << "A6" << uid1 << ",C0" << gid1_1 << ",F00,a60,c50,f00";
+    acl << "A6" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",F00,a60,c50,f00";
     CPPUNIT_ASSERT_EQUAL(acl.str(), std::string(stat.acl));
   }
 

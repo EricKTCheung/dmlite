@@ -213,13 +213,11 @@ MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
                                unsigned int symLinkLimit) throw(DmException):
-                cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit),
+                secCtx_(), cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit),
                 preparedStmt_(STMT_SENTINEL, 0x00)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
-  std::memset(&this->user_,  0x00, sizeof(UserInfo));
-  std::memset(&this->group_, 0x00, sizeof(GroupInfo));
 }
 
 
@@ -247,6 +245,31 @@ std::string NsMySqlCatalog::getImplId() throw ()
 void NsMySqlCatalog::set(const std::string& key, va_list varg) throw(DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
+}
+
+
+
+void NsMySqlCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  UserInfo user;
+  std::vector<GroupInfo> groups;
+
+  this->getIdMap(cred.getClientName(), cred.getFqans(), &user, &groups);
+  this->secCtx_ = SecurityContext(cred, user, groups);
+}
+
+
+
+const SecurityContext& NsMySqlCatalog::getSecurityContext() throw (DmException)
+{
+  return this->secCtx_;
+}
+
+
+
+void NsMySqlCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  this->secCtx_ = ctx;
 }
 
 
@@ -377,9 +400,7 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
   }
 
   // Check the parent!
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       parent.acl, parent.stat,
-                       S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
   // Fetch the new file ID
@@ -409,7 +430,7 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
     mode |= S_ISGID;
   }
   else {
-    egid = this->group_.gid;
+    egid = this->secCtx_.getGroup(0).gid;
   }
 
   // Create the entry
@@ -420,7 +441,7 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
   fileStmt.bindParam( 2, name);
   fileStmt.bindParam( 3, mode);
   fileStmt.bindParam( 4, nlink);
-  fileStmt.bindParam( 5, this->user_.uid);
+  fileStmt.bindParam( 5, this->secCtx_.getUser().uid);
   fileStmt.bindParam( 6, egid);
   fileStmt.bindParam( 7, size);
   fileStmt.bindParam( 8, type);
@@ -508,8 +529,7 @@ ExtendedStat NsMySqlCatalog::extendedStat(const std::string& path, bool followSy
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
       throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.stat, S_IEXEC) != 0)
+    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
 
     // Pop next component
@@ -570,8 +590,7 @@ void NsMySqlCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcept
   // We want to check if we can arrive here...
   while (current.parent != 0) {
     current = this->extendedStat(current.parent);
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                         current.acl, current.stat, S_IEXEC))
+    if (checkPermissions(this->secCtx_, current.acl, current.stat, S_IEXEC))
       throw DmException(DM_FORBIDDEN, "Can not access #%ld",
                         current.stat.st_ino);
   }
@@ -611,8 +630,7 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
   meta = this->extendedStat(path);
   
   // Can we read it?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Create the handle
@@ -708,8 +726,7 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
   this->traverseBackwards(meta);
 
   // Can write?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
   // If server is empty, parse the surl
@@ -755,8 +772,7 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
   this->traverseBackwards(meta);
 
   // Can write?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
@@ -770,14 +786,13 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
 
 std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) throw(DmException)
 {
-  ExtendedStat  meta;
+  ExtendedStat meta;
 
   // Need to grab the file first
   meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
@@ -865,8 +880,7 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
   ExtendedStat parent = this->getParent(newPath, &parentPath, &symName);
 
   // Check we have write access for the parent
-  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.stat, S_IWRITE | S_IEXEC) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE | S_IEXEC) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on " + parentPath);
 
   // Transaction
@@ -899,8 +913,7 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Check we have exec access for the parent
-  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                       parent.stat, S_IEXEC) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IEXEC) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to list " + parentPath);
 
   // The file itself
@@ -913,17 +926,15 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != file.stat.st_uid &&
-        this->user_.uid != parent.stat.st_uid &&
-        checkPermissions(this->user_, this->group_, this->groups_, file.acl,
-                         file.stat, S_IWRITE) != 0)
+    if (this->secCtx_.getUser().uid != file.stat.st_uid &&
+        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+        checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
-    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
   }
 
@@ -999,7 +1010,8 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     std::string aclStr;
     if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
       aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                       this->user_.uid, this->group_.gid,
+                                       this->secCtx_.getUser().uid,
+                                       this->secCtx_.getGroup(0).gid,
                                        &newMode, mode));
     }
 
@@ -1033,16 +1045,16 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
   ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      this->secCtx_.getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.stat.st_mode) && this->user_.uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && this->secCtx_.getUser().uid != 0)
     mode &= ~S_ISVTX;
-  if (this->user_.uid != 0 &&
-      meta.stat.st_gid != this->group_.gid &&
-      !gidInGroups(meta.stat.st_gid, this->groups_))
+  if (this->secCtx_.getUser().uid != 0 &&
+      !this->secCtx_.hasGroup(meta.stat.st_gid))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
@@ -1095,17 +1107,17 @@ void NsMySqlCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
     return;
 
   // If root, skip all checks
-  if (this->user_.uid != 0) {
+  if (this->secCtx_.getUser().uid != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.stat.st_uid != this->user_.uid)
+      if (meta.stat.st_uid != this->secCtx_.getUser().uid)
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
       // AND it has to belong to that group
-      if (newGid != this->group_.gid && !gidInGroups(newGid, this->groups_))
+      if (!this->secCtx_.hasGroup(newGid))
         throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
     }
@@ -1159,7 +1171,8 @@ void NsMySqlCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
   ExtendedStat meta = this->extendedStat(path);
 
   // Check we can change it
-  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      this->secCtx_.getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
 
   std::vector<Acl> aclsCopy(acls);
@@ -1218,9 +1231,8 @@ void NsMySqlCatalog::utime(const std::string& path, const struct utimbuf* buf) t
   ExtendedStat meta = this->extendedStat(path);
 
   // The user is the owner OR buf is NULL and has write permissions
-  if (this->user_.uid != meta.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
   // Touch
@@ -1257,8 +1269,7 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
   // Get the file and check we can read
   ExtendedStat meta = this->extendedStat(path);
   
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
@@ -1282,8 +1293,7 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
   // Get the file and check we can write
   ExtendedStat meta = this->extendedStat(path);
 
-  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1309,8 +1319,7 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
 {
   ExtendedStat meta = this->extendedStat(path);
 
-  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1332,8 +1341,7 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Check we have write access for the parent
-  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Mode
@@ -1343,7 +1351,8 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   std::string aclStr;
   if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
     aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                     this->user_.uid, this->group_.gid,
+                                     this->secCtx_.getUser().uid,
+                                     this->secCtx_.getGroup(0).gid,
                                      &newMode, mode));
   }
 
@@ -1382,17 +1391,15 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != entry.stat.st_uid &&
-        this->user_.uid != parent.stat.st_uid &&
-        checkPermissions(this->user_, this->group_, this->groups_, entry.acl,
-                         entry.stat, S_IWRITE) != 0)
+    if (this->secCtx_.getUser().uid != entry.stat.st_uid &&
+        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+        checkPermissions(this->secCtx_, entry.acl, entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
-    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
   }
 
@@ -1444,17 +1451,15 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
   }
 
   // Need write permissions in both origin and destination
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       oldParent.acl, oldParent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, oldParent.acl, oldParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       newParent.acl, newParent.stat, S_IWRITE) != 0)
+
+  if (checkPermissions(this->secCtx_, newParent.acl, newParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
   if (S_ISDIR(old.stat.st_mode)) {
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                        old.acl, old.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
 
     // AND destination can not be a child
@@ -1469,9 +1474,9 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Check sticky
   if (oldParent.stat.st_mode & S_ISVTX &&
-      this->user_.uid != oldParent.stat.st_uid &&
-      this->user_.uid != old.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.stat, S_IWRITE) != 0)
+      this->secCtx_.getUser().uid != oldParent.stat.st_uid &&
+      this->secCtx_.getUser().uid != old.stat.st_uid &&
+      checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
   // If the destination exists...
@@ -1590,9 +1595,8 @@ void NsMySqlCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
   this->traverseBackwards(meta);
 
   /* Check the user can modify */
-  if (this->user_.uid != meta.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the replica");
 
   /* Update */
@@ -1645,69 +1649,25 @@ void NsMySqlCatalog::replicaSetType(const std::string& replica, char type) throw
 
 
 
-void NsMySqlCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
-{
-  UserInfo  u = this->getUser(uid);
-  GroupInfo g = this->getGroup(gid);
-
-  if (u.name != dn && uid != 0) {
-    throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
-                                        "the one associated with the id #%ld: "
-                                        "'%s' != '%s'",
-                                        uid, dn.c_str(), this->user_.name);
-  }
-
-  this->user_  = u;
-  this->group_ = g;
-  this->groups_.clear();
-}
-
-
-
-void NsMySqlCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
-{
-  std::string group;
-
-  // First, set the main group
-  if (!vo.empty()) {
-    group = voFromRole(vo);
-    this->group_ = this->getGroup(group);
-  }
-
-  // Set the secondary
-  this->groups_.clear();
-
-  std::vector<std::string>::const_iterator i;
-
-  for (i = fqans.begin(); i != fqans.end(); ++i) {
-    group = voFromRole(*i);
-    this->groups_.push_back(this->getGroup(group));
-  }
-}
-
-
-
 void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
-                              uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
+                              UserInfo* user, std::vector<GroupInfo>* groups) throw (DmException)
 {
   std::string vo;
-  UserInfo    user;
   GroupInfo   group;
 
   // Clear
-  gids->clear();
+  groups->clear();
 
   // User mapping
   try {
-    user = this->getUser(userName);
+    *user = this->getUser(userName);
   }
   catch (DmException e) {
     if (e.code() == DM_NO_SUCH_USER)
-      user = this->newUser(userName, "");
+      *user = this->newUser(userName, "");
     else
       throw;
   }
-  *uid = user.uid;
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
@@ -1721,7 +1681,7 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
       else
         throw;
     }
-    gids->push_back(group.gid);
+    groups->push_back(group);
   }
   else {
     // Get group info
@@ -1737,7 +1697,7 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
         else
           throw;
       }
-      gids->push_back(group.gid);
+      groups->push_back(group);
     }
   }
 }

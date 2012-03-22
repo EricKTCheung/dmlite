@@ -16,7 +16,7 @@ using namespace dmlite;
 
 
 
-DpmAdapter::DpmAdapter(const std::string& dpmHost, unsigned retryLimit)
+DpmAdapterCatalog::DpmAdapterCatalog(const std::string& dpmHost, unsigned retryLimit)
   throw (DmException): NsAdapterCatalog(dpmHost, retryLimit)
 {
   const char *envDpm;
@@ -40,21 +40,21 @@ DpmAdapter::DpmAdapter(const std::string& dpmHost, unsigned retryLimit)
 
 
 
-DpmAdapter::~DpmAdapter()
+DpmAdapterCatalog::~DpmAdapterCatalog()
 {
   // Nothing
 }
 
 
 
-std::string DpmAdapter::getImplId() throw ()
+std::string DpmAdapterCatalog::getImplId() throw ()
 {
   return std::string("DpmAdapter");
 }
 
 
 
-void DpmAdapter::set(const std::string& key, va_list value) throw (DmException)
+void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmException)
 {
   if (key == "SpaceToken") {
     const char* sToken = va_arg(value, const char*);
@@ -69,7 +69,32 @@ void DpmAdapter::set(const std::string& key, va_list value) throw (DmException)
 
 
 
-FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
+void DpmAdapterCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  NsAdapterCatalog::setSecurityCredentials(cred);
+  this->setSecurityContext(this->secCtx_);
+}
+
+
+
+void DpmAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  NsAdapterCatalog::setSecurityContext(ctx);
+  // Call DPM API
+  wrapCall(dpm_client_setAuthorizationId(ctx.getUser().uid,
+                                         ctx.getGroup(0).gid,
+                                         "GSI",
+                                         (char*)ctx.getUser().name));
+
+  if (ctx.groupCount() > 0)
+    wrapCall(dpm_client_setVOMS_data((char*)ctx.getGroup(0).name,
+                                     (char**)ctx.getCredentials().fqans,
+                                     ctx.groupCount()));
+}
+
+
+
+FileReplica DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   struct dpm_getfilereq     request;
   struct dpm_getfilestatus *statuses = 0x00;
@@ -133,7 +158,7 @@ FileReplica DpmAdapter::get(const std::string& path) throw (DmException)
 
 
 
-std::string DpmAdapter::put(const std::string& path, Uri* uri) throw (DmException)
+std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
 {
   struct dpm_putfilereq     reqfile;
   struct dpm_putfilestatus *statuses = 0x00;
@@ -207,14 +232,14 @@ std::string DpmAdapter::put(const std::string& path, Uri* uri) throw (DmExceptio
 
 
 
-std::string DpmAdapter::put(const std::string&, Uri*, const std::string&) throw (DmException)
+std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapter");
 }
 
 
 
-void DpmAdapter::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
+void DpmAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
 {
   struct dpm_putfilestatus *statuses;
   int                       nReplies, status;
@@ -239,7 +264,7 @@ void DpmAdapter::putStatus(const std::string& path, const std::string& token, Ur
 
 
 
-void DpmAdapter::putDone(const std::string& path, const std::string& token) throw (DmException)
+void DpmAdapterCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
@@ -261,7 +286,7 @@ void DpmAdapter::putDone(const std::string& path, const std::string& token) thro
 
 
 
-void DpmAdapter::unlink(const std::string& path) throw (DmException)
+void DpmAdapterCatalog::unlink(const std::string& path) throw (DmException)
 {
   int                    nReplies;
   struct dpm_filestatus *statuses;
@@ -281,23 +306,29 @@ void DpmAdapter::unlink(const std::string& path) throw (DmException)
 
 
 
-void DpmAdapter::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
+DpmAdapterPoolManager::DpmAdapterPoolManager(const std::string& dpmHost, unsigned retryLimit) throw (DmException):
+          dpmHost_(dpmHost), retryLimit_(retryLimit)
 {
-  NsAdapterCatalog::setUserId(uid, gid, dn);
-  wrapCall(dpm_client_setAuthorizationId(uid, gid, "GSI", (char*)dn.c_str()));
+  // Nothing
 }
 
 
 
-void DpmAdapter::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
+DpmAdapterPoolManager::~DpmAdapterPoolManager()
 {
-  NsAdapterCatalog::setVomsData(vo, fqans);
-  wrapCall(dpm_client_setVOMS_data((char*)this->vo_, this->fqans_, this->nFqans_));
+  // Nothing
 }
 
 
 
-std::vector<Pool> DpmAdapter::getPools(void) throw (DmException)
+std::string DpmAdapterPoolManager::getImplId() throw()
+{
+  return std::string("DpmAdapter");
+}
+
+
+
+std::vector<Pool> DpmAdapterPoolManager::getPools(void) throw (DmException)
 {
   struct dpm_pool* dpmPools = 0x00;
   int              nPools;
@@ -342,7 +373,7 @@ std::vector<Pool> DpmAdapter::getPools(void) throw (DmException)
 
 
 
-std::vector<FileSystem> DpmAdapter::getPoolFilesystems(const std::string& poolname) throw (DmException)
+std::vector<FileSystem> DpmAdapterPoolManager::getPoolFilesystems(const std::string& poolname) throw (DmException)
 {
   struct dpm_fs*          dpmFs;
   int                     nFs;
@@ -369,9 +400,9 @@ std::vector<FileSystem> DpmAdapter::getPoolFilesystems(const std::string& poolna
 
 
 
-FileSystem DpmAdapter::getFilesystem(const std::string& pool,
-                                     const std::string& server,
-                                     const std::string& fs) throw (DmException)
+FileSystem DpmAdapterPoolManager::getFilesystem(const std::string& pool,
+                                                const std::string& server,
+                                                const std::string& fs) throw (DmException)
 {
   std::vector<FileSystem> filesystems = this->getPoolFilesystems(pool);
 
@@ -382,4 +413,63 @@ FileSystem DpmAdapter::getFilesystem(const std::string& pool,
   }
 
   throw DmException(DM_NO_SUCH_FS, server + ":" + fs + " not found");
+}
+
+
+
+void DpmAdapterPoolManager::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  uid_t uid;
+  gid_t gids[cred.nfqans + 1];
+
+  // Get the ID mapping
+  wrapCall(dpns_getidmap(cred.client_name, cred.nfqans, (const char**)cred.fqans,
+                         &uid, gids));
+
+  // Initialize context
+  this->secCtx_.setCredentials(cred);
+  this->secCtx_.getUser().uid    = uid;
+  this->secCtx_.getUser().banned = 0;
+  strncpy(this->secCtx_.getUser().name, cred.client_name, 255);
+
+  // If groups were specified, copy
+  if (cred.nfqans > 0) {
+    this->secCtx_.resizeGroup(cred.nfqans);
+    for (unsigned i = 0; i < cred.nfqans; ++i) {
+      this->secCtx_.getGroup(i).gid    = gids[i];
+      this->secCtx_.getGroup(i).banned = 0;
+      strncpy(this->secCtx_.getGroup(i).name, cred.fqans[i], 255);
+    }
+  }
+  // Else, there will be at least one default
+  else {
+    this->secCtx_.resizeGroup(1);
+    this->secCtx_.getGroup(0).gid = gids[0];
+  }
+  
+  this->setSecurityContext(this->secCtx_);
+}
+
+
+
+void DpmAdapterPoolManager::setSecurityContext(const SecurityContext& ctx)
+{
+  this->secCtx_ = ctx;
+  // Call DPM API
+  wrapCall(dpm_client_setAuthorizationId(ctx.getUser().uid,
+                                         ctx.getGroup(0).gid,
+                                         "GSI",
+                                         (char*)ctx.getUser().name));
+
+  if (ctx.groupCount() > 0)
+    wrapCall(dpm_client_setVOMS_data((char*)ctx.getGroup(0).name,
+                                     (char**)ctx.getCredentials().fqans,
+                                     ctx.groupCount()));
+}
+
+
+
+const SecurityContext& DpmAdapterPoolManager::getSecurityContext() throw (DmException)
+{
+  return this->secCtx_;
 }

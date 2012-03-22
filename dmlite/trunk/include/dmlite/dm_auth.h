@@ -7,24 +7,55 @@
 #include <string>
 #include <vector>
 #include "dm_exceptions.h"
+#include "dm_types.h"
 
 namespace dmlite {
-  
-class AuthBase {
+
+/// This is just for convenience
+class SecurityCredentials: public Credentials {
 public:
-  /// Destructor.
-  virtual ~AuthBase();
+  SecurityCredentials();
+  SecurityCredentials(const Credentials&);
+  SecurityCredentials(const SecurityCredentials&);
+  ~SecurityCredentials();
 
-  /// Set the user ID that will perform the actions.
-  /// @param uid The UID.
-  /// @param gid The GID.
-  /// @param dn  The full DN (i.e. /DC=ch/DC=cern/OU=Organic Units/...).
-  virtual void setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException) = 0;
+  std::string getSecurityMechanism() const throw();
+  std::string getClientName()        const throw();
+  std::string getRemoteAddress()     const throw();
 
-  /// Set the user associated VO data.
-  /// @param vo     The main Virtual Organization (i.e. dteam).
-  /// @param fqans  The FQANS.
-  virtual void setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException) = 0;
+  const std::vector<std::string>& getFqans() const throw();
+
+  std::string getSessionId() const throw();
+
+  const SecurityCredentials& operator = (const SecurityCredentials&);
+private:
+  std::vector<std::string> vfqans;
+};
+
+class SecurityContext {
+public:
+  SecurityContext();
+  SecurityContext(const SecurityCredentials&, const UserInfo&, const std::vector<GroupInfo>&);
+  ~SecurityContext();
+
+  const UserInfo&  getUser() const                  throw();
+  const GroupInfo& getGroup(unsigned idx = 0) const throw(DmException);
+  unsigned groupCount() const                       throw();
+
+  UserInfo&  getUser()  throw();
+  GroupInfo& getGroup(unsigned idx = 0) throw(DmException);
+  void resizeGroup(unsigned size) throw();
+
+  const SecurityCredentials& getCredentials() const throw();
+  void setCredentials(const SecurityCredentials&) throw();
+
+  bool hasGroup(gid_t gid) const throw();
+
+private:
+  SecurityCredentials credentials_;
+
+  UserInfo  user_;
+  std::vector<GroupInfo> groups_;
 };
 
 };

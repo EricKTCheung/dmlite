@@ -18,7 +18,7 @@ target_link_libraries (test-split_path dmlite dmlitecommon dl)
 add_executable        (test-split_url test-split_url.cpp)
 target_link_libraries (test-split_url dmlite dmlitecommon dl)
 
-add_executable        (test-security test-security.cpp)
+add_executable        (test-security test-security.cpp test-base.cpp)
 target_link_libraries (test-security dmlite dmlitecommon cppunit dl)
 
 add_executable        (test-comment test-comment.cpp test-base.cpp)
@@ -65,6 +65,9 @@ target_link_libraries (test-acls dmlite dmlitecommon cppunit dl)
 
 add_executable        (test-io test-io.cpp)
 target_link_libraries (test-io dmlite dmlitecommon cppunit dl)
+
+add_executable        (test-checkperm test-checkperm.cpp)
+target_link_libraries (test-checkperm dmlite dmlitecommon cppunit dl)
 
 # Configure CTest testing
 ENABLE_TESTING()

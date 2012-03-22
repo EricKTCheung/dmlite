@@ -1,12 +1,13 @@
 cmake_minimum_required (VERSION 2.6)
 
-add_library(dmlite SHARED PluginManager.cpp
-                          PluginManager-C.cpp
+add_library(dmlite SHARED Auth.cpp
                           Catalog.cpp
                           Catalog-C.cpp
                           Exceptions.cpp
                           IO.cpp
                           IO-C.cpp
+                          PluginManager.cpp
+                          PluginManager-C.cpp
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
 

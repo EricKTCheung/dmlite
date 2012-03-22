@@ -38,6 +38,9 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext&);
+
 //  void        changeDir    (const std::string&) throw (DmException);
 
   ExtendedStat extendedStat(const std::string&, bool = true) throw (DmException);
@@ -91,7 +94,6 @@ public:
   
   // missing User and Group Info
 
-	void setUserId(uid_t, gid_t, const std::string&) throw (DmException);
 protected:
   /// The Memcached connection
   memcached_st* conn_;
@@ -99,8 +101,8 @@ protected:
   /// The connection pool.
   PoolContainer<memcached_st*>* connectionPool_;
 
-  UserInfo  user_;  ///< User.
-  GroupInfo group_; ///< User main group.
+  /// Security context
+  SecurityContext secCtx_;
 
   /// User secondary groups.
   std::vector<GroupInfo> groups_;

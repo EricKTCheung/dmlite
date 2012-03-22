@@ -82,6 +82,68 @@ void NsAdapterCatalog::set(const std::string& key, va_list) throw (DmException)
 
 
 
+void NsAdapterCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  uid_t uid;
+  gid_t gids[cred.nfqans + 1];
+
+  // Get the ID mapping
+  wrapCall(dpns_getidmap(cred.client_name, cred.nfqans, (const char**)cred.fqans,
+                         &uid, gids));
+
+  // Initialize context
+  this->secCtx_.setCredentials(cred);
+  this->secCtx_.getUser().uid    = uid;
+  this->secCtx_.getUser().banned = 0;
+  strncpy(this->secCtx_.getUser().name, cred.client_name, 255);
+
+  // If groups were specified, copy
+  if (cred.nfqans > 0) {
+    this->secCtx_.resizeGroup(cred.nfqans);
+    for (unsigned i = 0; i < cred.nfqans; ++i) {
+      this->secCtx_.getGroup(i).gid    = gids[i];
+      this->secCtx_.getGroup(i).banned = 0;
+      strncpy(this->secCtx_.getGroup(i).name, cred.fqans[i], 255);
+    }
+  }
+  // Else, there will be at least one default
+  else {
+    this->secCtx_.resizeGroup(1);
+    this->secCtx_.getGroup(0) = this->getGroup(gids[0]);
+  }
+
+  // Set context
+  this->setSecurityContext(this->secCtx_);
+}
+
+
+
+const SecurityContext& NsAdapterCatalog::getSecurityContext() throw (DmException)
+{
+  return this->secCtx_;
+}
+
+
+
+void NsAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  if (&this->secCtx_ != &ctx) {
+    this->secCtx_ = ctx;
+  }
+  // Call DPNS API
+  wrapCall(dpns_client_setAuthorizationId(ctx.getUser().uid,
+                                          ctx.getGroup(0).gid,
+                                          "GSI",
+                                          (char*)ctx.getUser().name));
+
+  if (ctx.groupCount() > 0)
+    wrapCall(dpns_client_setVOMS_data((char*)ctx.getGroup(0).name,
+                                      (char**)ctx.getCredentials().fqans,
+                                      ctx.groupCount()));
+}
+
+
+
 void NsAdapterCatalog::changeDir(const std::string& path) throw (DmException)
 {
   wrapCall(dpns_chdir(path.c_str()));
@@ -136,7 +198,10 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
   xStat.type   = dpnsStat.fileclass;
 
   std::list<std::string> components = splitPath(path);
-  strncpy(xStat.name, components.back().c_str(), sizeof(xStat.name));
+  if (!components.empty())
+    strncpy(xStat.name, components.back().c_str(), sizeof(xStat.name));
+  else
+    strcpy(xStat.name, "/");
 
   // Get the ACL
   struct dpns_acl dpnsAcls[ACL_ENTRIES_MAX];
@@ -386,6 +451,13 @@ void NsAdapterCatalog::utime(const std::string& path, const struct utimbuf* buf)
 
 
 
+void NsAdapterCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
+}
+
+
+
 std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmException)
 {
   char comment[COMMENT_MAX];
@@ -417,6 +489,13 @@ GroupInfo NsAdapterCatalog::getGroup(gid_t gid) throw (DmException)
 
 
 
+void NsAdapterCatalog::setGuid(const std::string&, const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "Adapter does not support setting the GUID");
+}
+
+
+
 GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmException)
 {
   GroupInfo group;
@@ -426,34 +505,6 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmExce
   group.banned = 0;
 
   return group;
-}
-
-
-
-void NsAdapterCatalog::getIdMap(const std::string& userName,
-                                const std::vector<std::string>& groups,
-                                uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
-{
-  int         nGroups = groups.size();
-  const char *groupNames[nGroups], **gnp;
-  gid_t       gidsp[nGroups + 1];
-
-  for (int i = 0; i < nGroups; ++i)
-    groupNames[i] = groups[i].c_str();
-
-  if (nGroups == 0)
-    gnp = NULL;
-  else
-    gnp = groupNames;
-
-  wrapCall(dpns_getidmap(userName.c_str(), nGroups, gnp, uid, gidsp));
-
-  if (nGroups == 0)
-    nGroups = 1; // DPNS will push at least one
-
-  gids->reserve(nGroups);
-  for(int i = 0; i < nGroups; ++i)
-    gids->push_back(gidsp[i]);
 }
 
 
@@ -614,49 +665,4 @@ void NsAdapterCatalog::replicaSetStatus(const std::string& replica, char status)
 void NsAdapterCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
 {
   wrapCall(dpns_setrtype(replica.c_str(), type));
-}
-
-
-
-void NsAdapterCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
-{
-
-  this->uid = uid;
-  this->gid = gid;
-  this->udn = dn;
-  wrapCall(dpns_client_setAuthorizationId(uid, gid, "GSI",
-                                          (char*)dn.c_str()));
-}
-
-
-
-void NsAdapterCatalog::setVomsData(const std::string& vo,
-                                   const std::vector<std::string>& fqans) throw (DmException)
-{
-  // Free any remaning
-  if (this->fqans_ != 0x00) {
-    for (int i = 0; i < this->nFqans_; ++i)
-      delete [] this->fqans_[i];
-    delete [] this->fqans_;
-  }
-  if (this->vo_ != 0x00)
-    delete [] this->vo_;
-  
-  // Copy VO
-  this->vo_ = new char[vo.length() + 1];
-  strcpy(this->vo_, vo.c_str());
-
-  // Allocate memory for the array
-  this->nFqans_ = fqans.size();
-  this->fqans_  = new char*[this->nFqans_];
-
-  // Copy the fqans
-  for (int i = 0; i < this->nFqans_; ++i) {
-    this->fqans_[i] = new char [fqans[i].length() + 1];
-    strcpy(this->fqans_[i], fqans[i].c_str());
-  }  
-
-  // Pass the data
-  wrapCall(dpns_client_setVOMS_data(this->vo_,
-                                    this->fqans_, this->nFqans_));
 }

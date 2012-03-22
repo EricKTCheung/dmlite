@@ -139,7 +139,24 @@ struct groupinfo {
 };
 typedef struct groupinfo GroupInfo;
 
-// ACL masks
+/* Macros to keep strings coherent */
+#define CRED_MECH_NONE "NONE"
+#define CRED_MECH_X509 "X509"
+
+/** Security credentials */
+struct credentials {
+  const char*  mech;
+  const char*  client_name;
+  const char*  remote_addr;
+  const char** fqans;
+  unsigned     nfqans;
+  const char*  session_id;
+
+  void*    cred_data;
+};
+typedef struct credentials Credentials;
+
+/* ACL masks */
 #define ACL_USER_OBJ  1
 #define ACL_USER      2
 #define ACL_GROUP_OBJ 3
@@ -148,7 +165,7 @@ typedef struct groupinfo GroupInfo;
 #define ACL_OTHER     6
 #define ACL_DEFAULT   0x20
 
-// ACL struct
+/** ACL struct. */
 struct dm_acl {
   unsigned char type;
   unsigned char perm;

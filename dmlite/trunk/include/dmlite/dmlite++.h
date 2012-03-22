@@ -16,7 +16,7 @@
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120319;
+const unsigned API_VERSION = 20120321;
 
 /// CatalogInterface can only be instantiated through this class.
 class PluginManager {

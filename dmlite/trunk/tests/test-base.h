@@ -19,12 +19,16 @@ protected:
   dmlite::Catalog       *catalog;
 
   const static char *TEST_USER;
+  const static char *TEST_USER_GROUPS[];
+  static unsigned    TEST_USER_NGROUPS;
+
   const static char *TEST_USER_2;
+  const static char *TEST_USER_2_GROUPS[];
+  static unsigned    TEST_USER_2_NGROUPS;
 
-  uid_t uid1, uid2;
-  gid_t gid1_1, gid1_2, gid2;
-
-  std::vector<std::string> user_groups;
+  Credentials cred1, cred2;
+  
+  dmlite::SecurityContext root;
 
   std::string BASE_DIR;
 

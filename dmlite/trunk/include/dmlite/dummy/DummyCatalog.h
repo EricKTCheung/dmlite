@@ -26,6 +26,10 @@ public:
 
   virtual void set(const std::string&, va_list) throw (DmException);
 
+  virtual void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  virtual const SecurityContext& getSecurityContext(void) throw (DmException);
+  virtual void setSecurityContext(const SecurityContext&);
+
   virtual void        changeDir     (const std::string&) throw (DmException);
   virtual std::string getWorkingDir (void)               throw (DmException);
   virtual ino_t       getWorkingDirI(void)               throw (DmException);
@@ -64,17 +68,17 @@ public:
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   virtual void utime(const std::string&, const struct utimbuf*) throw (DmException);
+  virtual void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   virtual std::string getComment(const std::string&)                     throw (DmException);
   virtual void        setComment(const std::string&, const std::string&) throw (DmException);
+
+  virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException);
 
   virtual UserInfo  getUser(uid_t)              throw (DmException);
   virtual UserInfo  getUser(const std::string&) throw (DmException);
   virtual GroupInfo getGroup(gid_t)              throw (DmException);
   virtual GroupInfo getGroup(const std::string&) throw (DmException);
-
-  virtual void getIdMap(const std::string&, const std::vector<std::string>&,
-                        uid_t*, std::vector<gid_t>*) throw (DmException);
 
   virtual Directory* openDir (const std::string&) throw (DmException);
   virtual void       closeDir(Directory*)         throw (DmException);
@@ -91,10 +95,7 @@ public:
   virtual void replicaSetAccessTime(const std::string&)         throw (DmException);
   virtual void replicaSetType      (const std::string&, char)   throw (DmException);
   virtual void replicaSetStatus    (const std::string&, char)   throw (DmException);
-
-  virtual void setUserId  (uid_t, gid_t, const std::string&)                 throw (DmException);
-  virtual void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
-  
+ 
 protected:
   Catalog* decorated_;
 private:
