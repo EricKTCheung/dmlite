@@ -209,31 +209,6 @@ void MemcacheCatalog::deserializeComment(std::string& serial_str,
   var = seComment.comment();
 }
 
-
-/*
-std::string MemcacheCatalog::serializeKey(const std::string& key)
-{
-  SerialKey serialKey;
-  serialKey.set_key(key);
-  serialKey.set_white(true);
-  return serialKey.SerializeAsString();
-} 
-
-std::string MemcacheCatalog::serializeBlackKey(const std::string& key)
-{
-  SerialKey serialKey;
-  serialKey.set_key(key);
-  serialKey.set_white(false);
-  return serialKey.SerializeAsString();
-} 
-
-std::string MemcacheCatalog::deserializeKey(const std::string& serialKey)
-{
-  SerialKey sKey;
-  sKey.ParseFromString(serialKey);
-  return sKey.key();
-}
-*/
 std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, const bool isWhite)
 {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -360,41 +335,7 @@ FileReplica MemcacheCatalog::deserializeFileReplica(std::string& serial)
 
   return repl;
 }
-/*
-std::vector<FileReplica> MemcacheCatalog::deserialize(std::vector<std::string>& serialReplicas)
-{
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  std::vector<FileReplica> replicas;
-  SerialFileReplica serialRepl;
-  FileReplica repl;
-
-  std::vector<std::string>::iterator itSerialReps;
-  for (itSerialReps = serialReplicas.begin();
-       itSerialReps < serialReplicas.end();
-       itSerialReps++)
-  {
-    serialRepl.ParseFromString(*itSerialReps);
-//    serialRepl.PrintDebugString();
-
-    repl.replicaid = serialRepl.replicaid();
-    repl.fileid = serialRepl.fileid();
-    repl.nbaccesses = serialRepl.nbaccesses();
-    repl.atime = serialRepl.atime();
-    repl.ptime = serialRepl.ptime();
-    repl.ltime = serialRepl.ltime();
-    repl.status = serialRepl.status()[0];
-    repl.type = serialRepl.type()[0];
-    std::memcpy(&repl.pool, serialRepl.pool().c_str(), serialRepl.pool().length()+1); 
-    std::memcpy(&repl.server, serialRepl.server().c_str(), serialRepl.server().length()+1); 
-    std::memcpy(&repl.filesystem, serialRepl.filesystem().c_str(), serialRepl.filesystem().length()+1); 
-    std::memcpy(&repl.url, serialRepl.url().c_str(), serialRepl.url().length()+1); 
-
-    replicas.push_back(repl); 
-  }
-  return replicas;
-}
-*/
 std::string MemcacheCatalog::getImplId() throw ()
 {
   return std::string("MemcacheCatalog");
