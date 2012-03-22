@@ -65,6 +65,8 @@ DpmMySqlCatalog::~DpmMySqlCatalog() throw(DmException)
     if (*i != 0x00)
       mysql_stmt_close(*i);
   }
+
+  delete this->decorated_;
 }
 
 
