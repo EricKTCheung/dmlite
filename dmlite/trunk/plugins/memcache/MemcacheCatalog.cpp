@@ -1,6 +1,8 @@
 /// @file    plugins/memcache/Memcache.h
 /// @brief   memcached plugin.
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
+#include <algorithm>
+#include <cstring>
 #include <vector>
 
 #include "Memcache.h"
