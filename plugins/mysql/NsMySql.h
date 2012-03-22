@@ -114,7 +114,7 @@ public:
   GroupInfo getGroup(const std::string&) throw (DmException);
   
 protected:
-  // Security context
+  /// Security context
   SecurityContext secCtx_;
 
   /// The MySQL connection

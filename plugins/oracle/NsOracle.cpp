@@ -6,7 +6,6 @@
 #include <dmlite/common/Uris.h>
 #include <string.h>
 #include <stdlib.h>
-#include <oracle/10.2.0.5/client/occiControl.h>
 
 using namespace dmlite;
 using namespace oracle;
@@ -233,8 +232,7 @@ NsOracleCatalog::NsOracleCatalog(oracle::occi::ConnectionPool* pool,
   pool_(pool), conn_(conn), cwd_(0), umask_(022), symLinkLimit_(symLimit),
   preparedStmt_(STMT_SENTINEL, 0x00)
 {
-  memset(&this->user_,  0x00, sizeof(UserInfo));
-  memset(&this->group_, 0x00, sizeof(GroupInfo));
+  // Nothing
 }
 
 
@@ -262,6 +260,31 @@ std::string NsOracleCatalog::getImplId() throw ()
 void NsOracleCatalog::set(const std::string& key, va_list varg) throw(DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
+}
+
+
+
+void NsOracleCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  UserInfo user;
+  std::vector<GroupInfo> groups;
+
+  this->getIdMap(cred.getClientName(), cred.getFqans(), &user, &groups);
+  this->secCtx_ = SecurityContext(cred, user, groups);
+}
+
+
+
+const SecurityContext& NsOracleCatalog::getSecurityContext() throw (DmException)
+{
+  return this->secCtx_;
+}
+
+
+
+void NsOracleCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  this->secCtx_ = ctx;
 }
 
 
@@ -432,9 +455,7 @@ ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& n
   }
 
   // Check the parent!
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       parent.acl, parent.stat,
-                       S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
   // Check SGID
@@ -443,7 +464,7 @@ ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& n
     mode |= S_ISGID;
   }
   else {
-    egid = this->group_.gid;
+    egid = this->secCtx_.getGroup().gid;
   }
 
   // Create the entry
@@ -453,7 +474,7 @@ ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& n
   fileStmt->setString( 2, name);
   fileStmt->setNumber( 3, mode);
   fileStmt->setNumber( 4, nlink);
-  fileStmt->setNumber( 5, this->user_.uid);
+  fileStmt->setNumber( 5, this->secCtx_.getUser().uid);
   fileStmt->setNumber( 6, egid);
   fileStmt->setNumber( 7, size);
   fileStmt->setNumber( 8, time(NULL));
@@ -546,8 +567,7 @@ ExtendedStat NsOracleCatalog::extendedStat(const std::string& path, bool followS
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
       throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.stat, S_IEXEC) != 0)
+    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
 
     // Pop next component
@@ -608,8 +628,7 @@ void NsOracleCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcep
   // We want to check if we can arrive here...
   while (current.parent != 0) {
     current = this->extendedStat(current.parent);
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                         current.acl, current.stat, S_IEXEC))
+    if (checkPermissions(this->secCtx_, current.acl, current.stat, S_IEXEC))
       throw DmException(DM_FORBIDDEN, "Can not access #%ld",
                         current.stat.st_ino);
   }
@@ -649,8 +668,7 @@ Directory* NsOracleCatalog::openDir(const std::string& path) throw(DmException)
   meta = this->extendedStat(path);
 
   // Can we read it?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Create the handle
@@ -691,12 +709,12 @@ struct dirent* NsOracleCatalog::readDir(Directory* dir) throw(DmException)
   if (this->readDirx(dir) == 0)
     return 0x00;
   else
-    return &(((NsOracleDir*)dir)->ds.dirent);
+    return &(((NsOracleDir*)dir)->ds);
 }
 
 
 
-struct direntstat* NsOracleCatalog::readDirx(Directory* dir) throw(DmException)
+ExtendedStat* NsOracleCatalog::readDirx(Directory* dir) throw(DmException)
 {
   NsOracleDir *dirp;
 
@@ -707,20 +725,19 @@ struct direntstat* NsOracleCatalog::readDirx(Directory* dir) throw(DmException)
 
   if (dirp->rs->next()) {
     getMetadata(dirp->rs, &dirp->current);
-    memcpy(&dirp->ds.stat, &dirp->current.stat, sizeof(struct stat));
-    memset(&dirp->ds.dirent, 0x00, sizeof(struct dirent));
-    dirp->ds.dirent.d_ino  = dirp->ds.stat.st_ino;
-    strncpy(dirp->ds.dirent.d_name,
+    memset(&dirp->ds, 0x00, sizeof(struct dirent));
+    dirp->ds.d_ino  = dirp->current.stat.st_ino;
+    strncpy(dirp->ds.d_name,
             dirp->current.name,
-            sizeof(dirp->ds.dirent.d_name));
+            sizeof(dirp->ds.d_name));
 
     // Touch
     struct utimbuf tim;
     tim.actime  = time(NULL);
-    tim.modtime = dirp->ds.stat.st_mtime;
+    tim.modtime = dirp->current.stat.st_mtime;
     this->utime(dirp->dirId, &tim);
 
-    return &dirp->ds;
+    return &dirp->current;
   }
   else {
     return 0x00;
@@ -747,8 +764,7 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
   this->traverseBackwards(meta);
 
   // Can write?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to add the replica");
 
   // If server is empty, parse the surl
@@ -808,8 +824,7 @@ void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
   this->traverseBackwards(meta);
 
   // Can write?
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
@@ -835,8 +850,7 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(const std::string& path) t
   meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
 
@@ -928,8 +942,7 @@ void NsOracleCatalog::symlink(const std::string& oldPath, const std::string& new
   ExtendedStat parent = this->getParent(newPath, &parentPath, &symName);
 
   // Check we have write access for the parent
-  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Transaction
@@ -971,17 +984,15 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != file.stat.st_uid &&
-        this->user_.uid != parent.stat.st_uid &&
-        checkPermissions(this->user_, this->group_, this->groups_, file.acl,
-                         file.stat, S_IWRITE) != 0)
+    if (this->secCtx_.getUser().uid != file.stat.st_uid &&
+        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+        checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
-    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
   }
 
@@ -1060,7 +1071,8 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
     std::string aclStr;
     if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
       aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                       this->user_.uid, this->group_.gid,
+                                       this->secCtx_.getUser().uid,
+                                       this->secCtx_.getGroup(0).gid,
                                        &newMode, mode));
     }
     
@@ -1084,7 +1096,7 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
 
 mode_t NsOracleCatalog::umask(mode_t mask) throw ()
 {
-  mode_t prev = this->umask_;
+  mode_t prev  = this->umask_;
   this->umask_ = mask & 0777;
   return prev;
 }
@@ -1096,16 +1108,16 @@ void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
   ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      this->secCtx_.getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.stat.st_mode) && this->user_.uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && this->secCtx_.getUser().uid != 0)
     mode &= ~S_ISVTX;
-  if (this->user_.uid != 0 &&
-      meta.stat.st_gid != this->group_.gid &&
-      !gidInGroups(meta.stat.st_gid, this->groups_))
+  if (this->secCtx_.getUser().uid != 0 &&
+      !this->secCtx_.hasGroup(meta.stat.st_gid))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
@@ -1163,17 +1175,17 @@ void NsOracleCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid
     return;
 
   // If root, skip all checks
-  if (this->user_.uid != 0) {
+  if (this->secCtx_.getUser().uid != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.stat.st_uid != this->user_.uid)
+      if (meta.stat.st_uid != this->secCtx_.getUser().uid)
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
       // AND it has to belong to that group
-      if (newGid != this->group_.gid && !gidInGroups(newGid, this->groups_))
+      if (!this->secCtx_.hasGroup(newGid))
         throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
     }
@@ -1234,7 +1246,8 @@ void NsOracleCatalog::setAcl(const std::string& path, const std::vector<Acl>& ac
   ExtendedStat meta = this->extendedStat(path);
 
   // Check we can change it
-  if (this->user_.uid != meta.stat.st_uid && this->user_.uid != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      this->secCtx_.getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
 
   std::vector<Acl> aclsCopy(acls);
@@ -1299,9 +1312,8 @@ void NsOracleCatalog::utime(const std::string& path, const struct utimbuf* buf) 
   ExtendedStat meta = this->extendedStat(path);
 
   // The user is the owner OR buf is NULL and has write permissions
-  if (this->user_.uid != meta.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
   // Touch
@@ -1337,8 +1349,7 @@ std::string NsOracleCatalog::getComment(const std::string& path) throw(DmExcepti
   // Get the file and check we can read
   ExtendedStat meta = this->extendedStat(path);
 
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
@@ -1365,8 +1376,7 @@ void NsOracleCatalog::setComment(const std::string& path, const std::string& com
   // Get the file and check we can write
   ExtendedStat meta = this->extendedStat(path);
 
-  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1396,8 +1406,7 @@ void NsOracleCatalog::setGuid(const std::string& path, const std::string& guid) 
 {
   ExtendedStat meta = this->extendedStat(path);
 
-  if (checkPermissions(this->user_, this->group_, this->groups_, meta.acl,
-                       meta.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
@@ -1423,8 +1432,7 @@ void NsOracleCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
 
   // Check we have write access for the parent
-  if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                      parent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
 
   // Mode
@@ -1434,7 +1442,8 @@ void NsOracleCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
   std::string aclStr;
   if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
     aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                     this->user_.uid, this->group_.gid,
+                                     this->secCtx_.getUser().uid,
+                                     this->secCtx_.getGroup(0).gid,
                                      &newMode, mode));
   }
 
@@ -1475,17 +1484,15 @@ void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->user_.uid != entry.stat.st_uid &&
-        this->user_.uid != parent.stat.st_uid &&
-        checkPermissions(this->user_, this->group_, this->groups_, entry.acl,
-                         entry.stat, S_IWRITE) != 0)
+    if (this->secCtx_.getUser().uid != entry.stat.st_uid &&
+        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+        checkPermissions(this->secCtx_, entry.acl, entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
   }
   else {
     // No sticky bit
-    if (checkPermissions(this->user_, this->group_, this->groups_, parent.acl,
-                         parent.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
   }
 
@@ -1534,17 +1541,14 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
   }
 
   // Need write permissions in both origin and destination
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       oldParent.acl, oldParent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, oldParent.acl, oldParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       newParent.acl, newParent.stat, S_IWRITE) != 0)
+  if (checkPermissions(this->secCtx_, newParent.acl, newParent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
   if (S_ISDIR(old.stat.st_mode)) {
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                        old.acl, old.stat, S_IWRITE) != 0)
+    if (checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
 
     // AND destination can not be a child
@@ -1559,9 +1563,9 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
 
   // Check sticky
   if (oldParent.stat.st_mode & S_ISVTX &&
-      this->user_.uid != oldParent.stat.st_uid &&
-      this->user_.uid != old.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_, old.acl, old.stat, S_IWRITE) != 0)
+      this->secCtx_.getUser().uid != oldParent.stat.st_uid &&
+      this->secCtx_.getUser().uid != old.stat.st_uid &&
+      checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
   // If the destination exists...
@@ -1682,9 +1686,8 @@ void NsOracleCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
   this->traverseBackwards(meta);
 
   /* Check the user can modify */
-  if (this->user_.uid != meta.stat.st_uid &&
-      checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IWRITE) != 0)
+  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the replica");
 
   /* Update */
@@ -1737,69 +1740,25 @@ void NsOracleCatalog::replicaSetType(const std::string& replica, char type) thro
 
 
 
-void NsOracleCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw(DmException)
-{
-  UserInfo  u = this->getUser(uid);
-  GroupInfo g = this->getGroup(gid);
-
-  if (u.name != dn && uid != 0) {
-    throw DmException(DM_INVALID_VALUE, "The specified dn doesn't match "
-                                        "the one associated with the id #%ld: "
-                                        "'%s' != '%s'",
-                                        uid, dn.c_str(), this->user_.name);
-  }
-
-  this->user_  = u;
-  this->group_ = g;
-  this->groups_.clear();
-}
-
-
-
-void NsOracleCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
-{
-  std::string group;
-
-  // First, set the main group
-  if (!vo.empty()) {
-    group = voFromRole(vo);
-    this->group_ = this->getGroup(group);
-  }
-
-  // Set the secondary
-  this->groups_.clear();
-
-  std::vector<std::string>::const_iterator i;
-
-  for (i = fqans.begin(); i != fqans.end(); ++i) {
-    group = voFromRole(*i);
-    this->groups_.push_back(this->getGroup(group));
-  }
-}
-
-
-
 void NsOracleCatalog::getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
-                              uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
+                               UserInfo* user, std::vector<GroupInfo>* groups) throw (DmException)
 {
   std::string vo;
-  UserInfo    user;
   GroupInfo   group;
 
   // Clear
-  gids->clear();
+  groups->clear();
 
   // User mapping
   try {
-    user = this->getUser(userName);
+    *user = this->getUser(userName);
   }
   catch (DmException e) {
     if (e.code() == DM_NO_SUCH_USER)
-      user = this->newUser(userName, "");
+      *user = this->newUser(userName, "");
     else
       throw;
   }
-  *uid = user.uid;
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
@@ -1813,7 +1772,7 @@ void NsOracleCatalog::getIdMap(const std::string& userName, const std::vector<st
       else
         throw;
     }
-    gids->push_back(group.gid);
+    groups->push_back(group);
   }
   else {
     // Get group info
@@ -1829,7 +1788,7 @@ void NsOracleCatalog::getIdMap(const std::string& userName, const std::vector<st
         else
           throw;
       }
-      gids->push_back(group.gid);
+      groups->push_back(group);
     }
   }
 }
