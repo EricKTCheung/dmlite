@@ -346,30 +346,6 @@ int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid)
 
 
 
-int dm_getidmap(dm_context* context, const char* username, int nGroups,
-                const char** groupNames, uid_t* uid, gid_t* gids)
-{
-  TRY(context, getidmap)
-  NOT_NULL(username);
-  if (nGroups > 0) NOT_NULL(groupNames);
-  NOT_NULL(uid);
-  NOT_NULL(gids);
-
-  std::vector<std::string> groupSet;
-  std::vector<gid_t>       gidSet;
-
-  for(int i = 0; i < nGroups; ++i)
-    groupSet.push_back(groupNames[i]);
-
-  context->catalog->getIdMap(username, groupSet, uid, &gidSet);
-
-  std::copy(gidSet.begin(), gidSet.end(), gids);
-
-  CATCH(context, getidmap)
-}
-
-
-
 int dm_getusrbynam(dm_context* context, const char* userName, uid_t* uid)
 {
   TRY(context, getusrbyuid)
@@ -503,26 +479,14 @@ int dm_replica_setstatus(dm_context* context, const char* replica, char status)
 
 
 
-int dm_setuserid(dm_context* context, uid_t uid, gid_t gid, const char* dn)
+int dm_setcredentials(dm_context* context, struct credentials* cred)
 {
   TRY(context, setuserid)
-  context->catalog->setUserId(uid, gid, SAFE_STRING(dn));
+  NOT_NULL(cred);
+  dmlite::SecurityCredentials secCred(*cred);
+  context->catalog->setSecurityCredentials(secCred);
+  context->pool->setSecurityCredentials(secCred);
   CATCH(context, setuserid)
-}
-
-
-
-int dm_setvomsdata(dm_context* context, const char* vo, const char** fqans, int nFqans)
-{
-  TRY(context, setvomsdata)
-  NOT_NULL(vo);
-  if (nFqans > 0) NOT_NULL(fqans);
-
-  std::vector<std::string> fqansSet(nFqans);
-  fqansSet.assign(fqans, fqans + nFqans);
-
-  context->catalog->setVomsData(vo, fqansSet);
-  CATCH(context, setvomsdata)
 }
 
 

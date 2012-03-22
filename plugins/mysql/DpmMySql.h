@@ -55,8 +55,8 @@ public:
   
   int getFsStatus(const std::string&, const std::string& server, const std::string& fs) throw(DmException);
 
-  void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
-  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext&);
 
 protected:
 private:

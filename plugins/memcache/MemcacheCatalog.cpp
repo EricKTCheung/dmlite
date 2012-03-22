@@ -62,8 +62,6 @@ MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
-  std::memset(&this->user_,  0x00, sizeof(UserInfo));
-  std::memset(&this->group_, 0x00, sizeof(GroupInfo));
 }
 
 
@@ -73,14 +71,14 @@ MemcacheCatalog::~MemcacheCatalog() throw (DmException)
   this->connectionPool_->release(this->conn_);
 }
 
-void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
+/*void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
 {
 	DELEGATE(setUserId, uid, gid, dn);
 
 	DELEGATE_ASSIGN(this->user_, getUser, uid);
 	DELEGATE_ASSIGN(this->group_, getGroup, gid);
   this->groups_.clear();
-}
+}*/
 
 std::string MemcacheCatalog::serialize(const ExtendedStat& var)
 {
@@ -347,6 +345,23 @@ void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmExceptio
 }
 
 
+
+void MemcacheCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  DELEGATE(setSecurityCredentials, cred);
+  this->secCtx_ = this->decorated_->getSecurityContext();
+}
+
+
+
+void MemcacheCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  DELEGATE(setSecurityContext, ctx);
+  this->secCtx_ = ctx;
+}
+
+
+
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
 	std::string cwdPath;
@@ -382,8 +397,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
       throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
-    if (checkPermissions(this->user_, this->group_, this->groups_,
-                         meta.acl, meta.stat, S_IEXEC) != 0)
+    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to list '%s'", meta.name);
 
     // Pop next component
@@ -587,8 +601,7 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
   // Get the file and check we can read
   ExtendedStat meta = this->extendedStat(path);
   
-  if (checkPermissions(this->user_, this->group_, this->groups_,
-                       meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
@@ -654,7 +667,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
   meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->user_, this->group_, this->groups_,
+  if (checkPermissions(this->secCtx_,
                        meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);

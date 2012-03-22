@@ -15,6 +15,10 @@ public:
 
   std::string getImplId(void) throw();
 
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  const SecurityContext& getSecurityContext() throw (DmException);
+  void setSecurityContext(const SecurityContext&);
+
   std::vector<Pool>       getPools          (void)               throw (DmException);
   std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
   FileSystem              getFilesystem      (const std::string&, const std::string&, const std::string&) throw (DmException);

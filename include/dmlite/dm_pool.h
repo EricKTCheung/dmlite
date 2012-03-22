@@ -13,13 +13,24 @@
 namespace dmlite {
 
 /// Interface for pool types.
-class PoolManager: public AuthBase {
+class PoolManager {
 public:
   /// Destructor.
   virtual ~PoolManager();
 
   /// String ID of the pool implementation.
   virtual std::string getImplId(void) throw() = 0;
+
+  /// Set the security credentials.
+  /// @param cred The security credentials.
+  virtual void setSecurityCredentials(const SecurityCredentials& cred) throw (DmException) = 0;
+
+  /// Get the security context.
+  /// @return The generated security context.
+  virtual const SecurityContext& getSecurityContext(void) throw (DmException) = 0;
+
+  /// Set the security context.
+  virtual void setSecurityContext(const SecurityContext& ctx) = 0;
 
   /// Get the list of pools.
   /// @return A set with all the pools.

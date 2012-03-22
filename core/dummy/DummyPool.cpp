@@ -23,6 +23,27 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
+void DummyPoolManager::setSecurityCredentials(const SecurityCredentials& creds) throw (DmException)
+{
+  DELEGATE(setSecurityCredentials, creds);
+}
+
+
+
+const SecurityContext& DummyPoolManager::getSecurityContext() throw (DmException)
+{
+  DELEGATE_RETURN(getSecurityContext);
+}
+
+
+
+void DummyPoolManager::setSecurityContext(const SecurityContext& ctx)
+{
+  DELEGATE(setSecurityContext, ctx);
+}
+
+
+
 std::vector<Pool> DummyPoolManager::getPools(void) throw (DmException)
 {
   DELEGATE_RETURN(getPools);

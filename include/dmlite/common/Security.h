@@ -5,6 +5,7 @@
 #ifndef SECURITY_H
 #define	SECURITY_H
 
+#include <dmlite/dm_auth.h>
 #include <dmlite/dm_exceptions.h>
 #include <dmlite/dm_types.h>
 #include <string>
@@ -13,30 +14,23 @@
 
 namespace dmlite {
 
-/// Return true if gid is in the set of groups.
-bool gidInGroups(gid_t gid, const std::vector<GroupInfo> &groups);
-
 /// Check if a specific user has the demanded rights.
-/// @param user   The user.
-/// @param group  The user main group.
-/// @param groups A set with the secundary groups.
-/// @param acl    A string with the ACL to check.
-/// @param stat   A struct stat which mode will be checked.
-/// @param mode   The mode to be checked.
-/// @return       0 if the mode is allowed, 1 if not.
-int checkPermissions(const UserInfo& user, const GroupInfo& group,
-                     const std::vector<GroupInfo>& groups,
+/// @param context The security context.
+/// @param acl     A string with the ACL to check.
+/// @param stat    A struct stat which mode will be checked.
+/// @param mode    The mode to be checked.
+/// @return        0 if the mode is allowed, 1 if not.
+int checkPermissions(const SecurityContext& contex,
                      const std::string& acl, const struct stat& stat,
                      mode_t mode);
 
 /// Wrapper for checkPermissions accepting NULL pointers
-inline int checkPermissions(const UserInfo& user, const GroupInfo& group,
-                            const std::vector<GroupInfo>& groups,
+inline int checkPermissions(const SecurityContext& context,
                             const char* acl, const struct stat& stat,
                             mode_t mode)
 {
   if (acl == 0x00) acl = "";
-  return checkPermissions(user, group, groups, std::string(acl), stat, mode);
+  return checkPermissions(context, std::string(acl), stat, mode);
 }
 
 /// Get the VO from a full DN.

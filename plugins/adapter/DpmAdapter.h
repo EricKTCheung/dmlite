@@ -11,20 +11,23 @@
 namespace dmlite {
 
 /// Overrides some functions using the DPM API.
-class DpmAdapter: public NsAdapterCatalog, public PoolManager {
+class DpmAdapterCatalog: public NsAdapterCatalog {
 public:
   /// Constructor
   /// @param dpmHost    The DPM host
   /// @param retryLimit The limit of retrials.
-  DpmAdapter(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
+  DpmAdapterCatalog(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
 
   /// Destructor
-  ~DpmAdapter();
+  ~DpmAdapterCatalog();
 
   // Overload
   std::string getImplId(void) throw ();
 
   void set(const std::string&, va_list) throw (DmException);
+
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext&);
   
   FileReplica get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
@@ -32,9 +35,24 @@ public:
   void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
   void        putDone  (const std::string&, const std::string&)       throw (DmException);
   void        unlink   (const std::string&)                           throw (DmException);
+protected:
+private:
+  std::string dpmHost_;
+  std::string spaceToken_;
+};
 
-  void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
-  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
+
+
+class DpmAdapterPoolManager: public PoolManager {
+public:
+  DpmAdapterPoolManager(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
+  ~DpmAdapterPoolManager();
+
+  std::string getImplId() throw ();
+
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  const SecurityContext& getSecurityContext() throw (DmException);
+  void setSecurityContext(const SecurityContext&);
 
   std::vector<Pool>       getPools          (void)               throw (DmException);
   std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
@@ -43,9 +61,11 @@ public:
                                              const std::string& fs) throw(DmException);
 
 protected:
+  SecurityContext secCtx_;
+  
 private:
   std::string dpmHost_;
-  std::string spaceToken_;
+  unsigned    retryLimit_;
 };
 
 /// Used to retry n times before failing.

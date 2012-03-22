@@ -15,22 +15,26 @@ protected:
   const static char *SYMLINK;
   const static char *FILE;
 
+  const dmlite::SecurityContext* ctx;
+
 public:
 
   void setUp()
   {
     TestBase::setUp();
-    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
+    this->catalog->setSecurityCredentials(cred1);
     this->catalog->makeDir(FOLDER, MODE);
     // Reset ACL in case FOLDER inherited some (may break some tests)
+    ctx = &this->catalog->getSecurityContext();
     std::stringstream ss;
-    ss << "A7" << uid1 << ",C0" << gid1_1 << ",E70,F00";
+    ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F00";
     this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ss.str()));
   }
 
   void tearDown()
   {
     if (this->catalog != 0x00) {
+      this->catalog->setSecurityContext(root);
       this->catalog->changeMode(FOLDER, 0777);
       
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
@@ -60,8 +64,8 @@ public:
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
     CPPUNIT_ASSERT(s.st_mtime > ini_mtime);
-    CPPUNIT_ASSERT_EQUAL(uid1, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(gid1_1, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
 
     // Add a symlink
     this->catalog->symlink(FOLDER, SYMLINK);
@@ -72,8 +76,8 @@ public:
     this->catalog->create(FILE, MODE);
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(3, (int)s.st_nlink);
-    CPPUNIT_ASSERT_EQUAL(uid1, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(gid1_1, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
     
     // Remove the file
     this->catalog->unlink(FILE);
@@ -107,33 +111,33 @@ public:
 
   void testChmodDifferentUser()
   {
-          struct stat s;
+    struct stat s;
 
     this->catalog->create(FILE, MODE);
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
 
     // Change user
-    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+    this->catalog->setSecurityCredentials(cred2);
 
     // Nested file shouldn't pass
     CPPUNIT_ASSERT_THROW(s = this->catalog->stat(NESTED), dmlite::DmException);
 
     // Change user back 
-    this->catalog->setUserId(uid1, gid1_1, TEST_USER);
+    this->catalog->setSecurityCredentials(cred2);
 
-		// Changing the mode of the parent
-		this->catalog->changeMode(FILE, MODE_ALL);
+    // Changing the mode of the parent
+    this->catalog->changeMode(FILE, MODE_ALL);
     s = this->catalog->stat(FOLDER);
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
 
     // Change user
-    this->catalog->setUserId(uid2, gid2, TEST_USER_2);
+    this->catalog->setSecurityCredentials(cred2);
 
-		// Nested file should pass
+    // Nested file should pass
     s = this->catalog->stat(NESTED);
     CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
-	}
+  }
 
   void testUmask()
   {

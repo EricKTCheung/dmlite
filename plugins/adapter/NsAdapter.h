@@ -36,6 +36,10 @@ public:
   void set(const std::string&, ...)     throw (DmException);
   void set(const std::string&, va_list) throw (DmException);
 
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  const SecurityContext& getSecurityContext() throw (DmException);
+  void setSecurityContext(const SecurityContext&);
+
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
   ino_t       getWorkingDirI(void)               throw (DmException);
@@ -74,15 +78,15 @@ public:
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
+  void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
 
+  void setGuid(const std::string&, const std::string&) throw (DmException);
+
   GroupInfo getGroup(gid_t)              throw (DmException);
   GroupInfo getGroup(const std::string&) throw (DmException);
-
-  void getIdMap(const std::string&, const std::vector<std::string>&,
-                        uid_t*, std::vector<gid_t>*) throw (DmException);
 
   UserInfo getUser(uid_t)              throw (DmException);
   UserInfo getUser(const std::string&) throw (DmException);
@@ -102,9 +106,6 @@ public:
   void replicaSetAccessTime(const std::string&)         throw (DmException);
   void replicaSetType      (const std::string&, char)   throw (DmException);
   void replicaSetStatus    (const std::string&, char)   throw (DmException);
-
-  void setUserId  (uid_t, gid_t, const std::string&)                    throw (DmException);
-  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
   
 protected:
   unsigned    retryLimit_;
@@ -117,9 +118,7 @@ protected:
   int    nFqans_;
   char  *vo_;
 
-  uid_t uid;
-  gid_t gid;
-  std::string udn;
+  SecurityContext secCtx_;
 
 private:
   std::string nsHost_;

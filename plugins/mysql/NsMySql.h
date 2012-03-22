@@ -42,6 +42,10 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
+  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
+  const SecurityContext& getSecurityContext() throw (DmException);
+  void setSecurityContext(const SecurityContext&);
+
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
   ino_t       getWorkingDirI(void)               throw (DmException);
@@ -108,19 +112,10 @@ public:
   UserInfo  getUser (const std::string&) throw (DmException);
   GroupInfo getGroup(gid_t)              throw (DmException);
   GroupInfo getGroup(const std::string&) throw (DmException);
-
-  void getIdMap     (const std::string&, const std::vector<std::string>&,
-                     uid_t*, std::vector<gid_t>*) throw (DmException);
-
-  void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
-  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
   
 protected:
-  UserInfo  user_;  ///< User.
-  GroupInfo group_; ///< User main group.
-
-  /// User secondary groups.
-  std::vector<GroupInfo> groups_;
+  // Security context
+  SecurityContext secCtx_;
 
   /// The MySQL connection
   MYSQL* conn_;
@@ -216,6 +211,10 @@ private:
 
   /// Set the replica attributes
   void replicaSet(const FileReplica& rdata) throw (DmException);
+
+  /// Get the ID mapping of a user.
+  void getIdMap(const std::string&, const std::vector<std::string>&,
+                UserInfo*, std::vector<GroupInfo>*) throw (DmException);
 };
 
 };

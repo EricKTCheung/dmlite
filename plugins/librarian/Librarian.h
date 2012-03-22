@@ -27,13 +27,12 @@ public:
 
   virtual std::vector<FileReplica> getReplicas(const std::string&)               throw (DmException);
   virtual FileReplica              get        (const std::string&)               throw (DmException);
-  virtual void                     setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
 
 protected:
   void exclude   (int64_t replicaId);
   bool isExcluded(int64_t replicaId);
+  
 private:
-  static std::string implId_;
   std::set<int64_t>  excluded_;
 };
 
@@ -47,6 +46,7 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
   Catalog* createCatalog() throw (DmException);
+  
 protected:
   CatalogFactory* nestedFactory_;
 private:

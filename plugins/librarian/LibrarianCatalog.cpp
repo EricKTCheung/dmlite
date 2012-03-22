@@ -52,13 +52,6 @@ void LibrarianCatalog::set(const std::string& key, va_list vargs) throw (DmExcep
 
 
 
-void LibrarianCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
-{
-  this->decorated_->setUserId(uid, gid, dn);
-}
-
-
-
 std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   std::vector<FileReplica> replicas;

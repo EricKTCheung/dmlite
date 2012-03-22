@@ -87,14 +87,14 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
 
 Catalog* DpmAdapterFactory::createCatalog() throw (DmException)
 {
-  return new DpmAdapter(this->dpmHost_, this->retryLimit_);
+  return new DpmAdapterCatalog(this->dpmHost_, this->retryLimit_);
 }
 
 
 
 PoolManager* DpmAdapterFactory::createPoolManager() throw (DmException)
 {
-  return new DpmAdapter(this->dpmHost_, this->retryLimit_);
+  return new DpmAdapterPoolManager(this->dpmHost_, this->retryLimit_);
 }
 
 

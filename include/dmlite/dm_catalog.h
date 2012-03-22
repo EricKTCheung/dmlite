@@ -18,7 +18,7 @@ namespace dmlite {
 typedef void Directory;
 
 /// Interface for Catalog (Namespaces)
-class Catalog: public AuthBase {
+class Catalog {
 public:
   /// Constructor.
   Catalog() throw (DmException);
@@ -37,6 +37,17 @@ public:
   /// @param key   The configuration parameter.
   /// @param varg  The list of arguments. Depend on the key.
   virtual void set(const std::string& key, va_list varg) throw (DmException) = 0;
+
+  /// Set the security credentials.
+  /// @param cred The security credentials.
+  virtual void setSecurityCredentials(const SecurityCredentials& cred) throw (DmException) = 0;
+
+  /// Get the security context.
+  /// @return The generated security context.
+  virtual const SecurityContext& getSecurityContext(void) throw (DmException) = 0;
+
+  /// Set the security context.
+  virtual void setSecurityContext(const SecurityContext& ctx) = 0;
 
   /// Change the working dir. Future not-absolute paths will use this as root.
   /// @param path The new working dir.
@@ -199,6 +210,11 @@ public:
   /// @param buf  A struct holding the new times.
   virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) = 0;
 
+  /// Change access and/or modification time.
+  /// @param inode The inode of the file.
+  /// @param buf   A struct holding the new times.
+  virtual void utime(ino_t inode, const struct utimbuf* buf) throw (DmException) = 0;
+
   /// Get the comment associated with a file.
   /// @param path The file or directory.
   /// @return     The associated comment.
@@ -209,6 +225,11 @@ public:
   /// @param comment The new comment.
   virtual void setComment(const std::string& path, const std::string& comment) throw (DmException) = 0;
 
+  /// Set GUID of a file.
+  /// @param path The file.
+  /// @param guid The new GUID.
+  virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException) = 0;
+
   /// Get the group name associated with a group id.
   /// @param gid The group ID.
   /// @return    The group.
@@ -218,14 +239,6 @@ public:
   /// @param groupName The group name.
   /// @return          The group.
   virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
-
-  /// Get the uid/gid mapping of a user name.
-  /// @param userName   The user name to map.
-  /// @param groupNames An array of group names.
-  /// @param uid        Will be set to the mapped uid.
-  /// @param gids       Will be set to the mapped gids (one per group name).
-  virtual void getIdMap(const std::string& userName, const std::vector<std::string>& groupNames,
-                        uid_t* uid, std::vector<gid_t>* gids) throw (DmException) = 0;
 
   /// Get the name associated with a user id.
   /// @param uid      The user ID.

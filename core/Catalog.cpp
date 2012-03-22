@@ -24,13 +24,6 @@ CatalogFactory::~CatalogFactory()
 
 
 
-AuthBase::~AuthBase()
-{
-  // Nothing
-}
-
-
-
 PoolManagerFactory::~PoolManagerFactory()
 {
   // Nothing

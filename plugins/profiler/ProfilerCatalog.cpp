@@ -49,6 +49,27 @@ void ProfilerCatalog::set(const std::string& key, va_list vargs) throw (DmExcept
 
 
 
+void ProfilerCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  PROFILE(setSecurityCredentials, cred);
+}
+
+
+
+void ProfilerCatalog::setSecurityContext(const SecurityContext& ctx)
+{
+  PROFILE(setSecurityContext, ctx);
+}
+
+
+
+const SecurityContext& ProfilerCatalog::getSecurityContext() throw (DmException)
+{
+  return this->decorated_->getSecurityContext();
+}
+
+
+
 void ProfilerCatalog::changeDir(const std::string& path) throw (DmException)
 {
   PROFILE(changeDir, path);
@@ -251,6 +272,13 @@ void ProfilerCatalog::utime(const std::string& path, const struct utimbuf* buf) 
 
 
 
+void ProfilerCatalog::utime(ino_t ino, const utimbuf* buf) throw (DmException)
+{
+  PROFILE(utime, ino, buf);
+}
+
+
+
 std::string ProfilerCatalog::getComment(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(std::string, getComment, path);
@@ -265,6 +293,13 @@ void ProfilerCatalog::setComment(const std::string& path, const std::string& com
 
 
 
+void ProfilerCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
+{
+  PROFILE(setGuid, path, guid);
+}
+
+
+
 GroupInfo ProfilerCatalog::getGroup(gid_t gid) throw (DmException)
 {
   PROFILE_RETURN(GroupInfo, getGroup, gid);
@@ -275,15 +310,6 @@ GroupInfo ProfilerCatalog::getGroup(gid_t gid) throw (DmException)
 GroupInfo ProfilerCatalog::getGroup(const std::string& groupName) throw (DmException)
 {
   PROFILE_RETURN(GroupInfo, getGroup, groupName);
-}
-
-
-
-void ProfilerCatalog::getIdMap(const std::string& userName,
-                            const std::vector<std::string>& groupNames,
-                            uid_t* uid, std::vector<gid_t>* gids) throw (DmException)
-{
-  PROFILE(getIdMap, userName, groupNames, uid, gids);
 }
 
 
@@ -375,18 +401,4 @@ void ProfilerCatalog::replicaSetStatus(const std::string& replica, char status) 
 void ProfilerCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
 {
   PROFILE(replicaSetType, replica, type);
-}
-
-
-
-void ProfilerCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
-{
-  PROFILE(setUserId, uid, gid, dn);
-}
-
-
-
-void ProfilerCatalog::setVomsData(const std::string& vo, const std::vector<std::string>& fqans) throw (DmException)
-{
-  PROFILE(setVomsData, vo, fqans);
 }

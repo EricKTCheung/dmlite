@@ -16,6 +16,8 @@
 #include <sstream>
 #include <queue>
 
+#include "dmlite/dm_auth.h"
+
 using namespace dmlite;
 
 struct MapFileEntry {
@@ -25,20 +27,7 @@ struct MapFileEntry {
 
 
 
-bool dmlite::gidInGroups(gid_t gid, const std::vector<GroupInfo>& groups)
-{
-  std::vector<GroupInfo>::const_iterator i;
-
-  for (i = groups.begin(); i != groups.end(); ++i)
-    if (i->gid == gid && !i->banned)
-      return true;
-  return false;
-}
-
-
-
-int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
-                             const std::vector<GroupInfo>& groups,
+int dmlite::checkPermissions(const SecurityContext& context,
                              const std::string& acl, const struct stat &stat,
                              mode_t mode)
 {
@@ -49,15 +38,15 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
   int         nGroups = 0;
 
   // Root can do anything
-  if (user.uid == 0)
+  if (context.getUser().uid == 0)
     return 0;
 
   // Banned user, rejected
-  if (user.banned)
+  if (context.getUser().banned)
     return 1;
 
   // Check user. If owner, straigh-forward.
-  if (stat.st_uid == user.uid)
+  if (stat.st_uid == context.getUser().uid)
     return ((stat.st_mode & mode) != mode);
 
   // There is no ACL's?
@@ -65,8 +54,7 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
     // The user is not the owner
     mode >>= 3;
     // Belong to the group?
-    if (!(stat.st_gid == group.gid && !group.banned) &&
-        !gidInGroups(stat.st_gid, groups))
+    if (!context.hasGroup(stat.st_gid))
       mode >>= 3;
 
     return ((stat.st_mode & mode) != mode);
@@ -92,16 +80,15 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
     if (acl[iacl] - '@' < ACL_USER)
       continue;
     aclId = atoi(acl.substr(iacl + 2).c_str());
-    if (user.uid == aclId)
+    if (context.getUser().uid == aclId)
       return ((acl[iacl + 1] & aclMask & mode) != mode);
-    if (user.uid < aclId)
+    if (context.getUser().uid < aclId)
       break;
   }
 
   // Check GROUP
   iacl = acl.find(ACL_GROUP_OBJ|'@', iacl);
-  if ((stat.st_gid == group.gid && !group.banned) ||
-      gidInGroups(stat.st_gid, groups)) {
+  if (context.hasGroup(stat.st_gid)) {
     accPerm = acl[iacl + 1];
     nGroups++;
     if (aclMask == 0x7F) // no extended ACLs
@@ -118,8 +105,7 @@ int dmlite::checkPermissions(const UserInfo &user, const GroupInfo &group,
     if (acl[iacl] - '@' < ACL_GROUP)
       continue;
     aclId = atoi (acl.substr(iacl + 2).c_str());
-    if ((aclId == group.gid && !group.banned) ||
-        gidInGroups(aclId, groups)) {
+    if (context.hasGroup(aclId)) {
       accPerm |= acl[iacl + 1];
       nGroups++;
     }
