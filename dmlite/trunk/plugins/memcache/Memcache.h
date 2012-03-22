@@ -108,13 +108,6 @@ protected:
   /// Get a list of replicas by their memcached key 
   std::vector<FileReplica> getReplicas(const std::string&, ino_t inode) throw (DmException);
 private:
-  /* 
-  std::string serializeKey(const std::string& key);
-
-  std::string deserializeKey(const std::string& serialKey);
-
-  std::string serializeBlackKey(const std::string& key);
-*/
   /// Serialize an ExtendedStat object into a string.
   /// @param var The object to serialize.
   /// @return The serialized object as string.
@@ -177,8 +170,6 @@ private:
   /// @param serialRepl The serialized replica.
   /// @return           The FileReplica.
   FileReplica deserializeFileReplica(std::string& serialRepl);
-
-//  std::vector<FileReplica> deserialize(std::vector<std::string>&); 
 
   /// Convert a memcached key to a versioned key.
   /// @param version  The version to attach
