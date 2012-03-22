@@ -121,14 +121,15 @@ int dmlite::checkPermissions(const SecurityContext& context,
 
 std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
 {
-  static std::map<std::string, struct MapFileEntry*> cache;
+  static std::map<std::string, struct MapFileEntry> cache;
 
-  MapFileEntry* mfe = cache[mapfile];
-  if (mfe == 0x00) {
-    mfe = new MapFileEntry();
-    mfe->lastModified = 0;
-    cache[mapfile] = mfe;
+  if (cache.find(mapfile) == cache.end()) {
+    struct MapFileEntry empty;
+    empty.lastModified = 0;
+    cache.insert(std::pair<std::string, struct MapFileEntry>(mapfile, empty));
   }
+
+  MapFileEntry* mfe = &cache[mapfile];
 
   // Check the last modified time
   struct stat mfStat;
