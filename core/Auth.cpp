@@ -54,6 +54,9 @@ SecurityCredentials::SecurityCredentials(const Credentials& cred)
       this->vfqans.push_back(cred.fqans[i]);
     }
   }
+  else {
+    this->fqans = 0x00;
+  }
 }
 
 
@@ -73,6 +76,9 @@ SecurityCredentials::SecurityCredentials(const SecurityCredentials& cred)
       this->fqans[i] = duplicate(cred.fqans[i]);
       this->vfqans.push_back(cred.fqans[i]);
     }
+  }
+  else {
+    this->fqans = 0x00;
   }
 }
 
