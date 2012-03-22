@@ -36,7 +36,7 @@ dm_manager* dm_manager_new(void);
  * Destroy the manager.
  * @param manager The manager to be destroyed.
  */
-void dm_manager_free(dm_manager* manager);
+int dm_manager_free(dm_manager* manager);
 
 /**
  * Load a library.

@@ -33,19 +33,20 @@ dm_manager* dm_manager_new(void)
   dm_manager* handle;
 
   handle = new dm_manager;
-
   handle->manager = new dmlite::PluginManager();
+  
   return handle;
 }
 
 
 
-void dm_manager_free(dm_manager* handle)
+int dm_manager_free(dm_manager* handle)
 {
   if (handle != NULL) {
     delete handle->manager;
     delete handle;
   }
+  return 0;
 }
 
 
