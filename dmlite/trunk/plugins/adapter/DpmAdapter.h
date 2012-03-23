@@ -54,11 +54,7 @@ public:
   const SecurityContext& getSecurityContext() throw (DmException);
   void setSecurityContext(const SecurityContext&);
 
-  std::vector<Pool>       getPools          (void)               throw (DmException);
-  std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
-  FileSystem              getFilesystem     (const std::string& pool,
-                                             const std::string& server,
-                                             const std::string& fs) throw(DmException);
+  std::vector<Pool> getPools(void) throw (DmException);
 
 protected:
   SecurityContext secCtx_;

@@ -127,9 +127,8 @@ const SecurityContext& NsAdapterCatalog::getSecurityContext() throw (DmException
 
 void NsAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
 {
-  if (&this->secCtx_ != &ctx) {
+  if (&this->secCtx_ != &ctx)
     this->secCtx_ = ctx;
-  }
   // Call DPNS API
   wrapCall(dpns_client_setAuthorizationId(ctx.getUser().uid,
                                           ctx.getGroup(0).gid,

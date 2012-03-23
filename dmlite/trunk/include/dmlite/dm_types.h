@@ -23,6 +23,7 @@
 #define ACL_ENTRIES_MAX 300
 #define ACL_SIZE         13
 #define POLICY_MAX       16
+#define POOL_TYPE_MAX    16
 #define POOL_MAX         16
 #define FILESYSTEM_MAX   80
 #define SUMTYPE_MAX       3
@@ -80,45 +81,21 @@ struct filereplica {
   char       type;
   char       pool      [POOL_MAX];
   char       server    [HOST_NAME_MAX];
-  char       filesystem[FILESYSTEM_MAX];
+  char       filesystem[FILESYSTEM_MAX]; /** Do we still want this? */
   char       url       [URI_MAX];
 };
 typedef struct filereplica FileReplica;
 
-/** File system */
-struct filesystem {
-  char    poolname[POOL_MAX];
-  char    server  [HOST_NAME_MAX];
-  char    fs      [FILESYSTEM_MAX];
-  int64_t capacity;
-  int64_t free;
-  int     status;
-};
-typedef struct filesystem FileSystem;
-
 /** Pool */
 struct pool {
-  char               poolname[POOL_MAX];
-  uint64_t           defsize;
-  int                gc_start_thresh;
-  int                gc_stop_thresh;
-  int                def_lifetime;
-  int                defpintime;
-  int                max_lifetime;
-  int                maxpintime;
-  char               fss_policy[POLICY_MAX];
-  char               gc_policy [POLICY_MAX];
-  char               mig_policy[POLICY_MAX];
-  char               rs_policy [POLICY_MAX];
-  int                nbgids;
-  gid_t             *gids;          /** restrict the pool to given group(s) */
-  char               ret_policy;     /** retention policy: 'R', 'O' or 'C' */
-  char               s_type;         /** space type: 'V', 'D' or 'P' */
-  uint64_t           capacity;
-  int64_t            free;
-  struct filesystem *elemp;
-  int                nbelem;
-  int                next_elem;      /** next pool element to be used */
+  char      pool_type[POOL_TYPE_MAX];
+  char      pool_name[POOL_MAX];
+  uint64_t  capacity;
+  uint64_t  free;
+  unsigned  ngids;
+  gid_t    *gids;
+  /** Pointer to be used internally by the corresponding pool implementation. */
+  void *internal;
 };
 typedef struct pool Pool;
 

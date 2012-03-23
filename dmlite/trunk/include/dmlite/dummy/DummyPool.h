@@ -19,11 +19,7 @@ public:
   virtual const SecurityContext& getSecurityContext(void) throw (DmException);
   virtual void setSecurityContext(const SecurityContext&);
 
-  virtual std::vector<Pool>       getPools          (void)               throw (DmException);
-  virtual std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException) = 0;
-  virtual FileSystem              getFilesystem     (const std::string& pool,
-                                                     const std::string& server,
-                                                     const std::string& fs) throw(DmException) = 0;
+  virtual std::vector<Pool> getPools(void) throw (DmException);
 
 protected:
   PoolManager* decorated_;

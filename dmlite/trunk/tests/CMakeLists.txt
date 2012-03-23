@@ -27,9 +27,6 @@ target_link_libraries (test-comment dmlite dmlitecommon cppunit dl)
 add_executable        (test-stat test-stat.cpp test-base.cpp)
 target_link_libraries (test-stat dmlite dmlitecommon cppunit dl)
 
-add_executable        (test-poolfs test-poolfs.cpp)
-target_link_libraries (test-poolfs dmlite dmlitecommon dl)
-
 add_executable        (test-pools test-pools.cpp)
 target_link_libraries (test-pools dmlite dmlitecommon dl)
 

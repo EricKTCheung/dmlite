@@ -58,19 +58,3 @@ std::vector<Pool> ProfilerPoolManager::getPools(void) throw (DmException)
 {
   PROFILE_RETURN(std::vector<Pool>, getPools);
 }
-
-
-
-std::vector<FileSystem> ProfilerPoolManager::getPoolFilesystems(const std::string& poolname) throw (DmException)
-{
-  PROFILE_RETURN(std::vector<FileSystem>, getPoolFilesystems, poolname);
-}
-
-
-
-FileSystem ProfilerPoolManager::getFilesystem(const std::string& pool,
-                                              const std::string& server,
-                                              const std::string& fs) throw (DmException)
-{
-  PROFILE_RETURN(FileSystem, getFilesystem, pool, server, fs);
-}

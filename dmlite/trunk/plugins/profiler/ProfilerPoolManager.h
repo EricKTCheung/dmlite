@@ -19,9 +19,7 @@ public:
   const SecurityContext& getSecurityContext() throw (DmException);
   void setSecurityContext(const SecurityContext&);
 
-  std::vector<Pool>       getPools          (void)               throw (DmException);
-  std::vector<FileSystem> getPoolFilesystems(const std::string&) throw (DmException);
-  FileSystem              getFilesystem      (const std::string&, const std::string&, const std::string&) throw (DmException);
+  std::vector<Pool> getPools(void) throw (DmException);
 
   void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
   void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);

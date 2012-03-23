@@ -516,50 +516,6 @@ int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
 
 
 
-int dm_freepools(dm_context* context, int npools, struct pool* pools)
-{
-  for (int i = 0; i < npools; ++i) {
-    delete [] pools[i].gids;
-    delete [] pools[i].elemp;
-  }
-  delete [] pools;
-  return 0;
-}
-
-
-
-int dm_getpoolfs(dm_context* context, const char *poolname, int *nbfs, struct filesystem **fs)
-{
-  if (context->pool == 0x00) {
-    context->errorCode   = DM_NO_POOL_MANAGER;
-    context->errorString = "There is no Pool Manager Plugin";
-    return -1;
-  }
-  
-  TRY(context, getpoolfs)
-  NOT_NULL(poolname);
-  NOT_NULL(nbfs);
-  NOT_NULL(fs);
-
-  std::vector<filesystem> filesystems = context->pool->getPoolFilesystems(poolname);
-
-  *fs   = new filesystem[filesystems.size()];
-  *nbfs = filesystems.size();
-  std::copy(filesystems.begin(), filesystems.end(), *fs);
-
-  CATCH(context, getpoolfs)
-}
-
-
-
-int dm_freefs(dm_context* context, int nFs, struct filesystem *fs)
-{
-  delete [] fs;
-  return 0;
-}
-
-
-
 int dm_errno(dm_context* context)
 {
   if (context == NULL || context->catalog == NULL)
