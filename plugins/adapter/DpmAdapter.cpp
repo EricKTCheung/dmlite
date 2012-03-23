@@ -340,23 +340,16 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(void) throw (DmException)
     Pool              pool;
 
     for (int i = 0; i < nPools; ++i) {
-      // Do a memcpy
-      // This will work as the structures match
-      // but if they change, beware!
-      memcpy(&pool, &dpmPools[i], sizeof(Pool));
+
+      pool.capacity = dpmPools[i].capacity;
       pool.free = dpmPools[i].free;
+      pool.internal = 0x00;
+      strncpy(pool.pool_name, dpmPools[i].poolname, POOL_MAX);
+      strcpy(pool.pool_type, "Legacy");
 
       // Copy gids! (Array)
       pool.gids = new gid_t[dpmPools[i].nbgids];
       memcpy(pool.gids, dpmPools[i].gids, sizeof(gid_t) * dpmPools[i].nbgids);
-
-      // Fill the filesystems
-      std::vector<FileSystem> fss = this->getPoolFilesystems(pool.poolname);
-      pool.nbelem = fss.size();
-      pool.elemp = new filesystem[pool.nbelem];
-      for (int i = 0; i < pool.nbelem; ++i) {
-        pool.elemp[i] = fss[i];
-      }
 
       pools.push_back(pool);
     }
@@ -369,50 +362,6 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(void) throw (DmException)
       free(dpmPools);
     throw;
   }
-}
-
-
-
-std::vector<FileSystem> DpmAdapterPoolManager::getPoolFilesystems(const std::string& poolname) throw (DmException)
-{
-  struct dpm_fs*          dpmFs;
-  int                     nFs;
-  std::vector<FileSystem> filesystems;
-  FileSystem              fs;
-  
-  RETRY(dpm_getpoolfs((char*)poolname.c_str(), &nFs, &dpmFs), this->retryLimit_);
-
-  for (int i = 0; i < nFs; ++i) {
-    fs.capacity = dpmFs[i].capacity;
-    fs.free     = dpmFs[i].free;
-    fs.status   = dpmFs[i].status;
-
-    strcpy(fs.fs,       dpmFs[i].fs);
-    strcpy(fs.poolname, dpmFs[i].poolname);
-    strcpy(fs.server,   dpmFs[i].server);
-
-    filesystems.push_back(fs);
-  }
-
-  free(dpmFs);
-  return filesystems;
-}
-
-
-
-FileSystem DpmAdapterPoolManager::getFilesystem(const std::string& pool,
-                                                const std::string& server,
-                                                const std::string& fs) throw (DmException)
-{
-  std::vector<FileSystem> filesystems = this->getPoolFilesystems(pool);
-
-  std::vector<FileSystem>::const_iterator i;
-  for (i = filesystems.begin(); i != filesystems.end(); ++i) {
-    if (server == i->server && fs == i->fs)
-      return *i;
-  }
-
-  throw DmException(DM_NO_SUCH_FS, server + ":" + fs + " not found");
 }
 
 
@@ -454,7 +403,8 @@ void DpmAdapterPoolManager::setSecurityCredentials(const SecurityCredentials& cr
 
 void DpmAdapterPoolManager::setSecurityContext(const SecurityContext& ctx)
 {
-  this->secCtx_ = ctx;
+  if (&this->secCtx_ != &ctx)
+    this->secCtx_ = ctx;
   // Call DPM API
   wrapCall(dpm_client_setAuthorizationId(ctx.getUser().uid,
                                          ctx.getGroup(0).gid,

@@ -499,25 +499,6 @@ int dm_getpools(dm_context* context, int* nPools, struct pool** pools);
 int dm_freepools(dm_context* context, int nPools, struct pool* pools);
 
 /**
- * Get the list of filesystems in a pool.
- * @param context  The DM context.
- * @param poolname The pool name.
- * @param nFs      The number of file systems returned in dpm_fs.
- * @param fs       An array with the filesystems. <b>Use dm_freefs to free</b>.
- * @return         0 on succes, -1 on failure.
- */
-int dm_getpoolfs(dm_context* context, const char* poolname, int* nFs, struct filesystem** fs);
-
-/**
- * Free the list returned by dm_getpoolfs.
- * @param context The DM context.
- * @param nFs     The number of filesystems in the array.
- * @param fs      The array to free.
- * @return        0 on sucess,  error code otherwise.
- */
-int dm_freefs(dm_context* context, int nFs, struct filesystem* fs);
-
-/**
  * Open a file.
  * @param context The DM context.
  * @param path    The path to open.

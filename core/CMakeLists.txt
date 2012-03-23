@@ -8,6 +8,7 @@ add_library(dmlite SHARED Auth.cpp
                           IO-C.cpp
                           PluginManager.cpp
                           PluginManager-C.cpp
+                          Pool-C.cpp
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
 

@@ -35,19 +35,6 @@ public:
   /// Get the list of pools.
   /// @return A set with all the pools.
   virtual std::vector<Pool> getPools(void) throw (DmException) = 0;
-
-  /// Get the list of filesystems in a pool.
-  /// @param poolname The pool name.
-  /// @return         A set with the filesystems that belong to the pool.
-  virtual std::vector<FileSystem> getPoolFilesystems(const std::string& poolname) throw (DmException) = 0;
-
-  /// Get the status of a filesystem within a pool.
-  /// @param pool   The pool name.
-  /// @param server The disk server.
-  /// @param fs     The file system within the server.
-  /// @return       A struct associated with the requested filesystem.
-  virtual FileSystem getFilesystem(const std::string& pool, const std::string& server,
-                                   const std::string& fs) throw(DmException) = 0;
 };
 
 /// Plug-ins must implement a concrete factory to be instantiated.

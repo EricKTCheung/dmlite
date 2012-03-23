@@ -48,18 +48,3 @@ std::vector<Pool> DummyPoolManager::getPools(void) throw (DmException)
 {
   DELEGATE_RETURN(getPools);
 }
-
-
-
-std::vector<FileSystem> DummyPoolManager::getPoolFilesystems(const std::string& poolname) throw (DmException)
-{
-  DELEGATE_RETURN(getPoolFilesystems, poolname);
-}
-
-
-FileSystem DummyPoolManager::getFilesystem(const std::string& pool,
-                                           const std::string& server,
-                                           const std::string& fs) throw (DmException)
-{
-  DELEGATE_RETURN(getFilesystem, pool, server, fs);
-}
