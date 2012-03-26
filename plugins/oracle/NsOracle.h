@@ -219,6 +219,9 @@ private:
   /// Get user mapping.
   void getIdMap(const std::string&, const std::vector<std::string>&,
                 UserInfo*, std::vector<GroupInfo>*) throw (DmException);
+
+  /// Update nlinks
+  void updateNlink(ino_t fileid, int diff) throw (DmException);
 };
 
 };

@@ -68,6 +68,7 @@ enum {
   STMT_DELETE_FILE,
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
+  STMT_SELECT_NLINK_FOR_UPDATE,
   STMT_UPDATE_NLINK,
   STMT_UPDATE_PERMS,
   STMT_DELETE_REPLICA,
@@ -158,6 +159,7 @@ static const char* statements[] = {
   "DELETE FROM Cns_file_metadata WHERE fileid = :b_fileid",
   "DELETE FROM Cns_user_metadata WHERE u_fileid = :b_fileid",
   "DELETE FROM Cns_symlinks WHERE fileid = :b_fileid",
+  "SELECT nlink FROM Cns_file_metadata WHERE fileid = :b_fileid FOR UPDATE",
   "UPDATE Cns_file_metadata\
         SET nlink = :b_nlink, mtime = :b_mtime, ctime = :b_ctime\
         WHERE fileid = :b_fileid",
@@ -435,6 +437,29 @@ SymLink NsOracleCatalog::readLink(uint64_t linkId) throw(DmException)
 
 
 
+void NsOracleCatalog::updateNlink(ino_t fileid, int diff) throw (DmException)
+{
+  occi::Statement* nlinkStmt = this->getPreparedStatement(STMT_SELECT_NLINK_FOR_UPDATE);
+  nlinkStmt->setNumber(1, fileid);
+  occi::ResultSet* nlinkRs = nlinkStmt->executeQuery();
+  nlinkRs->next();
+  long nlink = nlinkRs->getNumber(1);
+
+  nlinkStmt->closeResultSet(nlinkRs);
+
+  occi::Statement* nlinkUpdateStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
+
+  nlink += diff;
+  nlinkUpdateStmt->setNumber(1, nlink);
+  nlinkUpdateStmt->setNumber(2, time(NULL));
+  nlinkUpdateStmt->setNumber(3, time(NULL));
+  nlinkUpdateStmt->setNumber(4, fileid);
+
+  nlinkUpdateStmt->executeUpdate();
+}
+
+
+
 ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& name,
                                       mode_t mode, long nlink, size_t size,
                                       short type, char status,
@@ -489,15 +514,7 @@ ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& n
   fileStmt->executeUpdate();
 
   // Increment the nlink
-  occi::Statement* nlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
-
-  parent.stat.st_nlink++;
-  nlinkStmt->setNumber(1, parent.stat.st_nlink);
-  nlinkStmt->setNumber(2, time(NULL));
-  nlinkStmt->setNumber(3, time(NULL));
-  nlinkStmt->setNumber(4, parent.stat.st_ino);
-
-  nlinkStmt->executeUpdate();
+  this->updateNlink(parent.stat.st_ino, +1);
 
   // Return back
   return this->extendedStat(parent.stat.st_ino, name);
@@ -1027,13 +1044,7 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
   delFile->executeUpdate();
 
   // And decrement nlink
-  occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  parent.stat.st_nlink--;
-  nlink->setNumber(1, parent.stat.st_nlink);
-  nlink->setNumber(2, time(NULL));
-  nlink->setNumber(3, time(NULL));
-  nlink->setNumber(4, parent.stat.st_ino);
-  nlink->executeUpdate();
+  this->updateNlink(parent.stat.st_ino, -1);
 
   // Done!
   transaction.commit();
@@ -1505,13 +1516,7 @@ void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
   delDir->executeUpdate();
 
   // And decrement nlink
-  occi::Statement* nlink = this->getPreparedStatement(STMT_UPDATE_NLINK);
-  parent.stat.st_nlink--;
-  nlink->setNumber(1, parent.stat.st_nlink);
-  nlink->setNumber(2, time(NULL));
-  nlink->setNumber(3, time(NULL));
-  nlink->setNumber(4, parent.stat.st_ino);
-  nlink->executeUpdate();
+  this->updateNlink(parent.stat.st_ino, -1);
 
   // Done!
   transaction.commit();
@@ -1621,24 +1626,10 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     changeParentStmt->executeUpdate();
 
     // Reduce nlinks from old
-    occi::Statement* oldNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
-
-    oldNlinkStmt->setNumber(1, --oldParent.stat.st_nlink);
-    oldNlinkStmt->setNumber(2, time(NULL));
-    oldNlinkStmt->setNumber(3, time(NULL));
-    oldNlinkStmt->setNumber(4, oldParent.stat.st_ino);
-
-    oldNlinkStmt->executeUpdate();
+    this->updateNlink(oldParent.stat.st_ino, -1);
 
     // Increment from new
-    occi::Statement* newNlinkStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
-
-    newNlinkStmt->setNumber(1, ++newParent.stat.st_nlink);
-    newNlinkStmt->setNumber(2, time(NULL));
-    newNlinkStmt->setNumber(3, time(NULL));
-    newNlinkStmt->setNumber(4, newParent.stat.st_ino);
-
-    newNlinkStmt->executeUpdate();
+    this->updateNlink(newParent.stat.st_ino, +1);
   }
 
   // Done!
