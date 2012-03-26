@@ -196,27 +196,23 @@ static const char* statements[] = {
 
 MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
 {
-  if (this->preparedStmt_[stId] == 0x00) {
+  if (mysql_select_db(this->conn_, this->nsDb_.c_str()) != 0)
+    throw DmException(DM_QUERY_FAILED, std::string("Select DB: ") + mysql_error(this->conn_));
 
-    if (mysql_select_db(this->conn_, this->nsDb_.c_str()) != 0)
-      throw DmException(DM_QUERY_FAILED, std::string("Select DB: ") + mysql_error(this->conn_));
-
-    this->preparedStmt_[stId] = mysql_stmt_init(this->conn_);
-    if (mysql_stmt_prepare(this->preparedStmt_[stId],
-                           statements[stId], std::strlen(statements[stId])) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + mysql_stmt_error(this->preparedStmt_[stId]));
-    }
+    MYSQL_STMT* stmt = mysql_stmt_init(this->conn_);
+  if (mysql_stmt_prepare(stmt,
+                         statements[stId], std::strlen(statements[stId])) != 0) {
+      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + mysql_stmt_error(stmt));
   }
 
-  return this->preparedStmt_[stId];
+  return stmt;
 }
 
 
 
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
                                unsigned int symLinkLimit) throw(DmException):
-                secCtx_(), cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit),
-                preparedStmt_(STMT_SENTINEL, 0x00)
+                secCtx_(), cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -226,12 +222,6 @@ NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::strin
 
 NsMySqlCatalog::~NsMySqlCatalog() throw(DmException)
 {
-  std::vector<MYSQL_STMT*>::iterator i;
-
-  for (i = this->preparedStmt_.begin(); i != this->preparedStmt_.end(); i++) {
-    if (*i != 0x00)
-      mysql_stmt_close(*i);
-  }
   this->connectionPool_->release(this->conn_);
 }
 

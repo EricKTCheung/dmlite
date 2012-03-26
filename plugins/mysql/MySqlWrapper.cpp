@@ -93,6 +93,9 @@ Statement::~Statement() throw ()
   if (this->results_ != 0x00) {
     delete [] this->results_;
   }
+
+  // Close statement
+  mysql_stmt_close(this->stmt_);
 }
 
 
