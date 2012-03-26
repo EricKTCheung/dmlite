@@ -82,7 +82,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(5,             (int)acls[0].perm);
 
     CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ,   (int)acls[1].type);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, acls[1].id);
+    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(0).gid, acls[1].id);
     CPPUNIT_ASSERT_EQUAL(5,               (int)acls[1].perm);
 
     CPPUNIT_ASSERT_EQUAL(ACL_OTHER, (int)acls[3].type);
