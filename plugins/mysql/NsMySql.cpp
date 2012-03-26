@@ -48,6 +48,7 @@ enum {
   STMT_DELETE_FILE,
   STMT_DELETE_COMMENT,
   STMT_DELETE_SYMLINK,
+  STMT_NLINK_FOR_UPDATE,
   STMT_UPDATE_NLINK,
   STMT_UPDATE_PERMS,
   STMT_DELETE_REPLICA,
@@ -141,6 +142,7 @@ static const char* statements[] = {
   "DELETE FROM Cns_file_metadata WHERE fileid = ?",
   "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
   "DELETE FROM Cns_symlinks WHERE fileid = ?",
+  "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE",
   "UPDATE Cns_file_metadata\
         SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?",
@@ -453,13 +455,19 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
   fileStmt.execute();
   
   // Increment the nlink
-  Statement nlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  nlinkStmt.bindParam(0, parent.stat.st_ino);
+  nlinkStmt.execute();
+  nlinkStmt.bindResult(0, &parent.stat.st_nlink);
+  nlinkStmt.fetch();
+
+  Statement nlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
   parent.stat.st_nlink++;
-  nlinkStmt.bindParam(0, parent.stat.st_nlink);
-  nlinkStmt.bindParam(1, parent.stat.st_ino);
+  nlinkUpdateStmt.bindParam(0, parent.stat.st_nlink);
+  nlinkUpdateStmt.bindParam(1, parent.stat.st_ino);
 
-  nlinkStmt.execute();
+  nlinkUpdateStmt.execute();
 
   // Return back
   return this->extendedStat(newFileId);
@@ -969,11 +977,17 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   delFile.execute();
 
   // And decrement nlink
-  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  nlinkStmt.bindParam(0, parent.stat.st_ino);
+  nlinkStmt.execute();
+  nlinkStmt.bindResult(0, &parent.stat.st_nlink);
+  nlinkStmt.fetch();
+
+  Statement nlinkUpdate(this->getPreparedStatement(STMT_UPDATE_NLINK));
   parent.stat.st_nlink--;
-  nlink.bindParam(0, parent.stat.st_nlink);
-  nlink.bindParam(1, parent.stat.st_ino);
-  nlink.execute();
+  nlinkUpdate.bindParam(0, parent.stat.st_nlink);
+  nlinkUpdate.bindParam(1, parent.stat.st_ino);
+  nlinkUpdate.execute();
 
   // Done!
   transaction.commit();
@@ -1417,11 +1431,17 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   delDir.execute();
 
   // And decrement nlink
-  Statement nlink(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  nlinkStmt.bindParam(0, parent.stat.st_ino);
+  nlinkStmt.execute();
+  nlinkStmt.bindResult(0, &parent.stat.st_nlink);
+  nlinkStmt.fetch();
+
+  Statement nlinkUpdate(this->getPreparedStatement(STMT_UPDATE_NLINK));
   parent.stat.st_nlink--;
-  nlink.bindParam(0, parent.stat.st_nlink);
-  nlink.bindParam(1, parent.stat.st_ino);
-  nlink.execute();
+  nlinkUpdate.bindParam(0, parent.stat.st_nlink);
+  nlinkUpdate.bindParam(1, parent.stat.st_ino);
+  nlinkUpdate.execute();
 
   // Done!
   transaction.commit();
@@ -1532,21 +1552,35 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
       throw DmException(DM_INTERNAL_ERROR, "Could not update the parent ino!");
 
     // Reduce nlinks from old
-    Statement oldNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    Statement oldNlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+    oldNlinkStmt.bindParam(0, oldParent.stat.st_ino);
+    oldNlinkStmt.execute();
+    oldNlinkStmt.bindResult(0, &oldParent.stat.st_nlink);
+    oldNlinkStmt.fetch();
 
-    oldNlinkStmt.bindParam(0, --oldParent.stat.st_nlink);
-    oldNlinkStmt.bindParam(1, oldParent.stat.st_ino);
+    Statement oldNlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
-    if (oldNlinkStmt.execute() == 0)
+    oldParent.stat.st_nlink--;
+    oldNlinkUpdateStmt.bindParam(0, oldParent.stat.st_nlink);
+    oldNlinkUpdateStmt.bindParam(1, oldParent.stat.st_ino);
+
+    if (oldNlinkUpdateStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the old parent nlink!");
 
     // Increment from new
-    Statement newNlinkStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    Statement newNlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+    newNlinkStmt.bindParam(0, newParent.stat.st_ino);
+    newNlinkStmt.execute();
+    newNlinkStmt.bindResult(0, &newParent.stat.st_nlink);
+    newNlinkStmt.fetch();
 
-    newNlinkStmt.bindParam(0, ++newParent.stat.st_nlink);
-    newNlinkStmt.bindParam(1, newParent.stat.st_ino);
+    Statement newNlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
 
-    if (newNlinkStmt.execute() == 0)
+    newParent.stat.st_nlink++;
+    newNlinkUpdateStmt.bindParam(0, newParent.stat.st_nlink);
+    newNlinkUpdateStmt.bindParam(1, newParent.stat.st_ino);
+
+    if (newNlinkUpdateStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the new parent nlink!");
   }
 
