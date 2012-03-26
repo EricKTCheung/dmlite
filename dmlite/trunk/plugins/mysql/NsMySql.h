@@ -142,9 +142,6 @@ private:
   /// Symlink limit
   unsigned int symLinkLimit_;
 
-  /// Precompiled statements
-  std::vector<MYSQL_STMT*> preparedStmt_;
-
   // Private methods
 
   /// Returns the preparted statement with the specified ID.
