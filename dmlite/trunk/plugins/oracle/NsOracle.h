@@ -146,9 +146,6 @@ private:
   /// Symlink limit
   unsigned int symLinkLimit_;
 
-  /// Precompiled statements
-  std::vector<oracle::occi::Statement*> preparedStmt_;
-
   // Private methods
 
   /// Returns the preparted statement with the specified ID.

@@ -213,17 +213,17 @@ static const char* statements[] = {
 
 occi::Statement* NsOracleCatalog::getPreparedStatement(unsigned stId)
 {
-  if (this->preparedStmt_[stId] == 0x00) {
-    try {
-      this->preparedStmt_[stId] = this->conn_->createStatement(statements[stId]);
-      // Make sure autocommit is always disabled
-      this->preparedStmt_[stId]->setAutoCommit(false);
-    }
-    catch (occi::SQLException& ex) {
-      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + ex.getMessage());
-    }
+  occi::Statement* stmt;
+
+  try {
+    stmt = this->conn_->createStatement(statements[stId]);
+    // Make sure autocommit is always disabled
+    stmt->setAutoCommit(false);
   }
-  return this->preparedStmt_[stId];
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + ex.getMessage());
+  }
+  return stmt;
 }
 
 
@@ -231,8 +231,7 @@ occi::Statement* NsOracleCatalog::getPreparedStatement(unsigned stId)
 NsOracleCatalog::NsOracleCatalog(oracle::occi::ConnectionPool* pool,
                                  oracle::occi::Connection* conn,
                                  unsigned int symLimit) throw (DmException):
-  pool_(pool), conn_(conn), cwd_(0), umask_(022), symLinkLimit_(symLimit),
-  preparedStmt_(STMT_SENTINEL, 0x00)
+  pool_(pool), conn_(conn), cwd_(0), umask_(022), symLinkLimit_(symLimit)
 {
   // Nothing
 }
@@ -241,12 +240,6 @@ NsOracleCatalog::NsOracleCatalog(oracle::occi::ConnectionPool* pool,
 
 NsOracleCatalog::~NsOracleCatalog() throw (DmException)
 {
-  std::vector<occi::Statement*>::iterator i;
-
-  for (i = this->preparedStmt_.begin(); i != this->preparedStmt_.end(); i++) {
-    if (*i != 0x00)
-      this->conn_->terminateStatement(*i);
-  }
   this->pool_->terminateConnection(this->conn_);
 }
 
@@ -332,6 +325,7 @@ ExtendedStat NsOracleCatalog::extendedStat(uint64_t fileId) throw(DmException)
     rs = stmt->executeQuery();
     if (!rs->next()) {
       stmt->closeResultSet(rs);
+      this->conn_->terminateStatement(stmt);
       throw DmException(DM_NO_SUCH_FILE, "File %ld not found", fileId);
     }
     getMetadata(rs, &meta);
@@ -339,10 +333,12 @@ ExtendedStat NsOracleCatalog::extendedStat(uint64_t fileId) throw(DmException)
   catch (occi::SQLException& ex) {
     if (rs)
       stmt->closeResultSet(rs);
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_QUERY_FAILED, ex.getMessage());
   }
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
   return meta;
 }
 
@@ -361,6 +357,7 @@ ExtendedStat NsOracleCatalog::guidStat(const std::string& guid) throw (DmExcepti
     rs = stmt->executeQuery();
     if (!rs->next()) {
       stmt->closeResultSet(rs);
+      this->conn_->terminateStatement(stmt);
       throw DmException(DM_NO_SUCH_FILE, "File with guid " + guid + " not found");
     }
     getMetadata(rs, &meta);
@@ -368,10 +365,12 @@ ExtendedStat NsOracleCatalog::guidStat(const std::string& guid) throw (DmExcepti
   catch (occi::SQLException& ex) {
     if (rs)
       stmt->closeResultSet(rs);
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_QUERY_FAILED, ex.getMessage());
   }
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
   return meta;
 }
 
@@ -391,6 +390,7 @@ ExtendedStat NsOracleCatalog::extendedStat(uint64_t parent, const std::string& n
     rs = stmt->executeQuery();
     if (!rs->next()) {
       stmt->closeResultSet(rs);
+      this->conn_->terminateStatement(stmt);
       throw DmException(DM_NO_SUCH_FILE, name + " not found");
     }
     getMetadata(rs, &meta);
@@ -398,10 +398,12 @@ ExtendedStat NsOracleCatalog::extendedStat(uint64_t parent, const std::string& n
   catch (occi::SQLException& ex) {
     if (rs)
       stmt->closeResultSet(rs);
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_QUERY_FAILED, ex.getMessage());
   }
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
   return meta;
 }
 
@@ -420,6 +422,7 @@ SymLink NsOracleCatalog::readLink(uint64_t linkId) throw(DmException)
     rs = stmt->executeQuery();
     if (!rs->next()) {
       stmt->closeResultSet(rs);
+      this->conn_->terminateStatement(stmt);
       throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", linkId);
     }
     link.fileId = rs->getNumber(1);
@@ -428,10 +431,12 @@ SymLink NsOracleCatalog::readLink(uint64_t linkId) throw(DmException)
   catch (occi::SQLException& ex) {
     if (rs)
       stmt->closeResultSet(rs);
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_QUERY_FAILED, ex.getMessage());
   }
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
   return link;
 }
 
@@ -446,6 +451,7 @@ void NsOracleCatalog::updateNlink(ino_t fileid, int diff) throw (DmException)
   long nlink = nlinkRs->getNumber(1);
 
   nlinkStmt->closeResultSet(nlinkRs);
+  this->conn_->terminateStatement(nlinkStmt);
 
   occi::Statement* nlinkUpdateStmt = this->getPreparedStatement(STMT_UPDATE_NLINK);
 
@@ -456,6 +462,7 @@ void NsOracleCatalog::updateNlink(ino_t fileid, int diff) throw (DmException)
   nlinkUpdateStmt->setNumber(4, fileid);
 
   nlinkUpdateStmt->executeUpdate();
+  this->conn_->terminateStatement(nlinkUpdateStmt);
 }
 
 
@@ -512,6 +519,8 @@ ExtendedStat NsOracleCatalog::newFile(ExtendedStat& parent, const std::string& n
   fileStmt->setString(15, acl);
 
   fileStmt->executeUpdate();
+
+  this->conn_->terminateStatement(fileStmt);
 
   // Increment the nlink
   this->updateNlink(parent.stat.st_ino, +1);
@@ -716,6 +725,7 @@ void NsOracleCatalog::closeDir(Directory* dir) throw(DmException)
   dirp = (NsOracleDir*)dir;
 
   dirp->stmt->closeResultSet(dirp->rs);
+  this->conn_->terminateStatement(dirp->stmt);
   delete dirp;
 }
 
@@ -817,6 +827,8 @@ void NsOracleCatalog::addReplica(const std::string& guid, int64_t id,
     stmt->setString(13, sfn);
 
     stmt->executeUpdate();
+
+    this->conn_->terminateStatement(stmt);
     
     transaction.commit();
   }
@@ -853,6 +865,7 @@ void NsOracleCatalog::deleteReplica(const std::string& guid, int64_t id,
   stmt->setString(2, sfn);
   
   stmt->executeUpdate();
+  this->conn_->terminateStatement(stmt);
 
   transaction.commit();
 }
@@ -897,6 +910,7 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmExcept
     rs = stmt->executeQuery();
   }
   catch (occi::SQLException& ex) {
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_QUERY_FAILED, ex.getMessage());
   }
 
@@ -921,6 +935,7 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmExcept
     replicas.push_back(replica);
   }
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   if (replicas.size() == 0)
     throw DmException(DM_NO_REPLICAS, "No replicas available for %ld", ino);
@@ -979,6 +994,7 @@ void NsOracleCatalog::symlink(const std::string& oldPath, const std::string& new
   stmt->executeUpdate();
 
   // Done
+  this->conn_->terminateStatement(stmt);
   transaction.commit();
 }
 
@@ -1032,16 +1048,19 @@ void NsOracleCatalog::unlink(const std::string& path) throw (DmException)
   occi::Statement* delSymlink = this->getPreparedStatement(STMT_DELETE_SYMLINK);
   delSymlink->setNumber(1, file.stat.st_ino);
   delSymlink->executeUpdate();
+  this->conn_->terminateStatement(delSymlink);
 
   // Remove associated comments
   occi::Statement* delComment = this->getPreparedStatement(STMT_DELETE_COMMENT);
   delComment->setNumber(1, file.stat.st_ino);
   delComment->executeUpdate();
+  this->conn_->terminateStatement(delComment);
 
   // Remove file itself
   occi::Statement* delFile = this->getPreparedStatement(STMT_DELETE_FILE);
   delFile->setNumber(1, file.stat.st_ino);
   delFile->executeUpdate();
+  this->conn_->terminateStatement(delFile);
 
   // And decrement nlink
   this->updateNlink(parent.stat.st_ino, -1);
@@ -1098,6 +1117,7 @@ void NsOracleCatalog::create(const std::string& path, mode_t mode) throw (DmExce
     stmt->setNumber(1, time(NULL));
     stmt->setNumber(2, file.stat.st_ino);
     stmt->executeUpdate();
+    this->conn_->terminateStatement(stmt);
   }
   
   transaction.commit();
@@ -1166,6 +1186,7 @@ void NsOracleCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
   stmt->setNumber(5, time(NULL));
   stmt->setNumber(6, meta.stat.st_ino);
   stmt->executeUpdate();
+  this->conn_->terminateStatement(stmt);
   
   transaction.commit();
 }
@@ -1228,6 +1249,7 @@ void NsOracleCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid
   chownStmt->setNumber(6, meta.stat.st_ino);
 
   chownStmt->executeUpdate();
+  this->conn_->terminateStatement(chownStmt);
 
   transaction.commit();
 }
@@ -1313,6 +1335,7 @@ void NsOracleCatalog::setAcl(const std::string& path, const std::vector<Acl>& ac
 
   stmt->executeUpdate();
 
+  this->conn_->terminateStatement(stmt);
   transaction.commit();
 }
 
@@ -1351,6 +1374,7 @@ void NsOracleCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmExc
   stmt->setNumber(4, inode);
 
   stmt->executeUpdate();
+  this->conn_->terminateStatement(stmt);
 }
 
 
@@ -1375,6 +1399,7 @@ std::string NsOracleCatalog::getComment(const std::string& path) throw(DmExcepti
   std::string comment = rs->getString(1);
   
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   // Done here!
   return comment;
@@ -1408,6 +1433,7 @@ void NsOracleCatalog::setComment(const std::string& path, const std::string& com
     stmti->executeUpdate();
   }
 
+  this->conn_->terminateStatement(stmt);
   transaction.commit();
 }
 
@@ -1430,6 +1456,7 @@ void NsOracleCatalog::setGuid(const std::string& path, const std::string& guid) 
 
   stmt->executeUpdate();
 
+  this->conn_->terminateStatement(stmt);
   transaction.commit();
 }
 
@@ -1514,6 +1541,7 @@ void NsOracleCatalog::removeDir(const std::string& path) throw (DmException)
   occi::Statement* delDir = this->getPreparedStatement(STMT_DELETE_FILE);
   delDir->setNumber(1, entry.stat.st_ino);
   delDir->executeUpdate();
+  this->conn_->terminateStatement(delDir);
 
   // And decrement nlink
   this->updateNlink(parent.stat.st_ino, -1);
@@ -1613,6 +1641,7 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     changeNameStmt->setNumber(3, old.stat.st_ino);
 
     changeNameStmt->executeUpdate();
+    this->conn_->terminateStatement(changeNameStmt);
   }
 
   // Change the parent if needed
@@ -1624,6 +1653,8 @@ void NsOracleCatalog::rename(const std::string& oldPath, const std::string& newP
     changeParentStmt->setNumber(3, old.stat.st_ino);
 
     changeParentStmt->executeUpdate();
+
+    this->conn_->terminateStatement(changeParentStmt);
 
     // Reduce nlinks from old
     this->updateNlink(oldParent.stat.st_ino, -1);
@@ -1645,9 +1676,11 @@ FileReplica NsOracleCatalog::replicaGet(const std::string& replica) throw (DmExc
 
   occi::ResultSet* rs = stmt->executeQuery();
 
-  if (!rs->next())
+  if (!rs->next()) {
+    this->conn_->terminateStatement(stmt);
     throw DmException(DM_NO_REPLICAS, "Replica " + replica + " not found");
-  
+  }
+
   FileReplica r;
 
   r.replicaid  = rs->getNumber(1);
@@ -1663,6 +1696,8 @@ FileReplica NsOracleCatalog::replicaGet(const std::string& replica) throw (DmExc
   strncpy(r.filesystem, rs->getString(11).c_str(), sizeof(r.filesystem));
   strncpy(r.url,        rs->getString(12).c_str(), sizeof(r.url));
 
+  stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
   return r;
 }
 
@@ -1691,6 +1726,7 @@ void NsOracleCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
   stmt->setString(6, rdata.url);
 
   stmt->executeUpdate();
+  this->conn_->terminateStatement(stmt);
 }
 
 
@@ -1803,6 +1839,7 @@ UserInfo NsOracleCatalog::getUser(const std::string& userName) throw(DmException
   user.banned = rs->getNumber(4);
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   return user;
 }
@@ -1826,6 +1863,7 @@ UserInfo NsOracleCatalog::getUser(uid_t uid) throw(DmException)
   user.banned = rs->getNumber(4);
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   return user;
 }
@@ -1848,6 +1886,7 @@ GroupInfo NsOracleCatalog::getGroup(const std::string& groupName) throw(DmExcept
   group.banned = rs->getNumber(3);
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   return group;
 }
@@ -1870,6 +1909,7 @@ GroupInfo NsOracleCatalog::getGroup(gid_t gid) throw(DmException)
   group.banned = rs->getNumber(3);
 
   stmt->closeResultSet(rs);
+  this->conn_->terminateStatement(stmt);
 
   return group;
 }
@@ -1894,6 +1934,7 @@ UserInfo NsOracleCatalog::newUser(const std::string& uname, const std::string& c
     occi::Statement* updateUidStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_UID);
     updateUidStmt->setNumber(1, uid);
     updateUidStmt->executeUpdate();
+    this->conn_->terminateStatement(updateUidStmt);
   }
   // Couldn't get, so insert it instead
   else {
@@ -1902,9 +1943,11 @@ UserInfo NsOracleCatalog::newUser(const std::string& uname, const std::string& c
     occi::Statement* insertUidStmt = this->getPreparedStatement(STMT_INSERT_UNIQ_UID);
     insertUidStmt->setNumber(1, uid);
     insertUidStmt->executeUpdate();
+    this->conn_->terminateStatement(insertUidStmt);
   }
 
   uidStmt->closeResultSet(rs);
+  this->conn_->terminateStatement(uidStmt);
 
   // Insert the user
   occi::Statement* userStmt = this->getPreparedStatement(STMT_INSERT_USER);
@@ -1915,6 +1958,8 @@ UserInfo NsOracleCatalog::newUser(const std::string& uname, const std::string& c
   userStmt->setNumber(4, 0);
 
   userStmt->executeUpdate();
+
+  this->conn_->terminateStatement(userStmt);
 
   // Commit
   transaction.commit();
@@ -1949,6 +1994,8 @@ GroupInfo NsOracleCatalog::newGroup(const std::string& gname) throw (DmException
     occi::Statement* updateGidStmt = this->getPreparedStatement(STMT_UPDATE_UNIQ_GID);
     updateGidStmt->setNumber(1, gid);
     updateGidStmt->executeUpdate();
+
+    this->conn_->terminateStatement(updateGidStmt);
   }
   // Couldn't get, so insert it instead
   else {
@@ -1956,9 +2003,12 @@ GroupInfo NsOracleCatalog::newGroup(const std::string& gname) throw (DmException
     occi::Statement* insertGidStmt = this->getPreparedStatement(STMT_INSERT_UNIQ_GID);
     insertGidStmt->setNumber(1, gid);
     insertGidStmt->executeUpdate();
+
+    this->conn_->terminateStatement(insertGidStmt);
   }
 
   gidStmt->closeResultSet(rs);
+  this->conn_->terminateStatement(gidStmt);
 
   // Insert the group
   occi::Statement* groupStmt = this->getPreparedStatement(STMT_INSERT_GROUP);
@@ -1968,6 +2018,8 @@ GroupInfo NsOracleCatalog::newGroup(const std::string& gname) throw (DmException
   groupStmt->setNumber(3, 0);
 
   groupStmt->executeUpdate();
+
+  this->conn_->terminateStatement(groupStmt);
 
   // Commit
   transaction.commit();
