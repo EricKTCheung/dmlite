@@ -9,6 +9,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/MemcacheNsMySql.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsAdapter.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/NsAdapter.conf)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmAdapter.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/DpmAdapter.conf)
+
 add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
@@ -70,7 +73,9 @@ target_link_libraries (test-checkperm dmlite dmlitecommon cppunit dl)
 ENABLE_TESTING()
 
 # Set Test Parameters
-set (CONFIG MemcacheNsMySql.conf)
+#set (CONFIG MemcacheNsMySql.conf)
+set (CONFIG NsMySql.conf)
+set (FSCONFIG DpmAdapter.conf)
 set (PLUGIN plugin_adapter_dpm)
 set (PLUGIN_SO ../plugins/adapter/plugin_adapter.so)
 set (POOL pool1)
@@ -92,12 +97,9 @@ ADD_TEST(test-guid ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
 SET_TESTS_PROPERTIES(test-guid PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-stat ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
 SET_TESTS_PROPERTIES(test-stat PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-poolfs ${CMAKE_CURRENT_BINARY_DIR}/test-poolfs ${PLUGIN_SO} ${PLUGIN} ${POOL})
-SET_TESTS_PROPERTIES(test-poolfs PROPERTIES PASS_REGULAR_EXPRESSION
-"Pool;Filesystem")
-ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${PLUGIN_SO} ${PLUGIN} ${POOL})
-SET_TESTS_PROPERTIES(test-pools PROPERTIES PASS_REGULAR_EXPRESSION
-"Pool;Filesystem")
+#ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${PLUGIN_SO} ${PLUGIN} ${POOL})
+ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${FSCONFIG})
+SET_TESTS_PROPERTIES(test-pools PROPERTIES PASS_REGULAR_EXPRESSION "Pool;Capacity")
 ADD_TEST(test-poolcontainer ${CMAKE_CURRENT_BINARY_DIR}/test-poolcontainer ${PLUGIN_SO} ${PLUGIN} ${POOL})
 SET_TESTS_PROPERTIES(test-poolcontainer PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-split_path ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
