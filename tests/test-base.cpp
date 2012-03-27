@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "test-base.h"
+#include <stdlib.h>
 
 const char* TestBase::config             = 0x00;
 const char* TestBase::TEST_USER          = "/C=CH/O=CERN/OU=GD/CN=Test user 0";
