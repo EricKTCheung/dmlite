@@ -1,9 +1,11 @@
 cmake_minimum_required (VERSION 2.6)
 
-link_directories (/usr/lib64/oracle/10.2.0.5/client/lib64
-                  /usr/lib/oracle/10.2.0.5/client/lib)
+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+find_package (ORACLE REQUIRED)
 
-include_directories (/usr/include/oracle/10.2.0.5/client)
+link_directories (${ORACLE_LIBRARY_DIR})
+
+include_directories (${ORACLE_INCLUDE_DIR})
 
 add_library (oracle MODULE OracleFactories.cpp NsOracle.cpp)
 
