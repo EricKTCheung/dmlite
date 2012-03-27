@@ -9,7 +9,7 @@ include_directories (${ORACLE_INCLUDE_DIR})
 
 add_library (oracle MODULE OracleFactories.cpp NsOracle.cpp)
 
-target_link_libraries (oracle dmlite dmlitecommon clntsh occi)
+target_link_libraries (oracle dmlite dmlitecommon occi clntsh)
 set_target_properties (oracle PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       oracle
