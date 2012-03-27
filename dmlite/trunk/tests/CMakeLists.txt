@@ -16,58 +16,58 @@ add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
 add_executable        (test-split_path test-split_path.cpp)
-target_link_libraries (test-split_path dmlite dmlitecommon dl)
+target_link_libraries (test-split_path dmlitecommon dmlite dl)
 
 add_executable        (test-split_url test-split_url.cpp)
-target_link_libraries (test-split_url dmlite dmlitecommon dl)
+target_link_libraries (test-split_url dmlitecommon dmlite dl)
 
 add_executable        (test-security test-security.cpp test-base.cpp)
-target_link_libraries (test-security dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-security dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-comment test-comment.cpp test-base.cpp)
-target_link_libraries (test-comment dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-comment dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-stat test-stat.cpp test-base.cpp)
-target_link_libraries (test-stat dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-stat dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-pools test-pools.cpp)
-target_link_libraries (test-pools dmlite dmlitecommon dl)
+target_link_libraries (test-pools dmlitecommon dmlite dl)
 
 add_executable        (test-poolcontainer test-poolcontainer.cpp)
-target_link_libraries (test-poolcontainer dmlite dmlitecommon cppunit pthread)
+target_link_libraries (test-poolcontainer dmlitecommon dmlite cppunit pthread)
 
 add_executable        (test-chdir test-chdir.cpp test-base.cpp)
-target_link_libraries (test-chdir dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-chdir dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-guid test-guid.cpp test-base.cpp)
-target_link_libraries (test-guid dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-guid dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-create test-create.cpp test-base.cpp)
-target_link_libraries (test-create dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-create dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-replicas test-replicas.cpp test-base.cpp)
-target_link_libraries (test-replicas dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-replicas dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-rename test-rename.cpp test-base.cpp)
-target_link_libraries (test-rename dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-rename dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-chown test-chown.cpp test-base.cpp)
-target_link_libraries (test-chown dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-chown dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-utime test-utime.cpp test-base.cpp)
-target_link_libraries (test-utime dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-utime dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-opendir test-opendir.cpp test-base.cpp)
-target_link_libraries (test-opendir dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-opendir dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-acls test-acls.cpp test-base.cpp)
-target_link_libraries (test-acls dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-acls dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-io test-io.cpp)
-target_link_libraries (test-io dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-io dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-checkperm test-checkperm.cpp)
-target_link_libraries (test-checkperm dmlite dmlitecommon cppunit dl)
+target_link_libraries (test-checkperm dmlitecommon dmlite cppunit dl)
 
 # Configure CTest testing
 ENABLE_TESTING()
