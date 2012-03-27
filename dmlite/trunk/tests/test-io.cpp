@@ -58,7 +58,7 @@ public:
     delete os;
 
     // Open to read
-    char buffer[512];
+    char buffer[512] = "";
     dmlite::IOHandler* is = io->createIO("/tmp/test-io-wr", std::ios_base::in);
     size_t nb = is->read(buffer, sizeof(buffer));
 
