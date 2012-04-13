@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
 
-set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 find_package (DPM REQUIRED)
 
 include_directories (${DPM_INCLUDE_DIR}/dpm)

@@ -16,6 +16,9 @@ else (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (PKG_ARCH "x86_64")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
+# Cmake module directory
+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+
 # Include path
 include_directories (${CMAKE_SOURCE_DIR}/include/)
 
