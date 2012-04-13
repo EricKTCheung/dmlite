@@ -1,5 +1,4 @@
 cmake_minimum_required (VERSION 2.6)
-set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # -------------------------------------------------------
 # Detect if an environement variable exists for JAVA_HOME
@@ -16,18 +15,6 @@ endif(NOT ENV{JAVA_HOME})
 # ----------------------------------------------------
 find_package(Hadoop REQUIRED)
 find_package(JNI    REQUIRED)
-
-# -----------------------------------------------
-# Information to see which libs and dirs are used
-# -----------------------------------------------
-if(JNI_INCLUDE_DIRS)
-	message(STATUS "jni include found in: ${JNI_INCLUDE_DIRS}")
-endif(JNI_INCLUDE_DIRS)
-if(JNI_LIBRARIES)
-	message(STATUS "jni libraries found in: ${JNI_LIBRARIES}")
-else(JNI_LIBRRARIES)
-	message(STATUS "jni libraries not found")
-endif(JNI_LIBRARIES)
 
 # ------------------------------------------
 # Hadoop module compilation and installation
