@@ -29,19 +29,17 @@ static const char* statements[] = {
 
 MYSQL_STMT* DpmMySqlCatalog::getPreparedStatement(unsigned stId)
 {
-  if (this->preparedStmt_[stId] == 0x00) {
+  MYSQL_STMT* stmt;
 
-    if (mysql_select_db(this->conn_, this->dpmDb_.c_str()) != 0)
-      throw DmException(DM_QUERY_FAILED, std::string(mysql_error(this->conn_)));
+  if (mysql_select_db(this->conn_, this->dpmDb_.c_str()) != 0)
+    throw DmException(DM_QUERY_FAILED, std::string(mysql_error(this->conn_)));
 
-    this->preparedStmt_[stId] = mysql_stmt_init(this->conn_);
-    if (mysql_stmt_prepare(this->preparedStmt_[stId],
-                           statements[stId], strlen(statements[stId])) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(this->preparedStmt_[stId])));
-    }
+  stmt = mysql_stmt_init(this->conn_);
+  if (mysql_stmt_prepare(stmt, statements[stId], strlen(statements[stId])) != 0) {
+    throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(stmt)));
   }
 
-  return this->preparedStmt_[stId];
+  return stmt;
 }
 
 
@@ -49,8 +47,7 @@ MYSQL_STMT* DpmMySqlCatalog::getPreparedStatement(unsigned stId)
 DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& nsDb,
                                  const std::string& dpmDb, Catalog* decorates,
                                  unsigned int symLinkLimit) throw(DmException):
-  NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb),
-  preparedStmt_(STMT_SENTINEL, 0x00), decorated_(decorates)
+  NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb), decorated_(decorates)
 {
   // Nothing
 }
@@ -59,13 +56,6 @@ DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::str
 
 DpmMySqlCatalog::~DpmMySqlCatalog() throw(DmException)
 {
-  std::vector<MYSQL_STMT*>::iterator i;
-
-  for (i = this->preparedStmt_.begin(); i != this->preparedStmt_.end(); i++) {
-    if (*i != 0x00)
-      mysql_stmt_close(*i);
-  }
-
   delete this->decorated_;
 }
 
