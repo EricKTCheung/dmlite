@@ -63,9 +63,6 @@ private:
   /// DPM DB.
   std::string dpmDb_;
 
-  /// Precompiled statements
-  std::vector<MYSQL_STMT*> preparedStmt_;
-
   /// Decorated catalog
   Catalog* decorated_;
 
