@@ -38,7 +38,8 @@ message SerialComment {
 }
 
 message SerialKeyList {
-  repeated SerialKey key = 1;
+  required bool iscomplete = 1;
+  repeated SerialKey key = 2;
 }
 
 message SerialKey {
