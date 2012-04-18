@@ -17,6 +17,31 @@
 namespace dmlite {
 
 #define DEFAULT_MEMCACHED_EXPIRATION 60
+#define SHORT_MEMCACHED_EXPIRATION 5
+
+#define DIR_NOTCACHED 0
+#define DIR_NOTCOMPLETE 1
+#define DIR_CACHED 2
+
+struct MemcacheDir {
+  uint64_t      dirId;
+  ExtendedStat  current;
+  struct dirent ds;
+
+  std::vector<std::string> keys;
+  int                      keysPntr; 
+};
+
+class MemcacheException: public DmException {
+public:
+  MemcacheException(memcached_return rc, memcached_st *conn)
+  {
+    this->errorCode_ = (int) rc;
+    this->errorMsg_ = std::string(memcached_strerror(conn, rc));
+  };
+protected:
+private:
+};
 
 /// Memcache plugin
 class MemcacheCatalog: public DummyCatalog {
@@ -66,7 +91,12 @@ public:
 
   // missing put functions 
 
-  // missing openDir, closeDir and readDir
+//  Directory* openDir (const std::string&) throw (DmException);
+//  void       closeDir(Directory*)         throw (DmException);
+
+//  struct dirent* readDir (Directory*) throw (DmException);
+//  ExtendedStat*  readDirx(Directory*) throw (DmException);
+
 
   void changeMode     (const std::string&, mode_t)       throw (DmException);
   void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
@@ -75,7 +105,7 @@ public:
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
-//  void utime(ino_t, const struct utimbuf*)              throw (DmException);
+  void utime(ino_t, const struct utimbuf*)              throw (DmException);
   
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
@@ -144,10 +174,11 @@ private:
   /// The keys can be either 'white' items or
   /// 'black' items. The black items form a blacklist which
   /// should be considered when deserializing the list.
-  /// @param keyList The list of keys.
-  /// @param isWhite. 
+  /// @param keyList      The list of keys.
+  /// @param isWhite      Marks all elements of the list. 
+  /// @param isComplete.  Is the list complete or still being extended. 
   /// @return The serialized object.
-  std::string serializeList(std::vector<std::string>& keyList, const bool isWhite = true);
+  std::string serializeList(std::vector<std::string>& keyList, const bool isWhite = true, const bool isComplete = false);
  
   /// Deserialize a list of keys.
   /// This function does not take blacklisted items
@@ -155,6 +186,15 @@ private:
   /// @param serialList The serialized List as string.
   /// @return           The List.
   std::vector<std::string> deserializeList(std::string& serialList);
+
+  /// Deserialize a list of keys.
+  /// This function returns the isComplete bit of the list.
+  /// It does not take blacklisted items into consideration.
+  /// @param serialList The serialized List as string.
+  /// @param keyList    The List to write the result into.
+  /// @return           The isComplete value.
+  int deserializeList(std::string& serialList,
+                                      std::vector<std::string> &keyList);
 
   /// Deserialize a list of keys.
   /// This function takes blacklisted item into account
@@ -224,9 +264,12 @@ private:
   /// It uses memcached_append() to add the element,
   /// so it does not have to download the list from
   /// memcached.
+  /// This function allows deletions from the list by
+  /// using the isWhite value to append a blacklist item.
   /// @param listKey  The key of the list.
   /// @param key      The key to add.  
-  void addToListFromMemcachedKey(const std::string& listKey, const std::string& key);
+  /// @param isWhite  Marks the element a white- or blacklisted 
+  void addToListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true);
 
   /// Remove an item from a list on memcached.
   /// This function removes an element by adding it to
@@ -261,7 +304,12 @@ private:
 	void setMemcachedFromKeyValue(const std::string key,
 																						 const std::string value);
 
+  /// Delete a versioned key from memcached.
+  /// This function actually only increases the version number
+  /// of the item. Nothing gets deleted.
+	/// @param key   The memcached key as string.
   void delMemcachedFromVersionedKey(const std::string key);
+
 	/// Delete a key,value pair on memcached.
 	/// @param key   The memcached key as string.
 	void delMemcachedFromKey(const std::string key);
@@ -270,14 +318,6 @@ private:
 	/// @param The path to split.
 	/// @return The parent path as string.
 	std::string getParent(const std::string& path) throw (DmException);
-
-  /// Get the parent of a directory.
-  /// @param path       The path to split.
-  /// @param parentPath Where to put the parent path.
-  /// @param name       Where to put the file name (stripping last /).
-  /// @return           The parent metadata.
-  ExtendedStat getParent(const std::string& path, std::string* parentPath,
-                         std::string* name) throw (DmException);
 
 	/// Remove cached entries related to path.
 	/// @param preKey			key prefix string.
@@ -293,7 +333,8 @@ private:
 
 class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
 public:
-  MemcacheConnectionFactory(std::vector<std::string> hosts);
+  MemcacheConnectionFactory(std::vector<std::string> hosts,
+                            std::string protocol);
   ~MemcacheConnectionFactory();
 
   memcached_st* create();
@@ -302,6 +343,9 @@ public:
 
 	// Attributes
   std::vector<std::string>  hosts;
+
+  /// The memcached protocol (binary/ascii) to use.
+  std::string protocol;
 
 protected:
 private:

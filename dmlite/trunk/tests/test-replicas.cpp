@@ -164,7 +164,6 @@ public:
     CPPUNIT_ASSERT_EQUAL('V', replica.type);
   }
 
-
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
   CPPUNIT_TEST(testAddNoHost);
