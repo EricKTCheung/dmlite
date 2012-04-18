@@ -460,7 +460,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 {
   ExtendedStat meta; 
 
@@ -484,7 +484,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& name) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
 {
   ExtendedStat meta;
 
@@ -866,7 +866,7 @@ const std::string MemcacheCatalog::keyFromAny(const char* preKey,
 }
  
 const std::string MemcacheCatalog::keyFromAny(const char* preKey,
-																							uint64_t parent,
+																							ino_t parent,
 																							const std::string& name)
 {
 	std::stringstream streamKey;
@@ -1029,7 +1029,8 @@ std::vector<std::string>
   // get size needed for keys, create key_length 
   // memcpy keys
   size_t keys_size = 0;
-  for (int i = 0; i < keyList.size(); i++)
+  unsigned int i;
+  for (i = 0; i < keyList.size(); i++)
   {
     key_length[i] = keyList[i].size();
     keys_size += keyList[i].size();
@@ -1050,7 +1051,7 @@ std::vector<std::string>
   	throw MemcacheException(statMemc, this->conn_);
 	}
 
-  for (int i = 0; i < keyList.size(); i++)
+  for (i = 0; i < keyList.size(); i++)
   {
     free(keys[i]);
   }
@@ -1059,18 +1060,17 @@ std::vector<std::string>
 
   char return_key[MEMCACHED_MAX_KEY];
   size_t return_key_length;
-  char *return_value;
   size_t lenValue;
 	uint32_t flags;
 	std::string valMemcStr;
   std::set<std::string> foundKeys;
 
-  while (valMemc = memcached_fetch(this->conn_,
+  while ((valMemc = memcached_fetch(this->conn_,
                                    return_key,
                                    &return_key_length,
                                    &lenValue,
                                    &flags,
-                                   &statMemc))
+                                   &statMemc)))
   {
 	  if (statMemc != MEMCACHED_SUCCESS)
 	  {

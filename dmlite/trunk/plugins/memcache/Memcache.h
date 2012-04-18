@@ -241,7 +241,7 @@ private:
 	/// @param parent inode of parent.
 	/// @param name   file/dir/link name-string.
 	/// @return				The key as string.
-	const std::string keyFromAny(const char* preKey, uint64_t parent, const std::string& name);
+	const std::string keyFromAny(const char* preKey, ino_t parent, const std::string& name);
 
 	/// Return the value to a given key from memcached.
 	/// @param key   The memcached key as string.
