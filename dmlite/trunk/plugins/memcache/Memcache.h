@@ -334,7 +334,8 @@ private:
 class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
 public:
   MemcacheConnectionFactory(std::vector<std::string> hosts,
-                            std::string protocol);
+                            std::string protocol,
+                            std::string dist);
   ~MemcacheConnectionFactory();
 
   memcached_st* create();
@@ -347,6 +348,8 @@ public:
   /// The memcached protocol (binary/ascii) to use.
   std::string protocol;
 
+  /// The hash distribution algorithm
+  std::string dist;
 protected:
 private:
 };

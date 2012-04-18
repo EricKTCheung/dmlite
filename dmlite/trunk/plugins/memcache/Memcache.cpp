@@ -7,9 +7,11 @@
 using namespace dmlite;
 
 MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts,
-                                                     std::string protocol):
+                                                     std::string protocol,
+                                                     std::string dist):
      hosts(hosts),
-     protocol(protocol)
+     protocol(protocol),
+     dist(dist)
 {
 	// Nothing
 }
@@ -35,12 +37,13 @@ memcached_st* MemcacheConnectionFactory::create()
 
 	if (memc_return_val != MEMCACHED_SUCCESS)
 			throw MemcacheException(memc_return_val, c);
-/*
-  memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT);
+
+  if (dist == "consistent")
+    memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT);
 
 	if (memc_return_val != MEMCACHED_SUCCESS)
 			throw MemcacheException(memc_return_val, c);
-*/
+
 	// Add memcached TCP hosts
 	std::vector<std::string>::iterator i;
 	for (i = this->hosts.begin(); i != this->hosts.end(); i++)
@@ -91,7 +94,7 @@ bool MemcacheConnectionFactory::isValid(memcached_st* c)
 
 MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException):
 	nestedFactory_(catalogFactory),
-	connectionFactory_(std::vector<std::string>(), "ascii"),
+	connectionFactory_(std::vector<std::string>(), "ascii", "default"),
 	connectionPool_(&connectionFactory_, 25),
 	symLinkLimit_(3),
 	memcachedExpirationLimit_(60)
@@ -128,6 +131,14 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   {
     if (value == "binary" || value == "ascii")
       this->connectionFactory_.protocol = value;
+    else
+  	  throw DmException(DM_UNKNOWN_OPTION,
+                        std::string("Unknown option value ") + value);
+  }
+  else if (key == "MemcachedHashDistribution")
+  {
+    if (value == "consistent" || value == "default")
+      this->connectionFactory_.dist = value;
     else
   	  throw DmException(DM_UNKNOWN_OPTION,
                         std::string("Unknown option value ") + value);
