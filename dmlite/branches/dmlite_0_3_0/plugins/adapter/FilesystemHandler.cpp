@@ -7,6 +7,8 @@
 #include <dmlite/common/Uris.h>
 #include <dpm/dpm_api.h>
 #include <dpm/serrno.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace dmlite;
 
