@@ -16,6 +16,7 @@ public:
 
 protected:
   dmlite::PluginManager *pluginManager;
+  dmlite::StackInstance *stackInstance;
   dmlite::Catalog       *catalog;
 
   const static char *TEST_USER;

@@ -25,8 +25,7 @@ public:
 
   void set(const std::string&, va_list) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
   
   Uri         get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
@@ -49,42 +48,18 @@ public:
 
   std::string getImplId() throw ();
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolMetadata* getPoolMetadata(const Pool& pool) throw (DmException);
 
   std::vector<Pool> getPools(void) throw (DmException);
-
-protected:
-  SecurityContext secCtx_;
+  Pool getPool(const std::string& poolname) throw (DmException);
   
 private:
   std::string dpmHost_;
   unsigned    retryLimit_;
 };
 
-
-
-class FilesystemPoolHandler: public PoolHandler {
-public:
-  FilesystemPoolHandler(Pool *pool);
-  ~FilesystemPoolHandler();
-
-  std::string getPoolType(void) throw (DmException);
-  std::string getPoolName(void) throw (DmException);
-  uint64_t getTotalSpace(void) throw (DmException);
-  uint64_t getFreeSpace(void) throw (DmException);
-
-  bool replicaAvailable(const FileReplica& replica) throw (DmException);
-
-  Uri getPhysicalLocation(const FileReplica& replica) throw (DmException);
-
-private:
-  Pool *pool_;
-  uint64_t total_, free_;
-
-  void update(void) throw (DmException);
-};
 
 /// Used to retry n times before failing.
 #define RETRY(f, n) \

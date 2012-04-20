@@ -1,0 +1,38 @@
+/// @file   plugins/adapter/FilesystemHandler.h
+/// @brief  Regular Filesystem pool
+/// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#ifndef FILESYSTEMHANDLER_H
+#define	FILESYSTEMHANDLER_H
+
+#include <dmlite/dm_poolhandler.h>
+
+namespace dmlite {
+  
+/// Filesystem handler.
+class FilesystemPoolHandler: public PoolHandler {
+public:
+  FilesystemPoolHandler(PoolManager*, Pool*);
+  ~FilesystemPoolHandler();
+  
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+
+  std::string getPoolType(void) throw (DmException);
+  std::string getPoolName(void) throw (DmException);
+  uint64_t getTotalSpace(void) throw (DmException);
+  uint64_t getFreeSpace(void) throw (DmException);
+
+  bool replicaAvailable   (const std::string&, const FileReplica&) throw (DmException);
+  Uri  getPhysicalLocation(const std::string&, const FileReplica&) throw (DmException);
+  void remove             (const std::string&, const FileReplica&) throw (DmException);
+
+private:
+  PoolManager *manager_;
+  Pool        *pool_;
+  uint64_t     total_, free_;
+
+  void update(void) throw (DmException);
+};
+
+};
+
+#endif	// FILESYSTEMHANDLER_H

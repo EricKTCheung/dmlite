@@ -109,11 +109,22 @@ dm_context* dm_context_new(dm_manager* handle)
     return NULL;
 
   ctx = new dm_context();
+  ctx->stack   = 0x00;
   ctx->catalog = 0x00;
   ctx->pool    = 0x00;
   
   try {
-    ctx->catalog = handle->manager->getCatalogFactory()->createCatalog();
+    ctx->stack = new dmlite::StackInstance(handle->manager);
+  }
+  catch (dmlite::DmException e) {
+    handle->errorCode   = e.code();
+    handle->errorString = e.what();
+    delete ctx;
+    return NULL;
+  }
+  
+  try {
+    ctx->catalog = ctx->stack->getCatalog();
   }
   catch (dmlite::DmException e) {
     handle->errorCode   = e.code();
@@ -125,7 +136,7 @@ dm_context* dm_context_new(dm_manager* handle)
   // There may be no pool manager factory, and that's fine!
 
   try {
-    ctx->pool = handle->manager->getPoolManagerFactory()->createPoolManager();
+    ctx->pool =ctx->stack->getPoolManager();
   }
   catch (dmlite::DmException e) {
     if (e.code() != DM_NO_FACTORY) {

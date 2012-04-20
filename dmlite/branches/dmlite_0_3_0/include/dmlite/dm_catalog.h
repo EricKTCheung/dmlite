@@ -40,14 +40,10 @@ public:
 
   /// Set the security credentials.
   /// @param cred The security credentials.
-  virtual void setSecurityCredentials(const SecurityCredentials& cred) throw (DmException) = 0;
-
-  /// Get the security context.
-  /// @return The generated security context.
-  virtual const SecurityContext& getSecurityContext(void) throw (DmException) = 0;
+  virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException) = 0;
 
   /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext& ctx) = 0;
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
 
   /// Change the working dir. Future not-absolute paths will use this as root.
   /// @param path The new working dir.
@@ -320,6 +316,7 @@ private:
   Catalog* parent_;
 };
 
+class StackInstance;
 
 /// Plug-ins must implement a concrete factory to be instantiated.
 class CatalogFactory {
@@ -333,7 +330,8 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of Catalog
-  virtual Catalog* createCatalog() throw (DmException) = 0;
+  /// @param si The StackInstance that is instantiating the context. It may be NULL.
+  virtual Catalog* createCatalog(StackInstance* si) throw (DmException) = 0;
 
 protected:
 private:

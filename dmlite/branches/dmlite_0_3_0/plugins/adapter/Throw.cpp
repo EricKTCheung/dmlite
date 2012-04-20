@@ -50,9 +50,10 @@ static int Serrno2Code(int serr)
 
 
 
-void dmlite::ThrowExceptionFromSerrno(int serr) throw(DmException)
+void dmlite::ThrowExceptionFromSerrno(int serr, const char* extra) throw(DmException)
 {
-  throw DmException(Serrno2Code(serr), sstrerror(serr));
+  if (extra == 0) extra = "";
+  throw DmException(Serrno2Code(serr), "%s: %s", sstrerror(serr), extra);
 }
 
 

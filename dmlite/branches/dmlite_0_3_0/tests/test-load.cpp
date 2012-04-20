@@ -22,15 +22,10 @@ public:
       delete pluginManager;
   }
 
-  void testDummy()
-  {
-    // Loading the dummy plugin alone should fail
-    CPPUNIT_ASSERT_THROW(pluginManager->loadPlugin("../core/libdm.so", "plugin_dummy"), dmlite::DmException);
-  }
-
   void testNested()
   {
-    dmlite::Catalog *catalog;
+    dmlite::StackInstance *stack;
+    dmlite::Catalog       *catalog;
     struct stat  buf;
 
     // Load first
@@ -40,8 +35,10 @@ public:
       pluginManager->loadPlugin("../plugins/profiler/plugin_profiler.so", "plugin_profiler");
       // Configure (adapter should recognise)
       pluginManager->configure("Host", "arioch.cern.ch");
+      // Get stack
+      stack = new dmlite::StackInstance(pluginManager);
       // Get interface
-      catalog = pluginManager->getCatalogFactory()->createCatalog();
+      catalog = stack->getCatalog();
       CPPUNIT_ASSERT(catalog != 0x00);
     }
     catch (dmlite::DmException exc) {
@@ -57,11 +54,10 @@ public:
       CPPUNIT_ASSERT(exc.code() != DM_NOT_IMPLEMENTED);
     }
     // Free
-    if (catalog) delete catalog;
+    if (stack) delete stack;
   }
 
   CPPUNIT_TEST_SUITE(PluginLoaded);
-  CPPUNIT_TEST(testDummy);
   CPPUNIT_TEST(testNested);
   CPPUNIT_TEST_SUITE_END();
 };

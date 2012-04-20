@@ -15,12 +15,14 @@ int main(int argn, char **argv)
   }
 
   // Load plugin
-  dmlite::PluginManager manager;
-  dmlite::PoolManager  *poolManager;
+  dmlite::PluginManager  manager;
+  dmlite::StackInstance *stack;
+  dmlite::PoolManager   *poolManager;
 
   try {
     manager.loadConfiguration(argv[1]);
-    poolManager = manager.getPoolManagerFactory()->createPoolManager();
+    stack = new dmlite::StackInstance(&manager);
+    poolManager = stack->getPoolManager();
     // Ask for the pools
     pools = poolManager->getPools();
   }
@@ -32,7 +34,7 @@ int main(int argn, char **argv)
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
     try {
-      dmlite::PoolHandler *handler = manager.getPoolHandler(&pools[i]);
+      dmlite::PoolHandler *handler = stack->createPoolHandler(&pools[i]);
 
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl
@@ -53,7 +55,7 @@ int main(int argn, char **argv)
 
 
   // Free
-  delete poolManager;
+  delete stack;
 
   // Done
   return 0;

@@ -6,6 +6,7 @@
 
 #include <list>
 #include <string>
+#include "dm_auth.h"
 #include "dm_catalog.h"
 #include "dm_errno.h"
 #include "dm_exceptions.h"
@@ -17,7 +18,9 @@
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120413;
+const unsigned API_VERSION = 20120420;
+
+class StackInstance;
 
 /// CatalogInterface can only be instantiated through this class.
 class PluginManager {
@@ -64,10 +67,8 @@ public:
   /// Get the PoolFactory implementation on top of the plugin stack.
   PoolManagerFactory* getPoolManagerFactory() throw (DmException);
 
-  /// Get the appropiate pool handler for the pool.
-  /// @param pool A Pool struct. The pool_type field will be used to find the
-  ///             appropiate handler.
-  PoolHandler* getPoolHandler(Pool* pool) throw (DmException);
+  /// Get the appropiate pool handler factory for the pool.
+  PoolHandlerFactory* getPoolHandlerFactory(const std::string& pooltype) throw (DmException);
 
   /// Get the IOFactory implementation on top of the plugin stack.
   IOFactory* getIOFactory() throw (DmException);
@@ -85,6 +86,47 @@ private:
   
   /// Can not be copied
   PluginManager(const PluginManager&);
+};
+
+/// We need to have something that allows one plugin stack to access
+/// another plugin stack, so this represents a instantiation
+/// of each plugin stack.
+class StackInstance {
+public:
+  /// Constructor
+  StackInstance(PluginManager* pm) throw(DmException);
+  
+  /// Destructor
+  ~StackInstance() throw ();
+  
+  /// Get the plugin manager
+  PluginManager* getPluginManager() throw (DmException);
+  
+  /// Set the security credentials
+  void setSecurityCredentials(const SecurityCredentials& cred) throw (DmException);
+  
+  /// Set the security context
+  void setSecurityContext(const SecurityContext& ctx) throw (DmException);
+  
+  /// Return the security context
+  const SecurityContext* getSecurityContext(void) throw ();
+  
+  /// Get the catalog
+  Catalog* getCatalog() throw (DmException);
+  
+  /// Get the PoolManager
+  PoolManager* getPoolManager() throw (DmException);
+  
+  /// Get a pool handler
+  /// @note The caller must free the returned pointer.
+  PoolHandler* createPoolHandler(Pool* pool) throw (DmException);
+  
+private:
+  PluginManager* pluginManager_;
+  Catalog*       catalog_;
+  PoolManager*   poolManager_;
+  
+  const SecurityContext* secCtx_;
 };
 
 // Joint between plugins and plugin-manager

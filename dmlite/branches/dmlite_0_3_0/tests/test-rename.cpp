@@ -19,7 +19,7 @@ public:
   void tearDown()
   {
     if (this->catalog) {
-      this->catalog->setSecurityContext(root);
+      this->stackInstance->setSecurityContext(root);
       IGNORE_NOT_EXIST(this->catalog->unlink(SOURCE_FILE));
       IGNORE_NOT_EXIST(this->catalog->unlink(DEST_FILE));
       IGNORE_NOT_EXIST(this->catalog->unlink(NESTED_FILE));
@@ -100,13 +100,13 @@ public:
 
   void testSticky()
   {
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
 
     this->catalog->makeDir(SOURCE_DIR, 0755 | S_ISVTX);
     this->catalog->create(NESTED_FILE, 0755);
 
     // Must fail
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
     try {
       this->catalog->rename(NESTED_FILE, DEST_FILE);
       CPPUNIT_FAIL("Should have failed");
@@ -116,7 +116,7 @@ public:
     }
 
     // Must succeed
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
     this->catalog->changeMode(NESTED_FILE, 0777);
     this->catalog->rename(NESTED_FILE, DEST_FILE);
 

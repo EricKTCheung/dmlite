@@ -32,6 +32,7 @@ private:
   std::vector<std::string> vfqans;
 };
 
+/// Wraps a security context
 class SecurityContext {
 public:
   SecurityContext();

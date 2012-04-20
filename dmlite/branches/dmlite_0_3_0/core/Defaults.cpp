@@ -46,6 +46,13 @@ PoolHandler::~PoolHandler()
 
 
 
+PoolMetadata::~PoolMetadata()
+{
+  // Nothing
+}
+
+
+
 void Catalog::set(const std::string& key, ...) throw (DmException)
 {
   va_list vargs;

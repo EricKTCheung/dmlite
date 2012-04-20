@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <vector>
 
 using namespace dmlite;
 
@@ -20,10 +21,10 @@ if (this->status_ != STMT_CREATED)\
 if (index > this->nParams_)\
   throw DmException(DM_QUERY_FAILED, "Wrong index in bindParam");
 
-#define BIND_RESULT_SANITY() \
+#define BIND_RESULTS_SANITY() \
 if (this->status_ < STMT_EXECUTED || this->status_ > STMT_RESULTS_BOUND)\
   throw DmException(DM_INTERNAL_ERROR, "bindResult called out of order");\
-if (index > this->nResults_)\
+if (index > this->nFields_)\
   throw DmException(DM_QUERY_FAILED, "Wrong index in bindResult");
 
 
@@ -64,10 +65,18 @@ void Transaction::rollback() throw (DmException)
 
 
 
-Statement::Statement(MYSQL_STMT* statement) throw ():
-  stmt_(statement), nResults_(0), results_(0x00), status_(STMT_CREATED)
+Statement::Statement(MYSQL* conn, const std::string& db, const char* query) throw (DmException):
+  nFields_(0), result_(0x00), status_(STMT_CREATED)
 {
-  this->nParams_ = mysql_stmt_param_count(statement);
+  if (mysql_select_db(conn, db.c_str()) != 0)
+    throw DmException(DM_QUERY_FAILED, std::string(mysql_error(conn)));
+
+  this->stmt_ = mysql_stmt_init(conn);
+  if (mysql_stmt_prepare(this->stmt_, query, strlen(query)) != 0) {
+      throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(this->stmt_)));
+  }
+  
+  this->nParams_ = mysql_stmt_param_count(this->stmt_);
   this->params_  = new MYSQL_BIND [this->nParams_];
   std::memset(this->params_, 0x00, sizeof(MYSQL_BIND) * this->nParams_);
 }
@@ -90,8 +99,12 @@ Statement::~Statement() throw ()
   }
 
   // Free result array
-  if (this->results_ != 0x00) {
-    delete [] this->results_;
+  if (this->result_ != 0x00) {
+    delete [] this->result_;
+  }
+  
+  for (unsigned i = 0; i < this->fieldBuffer_.size(); ++i) {
+    std::free(this->fieldBuffer_[i]);
   }
 
   // Close statement
@@ -147,7 +160,7 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 
 
-unsigned long Statement::execute(void) throw (DmException)
+unsigned long Statement::execute(bool autobind) throw (DmException)
 {
   SANITY_CHECK(STMT_CREATED, execute);
 
@@ -165,13 +178,48 @@ unsigned long Statement::execute(void) throw (DmException)
     this->status_ = STMT_DONE; // No return set (UPDATE, DELETE, ...)
   }
   else {
-    this->nResults_ = mysql_num_fields(meta);
-    this->results_  = new MYSQL_BIND[this->nResults_];
-    std::memset(this->results_, 0x00, sizeof(MYSQL_BIND) * this->nResults_);
-
-    mysql_free_result(meta);
-
+    this->nFields_ = mysql_num_fields(meta);
+    this->result_  = new MYSQL_BIND[this->nFields_];
+    std::memset(this->result_, 0x00, sizeof(MYSQL_BIND) * this->nFields_);
     this->status_ = STMT_EXECUTED;
+    
+    // If autobind is true, we need to allocate and bind
+    if (autobind) {
+      MYSQL_FIELD* field;
+      unsigned index = 0;
+      
+      this->fieldBuffer_.resize(this->nFields_, 0);
+            
+      while ((field = mysql_fetch_field(meta)) != NULL) {
+        void* b;
+        
+        this->fieldIndex_.insert(std::pair<std::string,unsigned>(field->name, index));
+        
+        switch (field->type) {
+          case MYSQL_TYPE_DECIMAL: case MYSQL_TYPE_TINY:
+            b = std::malloc(sizeof(int));
+            this->bindResult(index, (int*)b);
+            break;
+          case MYSQL_TYPE_LONG:
+            b = std::malloc(sizeof(long));
+            this->bindResult(index, (long*)b);
+            break;
+          case MYSQL_TYPE_VAR_STRING:
+            b = std::malloc(256);
+            this->bindResult(index, (char*)b, 256);
+            break;
+          default:
+            throw DmException(DM_NOT_IMPLEMENTED, "Unknown field type %i", field->type);
+        }
+        this->fieldBuffer_[index] = b;
+        
+        
+        ++index;
+      }
+    }
+
+    // Free
+    mysql_free_result(meta);
   }
 
   return (unsigned long) mysql_stmt_affected_rows(this->stmt_);
@@ -181,10 +229,10 @@ unsigned long Statement::execute(void) throw (DmException)
 
 void Statement::bindResult(unsigned index, short* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_SHORT;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = false;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_SHORT;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = false;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -192,10 +240,10 @@ void Statement::bindResult(unsigned index, short* destination) throw (DmExceptio
 
 void Statement::bindResult(unsigned index, signed int* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = false;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = false;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -203,10 +251,10 @@ void Statement::bindResult(unsigned index, signed int* destination) throw (DmExc
 
 void Statement::bindResult(unsigned index, unsigned int* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = true;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = true;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -214,10 +262,10 @@ void Statement::bindResult(unsigned index, unsigned int* destination) throw (DmE
 
 void Statement::bindResult(unsigned index, signed long* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = false;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = false;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -225,10 +273,10 @@ void Statement::bindResult(unsigned index, signed long* destination) throw (DmEx
 
 void Statement::bindResult(unsigned index, unsigned long* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = true;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = true;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -236,10 +284,10 @@ void Statement::bindResult(unsigned index, unsigned long* destination) throw (Dm
 
 void Statement::bindResult(unsigned index, signed long long* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = false;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = false;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -247,10 +295,10 @@ void Statement::bindResult(unsigned index, signed long long* destination) throw 
 
 void Statement::bindResult(unsigned index, unsigned long long* destination) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type = MYSQL_TYPE_LONGLONG;
-  results_[index].buffer      = destination;
-  results_[index].is_unsigned = true;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_LONGLONG;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = true;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -258,10 +306,10 @@ void Statement::bindResult(unsigned index, unsigned long long* destination) thro
 
 void Statement::bindResult(unsigned index, char* destination, size_t size) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type   = MYSQL_TYPE_STRING;
-  results_[index].buffer        = destination;
-  results_[index].buffer_length = size;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type   = MYSQL_TYPE_STRING;
+  result_[index].buffer        = destination;
+  result_[index].buffer_length = size;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -269,10 +317,10 @@ void Statement::bindResult(unsigned index, char* destination, size_t size) throw
 
 void Statement::bindResult(unsigned index, char* destination, size_t size, int) throw (DmException)
 {
-  BIND_RESULT_SANITY();
-  results_[index].buffer_type   = MYSQL_TYPE_BLOB;
-  results_[index].buffer        = destination;
-  results_[index].buffer_length = size;
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type   = MYSQL_TYPE_BLOB;
+  result_[index].buffer        = destination;
+  result_[index].buffer_length = size;
   this->status_ = STMT_RESULTS_UNBOUND;
 }
 
@@ -281,7 +329,7 @@ void Statement::bindResult(unsigned index, char* destination, size_t size, int) 
 unsigned long Statement::count(void) throw ()
 {
   if (this->status_ == STMT_RESULTS_UNBOUND) {
-    mysql_stmt_bind_result(this->stmt_, this->results_);
+    mysql_stmt_bind_result(this->stmt_, this->result_);
     mysql_stmt_store_result(this->stmt_);
     this->status_ = STMT_RESULTS_BOUND;
   }
@@ -294,7 +342,7 @@ unsigned long Statement::count(void) throw ()
 bool Statement::fetch(void) throw (DmException)
 {
   if (this->status_ == STMT_RESULTS_UNBOUND) {
-    mysql_stmt_bind_result(this->stmt_, this->results_);
+    mysql_stmt_bind_result(this->stmt_, this->result_);
     mysql_stmt_store_result(this->stmt_);
     this->status_ = STMT_RESULTS_BOUND;
   }
@@ -311,4 +359,38 @@ bool Statement::fetch(void) throw (DmException)
       this->status_ = STMT_FAILED;
       throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(this->stmt_));
   }
+}
+
+
+
+unsigned Statement::getFieldIndex(const std::string& fieldname)
+{
+  std::map<std::string, unsigned>::const_iterator i;
+  
+  i = this->fieldIndex_.find(fieldname);
+  
+  if (i == this->fieldIndex_.end())
+    throw DmException(DM_INTERNAL_ERROR, "Someone tried to get an unknown field: " + fieldname);
+    
+  return i->second;
+}
+
+
+
+int Statement::getInt(unsigned index)
+{
+  if (this->result_[index].is_null_value)
+    return 0;
+  else
+    return *((int*)this->fieldBuffer_[index]);
+}
+
+
+
+std::string Statement::getString(unsigned index)
+{
+  if (this->result_[index].is_null_value)
+    return "";
+  else
+    return std::string((char*)this->fieldBuffer_[index]);
 }

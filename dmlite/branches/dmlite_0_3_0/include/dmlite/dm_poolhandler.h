@@ -4,6 +4,8 @@
 #ifndef DMLITE_POOLHANDLER_H
 #define	DMLITE_POOLHANDLER_H
 
+#include "dm_auth.h"
+#include "dm_exceptions.h"
 #include "dm_types.h"
 #include <vector>
 
@@ -14,6 +16,9 @@ class PoolHandler {
 public:
   /// Destructor
   virtual ~PoolHandler();
+  
+  /// Set the security context.
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
 
   /// Get the pool type of this pool.
   virtual std::string getPoolType(void) throw (DmException) = 0;
@@ -28,11 +33,17 @@ public:
   virtual uint64_t getFreeSpace(void) throw (DmException) = 0;
 
   /// Return true if the specified replica is available in the pool.
-  virtual bool replicaAvailable(const FileReplica& replica) throw (DmException) = 0;
+  virtual bool replicaAvailable(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
 
   /// Get the actual location of the file replica. This is pool-dependant.
-  virtual Uri getPhysicalLocation(const FileReplica& replica) throw (DmException) = 0;
+  virtual Uri getPhysicalLocation(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
+  
+  /// Remove a replica from the pool.
+  virtual void remove(const std::string& sfn, const FileReplica& replica) throw (DmException) = 0;
+
 };
+
+class PoolManager;
 
 /// PoolHandler factory
 class PoolHandlerFactory {
@@ -49,7 +60,7 @@ public:
   virtual std::string implementedPool() throw () = 0;
 
   /// Instantiate a handler wrapping the passed pool.
-  virtual PoolHandler* createPoolHandler(Pool* pool) throw (DmException) = 0;
+  virtual PoolHandler* createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException) = 0;
 };
 
 };

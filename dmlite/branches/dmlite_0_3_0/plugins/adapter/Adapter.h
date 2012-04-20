@@ -17,7 +17,7 @@ public:
   ~NsAdapterFactory();
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog()                                         throw (DmException);
+  Catalog* createCatalog(StackInstance* si)                        throw (DmException);
 
 protected:
   unsigned retryLimit_;
@@ -33,16 +33,16 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog()     throw (DmException);
-  PoolManager* createPoolManager() throw (DmException);
+  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
+  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(Pool* pool) throw (DmException);
+  PoolHandler* createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException);
 
 protected:
 };
 
-void ThrowExceptionFromSerrno(int serr) throw(DmException);
+void ThrowExceptionFromSerrno(int serr, const char* extra = 0x00) throw(DmException);
 int   wrapCall(int   ret) throw (DmException);
 void* wrapCall(void* ret) throw (DmException);
 

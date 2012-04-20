@@ -38,13 +38,6 @@ DummyCatalog::~DummyCatalog()
 
 
 
-std::string DummyCatalog::getImplId(void) throw ()
-{
-  return std::string("Dummy");;
-}
-
-
-
 void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException)
 {
   DELEGATE(set, key, vargs);
@@ -52,21 +45,14 @@ void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException
 
 
 
-void DummyCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* DummyCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  DELEGATE(setSecurityCredentials, cred);
+  DELEGATE_RETURN(createSecurityContext, cred);
 }
 
 
 
-const SecurityContext& DummyCatalog::getSecurityContext() throw (DmException)
-{
-  DELEGATE_RETURN(getSecurityContext);
-}
-
-
-
-void DummyCatalog::setSecurityContext(const SecurityContext& ctx)
+void DummyCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   DELEGATE(setSecurityContext, ctx);
 }

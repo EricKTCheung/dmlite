@@ -42,9 +42,8 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
@@ -115,7 +114,7 @@ public:
   
 protected:
   /// Security context
-  SecurityContext secCtx_;
+  const SecurityContext* secCtx_;
 
   /// The MySQL connection
   MYSQL* conn_;
@@ -143,11 +142,6 @@ private:
   unsigned int symLinkLimit_;
 
   // Private methods
-
-  /// Returns the preparted statement with the specified ID.
-  /// @param stId The statement ID (see STMT_*)
-  /// @return     A pointer to a MySQL statement.
-  MYSQL_STMT* getPreparedStatement(unsigned stId);
 
   /// Get a file using its GUID.
   /// @param guid The file GUID.

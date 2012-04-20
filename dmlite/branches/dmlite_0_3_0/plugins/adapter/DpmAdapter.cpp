@@ -53,27 +53,19 @@ void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmExce
 
 
 
-void DpmAdapterCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
-{
-  NsAdapterCatalog::setSecurityCredentials(cred);
-  this->setSecurityContext(this->secCtx_);
-}
-
-
-
-void DpmAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
+void DpmAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   NsAdapterCatalog::setSecurityContext(ctx);
   // Call DPM API
-  wrapCall(dpm_client_setAuthorizationId(ctx.getUser().uid,
-                                         ctx.getGroup(0).gid,
+  wrapCall(dpm_client_setAuthorizationId(ctx->getUser().uid,
+                                         ctx->getGroup(0).gid,
                                          "GSI",
-                                         (char*)ctx.getUser().name));
+                                         (char*)ctx->getUser().name));
 
-  if (ctx.groupCount() > 0)
-    wrapCall(dpm_client_setVOMS_data((char*)ctx.getGroup(0).name,
-                                     (char**)ctx.getCredentials().fqans,
-                                     ctx.groupCount()));
+  if (ctx->groupCount() > 0)
+    wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
+                                     (char**)ctx->getCredentials().fqans,
+                                     ctx->groupCount()));
 }
 
 
@@ -317,6 +309,29 @@ std::string DpmAdapterPoolManager::getImplId() throw()
 
 
 
+void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  // Call DPM API
+  wrapCall(dpm_client_setAuthorizationId(ctx->getUser().uid,
+                                         ctx->getGroup(0).gid,
+                                         "GSI",
+                                         (char*)ctx->getUser().name));
+
+  if (ctx->groupCount() > 0)
+    wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
+                                     (char**)ctx->getCredentials().fqans,
+                                     ctx->groupCount()));
+}
+
+
+
+PoolMetadata* DpmAdapterPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "DpmAdapterPoolManager does not support pluggable pool types");
+}
+
+
+
 std::vector<Pool> DpmAdapterPoolManager::getPools(void) throw (DmException)
 {
   struct dpm_pool* dpmPools = 0x00;
@@ -346,165 +361,14 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(void) throw (DmException)
 
 
 
-void DpmAdapterPoolManager::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+Pool DpmAdapterPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
-  uid_t uid;
-  gid_t gids[cred.nfqans + 1];
-
-  // Get the ID mapping
-  wrapCall(dpns_getidmap(cred.client_name, cred.nfqans, (const char**)cred.fqans,
-                         &uid, gids));
-
-  // Initialize context
-  this->secCtx_.setCredentials(cred);
-  this->secCtx_.getUser().uid    = uid;
-  this->secCtx_.getUser().banned = 0;
-  strncpy(this->secCtx_.getUser().name, cred.client_name, 255);
-
-  // If groups were specified, copy
-  if (cred.nfqans > 0) {
-    this->secCtx_.resizeGroup(cred.nfqans);
-    for (unsigned i = 0; i < cred.nfqans; ++i) {
-      this->secCtx_.getGroup(i).gid    = gids[i];
-      this->secCtx_.getGroup(i).banned = 0;
-      strncpy(this->secCtx_.getGroup(i).name, cred.fqans[i], 255);
-    }
-  }
-  // Else, there will be at least one default
-  else {
-    this->secCtx_.resizeGroup(1);
-    this->secCtx_.getGroup(0).gid = gids[0];
+  std::vector<Pool> pools = this->getPools();
+  
+  for (int i = 0; i < pools.size(); ++i) {
+    if (poolname == pools[i].pool_name)
+      return pools[i];
   }
   
-  this->setSecurityContext(this->secCtx_);
-}
-
-
-
-void DpmAdapterPoolManager::setSecurityContext(const SecurityContext& ctx)
-{
-  if (&this->secCtx_ != &ctx)
-    this->secCtx_ = ctx;
-  // Call DPM API
-  wrapCall(dpm_client_setAuthorizationId(ctx.getUser().uid,
-                                         ctx.getGroup(0).gid,
-                                         "GSI",
-                                         (char*)ctx.getUser().name));
-
-  if (ctx.groupCount() > 0)
-    wrapCall(dpm_client_setVOMS_data((char*)ctx.getGroup(0).name,
-                                     (char**)ctx.getCredentials().fqans,
-                                     ctx.groupCount()));
-}
-
-
-
-const SecurityContext& DpmAdapterPoolManager::getSecurityContext() throw (DmException)
-{
-  return this->secCtx_;
-}
-
-
-
-FilesystemPoolHandler::FilesystemPoolHandler(Pool* pool): pool_(pool)
-{
-  // Nothing
-}
-
-
-
-FilesystemPoolHandler::~FilesystemPoolHandler()
-{
-  // Nothing
-}
-
-
-
-std::string FilesystemPoolHandler::getPoolType(void) throw (DmException)
-{
-  return this->pool_->pool_type;
-}
-
-
-
-std::string FilesystemPoolHandler::getPoolName(void) throw (DmException)
-{
-  return this->pool_->pool_name;
-}
-
-
-
-uint64_t FilesystemPoolHandler::getTotalSpace(void) throw (DmException)
-{
-  this->update();
-  return this->total_;
-}
-
-
-
-uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
-{
-  this->update();
-  return this->free_;
-}
-
-
-
-bool FilesystemPoolHandler::replicaAvailable(const FileReplica& replica) throw (DmException)
-{
-  int nfs;
-  struct dpm_fs *fs_array;
-  
-  // No API call for getting one specific FS
-  if (dpm_getpoolfs((char*)replica.pool,  &nfs, &fs_array) != 0)
-    ThrowExceptionFromSerrno(serrno);
-
-  if (nfs == 0)
-    throw DmException(DM_NO_SUCH_FS, "There are no filesystems inside the pool %s", replica.pool);
-
-  bool found     = false;
-  bool available = false;
-  for (int i = 0; i < nfs && !found; ++i) {
-    if (strcmp(replica.filesystem, fs_array[i].fs) == 0) {
-      found = true;
-      available = (fs_array[i].status != FS_DISABLED);
-    }
-  }
-  free(fs_array);
-
-  return available;
-}
-
-
-
-void FilesystemPoolHandler::update() throw (DmException)
-{
-  int npools;
-  struct dpm_pool *pool_array;
-
-  if (dpm_getpools(&npools, &pool_array) != 0)
-    ThrowExceptionFromSerrno(serrno);
-
-  bool found = false;
-  for (int i = 0; i < npools && !found; ++i) {
-    if (strcmp(pool_array[i].poolname, this->pool_->pool_name) == 0) {
-      found = true;
-      
-      this->total_ = pool_array[i].capacity;
-      this->free_  = pool_array[i].free;
-    }
-    free(pool_array[i].gids);
-  }
-
-  free(pool_array);
-
-  if (!found)
-    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", this->pool_->pool_name);
-}
-
-
-
-Uri FilesystemPoolHandler::getPhysicalLocation(const FileReplica& replica) throw (DmException)
-{
-  return dmlite::splitUri(replica.url);
+  throw DmException(DM_NO_SUCH_POOL, "Pool " + poolname + " not found");
 }

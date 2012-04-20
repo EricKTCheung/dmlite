@@ -42,7 +42,7 @@ public:
   ~NsMySqlFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog() throw(DmException);
+  Catalog* createCatalog(StackInstance* si) throw(DmException);
 
 protected:
   /// Connection factory.
@@ -65,15 +65,15 @@ private:
 class DpmMySqlFactory: public NsMySqlFactory, public PoolManagerFactory {
 public:
   /// Constructor
-  DpmMySqlFactory(CatalogFactory* catalogFactory, PluginManager* pm) throw(DmException);
+  DpmMySqlFactory(CatalogFactory* catalogFactory) throw(DmException);
   
   /// Destructor
   ~DpmMySqlFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  Catalog* createCatalog() throw(DmException);
-  PoolManager* createPoolManager() throw (DmException);
+  Catalog* createCatalog(StackInstance* si) throw(DmException);
+  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
 
 protected:
   /// DPM db.
@@ -81,10 +81,6 @@ protected:
 
   /// Decorated
   CatalogFactory* nestedFactory_;
-
-  /// Plugin manager
-  PluginManager* pluginManager_;
-private:
 };
 
 

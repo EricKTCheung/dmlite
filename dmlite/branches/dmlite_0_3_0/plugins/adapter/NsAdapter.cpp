@@ -66,63 +66,54 @@ void NsAdapterCatalog::set(const std::string& key, va_list) throw (DmException)
 
 
 
-void NsAdapterCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* NsAdapterCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
   uid_t uid;
   gid_t gids[cred.nfqans + 1];
+  SecurityContext* ctx = new SecurityContext();
 
   // Get the ID mapping
   wrapCall(dpns_getidmap(cred.client_name, cred.nfqans, (const char**)cred.fqans,
                          &uid, gids));
 
   // Initialize context
-  this->secCtx_.setCredentials(cred);
-  this->secCtx_.getUser().uid    = uid;
-  this->secCtx_.getUser().banned = 0;
-  strncpy(this->secCtx_.getUser().name, cred.client_name, 255);
+  ctx->setCredentials(cred);
+  ctx->getUser().uid    = uid;
+  ctx->getUser().banned = 0;
+  strncpy(ctx->getUser().name, cred.client_name, 255);
 
   // If groups were specified, copy
   if (cred.nfqans > 0) {
-    this->secCtx_.resizeGroup(cred.nfqans);
+    ctx->resizeGroup(cred.nfqans);
     for (unsigned i = 0; i < cred.nfqans; ++i) {
-      this->secCtx_.getGroup(i).gid    = gids[i];
-      this->secCtx_.getGroup(i).banned = 0;
-      strncpy(this->secCtx_.getGroup(i).name, cred.fqans[i], 255);
+      ctx->getGroup(i).gid    = gids[i];
+      ctx->getGroup(i).banned = 0;
+      strncpy(ctx->getGroup(i).name, cred.fqans[i], 255);
     }
   }
   // Else, there will be at least one default
   else {
-    this->secCtx_.resizeGroup(1);
-    this->secCtx_.getGroup(0) = this->getGroup(gids[0]);
+    ctx->resizeGroup(1);
+    ctx->getGroup(0) = this->getGroup(gids[0]);
   }
 
-  // Set context
-  this->setSecurityContext(this->secCtx_);
+  return ctx;
 }
 
 
 
-const SecurityContext& NsAdapterCatalog::getSecurityContext() throw (DmException)
+void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  return this->secCtx_;
-}
-
-
-
-void NsAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
-{
-  if (&this->secCtx_ != &ctx)
-    this->secCtx_ = ctx;
   // Call DPNS API
-  wrapCall(dpns_client_setAuthorizationId(ctx.getUser().uid,
-                                          ctx.getGroup(0).gid,
+  wrapCall(dpns_client_setAuthorizationId(ctx->getUser().uid,
+                                          ctx->getGroup(0).gid,
                                           "GSI",
-                                          (char*)ctx.getUser().name));
+                                          (char*)ctx->getUser().name));
 
-  if (ctx.groupCount() > 0)
-    wrapCall(dpns_client_setVOMS_data((char*)ctx.getGroup(0).name,
-                                      (char**)ctx.getCredentials().fqans,
-                                      ctx.groupCount()));
+  if (ctx->groupCount() > 0)
+    wrapCall(dpns_client_setVOMS_data((char*)ctx->getGroup(0).name,
+                                      (char**)ctx->getCredentials().fqans,
+                                      ctx->groupCount()));
 }
 
 

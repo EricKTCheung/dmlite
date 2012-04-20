@@ -27,7 +27,7 @@ struct MapFileEntry {
 
 
 
-int dmlite::checkPermissions(const SecurityContext& context,
+int dmlite::checkPermissions(const SecurityContext* context,
                              const std::string& acl, const struct stat &stat,
                              mode_t mode)
 {
@@ -36,17 +36,21 @@ int dmlite::checkPermissions(const SecurityContext& context,
   uid_t       aclId;
   int         accPerm;
   int         nGroups = 0;
+  
+  // If Context is NULL, die badly
+  if (context == 0)
+    throw DmException(DM_INVALID_VALUE, "Security context not initialized!!");
 
   // Root can do anything
-  if (context.getUser().uid == 0)
+  if (context->getUser().uid == 0)
     return 0;
 
   // Banned user, rejected
-  if (context.getUser().banned)
+  if (context->getUser().banned)
     return 1;
 
   // Check user. If owner, straigh-forward.
-  if (stat.st_uid == context.getUser().uid)
+  if (stat.st_uid == context->getUser().uid)
     return ((stat.st_mode & mode) != mode);
 
   // There is no ACL's?
@@ -54,7 +58,7 @@ int dmlite::checkPermissions(const SecurityContext& context,
     // The user is not the owner
     mode >>= 3;
     // Belong to the group?
-    if (!context.hasGroup(stat.st_gid))
+    if (!context->hasGroup(stat.st_gid))
       mode >>= 3;
 
     return ((stat.st_mode & mode) != mode);
@@ -80,15 +84,15 @@ int dmlite::checkPermissions(const SecurityContext& context,
     if (acl[iacl] - '@' < ACL_USER)
       continue;
     aclId = atoi(acl.substr(iacl + 2).c_str());
-    if (context.getUser().uid == aclId)
+    if (context->getUser().uid == aclId)
       return ((acl[iacl + 1] & aclMask & mode) != mode);
-    if (context.getUser().uid < aclId)
+    if (context->getUser().uid < aclId)
       break;
   }
 
   // Check GROUP
   iacl = acl.find(ACL_GROUP_OBJ|'@', iacl);
-  if (context.hasGroup(stat.st_gid)) {
+  if (context->hasGroup(stat.st_gid)) {
     accPerm = acl[iacl + 1];
     nGroups++;
     if (aclMask == 0x7F) // no extended ACLs
@@ -105,7 +109,7 @@ int dmlite::checkPermissions(const SecurityContext& context,
     if (acl[iacl] - '@' < ACL_GROUP)
       continue;
     aclId = atoi (acl.substr(iacl + 2).c_str());
-    if (context.hasGroup(aclId)) {
+    if (context->hasGroup(aclId)) {
       accPerm |= acl[iacl + 1];
       nGroups++;
     }

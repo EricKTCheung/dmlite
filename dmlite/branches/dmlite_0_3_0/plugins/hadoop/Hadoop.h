@@ -39,20 +39,25 @@ private:
 
 class HadoopPoolHandler: public PoolHandler {
 public:
-  HadoopPoolHandler(Pool* pool);
+  HadoopPoolHandler(PoolManager*, Pool* pool);
   ~HadoopPoolHandler();
+  
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
   std::string getPoolType(void) throw (DmException);
   std::string getPoolName(void) throw (DmException);
   uint64_t getTotalSpace(void) throw (DmException);
   uint64_t getUsedSpace(void) throw (DmException);
   uint64_t getFreeSpace(void) throw (DmException);
-  bool replicaAvailable(const FileReplica& replica) throw (DmException);
-  Uri getPhysicalLocation(const FileReplica& replica) throw (DmException);
+  
+  bool replicaAvailable   (const std::string&, const FileReplica&) throw (DmException);
+  Uri  getPhysicalLocation(const std::string&, const FileReplica&) throw (DmException);
+  void remove             (const std::string&, const FileReplica&) throw (DmException);
 
 private:
-  hdfsFS fs;
-  Pool* pool;
+  PoolManager* manager;
+  Pool*        pool;
+  hdfsFS       fs;
 };
 
 class HadoopIOFactory: public IOFactory, public PoolHandlerFactory {
@@ -62,7 +67,7 @@ public:
   IOHandler *createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(Pool*) throw (DmException);
+  PoolHandler* createPoolHandler(PoolManager*, Pool*) throw (DmException);
 protected:
 private:
 };

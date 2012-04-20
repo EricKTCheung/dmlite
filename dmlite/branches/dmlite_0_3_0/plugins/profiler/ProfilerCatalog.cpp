@@ -49,23 +49,16 @@ void ProfilerCatalog::set(const std::string& key, va_list vargs) throw (DmExcept
 
 
 
-void ProfilerCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* ProfilerCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  PROFILE(setSecurityCredentials, cred);
+  PROFILE_RETURN(SecurityContext*, createSecurityContext, cred);
 }
 
 
 
-void ProfilerCatalog::setSecurityContext(const SecurityContext& ctx)
+void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   PROFILE(setSecurityContext, ctx);
-}
-
-
-
-const SecurityContext& ProfilerCatalog::getSecurityContext() throw (DmException)
-{
-  return this->decorated_->getSecurityContext();
 }
 
 

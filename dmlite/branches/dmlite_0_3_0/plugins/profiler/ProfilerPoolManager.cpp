@@ -33,23 +33,16 @@ std::string ProfilerPoolManager::getImplId() throw ()
 
 
 
-void ProfilerPoolManager::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
-{
-  PROFILE(setSecurityCredentials, cred);
-}
-
-
-
-void ProfilerPoolManager::setSecurityContext(const SecurityContext& ctx)
+void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   PROFILE(setSecurityContext, ctx);
 }
 
 
 
-const SecurityContext& ProfilerPoolManager::getSecurityContext() throw (DmException)
+PoolMetadata* ProfilerPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
 {
-  return this->decorated_->getSecurityContext();
+  PROFILE_RETURN(PoolMetadata*, getPoolMetadata, pool);
 }
 
 
@@ -57,4 +50,11 @@ const SecurityContext& ProfilerPoolManager::getSecurityContext() throw (DmExcept
 std::vector<Pool> ProfilerPoolManager::getPools(void) throw (DmException)
 {
   PROFILE_RETURN(std::vector<Pool>, getPools);
+}
+
+
+
+Pool ProfilerPoolManager::getPool(const std::string& poolname) throw (DmException)
+{
+  PROFILE_RETURN(pool, getPool, poolname);
 }

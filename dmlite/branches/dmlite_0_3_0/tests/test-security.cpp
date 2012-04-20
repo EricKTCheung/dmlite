@@ -21,8 +21,8 @@ public:
   {
     const dmlite::SecurityContext *ctx;
 
-    this->catalog->setSecurityCredentials(cred1);
-    ctx = &this->catalog->getSecurityContext();
+    this->stackInstance->setSecurityCredentials(cred1);
+    ctx = this->stackInstance->getSecurityContext();
 
     CPPUNIT_ASSERT_EQUAL(std::string(TEST_USER),
                          std::string(ctx->getUser().name));
@@ -33,11 +33,11 @@ public:
   {
     dmlite::SecurityContext ctx1, ctx2;
 
-    this->catalog->setSecurityCredentials(cred1);
-    ctx1 = this->catalog->getSecurityContext();
+    this->stackInstance->setSecurityCredentials(cred1);
+    ctx1 = *this->stackInstance->getSecurityContext();
 
-    this->catalog->setSecurityCredentials(cred2);
-    ctx2 = this->catalog->getSecurityContext();
+    this->stackInstance->setSecurityCredentials(cred2);
+    ctx2 = *this->stackInstance->getSecurityContext();
 
     CPPUNIT_ASSERT(ctx1.getUser().uid != ctx2.getUser().uid);
   }

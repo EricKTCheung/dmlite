@@ -12,6 +12,7 @@
 
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
+#include "Queries.h"
 
 #define NOT_IMPLEMENTED(p)\
 p {\
@@ -19,194 +20,7 @@ p {\
 }
 
 
-
 using namespace dmlite;
-
-
-/// Used to keep prepared statements
-enum {
-  STMT_GET_FILE_BY_ID = 0,
-  STMT_GET_FILE_BY_GUID,
-  STMT_GET_FILE_BY_NAME,
-  STMT_GET_LIST_FILES,
-  STMT_GET_SYMLINK,
-  STMT_GET_USERINFO_BY_NAME,
-  STMT_GET_USERINFO_BY_UID,
-  STMT_GET_GROUPINFO_BY_NAME,
-  STMT_GET_GROUPINFO_BY_GID,
-  STMT_GET_FILE_REPLICAS,
-  STMT_GET_REPLICA_BY_URL,
-  STMT_GET_COMMENT,
-  STMT_SET_GUID,
-  STMT_SET_COMMENT,
-  STMT_INSERT_COMMENT,
-  STMT_INSERT_FILE,
-  STMT_INSERT_SYMLINK,
-  STMT_SELECT_UNIQ_ID_FOR_UPDATE,
-  STMT_UPDATE_UNIQ_ID,
-  STMT_INSERT_UNIQ_ID,
-  STMT_DELETE_FILE,
-  STMT_DELETE_COMMENT,
-  STMT_DELETE_SYMLINK,
-  STMT_NLINK_FOR_UPDATE,
-  STMT_UPDATE_NLINK,
-  STMT_UPDATE_PERMS,
-  STMT_DELETE_REPLICA,
-  STMT_ADD_REPLICA,
-  STMT_TRUNCATE_FILE,
-  STMT_GET_UNIQ_UID_FOR_UPDATE,
-  STMT_GET_UNIQ_GID_FOR_UPDATE,
-  STMT_UPDATE_UNIQ_UID,
-  STMT_UPDATE_UNIQ_GID,
-  STMT_INSERT_UNIQ_UID,
-  STMT_INSERT_UNIQ_GID,
-  STMT_INSERT_USER,
-  STMT_INSERT_GROUP,
-  STMT_CHANGE_NAME,
-  STMT_CHANGE_PARENT,
-  STMT_UTIME,
-  STMT_UPDATE_REPLICA,
-  STMT_SENTINEL
-};
-
-/// Used internally to define prepared statements.
-/// Must match with STMT_* constants!
-static const char* statements[] = {
-  "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-          filesize, atime, mtime, ctime, fileclass, status,\
-          csumtype, csumvalue, acl\
-        FROM Cns_file_metadata\
-        WHERE fileid = ?",
-  "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-          filesize, atime, mtime, ctime, fileclass, status,\
-          csumtype, csumvalue, acl\
-        FROM Cns_file_metadata\
-        WHERE guid = ?",
-  "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-          filesize, atime, mtime, ctime, fileclass, status,\
-          csumtype, csumvalue, acl\
-        FROM Cns_file_metadata \
-        WHERE parent_fileid = ? AND name = ?",
-  "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-          filesize, atime, mtime, ctime, fileclass, status,\
-          csumtype, csumvalue, acl\
-        FROM Cns_file_metadata \
-        WHERE parent_fileid = ?",
-  "SELECT fileid, linkname FROM Cns_symlinks WHERE fileid = ?",
-  "SELECT userid, username, user_ca, banned\
-        FROM Cns_userinfo\
-        WHERE username = ?",
-  "SELECT userid, username, user_ca, banned\
-        FROM Cns_userinfo\
-        WHERE userid = ?",
-  "SELECT gid, groupname, banned\
-        FROM Cns_groupinfo\
-        WHERE groupname = ?",
-  "SELECT gid, groupname, banned\
-        FROM Cns_groupinfo\
-        WHERE gid = ?",
-  "SELECT rowid, fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
-        FROM Cns_file_replica\
-        WHERE fileid = ?",
-  "SELECT rowid, fileid, nbaccesses, atime, ptime, ltime, status, f_type, poolname, host, fs, sfn\
-        FROM Cns_file_replica\
-        WHERE sfn = ?",
-  "SELECT comments\
-        FROM Cns_user_metadata\
-        WHERE u_fileid = ?",
-  "UPDATE Cns_file_metadata\
-        SET guid = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_user_metadata\
-        SET comments = ?\
-        WHERE u_fileid = ?",
-  "INSERT INTO Cns_user_metadata\
-          (u_fileid, comments)\
-        VALUES\
-          (?, ?)",
-  "INSERT INTO Cns_file_metadata\
-          (fileid, parent_fileid, name, filemode, nlink, owner_uid, gid,\
-           filesize, atime, mtime, ctime, fileclass, status,\
-           csumtype, csumvalue, acl)\
-        VALUES\
-          (?, ?, ?, ?, ?, ?, ?,\
-           ?, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), ?, ?,\
-           ?, ?, ?)",
-  "INSERT INTO Cns_symlinks\
-          (fileid, linkname)\
-        VALUES\
-          (?, ?)",
-  "SELECT id FROM Cns_unique_id FOR UPDATE",
-  "UPDATE Cns_unique_id SET id = ?",
-  "INSERT INTO Cns_unique_id (id) VALUES (?)",
-  "DELETE FROM Cns_file_metadata WHERE fileid = ?",
-  "DELETE FROM Cns_user_metadata WHERE u_fileid = ?",
-  "DELETE FROM Cns_symlinks WHERE fileid = ?",
-  "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE",
-  "UPDATE Cns_file_metadata\
-        SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_file_metadata\
-        SET owner_uid = ?, gid = ?, filemode = ?, acl = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "DELETE FROM Cns_file_replica\
-        WHERE fileid = ? AND sfn = ?",
-  "INSERT INTO Cns_file_replica\
-          (fileid, nbaccesses,\
-           ctime, atime, ptime, ltime,\
-           r_type, status, f_type,\
-           setname, poolname, host, fs, sfn)\
-        VALUES\
-          (?, 0,\
-           UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),\
-           ?, ?, ?,\
-           ?, ?, ?, ?, ?)",
-  "UPDATE Cns_file_metadata\
-        SET filesize = 0, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "SELECT id FROM Cns_unique_uid FOR UPDATE",
-  "SELECT id FROM Cns_unique_gid FOR UPDATE",
-  "UPDATE Cns_unique_uid SET id = ?",
-  "UPDATE Cns_unique_gid SET id = ?",
-  "INSERT INTO Cns_unique_uid (id) VALUES (?)",
-  "INSERT INTO Cns_unique_gid (id) VALUES (?)",
-  "INSERT INTO Cns_userinfo\
-          (userid, username, user_ca, banned)\
-        VALUES\
-          (?, ?, ?, ?)",
-  "INSERT INTO Cns_groupinfo\
-          (gid, groupname, banned)\
-        VALUES\
-          (?, ?, ?)",
-  "UPDATE Cns_file_metadata\
-        SET name = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_file_metadata\
-        SET parent_fileid = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_file_metadata\
-        SET atime = ?, mtime = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?",
-  "UPDATE Cns_file_replica\
-        SET atime = ?, ltime = ?, nbaccesses = ?, status = ?, f_type = ?\
-        WHERE rowid = ?"
-};
-
-
-
-MYSQL_STMT* NsMySqlCatalog::getPreparedStatement(unsigned stId)
-{
-  if (mysql_select_db(this->conn_, this->nsDb_.c_str()) != 0)
-    throw DmException(DM_QUERY_FAILED, std::string("Select DB: ") + mysql_error(this->conn_));
-
-  MYSQL_STMT* stmt = mysql_stmt_init(this->conn_);
-  if (mysql_stmt_prepare(stmt,
-                         statements[stId], std::strlen(statements[stId])) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string("Prepare: ") + mysql_stmt_error(stmt));
-  }
-
-  return stmt;
-}
 
 
 
@@ -241,25 +55,18 @@ void NsMySqlCatalog::set(const std::string& key, va_list varg) throw(DmException
 
 
 
-void NsMySqlCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* NsMySqlCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
   UserInfo user;
   std::vector<GroupInfo> groups;
 
   this->getIdMap(cred.getClientName(), cred.getFqans(), &user, &groups);
-  this->secCtx_ = SecurityContext(cred, user, groups);
+  return new SecurityContext(cred, user, groups);
 }
 
 
 
-const SecurityContext& NsMySqlCatalog::getSecurityContext() throw (DmException)
-{
-  return this->secCtx_;
-}
-
-
-
-void NsMySqlCatalog::setSecurityContext(const SecurityContext& ctx)
+void NsMySqlCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   this->secCtx_ = ctx;
 }
@@ -291,7 +98,7 @@ static void bindMetadata(Statement& stmt, ExtendedStat* meta) throw(DmException)
 
 ExtendedStat NsMySqlCatalog::extendedStat(ino_t fileId) throw(DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_ID));
+  Statement    stmt(this->conn_, this->nsDb_, STMT_GET_FILE_BY_ID);
   ExtendedStat meta;
 
   memset(&meta, 0x00, sizeof(ExtendedStat));
@@ -310,7 +117,7 @@ ExtendedStat NsMySqlCatalog::extendedStat(ino_t fileId) throw(DmException)
 
 ExtendedStat NsMySqlCatalog::guidStat(const std::string& guid) throw (DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_GUID));
+  Statement    stmt(this->conn_, this->nsDb_, STMT_GET_FILE_BY_GUID);
   ExtendedStat meta;
 
   memset(&meta, 0x00, sizeof(ExtendedStat));
@@ -330,7 +137,7 @@ ExtendedStat NsMySqlCatalog::guidStat(const std::string& guid) throw (DmExceptio
 
 ExtendedStat NsMySqlCatalog::extendedStat(ino_t parent, const std::string& name) throw(DmException)
 {
-  Statement    stmt(this->getPreparedStatement(STMT_GET_FILE_BY_NAME));
+  Statement    stmt(this->conn_, this->nsDb_, STMT_GET_FILE_BY_NAME);
   ExtendedStat meta;
 
   memset(&meta, 0x00, sizeof(ExtendedStat));
@@ -351,7 +158,7 @@ ExtendedStat NsMySqlCatalog::extendedStat(ino_t parent, const std::string& name)
 
 SymLink NsMySqlCatalog::readLink(ino_t linkId) throw(DmException)
 {
-  Statement stmt(this->getPreparedStatement(STMT_GET_SYMLINK));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_SYMLINK);
   SymLink   link;
 
   memset(&link, 0x00, sizeof(SymLink));
@@ -396,21 +203,21 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
     throw DmException(DM_FORBIDDEN, "Need write access on the parent");
 
   // Fetch the new file ID
-  Statement uniqueId(this->getPreparedStatement(STMT_SELECT_UNIQ_ID_FOR_UPDATE));
+  Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
 
   uniqueId.execute();
   uniqueId.bindResult(0, &newFileId);
 
   // Update the unique ID
   if (uniqueId.fetch()) {
-    Statement updateUnique(this->getPreparedStatement(STMT_UPDATE_UNIQ_ID));
+    Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
     ++newFileId;
     updateUnique.bindParam(0, newFileId);
     updateUnique.execute();
   }
   // Couldn't get, so insert
   else {
-    Statement insertUnique(this->getPreparedStatement(STMT_INSERT_UNIQ_ID));
+    Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
     newFileId = 1;
     insertUnique.bindParam(0, newFileId);
     insertUnique.execute();
@@ -422,18 +229,18 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
     mode |= S_ISGID;
   }
   else {
-    egid = this->secCtx_.getGroup(0).gid;
+    egid = this->secCtx_->getGroup(0).gid;
   }
 
   // Create the entry
-  Statement fileStmt(this->getPreparedStatement(STMT_INSERT_FILE));
+  Statement fileStmt(this->conn_, this->nsDb_, STMT_INSERT_FILE);
 
   fileStmt.bindParam( 0, newFileId);
   fileStmt.bindParam( 1, parent.stat.st_ino);
   fileStmt.bindParam( 2, name);
   fileStmt.bindParam( 3, mode);
   fileStmt.bindParam( 4, nlink);
-  fileStmt.bindParam( 5, this->secCtx_.getUser().uid);
+  fileStmt.bindParam( 5, this->secCtx_->getUser().uid);
   fileStmt.bindParam( 6, egid);
   fileStmt.bindParam( 7, size);
   fileStmt.bindParam( 8, type);
@@ -445,13 +252,13 @@ ExtendedStat NsMySqlCatalog::newFile(ExtendedStat& parent, const std::string& na
   fileStmt.execute();
   
   // Increment the nlink
-  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
   nlinkStmt.bindParam(0, parent.stat.st_ino);
   nlinkStmt.execute();
   nlinkStmt.bindResult(0, &parent.stat.st_nlink);
   nlinkStmt.fetch();
 
-  Statement nlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
 
   parent.stat.st_nlink++;
   nlinkUpdateStmt.bindParam(0, parent.stat.st_nlink);
@@ -636,7 +443,7 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
   dir->dirId = meta.stat.st_ino;
   
   try {
-    dir->stmt = new Statement(this->getPreparedStatement(STMT_GET_LIST_FILES));
+    dir->stmt = new Statement(this->conn_, this->nsDb_, STMT_GET_LIST_FILES);
     dir->stmt->bindParam(0, dir->dirId);
     dir->stmt->execute();
     bindMetadata(*dir->stmt, &dir->current);
@@ -739,7 +546,7 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
   }
 
   // Add it
-  Statement statement(this->getPreparedStatement(STMT_ADD_REPLICA));
+  Statement statement(this->conn_, this->nsDb_, STMT_ADD_REPLICA);
 
   statement.bindParam(0, meta.stat.st_ino);
   statement.bindParam(1, NULL, 0);
@@ -774,7 +581,7 @@ void NsMySqlCatalog::deleteReplica(const std::string& guid, int64_t id,
     throw DmException(DM_FORBIDDEN, "Not enough permissions to remove the replica");
 
   // Remove
-  Statement statement(this->getPreparedStatement(STMT_DELETE_REPLICA));
+  Statement statement(this->conn_, this->nsDb_, STMT_DELETE_REPLICA);
   statement.bindParam(0, meta.stat.st_ino);
   statement.bindParam(1, sfn);
   statement.execute();
@@ -812,7 +619,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
   int           nReplicas;
 
   // MySQL statement
-  Statement stmt(this->getPreparedStatement(STMT_GET_FILE_REPLICAS));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_FILE_REPLICAS);
 
   // Execute query
   stmt.bindParam(0, ino);
@@ -890,7 +697,7 @@ void NsMySqlCatalog::symlink(const std::string& oldPath, const std::string& newP
                                         1, 0, 0, '-',
                                         "", "", "");
   // Create the symlink entry
-  Statement stmt(this->getPreparedStatement(STMT_INSERT_SYMLINK));
+  Statement stmt(this->conn_, this->nsDb_, STMT_INSERT_SYMLINK);
 
   stmt.bindParam(0, linkMeta.stat.st_ino);
   stmt.bindParam(1, oldPath);
@@ -924,8 +731,8 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->secCtx_.getUser().uid != file.stat.st_uid &&
-        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+    if (this->secCtx_->getUser().uid != file.stat.st_uid &&
+        this->secCtx_->getUser().uid != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
@@ -952,28 +759,28 @@ void NsMySqlCatalog::unlink(const std::string& path) throw (DmException)
   Transaction transaction(this->conn_);
 
   // Remove associated symlink
-  Statement delSymlink(this->getPreparedStatement(STMT_DELETE_SYMLINK));
+  Statement delSymlink(this->conn_, this->nsDb_, STMT_DELETE_SYMLINK);
   delSymlink.bindParam(0, file.stat.st_ino);
   delSymlink.execute();
 
   // Remove associated comments
-  Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
+  Statement delComment(this->conn_, this->nsDb_, STMT_DELETE_COMMENT);
   delComment.bindParam(0, file.stat.st_ino);
   delComment.execute();
 
   // Remove file itself
-  Statement delFile(this->getPreparedStatement(STMT_DELETE_FILE));
+  Statement delFile(this->conn_, this->nsDb_, STMT_DELETE_FILE);
   delFile.bindParam(0, file.stat.st_ino);
   delFile.execute();
 
   // And decrement nlink
-  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
   nlinkStmt.bindParam(0, parent.stat.st_ino);
   nlinkStmt.execute();
   nlinkStmt.bindResult(0, &parent.stat.st_nlink);
   nlinkStmt.fetch();
 
-  Statement nlinkUpdate(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
   parent.stat.st_nlink--;
   nlinkUpdate.bindParam(0, parent.stat.st_nlink);
   nlinkUpdate.bindParam(1, parent.stat.st_ino);
@@ -1014,8 +821,8 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     std::string aclStr;
     if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
       aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                       this->secCtx_.getUser().uid,
-                                       this->secCtx_.getGroup(0).gid,
+                                       this->secCtx_->getUser().uid,
+                                       this->secCtx_->getGroup(0).gid,
                                        &newMode, mode));
     }
 
@@ -1026,7 +833,7 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
   // Truncate
   else if (code == DM_NO_REPLICAS) {
-    Statement statement(this->getPreparedStatement(STMT_TRUNCATE_FILE));
+    Statement statement(this->conn_, this->nsDb_, STMT_TRUNCATE_FILE);
     statement.bindParam(0, file.stat.st_ino);
     statement.execute();
   }
@@ -1049,16 +856,16 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
   ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
-      this->secCtx_.getUser().uid != 0)
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+      this->secCtx_->getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.stat.st_mode) && this->secCtx_.getUser().uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && this->secCtx_->getUser().uid != 0)
     mode &= ~S_ISVTX;
-  if (this->secCtx_.getUser().uid != 0 &&
-      !this->secCtx_.hasGroup(meta.stat.st_gid))
+  if (this->secCtx_->getUser().uid != 0 &&
+      !this->secCtx_->hasGroup(meta.stat.st_gid))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
@@ -1086,7 +893,7 @@ void NsMySqlCatalog::changeMode(const std::string& path, mode_t mode) throw (DmE
   }
 
   // Update DB
-  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  Statement stmt(this->conn_, this->nsDb_, STMT_UPDATE_PERMS);
   stmt.bindParam(0, meta.stat.st_uid);
   stmt.bindParam(1, meta.stat.st_gid);
   stmt.bindParam(2, mode);
@@ -1111,17 +918,17 @@ void NsMySqlCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
     return;
 
   // If root, skip all checks
-  if (this->secCtx_.getUser().uid != 0) {
+  if (this->secCtx_->getUser().uid != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.stat.st_uid != this->secCtx_.getUser().uid)
+      if (meta.stat.st_uid != this->secCtx_->getUser().uid)
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
       // AND it has to belong to that group
-      if (!this->secCtx_.hasGroup(newGid))
+      if (!this->secCtx_->hasGroup(newGid))
         throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
     }
@@ -1141,7 +948,7 @@ void NsMySqlCatalog::changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid)
   }
 
   // Change!
-  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  Statement stmt(this->conn_, this->nsDb_, STMT_UPDATE_PERMS);
   stmt.bindParam(0, newUid);
   stmt.bindParam(1, newGid);
   stmt.bindParam(2, meta.stat.st_mode);
@@ -1175,8 +982,8 @@ void NsMySqlCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
   ExtendedStat meta = this->extendedStat(path);
 
   // Check we can change it
-  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
-      this->secCtx_.getUser().uid != 0)
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+      this->secCtx_->getUser().uid != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
 
   std::vector<Acl> aclsCopy(acls);
@@ -1218,7 +1025,7 @@ void NsMySqlCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
     aclStr = dmlite::serializeAcl(aclsCopy);
 
   // Update the DB
-  Statement stmt(this->getPreparedStatement(STMT_UPDATE_PERMS));
+  Statement stmt(this->conn_, this->nsDb_, STMT_UPDATE_PERMS);
   stmt.bindParam(0, meta.stat.st_uid);
   stmt.bindParam(1, meta.stat.st_gid);
   stmt.bindParam(2, meta.stat.st_mode);
@@ -1235,7 +1042,7 @@ void NsMySqlCatalog::utime(const std::string& path, const struct utimbuf* buf) t
   ExtendedStat meta = this->extendedStat(path);
 
   // The user is the owner OR buf is NULL and has write permissions
-  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
@@ -1256,7 +1063,7 @@ void NsMySqlCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmExce
   }
 
   // Change
-  Statement stmt(this->getPreparedStatement(STMT_UTIME));
+  Statement stmt(this->conn_, this->nsDb_, STMT_UTIME);
   stmt.bindParam(0, buf->actime);
   stmt.bindParam(1, buf->modtime);
   stmt.bindParam(2, inode);
@@ -1277,7 +1084,7 @@ std::string NsMySqlCatalog::getComment(const std::string& path) throw(DmExceptio
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_GET_COMMENT));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_COMMENT);
 
   stmt.bindParam(0, meta.stat.st_ino);
   stmt.execute();
@@ -1301,14 +1108,14 @@ void NsMySqlCatalog::setComment(const std::string& path, const std::string& comm
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_SET_COMMENT));
+  Statement stmt(this->conn_, this->nsDb_, STMT_SET_COMMENT);
 
   stmt.bindParam(0, comment);
   stmt.bindParam(1, meta.stat.st_ino);
 
   if (stmt.execute() == 0) {
     // No update! Try inserting
-    Statement stmti(this->getPreparedStatement(STMT_INSERT_COMMENT));
+    Statement stmti(this->conn_, this->nsDb_, STMT_INSERT_COMMENT);
 
     stmti.bindParam(0, meta.stat.st_ino);
     stmti.bindParam(1, comment);
@@ -1327,7 +1134,7 @@ void NsMySqlCatalog::setGuid(const std::string& path, const std::string& guid) t
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   // Query
-  Statement stmt(this->getPreparedStatement(STMT_SET_GUID));
+  Statement stmt(this->conn_, this->nsDb_, STMT_SET_GUID);
 
   stmt.bindParam(0, guid);
   stmt.bindParam(1, meta.stat.st_ino);
@@ -1355,8 +1162,8 @@ void NsMySqlCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   std::string aclStr;
   if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
     aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                     this->secCtx_.getUser().uid,
-                                     this->secCtx_.getGroup(0).gid,
+                                     this->secCtx_->getUser().uid,
+                                     this->secCtx_->getGroup(0).gid,
                                      &newMode, mode));
   }
 
@@ -1395,8 +1202,8 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->secCtx_.getUser().uid != entry.stat.st_uid &&
-        this->secCtx_.getUser().uid != parent.stat.st_uid &&
+    if (this->secCtx_->getUser().uid != entry.stat.st_uid &&
+        this->secCtx_->getUser().uid != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, entry.acl, entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
@@ -1411,23 +1218,23 @@ void NsMySqlCatalog::removeDir(const std::string& path) throw (DmException)
   Transaction transaction(this->conn_);
 
   // Remove associated comments
-  Statement delComment(this->getPreparedStatement(STMT_DELETE_COMMENT));
+  Statement delComment(this->conn_, this->nsDb_, STMT_DELETE_COMMENT);
   delComment.bindParam(0, entry.stat.st_ino);
   delComment.execute();
 
   // Remove directory itself
-  Statement delDir(this->getPreparedStatement(STMT_DELETE_FILE));
+  Statement delDir(this->conn_, this->nsDb_, STMT_DELETE_FILE);
   delDir.bindParam(0, entry.stat.st_ino);
   delDir.execute();
 
   // And decrement nlink
-  Statement nlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+  Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
   nlinkStmt.bindParam(0, parent.stat.st_ino);
   nlinkStmt.execute();
   nlinkStmt.bindResult(0, &parent.stat.st_nlink);
   nlinkStmt.fetch();
 
-  Statement nlinkUpdate(this->getPreparedStatement(STMT_UPDATE_NLINK));
+  Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
   parent.stat.st_nlink--;
   nlinkUpdate.bindParam(0, parent.stat.st_nlink);
   nlinkUpdate.bindParam(1, parent.stat.st_ino);
@@ -1484,8 +1291,8 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Check sticky
   if (oldParent.stat.st_mode & S_ISVTX &&
-      this->secCtx_.getUser().uid != oldParent.stat.st_uid &&
-      this->secCtx_.getUser().uid != old.stat.st_uid &&
+      this->secCtx_->getUser().uid != oldParent.stat.st_uid &&
+      this->secCtx_->getUser().uid != old.stat.st_uid &&
       checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
@@ -1522,7 +1329,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Change the name if needed
   if (newName != oldName) {
-    Statement changeNameStmt(this->getPreparedStatement(STMT_CHANGE_NAME));
+    Statement changeNameStmt(this->conn_, this->nsDb_, STMT_CHANGE_NAME);
 
     changeNameStmt.bindParam(0, newName);
     changeNameStmt.bindParam(1, old.stat.st_ino);
@@ -1533,7 +1340,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
   // Change the parent if needed
   if (newParent.stat.st_ino != oldParent.stat.st_ino) {
-    Statement changeParentStmt(this->getPreparedStatement(STMT_CHANGE_PARENT));
+    Statement changeParentStmt(this->conn_, this->nsDb_, STMT_CHANGE_PARENT);
 
     changeParentStmt.bindParam(0, newParent.stat.st_ino);
     changeParentStmt.bindParam(1, old.stat.st_ino);
@@ -1542,13 +1349,13 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
       throw DmException(DM_INTERNAL_ERROR, "Could not update the parent ino!");
 
     // Reduce nlinks from old
-    Statement oldNlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+    Statement oldNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
     oldNlinkStmt.bindParam(0, oldParent.stat.st_ino);
     oldNlinkStmt.execute();
     oldNlinkStmt.bindResult(0, &oldParent.stat.st_nlink);
     oldNlinkStmt.fetch();
 
-    Statement oldNlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    Statement oldNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
 
     oldParent.stat.st_nlink--;
     oldNlinkUpdateStmt.bindParam(0, oldParent.stat.st_nlink);
@@ -1558,13 +1365,13 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
       throw DmException(DM_INTERNAL_ERROR, "Could not update the old parent nlink!");
 
     // Increment from new
-    Statement newNlinkStmt(this->getPreparedStatement(STMT_NLINK_FOR_UPDATE));
+    Statement newNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
     newNlinkStmt.bindParam(0, newParent.stat.st_ino);
     newNlinkStmt.execute();
     newNlinkStmt.bindResult(0, &newParent.stat.st_nlink);
     newNlinkStmt.fetch();
 
-    Statement newNlinkUpdateStmt(this->getPreparedStatement(STMT_UPDATE_NLINK));
+    Statement newNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
 
     newParent.stat.st_nlink++;
     newNlinkUpdateStmt.bindParam(0, newParent.stat.st_nlink);
@@ -1582,7 +1389,7 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
 
 FileReplica NsMySqlCatalog::replicaGet(const std::string& replica) throw (DmException)
 {
-  Statement stmt(this->getPreparedStatement(STMT_GET_REPLICA_BY_URL));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_REPLICA_BY_URL);
   stmt.bindParam(0, replica);
   
   stmt.execute();
@@ -1619,12 +1426,12 @@ void NsMySqlCatalog::replicaSet(const FileReplica& rdata) throw (DmException)
   this->traverseBackwards(meta);
 
   /* Check the user can modify */
-  if (this->secCtx_.getUser().uid != meta.stat.st_uid &&
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the replica");
 
   /* Update */
-  Statement stmt(this->getPreparedStatement(STMT_UPDATE_REPLICA));
+  Statement stmt(this->conn_, this->nsDb_, STMT_UPDATE_REPLICA);
   stmt.bindParam(0, rdata.atime);
   stmt.bindParam(1, rdata.ltime);
   stmt.bindParam(2, rdata.nbaccesses);
@@ -1731,7 +1538,7 @@ void NsMySqlCatalog::getIdMap(const std::string& userName, const std::vector<std
 UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
 {
   UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_NAME));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_USERINFO_BY_NAME);
 
   stmt.bindParam(0, userName);
   stmt.execute();
@@ -1752,7 +1559,7 @@ UserInfo NsMySqlCatalog::getUser(const std::string& userName) throw(DmException)
 UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
 {
   UserInfo  user;
-  Statement stmt(this->getPreparedStatement(STMT_GET_USERINFO_BY_UID));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_USERINFO_BY_UID);
 
   stmt.bindParam(0, uid);
   stmt.execute();
@@ -1773,7 +1580,7 @@ UserInfo NsMySqlCatalog::getUser(uid_t uid) throw(DmException)
 GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmException)
 {
   GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_NAME));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_GROUPINFO_BY_NAME);
 
   stmt.bindParam(0, groupName);
   stmt.execute();
@@ -1793,7 +1600,7 @@ GroupInfo NsMySqlCatalog::getGroup(const std::string& groupName) throw(DmExcepti
 GroupInfo NsMySqlCatalog::getGroup(gid_t gid) throw(DmException)
 {
   GroupInfo group;
-  Statement stmt(this->getPreparedStatement(STMT_GET_GROUPINFO_BY_GID));
+  Statement stmt(this->conn_, this->nsDb_, STMT_GET_GROUPINFO_BY_GID);
 
   stmt.bindParam(0, gid);
   stmt.execute();
@@ -1815,7 +1622,7 @@ UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca
   Transaction transaction(this->conn_);
 
   // Get the last uid, increment and update
-  Statement uidStmt(this->getPreparedStatement(STMT_GET_UNIQ_UID_FOR_UPDATE));
+  Statement uidStmt(this->conn_, this->nsDb_, STMT_GET_UNIQ_UID_FOR_UPDATE);
   uid_t     uid;
 
   uidStmt.execute();
@@ -1823,21 +1630,21 @@ UserInfo NsMySqlCatalog::newUser(const std::string& uname, const std::string& ca
 
   // Update the uid
   if (uidStmt.fetch()) {
-    Statement updateUidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_UID));
+    Statement updateUidStmt(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_UID);
     ++uid;
     updateUidStmt.bindParam(0, uid);
     updateUidStmt.execute();
   }
   // Couldn't get, so insert it instead
   else {
-    Statement insertUidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_UID));
+    Statement insertUidStmt(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_UID);
     uid = 1;
     insertUidStmt.bindParam(0, uid);
     insertUidStmt.execute();
   }
 
   // Insert the user
-  Statement userStmt(this->getPreparedStatement(STMT_INSERT_USER));
+  Statement userStmt(this->conn_, this->nsDb_, STMT_INSERT_USER);
 
   userStmt.bindParam(0, uid);
   userStmt.bindParam(1, uname);
@@ -1866,7 +1673,7 @@ GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
   Transaction transaction(this->conn_);
 
   // Get the last gid, increment and update
-  Statement gidStmt(this->getPreparedStatement(STMT_GET_UNIQ_GID_FOR_UPDATE));
+  Statement gidStmt(this->conn_, this->nsDb_, STMT_GET_UNIQ_GID_FOR_UPDATE);
   gid_t     gid;
 
   gidStmt.execute();
@@ -1874,21 +1681,21 @@ GroupInfo NsMySqlCatalog::newGroup(const std::string& gname) throw (DmException)
 
   // Update the gid
   if (gidStmt.fetch()) {
-    Statement updateGidStmt(this->getPreparedStatement(STMT_UPDATE_UNIQ_GID));
+    Statement updateGidStmt(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_GID);
     ++gid;
     updateGidStmt.bindParam(0, gid);
     updateGidStmt.execute();
   }
   // Couldn't get, so insert it instead
   else {
-    Statement insertGidStmt(this->getPreparedStatement(STMT_INSERT_UNIQ_GID));
+    Statement insertGidStmt(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_GID);
     gid = 1;
     insertGidStmt.bindParam(0, gid);
     insertGidStmt.execute();
   }
 
   // Insert the group
-  Statement groupStmt(this->getPreparedStatement(STMT_INSERT_GROUP));
+  Statement groupStmt(this->conn_, this->nsDb_, STMT_INSERT_GROUP);
 
   groupStmt.bindParam(0, gid);
   groupStmt.bindParam(1, gname);

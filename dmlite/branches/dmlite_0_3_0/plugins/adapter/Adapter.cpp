@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 #include "Adapter.h"
+#include "FilesystemHandler.h"
 #include "NsAdapter.h"
 #include "DpmAdapter.h"
 
@@ -53,7 +54,7 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
 
 
 
-Catalog* NsAdapterFactory::createCatalog() throw (DmException)
+Catalog* NsAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 {
   return new NsAdapterCatalog(this->retryLimit_);
 }
@@ -86,14 +87,14 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
 
 
 
-Catalog* DpmAdapterFactory::createCatalog() throw (DmException)
+Catalog* DpmAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 {
   return new DpmAdapterCatalog(this->retryLimit_);
 }
 
 
 
-PoolManager* DpmAdapterFactory::createPoolManager() throw (DmException)
+PoolManager* DpmAdapterFactory::createPoolManager(StackInstance* si) throw (DmException)
 {
   return new DpmAdapterPoolManager(this->retryLimit_);
 }
@@ -107,11 +108,11 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 
 
 
-PoolHandler* DpmAdapterFactory::createPoolHandler(Pool* pool) throw (DmException)
+PoolHandler* DpmAdapterFactory::createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException)
 {
   if (std::string(pool->pool_type) != this->implementedPool())
     throw DmException(DM_UNKNOWN_POOL_TYPE, "DpmAdapter does not recognise the pool type %s", pool->pool_type);
-  return new FilesystemPoolHandler(pool);
+  return new FilesystemPoolHandler(pm, pool);
 }
 
 

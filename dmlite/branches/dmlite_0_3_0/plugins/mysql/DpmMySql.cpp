@@ -9,50 +9,17 @@
 #include <string.h>
 
 #include "DpmMySql.h"
+#include "Queries.h"
 
 using namespace dmlite;
 
 
 
-/// Used to keep prepared statements
-enum {
-  STMT_GET_POOLS = 0,
-  STMT_GET_POOL,
-  STMT_SENTINEL
-};
-
-/// Used internally to define prepared statements.
-/// Must match with STMT_* constants!
-static const char* statements[] = {
-  "SELECT poolname, COALESCE(pooltype, 'filesystem')\
-        FROM dpm_pool",
-  "SELECT poolname, COALESCE(pooltype, 'filesystem')\
-        FROM dpm_pool\
-        where poolname = ?",
-};
-
-
-
-MYSQL_STMT* DpmMySqlCatalog::getPreparedStatement(unsigned stId)
-{
-  if (mysql_select_db(this->conn_, this->dpmDb_.c_str()) != 0)
-    throw DmException(DM_QUERY_FAILED, std::string(mysql_error(this->conn_)));
-
-  MYSQL_STMT* stmt = mysql_stmt_init(this->conn_);
-  if (mysql_stmt_prepare(stmt, statements[stId], strlen(statements[stId])) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(stmt)));
-  }
-
-  return stmt;
-}
-
-
-
 DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& nsDb,
                                  const std::string& dpmDb, Catalog* decorates,
-                                 unsigned int symLinkLimit, PluginManager* pm) throw(DmException):
+                                 unsigned int symLinkLimit, StackInstance* si) throw(DmException):
   NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb),
-  decorated_(decorates), pluginManager_(pm)
+  decorated_(decorates), stack_(si)
 {
   // Nothing
 }
@@ -86,31 +53,6 @@ void DpmMySqlCatalog::set(const std::string& key, va_list varg) throw (DmExcepti
 
 
 
-void DpmMySqlCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
-{
-  if (this->decorated_ != 0x00)
-    this->decorated_->setSecurityCredentials(cred);
-  NsMySqlCatalog::setSecurityCredentials(cred);
-}
-
-
-
-void DpmMySqlCatalog::setSecurityContext(const SecurityContext& ctx)
-{
-  if (this->decorated_ != 0x00)
-    this->decorated_->setSecurityContext(ctx);
-  NsMySqlCatalog::setSecurityContext(ctx);
-}
-
-
-
-const SecurityContext& DpmMySqlCatalog::getSecurityContext(void) throw (DmException)
-{
-  return NsMySqlCatalog::getSecurityContext();
-}
-
-
-
 Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
 {
   // Get replicas
@@ -122,11 +64,11 @@ Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
   // Iterate and mark as unavailable if the FS is unavailable
   unsigned i;
   for (i = 0; i < replicas.size(); ++i) {
-    Pool pool = this->getPool(replicas[i].pool);
-    PoolHandler* handler = this->pluginManager_->getPoolHandler(&pool);
+    Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
+    PoolHandler* handler = this->stack_->createPoolHandler(&pool);
 
-    if (handler->replicaAvailable(replicas[i])) {
-      available.push_back(handler->getPhysicalLocation(replicas[i]));
+    if (handler->replicaAvailable(path, replicas[i])) {
+      available.push_back(handler->getPhysicalLocation(path, replicas[i]));
     }
 
     delete handler;
@@ -236,10 +178,39 @@ void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
 
 
 
-std::vector<Pool> DpmMySqlCatalog::getPools() throw (DmException)
+MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb) throw (DmException):
+      connectionPool_(connPool), dpmDb_(dpmDb)
+{
+  this->conn_ = connPool->acquire();
+}
+
+
+
+MySqlPoolManager::~MySqlPoolManager()
+{
+  this->connectionPool_->release(this->conn_);
+}
+
+
+
+std::string MySqlPoolManager::getImplId() throw ()
+{
+  return "mysql_pool_manager";
+}
+
+
+
+void MySqlPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  this->secCtx_ = ctx;
+}
+
+
+
+std::vector<Pool> MySqlPoolManager::getPools() throw (DmException)
 {
   Pool pool;
-  Statement stmt(this->getPreparedStatement(STMT_GET_POOLS));
+  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOLS);
 
   stmt.execute();
 
@@ -255,10 +226,10 @@ std::vector<Pool> DpmMySqlCatalog::getPools() throw (DmException)
 
 
 
-Pool DpmMySqlCatalog::getPool(const std::string& poolname) throw (DmException)
+Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   Pool pool;
-  Statement stmt(this->getPreparedStatement(STMT_GET_POOL));
+  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL);
 
   stmt.bindParam(0, poolname);
 
@@ -270,4 +241,53 @@ Pool DpmMySqlCatalog::getPool(const std::string& poolname) throw (DmException)
     throw DmException(DM_NO_SUCH_POOL, poolname + " not found");
 
   return pool;
+}
+
+
+
+PoolMetadata* MySqlPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+{
+  // Build the query
+  char query[128];
+  snprintf(query, sizeof(query), "SELECT * FROM %s_pools WHERE poolname = ?", pool.pool_type);
+  
+  Statement* stmt = new Statement(this->conn_, this->dpmDb_, query);
+  stmt->bindParam(0, pool.pool_name);
+  stmt->execute(true);
+  
+  if (!stmt->fetch()) {
+    delete stmt;
+    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found (type %s)",
+                                       pool.pool_name, pool.pool_type);
+  }    
+  
+  return new MySqlPoolMetadata(stmt);
+}
+
+
+
+MySqlPoolMetadata::MySqlPoolMetadata(Statement* stmt): stmt_(stmt)
+{
+  // Nothing
+}
+
+
+
+MySqlPoolMetadata::~MySqlPoolMetadata()
+{
+  delete this->stmt_;
+}
+
+
+
+std::string MySqlPoolMetadata::getString(const std::string& field) throw (DmException)
+{
+  return this->stmt_->getString(this->stmt_->getFieldIndex(field));
+}
+
+
+
+int MySqlPoolMetadata::getInt(const std::string& field) throw (DmException)
+{
+  return this->stmt_->getInt(this->stmt_->getFieldIndex(field));
 }

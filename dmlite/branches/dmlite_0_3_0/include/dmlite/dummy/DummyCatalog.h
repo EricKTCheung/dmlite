@@ -22,13 +22,10 @@ public:
   virtual ~DummyCatalog();
 
   // Overloading
-  virtual std::string getImplId(void) throw ();
-
   virtual void set(const std::string&, va_list) throw (DmException);
 
-  virtual void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  virtual const SecurityContext& getSecurityContext(void) throw (DmException);
-  virtual void setSecurityContext(const SecurityContext&);
+  virtual SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  virtual void setSecurityContext(const SecurityContext*) throw (DmException);
 
   virtual void        changeDir     (const std::string&) throw (DmException);
   virtual std::string getWorkingDir (void)               throw (DmException);

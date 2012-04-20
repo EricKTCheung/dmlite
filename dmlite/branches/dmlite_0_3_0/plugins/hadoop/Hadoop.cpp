@@ -92,15 +92,28 @@ void HadoopIOHandler::deleteFile(const char *filename) throw (DmException){
 }
 
 /* Hadoop pool handling */
-HadoopPoolHandler::HadoopPoolHandler(Pool* pool): pool(pool)
+HadoopPoolHandler::HadoopPoolHandler(PoolManager* pm, Pool* pool):
+            manager(pm), pool(pool)
 {
-  this->fs = hdfsConnectAsUser("dpmhadoop-name", 8020, "dpmmgr");
+  PoolMetadata* meta = this->manager->getPoolMetadata(*pool);
+  this->fs = hdfsConnectAsUser(meta->getString("hostname").c_str(),
+                               meta->getInt("port"),
+                               meta->getString("username").c_str());
+  delete meta;
+  
+  if (this->fs == 0)
+    throw DmException(DM_INTERNAL_ERROR, "Could not instantiate the HadoopPoolHandler");
 }
 
 HadoopPoolHandler::~HadoopPoolHandler()
 {
   if(this->fs)
     hdfsDisconnect(this->fs);
+}
+
+void HadoopPoolHandler::setSecurityContext(const SecurityContext*) throw (DmException)
+{
+  // TODO
 }
 
 std::string HadoopPoolHandler::getPoolType(void) throw (DmException)
@@ -135,18 +148,22 @@ uint64_t HadoopPoolHandler::getFreeSpace(void) throw (DmException)
   return this->getTotalSpace() - this->getUsedSpace();
 }
 
-bool HadoopPoolHandler::replicaAvailable(const FileReplica& replica) throw (DmException)
+bool HadoopPoolHandler::replicaAvailable(const std::string&, const FileReplica& replica) throw (DmException)
 {
   // No idea about this
   return true;
 }
 
-Uri HadoopPoolHandler::getPhysicalLocation(const FileReplica& replica) throw (DmException)
+Uri HadoopPoolHandler::getPhysicalLocation(const std::string&, const FileReplica& replica) throw (DmException)
 {
   // To be done
   return Uri();
 }
 
+void HadoopPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
+{
+  hdfsDelete(this->fs, sfn.c_str());
+}
 
 /* HadoopIOFactory implementation */
 HadoopIOFactory::HadoopIOFactory() throw (DmException)
@@ -168,11 +185,11 @@ std::string HadoopIOFactory::implementedPool() throw ()
   return "hadoop";
 }
 
-PoolHandler* HadoopIOFactory::createPoolHandler(Pool* pool) throw (DmException)
+PoolHandler* HadoopIOFactory::createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException)
 {
   if (this->implementedPool() != std::string(pool->pool_type))
     throw DmException(DM_UNKNOWN_POOL_TYPE, "Hadoop does not recognise the pool type %s", pool->pool_type);
-  return new HadoopPoolHandler(pool);
+  return new HadoopPoolHandler(pm, pool);
 }
 
 static void registerPluginHadoop(PluginManager* pm) throw (DmException)

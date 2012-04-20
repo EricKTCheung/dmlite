@@ -27,3 +27,6 @@ set_target_properties (hadoop PROPERTIES PREFIX "plugin_")
 install(TARGETS       hadoop
         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/
                       COMPONENT   dmlite-plugins)
+
+install (FILES       ${CMAKE_CURRENT_SOURCE_DIR}/hadoop-msql.sql
+         DESTINATION usr/share/dmlite/hadoop)

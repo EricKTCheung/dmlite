@@ -483,10 +483,7 @@ int dm_setcredentials(dm_context* context, struct credentials* cred)
 {
   TRY(context, setcredentials)
   NOT_NULL(cred);
-  dmlite::SecurityCredentials secCred(*cred);
-  context->catalog->setSecurityCredentials(secCred);
-  if (context->pool != 0x00)
-    context->pool->setSecurityCredentials(secCred);
+  context->stack->setSecurityCredentials(dmlite::SecurityCredentials(*cred));
   CATCH(context, setcredentials)
 }
 

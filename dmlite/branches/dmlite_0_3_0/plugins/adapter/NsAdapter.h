@@ -34,9 +34,8 @@ public:
   void set(const std::string&, ...)     throw (DmException);
   void set(const std::string&, va_list) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
@@ -116,8 +115,6 @@ protected:
   char **fqans_;
   int    nFqans_;
   char  *vo_;
-
-  SecurityContext secCtx_;
 
 private:
 };
