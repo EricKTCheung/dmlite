@@ -69,6 +69,16 @@ target_link_libraries (test-io dmlitecommon dmlite cppunit dl)
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmlitecommon dmlite cppunit dl)
 
+
+find_package(JNI REQUIRED)
+
+include_directories (${CMAKE_SOURCE_DIR}/plugins/)
+include_directories("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/")
+include_directories("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/linux")
+
+add_executable        (test-hadoop test-hadoop.cpp)
+target_link_libraries (test-hadoop dmlitecommon dmlite dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
