@@ -143,6 +143,17 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   	  throw DmException(DM_UNKNOWN_OPTION,
                         std::string("Unknown option value ") + value);
   }
+  else if (key == "MemcachedStrictConsistency")
+  {
+    if (value == "true")
+      this->memcachedStrict_ = true;
+    else if (value == "false")
+      this->memcachedStrict_ = false;
+    else
+  	  throw DmException(DM_UNKNOWN_OPTION,
+                        std::string("Unknown option value ") + value);
+
+  }
   else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -156,7 +167,11 @@ Catalog* MemcacheFactory::createCatalog() throw(DmException)
   if (this->nestedFactory_ != 0x00)
     nested = this->nestedFactory_->createCatalog();
 
-  return new MemcacheCatalog(&this->connectionPool_, nested, this->symLinkLimit_, (time_t)this->memcachedExpirationLimit_);
+  return new MemcacheCatalog(&this->connectionPool_,
+                             nested,
+                             this->symLinkLimit_,
+                             (time_t)this->memcachedExpirationLimit_,
+                             this->memcachedStrict_);
 }
 
 

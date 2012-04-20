@@ -39,6 +39,7 @@ message SerialComment {
 
 message SerialKeyList {
   required bool iscomplete = 1;
+  optional int64 mtime = 3;
   repeated SerialKey key = 2;
 }
 
