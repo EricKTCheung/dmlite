@@ -19,9 +19,9 @@ find_package(JNI    REQUIRED)
 # ------------------------------------------
 # Hadoop module compilation and installation
 # ------------------------------------------
-include_directories(${JNI_INCLUDE_DIRS})
-add_library(hadoop SHARED Hadoop.cpp)
-target_link_libraries (hadoop dmlite dmlitecommon hdfs dl ${JNI_LIBRARIES})
+include_directories(${HDFS_INCLUDE_DIR} ${JNI_INCLUDE_DIRS})
+add_library(hadoop SHARED Hadoop.cpp HadoopCatalog.cpp HadoopIO.cpp)
+target_link_libraries (hadoop dmlite dmlitecommon hdfs dl)
 set_target_properties (hadoop PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       hadoop
