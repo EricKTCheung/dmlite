@@ -194,13 +194,21 @@ PoolHandler* HadoopIOFactory::createPoolHandler(PoolManager* pm, Pool* pool) thr
 
 static void registerPluginHadoop(PluginManager* pm) throw (DmException)
 {
-  pm->registerIOFactory(new HadoopIOFactory());
   pm->registerPoolHandlerFactory(new HadoopIOFactory());
 }
 
+static void registerIOHadoop(PluginManager* pm) throw (DmException)
+{
+  pm->registerIOFactory(new HadoopIOFactory());
+}
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_hadoop = {
   API_VERSION,
   registerPluginHadoop
+};
+
+PluginIdCard plugin_hadoop_io = {
+  API_VERSION,
+  registerIOHadoop
 };
