@@ -209,12 +209,13 @@ int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* 
 
 
 
-int dm_putdone(dm_context* context, const char* path, const char* token)
+int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token)
 {
   TRY(context, putdone)
   NOT_NULL(path);
+  NOT_NULL(pfn);
   NOT_NULL(token);
-  context->catalog->putDone(path, token);
+  context->catalog->putDone(path, *pfn, token);
   CATCH(context, putdone)
 }
 

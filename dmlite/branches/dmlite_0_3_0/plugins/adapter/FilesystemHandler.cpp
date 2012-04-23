@@ -75,29 +75,32 @@ uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
 
 
 
+bool FilesystemPoolHandler::isAvailable(bool write = true) throw (DmException)
+{
+  std::vector<dpm_fs> fs = this->getFilesystems(this->pool_->pool_name);
+  
+  for (unsigned i = 0; i < fs.size(); ++i) {
+    if ((write && fs[i].status == 0) || (!write && fs[i].status != FS_DISABLED))
+      return true;
+  }
+  
+  return false;
+}
+
+
+
 bool FilesystemPoolHandler::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
-  int nfs;
-  struct dpm_fs *fs_array;
-  
   // No API call for getting one specific FS
-  if (dpm_getpoolfs((char*)replica.pool,  &nfs, &fs_array) != 0)
-    ThrowExceptionFromSerrno(serrno);
-
-  if (nfs == 0)
-    throw DmException(DM_NO_SUCH_FS, "There are no filesystems inside the pool %s", replica.pool);
-
-  bool found     = false;
-  bool available = false;
-  for (int i = 0; i < nfs && !found; ++i) {
-    if (strcmp(replica.filesystem, fs_array[i].fs) == 0) {
-      found = true;
-      available = (fs_array[i].status != FS_DISABLED);
+  std::vector<dpm_fs> fs = this->getFilesystems(replica.pool);
+  
+  for (unsigned i = 0; i < fs.size(); ++i) {
+    if (strcmp(replica.filesystem, fs[i].fs) == 0) {
+      return (fs[i].status != FS_DISABLED);
     }
   }
-  free(fs_array);
 
-  return available;
+  return false;
 }
 
 
@@ -167,7 +170,7 @@ std::string FilesystemPoolHandler::putLocation(const std::string& sfn, Uri* uri)
     // 4 on overwrite allows to add additional replicas
     // This way, dmlite can take care of handling the catalog creation in advance
     // No, this is not documented, done as seen on dpm_replicate.c
-    dpm_put(1, &reqfile, 1, (char*[]){ (char *)"rfio"}, (char *)"dmlite::adapter::put", 4,
+    dpm_put(1, &reqfile, 1, (char*[]){ (char *)"rfio"}, (char *)"dmlite::adapter::put", 1,
             0, token, &nReplies, &statuses);;
 
     wait = statuses[0].status == DPM_QUEUED  ||
@@ -175,7 +178,8 @@ std::string FilesystemPoolHandler::putLocation(const std::string& sfn, Uri* uri)
            statuses[0].status == DPM_ACTIVE;
 
     while (wait) {
-      dpm_getstatus_putreq(token, 1, &reqfile.to_surl, &nReplies, &statuses);
+      if (dpm_getstatus_putreq(token, 1, &reqfile.to_surl, &nReplies, &statuses) < 0)
+        ThrowExceptionFromSerrno(serrno);
       if (!nReplies)
         throw DmException(DM_PUT_ERROR, "Didn't get a destination from DPM");
 
@@ -203,14 +207,36 @@ std::string FilesystemPoolHandler::putLocation(const std::string& sfn, Uri* uri)
 
 
 
-void FilesystemPoolHandler::putDone(const std::string& sfn, const std::string& token) throw (DmException)
+void FilesystemPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
-  const char            *path_c;
-  std::string            absolute;
+  const char            *path_c = sfn.c_str();
 
-  dpm_putdone((char*)sfn.c_str(), 1, (char**)&path_c, &nReplies, &statuses);
+  if (dpm_putdone((char*)token.c_str(), 1, (char**)&path_c, &nReplies, &statuses) < 0)
+    ThrowExceptionFromSerrno(serrno);
 
   dpm_free_filest(nReplies, statuses);
+}
+
+
+
+std::vector<dpm_fs> FilesystemPoolHandler::getFilesystems(const std::string& poolname) throw (DmException)
+{
+  std::vector<dpm_fs> fsV;
+  int nfs;
+  struct dpm_fs* fs_array;
+    
+  if (dpm_getpoolfs((char*)poolname.c_str(),  &nfs, &fs_array) != 0)
+    ThrowExceptionFromSerrno(serrno);
+
+  if (nfs == 0)
+    throw DmException(DM_NO_SUCH_FS, "There are no filesystems inside the pool " + poolname);
+
+  for (int i = 0; i < nfs; ++i) {
+    fsV.push_back(fs_array[i]);
+  }
+  free(fs_array);
+  
+  return fsV;
 }

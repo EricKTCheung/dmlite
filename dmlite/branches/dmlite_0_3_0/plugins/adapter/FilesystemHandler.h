@@ -5,6 +5,7 @@
 #define	FILESYSTEMHANDLER_H
 
 #include <dmlite/dm_poolhandler.h>
+#include "dpm/dpm_api.h"
 
 namespace dmlite {
   
@@ -20,13 +21,14 @@ public:
   std::string getPoolName(void) throw (DmException);
   uint64_t getTotalSpace(void) throw (DmException);
   uint64_t getFreeSpace(void) throw (DmException);
+  bool isAvailable(bool) throw (DmException);
 
   bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
   Uri  getLocation     (const std::string&, const FileReplica&) throw (DmException);
   void remove          (const std::string&, const FileReplica&) throw (DmException);
   
   std::string putLocation(const std::string&, Uri*) throw (DmException);
-  void putDone(const std::string&, const std::string&) throw (DmException);
+  void putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
 private:
   PoolManager *manager_;
@@ -34,6 +36,7 @@ private:
   uint64_t     total_, free_;
 
   void update(void) throw (DmException);
+  std::vector<dpm_fs> getFilesystems(const std::string&) throw (DmException);
 };
 
 };

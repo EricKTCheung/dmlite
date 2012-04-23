@@ -21,6 +21,7 @@ public:
   
   std::vector<Pool> getPools(void) throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool) throw (DmException);
 
 protected:
   PoolManager* decorated_;

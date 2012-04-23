@@ -148,6 +148,12 @@ uint64_t HadoopPoolHandler::getFreeSpace(void) throw (DmException)
   return this->getTotalSpace() - this->getUsedSpace();
 }
 
+bool HadoopPoolHandler::isAvailable(bool write) throw (DmException)
+{
+  // TODO
+  return true;
+}
+
 bool HadoopPoolHandler::replicaAvailable(const std::string&, const FileReplica& replica) throw (DmException)
 {
   // No idea about this
@@ -171,7 +177,7 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
   throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putLocation");
 }
 
-void HadoopPoolHandler::putDone(const std::string& sfn, const std::string& token) throw (DmException)
+void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
 {
   // To be done
   throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putDone");

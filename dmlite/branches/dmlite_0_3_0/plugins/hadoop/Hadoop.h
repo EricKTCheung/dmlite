@@ -49,13 +49,14 @@ public:
   uint64_t getTotalSpace(void) throw (DmException);
   uint64_t getUsedSpace(void) throw (DmException);
   uint64_t getFreeSpace(void) throw (DmException);
+  bool isAvailable(bool) throw (DmException);
   
   bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
   Uri  getLocation     (const std::string&, const FileReplica&) throw (DmException);
   void remove          (const std::string&, const FileReplica&) throw (DmException);
   
   std::string putLocation (const std::string&, Uri*) throw (DmException);
-  void putDone(const std::string&, const std::string&) throw (DmException);
+  void putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
 private:
   PoolManager* manager;

@@ -30,10 +30,9 @@ public:
   Uri         get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
   std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
   void        unlink   (const std::string&)                           throw (DmException);
-protected:
+ 
 private:
   std::string dpmHost_;
   std::string spaceToken_;
@@ -54,6 +53,8 @@ public:
 
   std::vector<Pool> getPools(void) throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);
+  
+  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
   
 private:
   std::string dpmHost_;

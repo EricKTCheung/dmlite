@@ -177,9 +177,9 @@ std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::stri
 
 
 
-void DummyCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
+void DummyCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
 {
-  DELEGATE(putDone, path, token);
+  DELEGATE(putDone, path, pfn, token);
 }
 
 

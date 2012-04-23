@@ -65,7 +65,7 @@ private:
 class DpmMySqlFactory: public NsMySqlFactory, public PoolManagerFactory {
 public:
   /// Constructor
-  DpmMySqlFactory(CatalogFactory* catalogFactory) throw(DmException);
+  DpmMySqlFactory() throw(DmException);
   
   /// Destructor
   ~DpmMySqlFactory() throw(DmException);
@@ -78,13 +78,7 @@ public:
 protected:
   /// DPM db.
   std::string dpmDb_;
-
-  /// Decorated
-  CatalogFactory* nestedFactory_;
 };
-
-
-
 
 };
 

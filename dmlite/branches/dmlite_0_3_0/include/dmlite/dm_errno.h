@@ -44,6 +44,7 @@
 #define DM_NO_REPLICAS          0x1011
 #define DM_PUT_ERROR            0x1012
 #define DM_IS_CWD               0x1013
+#define DM_NO_SUCH_REPLICA      0x1014
 
 #define DM_NO_USER_MAPPING      0x1101
 #define DM_NO_SUCH_USER         0x1102

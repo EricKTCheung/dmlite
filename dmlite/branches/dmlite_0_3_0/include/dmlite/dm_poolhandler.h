@@ -32,6 +32,9 @@ public:
   /// Get the free space of this pool.
   virtual uint64_t getFreeSpace(void) throw (DmException) = 0;
   
+  /// Check if the pool is actually available
+  virtual bool isAvailable(bool write = true) throw (DmException) = 0;
+  
   /// Return true if the specified replica is available in the pool.
   virtual bool replicaAvailable(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
 
@@ -45,7 +48,7 @@ public:
   virtual std::string putLocation(const std::string& sfn, Uri* uri) throw (DmException) = 0;
   
   /// Finish a put
-  virtual void putDone(const std::string& sfn, const std::string& token) throw (DmException) = 0;
+  virtual void putDone(const std::string& sfn, const Uri& uri, const std::string& token) throw (DmException) = 0;
 };
 
 class PoolManager;

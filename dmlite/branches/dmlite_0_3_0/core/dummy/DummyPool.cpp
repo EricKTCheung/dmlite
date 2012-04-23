@@ -48,3 +48,10 @@ Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   DELEGATE_RETURN(getPool, poolname);
 }
+
+
+
+std::vector<Pool> DummyPoolManager::getAvailablePools(bool write) throw (DmException)
+{
+  DELEGATE_RETURN(getAvailablePools, write);
+}

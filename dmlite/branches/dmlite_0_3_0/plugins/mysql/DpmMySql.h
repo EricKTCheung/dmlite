@@ -31,12 +31,11 @@ public:
   /// @param conn      The MySQL connection pool.
   /// @param nsDb      The MySQL DB name for the NS.
   /// @param dpmDb     The MySQL DB name for DPM.
-  /// @param decorates The underlying decorated catalog.
   /// @param symLimit  The recursion limit for symbolic links.
   /// @param si        The stack instance.
   DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool,
                   const std::string& nsDb, const std::string& dpmDb,
-                  Catalog* decorates, unsigned int symLimit,
+                  unsigned int symLimit,
                   StackInstance* si) throw(DmException);
 
   /// Destructor
@@ -44,8 +43,6 @@ public:
 
   // Overloading
   std::string getImplId(void) throw ();
-
-  void set(const std::string& key, va_list varg) throw (DmException);
   
   Uri get (const std::string&) throw (DmException);
 
@@ -53,15 +50,12 @@ public:
 
   std::string put      (const std::string&, Uri*)                     throw (DmException);
   std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
   
 protected:
 private:
   /// DPM DB.
   std::string dpmDb_;
-
-  /// Decorated catalog
-  Catalog* decorated_;
   
   /// Stack instance.
   StackInstance* stack_;
@@ -70,7 +64,7 @@ private:
 /// Pool manager implementation.
 class MySqlPoolManager: public PoolManager {
 public:
-  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb) throw (DmException);
+  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb, StackInstance* si) throw (DmException);
   ~MySqlPoolManager();
   
   std::string getImplId(void) throw ();
@@ -81,8 +75,12 @@ public:
   
   std::vector<Pool> getPools() throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool) throw (DmException);
   
 private:
+  /// Plugin stack.
+  StackInstance* stack_;
+  
   /// DPM DB.
   std::string dpmDb_;
   

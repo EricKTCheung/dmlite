@@ -47,6 +47,10 @@ public:
   
   /// Get a specific pool.
   virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
+  
+  /// Get only the available pools
+  /// @param write If true, it will be only the pools available for writting.
+  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException) = 0;
 };
 
 class StackInstance;

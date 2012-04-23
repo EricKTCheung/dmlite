@@ -58,3 +58,10 @@ Pool ProfilerPoolManager::getPool(const std::string& poolname) throw (DmExceptio
 {
   PROFILE_RETURN(pool, getPool, poolname);
 }
+
+
+
+std::vector<Pool> ProfilerPoolManager::getAvailablePools(bool write) throw (DmException)
+{
+  PROFILE_RETURN(std::vector<Pool>, getAvailablePools, write);
+}

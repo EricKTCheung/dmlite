@@ -60,7 +60,7 @@ public:
 
   std::string put(const std::string&, Uri*)                     throw (DmException);
   std::string put(const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone(const std::string&, const std::string&)   throw (DmException);
+  void        putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);

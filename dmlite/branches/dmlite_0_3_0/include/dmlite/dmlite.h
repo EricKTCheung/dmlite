@@ -261,10 +261,11 @@ int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* 
  * Finish a PUT request.
  * @param context The DM context.
  * @param path    The logical filename that was put.
+ * @param pfn     The physical location.
  * @param token   The token identifying the request.
  * @return        0 on success, error code otherwise.
  */
-int dm_putdone(dm_context* context, const char* path, const char* token);
+int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token);
 
 /**
  * Change the mode of a file or directory.

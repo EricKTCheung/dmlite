@@ -165,8 +165,9 @@ public:
 
   /// Finish a PUT
   /// @param path  The path of the file that was put
+  /// @param uri   The physical location
   /// @param token As returned by dm::Catalog::put
-  virtual void putDone(const std::string& path, const std::string& token) throw (DmException) = 0;
+  virtual void putDone(const std::string& path, const Uri& uri, const std::string& token) throw (DmException) = 0;
 
   /// Sets the calling process’s file mode creation mask to mask & 0777.
   /// @param mask The new mask.

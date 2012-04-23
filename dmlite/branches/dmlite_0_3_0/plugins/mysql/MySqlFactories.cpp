@@ -131,8 +131,8 @@ Catalog* NsMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
 
 
 
-DpmMySqlFactory::DpmMySqlFactory(CatalogFactory* catalogFactory) throw(DmException):
-                  dpmDb_("dpm_db"), nestedFactory_(catalogFactory)
+DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
+                  dpmDb_("dpm_db")
 {
   // MySQL initialization done by NsMySqlFactory
 }
@@ -158,17 +158,10 @@ void DpmMySqlFactory::configure(const std::string& key, const std::string& value
 
 Catalog* DpmMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
 {
-  Catalog* nested = 0x00;
-
   pthread_once(&initialize_mysql_thread, init_thread);
-
-  if (this->nestedFactory_ != 0x00)
-    nested = this->nestedFactory_->createCatalog(si);
-
   return new DpmMySqlCatalog(&this->connectionPool_,
                              this->nsDb_, this->dpmDb_,
-                             nested, this->symLinkLimit_,
-                             si);
+                             this->symLinkLimit_, si);
 }
 
 
@@ -177,7 +170,7 @@ PoolManager* DpmMySqlFactory::createPoolManager(StackInstance* si) throw (DmExce
 {
   pthread_once(&initialize_mysql_thread, init_thread);
   return new MySqlPoolManager(&this->connectionPool_,
-                              this->dpmDb_);
+                              this->dpmDb_, si);
 }
 
 
@@ -199,8 +192,8 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
     if (e.code() != DM_NO_FACTORY)
       throw;
   }
-  pm->registerCatalogFactory(new DpmMySqlFactory(nested));
-  pm->registerPoolFactory(new DpmMySqlFactory(0x00));
+  pm->registerCatalogFactory(new DpmMySqlFactory());
+  pm->registerPoolFactory(new DpmMySqlFactory());
 }
 
 

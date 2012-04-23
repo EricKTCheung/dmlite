@@ -214,32 +214,7 @@ std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&)
 
 
 
-void DpmAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
-{
-  struct dpm_putfilestatus *statuses;
-  int                       nReplies, status;
-  const char               *path_c;
-  std::string               absolute;
-
-  if (path[0] == '/')
-    absolute = path;
-  else
-    absolute = this->cwdPath_ + "/" + path;
-
-  path_c = absolute.c_str();
-
-  if (dpm_getstatus_putreq((char*)token.c_str(), 1, (char**)&path_c, &nReplies, &statuses) < 0)
-    ThrowExceptionFromSerrno(serrno);
-
-  status = statuses[0].status;
-  *uri = splitUri(statuses[0].turl);
-
-  dpm_free_pfilest(nReplies, statuses);
-}
-
-
-
-void DpmAdapterCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
+void DpmAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
@@ -370,4 +345,29 @@ Pool DpmAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcept
   }
   
   throw DmException(DM_NO_SUCH_POOL, "Pool " + poolname + " not found");
+}
+
+
+
+std::vector<Pool> DpmAdapterPoolManager::getAvailablePools(bool write) throw (DmException)
+{
+  std::vector<Pool> pools = this->getPools();
+  std::vector<Pool> available;
+  int nFs;
+  struct dpm_fs *dpm_fs;
+  
+  // A pool is available if it has at least one fs available
+  for (unsigned i = 0; i < pools.size(); ++i) {
+    if (dpm_getpoolfs(pools[i].pool_name, &nFs, &dpm_fs) < 0)
+      ThrowExceptionFromSerrno(serrno);
+    
+    for (unsigned j = 0; j < nFs; ++j) {
+      if ((write && dpm_fs[j].status == 0) || (!write && dpm_fs[i].status != FS_DISABLED))
+        available.push_back(pools[i]);
+    }
+    
+    free(dpm_fs);
+  }
+  
+  return available;
 }
