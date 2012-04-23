@@ -154,15 +154,27 @@ bool HadoopPoolHandler::replicaAvailable(const std::string&, const FileReplica& 
   return true;
 }
 
-Uri HadoopPoolHandler::getPhysicalLocation(const std::string&, const FileReplica& replica) throw (DmException)
+Uri HadoopPoolHandler::getLocation(const std::string&, const FileReplica& replica) throw (DmException)
 {
   // To be done
-  return Uri();
+  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::getLocation");
 }
 
 void HadoopPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
   hdfsDelete(this->fs, sfn.c_str());
+}
+
+std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) throw (DmException)
+{
+  // To be done
+  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putLocation");
+}
+
+void HadoopPoolHandler::putDone(const std::string& sfn, const std::string& token) throw (DmException)
+{
+  // To be done
+  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putDone");
 }
 
 /* HadoopIOFactory implementation */

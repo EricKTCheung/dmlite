@@ -170,7 +170,6 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   }
 
   try {
-    //this->setUserId(this->uid, this->gid, this->udn);
     RETRY(dpm_put(1, &reqfile, 1, (char*[]){ (char *)"rfio"}, (char *)"libdm::dummy::dpm::put", 0,
                   0, token, &nReplies, &statuses), this->retryLimit_);
 

@@ -672,7 +672,6 @@ Uri NsMySqlCatalog::get(const std::string& path) throw(DmException)
 
 NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*) throw (DmException))
 NOT_IMPLEMENTED(std::string NsMySqlCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException))
-NOT_IMPLEMENTED(void NsMySqlCatalog::putStatus(const std::string&, const std::string&, Uri*) throw (DmException))
 NOT_IMPLEMENTED(void NsMySqlCatalog::putDone(const std::string&, const std::string&) throw (DmException))
 
 

@@ -31,16 +31,21 @@ public:
 
   /// Get the free space of this pool.
   virtual uint64_t getFreeSpace(void) throw (DmException) = 0;
-
+  
   /// Return true if the specified replica is available in the pool.
   virtual bool replicaAvailable(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
 
   /// Get the actual location of the file replica. This is pool-dependant.
-  virtual Uri getPhysicalLocation(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
+  virtual Uri getLocation(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
   
   /// Remove a replica from the pool.
   virtual void remove(const std::string& sfn, const FileReplica& replica) throw (DmException) = 0;
 
+  /// Get where to put a file
+  virtual std::string putLocation(const std::string& sfn, Uri* uri) throw (DmException) = 0;
+  
+  /// Finish a put
+  virtual void putDone(const std::string& sfn, const std::string& token) throw (DmException) = 0;
 };
 
 class PoolManager;

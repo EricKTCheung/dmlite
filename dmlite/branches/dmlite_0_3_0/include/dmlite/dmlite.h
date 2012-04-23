@@ -257,17 +257,6 @@ int dm_put(dm_context* context, const char* path, struct uri* uri, char* token);
  */
 int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token);
 
-
-/**
- * Retrieve the final destination of a PUT request previously done.
- * @param context The DM context.
- * @param path    The logical filename that was put.
- * @param token   The token identifying the request.
- * @param uri     Where to put the final detination.
- * @return        0 on success, error code otherwise.
- */
-int dm_putstatus(dm_context* context, const char* path, const char* token, struct uri* uri);
-
 /**
  * Finish a PUT request.
  * @param context The DM context.

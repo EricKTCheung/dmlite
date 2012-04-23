@@ -163,12 +163,6 @@ public:
   virtual std::string put(const std::string& path, Uri* uri,
                           const std::string& guid) throw (DmException) = 0;
 
-  /// Get the PUT status
-  /// @param path  The path of the file that was put
-  /// @param token As returned by dm::Catalog::put
-  /// @param uri   The destination location will be put here.
-  virtual void putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException) = 0;
-
   /// Finish a PUT
   /// @param path  The path of the file that was put
   /// @param token As returned by dm::Catalog::put

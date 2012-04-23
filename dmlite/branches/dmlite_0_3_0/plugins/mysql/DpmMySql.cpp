@@ -69,7 +69,7 @@ Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
     PoolHandler* handler = this->stack_->createPoolHandler(&pool);
 
     if (handler->replicaAvailable(path, replicas[i])) {
-      available.push_back(handler->getPhysicalLocation(path, replicas[i]));
+      available.push_back(handler->getLocation(path, replicas[i]));
     }
 
     delete handler;
@@ -89,16 +89,17 @@ Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
 
 std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri) throw (DmException)
 {
-  if (this->decorated_ == 0x00)
-    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::put Can not delegate");
-  return this->decorated_->put(path, uri);
+  this->put(path, uri, std::string());
 }
 
 
 
 std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
 {
-  if (this->decorated_ == 0x00)
+  // Get the pool list
+  throw DmException(DM_NOT_IMPLEMENTED, "TODO");
+  
+  /*if (this->decorated_ == 0x00)
     throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::put Can not delegate");
   
   // Try to delegate
@@ -126,16 +127,7 @@ std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::s
       throw;
   } 
 
-  return token;
-}
-
-
-
-void DpmMySqlCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
-{
-  if (this->decorated_ == 0x00)
-    throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::putStatus Can not delegate");
-  this->decorated_->putStatus(path, token, uri);
+  return token;*/
 }
 
 
@@ -163,10 +155,19 @@ void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
       break;
     default:
       try {
-        this->getReplicas(path);
-        if (this->decorated_ == 0x00)
-          throw DmException(DM_NO_CATALOG, "DpmMySqlCatalog::unlink Can not delegate");
-        this->decorated_->unlink(path);
+        std::vector<FileReplica> replicas = this->getReplicas(path);
+        std::vector<FileReplica>::iterator i;
+        
+        for (i = replicas.begin(); i != replicas.end(); ++i) {
+          // Delegate to the proper pool handler
+          Pool pool = this->stack_->getPoolManager()->getPool(i->pool);
+          PoolHandler* handler = this->stack_->createPoolHandler(&pool);
+          handler->remove(path, *i);
+          delete handler;
+          // Remove the replica itself
+          this->deleteReplica(std::string(), stat.stat.st_ino, i->url);
+        }
+        NsMySqlCatalog::unlink(path);
       }
       catch (DmException e) {
         if (e.code() == DM_NO_REPLICAS)

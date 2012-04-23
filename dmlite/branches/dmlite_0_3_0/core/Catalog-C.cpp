@@ -209,18 +209,6 @@ int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* 
 
 
 
-int dm_putstatus(dm_context* context, const char* path, const char* token, struct uri* uri)
-{
-  TRY(context, putstatus)
-  NOT_NULL(path);
-  NOT_NULL(token);
-  NOT_NULL(uri);
-  context->catalog->putStatus(path, token, uri);
-  CATCH(context, putstatus)
-}
-
-
-
 int dm_putdone(dm_context* context, const char* path, const char* token)
 {
   TRY(context, putdone)

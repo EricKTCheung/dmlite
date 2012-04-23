@@ -53,10 +53,9 @@ public:
 
   virtual void create(const std::string&, mode_t) throw (DmException);
 
-  virtual std::string put(const std::string&, Uri*)                           throw (DmException);
-  virtual std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);
-  virtual void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  virtual void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  virtual std::string put(const std::string&, Uri*)                     throw (DmException);
+  virtual std::string put(const std::string&, Uri*, const std::string&) throw (DmException);
+  virtual void        putDone(const std::string&, const std::string&)   throw (DmException);
 
   virtual mode_t umask          (mode_t)                           throw ();
   virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);

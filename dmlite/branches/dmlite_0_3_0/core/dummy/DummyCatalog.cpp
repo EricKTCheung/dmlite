@@ -177,13 +177,6 @@ std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::stri
 
 
 
-void DummyCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
-{
-  DELEGATE(putStatus, path, token, uri);
-}
-
-
-
 void DummyCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
 {
   DELEGATE(putDone, path, token);

@@ -18,7 +18,7 @@
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120420;
+const unsigned API_VERSION = 20120423;
 
 class StackInstance;
 
