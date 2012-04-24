@@ -213,7 +213,7 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
  * Get a single replica (synchronous).
  * @param context The DM context.
  * @param path    The logical file name.
- * @param replica Physical location of the replica.
+ * @param uri     Physical location of the replica.
  * @return        0 on success, error code otherwise.
  */
 int dm_get(dm_context* context, const char* path, struct uri* uri);
@@ -487,6 +487,16 @@ int dm_getpools(dm_context* context, int* nPools, struct pool** pools);
  * @return        0 on succes, -1 on failure.
  */
 int dm_freepools(dm_context* context, int nPools, struct pool* pools);
+
+/**
+ * Get physical file status
+ * @param context The DM context.
+ * @param path    The path to open.
+ * @param s       Where to put the data.
+ * @return        0 on sucess,  error code otherwise.
+ */
+int dm_pstat(dm_context* context, const char* path, struct stat* s);
+
 
 /**
  * Open a file.

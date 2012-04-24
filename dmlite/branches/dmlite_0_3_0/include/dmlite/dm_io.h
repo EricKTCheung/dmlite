@@ -60,6 +60,9 @@ public:
   /// Instantiate a implementation of std::iostream
   virtual IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException) = 0;
   
+  /// Just stat a file
+  virtual struct stat pstat(const std::string& uri) throw (DmException) = 0;
+  
 protected:
 private:
 };

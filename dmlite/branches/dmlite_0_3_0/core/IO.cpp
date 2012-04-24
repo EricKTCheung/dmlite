@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <fstream>
 #include <iosfwd>
+#include <sys/stat.h>
 #include "Private.h"
 
 using namespace dmlite;
@@ -47,6 +48,26 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
 IOHandler* StdIOFactory::createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
 {
   return new StdIOHandler(uri, openmode);
+}
+
+
+
+struct stat StdIOFactory::pstat(const std::string& uri) throw (DmException)
+{
+  struct stat buf;
+  
+  if (stat(uri.c_str(), &buf) != 0) {
+    switch (errno) {
+      case ENOENT:
+        throw DmException(DM_NO_SUCH_FILE, uri + " does not exist");
+        break;
+      default:
+        throw DmException(DM_INTERNAL_ERROR,
+                          "Could not open %s (errno %d)", uri.c_str(), errno);
+    }
+  }
+  
+  return buf;
 }
 
 

@@ -12,6 +12,16 @@ struct dm_fd {
 
 
 
+int dm_pstat(dm_context* context, const char* path, struct stat* s)
+{
+  TRY(context, pstat)
+  NOT_NULL(path);
+  *s = context->io->pstat(path);
+  CATCH(context, fstat);
+}
+
+
+
 dm_fd* dm_fopen(dm_context* context, const char* path, int flags)
 {
   std::ios_base::openmode openmode;
