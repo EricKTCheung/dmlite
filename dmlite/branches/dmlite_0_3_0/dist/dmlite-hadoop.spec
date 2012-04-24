@@ -37,7 +37,7 @@ implementation of all the DMLITE interfaces (pool, IO, etc).
 
 %build
 cd plugins/hadoop
-%cmake . -DCMAKE_INSTALL_PREFIX=/
+%cmake . -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_MODULE_PATH=../../cmake/modules
 
 make %{?_smp_mflags}
 
@@ -54,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 %files plugins-hadoop
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_hadoop.so
+%{_datadir}/dmlite/hadoop/hadoop-mysql.sql
 
 %changelog
 * Wed Apr 11 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-1
