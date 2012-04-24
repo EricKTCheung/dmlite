@@ -154,16 +154,41 @@ bool HadoopPoolHandler::isAvailable(bool write) throw (DmException)
   return true;
 }
 
-bool HadoopPoolHandler::replicaAvailable(const std::string&, const FileReplica& replica) throw (DmException)
+bool HadoopPoolHandler::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
-  // No idea about this
-  return true;
+  if(hdfsExists(this->fs, sfn.c_str()) == 0)
+    return true;
+  return false;
 }
 
-Uri HadoopPoolHandler::getLocation(const std::string&, const FileReplica& replica) throw (DmException)
+Uri HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
   // To be done
-  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::getLocation");
+//  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::getLocation");
+  std::vector<std::string> datanodes;
+  if(hdfsExists(this->fs, sfn.c_str()) == 0){
+    char*** hosts = hdfsGetHosts(this->fs, sfn.c_str(), 0, 1);
+    if(hosts){
+      int i=0;
+      while(hosts[i]) {
+        int j = 0;
+        while(hosts[i][j]) {
+          datanodes.push_back(std::string(hosts[i][j]));
+          ++j;
+        }
+        ++i;
+      }
+      hdfsFreeHosts(hosts);
+    }
+  }
+
+  srand(time(NULL));
+  unsigned i = rand() % datanodes.size();
+  std::cout << datanodes[i];
+  Uri returned_uri;
+  strcpy(returned_uri.host, datanodes[i].c_str());
+  strcpy(returned_uri.path, sfn.c_str());
+  return returned_uri;
 }
 
 void HadoopPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
