@@ -363,7 +363,7 @@ bool Statement::fetch(void) throw (DmException)
 
 
 
-unsigned Statement::getFieldIndex(const std::string& fieldname)
+unsigned Statement::getFieldIndex(const std::string& fieldname) throw (DmException)
 {
   std::map<std::string, unsigned>::const_iterator i;
   

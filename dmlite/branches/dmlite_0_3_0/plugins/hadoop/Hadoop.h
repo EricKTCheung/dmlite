@@ -40,7 +40,7 @@ private:
 
 class HadoopPoolHandler: public PoolHandler {
 public:
-  HadoopPoolHandler(StackInstance*, Pool* pool);
+  HadoopPoolHandler(StackInstance*, Pool* pool) throw (DmException);
   ~HadoopPoolHandler();
   
   void setSecurityContext(const SecurityContext*) throw (DmException);
@@ -63,6 +63,10 @@ private:
   StackInstance* stack;
   Pool*          pool;
   hdfsFS         fs;
+  
+  std::string host;
+  std::string uname;
+  int         port;
 };
 
 class HadoopIOFactory: public IOFactory, public PoolHandlerFactory {

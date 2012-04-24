@@ -9,7 +9,8 @@
 using namespace dmlite;
 
 /* HadoopIOHandler implementation */
-HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
+HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException):
+  path_(uri)
 {
   this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
   if(!this->fs)
@@ -117,13 +118,18 @@ struct stat HadoopIOHandler::pstat(void) throw (DmException) {
 
 
 /* Hadoop pool handling */
-HadoopPoolHandler::HadoopPoolHandler(StackInstance* si, Pool* pool):
+HadoopPoolHandler::HadoopPoolHandler(StackInstance* si, Pool* pool) throw (DmException):
             stack(si), pool(pool)
 {
   PoolMetadata* meta = this->stack->getPoolManager()->getPoolMetadata(*pool);
-  this->fs = hdfsConnectAsUser(meta->getString("hostname").c_str(),
-                               meta->getInt("port"),
-                               meta->getString("username").c_str());
+  
+  this->host  = meta->getString("hostname");
+  this->uname = meta->getString("username");
+  this->port  = meta->getInt("port");
+  
+  this->fs = hdfsConnectAsUser(this->host.c_str(),
+                               this->port,
+                               this->uname.c_str());
   delete meta;
   
   if (this->fs == 0)
@@ -206,10 +212,16 @@ Uri HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplica& re
       hdfsFreeHosts(hosts);
     }
   }
+  
+  // Beware! If the file size is 0, no host will be returned
+  // Remit to the name node (for instance)
+  if (datanodes.size() == 0) {
+    throw DmException(DM_NO_REPLICAS, "No replicas found on Hadoop for " + sfn);
+  }
 
+  // Pick a location
   srand(time(NULL));
   unsigned i = rand() % datanodes.size();
-//  std::cout << datanodes[i];
   Uri returned_uri;
   strcpy(returned_uri.host, datanodes[i].c_str());
   strcpy(returned_uri.path, sfn.c_str());

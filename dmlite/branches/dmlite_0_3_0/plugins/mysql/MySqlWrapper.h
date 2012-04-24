@@ -55,7 +55,7 @@ public:
   
   // When autobind is set an internal allocated memory area is used, so
   // get* can be used
-  unsigned    getFieldIndex(const std::string& fieldname);
+  unsigned    getFieldIndex(const std::string& fieldname) throw (DmException);
   int         getInt   (unsigned index);
   std::string getString(unsigned index);
   
