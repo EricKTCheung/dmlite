@@ -9,8 +9,14 @@ using namespace dmlite;
 /* HadoopIOHandler implementation */
 HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
 {
-  this->fs = hdfsConnect("itgt-nagios-sl6", 9000);
+  this->fs = hdfsConnect("default", 0);
+  if(!this->fs)
+    throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem")
+
   this->file = hdfsOpenFile(this->fs, uri.c_str(), O_RDONLY, 0, 0, 1024);
+  if(!this->file)
+    throw DmException(DM_INTERNAL_ERROR, "Could not open the file");
+
   this->isEof = false;
 }
 
@@ -184,7 +190,7 @@ Uri HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplica& re
 
   srand(time(NULL));
   unsigned i = rand() % datanodes.size();
-  std::cout << datanodes[i];
+//  std::cout << datanodes[i];
   Uri returned_uri;
   strcpy(returned_uri.host, datanodes[i].c_str());
   strcpy(returned_uri.path, sfn.c_str());
