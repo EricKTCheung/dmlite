@@ -244,6 +244,13 @@ void ProfilerCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid
 
 
 
+void ProfilerCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  PROFILE(changeSize, path, newSize);
+}
+
+
+
 void ProfilerCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   PROFILE(setAcl, path, acls);

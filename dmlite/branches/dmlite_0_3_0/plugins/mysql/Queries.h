@@ -16,9 +16,6 @@ static const char* STMT_GET_FILE_BY_GUID =
             csumtype, csumvalue, acl\
         FROM Cns_file_metadata\
         WHERE guid = ?";
-
-
-
 static const char* STMT_GET_FILE_BY_NAME =
     "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
             filesize, atime, mtime, ctime, fileclass, status,\
@@ -37,8 +34,6 @@ static const char* STMT_GET_USERINFO_BY_NAME =
     "SELECT userid, username, user_ca, banned\
         FROM Cns_userinfo\
         WHERE username = ?";
-
-
 static const char* STMT_GET_USERINFO_BY_UID =
     "SELECT userid, username, user_ca, banned\
         FROM Cns_userinfo\
@@ -178,9 +173,13 @@ static const char* STMT_GET_POOLS =
     "SELECT poolname, COALESCE(pooltype, 'filesystem')\
         FROM dpm_pool";
 static const char* STMT_GET_POOL =
-"SELECT poolname, COALESCE(pooltype, 'filesystem')\
+  "SELECT poolname, COALESCE(pooltype, 'filesystem')\
         FROM dpm_pool\
         where poolname = ?";
+static const char* STMT_CHANGE_SIZE =
+  "UPDATE Cns_file_metadata\
+        SET filesize = ?, ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?";
 
 #endif	// QUERIES_H
 

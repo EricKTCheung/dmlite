@@ -212,6 +212,13 @@ void DummyCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t 
 
 
 
+void DummyCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  DELEGATE(changeSize, path, newSize);
+}
+
+
+
 void DummyCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   DELEGATE(setAcl, path, acls);

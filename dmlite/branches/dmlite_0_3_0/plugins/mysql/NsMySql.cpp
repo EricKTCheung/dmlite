@@ -832,6 +832,9 @@ void NsMySqlCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
   // Truncate
   else if (code == DM_NO_REPLICAS) {
+    if (this->secCtx_->getUser().uid != file.stat.st_uid &&
+        checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
+      throw DmException(DM_FORBIDDEN, "Not enough permissions to truncate " + path);
     Statement statement(this->conn_, this->nsDb_, STMT_TRUNCATE_FILE);
     statement.bindParam(0, file.stat.st_ino);
     statement.execute();
@@ -972,6 +975,21 @@ void NsMySqlCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_
 {
   ExtendedStat meta = this->extendedStat(path, false);
   this->changeOwner(meta, newUid, newGid);
+}
+
+
+
+void NsMySqlCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path, false);
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Can not change the size of " + path);
+  
+  Statement stmt(this->conn_, this->nsDb_, STMT_CHANGE_SIZE);
+  stmt.bindParam(0, newSize);
+  stmt.bindParam(1, meta.stat.st_ino);
+  stmt.execute();
 }
 
 

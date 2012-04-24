@@ -86,6 +86,8 @@ public:
   void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   void linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
 
+  void changeSize(const std::string&, size_t) throw (DmException);
+  
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);

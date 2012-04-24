@@ -215,6 +215,14 @@ public:
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
   }
+  
+  void testSetSize()
+  {
+    this->catalog->create(FILE, MODE);
+    this->catalog->changeSize(FILE, 555);
+    struct stat s = this->catalog->stat(FILE);
+    CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
+  }
 
   CPPUNIT_TEST_SUITE(TestCreate);
   CPPUNIT_TEST(testRegular);
@@ -224,6 +232,7 @@ public:
   CPPUNIT_TEST(testExistsWithReplicas);
   CPPUNIT_TEST(testPathDoesNotExist);
   CPPUNIT_TEST(testPermissionDenied);
+  CPPUNIT_TEST(testSetSize);
   CPPUNIT_TEST_SUITE_END();
 };
 

@@ -61,6 +61,8 @@ public:
   virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);
   virtual void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   virtual void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  
+  virtual void changeSize(const std::string&, size_t) throw (DmException);
 
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 

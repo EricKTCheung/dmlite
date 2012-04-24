@@ -190,6 +190,11 @@ public:
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
   virtual void linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
+  
+  /// Change the size of a file.
+  /// @param path    The file to change.
+  /// @param newSize The new file size.
+  virtual void changeSize(const std::string& path, size_t newSize) throw (DmException) = 0;
 
   /// Change the ACLs
   /// @param path The file to change.

@@ -389,6 +389,13 @@ void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gi
 
 
 
+void NsAdapterCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  wrapCall(dpns_setfsize(path.c_str(), NULL, newSize));
+}
+
+
+
 void NsAdapterCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   struct dpns_acl *aclp;
