@@ -72,8 +72,11 @@ public:
 
   std::string implementedPool() throw();
   PoolHandler* createPoolHandler(PoolManager*, Pool*) throw (DmException);
+  struct stat pstat(const std::string& uri) throw (DmException);
+
 protected:
 private:
+  hdfsFS fs;
 };
 
 };

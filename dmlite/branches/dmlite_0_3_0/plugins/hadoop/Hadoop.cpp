@@ -2,6 +2,8 @@
 /// @brief   hadoop plugin.
 /// @author  Alexandre Beche <abeche@cern.ch>
 #include <cstring>
+#include <errno.h>
+#include <sys/stat.h>
 #include "Hadoop.h"
 
 using namespace dmlite;
@@ -9,13 +11,13 @@ using namespace dmlite;
 /* HadoopIOHandler implementation */
 HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
 {
-  this->fs = hdfsConnect("default", 0);
+  this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
   if(!this->fs)
-    throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem")
+    throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem");
 
-  this->file = hdfsOpenFile(this->fs, uri.c_str(), O_RDONLY, 0, 0, 1024);
+  this->file = hdfsOpenFile(this->fs, uri.c_str(), O_WRONLY, 0, 0, 0);
   if(!this->file)
-    throw DmException(DM_INTERNAL_ERROR, "Could not open the file");
+    throw DmException(DM_INTERNAL_ERROR, "Could not open the file %s (errno %d)", uri.c_str(), errno);
 
   this->isEof = false;
 }
@@ -204,8 +206,20 @@ void HadoopPoolHandler::remove(const std::string& sfn, const FileReplica& replic
 
 std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) throw (DmException)
 {
+  /* Get the path to create (where the file will be put) */
+  std::string path;
+  path = sfn.substr(0, sfn.find_last_of('/'));
+
+  /* Create the path */
+  hdfsCreateDirectory(this->fs, path.c_str());
+  
+  //Uri returned_uri;
+  strcpy(uri->host, "dpmhadoop-data1");
+  strcpy(uri->path, sfn.c_str());
+  return std::string();
+
   // To be done
-  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putLocation");
+  // throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putLocation");
 }
 
 void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
@@ -217,6 +231,10 @@ void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const st
 /* HadoopIOFactory implementation */
 HadoopIOFactory::HadoopIOFactory() throw (DmException)
 {
+  this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
+  if(!this->fs)
+    throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem");
+
 }
 
 void HadoopIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
@@ -239,6 +257,27 @@ PoolHandler* HadoopIOFactory::createPoolHandler(PoolManager* pm, Pool* pool) thr
   if (this->implementedPool() != std::string(pool->pool_type))
     throw DmException(DM_UNKNOWN_POOL_TYPE, "Hadoop does not recognise the pool type %s", pool->pool_type);
   return new HadoopPoolHandler(pm, pool);
+}
+
+struct stat HadoopIOFactory::pstat(const std::string& uri) throw (DmException)
+{
+  if(hdfsExists(this->fs, uri.c_str()) != 0)
+    throw DmException(DM_INTERNAL_ERROR, "URI %s Does not exists", uri.c_str());
+
+  hdfsFileInfo *fileStat = hdfsGetPathInfo(this->fs, uri.c_str());
+  if(!fileStat)
+    throw DmException(DM_INTERNAL_ERROR, "hdfsGetPathInfo has failed on URI %s", uri.c_str());
+
+  struct stat s;
+  memset(&s, 0, sizeof(s));
+
+  s.st_atime = fileStat->mLastAccess; 
+  s.st_mtime = fileStat->mLastMod;
+  s.st_size = fileStat->mSize;  
+  
+
+  hdfsFreeFileInfo(fileStat, 1);
+  return s;
 }
 
 static void registerPluginHadoop(PluginManager* pm) throw (DmException)
