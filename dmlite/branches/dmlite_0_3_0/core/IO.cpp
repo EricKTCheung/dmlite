@@ -52,28 +52,8 @@ IOHandler* StdIOFactory::createIO(const std::string& uri, std::iostream::openmod
 
 
 
-struct stat StdIOFactory::pstat(const std::string& uri) throw (DmException)
-{
-  struct stat buf;
-  
-  if (stat(uri.c_str(), &buf) != 0) {
-    switch (errno) {
-      case ENOENT:
-        throw DmException(DM_NO_SUCH_FILE, uri + " does not exist");
-        break;
-      default:
-        throw DmException(DM_INTERNAL_ERROR,
-                          "Could not open %s (errno %d)", uri.c_str(), errno);
-    }
-  }
-  
-  return buf;
-}
-
-
-
 StdIOHandler::StdIOHandler(const std::string& path, std::iostream::openmode openmode) throw (DmException):
-  stream_(path.c_str(), openmode)
+  stream_(path.c_str(), openmode), path_(path)
 {
   // Check we actually opened
   if (this->stream_.fail()) {
@@ -137,4 +117,24 @@ void StdIOHandler::flush(void) throw (DmException)
 bool StdIOHandler::eof(void) throw (DmException)
 {
   return this->stream_.eof();
+}
+
+
+
+struct stat StdIOHandler::pstat() throw (DmException)
+{
+  struct stat buf;
+
+  if (stat(this->path_.c_str(), &buf) != 0) {
+    switch (errno) {
+      case ENOENT:
+        throw DmException(DM_NO_SUCH_FILE, this->path_ + " does not exist");
+        break;
+      default:
+        throw DmException(DM_INTERNAL_ERROR,
+                          "Could not open %s (errno %d)", this->path_.c_str(), errno);
+    }
+  }
+
+  return buf; 
 }

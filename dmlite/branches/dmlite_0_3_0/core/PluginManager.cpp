@@ -353,7 +353,7 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 PoolHandler* StackInstance::createPoolHandler(Pool* pool) throw (DmException)
 {
   PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool->pool_type);
-  return phf->createPoolHandler(this->poolManager_, pool);
+  return phf->createPoolHandler(this, pool);
 }
 
 

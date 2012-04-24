@@ -44,6 +44,9 @@ public:
 
   /// Return true if end of file.
   virtual bool eof(void) throw (DmException) = 0;
+  
+  /// Stat the file
+  virtual struct stat pstat(void) throw (DmException) = 0;
 };
 
 /// Plug-ins must implement a concrete factory to be instantiated.
@@ -59,9 +62,6 @@ public:
 
   /// Instantiate a implementation of std::iostream
   virtual IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException) = 0;
-  
-  /// Just stat a file
-  virtual struct stat pstat(const std::string& uri) throw (DmException) = 0;
   
 protected:
 private:

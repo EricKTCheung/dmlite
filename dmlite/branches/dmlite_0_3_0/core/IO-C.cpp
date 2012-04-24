@@ -12,16 +12,6 @@ struct dm_fd {
 
 
 
-int dm_pstat(dm_context* context, const char* path, struct stat* s)
-{
-  TRY(context, pstat)
-  NOT_NULL(path);
-  *s = context->io->pstat(path);
-  CATCH(context, fstat);
-}
-
-
-
 dm_fd* dm_fopen(dm_context* context, const char* path, int flags)
 {
   std::ios_base::openmode openmode;
@@ -132,4 +122,16 @@ int dm_feof(dm_fd* fd)
   NOT_NULL(fd);
   return fd->stream->eof();
   CATCH(fd->context, feof)
+}
+
+
+
+int dm_fstat(dm_fd* fd, struct stat* s)
+{
+  if (fd == 0x00)
+    return DM_NULL_POINTER;
+  TRY(fd->context, pstat)
+  NOT_NULL(s);
+  *s = fd->stream->pstat();
+  CATCH(fd->context, pstat)
 }

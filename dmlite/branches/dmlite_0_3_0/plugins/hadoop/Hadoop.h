@@ -29,17 +29,18 @@ public:
   long tell(void) throw (DmException);
   void flush(void) throw (DmException);
   bool eof(void) throw (DmException);
-  void deleteFile (const char *filename) throw (DmException);
+  struct stat pstat(void) throw (DmException);
 
 private:
   hdfsFS fs;		// Hadoop file system
   hdfsFile file;	// Hadoop file descriptor
   bool isEof;		// Set to true if end of the file is reached
+  std::string path_;
 };
 
 class HadoopPoolHandler: public PoolHandler {
 public:
-  HadoopPoolHandler(PoolManager*, Pool* pool);
+  HadoopPoolHandler(StackInstance*, Pool* pool);
   ~HadoopPoolHandler();
   
   void setSecurityContext(const SecurityContext*) throw (DmException);
@@ -59,9 +60,9 @@ public:
   void putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
 private:
-  PoolManager* manager;
-  Pool*        pool;
-  hdfsFS       fs;
+  StackInstance* stack;
+  Pool*          pool;
+  hdfsFS         fs;
 };
 
 class HadoopIOFactory: public IOFactory, public PoolHandlerFactory {
@@ -71,12 +72,10 @@ public:
   IOHandler *createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(PoolManager*, Pool*) throw (DmException);
-  struct stat pstat(const std::string& uri) throw (DmException);
+  PoolHandler* createPoolHandler(StackInstance*, Pool*) throw (DmException);
 
 protected:
 private:
-  hdfsFS fs;
 };
 
 };

@@ -15,7 +15,7 @@ using namespace dmlite;
 
 
 FilesystemPoolHandler::FilesystemPoolHandler(PoolManager* pm, Pool* pool):
-    manager_(pm), pool_(pool)
+    manager_(pm), pool_(pool), total_(0), free_(0)
 {
   // Nothing
 }
@@ -119,7 +119,10 @@ void FilesystemPoolHandler::update() throw (DmException)
       found = true;
       
       this->total_ = pool_array[i].capacity;
-      this->free_  = pool_array[i].free;
+      if (pool_array[i].free >= 0)
+        this->free_  = pool_array[i].free;
+      else
+        this->free_ = 0;
     }
   }
   

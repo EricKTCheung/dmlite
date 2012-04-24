@@ -94,16 +94,33 @@ bool HadoopIOHandler::eof(void) throw (DmException){
 	return this->isEof;
 }
 
-/* Cleaning function (not used due to a  bad implementation)*/
-void HadoopIOHandler::deleteFile(const char *filename) throw (DmException){
-	hdfsDelete(this->fs, filename);
+struct stat HadoopIOHandler::pstat(void) throw (DmException) {
+  if(hdfsExists(this->fs, this->path_.c_str()) != 0)
+    throw DmException(DM_INTERNAL_ERROR, "URI %s Does not exists", this->path_.c_str());
+
+  hdfsFileInfo *fileStat = hdfsGetPathInfo(this->fs, this->path_.c_str());
+  if(!fileStat)
+    throw DmException(DM_INTERNAL_ERROR,
+                      "hdfsGetPathInfo has failed on URI %s", this->path_.c_str());
+
+  struct stat s;
+  memset(&s, 0, sizeof(s));
+
+  s.st_atime = fileStat->mLastAccess; 
+  s.st_mtime = fileStat->mLastMod;
+  s.st_size = fileStat->mSize;  
+  
+
+  hdfsFreeFileInfo(fileStat, 1);
+  return s;
 }
 
+
 /* Hadoop pool handling */
-HadoopPoolHandler::HadoopPoolHandler(PoolManager* pm, Pool* pool):
-            manager(pm), pool(pool)
+HadoopPoolHandler::HadoopPoolHandler(StackInstance* si, Pool* pool):
+            stack(si), pool(pool)
 {
-  PoolMetadata* meta = this->manager->getPoolMetadata(*pool);
+  PoolMetadata* meta = this->stack->getPoolManager()->getPoolMetadata(*pool);
   this->fs = hdfsConnectAsUser(meta->getString("hostname").c_str(),
                                meta->getInt("port"),
                                meta->getString("username").c_str());
@@ -224,17 +241,14 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
 
 void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
 {
-  // To be done
-  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putDone");
+  // To do: figure out the actual size
+  this->stack->getCatalog()->changeSize(sfn, 0);
 }
 
 /* HadoopIOFactory implementation */
 HadoopIOFactory::HadoopIOFactory() throw (DmException)
 {
-  this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
-  if(!this->fs)
-    throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem");
-
+  // Nothing
 }
 
 void HadoopIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
@@ -252,32 +266,11 @@ std::string HadoopIOFactory::implementedPool() throw ()
   return "hadoop";
 }
 
-PoolHandler* HadoopIOFactory::createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException)
+PoolHandler* HadoopIOFactory::createPoolHandler(StackInstance* si, Pool* pool) throw (DmException)
 {
   if (this->implementedPool() != std::string(pool->pool_type))
     throw DmException(DM_UNKNOWN_POOL_TYPE, "Hadoop does not recognise the pool type %s", pool->pool_type);
-  return new HadoopPoolHandler(pm, pool);
-}
-
-struct stat HadoopIOFactory::pstat(const std::string& uri) throw (DmException)
-{
-  if(hdfsExists(this->fs, uri.c_str()) != 0)
-    throw DmException(DM_INTERNAL_ERROR, "URI %s Does not exists", uri.c_str());
-
-  hdfsFileInfo *fileStat = hdfsGetPathInfo(this->fs, uri.c_str());
-  if(!fileStat)
-    throw DmException(DM_INTERNAL_ERROR, "hdfsGetPathInfo has failed on URI %s", uri.c_str());
-
-  struct stat s;
-  memset(&s, 0, sizeof(s));
-
-  s.st_atime = fileStat->mLastAccess; 
-  s.st_mtime = fileStat->mLastMod;
-  s.st_size = fileStat->mSize;  
-  
-
-  hdfsFreeFileInfo(fileStat, 1);
-  return s;
+  return new HadoopPoolHandler(si, pool);
 }
 
 static void registerPluginHadoop(PluginManager* pm) throw (DmException)

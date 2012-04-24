@@ -76,7 +76,6 @@ public:
   ~StdIOFactory();
   void configure(const std::string& key, const std::string& value) throw (DmException);
   IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
-  struct stat pstat(const std::string& uri) throw (DmException);
 protected:
 private:
 };
@@ -94,8 +93,10 @@ public:
   long   tell (void) throw (DmException);
   void   flush(void) throw (DmException);
   bool   eof  (void) throw (DmException);
+  struct stat pstat(void) throw (DmException);
 protected:
   std::fstream stream_;
+  std::string  path_;
 };
 
 };

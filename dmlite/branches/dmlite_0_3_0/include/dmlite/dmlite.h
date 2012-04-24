@@ -489,16 +489,6 @@ int dm_getpools(dm_context* context, int* nPools, struct pool** pools);
 int dm_freepools(dm_context* context, int nPools, struct pool* pools);
 
 /**
- * Get physical file status
- * @param context The DM context.
- * @param path    The path to open.
- * @param s       Where to put the data.
- * @return        0 on sucess,  error code otherwise.
- */
-int dm_pstat(dm_context* context, const char* path, struct stat* s);
-
-
-/**
  * Open a file.
  * @param context The DM context.
  * @param path    The path to open.
@@ -554,6 +544,14 @@ size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
  * @return   0 if there is more to read. 1 if EOF.
  */
 int dm_feof(dm_fd* fd);
+
+/**
+ * Get physical file status
+ * @param fd The file descriptor.
+ * @param s  Where to put the data.
+ * @return   0 on sucess, error code otherwise.
+ */
+int dm_fstat(dm_fd* fd, struct stat* s);
 
 /**
  * Return the error code from the last failure.

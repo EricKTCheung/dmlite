@@ -52,6 +52,7 @@ public:
 };
 
 class PoolManager;
+class StackInstance;
 
 /// PoolHandler factory
 class PoolHandlerFactory {
@@ -68,7 +69,7 @@ public:
   virtual std::string implementedPool() throw () = 0;
 
   /// Instantiate a handler wrapping the passed pool.
-  virtual PoolHandler* createPoolHandler(PoolManager* pm, Pool* pool) throw (DmException) = 0;
+  virtual PoolHandler* createPoolHandler(StackInstance* si, Pool* pool) throw (DmException) = 0;
 };
 
 };
