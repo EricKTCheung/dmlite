@@ -268,7 +268,7 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
   // Add this replica
   struct stat s = this->stack->getCatalog()->stat(sfn);
   this->stack->getCatalog()->addReplica(std::string(), s.st_ino,
-                                        this->host,
+                                        std::string(),
                                         uri->path, '-', 'P',
                                         this->pool->pool_name, std::string());
   

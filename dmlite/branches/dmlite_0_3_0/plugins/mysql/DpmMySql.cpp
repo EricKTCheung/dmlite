@@ -118,7 +118,8 @@ void DpmMySqlCatalog::putDone(const std::string& path, const Uri& uri, const std
   for (unsigned i = 0; i < replicas.size(); ++i) {
     Uri replicaUri = dmlite::splitUri(replicas[i].url);
     
-    if (strcmp(replicaUri.host, uri.host) == 0 && strcmp(replicaUri.path, uri.path) == 0) {
+    if ((replicaUri.host[0] == '\0' || strcmp(replicaUri.host, uri.host) == 0) &&
+        strcmp(replicaUri.path, uri.path) == 0) {
       Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
       PoolHandler* handler = this->stack_->createPoolHandler(&pool);
       
