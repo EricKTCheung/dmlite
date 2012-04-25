@@ -208,16 +208,34 @@ void MySqlPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmE
 std::vector<Pool> MySqlPoolManager::getPools() throw (DmException)
 {
   Pool pool;
-  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOLS);
-
-  stmt.execute();
-
-  stmt.bindResult(0, pool.pool_name, sizeof(pool.pool_name));
-  stmt.bindResult(1, pool.pool_type, sizeof(pool.pool_type));
-
   std::vector<Pool> pools;
-  while (stmt.fetch())
-    pools.push_back(pool);
+  
+  try {
+    Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOLS);
+
+    stmt.execute();
+
+    stmt.bindResult(0, pool.pool_name, sizeof(pool.pool_name));
+    stmt.bindResult(1, pool.pool_type, sizeof(pool.pool_type));
+
+    while (stmt.fetch())
+      pools.push_back(pool);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_UNKNOWN_FIELD)
+      throw;
+    
+    // Fallback to legacy mode
+    Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOLS_LEGACY);
+
+    stmt.execute();
+
+    stmt.bindResult(0, pool.pool_name, sizeof(pool.pool_name));
+    stmt.bindResult(1, pool.pool_type, sizeof(pool.pool_type));
+
+    while (stmt.fetch())
+      pools.push_back(pool);
+  }
 
   return pools;
 }
@@ -227,17 +245,25 @@ std::vector<Pool> MySqlPoolManager::getPools() throw (DmException)
 Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   Pool pool;
-  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL);
+  
+  try {
+    Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL);
 
-  stmt.bindParam(0, poolname);
-
-  stmt.execute();
-
-  stmt.bindResult(0, pool.pool_name, sizeof(pool.pool_name));
-  stmt.bindResult(1, pool.pool_type, sizeof(pool.pool_type));
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_POOL, poolname + " not found");
-
+    stmt.bindParam(0, poolname);
+    stmt.execute();
+    stmt.bindResult(0, pool.pool_name, sizeof(pool.pool_name));
+    stmt.bindResult(1, pool.pool_type, sizeof(pool.pool_type));
+    if (!stmt.fetch())
+      throw DmException(DM_NO_SUCH_POOL, poolname + " not found");
+  }
+  catch (DmException e) {
+    if (e.code() != DM_UNKNOWN_FIELD)
+      throw;
+    // Fallback to legacy mode
+    strncpy(pool.pool_name, poolname.c_str(), sizeof(pool.pool_name));
+    strcpy(pool.pool_type, "filesystem");
+  }
+  
   return pool;
 }
 

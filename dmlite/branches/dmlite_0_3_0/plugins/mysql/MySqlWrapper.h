@@ -75,6 +75,9 @@ private:
   // For autobind
   std::map<std::string, unsigned> fieldIndex_;
   std::vector<void*> fieldBuffer_;
+  
+  /// Throws the proper exception
+  void throwException() throw (DmException);
 };
 
 };

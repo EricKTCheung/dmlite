@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <mysql/mysqld_error.h>
 #include <vector>
 
 using namespace dmlite;
@@ -72,9 +73,8 @@ Statement::Statement(MYSQL* conn, const std::string& db, const char* query) thro
     throw DmException(DM_QUERY_FAILED, std::string(mysql_error(conn)));
 
   this->stmt_ = mysql_stmt_init(conn);
-  if (mysql_stmt_prepare(this->stmt_, query, strlen(query)) != 0) {
-      throw DmException(DM_QUERY_FAILED, std::string(mysql_stmt_error(this->stmt_)));
-  }
+  if (mysql_stmt_prepare(this->stmt_, query, strlen(query)) != 0)
+    this->throwException();
   
   this->nParams_ = mysql_stmt_param_count(this->stmt_);
   this->params_  = new MYSQL_BIND [this->nParams_];
@@ -166,10 +166,8 @@ unsigned long Statement::execute(bool autobind) throw (DmException)
 
   mysql_stmt_bind_param(this->stmt_, this->params_);
 
-  if (mysql_stmt_execute(this->stmt_) != 0) {
-    this->status_ = STMT_FAILED;
-    throw DmException(DM_QUERY_FAILED, mysql_stmt_error(this->stmt_));
-  }
+  if (mysql_stmt_execute(this->stmt_) != 0)
+    this->throwException();
 
   // Count fields and reserve
   MYSQL_RES* meta = mysql_stmt_result_metadata(this->stmt_);
@@ -356,8 +354,7 @@ bool Statement::fetch(void) throw (DmException)
       this->status_ = STMT_DONE;
       return false;
     default:
-      this->status_ = STMT_FAILED;
-      throw DmException(DM_INTERNAL_ERROR, mysql_stmt_error(this->stmt_));
+      this->throwException();
   }
 }
 
@@ -393,4 +390,18 @@ std::string Statement::getString(unsigned index)
     return "";
   else
     return std::string((char*)this->fieldBuffer_[index]);
+}
+
+
+
+void Statement::throwException() throw (DmException)
+{
+  this->status_ = STMT_FAILED;
+  switch (mysql_stmt_errno(this->stmt_)) {
+    case ER_BAD_FIELD_ERROR:
+      throw DmException(DM_UNKNOWN_FIELD, mysql_stmt_error(this->stmt_));
+    default:
+      throw DmException(DM_QUERY_FAILED, "%s (%d)", mysql_stmt_error(this->stmt_),
+                                                    mysql_stmt_errno(this->stmt_));
+  }
 }

@@ -24,6 +24,7 @@
 #define DM_CONNECTION_ERROR     0x0201
 #define DM_SERVICE_UNAVAILABLE  0x0202
 #define DM_QUERY_FAILED         0x0203
+#define DM_UNKNOWN_FIELD        0x0204
 
 #define DM_NOT_IMPLEMENTED      0x1001
 #define DM_NULL_POINTER         0x1002

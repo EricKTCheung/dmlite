@@ -172,6 +172,9 @@ static const char* STMT_UPDATE_REPLICA =
 static const char* STMT_GET_POOLS =
     "SELECT poolname, COALESCE(pooltype, 'filesystem')\
         FROM dpm_pool";
+static const char* STMT_GET_POOLS_LEGACY =
+    "SELECT poolname, 'filesystem'\
+        FROM dpm_pool";
 static const char* STMT_GET_POOL =
   "SELECT poolname, COALESCE(pooltype, 'filesystem')\
         FROM dpm_pool\
