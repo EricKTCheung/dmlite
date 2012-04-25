@@ -20,7 +20,7 @@ public:
   {
     TestBase::setUp();
 
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
     this->catalog->makeDir(FOLDER, MODE);
     this->catalog->makeDir(NESTED, MODE);
 
@@ -31,7 +31,7 @@ public:
   void tearDown()
   {
     if (this->catalog) {
-      this->catalog->setSecurityContext(root);
+      this->stackInstance->setSecurityContext(root);
 
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMREL));
@@ -53,7 +53,7 @@ public:
   void testDifferentUser()
   {
     // Change user
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // First level should pass
     statBuf = this->catalog->stat(FOLDER);
@@ -105,13 +105,13 @@ public:
 
   void testCacheDifferentUser()
   {
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
 
     // stat to cache result
     statBuf = this->catalog->stat(FOLDER);
 
     // Change user
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // First level should pass
     statBufCached = this->catalog->stat(FOLDER);
@@ -119,9 +119,9 @@ public:
     CPPUNIT_ASSERT_EQUAL((int)statBuf.st_ino, (int)statBufCached.st_ino);
 
     // switch user back to cache
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
     statBuf = this->catalog->stat(NESTED);
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested shouldn't
     CPPUNIT_ASSERT_THROW(statBuf = this->catalog->stat(NESTED), dmlite::DmException);

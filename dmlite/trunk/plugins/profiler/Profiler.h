@@ -27,8 +27,8 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog()     throw (DmException);
-  PoolManager* createPoolManager() throw (DmException);
+  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
+  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
 
 protected:
   /// The decorated Catalog factory.

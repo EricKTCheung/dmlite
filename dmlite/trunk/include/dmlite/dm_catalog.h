@@ -40,14 +40,10 @@ public:
 
   /// Set the security credentials.
   /// @param cred The security credentials.
-  virtual void setSecurityCredentials(const SecurityCredentials& cred) throw (DmException) = 0;
-
-  /// Get the security context.
-  /// @return The generated security context.
-  virtual const SecurityContext& getSecurityContext(void) throw (DmException) = 0;
+  virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException) = 0;
 
   /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext& ctx) = 0;
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
 
   /// Change the working dir. Future not-absolute paths will use this as root.
   /// @param path The new working dir.
@@ -137,7 +133,7 @@ public:
 
   /// Get a location for a logical name.
   /// @param path     The path to get.
-  virtual FileReplica get(const std::string& path) throw (DmException) = 0;
+  virtual Uri get(const std::string& path) throw (DmException) = 0;
 
   /// Creates a new symlink.
   /// @param oldpath The existing path.
@@ -167,16 +163,11 @@ public:
   virtual std::string put(const std::string& path, Uri* uri,
                           const std::string& guid) throw (DmException) = 0;
 
-  /// Get the PUT status
-  /// @param path  The path of the file that was put
-  /// @param token As returned by dm::Catalog::put
-  /// @param uri   The destination location will be put here.
-  virtual void putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException) = 0;
-
   /// Finish a PUT
   /// @param path  The path of the file that was put
+  /// @param uri   The physical location
   /// @param token As returned by dm::Catalog::put
-  virtual void putDone(const std::string& path, const std::string& token) throw (DmException) = 0;
+  virtual void putDone(const std::string& path, const Uri& uri, const std::string& token) throw (DmException) = 0;
 
   /// Sets the calling process’s file mode creation mask to mask & 0777.
   /// @param mask The new mask.
@@ -199,6 +190,11 @@ public:
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
   virtual void linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
+  
+  /// Change the size of a file.
+  /// @param path    The file to change.
+  /// @param newSize The new file size.
+  virtual void changeSize(const std::string& path, size_t newSize) throw (DmException) = 0;
 
   /// Change the ACLs
   /// @param path The file to change.
@@ -320,6 +316,7 @@ private:
   Catalog* parent_;
 };
 
+class StackInstance;
 
 /// Plug-ins must implement a concrete factory to be instantiated.
 class CatalogFactory {
@@ -333,7 +330,8 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of Catalog
-  virtual Catalog* createCatalog() throw (DmException) = 0;
+  /// @param si The StackInstance that is instantiating the context. It may be NULL.
+  virtual Catalog* createCatalog(StackInstance* si) throw (DmException) = 0;
 
 protected:
 private:

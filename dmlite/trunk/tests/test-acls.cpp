@@ -22,9 +22,9 @@ public:
   {
     TestBase::setUp();
 
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
 
-    ctx = &this->catalog->getSecurityContext();
+    ctx = this->stackInstance->getSecurityContext();
 
     std::stringstream ss;
     ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F50";

@@ -22,10 +22,10 @@ public:
   void setUp()
   {
     TestBase::setUp();
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
     this->catalog->makeDir(FOLDER, MODE);
     // Reset ACL in case FOLDER inherited some (may break some tests)
-    ctx = &this->catalog->getSecurityContext();
+    ctx = this->stackInstance->getSecurityContext();
     std::stringstream ss;
     ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F00";
     this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ss.str()));
@@ -34,7 +34,7 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
-      this->catalog->setSecurityContext(root);
+      this->stackInstance->setSecurityContext(root);
       this->catalog->changeMode(FOLDER, 0777);
       
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
@@ -118,13 +118,13 @@ public:
     CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
 
     // Change user
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested file shouldn't pass
     CPPUNIT_ASSERT_THROW(s = this->catalog->stat(NESTED), dmlite::DmException);
 
     // Change user back 
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // Changing the mode of the parent
     this->catalog->changeMode(FILE, MODE_ALL);
@@ -132,7 +132,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
 
     // Change user
-    this->catalog->setSecurityCredentials(cred2);
+    this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested file should pass
     s = this->catalog->stat(NESTED);
@@ -215,6 +215,14 @@ public:
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
   }
+  
+  void testSetSize()
+  {
+    this->catalog->create(FILE, MODE);
+    this->catalog->changeSize(FILE, 555);
+    struct stat s = this->catalog->stat(FILE);
+    CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
+  }
 
   CPPUNIT_TEST_SUITE(TestCreate);
   CPPUNIT_TEST(testRegular);
@@ -224,6 +232,7 @@ public:
   CPPUNIT_TEST(testExistsWithReplicas);
   CPPUNIT_TEST(testPathDoesNotExist);
   CPPUNIT_TEST(testPermissionDenied);
+  CPPUNIT_TEST(testSetSize);
   CPPUNIT_TEST_SUITE_END();
 };
 

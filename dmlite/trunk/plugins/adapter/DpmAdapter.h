@@ -14,9 +14,8 @@ namespace dmlite {
 class DpmAdapterCatalog: public NsAdapterCatalog {
 public:
   /// Constructor
-  /// @param dpmHost    The DPM host
   /// @param retryLimit The limit of retrials.
-  DpmAdapterCatalog(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
+  DpmAdapterCatalog(unsigned retryLimit) throw (DmException);
 
   /// Destructor
   ~DpmAdapterCatalog();
@@ -26,16 +25,14 @@ public:
 
   void set(const std::string&, va_list) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  FileReplica get      (const std::string&)       throw (DmException);
+  Uri         get      (const std::string&)       throw (DmException);
   std::string put      (const std::string&, Uri*) throw (DmException);
   std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
   void        unlink   (const std::string&)                           throw (DmException);
-protected:
+ 
 private:
   std::string dpmHost_;
   std::string spaceToken_;
@@ -45,24 +42,25 @@ private:
 
 class DpmAdapterPoolManager: public PoolManager {
 public:
-  DpmAdapterPoolManager(const std::string& dpmHost, unsigned retryLimit) throw (DmException);
+  DpmAdapterPoolManager(unsigned retryLimit) throw (DmException);
   ~DpmAdapterPoolManager();
 
   std::string getImplId() throw ();
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolMetadata* getPoolMetadata(const Pool& pool) throw (DmException);
 
   std::vector<Pool> getPools(void) throw (DmException);
-
-protected:
-  SecurityContext secCtx_;
+  Pool getPool(const std::string& poolname) throw (DmException);
+  
+  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
   
 private:
   std::string dpmHost_;
   unsigned    retryLimit_;
 };
+
 
 /// Used to retry n times before failing.
 #define RETRY(f, n) \

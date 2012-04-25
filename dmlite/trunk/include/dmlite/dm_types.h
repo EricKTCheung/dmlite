@@ -90,12 +90,6 @@ typedef struct filereplica FileReplica;
 struct pool {
   char      pool_type[POOL_TYPE_MAX];
   char      pool_name[POOL_MAX];
-  uint64_t  capacity;
-  uint64_t  free;
-  unsigned  ngids;
-  gid_t    *gids;
-  /** Pointer to be used internally by the corresponding pool implementation. */
-  void *internal;
 };
 typedef struct pool Pool;
 

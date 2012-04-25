@@ -6,12 +6,7 @@
 
 using namespace dmlite;
 
-MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts,
-                                                     std::string protocol,
-                                                     std::string dist):
-     hosts(hosts),
-     protocol(protocol),
-     dist(dist)
+MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts): hosts(hosts)
 {
 	// Nothing
 }
@@ -30,19 +25,10 @@ memcached_st* MemcacheConnectionFactory::create()
 	c = memcached_create(NULL);
 
   // Configure the memcached behaviour
-  if (protocol == "binary")
-    memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
-  else
-    memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 0);
+  memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 0);
 
 	if (memc_return_val != MEMCACHED_SUCCESS)
-			throw MemcacheException(memc_return_val, c);
-
-  if (dist == "consistent")
-    memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT);
-
-	if (memc_return_val != MEMCACHED_SUCCESS)
-			throw MemcacheException(memc_return_val, c);
+		throw DmException(DM_UNKNOWN_ERROR, std::string(memcached_strerror(c, memc_return_val)));
 
 	// Add memcached TCP hosts
 	std::vector<std::string>::iterator i;
@@ -74,7 +60,7 @@ memcached_st* MemcacheConnectionFactory::create()
 
 		memc_return_val = memcached_server_add(c, host, port);
 		if (memc_return_val != MEMCACHED_SUCCESS)
-			throw MemcacheException(memc_return_val, c);
+			throw DmException(DM_UNKNOWN_ERROR, std::string(memcached_strerror(c, memc_return_val)));
 	}
 
 
@@ -88,13 +74,13 @@ void MemcacheConnectionFactory::destroy(memcached_st* c)
 
 bool MemcacheConnectionFactory::isValid(memcached_st* c)
 {
-  // libmemcached will automatically initiate a new connection.
+	// TODO: Change to a sensible return value
 	return true;
 }
 
 MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException):
 	nestedFactory_(catalogFactory),
-	connectionFactory_(std::vector<std::string>(), "ascii", "default"),
+	connectionFactory_(std::vector<std::string>()),
 	connectionPool_(&connectionFactory_, 25),
 	symLinkLimit_(3),
 	memcachedExpirationLimit_(60)
@@ -127,34 +113,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 	}
   else if (key == "MemcachedPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
-  else if (key == "MemcachedProtocol")
-  {
-    if (value == "binary" || value == "ascii")
-      this->connectionFactory_.protocol = value;
-    else
-  	  throw DmException(DM_UNKNOWN_OPTION,
-                        std::string("Unknown option value ") + value);
-  }
-  else if (key == "MemcachedHashDistribution")
-  {
-    if (value == "consistent" || value == "default")
-      this->connectionFactory_.dist = value;
-    else
-  	  throw DmException(DM_UNKNOWN_OPTION,
-                        std::string("Unknown option value ") + value);
-  }
-  else if (key == "MemcachedStrictConsistency")
-  {
-    if (value == "true")
-      this->memcachedStrict_ = true;
-    else if (value == "false")
-      this->memcachedStrict_ = false;
-    else
-  	  throw DmException(DM_UNKNOWN_OPTION,
-                        std::string("Unknown option value ") + value);
-
-  }
-  else
+	else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
@@ -167,11 +126,7 @@ Catalog* MemcacheFactory::createCatalog() throw(DmException)
   if (this->nestedFactory_ != 0x00)
     nested = this->nestedFactory_->createCatalog();
 
-  return new MemcacheCatalog(&this->connectionPool_,
-                             nested,
-                             this->symLinkLimit_,
-                             (time_t)this->memcachedExpirationLimit_,
-                             this->memcachedStrict_);
+  return new MemcacheCatalog(&this->connectionPool_, nested, this->symLinkLimit_, (time_t)this->memcachedExpirationLimit_);
 }
 
 

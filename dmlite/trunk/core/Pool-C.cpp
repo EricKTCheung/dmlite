@@ -6,9 +6,6 @@
 
 int dm_freepools(dm_context* context, int npools, struct pool* pools)
 {
-  for (int i = 0; i < npools; ++i) {
-    delete [] pools[i].gids;
-  }
   delete [] pools;
   return 0;
 }

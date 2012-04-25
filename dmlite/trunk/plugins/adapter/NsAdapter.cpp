@@ -15,25 +15,9 @@ using namespace dmlite;
 
 
 
-NsAdapterCatalog::NsAdapterCatalog(const std::string& nsHost, unsigned retryLimit)
+NsAdapterCatalog::NsAdapterCatalog(unsigned retryLimit)
   throw (DmException): Catalog(), retryLimit_(retryLimit)
 {
-  const char *envDpns;
-
-  if (nsHost.empty() || nsHost[0] == '\0') {
-    envDpns = getenv("DPNS_HOST");
-    if (envDpns)
-      this->nsHost_ = std::string(envDpns);
-    else
-      this->nsHost_ = std::string("localhost");
-  }
-  else {
-    this->nsHost_ = nsHost;
-  }
-
-  setenv("DPNS_HOST", this->nsHost_.c_str(), 1);
-  setenv("CSEC_MECH", "ID", 1);
-
   // These need to be set to 0
   this->fqans_  = 0x00;
   this->nFqans_ = 0;
@@ -82,63 +66,54 @@ void NsAdapterCatalog::set(const std::string& key, va_list) throw (DmException)
 
 
 
-void NsAdapterCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* NsAdapterCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
   uid_t uid;
   gid_t gids[cred.nfqans + 1];
+  SecurityContext* ctx = new SecurityContext();
 
   // Get the ID mapping
   wrapCall(dpns_getidmap(cred.client_name, cred.nfqans, (const char**)cred.fqans,
                          &uid, gids));
 
   // Initialize context
-  this->secCtx_.setCredentials(cred);
-  this->secCtx_.getUser().uid    = uid;
-  this->secCtx_.getUser().banned = 0;
-  strncpy(this->secCtx_.getUser().name, cred.client_name, 255);
+  ctx->setCredentials(cred);
+  ctx->getUser().uid    = uid;
+  ctx->getUser().banned = 0;
+  strncpy(ctx->getUser().name, cred.client_name, 255);
 
   // If groups were specified, copy
   if (cred.nfqans > 0) {
-    this->secCtx_.resizeGroup(cred.nfqans);
+    ctx->resizeGroup(cred.nfqans);
     for (unsigned i = 0; i < cred.nfqans; ++i) {
-      this->secCtx_.getGroup(i).gid    = gids[i];
-      this->secCtx_.getGroup(i).banned = 0;
-      strncpy(this->secCtx_.getGroup(i).name, cred.fqans[i], 255);
+      ctx->getGroup(i).gid    = gids[i];
+      ctx->getGroup(i).banned = 0;
+      strncpy(ctx->getGroup(i).name, cred.fqans[i], 255);
     }
   }
   // Else, there will be at least one default
   else {
-    this->secCtx_.resizeGroup(1);
-    this->secCtx_.getGroup(0) = this->getGroup(gids[0]);
+    ctx->resizeGroup(1);
+    ctx->getGroup(0) = this->getGroup(gids[0]);
   }
 
-  // Set context
-  this->setSecurityContext(this->secCtx_);
+  return ctx;
 }
 
 
 
-const SecurityContext& NsAdapterCatalog::getSecurityContext() throw (DmException)
+void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  return this->secCtx_;
-}
-
-
-
-void NsAdapterCatalog::setSecurityContext(const SecurityContext& ctx)
-{
-  if (&this->secCtx_ != &ctx)
-    this->secCtx_ = ctx;
   // Call DPNS API
-  wrapCall(dpns_client_setAuthorizationId(ctx.getUser().uid,
-                                          ctx.getGroup(0).gid,
+  wrapCall(dpns_client_setAuthorizationId(ctx->getUser().uid,
+                                          ctx->getGroup(0).gid,
                                           "GSI",
-                                          (char*)ctx.getUser().name));
+                                          (char*)ctx->getUser().name));
 
-  if (ctx.groupCount() > 0)
-    wrapCall(dpns_client_setVOMS_data((char*)ctx.getGroup(0).name,
-                                      (char**)ctx.getCredentials().fqans,
-                                      ctx.groupCount()));
+  if (ctx->groupCount() > 0)
+    wrapCall(dpns_client_setVOMS_data((char*)ctx->getGroup(0).name,
+                                      (char**)ctx->getCredentials().fqans,
+                                      ctx->groupCount()));
 }
 
 
@@ -264,7 +239,7 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
   }
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, this->nsHost_.c_str(), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
 
   wrapCall(dpns_addreplica(guid.c_str(), &uniqueId, host.c_str(),
                            sfn.c_str(), status, fileType,
@@ -279,7 +254,7 @@ void NsAdapterCatalog::deleteReplica(const std::string& guid, int64_t id,
   struct dpns_fileid uniqueId;
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, this->nsHost_.c_str(), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
 
   if (guid.empty())
     wrapCall(dpns_delreplica(NULL, &uniqueId, sfn.c_str()));
@@ -330,7 +305,7 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
 
 
 
-FileReplica NsAdapterCatalog::get(const std::string& path) throw (DmException)
+Uri NsAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   // Naive implementation: first occurrence
   // Better implementations are left for other plugins
@@ -339,7 +314,7 @@ FileReplica NsAdapterCatalog::get(const std::string& path) throw (DmException)
   if (replicas.size() == 0)
     throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
 
-  return replicas[0];
+  return dmlite::splitUri(replicas[0].url);
 }
 
 
@@ -379,14 +354,7 @@ std::string NsAdapterCatalog::put(const std::string& path, Uri* uri, const std::
 
 
 
-void NsAdapterCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "putStatus not implemented for NsAdapterCatalog");
-}
-
-
-
-void NsAdapterCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
+void NsAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "putDone not implemented for NsAdapterCatalog");
 }
@@ -417,6 +385,13 @@ void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t 
 void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
 {
   wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
+}
+
+
+
+void NsAdapterCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  wrapCall(dpns_setfsize(path.c_str(), NULL, newSize));
 }
 
 
@@ -540,7 +515,7 @@ Directory* NsAdapterCatalog::openDir(const std::string& path) throw (DmException
   PrivateDir *privateDir;
 
   privateDir = new PrivateDir();
-  dpns_startsess((char*)this->nsHost_.c_str(), (char*)"dmlite::adapter::opendir");
+  dpns_startsess((char*)getenv("DPM_HOST"), (char*)"dmlite::adapter::opendir");
   privateDir->dpnsDir = dpns_opendir(path.c_str());
   if (privateDir->dpnsDir == 0x00) {
     delete privateDir;

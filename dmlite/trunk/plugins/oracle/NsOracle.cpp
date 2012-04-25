@@ -945,7 +945,7 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmExcept
 
 
 
-FileReplica NsOracleCatalog::get(const std::string& path) throw(DmException)
+Uri NsOracleCatalog::get(const std::string& path) throw(DmException)
 {
   // Get all the replicas
   std::vector<FileReplica> replicas = this->getReplicas(path);
@@ -954,7 +954,7 @@ FileReplica NsOracleCatalog::get(const std::string& path) throw(DmException)
   int i = rand() % replicas.size();
 
   // Copy
-  return replicas[i];
+  return dmlite::splitUri(replicas[i].url);
 }
 
 

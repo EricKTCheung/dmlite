@@ -158,12 +158,12 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
 
 
 
-int dm_get(dm_context* context, const char* path, struct filereplica* replica)
+int dm_get(dm_context* context, const char* path, struct uri* uri)
 {
   TRY(context, get)
   NOT_NULL(path);
-  NOT_NULL(replica);
-  *replica = context->catalog->get(path);
+  NOT_NULL(uri);
+  *uri = context->catalog->get(path);
   CATCH(context, get)
 }
 
@@ -209,24 +209,13 @@ int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* 
 
 
 
-int dm_putstatus(dm_context* context, const char* path, const char* token, struct uri* uri)
-{
-  TRY(context, putstatus)
-  NOT_NULL(path);
-  NOT_NULL(token);
-  NOT_NULL(uri);
-  context->catalog->putStatus(path, token, uri);
-  CATCH(context, putstatus)
-}
-
-
-
-int dm_putdone(dm_context* context, const char* path, const char* token)
+int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token)
 {
   TRY(context, putdone)
   NOT_NULL(path);
+  NOT_NULL(pfn);
   NOT_NULL(token);
-  context->catalog->putDone(path, token);
+  context->catalog->putDone(path, *pfn, token);
   CATCH(context, putdone)
 }
 
@@ -481,13 +470,10 @@ int dm_replica_setstatus(dm_context* context, const char* replica, char status)
 
 int dm_setcredentials(dm_context* context, struct credentials* cred)
 {
-  TRY(context, setuserid)
+  TRY(context, setcredentials)
   NOT_NULL(cred);
-  dmlite::SecurityCredentials secCred(*cred);
-  context->catalog->setSecurityCredentials(secCred);
-  if (context->pool != 0x00)
-    context->pool->setSecurityCredentials(secCred);
-  CATCH(context, setuserid)
+  context->stack->setSecurityCredentials(dmlite::SecurityCredentials(*cred));
+  CATCH(context, setcredentials)
 }
 
 

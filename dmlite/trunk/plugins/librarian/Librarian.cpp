@@ -28,12 +28,12 @@ void LibrarianFactory::configure(const std::string& key, const std::string& valu
 
 
 
-Catalog* LibrarianFactory::createCatalog() throw(DmException)
+Catalog* LibrarianFactory::createCatalog(StackInstance* si) throw(DmException)
 {
   if (this->nestedFactory_ != 0x00)
-    return new LibrarianCatalog(this->nestedFactory_->createCatalog());
+    return new LibrarianCatalog(si, this->nestedFactory_->createCatalog(si));
   else
-    return new LibrarianCatalog(0x00);
+    return new LibrarianCatalog(si, 0x00);
 }
 
 

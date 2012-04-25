@@ -2,6 +2,8 @@
 #include <iostream>
 #include <vector>
 
+const float GB = 1073741824;
+
 int main(int argn, char **argv)
 {
   std::vector<Pool> pools;
@@ -13,12 +15,14 @@ int main(int argn, char **argv)
   }
 
   // Load plugin
-  dmlite::PluginManager manager;
-  dmlite::PoolManager  *poolManager;
+  dmlite::PluginManager  manager;
+  dmlite::StackInstance *stack;
+  dmlite::PoolManager   *poolManager;
 
   try {
     manager.loadConfiguration(argv[1]);
-    poolManager = manager.getPoolManagerFactory()->createPoolManager();
+    stack = new dmlite::StackInstance(&manager);
+    poolManager = stack->getPoolManager();
     // Ask for the pools
     pools = poolManager->getPools();
   }
@@ -29,22 +33,29 @@ int main(int argn, char **argv)
 
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
-    std::cout << "Pool type:   " << pools[i].pool_type << std::endl
-              << "Pool name:   " << pools[i].pool_name << std::endl
-              << "Capacity:    " << pools[i].capacity << " bytes" << std::endl
-              << "Free:        " << pools[i].free     << " bytes" << std::endl;
+    try {
+      dmlite::PoolHandler *handler = stack->createPoolHandler(&pools[i]);
 
+      std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
+                << "Pool name:   " << handler->getPoolName()   << std::endl
+                << "Capacity:    " << handler->getTotalSpace() / GB << " GB" << std::endl
+                << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl;
+
+      delete handler;
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_UNKNOWN_POOL_TYPE)
+        throw;
+      std::cout << "Pool type:   " << pools[i].pool_type << std::endl
+                << "Pool name:   " << pools[i].pool_name << std::endl
+                << "UNKNOWN POOL TYPE!!" << std::endl;
+    }
     std::cout << std::endl;
   }
 
 
   // Free
-  std::vector<Pool>::iterator i;
-  for (i = pools.begin(); i != pools.end(); ++i) {
-    if (i->gids)
-      delete [] i->gids;
-  }
-  delete poolManager;
+  delete stack;
 
   // Done
   return 0;

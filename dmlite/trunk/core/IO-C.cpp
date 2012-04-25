@@ -123,3 +123,15 @@ int dm_feof(dm_fd* fd)
   return fd->stream->eof();
   CATCH(fd->context, feof)
 }
+
+
+
+int dm_fstat(dm_fd* fd, struct stat* s)
+{
+  if (fd == 0x00)
+    return DM_NULL_POINTER;
+  TRY(fd->context, pstat)
+  NOT_NULL(s);
+  *s = fd->stream->pstat();
+  CATCH(fd->context, pstat)
+}

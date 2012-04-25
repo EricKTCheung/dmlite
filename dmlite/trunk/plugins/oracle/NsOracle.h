@@ -71,7 +71,7 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  FileReplica              get        (const std::string&) throw (DmException);
+  Uri                      get        (const std::string&) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);

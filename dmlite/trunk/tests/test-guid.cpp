@@ -58,7 +58,7 @@ public:
 
     fclose(fopen(location.path, "w"));
 
-    this->catalog->putDone(FILE, token);
+    this->catalog->putDone(FILE, location, token);
 
     xStat = this->catalog->extendedStat(FILE);
 

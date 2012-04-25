@@ -44,6 +44,9 @@ public:
 
   /// Return true if end of file.
   virtual bool eof(void) throw (DmException) = 0;
+  
+  /// Stat the file
+  virtual struct stat pstat(void) throw (DmException) = 0;
 };
 
 /// Plug-ins must implement a concrete factory to be instantiated.

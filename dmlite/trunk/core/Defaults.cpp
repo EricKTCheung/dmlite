@@ -6,6 +6,7 @@
 #include <dmlite/dm_catalog.h>
 
 #include "dmlite/dm_pool.h"
+#include "dmlite/dm_poolhandler.h"
 
 using namespace dmlite;
 
@@ -25,6 +26,27 @@ CatalogFactory::~CatalogFactory()
 
 
 PoolManagerFactory::~PoolManagerFactory()
+{
+  // Nothing
+}
+
+
+
+PoolHandlerFactory::~PoolHandlerFactory()
+{
+  // Nothing
+}
+
+
+
+PoolHandler::~PoolHandler()
+{
+  // Nothing
+}
+
+
+
+PoolMetadata::~PoolMetadata()
 {
   // Nothing
 }

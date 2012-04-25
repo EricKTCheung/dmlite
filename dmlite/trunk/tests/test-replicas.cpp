@@ -54,7 +54,7 @@ public:
                               "http://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 
-    FileReplica replica = this->catalog->get(FILE);
+    FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
@@ -79,7 +79,7 @@ public:
                               "http://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 
-    FileReplica replica = this->catalog->get(FILE);
+    FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
                          std::string(replica.url));
@@ -103,7 +103,7 @@ public:
     this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
     this->catalog->replicaSetType("https://a.host.com/replica", 'V');
 
-    FileReplica replica = this->catalog->get(FILE);
+    FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
     CPPUNIT_ASSERT_EQUAL('D', replica.status);
@@ -120,8 +120,8 @@ public:
                               "http://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 
-    FileReplica replica = this->catalog->get(FILE);
-    FileReplica replicaCached = this->catalog->get(FILE);
+    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    FileReplica replicaCached = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)replicaCached.fileid, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.url),
@@ -151,18 +151,19 @@ public:
                               "the-pool", "the-fs");
 
     // value might be cached
-    FileReplica replica = this->catalog->get(FILE);
+    FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
     this->catalog->replicaSetLifeTime("https://a.host.com/replica", 12348);
     this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
     this->catalog->replicaSetType("https://a.host.com/replica", 'V');
 
-    replica = this->catalog->get(FILE);
+    replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
     CPPUNIT_ASSERT_EQUAL('D', replica.status);
     CPPUNIT_ASSERT_EQUAL('V', replica.type);
   }
+
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
