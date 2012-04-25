@@ -5,7 +5,7 @@
 #define	FILESYSTEMHANDLER_H
 
 #include <dmlite/dm_poolhandler.h>
-#include "dpm/dpm_api.h"
+#include <dpm_api.h>
 
 namespace dmlite {
   
