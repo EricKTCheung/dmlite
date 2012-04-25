@@ -12,11 +12,19 @@ using namespace dmlite;
 HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException):
   path_(uri)
 {
+  int flags;
+  if(openmode == std::ios_base::in)
+    flags = O_RDONLY;
+  else if (openmode == std::ios_base::out)
+    flags = O_WRONLY;
+  else
+    throw DmException(DM_INTERNAL_ERROR, "Could not understand the openmode");
+
   this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
   if(!this->fs)
     throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem");
 
-  this->file = hdfsOpenFile(this->fs, uri.c_str(), O_WRONLY, 0, 0, 0);
+  this->file = hdfsOpenFile(this->fs, uri.c_str(), flags, 0, 0, 0);
   if(!this->file)
     throw DmException(DM_INTERNAL_ERROR, "Could not open the file %s (errno %d)", uri.c_str(), errno);
 
@@ -41,6 +49,7 @@ void HadoopIOHandler::close(void) throw (DmException)
  /* Close the file if its open*/
   if(this->file)
     hdfsCloseFile(this->fs, this->file);
+  this->file = 0;
 }
 
 /* Read a chunk of a file from a Hadoop FS */
