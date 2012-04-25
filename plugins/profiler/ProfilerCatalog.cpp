@@ -49,23 +49,16 @@ void ProfilerCatalog::set(const std::string& key, va_list vargs) throw (DmExcept
 
 
 
-void ProfilerCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* ProfilerCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  PROFILE(setSecurityCredentials, cred);
+  PROFILE_RETURN(SecurityContext*, createSecurityContext, cred);
 }
 
 
 
-void ProfilerCatalog::setSecurityContext(const SecurityContext& ctx)
+void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   PROFILE(setSecurityContext, ctx);
-}
-
-
-
-const SecurityContext& ProfilerCatalog::getSecurityContext() throw (DmException)
-{
-  return this->decorated_->getSecurityContext();
 }
 
 
@@ -174,9 +167,9 @@ std::vector<FileReplica> ProfilerCatalog::getReplicas(const std::string& path) t
 
 
 
-FileReplica ProfilerCatalog::get(const std::string& path) throw (DmException)
+Uri ProfilerCatalog::get(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(FileReplica, get, path);
+  PROFILE_RETURN(Uri, get, path);
 }
 
 
@@ -216,16 +209,9 @@ std::string ProfilerCatalog::put(const std::string& path, Uri* uri, const std::s
 
 
 
-void ProfilerCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
+void ProfilerCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
 {
-  PROFILE(putStatus, path, token, uri);
-}
-
-
-
-void ProfilerCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
-{
-  PROFILE(putDone, path, token);
+  PROFILE(putDone, path, pfn, token);
 }
 
 
@@ -254,6 +240,13 @@ void ProfilerCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t n
 void ProfilerCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
 {
   PROFILE(linkChangeOwner, path, newUid, newGid);
+}
+
+
+
+void ProfilerCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  PROFILE(changeSize, path, newSize);
 }
 
 

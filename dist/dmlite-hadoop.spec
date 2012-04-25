@@ -1,5 +1,5 @@
 Name:		dmlite-hadoop
-Version:	0.2.0
+Version:	0.3.0
 Release:	1%{?dist}
 Summary:	Hadoop plugin for DMLITE
 Group:		Applications/Internet
@@ -7,8 +7,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_2_0 dmlite-0.2.0
-# tar -czvf dmlite-0.2.0.tar.gz dmlite-0.2.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_3_0 dmlite-0.3.0
+# tar -czvf dmlite-0.3.0.tar.gz dmlite-0.3.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -37,7 +37,7 @@ implementation of all the DMLITE interfaces (pool, IO, etc).
 
 %build
 cd plugins/hadoop
-%cmake . -DCMAKE_INSTALL_PREFIX=/
+%cmake . -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_MODULE_PATH=../../cmake/modules
 
 make %{?_smp_mflags}
 
@@ -54,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 %files plugins-hadoop
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_hadoop.so
+%{_datadir}/dmlite/hadoop/hadoop-mysql.sql
 
 %changelog
 * Wed Apr 11 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-1

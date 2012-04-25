@@ -13,13 +13,15 @@ class DummyPoolManager: public PoolManager {
 public:
   virtual ~DummyPoolManager();
 
-  virtual std::string getImplId(void) throw();
-
-  virtual void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  virtual const SecurityContext& getSecurityContext(void) throw (DmException);
-  virtual void setSecurityContext(const SecurityContext&);
+  virtual void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  virtual PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
 
   virtual std::vector<Pool> getPools(void) throw (DmException);
+  
+  virtual Pool getPool(const std::string&) throw (DmException);
+  
+  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
 
 protected:
   PoolManager* decorated_;

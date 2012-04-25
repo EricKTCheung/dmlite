@@ -46,6 +46,13 @@ PluginManager::~PluginManager() throw()
     delete *ii;
   }
 
+  std::list<PoolHandlerFactory*>::iterator phi;
+  for (phi = this->pool_handler_plugins_.begin();
+       phi != this->pool_handler_plugins_.end();
+       ++phi) {
+    delete *phi;
+  }
+
   // dlclose
   std::list<void*>::iterator j;
   for (j = this->dlHandles_.begin();
@@ -85,14 +92,12 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
 
 void PluginManager::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  std::list<CatalogFactory*>::const_iterator i;
-  int r;
-
   // Bad option by default
-  r = -1;
-  for (i = this->catalog_plugins_.begin();
-       i != this->catalog_plugins_.end();
-       ++i) {
+  int r = -1;
+
+  // Catalog plugins
+  for (std::list<CatalogFactory*>::const_iterator i = this->catalog_plugins_.begin();
+       i != this->catalog_plugins_.end(); ++i) {
     try {
       (*i)->configure(key, value);
       r = 0; // At least one recognised this
@@ -106,6 +111,39 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
     }
   }
 
+  // Pool manager plugins
+  for (std::list<PoolManagerFactory*>::const_iterator i = this->pool_plugins_.begin();
+       i != this->pool_plugins_.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      r = 0; // At least one recognised this
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }
+
+  // Pool handlers plugins
+  for (std::list<PoolHandlerFactory*>::const_iterator i = this->pool_handler_plugins_.begin();
+       i != this->pool_handler_plugins_.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      r = 0; // At least one recognised this
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }
+
+  // Failed?
   if (r != 0)
     throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
 }
@@ -224,4 +262,130 @@ IOFactory* PluginManager::getIOFactory() throw (DmException)
     throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->io_plugins_.front();
+}
+
+
+
+void PluginManager::registerPoolHandlerFactory(PoolHandlerFactory* factory) throw (DmException)
+{
+  this->pool_handler_plugins_.push_front(factory);
+}
+
+
+
+PoolHandlerFactory* PluginManager::getPoolHandlerFactory(const std::string& pooltype) throw (DmException)
+{
+  std::list<PoolHandlerFactory*>::iterator i;
+
+  for (i = this->pool_handler_plugins_.begin();
+       i != this->pool_handler_plugins_.end();
+       ++i)
+  {
+    if ((*i)->implementedPool() == pooltype) {
+      return *i;
+    }
+  }
+
+  throw DmException(DM_UNKNOWN_POOL_TYPE, "No plugin recognises the pool type " + pooltype);
+}
+
+
+
+StackInstance::StackInstance(PluginManager* pm) throw (DmException):
+    pluginManager_(pm), secCtx_(0)
+{
+  try {
+    this->catalog_ = pm->getCatalogFactory()->createCatalog(this);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_FACTORY)
+      throw;
+    this->catalog_ = 0;
+  }
+  
+  try {
+    this->poolManager_ = pm->getPoolManagerFactory()->createPoolManager(this);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_FACTORY)
+      throw;
+    this->poolManager_ = 0;
+  }
+  
+}
+
+
+
+StackInstance::~StackInstance() throw ()
+{
+  if (this->catalog_)     delete this->catalog_;
+  if (this->poolManager_) delete this->poolManager_;
+  if (this->secCtx_)      delete this->secCtx_;
+}
+
+
+
+PluginManager* StackInstance::getPluginManager() throw (DmException)
+{
+  return this->pluginManager_;
+}
+
+
+
+Catalog* StackInstance::getCatalog() throw (DmException)
+{
+  if (this->catalog_ == 0)
+    throw DmException(DM_NO_CATALOG, "No plugin provides Catalog");
+  return this->catalog_;
+}
+
+
+
+PoolManager* StackInstance::getPoolManager() throw (DmException)
+{
+  if (this->poolManager_ == 0)
+    throw DmException(DM_NO_POOL_MANAGER, "No plugin provides PoolManager");
+  return this->poolManager_;
+}
+
+
+
+PoolHandler* StackInstance::createPoolHandler(Pool* pool) throw (DmException)
+{
+  PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool->pool_type);
+  return phf->createPoolHandler(this, pool);
+}
+
+
+
+void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+{
+  if (this->catalog_ == 0)
+    throw DmException(DM_NO_CATALOG, "No catalog to initialize the security context");
+  
+  this->secCtx_ = this->catalog_->createSecurityContext(cred);
+  this->catalog_->setSecurityContext(this->secCtx_);
+  
+  if (this->poolManager_ != 0)
+    this->poolManager_->setSecurityContext(this->secCtx_);
+}
+
+
+
+void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmException)
+{
+  if (this->secCtx_) delete this->secCtx_;
+  this->secCtx_ = new SecurityContext(ctx);
+  
+  if (this->catalog_ != 0)
+    this->catalog_->setSecurityContext(this->secCtx_);
+  if (this->poolManager_ != 0)
+    this->poolManager_->setSecurityContext(this->secCtx_);
+}
+
+
+
+const SecurityContext* StackInstance::getSecurityContext() throw ()
+{
+  return this->secCtx_;
 }

@@ -38,13 +38,6 @@ DummyCatalog::~DummyCatalog()
 
 
 
-std::string DummyCatalog::getImplId(void) throw ()
-{
-  return std::string("Dummy");;
-}
-
-
-
 void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException)
 {
   DELEGATE(set, key, vargs);
@@ -52,21 +45,14 @@ void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException
 
 
 
-void DummyCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* DummyCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  DELEGATE(setSecurityCredentials, cred);
+  DELEGATE_RETURN(createSecurityContext, cred);
 }
 
 
 
-const SecurityContext& DummyCatalog::getSecurityContext() throw (DmException)
-{
-  DELEGATE_RETURN(getSecurityContext);
-}
-
-
-
-void DummyCatalog::setSecurityContext(const SecurityContext& ctx)
+void DummyCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   DELEGATE(setSecurityContext, ctx);
 }
@@ -149,7 +135,7 @@ std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) thro
 
 
 
-FileReplica DummyCatalog::get(const std::string& path) throw (DmException)
+Uri DummyCatalog::get(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(get, path);
 }
@@ -191,16 +177,9 @@ std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::stri
 
 
 
-void DummyCatalog::putStatus(const std::string& path, const std::string& token, Uri* uri) throw (DmException)
+void DummyCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
 {
-  DELEGATE(putStatus, path, token, uri);
-}
-
-
-
-void DummyCatalog::putDone(const std::string& path, const std::string& token) throw (DmException)
-{
-  DELEGATE(putDone, path, token);
+  DELEGATE(putDone, path, pfn, token);
 }
 
 
@@ -229,6 +208,13 @@ void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newG
 void DummyCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
 {
   DELEGATE(linkChangeOwner, path, newUid, newGid);
+}
+
+
+
+void DummyCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+{
+  DELEGATE(changeSize, path, newSize);
 }
 
 

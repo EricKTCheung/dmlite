@@ -14,14 +14,14 @@ public:
   void setUp()
   {
     TestBase::setUp();
-    this->catalog->setSecurityCredentials(cred1);
+    this->stackInstance->setSecurityCredentials(cred1);
     this->catalog->create(FILE, 0755);
   }
 
   void tearDown()
   {
     if (this->catalog) {
-      this->catalog->setSecurityContext(root);
+      this->stackInstance->setSecurityContext(root);
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
     }
 
@@ -31,7 +31,7 @@ public:
   void testRoot()
   {
     // Root should be able to change the owner and the group
-    this->catalog->setSecurityContext(root);
+    this->stackInstance->setSecurityContext(root);
     this->catalog->changeOwner(FILE, 500, 200);
 
     struct stat s = this->catalog->stat(FILE);
@@ -44,7 +44,7 @@ public:
   {
     struct stat s;
 
-    ctx = &this->catalog->getSecurityContext();
+    ctx = this->stackInstance->getSecurityContext();
 
     // It should be OK a -1, -1
     this->catalog->changeOwner(FILE, -1, -1);
@@ -82,8 +82,8 @@ public:
   void testOther()
   {
     // Change the user
-    this->catalog->setSecurityCredentials(cred2);
-    ctx = &this->catalog->getSecurityContext();
+    this->stackInstance->setSecurityCredentials(cred2);
+    ctx = this->stackInstance->getSecurityContext();
 
     // It should NOT be able to change the group or the owner
     try {
@@ -103,7 +103,7 @@ public:
 
   void testCTime()
   {
-    this->catalog->setSecurityContext(root);
+    this->stackInstance->setSecurityContext(root);
     // First stat
     struct stat before = this->catalog->stat(FILE);
     // Make sure the clock moves!

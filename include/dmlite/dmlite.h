@@ -213,10 +213,10 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
  * Get a single replica (synchronous).
  * @param context The DM context.
  * @param path    The logical file name.
- * @param replica Where to put the retrieved replica.
+ * @param uri     Physical location of the replica.
  * @return        0 on success, error code otherwise.
  */
-int dm_get(dm_context* context, const char* path, struct filereplica* replica);
+int dm_get(dm_context* context, const char* path, struct uri* uri);
 
 /**
  * Remove a file.
@@ -257,25 +257,15 @@ int dm_put(dm_context* context, const char* path, struct uri* uri, char* token);
  */
 int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token);
 
-
-/**
- * Retrieve the final destination of a PUT request previously done.
- * @param context The DM context.
- * @param path    The logical filename that was put.
- * @param token   The token identifying the request.
- * @param uri     Where to put the final detination.
- * @return        0 on success, error code otherwise.
- */
-int dm_putstatus(dm_context* context, const char* path, const char* token, struct uri* uri);
-
 /**
  * Finish a PUT request.
  * @param context The DM context.
  * @param path    The logical filename that was put.
+ * @param pfn     The physical location.
  * @param token   The token identifying the request.
  * @return        0 on success, error code otherwise.
  */
-int dm_putdone(dm_context* context, const char* path, const char* token);
+int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token);
 
 /**
  * Change the mode of a file or directory.
@@ -554,6 +544,14 @@ size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
  * @return   0 if there is more to read. 1 if EOF.
  */
 int dm_feof(dm_fd* fd);
+
+/**
+ * Get physical file status
+ * @param fd The file descriptor.
+ * @param s  Where to put the data.
+ * @return   0 on sucess, error code otherwise.
+ */
+int dm_fstat(dm_fd* fd, struct stat* s);
 
 /**
  * Return the error code from the last failure.

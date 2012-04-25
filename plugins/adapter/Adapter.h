@@ -17,17 +17,14 @@ public:
   ~NsAdapterFactory();
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog()                                         throw (DmException);
+  Catalog* createCatalog(StackInstance* si)                        throw (DmException);
 
 protected:
   unsigned retryLimit_;
-  
-private:
-  std::string nsHost_;
 };
 
 /// Concrete factory for DPM wrapper
-class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory {
+class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory, public PoolHandlerFactory {
 public:
   /// Constructor
   DpmAdapterFactory() throw (DmException);
@@ -36,16 +33,16 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog()     throw (DmException);
-  PoolManager* createPoolManager() throw (DmException);
+  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
+  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+
+  std::string implementedPool() throw();
+  PoolHandler* createPoolHandler(StackInstance* si, Pool* pool) throw (DmException);
 
 protected:
-  
-private:
-  std::string dpmHost_;
 };
 
-void ThrowExceptionFromSerrno(int serr) throw(DmException);
+void ThrowExceptionFromSerrno(int serr, const char* extra = 0x00) throw(DmException);
 int   wrapCall(int   ret) throw (DmException);
 void* wrapCall(void* ret) throw (DmException);
 

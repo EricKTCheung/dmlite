@@ -43,9 +43,14 @@ void TestBase::setUp()
 {
   pluginManager = new dmlite::PluginManager();
   pluginManager->loadConfiguration(TestBase::config);
+  
+  stackInstance = new dmlite::StackInstance(pluginManager);
+  
+  // Initialize security context
+  stackInstance->setSecurityContext(root);
 
   // Catalog
-  catalog = pluginManager->getCatalogFactory()->createCatalog();
+  catalog = stackInstance->getCatalog();
 
   // Credentials 1
   this->cred1.client_name = TEST_USER;
@@ -67,8 +72,8 @@ void TestBase::setUp()
 
 void TestBase::tearDown()
 {
-  if (catalog)
-    delete catalog;
+  if (stackInstance)
+    delete stackInstance;
   if (pluginManager)
     delete pluginManager;
 }

@@ -22,13 +22,10 @@ public:
   virtual ~DummyCatalog();
 
   // Overloading
-  virtual std::string getImplId(void) throw ();
-
   virtual void set(const std::string&, va_list) throw (DmException);
 
-  virtual void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  virtual const SecurityContext& getSecurityContext(void) throw (DmException);
-  virtual void setSecurityContext(const SecurityContext&);
+  virtual SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  virtual void setSecurityContext(const SecurityContext*) throw (DmException);
 
   virtual void        changeDir     (const std::string&) throw (DmException);
   virtual std::string getWorkingDir (void)               throw (DmException);
@@ -48,22 +45,24 @@ public:
                              const std::string&) throw (DmException);
 
   virtual std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  virtual FileReplica              get        (const std::string&) throw (DmException);
+  
+  virtual Uri get        (const std::string&) throw (DmException);
 
   virtual void symlink(const std::string&, const std::string&) throw (DmException);
   virtual void unlink (const std::string&)                     throw (DmException);
 
   virtual void create(const std::string&, mode_t) throw (DmException);
 
-  virtual std::string put(const std::string&, Uri*)                           throw (DmException);
-  virtual std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);
-  virtual void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  virtual void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  virtual std::string put(const std::string&, Uri*)                     throw (DmException);
+  virtual std::string put(const std::string&, Uri*, const std::string&) throw (DmException);
+  virtual void        putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
   virtual mode_t umask          (mode_t)                           throw ();
   virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);
   virtual void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   virtual void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  
+  virtual void changeSize(const std::string&, size_t) throw (DmException);
 
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 

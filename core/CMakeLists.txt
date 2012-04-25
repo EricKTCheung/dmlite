@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 
 add_library(dmlite SHARED Auth.cpp
-                          Catalog.cpp
+                          Defaults.cpp
                           Catalog-C.cpp
                           Exceptions.cpp
                           IO.cpp

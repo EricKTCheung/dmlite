@@ -15,6 +15,7 @@
 #define DM_NO_FACTORY           0x0006
 #define DM_NO_POOL_MANAGER      0x0007
 #define DM_NO_CATALOG           0x0008
+#define DM_UNKNOWN_POOL_TYPE    0x0009
 
 #define DM_MALFORMED_CONF       0x0100
 #define DM_UNKNOWN_OPTION       0x0101
@@ -23,6 +24,7 @@
 #define DM_CONNECTION_ERROR     0x0201
 #define DM_SERVICE_UNAVAILABLE  0x0202
 #define DM_QUERY_FAILED         0x0203
+#define DM_UNKNOWN_FIELD        0x0204
 
 #define DM_NOT_IMPLEMENTED      0x1001
 #define DM_NULL_POINTER         0x1002
@@ -43,6 +45,7 @@
 #define DM_NO_REPLICAS          0x1011
 #define DM_PUT_ERROR            0x1012
 #define DM_IS_CWD               0x1013
+#define DM_NO_SUCH_REPLICA      0x1014
 
 #define DM_NO_USER_MAPPING      0x1101
 #define DM_NO_SUCH_USER         0x1102
@@ -51,5 +54,6 @@
 #define DM_INVALID_ACL          0x1201
 
 #define DM_NO_SUCH_FS           0x2001
+#define DM_NO_SUCH_POOL         0x2002
 
 #endif	/* DMLITE_ERRNO_H */

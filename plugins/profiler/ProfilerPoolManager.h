@@ -15,14 +15,13 @@ public:
 
   std::string getImplId(void) throw();
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
+  PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  
   std::vector<Pool> getPools(void) throw (DmException);
-
-  void setUserId  (uid_t, gid_t, const std::string&) throw (DmException);
-  void setVomsData(const std::string&, const std::vector<std::string>&) throw (DmException);
+  Pool getPool(const std::string& poolname) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool) throw (DmException);
 
 protected:
   PoolManager* decorated_;

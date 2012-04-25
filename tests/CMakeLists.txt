@@ -12,6 +12,11 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsAdapter.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmAdapter.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/DpmAdapter.conf)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmMySql.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/DpmMySql.conf)
+
+add_library           (test-base STATIC test-base.cpp)
+
 add_executable        (test-load test-load.cpp)
 target_link_libraries (test-load dmlite cppunit dl)
 
@@ -21,14 +26,14 @@ target_link_libraries (test-split_path dmlitecommon dmlite dl)
 add_executable        (test-split_url test-split_url.cpp)
 target_link_libraries (test-split_url dmlitecommon dmlite dl)
 
-add_executable        (test-security test-security.cpp test-base.cpp)
-target_link_libraries (test-security dmlitecommon dmlite cppunit dl)
+add_executable        (test-security test-security.cpp)
+target_link_libraries (test-security test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-comment test-comment.cpp test-base.cpp)
-target_link_libraries (test-comment dmlitecommon dmlite cppunit dl)
+add_executable        (test-comment test-comment.cpp)
+target_link_libraries (test-comment test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-stat test-stat.cpp test-base.cpp)
-target_link_libraries (test-stat dmlitecommon dmlite cppunit dl)
+add_executable        (test-stat test-stat.cpp)
+target_link_libraries (test-stat test-base dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-pools test-pools.cpp)
 target_link_libraries (test-pools dmlitecommon dmlite dl)
@@ -36,48 +41,38 @@ target_link_libraries (test-pools dmlitecommon dmlite dl)
 add_executable        (test-poolcontainer test-poolcontainer.cpp)
 target_link_libraries (test-poolcontainer dmlitecommon dmlite cppunit pthread)
 
-add_executable        (test-chdir test-chdir.cpp test-base.cpp)
-target_link_libraries (test-chdir dmlitecommon dmlite cppunit dl)
+add_executable        (test-chdir test-chdir.cpp)
+target_link_libraries (test-chdir test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-guid test-guid.cpp test-base.cpp)
-target_link_libraries (test-guid dmlitecommon dmlite cppunit dl)
+add_executable        (test-guid test-guid.cpp)
+target_link_libraries (test-guid test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-create test-create.cpp test-base.cpp)
-target_link_libraries (test-create dmlitecommon dmlite cppunit dl)
+add_executable        (test-create test-create.cpp)
+target_link_libraries (test-create test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-replicas test-replicas.cpp test-base.cpp)
-target_link_libraries (test-replicas dmlitecommon dmlite cppunit dl)
+add_executable        (test-replicas test-replicas.cpp)
+target_link_libraries (test-replicas test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-rename test-rename.cpp test-base.cpp)
-target_link_libraries (test-rename dmlitecommon dmlite cppunit dl)
+add_executable        (test-rename test-rename.cpp)
+target_link_libraries (test-rename test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-chown test-chown.cpp test-base.cpp)
-target_link_libraries (test-chown dmlitecommon dmlite cppunit dl)
+add_executable        (test-chown test-chown.cpp)
+target_link_libraries (test-chown test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-utime test-utime.cpp test-base.cpp)
-target_link_libraries (test-utime dmlitecommon dmlite cppunit dl)
+add_executable        (test-utime test-utime.cpp)
+target_link_libraries (test-utime test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-opendir test-opendir.cpp test-base.cpp)
-target_link_libraries (test-opendir dmlitecommon dmlite cppunit dl)
+add_executable        (test-opendir test-opendir.cpp)
+target_link_libraries (test-opendir test-base dmlitecommon dmlite cppunit dl)
 
-add_executable        (test-acls test-acls.cpp test-base.cpp)
-target_link_libraries (test-acls dmlitecommon dmlite cppunit dl)
+add_executable        (test-acls test-acls.cpp)
+target_link_libraries (test-acls test-base dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-io test-io.cpp)
 target_link_libraries (test-io dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmlitecommon dmlite cppunit dl)
-
-
-find_package(JNI REQUIRED)
-
-include_directories (${CMAKE_SOURCE_DIR}/plugins/)
-include_directories("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/")
-include_directories("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/include/linux")
-
-#add_executable        (test-hadoop test-hadoop.cpp)
-#target_link_libraries (test-hadoop dmlitecommon dmlite dl)
 
 # Configure CTest testing
 ENABLE_TESTING()

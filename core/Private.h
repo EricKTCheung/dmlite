@@ -59,11 +59,12 @@ struct dm_manager {
 
 /// Context handle for C API.
 struct dm_context {
-  dmlite::Catalog*     catalog;
-  dmlite::PoolManager* pool;
-  dmlite::IOFactory*   io;
-  int                  errorCode;
-  std::string          errorString;
+  dmlite::StackInstance* stack;
+  dmlite::Catalog*       catalog;
+  dmlite::PoolManager*   pool;
+  dmlite::IOFactory*     io;
+  int                    errorCode;
+  std::string            errorString;
 };
 
 /// Built-in IO
@@ -92,8 +93,10 @@ public:
   long   tell (void) throw (DmException);
   void   flush(void) throw (DmException);
   bool   eof  (void) throw (DmException);
+  struct stat pstat(void) throw (DmException);
 protected:
   std::fstream stream_;
+  std::string  path_;
 };
 
 };

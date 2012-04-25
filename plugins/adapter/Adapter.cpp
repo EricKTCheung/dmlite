@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 #include "Adapter.h"
+#include "FilesystemHandler.h"
 #include "NsAdapter.h"
 #include "DpmAdapter.h"
 
@@ -19,13 +20,11 @@ int Cthread_init(void);
 int _Cthread_addcid(char *, int, char *, int, pthread_t, unsigned, void *(*)(void *), int);
 }
 
-NsAdapterFactory::NsAdapterFactory() throw (DmException)
+NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3)
 {
-  this->nsHost_[0]  = '\0';
-  this->retryLimit_ = 3;
-  
   Cthread_init();
   _Cthread_addcid(NULL, 0, NULL, 0, pthread_self(), 0, NULL, 0);
+  setenv("CSEC_MECH", "ID", 1);
 }
 
 
@@ -39,8 +38,9 @@ NsAdapterFactory::~NsAdapterFactory()
 
 void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  if (key == "Host")
-    this->nsHost_ = value;
+  if (key == "Host") {
+    setenv("DPNS_HOST", value.c_str(), 1);
+  }
   else if (key == "RetryLimit") {
     unsigned v = (unsigned)atoi(value.c_str());
     if (v > 0)
@@ -54,16 +54,16 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
 
 
 
-Catalog* NsAdapterFactory::createCatalog() throw (DmException)
+Catalog* NsAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 {
-  return new NsAdapterCatalog(this->nsHost_, this->retryLimit_);
+  return new NsAdapterCatalog(this->retryLimit_);
 }
 
 
 
 DpmAdapterFactory::DpmAdapterFactory() throw (DmException): NsAdapterFactory()
 {
-  this->dpmHost_[0] = '\0';
+  // Nothing
 }
 
 
@@ -77,24 +77,42 @@ DpmAdapterFactory::~DpmAdapterFactory()
 
 void DpmAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  if (key == "Host")
-    this->dpmHost_ = value;
+  if (key == "Host") {
+    setenv("DPM_HOST", value.c_str(), 1);
+    setenv("DPNS_HOST", value.c_str(), 1);
+  }
   else
     NsAdapterFactory::configure(key, value);
 }
 
 
 
-Catalog* DpmAdapterFactory::createCatalog() throw (DmException)
+Catalog* DpmAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 {
-  return new DpmAdapterCatalog(this->dpmHost_, this->retryLimit_);
+  return new DpmAdapterCatalog(this->retryLimit_);
 }
 
 
 
-PoolManager* DpmAdapterFactory::createPoolManager() throw (DmException)
+PoolManager* DpmAdapterFactory::createPoolManager(StackInstance* si) throw (DmException)
 {
-  return new DpmAdapterPoolManager(this->dpmHost_, this->retryLimit_);
+  return new DpmAdapterPoolManager(this->retryLimit_);
+}
+
+
+
+std::string DpmAdapterFactory::implementedPool() throw ()
+{
+  return "filesystem";
+}
+
+
+
+PoolHandler* DpmAdapterFactory::createPoolHandler(StackInstance* si, Pool* pool) throw (DmException)
+{
+  if (std::string(pool->pool_type) != this->implementedPool())
+    throw DmException(DM_UNKNOWN_POOL_TYPE, "DpmAdapter does not recognise the pool type %s", pool->pool_type);
+  return new FilesystemPoolHandler(si->getPoolManager(), pool);
 }
 
 
@@ -110,6 +128,14 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
   pm->registerCatalogFactory(new DpmAdapterFactory());
   pm->registerPoolFactory(new DpmAdapterFactory());
+  pm->registerPoolHandlerFactory(new DpmAdapterFactory());
+}
+
+
+
+static void registerPluginHandler(PluginManager* pm) throw (DmException)
+{
+  pm->registerPoolHandlerFactory(new DpmAdapterFactory());
 }
 
 
@@ -122,4 +148,9 @@ PluginIdCard plugin_adapter_ns = {
 PluginIdCard plugin_adapter_dpm = {
   API_VERSION,
   registerPluginDpm
+};
+
+PluginIdCard plugin_handler_fs = {
+  API_VERSION,
+  registerPluginHandler
 };

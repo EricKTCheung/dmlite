@@ -7,11 +7,12 @@
 class ChkPerm: public CppUnit::TestFixture {
 protected:
   struct stat stat_;
-  dmlite::SecurityContext context;
+  dmlite::SecurityContext* context;
 public:
 
   void setUp()
   {
+    context = new dmlite::SecurityContext();
     // Set the security fields
     stat_.st_uid  = 200;
     stat_.st_gid  = 200;
@@ -20,20 +21,20 @@ public:
 
   void tearDown()
   {
-    context = dmlite::SecurityContext();
+    delete context;
   }
 
   void testOwner()
   {
     // Owner and group
-    context.resizeGroup(1);
-    context.getUser().uid   = 200;
-    context.getGroup(0).gid = 200;
+    context->resizeGroup(1);
+    context->getUser().uid   = 200;
+    context->getGroup(0).gid = 200;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
     // Owner but no group
-    context.getGroup(0).gid = 500;
+    context->getGroup(0).gid = 500;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
@@ -43,9 +44,9 @@ public:
   {
     std::vector<GroupInfo> gids;
     // Main group matches
-    context.resizeGroup(1);
-    context.getUser().uid   = 500;
-    context.getGroup(0).gid = 200;
+    context->resizeGroup(1);
+    context->getUser().uid   = 500;
+    context->getGroup(0).gid = 200;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
@@ -53,9 +54,9 @@ public:
                                                      0x00, stat_,
                                                      S_IREAD | S_IEXEC));
     // Main doesn't match, but a secondary does
-    context.resizeGroup(2);
-    context.getGroup(0).gid = 500;
-    context.getGroup(1).gid = 200;
+    context->resizeGroup(2);
+    context->getGroup(0).gid = 500;
+    context->getGroup(1).gid = 200;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
@@ -68,9 +69,9 @@ public:
   {
     std::vector<GroupInfo> gids;
     // No match
-    context.resizeGroup(1);
-    context.getUser().uid   = 500;
-    context.getGroup(0).gid = 500;
+    context->resizeGroup(1);
+    context->getUser().uid   = 500;
+    context->getGroup(0).gid = 500;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD));
@@ -80,29 +81,29 @@ public:
   {
     const char *acl = "A70,B7101,C7102,D5103,E70,F00,a70,c70,f50";
     // No match
-    context.resizeGroup(1);
-    context.getUser().uid   = 500;
-    context.getGroup(0).gid = 500;
+    context->resizeGroup(1);
+    context->getUser().uid   = 500;
+    context->getGroup(0).gid = 500;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD));
     // Match user
-    context.getUser().uid = 101;
+    context->getUser().uid = 101;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
 
     // Match main group
-    context.getUser().uid   = 500;
-    context.getGroup(0).gid = 103;
+    context->getUser().uid   = 500;
+    context->getGroup(0).gid = 103;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IEXEC));
 
     // Match secondary
-    context.resizeGroup(2);
-    context.getGroup(0).gid = 500;
-    context.getGroup(1).gid = 103;
+    context->resizeGroup(2);
+    context->getGroup(0).gid = 500;
+    context->getGroup(1).gid = 103;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IEXEC));
@@ -111,10 +112,10 @@ public:
   void testUserBanned()
   {
     // Owner and group
-    context.resizeGroup(1);
-    context.getUser().uid    = 200;
-    context.getGroup(0).gid  = 200;
-    context.getUser().banned = 1;
+    context->resizeGroup(1);
+    context->getUser().uid    = 200;
+    context->getGroup(0).gid  = 200;
+    context->getUser().banned = 1;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
@@ -123,15 +124,15 @@ public:
   void testMainGroupBanned()
   {
     // Owner matches, group banned
-    context.resizeGroup(1);
-    context.getUser().uid      = 200;
-    context.getGroup(0).gid    = 200;
-    context.getGroup(0).banned = 1;
+    context->resizeGroup(1);
+    context->getUser().uid      = 200;
+    context->getGroup(0).gid    = 200;
+    context->getGroup(0).banned = 1;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
     // Owner doesn't match. Group does, but banned.
-    context.getUser().uid = 500;
+    context->getUser().uid = 500;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IEXEC));
@@ -140,25 +141,25 @@ public:
   void testSecondaryBanned()
   {
     // Owner doesn't match, main group does, but secondary banned.
-    context.resizeGroup(2);
-    context.getUser().uid      = 500;
-    context.getGroup(0).gid    = 200;
-    context.getGroup(1).gid    = 500;
-    context.getGroup(1).banned = 1;
+    context->resizeGroup(2);
+    context->getUser().uid      = 500;
+    context->getGroup(0).gid    = 200;
+    context->getGroup(1).gid    = 500;
+    context->getGroup(1).banned = 1;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IEXEC));
     // Owner doesn't match, main group neither, secondary does but banned.
-    context.getGroup(0).gid    = 500;
-    context.getGroup(1).gid    = 200;
-    context.getGroup(1).banned = 1;
+    context->getGroup(0).gid    = 500;
+    context->getGroup(1).gid    = 200;
+    context->getGroup(1).banned = 1;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IEXEC));
 
     // Owner doesn't match, main group neither and banned. Secondary OK.
-    context.getGroup(0).banned = 1;
-    context.getGroup(1).banned = 0;
+    context->getGroup(0).banned = 1;
+    context->getGroup(1).banned = 0;
     CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
                                                      0x00, stat_,
                                                      S_IREAD | S_IEXEC));
@@ -170,28 +171,28 @@ public:
     const char *acl = "A70,B7101,C7102,D5103,E70,F00,a70,c70,f50";
 
     // Match user
-    context.resizeGroup(1);
-    context.getUser().uid    = 101;
-    context.getUser().banned = 1;
-    context.getGroup(0).gid  = 500;
+    context->resizeGroup(1);
+    context->getUser().uid    = 101;
+    context->getUser().banned = 1;
+    context->getGroup(0).gid  = 500;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
 
     // Match main group
-    context.getUser().uid      = 500;
-    context.getUser().banned   = 0;
-    context.getGroup(0).gid    = 103;
-    context.getGroup(0).banned = 1;
+    context->getUser().uid      = 500;
+    context->getUser().banned   = 0;
+    context->getGroup(0).gid    = 103;
+    context->getGroup(0).banned = 1;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IEXEC));
 
     // Main group banned, but secondary matches (and banned)
-    context.resizeGroup(2);
-    context.getGroup(0).gid    = 500;
-    context.getGroup(1).gid    = 103;
-    context.getGroup(1).banned = 1;
+    context->resizeGroup(2);
+    context->getGroup(0).gid    = 500;
+    context->getGroup(1).gid    = 103;
+    context->getGroup(1).banned = 1;
     CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IEXEC));

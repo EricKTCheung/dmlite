@@ -5,6 +5,7 @@
 #define	DPMMYSQL_H
 
 #include "NsMySql.h"
+#include <dmlite/dm_pool.h>
 
 namespace dmlite {
 
@@ -30,49 +31,79 @@ public:
   /// @param conn      The MySQL connection pool.
   /// @param nsDb      The MySQL DB name for the NS.
   /// @param dpmDb     The MySQL DB name for DPM.
-  /// @param decorates The underlying decorated catalog.
   /// @param symLimit  The recursion limit for symbolic links.
+  /// @param si        The stack instance.
   DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool,
                   const std::string& nsDb, const std::string& dpmDb,
-                  Catalog* decorates, unsigned int symLimit) throw(DmException);
+                  unsigned int symLimit,
+                  StackInstance* si) throw(DmException);
 
   /// Destructor
   ~DpmMySqlCatalog() throw (DmException);
 
   // Overloading
   std::string getImplId(void) throw ();
-
-  void set(const std::string& key, va_list varg) throw (DmException);
   
-  FileReplica get (const std::string&) throw (DmException);
+  Uri get (const std::string&) throw (DmException);
 
   void unlink (const std::string&) throw (DmException);
 
   std::string put      (const std::string&, Uri*)                     throw (DmException);
   std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
   
-  int getFsStatus(const std::string&, const std::string& server, const std::string& fs) throw(DmException);
-
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  void setSecurityContext(const SecurityContext&);
-
 protected:
 private:
   /// DPM DB.
   std::string dpmDb_;
+  
+  /// Stack instance.
+  StackInstance* stack_;
+};
 
-  /// Decorated catalog
-  Catalog* decorated_;
+/// Pool manager implementation.
+class MySqlPoolManager: public PoolManager {
+public:
+  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb, StackInstance* si) throw (DmException);
+  ~MySqlPoolManager();
+  
+  std::string getImplId(void) throw ();
+  
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  
+  std::vector<Pool> getPools() throw (DmException);
+  Pool getPool(const std::string& poolname) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool) throw (DmException);
+  
+private:
+  /// Plugin stack.
+  StackInstance* stack_;
+  
+  /// DPM DB.
+  std::string dpmDb_;
+  
+  /// The MySQL connection
+  MYSQL* conn_;
 
-  // Private methods
+  /// The connection pool.
+  PoolContainer<MYSQL*>* connectionPool_;
+  
+  /// Security context
+  const SecurityContext* secCtx_;
+};
 
-  /// Returns the preparted statement with the specified ID.
-  /// @param stId The statement ID (see STMT_*)
-  /// @return     A pointer to a MySQL statement.
-  MYSQL_STMT* getPreparedStatement(unsigned stId);
-
+/// PoolMetadata handler
+class MySqlPoolMetadata: public PoolMetadata {
+public:
+  MySqlPoolMetadata(Statement* stmt);
+  ~MySqlPoolMetadata();
+  
+  std::string getString(const std::string& field) throw (DmException);
+  int getInt(const std::string& field) throw (DmException);
+private:
+  Statement* stmt_;
 };
 
 };

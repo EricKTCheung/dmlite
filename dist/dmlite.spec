@@ -1,14 +1,14 @@
 Name:		dmlite
-Version:	0.2.0
-Release:	2%{?dist}
+Version:	0.3.0
+Release:	0%{?dist}
 Summary:	Abstraction library for LCGDM components
 Group:		Applications/Internet
 License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_2_0 dmlite-0.2.0
-# tar -czvf dmlite-0.2.0.tar.gz dmlite-0.2.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_3_0 dmlite-0.3.0
+# tar -czvf dmlite-0.3.0.tar.gz dmlite-0.3.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -51,24 +51,24 @@ This package provides the adapter plugin for DMLITE. This plugin provides both
 a namespace and pool management implementation which fallback to forwarding
 calls to the old DPNS and DPM daemons.
 
-%package plugins-librarian
-Summary:	Librarian plugin for DMLITE
-Group:		Applications/Internet
-Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+#%package plugins-librarian
+#Summary:	Librarian plugin for DMLITE
+#Group:		Applications/Internet
+#Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
-%description plugins-librarian
-This package provides the librarian plugin for DMLITE. This plugin handles
-the necessary logic to hop between difference replicas when accessing a file
-managed by the grid.
+#%description plugins-librarian
+#This package provides the librarian plugin for DMLITE. This plugin handles
+#the necessary logic to hop between difference replicas when accessing a file
+#managed by the grid.
 
-%package plugins-memcached
-Summary:	Memcached plugin for DMLITE
-Group:		Applications/Internet
-Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+#%package plugins-memcached
+#Summary:	Memcached plugin for DMLITE
+#Group:		Applications/Internet
+#Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
-%description plugins-memcached
-This package provides the memcached plugin for DMLITE. It provides a
-memcached based implementation of the NS interface.
+#%description plugins-memcached
+#This package provides the memcached plugin for DMLITE. It provides a
+#memcached based implementation of the NS interface.
 
 %package plugins-mysql 
 Summary:	MySQL plugin for DMLITE
@@ -134,13 +134,13 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_adapter.so
 
-%files plugins-librarian
-%defattr(-,root,root,-)
-%{_libdir}/dmlite/plugin_librarian.so
+#%files plugins-librarian
+#%defattr(-,root,root,-)
+#%{_libdir}/dmlite/plugin_librarian.so
 
-%files plugins-memcached
-%defattr(-,root,root,-)
-%{_libdir}/dmlite/plugin_memcache.so
+#%files plugins-memcached
+#%defattr(-,root,root,-)
+#%{_libdir}/dmlite/plugin_memcache.so
 
 %files plugins-mysql
 %defattr(-,root,root,-)

@@ -21,10 +21,8 @@ class NsAdapterCatalog: public Catalog
 {
 public:
   /// Constructor
-  /// @param nsHost     The host where the NS is running.
   /// @param retryLimit Limit of retrials.
-  /// @note             As CNS API is not thread-safe, neither is this.
-  NsAdapterCatalog(const std::string& nsHost, unsigned retryLimit) throw (DmException);
+  NsAdapterCatalog(unsigned retryLimit) throw (DmException);
 
   /// Destructor
   ~NsAdapterCatalog();
@@ -36,9 +34,8 @@ public:
   void set(const std::string&, ...)     throw (DmException);
   void set(const std::string&, va_list) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
@@ -58,7 +55,8 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  FileReplica              get        (const std::string&) throw (DmException);
+
+  Uri get(const std::string&) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
@@ -67,13 +65,14 @@ public:
 
   std::string put(const std::string&, Uri*)                           throw (DmException);
   std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);
-  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
 
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
   void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  
+  void changeSize(const std::string&, size_t) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
@@ -118,10 +117,7 @@ protected:
   int    nFqans_;
   char  *vo_;
 
-  SecurityContext secCtx_;
-
 private:
-  std::string nsHost_;
 };
 
 };
