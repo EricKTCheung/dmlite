@@ -243,12 +243,18 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
   hdfsCreateDirectory(this->fs, path.c_str());
   
   //Uri returned_uri;
-  strcpy(uri->host, "dpmhadoop-data1");
+  strcpy(uri->host, "dpmhadoop-data1.cern.ch");
   strcpy(uri->path, sfn.c_str());
+  
+  // Add this replica
+  struct stat s = this->stack->getCatalog()->stat(sfn);
+  this->stack->getCatalog()->addReplica(std::string(), s.st_ino,
+                                        this->host,
+                                        uri->path, '-', 'P',
+                                        this->pool->pool_name, std::string());
+  
+  // No token used
   return std::string();
-
-  // To be done
-  // throw DmException(DM_NOT_IMPLEMENTED, "hadoop::putLocation");
 }
 
 void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
