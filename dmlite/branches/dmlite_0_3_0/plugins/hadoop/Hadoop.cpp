@@ -8,51 +8,61 @@
 
 using namespace dmlite;
 
-/* HadoopIOHandler implementation */
 HadoopIOHandler::HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException):
   path_(uri)
 {
-  int flags;
+
+  // Set up correctly the flag to open a hdfs file
+  int flag;
   if(openmode == std::ios_base::in)
-    flags = O_RDONLY;
+    flag = O_RDONLY;
   else if (openmode == std::ios_base::out)
-    flags = O_WRONLY;
+    flag = O_WRONLY;
   else
     throw DmException(DM_INTERNAL_ERROR, "Could not understand the openmode");
 
+  // Try to connect the Hdfs, trigger an exception otherwise
   this->fs = hdfsConnectAsUser("dpmhadoop-name.cern.ch", 8020, "dpmmgr");
   if(!this->fs)
     throw DmException(DM_INTERNAL_ERROR, "Could not open the Hadoop Filesystem");
 
-  this->file = hdfsOpenFile(this->fs, uri.c_str(), flags, 0, 0, 0);
-  if(!this->file)
-    throw DmException(DM_INTERNAL_ERROR, "Could not open the file %s (errno %d)", uri.c_str(), errno);
+  // Try to open the hdfs file, map the errno to the DmException otherwise
+  this->file = hdfsOpenFile(this->fs, uri.c_str(), flag, 0, 0, 0);
+  if (!this->file) {
+    switch(errno) {
+      case ENOENT:
+        throw DmException(DM_NO_SUCH_FILE, "File %s does not exist in the FS", uri.c_str());
+      case EPERM:
+        throw DmException(DM_BAD_OPERATION, "You don't have to access %s", uri.c_str());
+      default:
+        throw DmException(DM_INTERNAL_ERROR, "Could not open the file %s (errno %d)", uri.c_str(), errno); 
+    }
+  }
 
   this->isEof = false;
 }
 
-/* Hadoop IO Handler Destructor */
 HadoopIOHandler::~HadoopIOHandler()
 {
-  /* Close the file if its still open*/
+  // Close the file if its still open
   if(this->file)
     hdfsCloseFile(this->fs, this->file);
+  this->file = 0;
 
-  /* Disconnect from the Hadoop FS */
+  // Disconnect from the Hadoop FS
   if(this->fs)
     hdfsDisconnect(this->fs);
+  this->fs = 0;
 }
 
-/* Method to close a file */
 void HadoopIOHandler::close(void) throw (DmException)
 {
- /* Close the file if its open*/
+ // Close the file if its open
   if(this->file)
     hdfsCloseFile(this->fs, this->file);
   this->file = 0;
 }
 
-/* Read a chunk of a file from a Hadoop FS */
 size_t HadoopIOHandler::read(char* buffer, size_t count) throw (DmException){
 	size_t bytes_read = hdfsRead(this->fs, this->file, buffer, count);
  
@@ -268,8 +278,14 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
 
 void HadoopPoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::string& token) throw (DmException)
 {
-  // To do: figure out the actual size
-  this->stack->getCatalog()->changeSize(sfn, 0);
+  hdfsFileInfo *fileStat = hdfsGetPathInfo(this->fs, pfn.path);
+  if(!fileStat)
+    throw DmException(DM_INTERNAL_ERROR,
+                      "hdfsGetPathInfo has failed on URI %s", pfn.path);
+  size_t size = fileStat->mSize;
+  hdfsFreeFileInfo(fileStat, 1);
+
+  this->stack->getCatalog()->changeSize(sfn, size);
 }
 
 /* HadoopIOFactory implementation */
