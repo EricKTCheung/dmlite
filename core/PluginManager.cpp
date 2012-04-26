@@ -359,19 +359,19 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 
 
 
-PoolHandler* StackInstance::getPoolHandler(Pool* pool) throw (DmException)
+PoolHandler* StackInstance::getPoolHandler(const Pool& pool) throw (DmException)
 {
   // Try from dictionary first
   std::map<std::string, PoolHandler*>::iterator i;
-  i = this->poolHandlers_.find(pool->pool_name);
+  i = this->poolHandlers_.find(pool.pool_name);
   if (i != this->poolHandlers_.end())
     return i->second;
   
   // Instantiate
-  PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool->pool_type);
+  PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool.pool_type);
   PoolHandler* ph = phf->createPoolHandler(this, pool);
   
-  this->poolHandlers_[pool->pool_name] = ph;
+  this->poolHandlers_[pool.pool_name] = ph;
   
   return ph;
 }

@@ -34,7 +34,7 @@ int main(int argn, char **argv)
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
     try {
-      dmlite::PoolHandler *handler = stack->getPoolHandler(&pools[i]);
+      dmlite::PoolHandler *handler = stack->getPoolHandler(pools[i]);
 
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl

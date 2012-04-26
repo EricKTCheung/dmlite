@@ -538,8 +538,6 @@ void NsMySqlCatalog::addReplica(const std::string& guid, int64_t id,
   if (server.empty()) {
     Uri u = splitUri(sfn);
     host = u.host;
-    if (host.empty())
-      throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
   }
   else {
     host = server;

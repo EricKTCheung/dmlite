@@ -12,7 +12,7 @@ namespace dmlite {
 /// Filesystem handler.
 class FilesystemPoolHandler: public PoolHandler {
 public:
-  FilesystemPoolHandler(PoolManager*, Pool*);
+  FilesystemPoolHandler(PoolManager*, const Pool&);
   ~FilesystemPoolHandler();
   
   void setSecurityContext(const SecurityContext*) throw (DmException);
@@ -32,7 +32,7 @@ public:
 
 private:
   PoolManager *manager_;
-  Pool        *pool_;
+  Pool         pool_;
   uint64_t     total_, free_;
 
   void update(void) throw (DmException);
