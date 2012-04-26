@@ -14,7 +14,7 @@ using namespace dmlite;
 
 
 
-FilesystemPoolHandler::FilesystemPoolHandler(PoolManager* pm, Pool* pool):
+FilesystemPoolHandler::FilesystemPoolHandler(PoolManager* pm, const Pool& pool):
     manager_(pm), pool_(pool), total_(0), free_(0)
 {
   // Nothing
@@ -47,14 +47,14 @@ void FilesystemPoolHandler::setSecurityContext(const SecurityContext* ctx) throw
 
 std::string FilesystemPoolHandler::getPoolType(void) throw (DmException)
 {
-  return this->pool_->pool_type;
+  return this->pool_.pool_type;
 }
 
 
 
 std::string FilesystemPoolHandler::getPoolName(void) throw (DmException)
 {
-  return this->pool_->pool_name;
+  return this->pool_.pool_name;
 }
 
 
@@ -77,7 +77,7 @@ uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
 
 bool FilesystemPoolHandler::isAvailable(bool write = true) throw (DmException)
 {
-  std::vector<dpm_fs> fs = this->getFilesystems(this->pool_->pool_name);
+  std::vector<dpm_fs> fs = this->getFilesystems(this->pool_.pool_name);
   
   for (unsigned i = 0; i < fs.size(); ++i) {
     if ((write && fs[i].status == 0) || (!write && fs[i].status != FS_DISABLED))
@@ -115,7 +115,7 @@ void FilesystemPoolHandler::update() throw (DmException)
 
   bool found = false;
   for (int i = 0; i < npools && !found; ++i) {
-    if (strcmp(pool_array[i].poolname, this->pool_->pool_name) == 0) {
+    if (strcmp(pool_array[i].poolname, this->pool_.pool_name) == 0) {
       found = true;
       
       this->total_ = pool_array[i].capacity;
@@ -133,7 +133,7 @@ void FilesystemPoolHandler::update() throw (DmException)
 
   // Failed?
   if (!found)
-    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", this->pool_->pool_name);
+    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", this->pool_.pool_name);
 }
 
 

@@ -37,7 +37,7 @@ public:
   PoolManager* createPoolManager(StackInstance* si) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(StackInstance* si, Pool* pool) throw (DmException);
+  PoolHandler* createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException);
 
 protected:
 };

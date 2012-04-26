@@ -51,7 +51,7 @@ Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
   unsigned i;
   for (i = 0; i < replicas.size(); ++i) {
     Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
-    PoolHandler* handler = this->stack_->getPoolHandler(&pool);
+    PoolHandler* handler = this->stack_->getPoolHandler(pool);
 
     if (handler->replicaAvailable(path, replicas[i])) {
       available.push_back(handler->getLocation(path, replicas[i]));
@@ -88,7 +88,7 @@ std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::s
   unsigned i = rand()  % pools.size();
   
   // Get the handler
-  PoolHandler* handler = this->stack_->getPoolHandler(&pools[i]);
+  PoolHandler* handler = this->stack_->getPoolHandler(pools[i]);
   
   // Create the entry
   this->create(path, 0777);
@@ -118,7 +118,7 @@ void DpmMySqlCatalog::putDone(const std::string& path, const Uri& uri, const std
     if ((replicaUri.host[0] == '\0' || strcmp(replicaUri.host, uri.host) == 0) &&
         strcmp(replicaUri.path, uri.path) == 0) {
       Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler* handler = this->stack_->getPoolHandler(&pool);
+      PoolHandler* handler = this->stack_->getPoolHandler(pool);
       
       handler->putDone(path, uri, token);
 
@@ -153,7 +153,7 @@ void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
         for (i = replicas.begin(); i != replicas.end(); ++i) {
           // Delegate to the proper pool handler
           Pool pool = this->stack_->getPoolManager()->getPool(i->pool);
-          PoolHandler* handler = this->stack_->getPoolHandler(&pool);
+          PoolHandler* handler = this->stack_->getPoolHandler(pool);
           handler->remove(path, *i);
           // Remove the replica itself
           this->deleteReplica(std::string(), stat.stat.st_ino, i->url);
@@ -270,7 +270,7 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
   std::vector<Pool> available;
   
   for (unsigned i = 0; i < pools.size(); ++i) {
-    PoolHandler* handler = this->stack_->getPoolHandler(&pools[i]);
+    PoolHandler* handler = this->stack_->getPoolHandler(pools[i]);
     
     if (handler->isAvailable())
       available.push_back(pools[i]);

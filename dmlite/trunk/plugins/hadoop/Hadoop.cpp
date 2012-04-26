@@ -137,10 +137,10 @@ struct stat HadoopIOHandler::pstat(void) throw (DmException) {
 
 
 /* Hadoop pool handling */
-HadoopPoolHandler::HadoopPoolHandler(StackInstance* si, Pool* pool) throw (DmException):
+HadoopPoolHandler::HadoopPoolHandler(StackInstance* si, const Pool& pool) throw (DmException):
             stack(si), pool(pool)
 {
-  PoolMetadata* meta = this->stack->getPoolManager()->getPoolMetadata(*pool);
+  PoolMetadata* meta = this->stack->getPoolManager()->getPoolMetadata(pool);
   
   this->host  = meta->getString("hostname");
   this->uname = meta->getString("username");
@@ -168,19 +168,19 @@ void HadoopPoolHandler::setSecurityContext(const SecurityContext*) throw (DmExce
 
 std::string HadoopPoolHandler::getPoolType(void) throw (DmException)
 {
-  return this->pool->pool_type;
+  return this->pool.pool_type;
 }
 
 std::string HadoopPoolHandler::getPoolName(void) throw (DmException)
 {
-  return this->pool->pool_name;
+  return this->pool.pool_name;
 }
 
 uint64_t HadoopPoolHandler::getTotalSpace(void) throw (DmException)
 {
   tOffset total = hdfsGetCapacity(this->fs);
   if (total < 0)
-    throw DmException(DM_INTERNAL_ERROR, "Could not get the total capacity of %s", this->pool->pool_name);
+    throw DmException(DM_INTERNAL_ERROR, "Could not get the total capacity of %s", this->pool.pool_name);
   return total;
 }
 
@@ -188,7 +188,7 @@ uint64_t HadoopPoolHandler::getUsedSpace(void) throw (DmException)
 {
   tOffset used = hdfsGetUsed(this->fs);
   if (used < 0)
-    throw DmException(DM_INTERNAL_ERROR, "Could not get the free space of %s", this->pool->pool_name);
+    throw DmException(DM_INTERNAL_ERROR, "Could not get the free space of %s", this->pool.pool_name);
 
   return used;
 }
@@ -270,7 +270,7 @@ std::string HadoopPoolHandler::putLocation(const std::string& sfn, Uri* uri) thr
   this->stack->getCatalog()->addReplica(std::string(), s.st_ino,
                                         std::string(),
                                         uri->path, '-', 'P',
-                                        this->pool->pool_name, std::string());
+                                        this->pool.pool_name, std::string());
   
   // No token used
   return std::string();
@@ -309,10 +309,10 @@ std::string HadoopIOFactory::implementedPool() throw ()
   return "hadoop";
 }
 
-PoolHandler* HadoopIOFactory::createPoolHandler(StackInstance* si, Pool* pool) throw (DmException)
+PoolHandler* HadoopIOFactory::createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException)
 {
-  if (this->implementedPool() != std::string(pool->pool_type))
-    throw DmException(DM_UNKNOWN_POOL_TYPE, "Hadoop does not recognise the pool type %s", pool->pool_type);
+  if (this->implementedPool() != std::string(pool.pool_type))
+    throw DmException(DM_UNKNOWN_POOL_TYPE, "Hadoop does not recognise the pool type %s", pool.pool_type);
   return new HadoopPoolHandler(si, pool);
 }
 

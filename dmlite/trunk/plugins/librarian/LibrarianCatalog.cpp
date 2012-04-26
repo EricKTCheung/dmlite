@@ -102,7 +102,7 @@ Uri LibrarianCatalog::get(const std::string& path) throw (DmException)
   bool found = false;
   for (int i = 0; i < replicas.size() && !found; ++i) {
     Pool         pool    = this->stack_->getPoolManager()->getPool(replicas[0].pool);
-    PoolHandler* handler = this->stack_->getPoolHandler(&pool);
+    PoolHandler* handler = this->stack_->getPoolHandler(pool);
     
     if (handler->replicaAvailable(path, replicas[i])) {
       uri = handler->getLocation(path, replicas[i]);

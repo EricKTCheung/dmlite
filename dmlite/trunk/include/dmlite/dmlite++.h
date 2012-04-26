@@ -120,7 +120,7 @@ public:
   
   /// Get a pool handler
   /// @note The caller must free the returned pointer.
-  PoolHandler* getPoolHandler(Pool* pool) throw (DmException);
+  PoolHandler* getPoolHandler(const Pool& pool) throw (DmException);
   
 private:
   PluginManager* pluginManager_;

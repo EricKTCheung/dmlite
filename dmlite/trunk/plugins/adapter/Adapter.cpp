@@ -108,10 +108,10 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 
 
 
-PoolHandler* DpmAdapterFactory::createPoolHandler(StackInstance* si, Pool* pool) throw (DmException)
+PoolHandler* DpmAdapterFactory::createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException)
 {
-  if (std::string(pool->pool_type) != this->implementedPool())
-    throw DmException(DM_UNKNOWN_POOL_TYPE, "DpmAdapter does not recognise the pool type %s", pool->pool_type);
+  if (std::string(pool.pool_type) != this->implementedPool())
+    throw DmException(DM_UNKNOWN_POOL_TYPE, "DpmAdapter does not recognise the pool type %s", pool.pool_type);
   return new FilesystemPoolHandler(si->getPoolManager(), pool);
 }
 
