@@ -104,12 +104,10 @@ Uri LibrarianCatalog::get(const std::string& path) throw (DmException)
     Pool         pool    = this->stack_->getPoolManager()->getPool(replicas[0].pool);
     PoolHandler* handler = this->stack_->getPoolHandler(&pool);
     
-    if (handler->replicaAvailable(replicas[i])) {
-      uri = handler->getPhysicalLocation(replicas[i]);
+    if (handler->replicaAvailable(path, replicas[i])) {
+      uri = handler->getLocation(path, replicas[i]);
       found = true;
     }
-    
-    delete handler;
   }
   
   if (found)

@@ -51,15 +51,15 @@ This package provides the adapter plugin for DMLITE. This plugin provides both
 a namespace and pool management implementation which fallback to forwarding
 calls to the old DPNS and DPM daemons.
 
-#%package plugins-librarian
-#Summary:	Librarian plugin for DMLITE
-#Group:		Applications/Internet
-#Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+%package plugins-librarian
+Summary:	Librarian plugin for DMLITE
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
-#%description plugins-librarian
-#This package provides the librarian plugin for DMLITE. This plugin handles
-#the necessary logic to hop between difference replicas when accessing a file
-#managed by the grid.
+%description plugins-librarian
+This package provides the librarian plugin for DMLITE. This plugin handles
+the necessary logic to hop between difference replicas when accessing a file
+managed by the grid.
 
 #%package plugins-memcached
 #Summary:	Memcached plugin for DMLITE
@@ -134,9 +134,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_adapter.so
 
-#%files plugins-librarian
-#%defattr(-,root,root,-)
-#%{_libdir}/dmlite/plugin_librarian.so
+%files plugins-librarian
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_librarian.so
 
 #%files plugins-memcached
 #%defattr(-,root,root,-)
