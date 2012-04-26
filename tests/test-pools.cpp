@@ -34,14 +34,13 @@ int main(int argn, char **argv)
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
     try {
-      dmlite::PoolHandler *handler = stack->createPoolHandler(&pools[i]);
+      dmlite::PoolHandler *handler = stack->getPoolHandler(&pools[i]);
 
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl
                 << "Capacity:    " << handler->getTotalSpace() / GB << " GB" << std::endl
                 << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl;
 
-      delete handler;
     }
     catch (dmlite::DmException e) {
       if (e.code() != DM_UNKNOWN_POOL_TYPE)

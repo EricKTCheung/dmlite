@@ -5,6 +5,7 @@
 #define	DMLITEPP_H
 
 #include <list>
+#include <map>
 #include <string>
 #include "dm_auth.h"
 #include "dm_catalog.h"
@@ -119,7 +120,7 @@ public:
   
   /// Get a pool handler
   /// @note The caller must free the returned pointer.
-  PoolHandler* createPoolHandler(Pool* pool) throw (DmException);
+  PoolHandler* getPoolHandler(Pool* pool) throw (DmException);
   
 private:
   PluginManager* pluginManager_;
@@ -127,6 +128,8 @@ private:
   PoolManager*   poolManager_;
   
   const SecurityContext* secCtx_;
+  
+  std::map<std::string, PoolHandler*> poolHandlers_;
 };
 
 // Joint between plugins and plugin-manager

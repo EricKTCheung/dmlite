@@ -321,6 +321,15 @@ StackInstance::~StackInstance() throw ()
   if (this->catalog_)     delete this->catalog_;
   if (this->poolManager_) delete this->poolManager_;
   if (this->secCtx_)      delete this->secCtx_;
+  
+  // Clean pool handlers
+  std::map<std::string, PoolHandler*>::iterator i;
+  for (i = this->poolHandlers_.begin();
+       i != this->poolHandlers_.end();
+       ++i) {
+    delete i->second;
+  }
+  this->poolHandlers_.clear();
 }
 
 
@@ -350,10 +359,21 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 
 
 
-PoolHandler* StackInstance::createPoolHandler(Pool* pool) throw (DmException)
+PoolHandler* StackInstance::getPoolHandler(Pool* pool) throw (DmException)
 {
+  // Try from dictionary first
+  std::map<std::string, PoolHandler*>::iterator i;
+  i = this->poolHandlers_.find(pool->pool_name);
+  if (i != this->poolHandlers_.end())
+    return i->second;
+  
+  // Instantiate
   PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool->pool_type);
-  return phf->createPoolHandler(this, pool);
+  PoolHandler* ph = phf->createPoolHandler(this, pool);
+  
+  this->poolHandlers_[pool->pool_name] = ph;
+  
+  return ph;
 }
 
 
