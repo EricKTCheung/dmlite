@@ -348,18 +348,17 @@ void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmExceptio
 
 
 
-void MemcacheCatalog::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* MemcacheCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  DELEGATE(setSecurityCredentials, cred);
-  this->secCtx_ = this->decorated_->getSecurityContext();
+  DELEGATE_RETURN(createSecurityContext, cred);
 }
 
 
 
-void MemcacheCatalog::setSecurityContext(const SecurityContext& ctx)
+void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   DELEGATE(setSecurityContext, ctx);
-  this->secCtx_ = ctx;
+  this->secCtx_ = *ctx;
 }
 
 
@@ -399,7 +398,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
       throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
     // New element traversed! Need to check if it is possible to keep going.
-    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
+    if (checkPermissions(&this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to list '%s'", meta.name);
 
     // Pop next component
@@ -603,7 +602,7 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
   // Get the file and check we can read
   ExtendedStat meta = this->extendedStat(path);
   
-  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
+  if (checkPermissions(&this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
 
   // Query
@@ -669,7 +668,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
   meta = this->extendedStat(path, true);
 
   // The file exists, plus we have permissions to go there. Check we can read
-  if (checkPermissions(this->secCtx_,
+  if (checkPermissions(&this->secCtx_,
                        meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(DM_FORBIDDEN,
                    "Not enough permissions to read " + path);
@@ -719,7 +718,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, i
   return replicas;
 }
 
-FileReplica MemcacheCatalog::get(const std::string& path) throw(DmException)
+Uri MemcacheCatalog::get(const std::string& path) throw(DmException)
 {
   // Get all the replicas
   std::vector<FileReplica> replicas = this->getReplicas(path);
@@ -728,7 +727,7 @@ FileReplica MemcacheCatalog::get(const std::string& path) throw(DmException)
   int i = rand() % replicas.size();
 
   // Copy
-  return replicas[i];
+  return dmlite::splitUri(replicas[i].url);
 }
 
 void MemcacheCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)

@@ -38,8 +38,8 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
 //  void        changeDir    (const std::string&) throw (DmException);
 
@@ -57,7 +57,7 @@ public:
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
   
-  FileReplica              get        (const std::string&) throw (DmException);
+  Uri              get        (const std::string&) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&) throw (DmException);
@@ -317,7 +317,7 @@ public:
   ~MemcacheFactory() throw (DmException);
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog() throw (DmException);
+  Catalog* createCatalog(StackInstance*) throw (DmException);
 protected:
   /// Decorated
   CatalogFactory* nestedFactory_;
