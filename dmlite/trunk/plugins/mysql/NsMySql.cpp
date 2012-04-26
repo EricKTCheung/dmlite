@@ -1397,6 +1397,13 @@ void NsMySqlCatalog::rename(const std::string& oldPath, const std::string& newPa
     if (newNlinkUpdateStmt.execute() == 0)
       throw DmException(DM_INTERNAL_ERROR, "Could not update the new parent nlink!");
   }
+  else {
+    // Parent is the same, but change its mtime
+    struct utimbuf utim;
+    utim.actime  = time(NULL);
+    utim.modtime = utim.actime;
+    this->utime(oldParent.stat.st_ino, &utim);
+  }
 
   // Done!
   transaction.commit();
