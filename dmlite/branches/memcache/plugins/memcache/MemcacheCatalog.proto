@@ -1,0 +1,62 @@
+package dmlite;
+
+message SerialExtendedStat {
+  optional SerialStat stat = 1;
+  optional int32 parent = 2;
+  optional int32 type = 3;
+  optional string status = 4;
+  optional string name = 5;
+  optional string guid = 6;
+  optional string csumtype = 7;
+  optional string csumvalue = 8;
+  optional string acl = 9;
+}
+
+message SerialStat {
+  optional int32 st_dev = 1;
+  optional int32 st_ino = 2;
+  optional int32 st_mode = 3;
+  optional int32 st_nlink = 4;
+  optional int32 st_uid = 5;
+  optional int32 st_gid = 6;
+  optional int32 st_rdev = 7;
+  optional int32 st_size = 8;
+  optional int64 st_access_time = 9;
+  optional int64 st_modified_time = 10;
+  optional int64 st_change_time = 11;
+  optional int32 st_blksize = 12;
+  optional int32 st_blocks = 13;
+}
+
+message SerialSymLink {
+  optional int32 fileid = 1;
+  optional string link = 2;
+}
+
+message SerialComment {
+  optional string comment = 1;
+}
+
+message SerialKeyList {
+  repeated SerialKey key = 1;
+}
+
+message SerialKey {
+  required string key = 1;
+  required bool white = 2 [default = true]; 
+}
+
+message SerialFileReplica {
+  optional int64 replicaid = 1;
+  optional int64 fileid = 2;
+  optional int64 nbaccesses = 3;
+  optional int64 atime = 4;
+  optional int64 ptime = 5;
+  optional int64 ltime = 6;
+  optional string status = 7;
+  optional string type = 8;
+  optional string pool = 9;
+  optional string server = 10;
+  optional string filesystem = 11;
+  optional string url = 12;
+}
