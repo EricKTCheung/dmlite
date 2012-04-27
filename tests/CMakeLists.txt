@@ -74,12 +74,14 @@ target_link_libraries (test-io dmlitecommon dmlite cppunit dl)
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmlitecommon dmlite cppunit dl)
 
+Add_executable        (test-memcache test-memcache.cpp test-base.cpp)
+target_link_libraries (test-memcache dmlitecommon dmlite cppunit dl)
 # Configure CTest testing
 ENABLE_TESTING()
 
 # Set Test Parameters
-#set (CONFIG MemcacheNsMySql.conf)
-set (CONFIG NsMySql.conf)
+set (CONFIG MemcacheNsMySql.conf)
+#set (CONFIG NsMySql.conf)
 set (FSCONFIG DpmAdapter.conf)
 set (PLUGIN plugin_adapter_dpm)
 set (PLUGIN_SO ../plugins/adapter/plugin_adapter.so)

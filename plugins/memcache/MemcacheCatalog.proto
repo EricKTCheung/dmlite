@@ -38,12 +38,14 @@ message SerialComment {
 }
 
 message SerialKeyList {
-  repeated SerialKey key = 1;
+  optional bool iscomplete = 1;
+  optional int64 mtime = 3;
+  repeated SerialKey key = 2;
 }
 
 message SerialKey {
   required string key = 1;
-  required bool white = 2 [default = true]; 
+  optional bool white = 2 [default = true]; 
 }
 
 message SerialFileReplica {

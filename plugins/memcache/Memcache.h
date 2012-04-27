@@ -17,6 +17,34 @@
 namespace dmlite {
 
 #define DEFAULT_MEMCACHED_EXPIRATION 60
+#define SHORT_MEMCACHED_EXPIRATION 5
+
+#define DIR_NOTCACHED 0
+#define DIR_NOTCOMPLETE 1
+#define DIR_CACHED 2
+
+#define DEL_DIRLIST true
+#define KEEP_DIRLIST false
+
+struct MemcacheDir {
+  uint64_t      dirId;
+  ExtendedStat  current;
+  struct dirent ds;
+
+  std::vector<std::string> keys;
+  int                      keysPntr; 
+};
+
+class MemcacheException: public DmException {
+public:
+  MemcacheException(memcached_return rc, memcached_st *conn)
+  {
+    this->errorCode_ = (int) rc;
+    this->errorMsg_ = std::string(memcached_strerror(conn, rc));
+  };
+protected:
+private:
+};
 
 /// Memcache plugin
 class MemcacheCatalog: public DummyCatalog {
@@ -27,7 +55,8 @@ public:
   MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 									Catalog* decorates,
 									unsigned int symLinkLimit,
-									time_t memcachedExpirationLimit)
+									time_t memcachedExpirationLimit,
+                  bool memcachedStrict)
 											throw (DmException);
 
   /// Destructor
@@ -66,7 +95,12 @@ public:
 
   // missing put functions 
 
-  // missing openDir, closeDir and readDir
+  Directory* openDir (const std::string&) throw (DmException);
+  void       closeDir(Directory*)         throw (DmException);
+
+  struct dirent* readDir (Directory*) throw (DmException);
+  ExtendedStat*  readDirx(Directory*) throw (DmException);
+
 
   void changeMode     (const std::string&, mode_t)       throw (DmException);
   void changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
@@ -75,12 +109,12 @@ public:
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
-//  void utime(ino_t, const struct utimbuf*)              throw (DmException);
+  void utime(ino_t, const struct utimbuf*)              throw (DmException);
   
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
 
-//  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
+  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
   
   void makeDir  (const std::string&, mode_t) throw (DmException);
   void removeDir(const std::string&) throw (DmException);
@@ -144,10 +178,22 @@ private:
   /// The keys can be either 'white' items or
   /// 'black' items. The black items form a blacklist which
   /// should be considered when deserializing the list.
-  /// @param keyList The list of keys.
-  /// @param isWhite. 
+  /// @param keyList      The list of keys.
+  /// @param isWhite      Marks all elements of the list. 
+  /// @param isComplete.  Is the list complete or still being extended. 
   /// @return The serialized object.
-  std::string serializeList(std::vector<std::string>& keyList, const bool isWhite = true);
+  std::string serializeList(std::vector<std::string>& keyList, const bool isWhite = true, const bool isComplete = false);
+
+  /// Serialize a list of keys (strings) into a string.
+  /// The keys can be either 'white' items or
+  /// 'black' items. The black items form a blacklist which
+  /// should be considered when deserializing the list.
+  /// @param keyList      The list of keys.
+  /// @param isWhite      Marks all elements of the list. 
+  /// @param isComplete   Is the list complete or still being extended. 
+  /// @param mtime        Marks the last modification to the directory.
+  /// @return The serialized object.
+  std::string serializeDirList(std::vector<std::string>& keyList, const time_t mtime, const bool isWhite = true, const bool isComplete = false);
  
   /// Deserialize a list of keys.
   /// This function does not take blacklisted items
@@ -155,6 +201,26 @@ private:
   /// @param serialList The serialized List as string.
   /// @return           The List.
   std::vector<std::string> deserializeList(std::string& serialList);
+
+  /// Deserialize a list of keys.
+  /// This function returns the isComplete bit of the list.
+  /// It does not take blacklisted items into consideration.
+  /// @param serialList The serialized List as string.
+  /// @param keyList    The List to write the result into.
+  /// @param mtime      Marks the last modification to the directory.
+  /// @return           The isComplete value.
+  int deserializeDirList(std::string& serialList,
+                         std::vector<std::string> &keyList,
+                         time_t &mtime);
+
+  /// Deserialize a list of keys.
+  /// This function returns the isComplete bit of the list.
+  /// It does not take blacklisted items into consideration.
+  /// @param serialList The serialized List as string.
+  /// @param keyList    The List to write the result into.
+  /// @return           The isComplete value.
+  int deserializeList(std::string& serialList,
+                                      std::vector<std::string> &keyList);
 
   /// Deserialize a list of keys.
   /// This function takes blacklisted item into account
@@ -201,7 +267,7 @@ private:
 	/// @param parent inode of parent.
 	/// @param name   file/dir/link name-string.
 	/// @return				The key as string.
-	const std::string keyFromAny(const char* preKey, uint64_t parent, const std::string& name);
+	const std::string keyFromAny(const char* preKey, ino_t parent, const std::string& name);
 
 	/// Return the value to a given key from memcached.
 	/// @param key   The memcached key as string.
@@ -213,6 +279,7 @@ private:
 	/// @return      The value from memcached.
   const std::string getValFromMemcachedVersionedKey(const std::string key);
   
+  const std::string getDListValFromMemcachedKey(const std::string key);
   /// Return a list from memcached.
   /// This function returns a vector with the elements still
   /// serialized in it.
@@ -224,10 +291,15 @@ private:
   /// It uses memcached_append() to add the element,
   /// so it does not have to download the list from
   /// memcached.
-  /// @param listKey  The key of the list.
-  /// @param key      The key to add.  
-  void addToListFromMemcachedKey(const std::string& listKey, const std::string& key);
+  /// This function allows deletions from the list by
+  /// using the isWhite value to append a blacklist item.
+  /// @param listKey     The key of the list.
+  /// @param key         The key to add.  
+  /// @param isWhite     Marks the element a white- or blacklisted. 
+  /// @param isComplete  Marks if the list is complete.
+  void addToListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
 
+  void addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
   /// Remove an item from a list on memcached.
   /// This function removes an element by adding it to
   /// the list's blacklist. Like addToListFromMemcachedKey
@@ -236,6 +308,24 @@ private:
   /// @param key      The key to remove.
   void removeListItemFromMemcachedKey(const std::string& listKey, std::string& key);
 
+  /// Fetch an ExtendedStat from memcached and store it in a Directory.
+  /// Fetches a value from memcached and stores the result
+  /// in the provided MemcacheDir* structure.
+  /// @param dirp     The MemcacheDir pointer.
+  /// @return         A pointer to the ExtendedStat.
+  ExtendedStat* fetchExtendedStatFromMemcached(MemcacheDir *dirp) 
+                            throw (DmException);
+
+  /// Fetch an ExtendedStat from a delegate and store it in a Directory.
+  /// Fetches a value from a delegate plugin and stores the result
+  /// in the provided MemcacheDir* structure.
+  /// The second parameter specifies i f the results should be also
+  /// stored on memcached.
+  /// @param dirp         The MemcacheDir pointer.
+  /// @param saveToMemc   The switch, if the value should be cached.
+  /// @return             A pointer to the ExtendedStat.
+  ExtendedStat* fetchExtendedStatFromDelegate(MemcacheDir *dirp, const bool saveToMemc) 
+                            throw (DmException);
   /// Retrieve a list of values from a list of keys.
   /// The function uses memcached_mget to get several
   /// keys in one memcached bulk access.
@@ -261,39 +351,46 @@ private:
 	void setMemcachedFromKeyValue(const std::string key,
 																						 const std::string value);
 
+  int setMemcachedDListFromKeyValue(const std::string key, const std::string value);
+  /// Delete a versioned key from memcached.
+  /// This function actually only increases the version number
+  /// of the item. Nothing gets deleted.
+	/// @param key   The memcached key as string.
   void delMemcachedFromVersionedKey(const std::string key);
+
 	/// Delete a key,value pair on memcached.
 	/// @param key   The memcached key as string.
 	void delMemcachedFromKey(const std::string key);
 
+  void delMemcachedFromDListKey(const std::string key);
 	/// Get the parent of a directory.
 	/// @param The path to split.
 	/// @return The parent path as string.
 	std::string getParent(const std::string& path) throw (DmException);
 
-  /// Get the parent of a directory.
-  /// @param path       The path to split.
-  /// @param parentPath Where to put the parent path.
-  /// @param name       Where to put the file name (stripping last /).
-  /// @return           The parent metadata.
-  ExtendedStat getParent(const std::string& path, std::string* parentPath,
-                         std::string* name) throw (DmException);
-
 	/// Remove cached entries related to path.
-	/// @param preKey			key prefix string.
-	/// @param path 			path as string.
-	void delMemcachedFromPath(const char* preKey, const std::string& path);
+	/// @param path 	    		The path as string.
+  /// @param removeDirEntry Flag if the dir list should also be deleted.
+	void delMemcachedFromPath(const std::string& path,
+                            const bool removeDirEntry = true);
 
+  int atoi(char *text, size_t length);
+  std::string toString(int i);
   /// Symlink limit
   unsigned int symLinkLimit_;
 
 	/// The expiration limit for cached data on memcached in seconds.
 	time_t memcachedExpirationLimit_;
+
+  /// The config parameter to specify desired consistency.
+  bool memcachedStrict_;
 };
 
 class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
 public:
-  MemcacheConnectionFactory(std::vector<std::string> hosts);
+  MemcacheConnectionFactory(std::vector<std::string> hosts,
+                            std::string protocol,
+                            std::string dist);
   ~MemcacheConnectionFactory();
 
   memcached_st* create();
@@ -303,6 +400,11 @@ public:
 	// Attributes
   std::vector<std::string>  hosts;
 
+  /// The memcached protocol (binary/ascii) to use.
+  std::string protocol;
+
+  /// The hash distribution algorithm
+  std::string dist;
 protected:
 private:
 };
@@ -333,6 +435,9 @@ protected:
 
 	/// The expiration limit for cached data on memcached in seconds.
 	unsigned int memcachedExpirationLimit_;
+
+  /// The config parameter to specify desired consistency.
+  bool memcachedStrict_;
 private:
 };
 
