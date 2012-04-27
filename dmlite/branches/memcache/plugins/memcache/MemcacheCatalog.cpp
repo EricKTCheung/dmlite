@@ -18,7 +18,8 @@ enum {
   PRE_REPL_LIST,
   PRE_REPL_BLACK_LIST,
   PRE_LINK,
-  PRE_COMMENT
+  PRE_COMMENT,
+  PRE_DIR
 };
 
 /// Used internally to define Key Prefixes.
@@ -29,7 +30,8 @@ static const char* key_prefix[] = {
   "RPLI",
   "RPBL",
   "LINK",
-  "CMNT"
+  "CMNT",
+  "DIR"
 };
 
 /// Little of help here to avoid redundancy
@@ -52,15 +54,27 @@ if (this->decorated_ == 0x00)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 var = this->decorated_->method(__VA_ARGS__);
 
+// encodes the isCached variable into the direcotry inode 
+// the value is encoded in the last two bits of the integer
+#define ENCODE_DIRCACHED(dir, isCached) \
+dir->dirId = (dir->dirId << 2) + isCached;
+
+// takes the isCached value from the encoded one and
+// resets the directory inode to its true value
+#define DECODE_DIRCACHED(dir, isCached) \
+isCached = (dirp->dirId & 3); \
+dirp->dirId = (dirp->dirId >> 2);
+
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool, 
 																 Catalog* decorates,
 																 unsigned int symLinkLimit,
-																 time_t memcachedExpirationLimit) throw (DmException):
+																 time_t memcachedExpirationLimit,
+                                 bool memcachedStrict) throw (DmException):
    DummyCatalog(decorates),
 	 symLinkLimit_(symLinkLimit),
-//	 cwd_(0), 
-	 memcachedExpirationLimit_(memcachedExpirationLimit)
+	 memcachedExpirationLimit_(memcachedExpirationLimit),
+   memcachedStrict_(memcachedStrict)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -72,15 +86,6 @@ MemcacheCatalog::~MemcacheCatalog() throw (DmException)
 {
   this->connectionPool_->release(this->conn_);
 }
-
-/*void MemcacheCatalog::setUserId(uid_t uid, gid_t gid, const std::string& dn) throw (DmException)
-{
-	DELEGATE(setUserId, uid, gid, dn);
-
-	DELEGATE_ASSIGN(this->user_, getUser, uid);
-	DELEGATE_ASSIGN(this->group_, getGroup, gid);
-  this->groups_.clear();
-}*/
 
 std::string MemcacheCatalog::serialize(const ExtendedStat& var)
 {
@@ -209,7 +214,7 @@ void MemcacheCatalog::deserializeComment(std::string& serial_str,
   var = seComment.comment();
 }
 
-std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, const bool isWhite)
+std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, const bool isWhite, const bool isComplete)
 {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -226,6 +231,35 @@ std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, co
     pntKey->set_key(*itKeyList);
     pntKey->set_white(isWhite);
   }
+
+  list.set_iscomplete(isComplete);
+
+  serialList = list.SerializeAsString();
+//  list.PrintDebugString();
+
+  return serialList;
+}
+
+std::string MemcacheCatalog::serializeDirList(std::vector<std::string>& keyList, const time_t mtime, const bool isWhite, const bool isComplete)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialKey* pntKey;
+  SerialKeyList list;
+  std::string serialList;
+  std::vector<std::string>::iterator itKeyList;
+
+  for (itKeyList = keyList.begin();
+       itKeyList != keyList.end();
+       itKeyList++)
+  {
+    pntKey = list.add_key(); 
+    pntKey->set_key(*itKeyList);
+    pntKey->set_white(isWhite);
+  }
+
+  list.set_iscomplete(isComplete);
+  list.set_mtime(mtime);
 
   serialList = list.SerializeAsString();
 //  list.PrintDebugString();
@@ -250,6 +284,53 @@ std::vector<std::string> MemcacheCatalog::deserializeList(std::string& serialLis
 //  list.PrintDebugString();
   return keyList;
 }
+
+int MemcacheCatalog::deserializeList(std::string& serialList,
+                                     std::vector<std::string>& keyList)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialKey key;
+  SerialKeyList list;
+  list.ParseFromString(serialList);
+
+  for (int i = 0; i < list.key_size(); i++) 
+  {
+    key = list.key(i);
+    keyList.push_back(key.key());
+  }
+//  list.PrintDebugString();
+  if (list.iscomplete())
+    return DIR_CACHED;
+  else
+    return DIR_NOTCOMPLETE;
+}
+
+int MemcacheCatalog::deserializeDirList(std::string& serialList,
+                                      std::vector<std::string>& keyList,
+                                      time_t& mtime)
+{
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  SerialKey key;
+  SerialKeyList list;
+  list.ParseFromString(serialList);
+
+  for (int i = 0; i < list.key_size(); i++) 
+  {
+    key = list.key(i);
+    keyList.push_back(key.key());
+  }
+  
+  mtime = list.mtime();
+
+//  list.PrintDebugString();
+  if (list.iscomplete())
+    return DIR_CACHED;
+  else
+    return DIR_NOTCOMPLETE;
+}
+
 
 std::vector<std::string> MemcacheCatalog::deserializeBlackList(std::string& serialList)
 {
@@ -345,7 +426,6 @@ void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmExceptio
 {
   throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
 }
-
 
 
 SecurityContext* MemcacheCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
@@ -445,7 +525,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 {
   ExtendedStat meta; 
 
@@ -455,7 +535,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
 
 	const std::string key = keyFromAny(key_prefix[PRE_STAT], fileId); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+	valMemc = getValFromMemcachedKey(key);
 	if (!valMemc.empty())
 	{
 		deserialize(valMemc, meta);
@@ -463,13 +543,13 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, fileId);
 		valMemc = serialize(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+		setMemcachedFromKeyValue(key, valMemc);
 	}
 
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& name) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
 {
   ExtendedStat meta;
 
@@ -479,7 +559,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 
 	const std::string key = keyFromAny(key_prefix[PRE_STAT], parent, name);
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+	valMemc = getValFromMemcachedKey(key);
 	if (!valMemc.empty())
 	{
 		deserialize(valMemc, meta);
@@ -487,7 +567,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& n
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, parent, name);
 		valMemc = serialize(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+		setMemcachedFromKeyValue(key, valMemc);
 	}
 
   return meta;
@@ -503,7 +583,7 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 
 	const std::string key = keyFromAny(key_prefix[PRE_LINK], linkId); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+	valMemc = getValFromMemcachedKey(key);
 	if (!valMemc.empty())
 	{
 		deserializeLink(valMemc, meta);
@@ -511,7 +591,7 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 	{
 		DELEGATE_ASSIGN(meta, readLink, linkId);
 		valMemc = serializeLink(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+		setMemcachedFromKeyValue(key, valMemc);
 	}
 
   return meta;
@@ -519,84 +599,278 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 
 void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path);
 	DELEGATE(removeDir, path);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
+	delMemcachedFromPath(getParent(path));
 }
 
 void MemcacheCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
 	DELEGATE(symlink, oldPath, newPath);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(oldPath));
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(newPath));
+	delMemcachedFromPath(getParent(oldPath));
+	delMemcachedFromPath(getParent(newPath));
 }
 
 void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
 {
- 	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+ 	delMemcachedFromPath(path);
 	DELEGATE(unlink, path);
- 	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));  
+ 	delMemcachedFromPath(getParent(path));  
 }
 
 void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
 	DELEGATE(rename, oldPath, newPath);
-	delMemcachedFromPath(key_prefix[PRE_STAT], oldPath);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(oldPath));
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(newPath));
+	delMemcachedFromPath(oldPath);
+	delMemcachedFromPath(getParent(oldPath));
+	delMemcachedFromPath(getParent(newPath));
 }
 
 void MemcacheCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
 {
 	DELEGATE(makeDir, path, mode);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
+	delMemcachedFromPath(getParent(path));
 }
 
 void MemcacheCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
 	DELEGATE(create, path, mode);
-	delMemcachedFromPath(key_prefix[PRE_STAT], getParent(path));
+	delMemcachedFromPath(getParent(path));
+}
+
+Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
+{
+/*
+  There are two variations of the openDir, readDirx methods.
+  The first one works as is, the second one would be favourable, but
+  does not work. It wants to use memcached_fetch like mysql_fetch,
+  but the memcached_fetch returns all values at once, so you cannot
+  get items in separate function calls.
+  If that behaviour seems possible at some time, the code still there to
+  be used. It is commented out with //+
+  */
+  Directory    *dir, *remote_dir; 
+  MemcacheDir  *local_dir;
+  ExtendedStat meta;
+  std::string  valMemc;
+  std::vector<std::string> keyList;
+  uint32_t     isCached;
+  time_t       mtime; 
+
+  if (this->memcachedStrict_)
+  {
+    // Get the dir stat from a delegate to compare the utimes 
+    DELEGATE_ASSIGN(meta, extendedStat, path);
+  } else
+  {
+    // Get the directory
+    meta = this->extendedStat(path);
+  }
+
+  // Can we read it?
+  if (checkPermissions(&this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
+
+  // Create new accessed time for the directory 
+  struct utimbuf tim;
+  tim.actime  = time(NULL);
+  tim.modtime = meta.stat.st_mtime;
+  // Touch
+  this->utime(meta.stat.st_ino, &tim);
+
+
+  // Create the handle
+  local_dir = new MemcacheDir();
+  local_dir->dirId = meta.stat.st_ino;
+  
+  const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                         local_dir->dirId);
+
+  valMemc = getDListValFromMemcachedKey(listKey);
+
+  if (!valMemc.empty())
+  {
+    isCached = deserializeDirList(valMemc, keyList, mtime);
+    if (mtime < meta.stat.st_mtime)
+    {
+      delMemcachedFromKey(listKey);
+      isCached = DIR_NOTCACHED;
+    }
+    if (isCached == DIR_CACHED)
+    { 
+//+      multiGetFromMemcachedByKeys(keyList);
+      local_dir->keys = keyList;
+      local_dir->keysPntr = 0;
+      dir = local_dir;
+    } 
+  } else
+  {
+    isCached = DIR_NOTCACHED;
+  }
+  if (isCached == DIR_NOTCACHED ||
+      isCached == DIR_NOTCOMPLETE)
+  {
+    delete local_dir;
+    DELEGATE_ASSIGN(remote_dir, openDir, path);
+    dir = remote_dir;
+  }
+  if (isCached == DIR_NOTCACHED)
+  {
+    // create an empty list with 'white' elements, which is not complete
+    std::vector<std::string> empty;
+    valMemc = serializeDirList(empty, tim.modtime, true, false);
+    try 
+    {
+      setMemcachedDListFromKeyValue(listKey, valMemc);
+    } catch (...)
+    {
+      delete local_dir;
+      throw;
+    }
+  }
+
+  // encode the isCached value
+  local_dir = (MemcacheDir *) dir;
+  ENCODE_DIRCACHED(local_dir, isCached);
+  dir = local_dir;
+
+  return dir;
+}
+
+void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
+{
+  MemcacheDir *dirp;
+  uint32_t isCached;
+  dirp = (MemcacheDir *) dir;
+  DECODE_DIRCACHED(dirp, isCached);
+
+  if (isCached == DIR_NOTCACHED ||
+      isCached == DIR_NOTCOMPLETE)
+  {
+    DELEGATE(closeDir, dir);
+  } else
+  {
+//+    if (dirp->keysPntr < dirp->keys.size())
+//+      memcached_quit(this->conn_);
+
+    delete dirp;
+  }
+}
+
+struct dirent* MemcacheCatalog::readDir(Directory* dir) throw(DmException)
+{
+  if (this->readDirx(dir) == 0)
+    return 0x00;
+  else
+    return &(((MemcacheDir*)dir)->ds);
+}
+
+
+
+ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
+{
+  MemcacheDir *dirp;
+  ExtendedStat *meta;
+  uint32_t isCached;
+
+  if (dir == 0x00)
+    throw DmException(DM_NULL_POINTER, "Tried to read a null dir");
+
+  dirp = (MemcacheDir*)dir;
+  DECODE_DIRCACHED(dirp, isCached);
+
+  switch (isCached)
+  {
+    case DIR_NOTCACHED:
+      meta = this->fetchExtendedStatFromDelegate(dirp, true);
+      break;
+    case DIR_NOTCOMPLETE:
+      meta = this->fetchExtendedStatFromDelegate(dirp, false);    
+      break;
+    case DIR_CACHED:
+      meta = this->fetchExtendedStatFromMemcached(dirp);
+  }
+  // if an entry could be fetched ...
+  if (meta != 0x00) {
+    if (isCached == DIR_CACHED)
+    {
+      // copy the stat info into the dirent and touch 
+      // only if not already done by the delegate plugin
+      memset(&dirp->ds, 0x00, sizeof(struct dirent));
+      dirp->ds.d_ino  = dirp->current.stat.st_ino;
+      strncpy(dirp->ds.d_name,
+              dirp->current.name,
+              sizeof(dirp->ds.d_name));
+
+      if (this->memcachedStrict_)
+      {
+        // Touch
+        struct utimbuf tim;
+        tim.actime  = time(NULL);
+        tim.modtime = dirp->current.stat.st_mtime;
+        this->utime(dirp->dirId, &tim);
+      }
+    }
+
+    ENCODE_DIRCACHED(dirp, isCached);
+
+    return &dirp->current;
+  }
+  else {
+    // mark the file list in Memcached as complete
+    std::string valMemc;
+    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                           dirp->dirId);
+
+    // append an empty list with 'white' elements, which is complete
+    // to mark the lsit as complete
+    addToDListFromMemcachedKey(listKey, std::string(), true, true);
+
+    ENCODE_DIRCACHED(dirp, isCached);
+    
+    return 0x00;
+  }
 }
 
 void MemcacheCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
 {
 	DELEGATE(changeMode, path, mode);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
 
 void MemcacheCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
 	DELEGATE(changeOwner, path, newUid, newGid);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
 
 void MemcacheCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid)
   throw (DmException)
 {
 	DELEGATE(linkChangeOwner, path, newUid, newGid);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
 
 void MemcacheCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   DELEGATE(setAcl, path, acls);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
 
 void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
   DELEGATE(utime, path, buf);
-  delMemcachedFromPath(key_prefix[PRE_STAT], path);
+  delMemcachedFromPath(path, KEEP_DIRLIST);
 }
-/*
+
 void MemcacheCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
 {
   DELEGATE(utime, inode, buf);
   const std::string key = keyFromAny(key_prefix[PRE_STAT], inode);
   delMemcachedFromKey(key);
 }
-*/
+
 std::string MemcacheCatalog::getComment(const std::string& path) throw(DmException)
 {
   // Get the file and check we can read
@@ -611,7 +885,7 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
 
 	const std::string key = keyFromAny(key_prefix[PRE_COMMENT], meta.stat.st_ino); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+	valMemc = getValFromMemcachedKey(key);
 	if (!valMemc.empty())
 	{
 		deserializeComment(valMemc, comment);
@@ -619,7 +893,7 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
 	{
 		DELEGATE_ASSIGN(comment, getComment, path);
 		valMemc = serializeComment(comment);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+		setMemcachedFromKeyValue(key, valMemc);
 	}
   return comment;
 }
@@ -627,15 +901,19 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
 void MemcacheCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   DELEGATE(setComment, path, comment);
-	delMemcachedFromPath(key_prefix[PRE_COMMENT], path);
+  ExtendedStat meta = this->extendedStat(path);
+  const std::string key = keyFromAny(key_prefix[PRE_COMMENT],
+                                     meta.stat.st_ino);
+	delMemcachedFromKey(key);
 }
-/*
+
 void MemcacheCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   DELEGATE(setGuid, path, guid);
-	delMemcachedFromPath(key_prefix[PRE_STAT], path);
+	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
-*/
+
+
 void MemcacheCatalog::addReplica(const std::string& guid, int64_t id,
                                  const std::string& server, const std::string& sfn,
                                  char status, char fileType,
@@ -720,14 +998,52 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, i
 
 Uri MemcacheCatalog::get(const std::string& path) throw(DmException)
 {
-  // Get all the replicas
-  std::vector<FileReplica> replicas = this->getReplicas(path);
+  std::vector<std::string> vecValMemc;
+  FileReplica repl;
+  ExtendedStat  meta;
+  ino_t inode;
 
-  // Pick a random one
-  int i = rand() % replicas.size();
+  // Need to grab the file first
+  meta = this->extendedStat(path, true);
+  inode = meta.stat.st_ino;
+
+  // The file exists, plus we have permissions to go there. Check we can read
+  if (checkPermissions(&this->secCtx_,
+                       meta.acl, meta.stat, S_IREAD) != 0)
+    throw DmException(DM_FORBIDDEN,
+                   "Not enough permissions to read " + path);
+
+
+  // get replica list from memcached
+  const std::string listKey = keyFromAny(key_prefix[PRE_REPL_LIST],
+                                         inode);
+
+  vecValMemc = getListFromMemcachedKey(listKey);
+
+	if (vecValMemc.size() > 0)
+	{
+    // Pick a random one
+    int i = rand() % vecValMemc.size();
+
+    repl = deserializeFileReplica(vecValMemc[i]);
+  } else
+  {
+    std::vector<FileReplica> replicas;
+
+    // otherwise, get replicas from mysql
+    DELEGATE_ASSIGN(replicas, getReplicas, path);
+
+    // save replicas in memcached
+    setMemcachedFromReplicas(replicas, inode);
+
+    // Pick a random one
+    int i = rand() % replicas.size();
+
+    repl = replicas[i];
+  } 
 
   // Copy
-  return dmlite::splitUri(replicas[i].url);
+  return dmlite::splitUri(repl.url);
 }
 
 void MemcacheCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
@@ -789,41 +1105,6 @@ std::string MemcacheCatalog::getParent(const std::string& path)
   else
     return std::string("/");
 }
-	
-ExtendedStat MemcacheCatalog::getParent(const std::string& path,
-                                        std::string* parentPath,
-                                        std::string* name)
-                                        throw (DmException)
-{
-	std::string cwdPath;
-  DELEGATE_ASSIGN(cwdPath, getWorkingDir); 
-	ino_t cwd;
-  DELEGATE_ASSIGN(cwd, getWorkingDirI); 
-
-	std::list<std::string> components = splitPath(path);
-
-  parentPath->clear();
-  name->clear();
-
-  // Build parent (this is, skipping last one)
-  while (components.size() > 1) {
-    *parentPath += components.front() + "/";
-    components.pop_front();
-  }
-  if (path[0] == '/')
-    *parentPath = "/" + *parentPath;
-
-  *name = components.front();
-  components.pop_front();
-
-  // Get the files now
-  if (!parentPath->empty())
-    return this->extendedStat(*parentPath);
-  else if (!cwdPath.empty())
-    return this->extendedStat(cwd);
-  else
-    return this->extendedStat("/");
-}
 
 const std::string MemcacheCatalog::versionedKeyFromAny(uint64_t version,
                                                     const std::string key)
@@ -847,7 +1128,7 @@ const std::string MemcacheCatalog::keyFromAny(const char* preKey,
 }
  
 const std::string MemcacheCatalog::keyFromAny(const char* preKey,
-																							uint64_t parent,
+																							ino_t parent,
 																							const std::string& name)
 {
 	std::stringstream streamKey;
@@ -934,14 +1215,12 @@ const std::string MemcacheCatalog::getValFromMemcachedKey(const std::string key)
 	if (statMemc != MEMCACHED_SUCCESS &&
 			statMemc != MEMCACHED_NOTFOUND)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 
 	if (lenValue > 0)
 	{
-		valMemcStr.assign(valMemc, lenValue);
+   	valMemcStr.assign(valMemc, lenValue);
 	}
 	return valMemcStr;
 }
@@ -971,9 +1250,7 @@ const std::string MemcacheCatalog::getValFromMemcachedVersionedKey(const std::st
 	{
     if (statMemc != MEMCACHED_NOTFOUND)
     {
-  	  throw DmException(DM_UNKNOWN_ERROR,
-	    								std::string(memcached_strerror(this->conn_,
-		    																						 statMemc)));
+  	  throw MemcacheException(statMemc, this->conn_);
     }
   } else // retrieve value 
   {
@@ -989,9 +1266,7 @@ const std::string MemcacheCatalog::getValFromMemcachedVersionedKey(const std::st
 	  if (statMemc != MEMCACHED_SUCCESS &&
 		  	statMemc != MEMCACHED_NOTFOUND)
 	  {
-		  throw DmException(DM_UNKNOWN_ERROR,
-			  								std::string(memcached_strerror(this->conn_,
-				  																						 statMemc)));
+  	  throw MemcacheException(statMemc, this->conn_);
 	  }
 
 	  if (lenValue > 0)
@@ -1000,6 +1275,63 @@ const std::string MemcacheCatalog::getValFromMemcachedVersionedKey(const std::st
 	  }
   }
 	return valMemcStr;
+}
+
+const std::string MemcacheCatalog::getDListValFromMemcachedKey(const std::string key)
+{
+	memcached_return statMemc;
+	size_t lenValue;
+	uint32_t flags;
+	char* valMemc;
+  int noSegments;
+  std::string segmentKey;
+	std::string valMemcStr;
+	std::string valMemcSegmentStr;
+
+	valMemc = memcached_get(this->conn_,
+													 key.data(),
+													 key.length(),
+													 &lenValue,
+													 &flags,
+													 &statMemc);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTFOUND)
+	{
+  	throw MemcacheException(statMemc, this->conn_);
+	}
+
+  if (statMemc == MEMCACHED_SUCCESS)
+  {
+    noSegments = this->atoi(valMemc, lenValue);
+  
+    for (int i = 0; i < noSegments; i++)
+    {
+      segmentKey = key + ":" + this->toString(i);
+      printf("getting the segment no %d.\n", i);
+      valMemcSegmentStr = getValFromMemcachedKey(segmentKey);
+      printf("gotten the segment no %d.\n", i);
+      if (valMemcSegmentStr.length() == 0)
+      {
+        valMemcStr.clear();
+      }
+      valMemcStr.append(valMemcSegmentStr);
+    }
+  }
+	return valMemcStr;
+}
+
+int MemcacheCatalog::atoi(char *text, size_t length)
+{
+  std::string num(text, length);
+  return std::atoi(num.c_str());
+}
+
+std::string MemcacheCatalog::toString(int i)
+{
+  std::stringstream ss;
+  ss << i;
+  return ss.str();
 }
 
 std::vector<std::string> 
@@ -1016,7 +1348,8 @@ std::vector<std::string>
   // get size needed for keys, create key_length 
   // memcpy keys
   size_t keys_size = 0;
-  for (int i = 0; i < keyList.size(); i++)
+  unsigned int i;
+  for (i = 0; i < keyList.size(); i++)
   {
     key_length[i] = keyList[i].size();
     keys_size += keyList[i].size();
@@ -1034,12 +1367,10 @@ std::vector<std::string>
 
 	if (statMemc != MEMCACHED_SUCCESS)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 
-  for (int i = 0; i < keyList.size(); i++)
+  for (i = 0; i < keyList.size(); i++)
   {
     free(keys[i]);
   }
@@ -1048,24 +1379,21 @@ std::vector<std::string>
 
   char return_key[MEMCACHED_MAX_KEY];
   size_t return_key_length;
-  char *return_value;
   size_t lenValue;
 	uint32_t flags;
 	std::string valMemcStr;
   std::set<std::string> foundKeys;
 
-  while (valMemc = memcached_fetch(this->conn_,
+  while ((valMemc = memcached_fetch(this->conn_,
                                    return_key,
                                    &return_key_length,
                                    &lenValue,
                                    &flags,
-                                   &statMemc))
+                                   &statMemc)))
   {
 	  if (statMemc != MEMCACHED_SUCCESS)
 	  {
-		  throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	  throw MemcacheException(statMemc, this->conn_);
 	  } else
     {
 		  valMemcStr.assign(valMemc, lenValue);
@@ -1083,6 +1411,103 @@ std::vector<std::string>
   return vecValMemc;
 }
 
+ExtendedStat* MemcacheCatalog::fetchExtendedStatFromMemcached(MemcacheDir *dirp)
+                            throw (DmException)
+{
+  if (dirp->keysPntr >= dirp->keys.size())
+    return 0x00;
+
+  ExtendedStat meta;
+  ExtendedStat *return_meta;
+  memcached_return statMemc;
+	char *valMemc;
+
+  char return_key[MEMCACHED_MAX_KEY+1];
+  size_t return_key_length = 0;
+  char *return_value;
+  size_t lenValue;
+	uint32_t flags;
+	std::string valMemcStr;
+
+  memset(&meta, 0x00, sizeof(ExtendedStat));
+
+  valMemc = memcached_get(this->conn_,
+                          dirp->keys[dirp->keysPntr].data(),
+                          dirp->keys[dirp->keysPntr].length(),
+                          &lenValue,
+                          &flags,
+                          &statMemc);
+  dirp->keysPntr++;
+
+//+  valMemc = memcached_fetch(this->conn_,
+//+                            return_key,
+//+                            &return_key_length,
+//+                            &lenValue,
+//+                            &flags,
+//+                            &statMemc);
+  
+//+  // make sure the key is null-terminated
+//+  return_key[return_key_length+1] = '\0';
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTFOUND)
+	{
+  		throw MemcacheException(statMemc, this->conn_);
+//		throw DmException(DM_UNKNOWN_ERROR,
+//											std::string(memcached_strerror(this->conn_,
+//																										 statMemc)));
+	}
+  // not found, get it from the DB
+  else if (statMemc == MEMCACHED_NOTFOUND)
+  {
+    DELEGATE_ASSIGN(meta, extendedStat, return_key);
+		valMemcStr = serialize(meta);
+    // add xstat to memcached 
+		setMemcachedFromKeyValue(return_key, valMemcStr);
+    // create directory list entry for the xstat
+    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                           dirp->dirId);
+    addToListFromMemcachedKey(listKey, return_key);
+  } else // MEMCACHED_SUCCESS
+  {
+		valMemcStr.assign(valMemc, lenValue);
+    if (!valMemcStr.empty())
+    {
+  		deserialize(valMemcStr, meta);
+      // copy the extendedStat into dir->current
+      std::memcpy(&(dirp->current), &meta, sizeof(ExtendedStat));
+      return_meta = &(dirp->current);
+    } else
+    {
+      return_meta = 0x00;
+    }
+    free(valMemc);  
+  }
+
+	return return_meta;
+}
+
+ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, const bool saveToMemc)
+                            throw (DmException)
+{
+  std::string valMemcStr;
+  ExtendedStat *meta;
+  DELEGATE_ASSIGN(meta, readDirx, (Directory *) dirp);
+
+  if (meta != 0x00 && saveToMemc)
+  {
+    valMemcStr = serialize(*meta);
+    // add xstat to memcached 
+    const std::string key = keyFromAny(key_prefix[PRE_STAT], 
+                                       meta->stat.st_ino);
+	  setMemcachedFromKeyValue(key, valMemcStr);
+    // create directory list entry for the xstat
+    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                           dirp->dirId);
+    addToDListFromMemcachedKey(listKey, key, true, false);
+  }
+  return meta;
+}
+
 void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
 							  						  const std::string value)
 {
@@ -1096,9 +1521,7 @@ void MemcacheCatalog::setMemcachedFromKeyValue(const std::string key,
 
 	if (statMemc != MEMCACHED_SUCCESS)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 
 	return;
@@ -1145,9 +1568,7 @@ void MemcacheCatalog::setMemcachedFromVersionedKeyValue(const std::string key,
   
 	if (statMemc != MEMCACHED_SUCCESS)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 
   versionedKey = versionedKeyFromAny(version, key);
@@ -1161,12 +1582,49 @@ void MemcacheCatalog::setMemcachedFromVersionedKeyValue(const std::string key,
 
 	if (statMemc != MEMCACHED_SUCCESS)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 
 	return;
+}
+
+int MemcacheCatalog::setMemcachedDListFromKeyValue(const std::string key,
+							  						  const std::string value)
+{
+	memcached_return statMemc;
+
+  std::string strNoSegments("1");
+  statMemc = memcached_add(this->conn_,
+													 key.data(),
+													 key.length(),
+				  								 strNoSegments.data(),
+                           strNoSegments.length(),
+					  							 this->memcachedExpirationLimit_,
+    											 (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+      statMemc != MEMCACHED_NOTSTORED)
+	{
+  	throw MemcacheException(statMemc, this->conn_);
+	}
+  if (statMemc == MEMCACHED_SUCCESS)
+  {
+    const std::string segmentKey = key + ":" + "0";
+
+	  statMemc = memcached_set(this->conn_,
+		  											 segmentKey.data(),
+			  										 segmentKey.length(),
+				  									 value.data(), value.length(),
+					  								 this->memcachedExpirationLimit_,
+  					  							 (uint32_t)0);
+
+  	if (statMemc != MEMCACHED_SUCCESS)
+	  {
+  	  throw MemcacheException(statMemc, this->conn_);
+    }
+	}
+
+	return statMemc;
 }
 
 void MemcacheCatalog::setMemcachedFromReplicas(std::vector<FileReplica> replicas, ino_t inode)
@@ -1198,9 +1656,7 @@ void MemcacheCatalog::delMemcachedFromKey(const std::string key)
 	if (statMemc != MEMCACHED_SUCCESS &&
 			statMemc != MEMCACHED_NOTFOUND)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 }
 
@@ -1219,37 +1675,78 @@ void MemcacheCatalog::delMemcachedFromVersionedKey(const std::string key)
 	if (statMemc != MEMCACHED_SUCCESS &&
 			statMemc != MEMCACHED_NOTFOUND)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
 }
 
-void MemcacheCatalog::delMemcachedFromPath(const char* preKey, const std::string& path)
+void MemcacheCatalog::delMemcachedFromDListKey(const std::string key)
 {
-  std::string name;
-  std::string parentPath;
-  ino_t inode;
-	ExtendedStat parent;
-	std::memset(&parent, 0x00, sizeof(ExtendedStat));
+	memcached_return statMemc;
+	size_t lenValue;
+	uint32_t flags;
+	char* valMemc;
+  int noSegments; 
+  std::string segmentKey;
+	std::string valMemcStr;
 
-	// delete entry cached with inode
+	valMemc = memcached_get(this->conn_,
+													 key.data(),
+													 key.length(),
+													 &lenValue,
+													 &flags,
+													 &statMemc);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTFOUND)
+	{
+  	throw MemcacheException(statMemc, this->conn_);
+	}
+
+  if (statMemc == MEMCACHED_SUCCESS)
+  {
+    noSegments = this->atoi(valMemc, lenValue);
+  
+    for (int i = 0; i < noSegments; i++)
+    {
+      std::string segmentKey = key + ":" + this->toString(i);
+      delMemcachedFromKey(segmentKey);
+    }
+  }
+  delMemcachedFromKey(key);
+}
+
+
+void MemcacheCatalog::delMemcachedFromPath(const std::string& path, bool removeDirEntry)
+{
+  ExtendedStat meta;
+
   try
   {  
-    inode = this->extendedStat(path).stat.st_ino;
+    meta = this->extendedStat(path);
   } catch (DmException e)
   {
     int code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;
   }
-  const std::string key1(keyFromAny(preKey, inode));
-	delMemcachedFromVersionedKey(key1);
+	// delete entry cached with inode
+  const std::string key1(keyFromAny(key_prefix[PRE_STAT],
+                                    meta.stat.st_ino));
+	delMemcachedFromKey(key1);
 
 	// delete entry cached with parent_inode + filename
-	parent = this->getParent(path, &parentPath, &name);
-	const std::string key2(keyFromAny(preKey, parent.stat.st_ino, name));
-	delMemcachedFromVersionedKey(key2);
+	const std::string key2(keyFromAny(key_prefix[PRE_STAT],
+                                    meta.parent,
+                                    meta.name));
+	delMemcachedFromKey(key2);
+
+  // delete the directory list of the parent as well
+  if (removeDirEntry)
+  {
+    const std::string keyDir(keyFromAny(key_prefix[PRE_DIR],
+                                        meta.parent));
+    delMemcachedFromDListKey(keyDir);
+  }
 }
 
 std::vector<std::string> MemcacheCatalog::getListFromMemcachedKey(const std::string& listKey)
@@ -1273,15 +1770,16 @@ std::vector<std::string> MemcacheCatalog::getListFromMemcachedKey(const std::str
   return vecValMemc;
 }
 
-void MemcacheCatalog::addToListFromMemcachedKey(const std::string& listKey, const std::string& key)
+void MemcacheCatalog::addToListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite, const bool isComplete)
 {
 	memcached_return statMemc;
   uint64_t version;
   std::string serialKey;
 
   std::vector<std::string> keyList;
-  keyList.push_back(key);
-  serialKey = serializeList(keyList);
+  if (!key.empty())
+    keyList.push_back(key);
+  serialKey = serializeList(keyList, isWhite, isComplete);
 
   statMemc = 
       memcached_append(this->conn_,
@@ -1293,38 +1791,91 @@ void MemcacheCatalog::addToListFromMemcachedKey(const std::string& listKey, cons
                        (uint32_t)0);
 
 	if (statMemc != MEMCACHED_SUCCESS &&
-			statMemc != MEMCACHED_NOTSTORED)
+      // NOTSTORED applies when the key is not present, but also
+      // when no space is left to append.
+      statMemc != MEMCACHED_NOTSTORED &&
+      statMemc != MEMCACHED_PROTOCOL_ERROR)
 	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
+  	throw MemcacheException(statMemc, this->conn_);
 	}
+}
+
+void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite, const bool isComplete)
+{
+	memcached_return statMemc;
+	size_t lenValue;
+	uint32_t flags;
+	char* valMemc;
+  int noSegments; 
+  uint64_t noSegmentsIncremented;
+  std::string segmentKey;
+  std::string serialKey;
+
+  std::vector<std::string> keyList;
+  if (!key.empty())
+    keyList.push_back(key);
+  serialKey = serializeList(keyList, isWhite, isComplete);
+
+	valMemc = memcached_get(this->conn_,
+													 listKey.data(),
+													 listKey.length(),
+													 &lenValue,
+													 &flags,
+													 &statMemc);
+
+  if (statMemc == MEMCACHED_SUCCESS)
+  {
+    noSegments = this->atoi(valMemc, lenValue);
+    segmentKey = listKey + ":" + this->toString(noSegments-1);
+
+    statMemc = 
+        memcached_append(this->conn_,
+                         segmentKey.data(),
+                         segmentKey.length(),
+                         serialKey.data(),
+                         serialKey.length(),
+                         this->memcachedExpirationLimit_, 
+                         (uint32_t)0);
+
+  	if (statMemc != MEMCACHED_SUCCESS &&
+	  		statMemc != MEMCACHED_NOTSTORED &&
+        statMemc != MEMCACHED_PROTOCOL_ERROR)
+  	{
+    	throw MemcacheException(statMemc, this->conn_);
+  	}
+    if (statMemc == MEMCACHED_NOTSTORED)
+    {
+      noSegments++;
+      segmentKey = listKey + ":" + this->toString(noSegments-1);
+  
+      statMemc = 
+          memcached_set(this->conn_,
+                        segmentKey.data(),
+                        segmentKey.length(),
+                        serialKey.data(),
+                        serialKey.length(),
+                        this->memcachedExpirationLimit_, 
+                        (uint32_t)0);
+
+      if (statMemc != MEMCACHED_SUCCESS)
+        throw MemcacheException(statMemc, this->conn_);
+
+      statMemc = 
+          memcached_increment(this->conn_,
+                              listKey.data(),
+                              listKey.length(),
+                              1, // offset
+                              &noSegmentsIncremented);
+
+      if (statMemc != MEMCACHED_SUCCESS)
+        throw MemcacheException(statMemc, this->conn_);
+      if (noSegmentsIncremented != noSegments)
+        throw DmException(DM_UNKNOWN_ERROR, std::string("Incrementing the number of segments on memcached failed."));
+    }
+  }
 }
 
 void MemcacheCatalog::removeListItemFromMemcachedKey(const std::string& listKey, std::string& key)
 {
-	memcached_return statMemc;
-  uint64_t version;
-  std::string serialKey;
-
-  std::vector<std::string> keyList;
-  keyList.push_back(key);
-  serialKey = serializeList(keyList, false);
-
-  statMemc = 
-      memcached_append(this->conn_,
-                       listKey.data(),
-                       listKey.length(),
-                       serialKey.data(),
-                       serialKey.length(),
-                       this->memcachedExpirationLimit_, 
-                       (uint32_t)0);
-
-	if (statMemc != MEMCACHED_SUCCESS &&
-			statMemc != MEMCACHED_NOTSTORED)
-	{
-		throw DmException(DM_UNKNOWN_ERROR,
-											std::string(memcached_strerror(this->conn_,
-																										 statMemc)));
-	}
+  addToListFromMemcachedKey(listKey, key, false);
 }

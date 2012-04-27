@@ -14,6 +14,7 @@ public:
   void setUp();
   void tearDown();
 
+  static int repeats;
 protected:
   dmlite::PluginManager *pluginManager;
   dmlite::StackInstance *stackInstance;

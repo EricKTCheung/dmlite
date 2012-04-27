@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 const char* TestBase::config             = 0x00;
+int         TestBase::repeats            = 1; 
 const char* TestBase::TEST_USER          = "/C=CH/O=CERN/OU=GD/CN=Test user 0";
 unsigned    TestBase::TEST_USER_NGROUPS  = 2;
 const char* TestBase::TEST_USER_GROUPS[] = {"dteam", "org.glite.voms-test"};
@@ -88,6 +89,7 @@ int testBaseMain(int argn, char **argv)
   }
 
   TestBase::config = argv[1];
+  TestBase::repeats = atoi(argv[2]);
 
   CppUnit::TextUi::TestRunner runner;
   CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
