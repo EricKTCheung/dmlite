@@ -159,7 +159,7 @@ dm_context* dm_context_new(dm_manager* handle)
 int dm_context_free(dm_context* context)
 {
   if (context != NULL) {
-    delete context->catalog;
+    delete context->stack;
     delete context;
   }
   return 0;
