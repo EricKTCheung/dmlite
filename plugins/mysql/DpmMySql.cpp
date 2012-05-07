@@ -17,8 +17,9 @@ using namespace dmlite;
 
 DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& nsDb,
                                  const std::string& dpmDb,
-                                 unsigned int symLinkLimit, StackInstance* si) throw(DmException):
-  NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb), stack_(si)
+                                 bool updateATime, unsigned int symLinkLimit,
+                                 StackInstance* si) throw(DmException):
+  NsMySqlCatalog(connPool, nsDb, updateATime, symLinkLimit), dpmDb_(dpmDb), stack_(si)
 {
   // Nothing
 }

@@ -31,11 +31,12 @@ public:
   /// @param conn      The MySQL connection pool.
   /// @param nsDb      The MySQL DB name for the NS.
   /// @param dpmDb     The MySQL DB name for DPM.
+  /// @param updateATime Update access time on each read.
   /// @param symLimit  The recursion limit for symbolic links.
   /// @param si        The stack instance.
   DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool,
                   const std::string& nsDb, const std::string& dpmDb,
-                  unsigned int symLimit,
+                  bool updateATime, unsigned int symLimit,
                   StackInstance* si) throw(DmException);
 
   /// Destructor

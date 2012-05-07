@@ -25,8 +25,8 @@ using namespace dmlite;
 
 
 NsMySqlCatalog::NsMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& db,
-                               unsigned int symLinkLimit) throw(DmException):
-                secCtx_(), cwd_(0), umask_(022), nsDb_(db), symLinkLimit_(symLinkLimit)
+                               bool updateATime, unsigned int symLinkLimit) throw(DmException):
+                secCtx_(), cwd_(0), umask_(022), updateATime_(updateATime), nsDb_(db), symLinkLimit_(symLinkLimit)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -403,6 +403,18 @@ void NsMySqlCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcept
 
 
 
+void NsMySqlCatalog::updateAccessTime(const ExtendedStat& meta) throw (DmException)
+{
+  if (this->updateATime_) {
+    struct utimbuf tim;
+    tim.actime  = time(NULL);
+    tim.modtime = meta.stat.st_mtime;
+    this->utime(meta.stat.st_ino, &tim);
+  }
+}
+
+
+
 void NsMySqlCatalog::changeDir(const std::string& path) throw (DmException)
 {
   ExtendedStat cwd = this->extendedStat(path);
@@ -440,11 +452,11 @@ Directory* NsMySqlCatalog::openDir(const std::string& path) throw(DmException)
 
   // Create the handle
   dir = new NsMySqlDir();
-  dir->dirId = meta.stat.st_ino;
-  
+  dir->dir = meta;
+   
   try {
     dir->stmt = new Statement(this->conn_, this->nsDb_, STMT_GET_LIST_FILES);
-    dir->stmt->bindParam(0, dir->dirId);
+    dir->stmt->bindParam(0, dir->dir.stat.st_ino);
     dir->stmt->execute();
     bindMetadata(*dir->stmt, &dir->current);
     return dir;
@@ -490,7 +502,7 @@ ExtendedStat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
     throw DmException(DM_NULL_POINTER, "Tried to read a null dir");
 
   dirp = (NsMySqlDir*)dir;
-
+  
   if (dirp->stmt->fetch()) {
     memset(&dirp->ds, 0x00, sizeof(struct dirent));
     dirp->ds.d_ino  = dirp->current.stat.st_ino;
@@ -498,15 +510,13 @@ ExtendedStat* NsMySqlCatalog::readDirx(Directory* dir) throw(DmException)
             dirp->current.name,
             sizeof(dirp->ds.d_name));
 
-    // Touch
-    struct utimbuf tim;
-    tim.actime  = time(NULL);
-    tim.modtime = dirp->current.stat.st_mtime;
-    this->utime(dirp->dirId, &tim);
-
+    this->updateAccessTime(dirp->dir);
+    
     return &dirp->current;
   }
   else {
+    // This is twice because it MUST be done after the first fetch
+    this->updateAccessTime(dirp->dir);
     return 0x00;
   }
 }
@@ -600,6 +610,7 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(const std::string& path) th
                    "Not enough permissions to read " + path);
 
   try {
+    this->updateAccessTime(meta);
     return this->getReplicas(meta.stat.st_ino);
   }
   catch (DmException e) {

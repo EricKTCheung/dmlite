@@ -17,7 +17,7 @@ namespace dmlite {
 
 /// Struct used internally to read directories.
 struct NsMySqlDir {
-  uint64_t      dirId;         ///< The directory ID.
+  ExtendedStat  dir;           ///< Directory being read.
   ExtendedStat  current;       ///< Current entry metadata.
   struct dirent ds;            ///< The structure used to hold the returned data.
   Statement    *stmt;          ///< The statement.
@@ -28,11 +28,13 @@ class NsMySqlCatalog: public Catalog {
 public:
 
   /// Constructor
-  /// @param connPool  The MySQL connection pool.
-  /// @param db        The MySQL db to use.
-  /// @param symLimit  The recursion limit for symbolic links.
+  /// @param connPool    The MySQL connection pool.
+  /// @param db          The MySQL db to use.
+  /// @param updateATime Update access time on each read.
+  /// @param symLimit    The recursion limit for symbolic links.
   NsMySqlCatalog(PoolContainer<MYSQL*>* connPool,
-                 const std::string& db, unsigned int symLimit) throw (DmException);
+                 const std::string& db,
+                 bool updateATime, unsigned int symLimit) throw (DmException);
 
   /// Destructor
   ~NsMySqlCatalog() throw (DmException);
@@ -128,12 +130,18 @@ protected:
 
   /// Current working dir
   ino_t cwd_;
+  
+  /// Umask
+  mode_t umask_;
+  
+  /// Update atime
+  bool updateATime_;
 
   /// Get a list of replicas using file id
   std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
-
-  /// Umask
-  mode_t umask_;
+  
+  /// Update access time (if updateATime is true)
+  void updateAccessTime(const ExtendedStat&) throw (DmException);
 
 private:
   /// NS DB.
