@@ -56,6 +56,9 @@ protected:
 
   /// The recursion limit following symbolic links.
   unsigned int symLinkLimit_;
+  
+  /// Update access time.
+  bool updateATime_;
 
 private:
 };

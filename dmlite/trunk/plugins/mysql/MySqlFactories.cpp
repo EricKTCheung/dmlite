@@ -85,7 +85,8 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"), symLinkLimit_(3)
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"), symLinkLimit_(3),
+  updateATime_(true)
 {
   // Initialize MySQL library
   mysql_library_init(0, NULL, NULL);
@@ -117,6 +118,11 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "NsPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
+  else if (key == "NsUpdateAccessTime") {
+    std::string lower;
+    std::transform(value.begin(), value.end(), lower.begin(), tolower);
+    this->updateATime_ = (value == "yes");
+  }
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -126,7 +132,7 @@ Catalog* NsMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
   return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
-                            this->symLinkLimit_);
+                            this->updateATime_, this->symLinkLimit_);
 }
 
 
@@ -161,7 +167,7 @@ Catalog* DpmMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
   pthread_once(&initialize_mysql_thread, init_thread);
   return new DpmMySqlCatalog(&this->connectionPool_,
                              this->nsDb_, this->dpmDb_,
-                             this->symLinkLimit_, si);
+                             this->updateATime_, this->symLinkLimit_, si);
 }
 
 
