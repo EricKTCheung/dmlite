@@ -1,6 +1,7 @@
 /// @file    plugins/mysql/MySqlFactories.cpp
 /// @brief   MySQL backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <algorithm>
 #include <cstring>
 #include <pthread.h>
 #include <stdlib.h>
