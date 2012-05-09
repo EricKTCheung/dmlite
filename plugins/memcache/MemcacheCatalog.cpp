@@ -445,7 +445,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 {
   ExtendedStat meta; 
 
@@ -469,7 +469,7 @@ ExtendedStat MemcacheCatalog::extendedStat(uint64_t fileId) throw (DmException)
   return meta;
 }
 
-ExtendedStat MemcacheCatalog::extendedStat(uint64_t parent, const std::string& name) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
 {
   ExtendedStat meta;
 
