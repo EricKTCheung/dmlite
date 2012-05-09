@@ -37,6 +37,17 @@ public:
       this->stackInstance->setSecurityContext(root);
       this->catalog->changeMode(FOLDER, 0777);
       
+      try {
+        struct stat s = this->catalog->stat(FILE);
+        std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
+        for (int i = 0; i < replicas.size(); i++) {
+          this->catalog->deleteReplica("", s.st_ino, replicas[i].url);
+        }
+      }
+      catch (...) {
+        // Ignore
+      }
+      
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
       IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));

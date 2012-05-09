@@ -239,7 +239,7 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
   }
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPNS_HOST"), sizeof(uniqueId.server));
 
   wrapCall(dpns_addreplica(guid.c_str(), &uniqueId, host.c_str(),
                            sfn.c_str(), status, fileType,
@@ -254,7 +254,7 @@ void NsAdapterCatalog::deleteReplica(const std::string& guid, int64_t id,
   struct dpns_fileid uniqueId;
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPNS_HOST"), sizeof(uniqueId.server));
 
   if (guid.empty())
     wrapCall(dpns_delreplica(NULL, &uniqueId, sfn.c_str()));
