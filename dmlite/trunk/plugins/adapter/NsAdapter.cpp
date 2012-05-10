@@ -305,6 +305,22 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
 
 
 
+std::vector<Uri> NsAdapterCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+{
+  std::vector<FileReplica> replicas = this->getReplicas(path);
+  std::vector<Uri> uris;
+  
+  uris.reserve(replicas.size());
+  
+  std::vector<FileReplica>::const_iterator i;
+  for (i = replicas.begin(); i != replicas.end(); ++i)
+    uris.push_back(dmlite::splitUri(i->url));
+  
+  return uris;
+}
+
+
+
 Uri NsAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   // Naive implementation: first occurrence

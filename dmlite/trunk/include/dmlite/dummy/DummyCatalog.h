@@ -45,6 +45,7 @@ public:
                              const std::string&) throw (DmException);
 
   virtual std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  virtual std::vector<Uri> getReplicasLocation(const std::string&) throw (DmException);
   
   virtual Uri get        (const std::string&) throw (DmException);
 

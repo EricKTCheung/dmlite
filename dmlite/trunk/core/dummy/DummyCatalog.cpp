@@ -135,6 +135,13 @@ std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) thro
 
 
 
+std::vector<Uri> DummyCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(getReplicasLocation, path);
+}
+
+
+
 Uri DummyCatalog::get(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(get, path);

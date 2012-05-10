@@ -45,6 +45,7 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
   
+  std::vector<Uri> getReplicasLocation(const std::string&) throw (DmException);
   Uri get (const std::string&) throw (DmException);
 
   void unlink (const std::string&) throw (DmException);
