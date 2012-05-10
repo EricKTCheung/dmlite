@@ -105,7 +105,7 @@ NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  if (key == "Host")
+  if (key == "MySqlHost")
     this->connectionFactory_.host = value;
   else if (key == "MySqlUsername")
     this->connectionFactory_.user = value;
