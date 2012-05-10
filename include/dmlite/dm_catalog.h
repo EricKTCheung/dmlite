@@ -127,9 +127,12 @@ public:
                              const std::string& sfn) throw (DmException) = 0;
 
   /// Get replicas for a file.
-  /// @param path         The file for which replicas will be retrieved. It can be null.
-  /// @note               Either path or guid must be provided.
+  /// @param path The file for which replicas will be retrieved.
   virtual std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException) = 0;
+  
+  /// Get replicas for a file, and process them with the PoolHandler.
+  /// @param path The file for which replicas will be retrieved.
+  virtual std::vector<Uri> getReplicasLocation(const std::string& path) throw (DmException) = 0;
 
   /// Get a location for a logical name.
   /// @param path     The path to get.

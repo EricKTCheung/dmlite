@@ -193,12 +193,12 @@ int dm_delreplica(dm_context* context, const char* guid, int64_t id,
  * Get the replicas of a file.
  * @param context      The DM context.
  * @param path         The logical file name.
- * @param nEntries     The number of entries will be put here.
- * @param fileReplicas An array with nbentries elements will be stored here. <b>Use dm_freereplicas to free it.</b>
+ * @param nReplicas    The number of entries will be put here.
+ * @param fileReplicas An array with nEntries elements will be stored here. <b>Use dm_freereplicas to free it.</b>
  * @return             0 on success, error code otherwise.
  */
-int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
-                  struct filereplica** fileReplicas);
+int dm_getreplicas(dm_context* context, const char* path, int *nReplicas,
+                   struct filereplica** fileReplicas);
 
 /**
  * Free a replica list.
@@ -208,6 +208,27 @@ int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
  * @return             0 on success, error code otherwise.
  */
 int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* fileReplicas);
+
+
+/**
+ * Get the replicas of a file, processed by the corresponding PoolHandler
+ * @param context   The DM context.
+ * @param path      The logical file name.
+ * @param nReplicas The number of entries will be put here.
+ * @param uris      An array with nEntries elements will be stored here. <b>Use dm_freereplicaslocation to free it.</b>
+ * @return          0 on success, error code otherwise.
+ */
+int dm_getreplicaslocation(dm_context* context, const char* path, int* nReplicas, struct uri** uris);
+
+
+/**
+ * Free a replica list.
+ * @param context   The DM context.
+ * @param nReplicas The number of replicas contained in the array.
+ * @param uirs      The array to free.
+ * @return          0 on success, error code otherwise.
+ */
+int dm_freereplicaslocation(dm_context* context, int nReplicas, struct uri* uris);
 
 /**
  * Get a single replica (synchronous).

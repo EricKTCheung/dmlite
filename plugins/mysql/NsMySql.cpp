@@ -665,6 +665,22 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
 
 
 
+std::vector<Uri> NsMySqlCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+{
+  std::vector<FileReplica> replicas = this->getReplicas(path);
+  std::vector<Uri> uris;
+  
+  uris.reserve(replicas.size());
+  
+  std::vector<FileReplica>::const_iterator i;
+  for (i = replicas.begin(); i != replicas.end(); ++i)
+    uris.push_back(dmlite::splitUri(i->url));
+  
+  return uris;
+}
+
+
+
 Uri NsMySqlCatalog::get(const std::string& path) throw(DmException)
 {
   // Get all the replicas

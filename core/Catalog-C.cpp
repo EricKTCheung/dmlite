@@ -130,18 +130,18 @@ int dm_delreplica(dm_context* context, const char* guid, int64_t id,
 
 
 
-int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
+int dm_getreplicas(dm_context* context, const char* path, int *nReplicas,
                   struct filereplica** fileReplicas)
 {
   TRY(context, getreplicas)
   NOT_NULL(path);
-  NOT_NULL(nEntries);
+  NOT_NULL(nReplicas);
   NOT_NULL(fileReplicas);
 
   std::vector<filereplica> replicaSet = context->catalog->getReplicas(path);
 
   *fileReplicas = new filereplica[replicaSet.size()];
-  *nEntries = replicaSet.size();
+  *nReplicas = replicaSet.size();
 
   std::copy(replicaSet.begin(), replicaSet.end(), *fileReplicas);
 
@@ -153,6 +153,32 @@ int dm_getreplicas(dm_context* context, const char* path, int *nEntries,
 int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* fileReplicas)
 {
   delete [] fileReplicas;
+  return 0;
+}
+
+
+
+int dm_getreplicaslocation(dm_context* context, const char* path, int* nReplicas, struct uri** uris)
+{
+  TRY(context, getreplicaslocation)
+  NOT_NULL(path);
+  NOT_NULL(nReplicas);
+  
+  std::vector<Uri> replicaSet = context->catalog->getReplicasLocation(path);
+  
+  *uris      = new Uri[replicaSet.size()];
+  *nReplicas = replicaSet.size();
+  
+  std::copy(replicaSet.begin(), replicaSet.end(), *uris);
+  
+  CATCH(context, getreplicaslocation)
+}
+
+
+
+int dm_freereplicaslocation(dm_context* context, int nReplicas, struct uri* uris)
+{
+  delete [] uris;
   return 0;
 }
 

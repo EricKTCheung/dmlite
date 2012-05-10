@@ -167,6 +167,13 @@ std::vector<FileReplica> ProfilerCatalog::getReplicas(const std::string& path) t
 
 
 
+std::vector<Uri> ProfilerCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+{
+  PROFILE_RETURN(std::vector<Uri>, getReplicasLocation, path);
+}
+
+
+
 Uri ProfilerCatalog::get(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(Uri, get, path);

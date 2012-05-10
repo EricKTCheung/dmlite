@@ -40,6 +40,28 @@ std::string DpmMySqlCatalog::getImplId() throw ()
 
 
 
+std::vector<Uri> DpmMySqlCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+{
+  // Get replicas
+  std::vector<FileReplica> replicas = this->getReplicas(path);
+
+  // Translate each replica
+  std::vector<Uri> uris;
+  uris.reserve(replicas.size());
+  
+  unsigned i;
+  for (i = 0; i < replicas.size(); ++i) {
+    Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
+    PoolHandler *handler = this->stack_->getPoolHandler(pool);
+    
+    uris.push_back(handler->getLocation(path, replicas[i]));
+  }
+  
+  return uris;
+}
+
+
+
 Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
 {
   // Get replicas

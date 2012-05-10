@@ -55,6 +55,7 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  std::vector<Uri> getReplicasLocation(const std::string&) throw (DmException);
 
   Uri get(const std::string&) throw (DmException);
 

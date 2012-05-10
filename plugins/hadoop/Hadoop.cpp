@@ -242,6 +242,7 @@ Uri HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplica& re
   srand(time(NULL));
   unsigned i = rand() % datanodes.size();
   Uri returned_uri;
+  std::memset(&returned_uri, 0, sizeof(Uri));
   strcpy(returned_uri.host, datanodes[i].c_str());
   strcpy(returned_uri.path, sfn.c_str());
   return returned_uri;
