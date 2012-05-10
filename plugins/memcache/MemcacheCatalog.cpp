@@ -455,7 +455,10 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 
 	const std::string key = keyFromAny(key_prefix[PRE_STAT], fileId); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+  try {
+	  valMemc = getValFromMemcachedKey(key);
+  } catch (...) {};
+
 	if (!valMemc.empty())
 	{
 		deserialize(valMemc, meta);
@@ -463,7 +466,9 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, fileId);
 		valMemc = serialize(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+    try {
+		  setMemcachedFromKeyValue(key, valMemc);
+    } catch (...) {};
 	}
 
   return meta;
@@ -479,7 +484,10 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name
 
 	const std::string key = keyFromAny(key_prefix[PRE_STAT], parent, name);
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+  try {
+	  valMemc = getValFromMemcachedKey(key);
+  } catch (...) {};
+
 	if (!valMemc.empty())
 	{
 		deserialize(valMemc, meta);
@@ -487,7 +495,9 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name
 	{
 		DELEGATE_ASSIGN(meta, extendedStat, parent, name);
 		valMemc = serialize(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+    try {
+		  setMemcachedFromKeyValue(key, valMemc);
+    } catch (...) {};
 	}
 
   return meta;
@@ -503,7 +513,10 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 
 	const std::string key = keyFromAny(key_prefix[PRE_LINK], linkId); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+  try {
+	  valMemc = getValFromMemcachedKey(key);
+  } catch (...) {};
+
 	if (!valMemc.empty())
 	{
 		deserializeLink(valMemc, meta);
@@ -511,7 +524,9 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 	{
 		DELEGATE_ASSIGN(meta, readLink, linkId);
 		valMemc = serializeLink(meta);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+    try {
+		  setMemcachedFromKeyValue(key, valMemc);
+    } catch (...) {};
 	}
 
   return meta;
@@ -611,7 +626,10 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
 
 	const std::string key = keyFromAny(key_prefix[PRE_COMMENT], meta.stat.st_ino); 
 
-	valMemc = getValFromMemcachedVersionedKey(key);
+	try {
+    valMemc = getValFromMemcachedKey(key);
+  } catch (...) {};
+
 	if (!valMemc.empty())
 	{
 		deserializeComment(valMemc, comment);
@@ -619,7 +637,9 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw(DmExcepti
 	{
 		DELEGATE_ASSIGN(comment, getComment, path);
 		valMemc = serializeComment(comment);
-		setMemcachedFromVersionedKeyValue(key, valMemc);
+		try {
+      valMemc = getValFromMemcachedKey(key);
+    } catch (...) {};
 	}
   return comment;
 }
@@ -692,8 +712,9 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, i
   // get replica list from memcached
   const std::string listKey = keyFromAny(key_prefix[PRE_REPL_LIST],
                                          inode);
-
-  vecValMemc = getListFromMemcachedKey(listKey);
+  try {
+    vecValMemc = getListFromMemcachedKey(listKey);
+  } catch (...) {};
 
 	if (vecValMemc.size() > 0)
 	{
@@ -712,7 +733,9 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, i
     DELEGATE_ASSIGN(replicas, getReplicas, path);
 
     // save replicas in memcached
-    setMemcachedFromReplicas(replicas, inode);
+    try {
+      setMemcachedFromReplicas(replicas, inode);
+    } catch (...) {};
   } 
   
   return replicas;
@@ -1244,12 +1267,12 @@ void MemcacheCatalog::delMemcachedFromPath(const char* preKey, const std::string
       throw;
   }
   const std::string key1(keyFromAny(preKey, inode));
-	delMemcachedFromVersionedKey(key1);
+	delMemcachedFromKey(key1);
 
 	// delete entry cached with parent_inode + filename
 	parent = this->getParent(path, &parentPath, &name);
 	const std::string key2(keyFromAny(preKey, parent.stat.st_ino, name));
-	delMemcachedFromVersionedKey(key2);
+	delMemcachedFromKey(key2);
 }
 
 std::vector<std::string> MemcacheCatalog::getListFromMemcachedKey(const std::string& listKey)
