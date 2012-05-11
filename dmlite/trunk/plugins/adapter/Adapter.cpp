@@ -40,6 +40,7 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
 {
   if (key == "Host") {
     setenv("DPNS_HOST", value.c_str(), 1);
+    setenv("LFC_HOST", value.c_str(), 1);
   }
   else if (key == "RetryLimit") {
     unsigned v = (unsigned)atoi(value.c_str());
