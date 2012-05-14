@@ -6,6 +6,12 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsMySql.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/MemcacheNsMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/MemcacheNsMySql.conf)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/lxNsMySql.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/lxNsMySql.conf)
+
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/lxMemcacheNsMySql.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/lxMemcacheNsMySql.conf)
+
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsAdapter.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/NsAdapter.conf)
 
@@ -14,6 +20,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmAdapter.conf
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/DpmMySql.conf)
+
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/S3MySql.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/S3MySql.conf)
 
 add_library           (test-base STATIC test-base.cpp)
 
@@ -73,6 +82,9 @@ target_link_libraries (test-io dmlitecommon dmlite cppunit dl)
 
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmlitecommon dmlite cppunit dl)
+
+add_executable        (test-s3 test-s3.cpp)
+target_link_libraries (test-s3 test-base dmlitecommon dmlite cppunit dl aws)
 
 # Configure CTest testing
 ENABLE_TESTING()
