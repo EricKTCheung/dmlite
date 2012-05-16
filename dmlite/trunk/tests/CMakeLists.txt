@@ -3,6 +3,9 @@ cmake_minimum_required (VERSION 2.6)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/NsMySql.conf)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsOracle.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/NsOracle.conf)
+
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/MemcacheNsMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/MemcacheNsMySql.conf)
 

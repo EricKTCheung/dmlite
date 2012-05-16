@@ -49,7 +49,7 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
 
 
 
-Catalog* NsOracleFactory::createCatalog() throw(DmException)
+Catalog* NsOracleFactory::createCatalog(StackInstance* si) throw(DmException)
 {
   try {
     if (this->pool_ == 0x00)
