@@ -21,7 +21,7 @@ public:
   ~NsOracleFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog() throw(DmException);
+  Catalog* createCatalog(StackInstance*) throw(DmException);
 
 protected:
   /// NS db.

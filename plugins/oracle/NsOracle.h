@@ -49,9 +49,8 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
-  void setSecurityCredentials(const SecurityCredentials&) throw (DmException);
-  const SecurityContext& getSecurityContext() throw (DmException);
-  void setSecurityContext(const SecurityContext&);
+  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
@@ -71,6 +70,7 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  std::vector<Uri>         getReplicasLocation(const std::string&) throw (DmException);
   Uri                      get        (const std::string&) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
@@ -80,8 +80,7 @@ public:
 
   std::string put      (const std::string&, Uri*)                     throw (DmException);
   std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putStatus(const std::string&, const std::string&, Uri*) throw (DmException);
-  void        putDone  (const std::string&, const std::string&)       throw (DmException);
+  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
 
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);
@@ -94,6 +93,8 @@ public:
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
   void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
   void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  
+  void changeSize(const std::string&, size_t) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
@@ -122,7 +123,7 @@ public:
 
 protected:
   /// Security context
-  SecurityContext secCtx_;
+  const SecurityContext* secCtx_;
 
   /// The Oracle connection pool.
   oracle::occi::ConnectionPool* pool_;
