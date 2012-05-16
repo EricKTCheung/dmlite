@@ -139,7 +139,7 @@ dm_context* dm_context_new(dm_manager* handle)
     ctx->pool =ctx->stack->getPoolManager();
   }
   catch (dmlite::DmException e) {
-    if (e.code() != DM_NO_FACTORY) {
+    if (e.code() != DM_NO_POOL_MANAGER) {
       handle->errorCode   = e.code();
       handle->errorString = e.what();
       delete ctx->catalog;
