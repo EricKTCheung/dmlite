@@ -36,6 +36,7 @@ private:
 class SecurityContext {
 public:
   SecurityContext();
+  SecurityContext(const SecurityCredentials&);
   SecurityContext(const SecurityCredentials&, const UserInfo&, const std::vector<GroupInfo>&);
   ~SecurityContext();
 

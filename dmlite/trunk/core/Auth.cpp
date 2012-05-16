@@ -182,6 +182,14 @@ SecurityContext::SecurityContext()
 
 
 
+SecurityContext::SecurityContext(const SecurityCredentials& cred):
+  credentials_(cred)
+{
+  // Nothing here
+}
+
+
+
 SecurityContext::SecurityContext(const SecurityCredentials& cred,
                                  const UserInfo& u,
                                  const std::vector<GroupInfo>& g):
