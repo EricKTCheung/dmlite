@@ -1,14 +1,14 @@
 Name:		dmlite
 Version:	0.2.0
 Release:	2%{?dist}
-Summary:	Abstraction library for LCGDM components
+Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
 License:	ASL 2.0
-URL:		https://svnweb.cern.ch/trac/lcgdm
+URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_2_0 dmlite-0.2.0
-# tar -czvf dmlite-0.2.0.tar.gz dmlite-0.2.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_3_0 dmlite-0.3.0
+# tar -czvf dmlite-0.3.0.tar.gz dmlite-0.3.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -22,15 +22,15 @@ BuildRequires:	protobuf-devel%{?_isa}
 BuildRequires:	subversion%{?_isa}
 
 %description
-This package provides a set of libraries and plugins that implements
-the common logic for LCGDM components.
+This package provides a set of common libraries and plugins that implement
+logic for data management and storage on the grid.
 
 %package libs
 Summary:	Libraries
 Group:		Applications/Internet
 
 %description libs
-This package provides the libraries used by DMLITE components.
+This package provides the libraries used by dmlite components.
 
 %package devel
 Summary:	Development libraries and headers for dmlite
@@ -38,56 +38,55 @@ Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description devel
-This package provides headers and development libraries for DMLITE.
+This package provides headers and development libraries for dmlite.
 
 %package plugins-adapter
-Summary:	Adapter plugin for DMLITE
+Summary:	Adapter plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
-Requires:	dpm-libs%{?isa}
 
 %description plugins-adapter
-This package provides the adapter plugin for DMLITE. This plugin provides both
-a namespace and pool management implementation which fallback to forwarding
+This package provides the adapter plugin for dmlite. This plugin provides both
+a name-space and pool management implementation which fallback to forwarding
 calls to the old DPNS and DPM daemons.
 
 %package plugins-librarian
-Summary:	Librarian plugin for DMLITE
+Summary:	Librarian plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description plugins-librarian
-This package provides the librarian plugin for DMLITE. This plugin handles
+This package provides the librarian plugin for dmlite. This plugin handles
 the necessary logic to hop between difference replicas when accessing a file
 managed by the grid.
 
 %package plugins-memcached
-Summary:	Memcached plugin for DMLITE
+Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description plugins-memcached
-This package provides the memcached plugin for DMLITE. It provides a
+This package provides the memcached plugin for dmlite. It provides a
 memcached based implementation of the NS interface.
 
 %package plugins-mysql 
-Summary:	MySQL plugin for DMLITE
+Summary:	MySQL plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 Requires:	mysql
 
 %description plugins-mysql
-This package provides the MySQL plugin for DMLITE.
+This package provides the MySQL plugin for dmlite.
 
 %package plugins-profiler
-Summary:	Profiler plugin for DMLITE
+Summary:	Profiler plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description plugins-profiler
-This package provides the profiler plugin for DMLITE. This plugin is a simple
+This package provides the profiler plugin for dmlite. This plugin is a simple
 wrapper around a real plugin implementation, and is used to do multiple
-measurements regarding the performance of each call to DMLITE.
+measurements regarding the performance of each call to dmlite.
 
 %package docs
 Summary:	API documentation for dmlite
@@ -159,9 +158,12 @@ rm -rf $RPM_BUILD_ROOT
 * Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
 - Split plugins into multiple packages, added dependencies
 - Updated package descriptions
+
 * Tue Jan 31 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.2.0-1
 - Added documentation to the build process
+
 * Mon Jan 23 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Added cppunit-devel as a build dependency
+
 * Tue Jan 20 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Created spec file
