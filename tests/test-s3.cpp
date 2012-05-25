@@ -55,7 +55,9 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
-const char* TestS3::KEY  = "/dpm/cern.ch/home/dteam/atlas-higgs-boson.found";
+//const char* TestS3::KEY  = "/dpm/cern.ch/home/dteam/atlas-higgs-boson.found";
+//const char* TestS3::KEY  = "atlas-higgs-boson.found";
+const char* TestS3::KEY  = "testfile.txt";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestS3);
 

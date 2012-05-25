@@ -83,18 +83,21 @@ struct stat S3IOHandler::pstat(void) throw (DmException)
 
 /* S3 pool handling */
 S3PoolHandler::S3PoolHandler(StackInstance* si, const Pool& pool,
+                             std::string host, 
                              std::string bucketName,
                              std::string s3AccessKeyID,
                              std::string s3SecretAccessKey) throw (DmException):
-            stack(si), pool(pool),
+            stack(si), pool(pool), host_(host),
             bucketName_(bucketName),
             s3AccessKeyID_(s3AccessKeyID),
             s3SecretAccessKey_(s3SecretAccessKey)
 {
+  std::cout << "Poolhost = " << this->host_ << std::endl;
   PoolMetadata* meta = this->stack->getPoolManager()->getPoolMetadata(pool);
   
-  this->host_ = meta->getString("hostname") + ":" +
-                meta->getString("port");
+  this->host_ = meta->getString("host");
+  this->s3AccessKeyID_ = meta->getString("s3_access_key_id");
+  this->s3SecretAccessKey_ = meta->getString("s3_secret_access_key");
 /*
 NOT THREADSAFE
   S3_initialize(NULL, S3_INIT_ALL, this->host_.c_str());
@@ -182,8 +185,6 @@ void S3_head_object(const S3BucketContext *bucketContext, const char *key,
 
 Uri S3PoolHandler::getLocation(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
-  // To be done
-  //throw DmException(DM_NOT_IMPLEMENTED, "s3::getLocation");
   // Start by giving the client the direct link to S3,
   // later link to our IOHandler implementation somewhere
 /*
@@ -229,7 +230,7 @@ void S3PoolHandler::putDone(const std::string& sfn, const Uri& pfn, const std::s
 
 /* S3IOFactory implementation */
 S3IOFactory::S3IOFactory() throw (DmException):
-      bucketName_("default"),
+      bucketName_("mhellmic-dpm"),
       s3host_("s3.amazonaws.com"),
       s3AccessKeyID_("userID"),
       s3SecretAccessKey_("password")
@@ -240,7 +241,8 @@ S3IOFactory::S3IOFactory() throw (DmException):
 
 void S3IOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-	if (key == "S3Server")
+  /*
+	if (key == "S3Host")
     this->s3host_ = value;
   else if (key == "S3AccessKeyID")
     this->s3AccessKeyID_ = value;
@@ -248,6 +250,7 @@ void S3IOFactory::configure(const std::string& key, const std::string& value) th
     this->s3SecretAccessKey_ = value;
 	else
   	throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
+  */
 }
 
 IOHandler *S3IOFactory::createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
@@ -264,7 +267,8 @@ PoolHandler* S3IOFactory::createPoolHandler(StackInstance* si, const Pool& pool)
 {
   if (this->implementedPool() != std::string(pool.pool_type))
     throw DmException(DM_UNKNOWN_POOL_TYPE, "S3 does not recognise the pool type %s", pool.pool_type);
-  return new S3PoolHandler(si, pool, this->bucketName_,
+  return new S3PoolHandler(si, pool, this->s3host_,
+                           this->bucketName_,
                            this->s3AccessKeyID_,
                            this->s3SecretAccessKey_);
 }

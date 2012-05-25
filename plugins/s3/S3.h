@@ -59,6 +59,7 @@ private:
 class S3PoolHandler: public PoolHandler {
 public:
   S3PoolHandler(StackInstance*, const Pool& pool, 
+                std::string host,
                 std::string bucketName,
                 std::string s3AccessKeyID,
                 std::string s3SecretAccessKey) throw (DmException);
