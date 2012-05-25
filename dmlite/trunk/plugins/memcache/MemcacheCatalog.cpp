@@ -1611,6 +1611,11 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
   ExtendedStat *metap;
   DELEGATE_ASSIGN(metap, readDirx, (Directory *) dirp->dirp);
 
+  if (metap != 0x00)
+    printf("meta parent id fom delegate: %d.\n", metap->parent);
+  else
+    printf("meta is NULL.\n");  
+
   if (metap != 0x00 && saveToMemc) {
     valMemcStr = serialize(*metap);
     // add xstat to memcached 
@@ -1627,9 +1632,8 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
                                                         dirp->curKeysSegment);
   }
 
-  MemcacheDir *remote_dir = (MemcacheDir *) dirp->dirp;
   // copy the extendedStat into dir->current
-  std::memcpy(&(dirp->current), &(remote_dir->current), sizeof(ExtendedStat));
+  std::memcpy(&(dirp->current), metap, sizeof(ExtendedStat));
 
   return metap;
 }
