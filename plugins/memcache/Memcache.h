@@ -46,6 +46,7 @@ struct MemcacheDir {
   size_t                   keysOrigSize;
   std::list<ExtendedStat>  xstats;
   int                      keysPntr; 
+  time_t                   mtime;
 };
 
 class MemcacheException: public DmException {

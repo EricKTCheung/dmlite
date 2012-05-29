@@ -684,6 +684,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   local_dir = new MemcacheDir();
   local_dir->dirId = meta.stat.st_ino;
   local_dir->curKeysSegment = 0;
+  local_dir->keysPntr = 0;
   local_dir->fetchCombined = FETCH_COMBINED_MIN;
   
   const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
@@ -711,18 +712,10 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     DELEGATE_ASSIGN(remote_dir, openDir, path);
     local_dir->dirp = remote_dir;
   }
-  if (local_dir->isCached == DIR_NOTCACHED) {
-    // create an empty list with 'white' elements, which is not complete
-    std::vector<std::string> empty;
-    valMemc = serializeDirList(empty, tim.modtime, true, false);
-    try 
-    {
-      safeSetMemcachedDListFromKeyValue(listKey, valMemc);
-    } catch (...) {
-      delete local_dir;
-      throw;
-    }
-  }
+
+  if (local_dir->isCached == DIR_NOTCACHED)
+    local_dir->mtime = tim.modtime;
+
   dir = local_dir;
 
   return dir;
@@ -760,6 +753,24 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
     throw DmException(DM_NULL_POINTER, "Tried to read a null dir");
 
   dirp = (MemcacheDir*)dir;
+
+  if (dirp->isCached == DIR_NOTCACHED && dirp->keysPntr == 0) {
+    // just set it to nonzero
+    dirp->keysPntr++;
+    std::string valMemc;
+    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                           dirp->dirId);
+    // create an empty list with 'white' elements, which is not complete
+    std::vector<std::string> empty;
+    valMemc = serializeDirList(empty, dirp->mtime, true, false);
+    try 
+    {
+      safeSetMemcachedDListFromKeyValue(listKey, valMemc);
+    } catch (...) {
+      delete dirp;
+      throw;
+    }
+  }
 
   switch (dirp->isCached) {
     case DIR_NOTCACHED:
