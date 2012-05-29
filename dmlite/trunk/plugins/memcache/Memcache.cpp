@@ -7,11 +7,11 @@
 using namespace dmlite;
 
 MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts,
-                                                     std::string protocol,
+                                                     bool useBinaryProtocol,
                                                      std::string dist):
-     hosts(hosts),
-     protocol(protocol),
-     dist(dist)
+     hosts_(hosts),
+     useBinaryProtocol_(useBinaryProtocol),
+     dist_(dist)
 {
 	// Nothing
 }
@@ -30,7 +30,7 @@ memcached_st* MemcacheConnectionFactory::create()
 	c = memcached_create(NULL);
 
   // Configure the memcached behaviour
-  if (protocol == "binary")
+  if (useBinaryProtocol_)
     memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
   else
     memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 0);
@@ -38,15 +38,26 @@ memcached_st* MemcacheConnectionFactory::create()
 	if (memc_return_val != MEMCACHED_SUCCESS)
 			throw MemcacheException(memc_return_val, c);
 
-  if (dist == "consistent")
+  if (dist_ == "consistent")
     memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT);
+
+	if (memc_return_val != MEMCACHED_SUCCESS)
+			throw MemcacheException(memc_return_val, c);
+
+  // make sure that NOREPLY is deactivated, otherwise deletes will hang
+  memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_NOREPLY, 0);
+
+	if (memc_return_val != MEMCACHED_SUCCESS)
+			throw MemcacheException(memc_return_val, c);
+
+  memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_NO_BLOCK, 1);
 
 	if (memc_return_val != MEMCACHED_SUCCESS)
 			throw MemcacheException(memc_return_val, c);
 
 	// Add memcached TCP hosts
 	std::vector<std::string>::iterator i;
-	for (i = this->hosts.begin(); i != this->hosts.end(); i++) {
+	for (i = this->hosts_.begin(); i != this->hosts_.end(); i++) {
 		// split host and port
 		char* host;
 		unsigned int port;
@@ -90,7 +101,7 @@ bool MemcacheConnectionFactory::isValid(memcached_st* c)
 
 MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException):
 	nestedFactory_(catalogFactory),
-	connectionFactory_(std::vector<std::string>(), "ascii", "default"),
+	connectionFactory_(std::vector<std::string>(), false, "default"),
 	connectionPool_(&connectionFactory_, 25),
 	symLinkLimit_(3),
 	memcachedExpirationLimit_(60),
@@ -109,7 +120,7 @@ MemcacheFactory::~MemcacheFactory() throw(DmException)
 void MemcacheFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
 	if (key == "MemcachedServer")
-		this->connectionFactory_.hosts.push_back(value);
+		this->connectionFactory_.hosts_.push_back(value);
   else if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "MemcachedExpirationLimit") {
@@ -124,15 +135,14 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 	} else if (key == "MemcachedPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
   else if (key == "MemcachedProtocol") {
-    if (value == "binary" || value == "ascii")
-      this->connectionFactory_.protocol = value;
+    if (value == "binary")
+      this->connectionFactory_.useBinaryProtocol_ = true;
     else
-  	  throw DmException(DM_UNKNOWN_OPTION,
-                        std::string("Unknown option value ") + value);
+      this->connectionFactory_.useBinaryProtocol_ = false;
 
   } else if (key == "MemcachedHashDistribution") {
     if (value == "consistent" || value == "default")
-      this->connectionFactory_.dist = value;
+      this->connectionFactory_.dist_ = value;
     else
   	  throw DmException(DM_UNKNOWN_OPTION,
                         std::string("Unknown option value ") + value);
@@ -143,9 +153,9 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
     this->updateATime_ = (value == "yes");
 
   } else if (key == "MemcachedStrictConsistency") {
-    if (value == "on")
+    if (value == "yes")
       this->memcachedStrict_ = true;
-    else if (value == "off")
+    else if (value == "no")
       this->memcachedStrict_ = false;
     else
   	  throw DmException(DM_UNKNOWN_OPTION,
@@ -153,9 +163,9 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 
   }
   else if (key == "MemcachedPOSIX") {
-    if (value == "on")
+    if (value == "yes")
       this->memcachedPOSIX_ = true;
-    else if (value == "off")
+    else if (value == "no")
       this->memcachedPOSIX_ = false;
     else
   	  throw DmException(DM_UNKNOWN_OPTION,
