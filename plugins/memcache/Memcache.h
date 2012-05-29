@@ -342,9 +342,9 @@ private:
   /// @param key         The key to add.  
   /// @param isWhite     Marks the element a white- or blacklisted. 
   /// @param isComplete  Marks if the list is complete.
-  void addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
+  void addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true) throw (DmException);
 
-  void safeAddToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
+  void safeAddToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true) throw (DmException);
 
   /// Add an item to a list with a distributed index on memcached.
   /// This function uses memcached_append() to add the element,
@@ -359,17 +359,43 @@ private:
   /// @param isWhite     Marks the element a white- or blacklisted. 
   /// @param isComplete  Marks if the list is complete.
   /// @param curSegment  The number of the current segment.
-   int addToDListFromMemcachedKey(const std::string& listKey,
-                                  const std::string& key, 
-                                  const bool isWhite = true,
-                                  const bool isComplete = true,
-                                  int curSegment = 0);
+  /// @return            The number of the new segment. 
+  int addToDListFromMemcachedKey(const std::string& listKey,
+                                 const std::string& key, 
+                                 const bool isWhite = true,
+                                 const bool isComplete = true,
+                                 int curSegment = 0) throw (DmException);
 
-   int safeAddToDListFromMemcachedKey(const std::string& listKey,
-                                  const std::string& key, 
-                                  const bool isWhite = true,
-                                  const bool isComplete = true,
-                                  int curSegment = 0);
+  int safeAddToDListFromMemcachedKey(const std::string& listKey,
+                                 const std::string& key, 
+                                 const bool isWhite = true,
+                                 const bool isComplete = true,
+                                 int curSegment = 0) throw (DmException);
+
+  // Add several items to a list with distributed index on memcached.
+  // The function uses memcahed_append() to add add element.
+  // Additinoally, it sets the libmemcached NOREPLY behavior 
+  // for all but the last transfer. If the last one fails,
+  // all elements are added again.
+  // The list might therefore contain duplicate items.
+  /// @param listKey     The key of the list.
+  /// @param key         The list of keys to add.
+  /// @param isWhite     Marks the element a white- or blacklisted. 
+  /// @param isComplete  Marks if the list is complete.
+  /// @param curSegment  The number of the current segment.
+  /// @return            The number of the new segment. 
+  int addToDListFromMemcachedKeyListNoReply(const std::string& listKey,
+                                 const std::vector<std::string>& keyList,
+                                 const bool isWhite = true,
+                                 const bool isComplete = true,
+                                 int curSegment = 0) throw (DmException);
+
+  int safeAddToDListFromMemcachedKeyListNoReply(
+                                 const std::string& listKey,
+                                 const std::vector<std::string>& keyList,
+                                 const bool isWhite = true,
+                                 const bool isComplete = true,
+                                 int curSegment = 0) throw (DmException);
 
   /// Remove an item from a list on memcached.
   /// This function removes an element by adding it to
@@ -554,7 +580,7 @@ private:
 class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
 public:
   MemcacheConnectionFactory(std::vector<std::string> hosts,
-                            std::string protocol,
+                            bool useBinaryProtocol,
                             std::string dist);
   ~MemcacheConnectionFactory();
 
@@ -563,13 +589,13 @@ public:
   bool   isValid(memcached_st*);
 
 	// Attributes
-  std::vector<std::string>  hosts;
+  std::vector<std::string>  hosts_;
 
   /// The memcached protocol (binary/ascii) to use.
-  std::string protocol;
+  bool useBinaryProtocol_;
 
   /// The hash distribution algorithm
-  std::string dist;
+  std::string dist_;
 protected:
 private:
 };

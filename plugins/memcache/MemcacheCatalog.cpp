@@ -775,17 +775,13 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   if (meta != 0x00) {
       // copy the stat info into the dirent and touch 
       memset(&dirp->ds, 0x00, sizeof(struct dirent));
-//      dirp->ds.d_ino  = dirp->current.stat.st_ino;
-//      strncpy(dirp->ds.d_name,
-//              dirp->current.name,
-//              sizeof(dirp->ds.d_name));
       dirp->ds.d_ino  = meta->stat.st_ino;
       strncpy(dirp->ds.d_name,
               meta->name,
               sizeof(dirp->ds.d_name));
 
     if (dirp->isCached == DIR_CACHED) {
-      if (this->memcachedPOSIX_) {
+      if (this->updateATime_) {
         // Touch
         struct utimbuf tim;
         tim.actime  = time(NULL);
@@ -796,7 +792,6 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
 
 //    ENCODE_DIRCACHED(dirp, isCached);
 
-//    return &dirp->current;
     return meta;
   }
   else {
@@ -1614,27 +1609,46 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
 {
   std::string valMemcStr;
   ExtendedStat *metap;
+  std::string key, listKey;
+  ExtendedStat meta;
+  std::string valMemc;
+	memcached_return statMemc;
+
   DELEGATE_ASSIGN(metap, readDirx, (Directory *) dirp->dirp);
 
-  if (metap != 0x00)
-    printf("meta parent id fom delegate: %d.\n", metap->parent);
-  else
-    printf("meta is NULL.\n");  
 
-  if (metap != 0x00 && saveToMemc) {
-    valMemcStr = serialize(*metap);
-    // add xstat to memcached 
-    const std::string key = keyFromAny(key_prefix[PRE_STAT], 
-                                       metap->stat.st_ino);
-//	  setMemcachedFromKeyValue(key, valMemcStr);
-    // create directory list entry for the xstat
-    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
-                                           dirp->dirId);
-//    addToDListFromMemcachedKey(listKey, key, true, false);
-      dirp->curKeysSegment = addToDListFromMemcachedKey(listKey, 
-                                                        key,
-                                                        true, false,
-                                                        dirp->curKeysSegment);
+  if (saveToMemc) {
+    listKey = keyFromAny(key_prefix[PRE_DIR], dirp->dirId);
+    if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
+
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+      
+      dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
+         std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
+                                          true, false,
+                                          dirp->curKeysSegment);
+
+      // Set the no reply behavior, don't care if it fails
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+
+
+      while (!dirp->keys.empty()) {
+        valMemc = serialize(dirp->xstats.front());
+        setMemcachedFromKeyValue(dirp->keys.front(), valMemc);
+        dirp->keys.pop_front();
+        dirp->xstats.pop_front();
+      }
+      // unset no reply. check for failure, otherwise deletes hang
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
+    	if (statMemc != MEMCACHED_SUCCESS)
+		    throw MemcacheException(statMemc, this->conn_);
+  
+    }
+    if (metap != 0x00) {
+      key = keyFromAny(key_prefix[PRE_STAT], metap->stat.st_ino);
+      dirp->keys.push_back(key);
+      dirp->xstats.push_back(*metap);
+    }
   }
 
   // copy the extendedStat into dir->current
@@ -2000,7 +2014,7 @@ int MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey,
                                                 const std::string& key, 
                                                 const bool isWhite,
                                                 const bool isComplete,
-                                                int curSegment)
+                                                int curSegment) throw (DmException)
 {
 	memcached_return statMemc;
   uint64_t noSegmentsIncremented;
@@ -2064,7 +2078,7 @@ int MemcacheCatalog::safeAddToDListFromMemcachedKey(const std::string& listKey,
                                                 const std::string& key, 
                                                 const bool isWhite,
                                                 const bool isComplete,
-                                                int curSegment)
+                                                int curSegment) throw (DmException)
 {
   try {
     return addToDListFromMemcachedKey(listKey, key, isWhite,
@@ -2072,7 +2086,7 @@ int MemcacheCatalog::safeAddToDListFromMemcachedKey(const std::string& listKey,
   } catch (MemcacheException) { /* pass */ }
 }
 
-void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite, const bool isComplete)
+void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite, const bool isComplete) throw (DmException)
 {
 	memcached_return statMemc;
 	size_t lenValue;
@@ -2143,6 +2157,106 @@ void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, con
     }
   }
 }
+
+int MemcacheCatalog::safeAddToDListFromMemcachedKeyListNoReply(const std::string& listKey,
+                               const std::vector<std::string>& keyList, 
+                                                const bool isWhite,
+                                                const bool isComplete,
+                                                int curSegment) throw (DmException)
+{
+  try {
+    return addToDListFromMemcachedKeyListNoReply(listKey, keyList, isWhite,
+                                      isComplete, curSegment);
+  } catch (MemcacheException) { /* pass */ }
+}
+
+
+int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
+                               const std::string& listKey,
+                               const std::vector<std::string>& keyList, 
+                               const bool isWhite,
+                               const bool isComplete,
+                               int curSegment) throw (DmException)
+{
+	memcached_return statMemc;
+  uint64_t noSegmentsIncremented;
+  std::string segmentKey;
+  std::string serialKey;
+  std::vector<std::string> singleKey;
+
+  segmentKey = listKey + ":" + this->toString(curSegment);
+
+  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+
+  std::vector<std::string> mykeyList(keyList);
+  std::vector<std::string>::iterator it;
+  for (it = mykeyList.begin();
+       it != (mykeyList.end()-1);
+       it++) {
+    singleKey.assign(1,*it);
+    serialKey = serializeList(singleKey, isWhite, isComplete);
+    statMemc = 
+      memcached_append(this->conn_,
+                       segmentKey.data(),
+                       segmentKey.length(),
+                       serialKey.data(),
+                       serialKey.length(),
+                       this->memcachedExpirationLimit_, 
+                       (uint32_t)0);
+  }
+  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
+
+  singleKey.assign(1,mykeyList.back());
+  serialKey = serializeList(singleKey, isWhite, isComplete);
+  statMemc = 
+      memcached_append(this->conn_,
+                       segmentKey.data(),
+                       segmentKey.length(),
+                       serialKey.data(),
+                       serialKey.length(),
+                       this->memcachedExpirationLimit_, 
+                       (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS &&
+			statMemc != MEMCACHED_NOTSTORED &&
+      statMemc != MEMCACHED_PROTOCOL_ERROR) {
+  	throw MemcacheException(statMemc, this->conn_);
+	}
+  if (statMemc == MEMCACHED_NOTSTORED ||
+      statMemc == MEMCACHED_PROTOCOL_ERROR) {
+    curSegment++;
+    segmentKey = listKey + ":" + this->toString(curSegment);
+
+      singleKey.assign(mykeyList.begin(), mykeyList.end());
+      serialKey = serializeList(singleKey, isWhite, isComplete);
+      statMemc = 
+        memcached_set(this->conn_,
+                      segmentKey.data(),
+                      segmentKey.length(),
+                      serialKey.data(),
+                      serialKey.length(),
+                      this->memcachedExpirationLimit_, 
+                      (uint32_t)0);
+
+    if (statMemc != MEMCACHED_SUCCESS)
+      throw MemcacheException(statMemc, this->conn_);
+
+    statMemc = 
+        memcached_increment(this->conn_,
+                            listKey.data(),
+                            listKey.length(),
+                            1, // offset
+                            &noSegmentsIncremented);
+
+    if (statMemc != MEMCACHED_SUCCESS)
+      throw MemcacheException(statMemc, this->conn_);
+    if ((noSegmentsIncremented - 1) != curSegment)
+      throw DmException(DM_UNKNOWN_ERROR,
+          std::string("Incrementing the number of segments on memcached failed."));
+  }
+  return curSegment;
+}
+
 
 void MemcacheCatalog::removeListItemFromMemcachedKey(const std::string& listKey, std::string& key)
 {
