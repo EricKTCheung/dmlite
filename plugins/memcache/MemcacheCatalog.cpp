@@ -795,9 +795,9 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
     return meta;
   }
   else {
-    if (dirp->isCached == DIR_NOTCOMPLETE ||
-        dirp->isCached == DIR_NOTCACHED) {
+    if (dirp->isCached == DIR_NOTCACHED) {
       // mark the file list in Memcached as complete
+      // only if it's notcached == saveToMemc is true
       std::string valMemc;
       const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
                                              dirp->dirId);
