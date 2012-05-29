@@ -775,9 +775,13 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   if (meta != 0x00) {
       // copy the stat info into the dirent and touch 
       memset(&dirp->ds, 0x00, sizeof(struct dirent));
-      dirp->ds.d_ino  = dirp->current.stat.st_ino;
+//      dirp->ds.d_ino  = dirp->current.stat.st_ino;
+//      strncpy(dirp->ds.d_name,
+//              dirp->current.name,
+//              sizeof(dirp->ds.d_name));
+      dirp->ds.d_ino  = meta->stat.st_ino;
       strncpy(dirp->ds.d_name,
-              dirp->current.name,
+              meta->name,
               sizeof(dirp->ds.d_name));
 
     if (dirp->isCached == DIR_CACHED) {
@@ -792,7 +796,8 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
 
 //    ENCODE_DIRCACHED(dirp, isCached);
 
-    return &dirp->current;
+//    return &dirp->current;
+    return meta;
   }
   else {
     if (dirp->isCached == DIR_NOTCOMPLETE ||
@@ -1633,7 +1638,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
   }
 
   // copy the extendedStat into dir->current
-  std::memcpy(&(dirp->current), metap, sizeof(ExtendedStat));
+//  std::memcpy(&(dirp->current), metap, sizeof(ExtendedStat));
 
   return metap;
 }
