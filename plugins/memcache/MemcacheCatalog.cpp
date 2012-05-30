@@ -766,12 +766,8 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
     try 
     {
       addMemcachedDListFromKeyValue(listKey, valMemc);
-    } catch (MemcacheException) {
-      dirp->isCached = DIR_NOTCOMPLETE;
-    
     } catch (...) {
-      delete dirp;
-      throw;
+      dirp->isCached = DIR_NOTCOMPLETE;
     }
   }
 
