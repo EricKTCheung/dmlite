@@ -682,6 +682,9 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
 
   // Create the handle
   local_dir = new MemcacheDir();
+  if (local_dir == 0x00) {
+    throw DmException(DM_OUT_OF_MEMORY, "Couldn't create directory handle.");
+  }
   local_dir->dirId = meta.stat.st_ino;
   local_dir->curKeysSegment = 0;
   local_dir->keysPntr = 0;
@@ -709,7 +712,12 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   }
   if (local_dir->isCached == DIR_NOTCACHED ||
       local_dir->isCached == DIR_NOTCOMPLETE) {
-    DELEGATE_ASSIGN(remote_dir, openDir, path);
+    try {
+      DELEGATE_ASSIGN(remote_dir, openDir, path);
+    } catch (...) {
+      delete local_dir;
+      throw;
+    }
     local_dir->dirp = remote_dir;
   }
 
@@ -717,7 +725,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     local_dir->mtime = tim.modtime;
 
 
-  return (Directory *) local_dir;
+  return local_dir;
 }
 
 void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
