@@ -471,6 +471,8 @@ private:
 
   int setMemcachedDListFromKeyValue(const std::string key, const std::string value);
 
+  int addMemcachedDListFromKeyValue(const std::string key, const std::string value);
+
   /// Safe version of setMemcachedDListFromKeyValue.
   /// Safe functions catch all MemcacheExceptions.
 

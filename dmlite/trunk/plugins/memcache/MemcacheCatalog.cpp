@@ -765,7 +765,10 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
     valMemc = serializeDirList(empty, dirp->mtime, true, false);
     try 
     {
-      safeSetMemcachedDListFromKeyValue(listKey, valMemc);
+      addMemcachedDListFromKeyValue(listKey, valMemc);
+    } catch (MemcacheException) {
+      dirp->isCached = DIR_NOTCOMPLETE;
+    
     } catch (...) {
       delete dirp;
       throw;
@@ -1795,6 +1798,42 @@ int MemcacheCatalog::setMemcachedDListFromKeyValue(const std::string key,
 
 	return statMemc;
 }
+
+int MemcacheCatalog::addMemcachedDListFromKeyValue(const std::string key,
+							  						  const std::string value)
+{
+	memcached_return statMemc;
+
+  std::string strNoSegments("1");
+  statMemc = memcached_add(this->conn_,
+													 key.data(),
+													 key.length(),
+				  								 strNoSegments.data(),
+                           strNoSegments.length(),
+					  							 this->memcachedExpirationLimit_,
+    											 (uint32_t)0);
+
+	if (statMemc != MEMCACHED_SUCCESS) {
+  	throw MemcacheException(statMemc, this->conn_);
+	}
+  if (statMemc == MEMCACHED_SUCCESS) {
+    const std::string segmentKey = key + ":" + "0";
+
+	  statMemc = memcached_set(this->conn_,
+		  											 segmentKey.data(),
+			  										 segmentKey.length(),
+				  									 value.data(), value.length(),
+					  								 this->memcachedExpirationLimit_,
+  					  							 (uint32_t)0);
+
+  	if (statMemc != MEMCACHED_SUCCESS) {
+  	  throw MemcacheException(statMemc, this->conn_);
+    }
+	}
+
+	return statMemc;
+}
+
 
 int MemcacheCatalog::safeSetMemcachedDListFromKeyValue(const std::string key,
 							  						  const std::string value)
