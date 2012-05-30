@@ -716,9 +716,8 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   if (local_dir->isCached == DIR_NOTCACHED)
     local_dir->mtime = tim.modtime;
 
-  dir = local_dir;
 
-  return dir;
+  return (Directory *) local_dir;
 }
 
 void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
