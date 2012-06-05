@@ -1,6 +1,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "test-base.h"
 #include "dmlite/common/Security.h"
 
