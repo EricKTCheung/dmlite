@@ -12,21 +12,20 @@ URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:	cmake%{?_isa}
-BuildRequires:	cppunit-devel%{?_isa}
-BuildRequires:	doxygen%{?_isa}
-BuildRequires:	dpm-devel%{?_isa}
-BuildRequires:	libmemcached-devel%{?_isa}
-BuildRequires:	mysql-devel%{?_isa}
-BuildRequires:	protobuf-devel%{?_isa}
-BuildRequires:	subversion%{?_isa}
+BuildRequires:	cmake
+BuildRequires:	cppunit-devel
+BuildRequires:	doxygen
+BuildRequires:	dpm-devel
+BuildRequires:	libmemcached-devel
+BuildRequires:	mysql-devel
+BuildRequires:	protobuf-devel
 
 %description
 This package provides a set of common libraries and plugins that implement
 logic for data management and storage on the grid.
 
 %package libs
-Summary:	Libraries
+Summary:	Common libraries for all dmlite packages
 Group:		Applications/Internet
 
 %description libs
@@ -73,7 +72,7 @@ memcached based implementation of the NS interface.
 Summary:	MySQL plugin for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
-Requires:	mysql
+Requires:	mysql%{?_isa}
 
 %description plugins-mysql
 This package provides the MySQL plugin for dmlite.
@@ -104,13 +103,13 @@ Man pages and HTML documentation for dmlite.
 make %{?_smp_mflags}
 
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT
+rm -rf %{buildroot}
+mkdir -p %{buildroot}
 
-make install DESTDIR=$RPM_BUILD_ROOT
+make install DESTDIR=%{buildroot}
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %post libs -p /sbin/ldconfig
 
@@ -157,6 +156,10 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Sun May 20 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
 - Update for new upstream release
+
+* Tue Jun 05 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-3
+- Removed subversion build dep
+- Added patches for proper tests compilation (missing include, wrong cmake dep)
 
 * Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
 - Split plugins into multiple packages, added dependencies
