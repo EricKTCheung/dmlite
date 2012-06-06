@@ -154,12 +154,12 @@ rm -rf %{buildroot}
 %{_defaultdocdir}/%{name}-%{version}
 
 %changelog
-* Sun May 20 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
-- Update for new upstream release
-
 * Tue Jun 05 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-3
 - Removed subversion build dep
 - Added patches for proper tests compilation (missing include, wrong cmake dep)
+
+* Sun May 20 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
+- Update for new upstream release
 
 * Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
 - Split plugins into multiple packages, added dependencies
