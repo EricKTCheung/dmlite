@@ -2,6 +2,7 @@
 /// @brief   memcached plugin.
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
 #include <cstring>
+#include <stdlib.h>
 #include "Memcache.h"
 
 using namespace dmlite;
