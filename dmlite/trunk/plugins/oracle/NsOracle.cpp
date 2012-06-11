@@ -892,6 +892,9 @@ std::vector<FileReplica> NsOracleCatalog::getReplicas(const std::string& path) t
 std::vector<FileReplica> NsOracleCatalog::getReplicas(ino_t ino) throw (DmException)
 {
   FileReplica   replica;
+  
+  // Set to 0
+  memset(&replica, 0x00, sizeof(FileReplica));
 
   // MySQL statement
   occi::Statement* stmt = this->getPreparedStatement(STMT_GET_FILE_REPLICAS);

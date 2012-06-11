@@ -81,8 +81,9 @@ struct filereplica {
   char       type;
   char       pool      [POOL_MAX];
   char       server    [HOST_NAME_MAX];
-  char       filesystem[FILESYSTEM_MAX]; /** Do we still want this? */
+  char       filesystem[FILESYSTEM_MAX]; /**< Do we still want this? */
   char       url       [URI_MAX];
+  uint8_t    priority;                   /**< 0 highest priority. */
 };
 typedef struct filereplica FileReplica;
 
