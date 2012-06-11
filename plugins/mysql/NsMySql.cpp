@@ -626,6 +626,9 @@ std::vector<FileReplica> NsMySqlCatalog::getReplicas(ino_t ino) throw (DmExcepti
 {
   FileReplica   replica;
   int           nReplicas;
+  
+  // Set to 0
+  memset(&replica, 0x00, sizeof(FileReplica));
 
   // MySQL statement
   Statement stmt(this->conn_, this->nsDb_, STMT_GET_FILE_REPLICAS);
