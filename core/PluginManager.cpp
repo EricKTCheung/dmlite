@@ -1,13 +1,14 @@
 /// @file   core/PluginManager.cpp
 /// @brief  Implementation of dm::PluginManager
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <cstdarg>
 #include <dlfcn.h>
 #include <dmlite/dmlite++.h>
 #include <fstream>
 #include <sstream>
 
 #include "Private.h"
+#include "builtin/IO.h"
+#include "builtin/Catalog.h"
 
 using namespace dmlite;
 
@@ -16,7 +17,8 @@ using namespace dmlite;
 PluginManager::PluginManager() throw()
 {
   // Register built-in plugins
-  this->registerIOFactory(new StdIOFactory());
+  this->registerFactory(new StdIOFactory());
+  this->registerFactory(new BuiltInCatalogFactory());
 }
 
 
@@ -24,33 +26,40 @@ PluginManager::PluginManager() throw()
 PluginManager::~PluginManager() throw()
 {
   // Delete the instantiated factories
-  std::list<CatalogFactory*>::iterator ci;
-
-  for (ci = this->catalog_plugins_.begin();
-       ci != this->catalog_plugins_.end();
-       ++ci) {
-    delete *ci;
+  for (std::list<UserGroupDbFactory*>::iterator i = this->usergroup_plugins_.begin();
+       i != this->usergroup_plugins_.end();
+       ++i) {
+    delete *i;
+  }
+  
+  for (std::list<INodeFactory*>::iterator i = this->inode_plugins_.begin();
+       i != this->inode_plugins_.end();
+       ++i) {
+    delete *i;
+  }
+  
+  for (std::list<CatalogFactory*>::iterator i = this->catalog_plugins_.begin();
+       i != this->catalog_plugins_.end();
+       ++i) {
+    delete *i;
   }
 
-  std::list<PoolManagerFactory*>::iterator pi;
-  for (pi = this->pool_plugins_.begin();
-       pi != this->pool_plugins_.end();
-       ++pi) {
-    delete *pi;
+  for (std::list<PoolManagerFactory*>::iterator i = this->pool_plugins_.begin();
+       i != this->pool_plugins_.end();
+       ++i) {
+    delete *i;
   }
 
-  std::list<IOFactory*>::iterator ii;
-  for (ii = this->io_plugins_.begin();
-       ii != this->io_plugins_.end();
-       ++ii) {
-    delete *ii;
+  for (std::list<IOFactory*>::iterator i = this->io_plugins_.begin();
+       i != this->io_plugins_.end();
+       ++i) {
+    delete *i;
   }
 
-  std::list<PoolHandlerFactory*>::iterator phi;
-  for (phi = this->pool_handler_plugins_.begin();
-       phi != this->pool_handler_plugins_.end();
-       ++phi) {
-    delete *phi;
+  for (std::list<PoolHandlerFactory*>::iterator i = this->pool_handler_plugins_.begin();
+       i != this->pool_handler_plugins_.end();
+       ++i) {
+    delete *i;
   }
 
   // dlclose
@@ -94,6 +103,38 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
 {
   // Bad option by default
   int r = -1;
+  
+  // UserGroupDb plugins
+  for (std::list<UserGroupDbFactory*>::const_iterator i = this->usergroup_plugins_.begin();
+       i != this->usergroup_plugins_.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      r = 0; // At least one recognised this
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }  
+  
+  // INode plugins
+  for (std::list<INodeFactory*>::const_iterator i = this->inode_plugins_.begin();
+       i != this->inode_plugins_.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      r = 0; // At least one recognised this
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }
 
   // Catalog plugins
   for (std::list<CatalogFactory*>::const_iterator i = this->catalog_plugins_.begin();
@@ -215,7 +256,41 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
 
 
 
-void PluginManager::registerCatalogFactory(CatalogFactory* factory) throw(DmException)
+void PluginManager::registerFactory(UserGroupDbFactory* factory) throw (DmException)
+{
+  this->usergroup_plugins_.push_front(factory);
+}
+
+
+
+UserGroupDbFactory* PluginManager::getUserGroupDbFactory() throw (DmException)
+{
+  if (this->usergroup_plugins_.empty())
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
+  else
+    return this->usergroup_plugins_.front();
+}
+
+
+
+void PluginManager::registerFactory(INodeFactory* factory) throw (DmException)
+{
+  this->inode_plugins_.push_front(factory);
+}
+
+
+
+INodeFactory* PluginManager::getINodeFactory() throw (DmException)
+{
+  if (this->inode_plugins_.empty())
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
+  else
+    return this->inode_plugins_.front();
+}
+
+
+
+void PluginManager::registerFactory(CatalogFactory* factory) throw(DmException)
 {
   this->catalog_plugins_.push_front(factory);
 }
@@ -232,7 +307,7 @@ CatalogFactory* PluginManager::getCatalogFactory() throw(DmException)
 
 
 
-void PluginManager::registerPoolFactory(PoolManagerFactory* factory) throw (DmException)
+void PluginManager::registerFactory(PoolManagerFactory* factory) throw (DmException)
 {
   this->pool_plugins_.push_front(factory);
 }
@@ -249,7 +324,7 @@ PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
 
 
 
-void PluginManager::registerIOFactory(IOFactory* factory) throw (DmException)
+void PluginManager::registerFactory(IOFactory* factory) throw (DmException)
 {
   this->io_plugins_.push_front(factory);
 }
@@ -266,7 +341,7 @@ IOFactory* PluginManager::getIOFactory() throw (DmException)
 
 
 
-void PluginManager::registerPoolHandlerFactory(PoolHandlerFactory* factory) throw (DmException)
+void PluginManager::registerFactory(PoolHandlerFactory* factory) throw (DmException)
 {
   this->pool_handler_plugins_.push_front(factory);
 }
@@ -287,125 +362,4 @@ PoolHandlerFactory* PluginManager::getPoolHandlerFactory(const std::string& pool
   }
 
   throw DmException(DM_UNKNOWN_POOL_TYPE, "No plugin recognises the pool type " + pooltype);
-}
-
-
-
-StackInstance::StackInstance(PluginManager* pm) throw (DmException):
-    pluginManager_(pm), secCtx_(0)
-{
-  try {
-    this->catalog_ = pm->getCatalogFactory()->createCatalog(this);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->catalog_ = 0;
-  }
-  
-  try {
-    this->poolManager_ = pm->getPoolManagerFactory()->createPoolManager(this);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->poolManager_ = 0;
-  }
-  
-}
-
-
-
-StackInstance::~StackInstance() throw ()
-{
-  if (this->catalog_)     delete this->catalog_;
-  if (this->poolManager_) delete this->poolManager_;
-  if (this->secCtx_)      delete this->secCtx_;
-  
-  // Clean pool handlers
-  std::map<std::string, PoolHandler*>::iterator i;
-  for (i = this->poolHandlers_.begin();
-       i != this->poolHandlers_.end();
-       ++i) {
-    delete i->second;
-  }
-  this->poolHandlers_.clear();
-}
-
-
-
-PluginManager* StackInstance::getPluginManager() throw (DmException)
-{
-  return this->pluginManager_;
-}
-
-
-
-Catalog* StackInstance::getCatalog() throw (DmException)
-{
-  if (this->catalog_ == 0)
-    throw DmException(DM_NO_CATALOG, "No plugin provides Catalog");
-  return this->catalog_;
-}
-
-
-
-PoolManager* StackInstance::getPoolManager() throw (DmException)
-{
-  if (this->poolManager_ == 0)
-    throw DmException(DM_NO_POOL_MANAGER, "No plugin provides PoolManager");
-  return this->poolManager_;
-}
-
-
-
-PoolHandler* StackInstance::getPoolHandler(const Pool& pool) throw (DmException)
-{
-  // Try from dictionary first
-  std::map<std::string, PoolHandler*>::iterator i;
-  i = this->poolHandlers_.find(pool.pool_name);
-  if (i != this->poolHandlers_.end())
-    return i->second;
-  
-  // Instantiate
-  PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool.pool_type);
-  PoolHandler* ph = phf->createPoolHandler(this, pool);
-  
-  this->poolHandlers_[pool.pool_name] = ph;
-  
-  return ph;
-}
-
-
-
-void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
-{
-  if (this->catalog_ == 0)
-    throw DmException(DM_NO_CATALOG, "No catalog to initialize the security context");
-  
-  this->secCtx_ = this->catalog_->createSecurityContext(cred);
-  this->catalog_->setSecurityContext(this->secCtx_);
-  
-  if (this->poolManager_ != 0)
-    this->poolManager_->setSecurityContext(this->secCtx_);
-}
-
-
-
-void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmException)
-{
-  if (this->secCtx_) delete this->secCtx_;
-  this->secCtx_ = new SecurityContext(ctx);
-  
-  if (this->catalog_ != 0)
-    this->catalog_->setSecurityContext(this->secCtx_);
-  if (this->poolManager_ != 0)
-    this->poolManager_->setSecurityContext(this->secCtx_);
-}
-
-
-
-const SecurityContext* StackInstance::getSecurityContext() throw ()
-{
-  return this->secCtx_;
 }

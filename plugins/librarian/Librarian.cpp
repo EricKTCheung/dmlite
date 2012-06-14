@@ -41,7 +41,7 @@ Catalog* LibrarianFactory::createCatalog(StackInstance* si) throw(DmException)
 static void registerPluginLibrarian(PluginManager* pm) throw(DmException)
 {
   try {
-    pm->registerCatalogFactory(new LibrarianFactory(pm->getCatalogFactory()));
+    pm->registerFactory(new LibrarianFactory(pm->getCatalogFactory()));
   }
   catch (DmException e) {
     if (e.code() == DM_NO_FACTORY)

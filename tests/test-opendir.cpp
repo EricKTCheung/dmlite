@@ -61,8 +61,8 @@ public:
   {
     dmlite::Catalog *catalog2;
     
-    this->pluginManager->configure("NsUpdateAccessTime", "no");
-    catalog2 = this->pluginManager->getCatalogFactory()->createCatalog(0x00);
+    this->pluginManager->configure("UpdateAccessTime", "no");
+    catalog2 = this->pluginManager->getCatalogFactory()->createCatalog(this->stackInstance);
     catalog2->setSecurityContext(&this->root);
     catalog2->changeDir(BASE_DIR);
     

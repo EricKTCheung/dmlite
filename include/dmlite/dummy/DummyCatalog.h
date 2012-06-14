@@ -22,9 +22,6 @@ public:
   virtual ~DummyCatalog();
 
   // Overloading
-  virtual void set(const std::string&, va_list) throw (DmException);
-
-  virtual SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
   virtual void setSecurityContext(const SecurityContext*) throw (DmException);
 
   virtual void        changeDir     (const std::string&) throw (DmException);
@@ -32,10 +29,6 @@ public:
   virtual ino_t       getWorkingDirI(void)               throw (DmException);
 
   virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-  virtual ExtendedStat extendedStat(ino_t)              throw (DmException);
-  virtual ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
-
-  SymLink readLink(ino_t) throw (DmException);
 
   virtual void addReplica(const std::string&, int64_t, const std::string&,
                           const std::string&, char, char,
@@ -60,25 +53,18 @@ public:
 
   virtual mode_t umask          (mode_t)                           throw ();
   virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  virtual void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  virtual void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  virtual void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
   virtual void changeSize(const std::string&, size_t) throw (DmException);
 
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   virtual void utime(const std::string&, const struct utimbuf*) throw (DmException);
-  virtual void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   virtual std::string getComment(const std::string&)                     throw (DmException);
   virtual void        setComment(const std::string&, const std::string&) throw (DmException);
 
   virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException);
-
-  virtual UserInfo  getUser(uid_t)              throw (DmException);
-  virtual UserInfo  getUser(const std::string&) throw (DmException);
-  virtual GroupInfo getGroup(gid_t)              throw (DmException);
-  virtual GroupInfo getGroup(const std::string&) throw (DmException);
 
   virtual Directory* openDir (const std::string&) throw (DmException);
   virtual void       closeDir(Directory*)         throw (DmException);

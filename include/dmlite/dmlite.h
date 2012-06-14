@@ -86,13 +86,14 @@ dm_context* dm_context_new(dm_manager* manager);
 int dm_context_free(dm_context* context);
 
 /**
- * Set a configuration parameter.
+ * Set a configuration parameter tied to a context.
+ * This can be used to pass advanced parameters to a plugin.
  * @param context The DM context.
- * @param key     The configuration parameter.
- * @param ...     Variable arguments depending on the configuration parameter.
- * @return        0 on success, error code otherwise.
+ * @param k The configuration key.
+ * @param v Value.
+ * @return  0 on success, error code otherwise.
  */
-int dm_set(dm_context* context, const char* key, ...);
+int dm_set(dm_context* context, const char* k, union value v);
 
 /**
  * Change the working dir.
@@ -625,4 +626,3 @@ void dm_freeacls(int nAcls, struct dm_acl* acls);
 #endif
 
 #endif	/* DMLITE_H */
-

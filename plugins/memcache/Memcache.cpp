@@ -1,6 +1,7 @@
 /// @file    plugins/memcache/Memcache.h
 /// @brief   memcached plugin.
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
+#include <algorithm>
 #include <cstring>
 #include <stdlib.h>
 #include "Memcache.h"
@@ -148,7 +149,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   	  throw DmException(DM_UNKNOWN_OPTION,
                         std::string("Unknown option value ") + value);
 
-  } else if (key == "NsUpdateAccessTime") {
+  } else if (key == "UpdateAccessTime") {
     std::string lower;
     std::transform(value.begin(), value.end(), lower.begin(), tolower);
     this->updateATime_ = (value == "yes");
@@ -188,6 +189,7 @@ Catalog* MemcacheFactory::createCatalog(StackInstance* si) throw(DmException)
 
   return new MemcacheCatalog(&this->connectionPool_,
                              nested,
+                             si,
                              this->symLinkLimit_,
                              (time_t)this->memcachedExpirationLimit_,
                              this->memcachedStrict_,
@@ -200,7 +202,7 @@ Catalog* MemcacheFactory::createCatalog(StackInstance* si) throw(DmException)
 static void registerPluginMemcache(PluginManager* pm) throw(DmException)
 {
   try {
-    pm->registerCatalogFactory(new MemcacheFactory(pm->getCatalogFactory()));
+    pm->registerFactory(new MemcacheFactory(pm->getCatalogFactory()));
   }
   catch (DmException e) {
     if (e.code() == DM_NO_FACTORY)

@@ -9,7 +9,7 @@
 namespace dmlite {
 
 /// Concrete factory for DPNS/LFC wrapper
-class NsAdapterFactory: public CatalogFactory {
+class NsAdapterFactory: public CatalogFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsAdapterFactory() throw (DmException);
@@ -18,6 +18,8 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
   Catalog* createCatalog(StackInstance* si)                        throw (DmException);
+  
+  UserGroupDb* createUserGroupDb(StackInstance* si) throw (DmException);
 
 protected:
   unsigned retryLimit_;
@@ -38,7 +40,7 @@ public:
 
   std::string implementedPool() throw();
   PoolHandler* createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException);
-
+  
 protected:
 };
 

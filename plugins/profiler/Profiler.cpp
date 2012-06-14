@@ -46,9 +46,9 @@ PoolManager* ProfilerFactory::createPoolManager(StackInstance* si) throw (DmExce
 
 
 static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
-{
+{ 
   try {
-    pm->registerCatalogFactory(new ProfilerFactory(pm->getCatalogFactory(), 0x00));
+    pm->registerFactory(static_cast<CatalogFactory*>(new ProfilerFactory(pm->getCatalogFactory(), 0x00)));
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -56,7 +56,7 @@ static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
   }
 
   try {
-    pm->registerPoolFactory(new ProfilerFactory(0x00, pm->getPoolManagerFactory()));
+    pm->registerFactory(static_cast<PoolManagerFactory*>(new ProfilerFactory(0x00, pm->getPoolManagerFactory())));
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)

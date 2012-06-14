@@ -1,7 +1,6 @@
 /// @file   core/Catalog-C.cpp
 /// @brief  C wrapper for dmlite::Catalog.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
-#include <cstdarg>
 #include <cstring>
 #include <dmlite/dmlite++.h>
 #include <dmlite/dmlite.h>
@@ -15,15 +14,11 @@
 
 
 
-int dm_set(dm_context *context, const char *key, ...)
+int dm_set(dm_context *context, const char *k, union value v)
 {
-  va_list vargs;
-
   TRY(context, set)
-  NOT_NULL(key);
-  va_start(vargs, key);
-  context->catalog->set(key, vargs);
-  va_end(vargs);
+  NOT_NULL(k);
+  context->stack->set(k, v);
   CATCH(context, set)
 }
 
@@ -67,7 +62,7 @@ int dm_lstat(dm_context* context, const char* path, struct stat* buf)
   TRY(context, lstat)
   NOT_NULL(path);
   NOT_NULL(buf);
-  *buf = context->catalog->linkStat(path);
+  *buf = context->catalog->stat(path, false);
   CATCH(context, lstat);
 }
 
@@ -88,7 +83,7 @@ int dm_istat(dm_context* context, ino_t inode, struct stat* buf)
 {
   TRY(context, lstat)
   NOT_NULL(buf);
-  *buf = context->catalog->stat(inode);
+  *buf = context->inode->extendedStat(inode).stat;
   CATCH(context, lstat);
 }
 
@@ -96,10 +91,10 @@ int dm_istat(dm_context* context, ino_t inode, struct stat* buf)
 
 int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf)
 {
-  TRY(context, lstat)
+  TRY(context, ixstat)
   NOT_NULL(buf);
-  *buf = context->catalog->extendedStat(inode);
-  CATCH(context, lstat);
+  *buf = context->inode->extendedStat(inode);
+  CATCH(context, ixstat);
 }
 
 
@@ -281,7 +276,7 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 {
   TRY(context, lchown)
   NOT_NULL(path);
-  context->catalog->linkChangeOwner(path, newUid, newGid);
+  context->catalog->changeOwner(path, newUid, newGid, false);
   CATCH(context, lchown)
 }
 
@@ -342,7 +337,7 @@ int dm_getgrpbygid(dm_context* context, gid_t gid, char* groupName)
 {
   TRY(context, getgrpbygid)
   NOT_NULL(groupName);
-  groupinfo group = context->catalog->getGroup(groupName);
+  groupinfo group = context->userdb->getGroup(groupName);
   strcpy(groupName, group.name);
   CATCH(context, getgrpbygid)
 }
@@ -354,7 +349,7 @@ int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid)
   TRY(context, getgrpbynam)
   NOT_NULL(groupName);
   NOT_NULL(gid);
-  groupinfo group = context->catalog->getGroup(groupName);
+  groupinfo group = context->userdb->getGroup(groupName);
   *gid = group.gid;
   CATCH(context, getgrpbynam)
 }
@@ -365,7 +360,7 @@ int dm_getusrbynam(dm_context* context, const char* userName, uid_t* uid)
 {
   TRY(context, getusrbyuid)
   NOT_NULL(userName);
-  userinfo user = context->catalog->getUser(userName);
+  userinfo user = context->userdb->getUser(userName);
   *uid = user.uid;
   CATCH(context, getusrbyuid)
 }
@@ -376,7 +371,7 @@ int dm_getusrbyuid(dm_context* context, uid_t uid, char* userName)
 {
   TRY(context, getusrbyuid)
   NOT_NULL(userName);
-  userinfo user = context->catalog->getUser(uid);
+  userinfo user = context->userdb->getUser(uid);
   strcpy(userName, user.name);
   CATCH(context, getusrbyuid)
 }

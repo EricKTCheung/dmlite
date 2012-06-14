@@ -23,9 +23,6 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
 
-  void set(const std::string&, ...)     throw (DmException);
-  void set(const std::string&, va_list) throw (DmException);
-
   SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
@@ -34,14 +31,7 @@ public:
   ino_t       getWorkingDirI(void)               throw (DmException);
 
   struct stat  stat        (const std::string&) throw (DmException);
-  struct stat  stat        (ino_t)              throw (DmException);
-  struct stat  stat        (ino_t, const std::string&) throw (DmException);
-  struct stat  linkStat    (const std::string&) throw (DmException);
   ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-  ExtendedStat extendedStat(ino_t)              throw (DmException);
-  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
-
-  SymLink readLink(ino_t) throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,
                   const std::string&, char, char,
@@ -65,26 +55,18 @@ public:
 
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
   void changeSize(const std::string&, size_t) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
-  void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
 
   void setGuid(const std::string&, const std::string&) throw (DmException);
-
-  GroupInfo getGroup(gid_t)              throw (DmException);
-  GroupInfo getGroup(const std::string&) throw (DmException);
-
-  UserInfo getUser(uid_t)              throw (DmException);
-  UserInfo getUser(const std::string&) throw (DmException);
 
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);

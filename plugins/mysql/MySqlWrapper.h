@@ -12,21 +12,6 @@
 
 namespace dmlite {
 
-/// Lock and transaction handler
-/// Used to avoid manual tracking of exit paths, so any destruction
-/// before a commit() call will be a rollback.
-class Transaction {
-public:
-  Transaction(MYSQL* conn) throw (DmException);
-  ~Transaction() throw (DmException);
-
-  void commit(void) throw (DmException);
-  void rollback(void) throw (DmException);
-private:
-  bool   pending_;
-  MYSQL *connection_;
-};
-
 /// Prepared statement wrapper.
 class Statement {
 public:

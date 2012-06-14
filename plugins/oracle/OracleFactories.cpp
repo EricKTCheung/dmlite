@@ -4,8 +4,7 @@
 #include <cstring>
 #include "OracleFactories.h"
 #include "NsOracle.h"
-
-#include <stdlib.h>
+#include "UserGroupDbOracle.h"
 
 using namespace dmlite;
 using namespace oracle;
@@ -49,7 +48,7 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
 
 
 
-Catalog* NsOracleFactory::createCatalog(StackInstance* si) throw(DmException)
+INode* NsOracleFactory::createINode(StackInstance* si) throw(DmException)
 {
   try {
     if (this->pool_ == 0x00)
@@ -57,8 +56,26 @@ Catalog* NsOracleFactory::createCatalog(StackInstance* si) throw(DmException)
                                                      this->nsDb_,
                                                      this->minPool_, this->maxPool_);
 
-    return new NsOracleCatalog(this->pool_, this->pool_->createConnection(this->user_, this->passwd_),
-                               this->symLinkLimit_);
+    return new INodeOracle(this->pool_,
+                           this->pool_->createConnection(this->user_, this->passwd_));
+  }
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
+  }
+}
+
+
+
+UserGroupDb* NsOracleFactory::createUserGroupDb(StackInstance* si) throw (DmException)
+{
+  try {
+    if (this->pool_ == 0x00)
+      this->pool_ = this->env_->createConnectionPool(this->user_, this->passwd_,
+                                                     this->nsDb_,
+                                                     this->minPool_, this->maxPool_);
+
+    return new UserGroupDbOracle(this->pool_,
+                                 this->pool_->createConnection(this->user_, this->passwd_));
   }
   catch (occi::SQLException& ex) {
     throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
@@ -69,7 +86,8 @@ Catalog* NsOracleFactory::createCatalog(StackInstance* si) throw(DmException)
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsOracleFactory());
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsOracleFactory()));
+  pm->registerFactory(static_cast<INodeFactory*>(new NsOracleFactory()));
 }
 
 

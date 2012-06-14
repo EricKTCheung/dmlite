@@ -66,7 +66,7 @@ public:
   void testSymLink()
   {
     // Stat the link
-    statBuf = this->catalog->linkStat(SYMLINK);
+    statBuf = this->catalog->stat(SYMLINK, false);
     CPPUNIT_ASSERT_EQUAL(S_IFLNK, (int)statBuf.st_mode & S_IFLNK);
     // Stat the folder
     statBuf = this->catalog->stat(SYMLINK);
@@ -86,7 +86,7 @@ public:
   void testIStat()
   {
     statBuf = this->catalog->stat(FOLDER);
-    iStat   = this->catalog->stat(statBuf.st_ino);
+    iStat   = this->stackInstance->getINode()->extendedStat(statBuf.st_ino).stat;
 
     // Check some only, if they are fine, the rest should be fine.
     CPPUNIT_ASSERT_EQUAL(statBuf.st_ino,  iStat.st_ino);

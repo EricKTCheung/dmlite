@@ -38,20 +38,6 @@ DummyCatalog::~DummyCatalog()
 
 
 
-void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException)
-{
-  DELEGATE(set, key, vargs);
-}
-
-
-
-SecurityContext* DummyCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
-{
-  DELEGATE_RETURN(createSecurityContext, cred);
-}
-
-
-
 void DummyCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   DELEGATE(setSecurityContext, ctx);
@@ -83,27 +69,6 @@ ino_t DummyCatalog::getWorkingDirI(void) throw (DmException)
 ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   DELEGATE_RETURN(extendedStat, path, follow);
-}
-
-
-
-ExtendedStat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(extendedStat, inode);
-}
-
-
-
-ExtendedStat DummyCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
-{
-  DELEGATE_RETURN(extendedStat, parent, name);
-}
-
-
-
-SymLink DummyCatalog::readLink(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(readLink, inode);
 }
 
 
@@ -205,16 +170,9 @@ void DummyCatalog::changeMode(const std::string& path, mode_t mode) throw (DmExc
 
 
 
-void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
+void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool fs) throw (DmException)
 {
-  DELEGATE(changeOwner, path, newUid, newGid);
-}
-
-
-
-void DummyCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
-{
-  DELEGATE(linkChangeOwner, path, newUid, newGid);
+  DELEGATE(changeOwner, path, newUid, newGid, fs);
 }
 
 
@@ -240,13 +198,6 @@ void DummyCatalog::utime(const std::string& path, const struct utimbuf* buf) thr
 
 
 
-void DummyCatalog::utime(ino_t inode, const utimbuf* buf) throw (DmException)
-{
-  DELEGATE(utime, inode, buf);
-}
-
-
-
 std::string DummyCatalog::getComment(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(getComment, path);
@@ -264,34 +215,6 @@ void DummyCatalog::setComment(const std::string& path, const std::string& commen
 void DummyCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   DELEGATE(setGuid, path, guid);
-}
-
-
-
-GroupInfo DummyCatalog::getGroup(gid_t gid) throw (DmException)
-{
-  DELEGATE_RETURN(getGroup, gid);
-}
-
-
-
-GroupInfo DummyCatalog::getGroup(const std::string& groupName) throw (DmException)
-{
-  DELEGATE_RETURN(getGroup, groupName);
-}
-
-
-
-UserInfo DummyCatalog::getUser(const std::string& userName) throw (DmException)
-{
-  DELEGATE_RETURN(getUser, userName);
-}
-
-
-
-UserInfo DummyCatalog::getUser(uid_t uid) throw (DmException)
-{
-  DELEGATE_RETURN(getUser, uid);
 }
 
 

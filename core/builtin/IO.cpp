@@ -1,11 +1,11 @@
-/// @file   core/IO.cpp
+/// @file   core/builtin/IO.cpp
 /// @brief  Built-in IO factory (std::fstream)
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <errno.h>
 #include <fstream>
 #include <iosfwd>
 #include <sys/stat.h>
-#include "Private.h"
+#include "IO.h"
 
 using namespace dmlite;
 

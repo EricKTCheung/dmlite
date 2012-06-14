@@ -27,14 +27,9 @@ public:
 
   virtual std::vector<FileReplica> getReplicas(const std::string&)               throw (DmException);
   virtual Uri                      get        (const std::string&)               throw (DmException);
-
-protected:
-  void exclude   (int64_t replicaId);
-  bool isExcluded(int64_t replicaId);
   
 private:
-  std::set<int64_t>  excluded_;
-  StackInstance*     stack_;
+  StackInstance* stack_;
 };
 
 /// Concrete factory for the Librarian plugin.

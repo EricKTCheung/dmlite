@@ -74,7 +74,6 @@ protected:
 private:
 };
 
-
 };
 
 #endif	// DMLITE_POOL_H

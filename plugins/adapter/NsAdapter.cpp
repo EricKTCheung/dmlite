@@ -7,6 +7,7 @@
 #include <dmlite/common/Security.h>
 #include <dmlite/common/Uris.h>
 #include <serrno.h>
+#include <algorithm>
 
 #include "Adapter.h"
 #include "NsAdapter.h"
@@ -44,24 +45,6 @@ NsAdapterCatalog::~NsAdapterCatalog()
 std::string NsAdapterCatalog::getImplId() throw ()
 {
   return std::string("NsAdapterCatalog");
-}
-
-
-
-void NsAdapterCatalog::set(const std::string& key, ...) throw (DmException)
-{
-  va_list vargs;
-
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
-}
-
-
-
-void NsAdapterCatalog::set(const std::string& key, va_list) throw (DmException)
-{
-  throw DmException(DM_UNKNOWN_OPTION, "Option not recognised");
 }
 
 
@@ -193,27 +176,6 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
   strncpy(xStat.acl, dmlite::serializeAcl(dmAcls).c_str(), sizeof(xStat.acl));
 
   return xStat;
-}
-
-
-
-ExtendedStat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
-ExtendedStat NsAdapterCatalog::extendedStat(ino_t, const std::string&) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
-SymLink NsAdapterCatalog::readLink(ino_t inode) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
 }
 
 
@@ -391,16 +353,12 @@ void NsAdapterCatalog::changeMode(const std::string& path, mode_t mode) throw (D
 
 
 
-void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
+void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
 {
-  wrapCall(dpns_chown(path.c_str(), newUid, newGid));
-}
-
-
-
-void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
-{
-  wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
+  if (followSymLink)
+    wrapCall(dpns_chown(path.c_str(), newUid, newGid));
+  else
+    wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
 }
 
 
@@ -441,13 +399,6 @@ void NsAdapterCatalog::utime(const std::string& path, const struct utimbuf* buf)
 
 
 
-void NsAdapterCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
 std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmException)
 {
   char comment[COMMENT_MAX];
@@ -462,6 +413,14 @@ std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmExcep
 void NsAdapterCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   wrapCall(dpns_setcomment(path.c_str(), (char*)comment.c_str()));
+}
+
+
+
+GroupInfo NsAdapterCatalog::newGroup(const std::string& gname) throw (DmException)
+{
+  wrapCall(dpns_entergrpmap(-1, (char*)gname.c_str()));
+  return this->getGroup(gname);
 }
 
 
@@ -499,6 +458,14 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmExce
 
 
 
+UserInfo NsAdapterCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+{
+  wrapCall(dpns_enterusrmap(-1, (char*)uname.c_str()));
+  return this->getUser(uname);
+}
+
+
+
 UserInfo NsAdapterCatalog::getUser(const std::string& userName) throw (DmException)
 {
   UserInfo user;
@@ -522,6 +489,29 @@ UserInfo NsAdapterCatalog::getUser(uid_t uid) throw (DmException)
   user.ca[0] = '\0';
   
   return user;
+}
+
+
+
+void NsAdapterCatalog::getIdMap(const std::string& userName,
+                                const std::vector<std::string>& groupNames,
+                                UserInfo* user, std::vector<GroupInfo>* groups) throw (DmException)
+{
+  unsigned    ngroups = groupNames.size();
+  const char *gnames[ngroups];
+  gid_t       gids[ngroups + 1];
+  
+  memset(user, 0, sizeof(UserInfo));
+  
+  for (unsigned i = 0; i < ngroups; ++i)
+    gnames[i] = groupNames[i].c_str();
+  
+  wrapCall(dpns_getidmap(userName.c_str(), ngroups, gnames, &user->uid, gids));
+  
+  strncpy(user->name, userName.c_str(), sizeof(user->name));
+  
+  for (unsigned i = 0; i < ngroups; ++i)
+    groups->push_back(this->getGroup(gids[i]));
 }
 
 
