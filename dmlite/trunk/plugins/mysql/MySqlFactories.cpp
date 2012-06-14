@@ -8,6 +8,7 @@
 #include "MySqlFactories.h"
 #include "NsMySql.h"
 #include "DpmMySql.h"
+#include "UserGroupDbMySql.h"
 
 using namespace dmlite;
 
@@ -86,8 +87,7 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"), symLinkLimit_(3),
-  updateATime_(true)
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db")
 {
   // Initialize MySQL library
   mysql_library_init(0, NULL, NULL);
@@ -115,31 +115,32 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     this->connectionFactory_.port = atoi(value.c_str());
   else if (key == "NsDatabase")
     this->nsDb_ = value;
-  else if (key == "SymLinkLimit")
-    this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "NsPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
-  else if (key == "NsUpdateAccessTime") {
-    std::string lower;
-    std::transform(value.begin(), value.end(), lower.begin(), tolower);
-    this->updateATime_ = (value == "yes");
-  }
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
 
-Catalog* NsMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
+INode* NsMySqlFactory::createINode(StackInstance* si) throw(DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
-                            this->updateATime_, this->symLinkLimit_);
+  return new INodeMySql(&this->connectionPool_, this->nsDb_);
+}
+
+
+
+UserGroupDb* NsMySqlFactory::createUserGroupDb(StackInstance* si) throw (DmException)
+{
+  pthread_once(&initialize_mysql_thread, init_thread);
+  return new UserGroupDbMySql(&this->connectionPool_, this->nsDb_);
 }
 
 
 
 DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
-                  dpmDb_("dpm_db")
+  connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
+  connectionPool_(&connectionFactory_, 25), dpmDb_("dpm_db")
 {
   // MySQL initialization done by NsMySqlFactory
 }
@@ -155,20 +156,18 @@ DpmMySqlFactory::~DpmMySqlFactory() throw(DmException)
 
 void DpmMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  if (key == "DpmDatabase")
+if (key == "MySqlHost")
+    this->connectionFactory_.host = value;
+  else if (key == "MySqlUsername")
+    this->connectionFactory_.user = value;
+  else if (key == "MySqlPassword")
+    this->connectionFactory_.passwd = value;
+  else if (key == "MySqlPort")
+    this->connectionFactory_.port = atoi(value.c_str());
+  else if (key == "DpmDatabase")
     this->dpmDb_ = value;
   else
-    return NsMySqlFactory::configure(key, value);
-}
-
-
-
-Catalog* DpmMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
-{
-  pthread_once(&initialize_mysql_thread, init_thread);
-  return new DpmMySqlCatalog(&this->connectionPool_,
-                             this->nsDb_, this->dpmDb_,
-                             this->updateATime_, this->symLinkLimit_, si);
+    throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
 
@@ -184,7 +183,8 @@ PoolManager* DpmMySqlFactory::createPoolManager(StackInstance* si) throw (DmExce
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsMySqlFactory());
+  pm->registerFactory(static_cast<INodeFactory*>(new NsMySqlFactory()));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsMySqlFactory()));
 }
 
 
@@ -199,8 +199,9 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
     if (e.code() != DM_NO_FACTORY)
       throw;
   }
-  pm->registerCatalogFactory(new DpmMySqlFactory());
-  pm->registerPoolFactory(new DpmMySqlFactory());
+  pm->registerFactory(static_cast<INodeFactory*>(new NsMySqlFactory()));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsMySqlFactory()));
+  pm->registerFactory(new DpmMySqlFactory());
 }
 
 

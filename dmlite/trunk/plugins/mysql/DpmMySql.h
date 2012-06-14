@@ -23,46 +23,6 @@ struct DpmFileSystem {
   int  weight;                 ///< The associated weight.
 };
 
-/// Implementation of DPM MySQL backend.
-class DpmMySqlCatalog: public NsMySqlCatalog {
-public:
-
-  /// Constructor
-  /// @param conn      The MySQL connection pool.
-  /// @param nsDb      The MySQL DB name for the NS.
-  /// @param dpmDb     The MySQL DB name for DPM.
-  /// @param updateATime Update access time on each read.
-  /// @param symLimit  The recursion limit for symbolic links.
-  /// @param si        The stack instance.
-  DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool,
-                  const std::string& nsDb, const std::string& dpmDb,
-                  bool updateATime, unsigned int symLimit,
-                  StackInstance* si) throw(DmException);
-
-  /// Destructor
-  ~DpmMySqlCatalog() throw (DmException);
-
-  // Overloading
-  std::string getImplId(void) throw ();
-  
-  std::vector<Uri> getReplicasLocation(const std::string&) throw (DmException);
-  Uri get (const std::string&) throw (DmException);
-
-  void unlink (const std::string&) throw (DmException);
-
-  std::string put      (const std::string&, Uri*)                     throw (DmException);
-  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
-  
-protected:
-private:
-  /// DPM DB.
-  std::string dpmDb_;
-  
-  /// Stack instance.
-  StackInstance* stack_;
-};
-
 /// Pool manager implementation.
 class MySqlPoolManager: public PoolManager {
 public:

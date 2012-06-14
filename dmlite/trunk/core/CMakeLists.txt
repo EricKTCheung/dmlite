@@ -4,12 +4,15 @@ add_library(dmlite SHARED Auth.cpp
                           Defaults.cpp
                           Catalog-C.cpp
                           Exceptions.cpp
-                          IO.cpp
                           IO-C.cpp
                           PluginManager.cpp
                           PluginManager-C.cpp
                           Pool-C.cpp
+                          StackInstance.cpp
+                          builtin/Catalog.cpp
+                          builtin/IO.cpp
                           dummy/DummyCatalog.cpp
+                          dummy/DummyINode.cpp
                           dummy/DummyPool.cpp)
 
 target_link_libraries(dmlite dl pthread dmlitecommon)

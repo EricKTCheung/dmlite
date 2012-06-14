@@ -34,7 +34,7 @@ private:
 };
 
 /// Concrete factory for DPNS/LFC.
-class NsMySqlFactory: public CatalogFactory {
+class NsMySqlFactory: public INodeFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsMySqlFactory() throw(DmException);
@@ -42,7 +42,9 @@ public:
   ~NsMySqlFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
+  
+  INode*       createINode(StackInstance* si)       throw (DmException);
+  UserGroupDb* createUserGroupDb(StackInstance* si) throw (DmException);
 
 protected:
   /// Connection factory.
@@ -54,18 +56,12 @@ protected:
   /// NS db.
   std::string nsDb_;
 
-  /// The recursion limit following symbolic links.
-  unsigned int symLinkLimit_;
-  
-  /// Update access time.
-  bool updateATime_;
-
 private:
 };
 
 
 
-class DpmMySqlFactory: public NsMySqlFactory, public PoolManagerFactory {
+class DpmMySqlFactory: public PoolManagerFactory {
 public:
   /// Constructor
   DpmMySqlFactory() throw(DmException);
@@ -75,10 +71,15 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
   PoolManager* createPoolManager(StackInstance* si) throw (DmException);
 
 protected:
+  /// Connection factory.
+  MySqlConnectionFactory connectionFactory_;
+
+  /// Connection pool.
+  PoolContainer<MYSQL*> connectionPool_;
+  
   /// DPM db.
   std::string dpmDb_;
 };

@@ -145,6 +145,22 @@ struct dm_acl {
 };
 typedef struct dm_acl Acl;
 
+/** Union to handle different types of values.
+ * @note Pointers are owned by caller!
+ */
+union value {
+  bool        b;
+  uint64_t    u64;
+  int64_t     i64;
+  struct {
+    size_t    size;
+    uint64_t *u64v;
+    int64_t  *i64v;
+    char     *str;
+  } array;
+};
+typedef union value Value;
+
 #ifdef __cplusplus
 /// Operator < for UserInfo (needed for sets)
 inline bool operator < (const userinfo &a, const userinfo &b)

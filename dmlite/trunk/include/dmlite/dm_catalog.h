@@ -29,19 +29,6 @@ public:
   /// String ID of the catalog implementation.
   virtual std::string getImplId(void) throw() = 0;
 
-  /// Set a configuration parameter.
-  /// @param key   The configuration parameter.
-  virtual void set(const std::string& key, ...) throw (DmException);
-
-  /// Set a configuration parameter.
-  /// @param key   The configuration parameter.
-  /// @param varg  The list of arguments. Depend on the key.
-  virtual void set(const std::string& key, va_list varg) throw (DmException) = 0;
-
-  /// Set the security credentials.
-  /// @param cred The security credentials.
-  virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException) = 0;
-
   /// Set the security context.
   virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
 
@@ -56,55 +43,15 @@ public:
   /// Get the current working dir inode.
   /// @return The cwd inode.
   virtual ino_t getWorkingDirI(void) throw (DmException) = 0;
-
-  // Stat calls are implemented by default as extendedStat(...).stat
-
-  /// Do a stat of a file or directory.
-  /// @param path The path of the file or directory.
-  /// @return     The status of the file.
-  virtual struct stat stat(const std::string& path) throw (DmException);
-
-  /// Do a stat of an entry using its inode.
-  /// @param inode The entry inode.
-  /// @return      The status of the file.
-  /// @note        No security checks will be done.
-  virtual struct stat stat(ino_t inode) throw (DmException);
-
-  /// Do a stat of an entry using the parent inode and the name.
-  /// @param parent The parent inode.
-  /// @param name   The file or directory name.
-  /// @note         No security check will be done.
-  virtual struct stat stat(ino_t parent, const std::string& name) throw (DmException);
-
-  /// Do a stat of a file or directory. Stats symbolic links.
-  /// @param path The path of the file or direntory
-  /// @return     The status of the link.
-  /// @note       Implemented as extendedStat(path, false).stat
-  virtual struct stat linkStat(const std::string& path) throw (DmException);
+  
+  /// Default implementation calls getMetadata
+  virtual struct stat stat(const std::string& path, bool followSym = true) throw (DmException);
 
   /// Do an extended stat of a file or directory.
   /// @param path      The path of the file or directory.
   /// @param followSym If true, symlinks will be followed.
   /// @return          The extended status of the file.
   virtual ExtendedStat extendedStat(const std::string& path, bool followSym = true) throw (DmException) = 0;
-
-  /// Do an extended stat of en entry using its inode.
-  /// @param inode The entry inode.
-  /// @return      The extended status of the file.
-  /// @note        No security checks will be done.
-  virtual ExtendedStat extendedStat(ino_t inode) throw (DmException) = 0;
-
-  /// Do an extended stat of an entry using the parent inode and the name.
-  /// @param parent The parent inode.
-  /// @param name   The file or directory name.
-  /// @note         No security check will be done.
-  virtual ExtendedStat extendedStat(ino_t parent, const std::string& name) throw (DmException) = 0;
-
-  /// Get the symlink associated with a inode.
-  /// @param inode The inode to check.
-  /// @return      A SymLink struct.
-  /// @note        If inode is not a symlink, an exception will be thrown.
-  virtual SymLink readLink(ino_t inode) throw (DmException) = 0;
 
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.
@@ -186,13 +133,7 @@ public:
   /// @param path   The file to change.
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
-  virtual void changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
-
-  /// Change the owner of a file. Symbolic links are not followed.
-  /// @param path   The file to change.
-  /// @param newUid The uid of the new owneer.
-  /// @param newGid The gid of the new group.
-  virtual void linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException) = 0;
+  virtual void changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException) = 0;
   
   /// Change the size of a file.
   /// @param path    The file to change.
@@ -209,11 +150,6 @@ public:
   /// @param buf  A struct holding the new times.
   virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) = 0;
 
-  /// Change access and/or modification time.
-  /// @param inode The inode of the file.
-  /// @param buf   A struct holding the new times.
-  virtual void utime(ino_t inode, const struct utimbuf* buf) throw (DmException) = 0;
-
   /// Get the comment associated with a file.
   /// @param path The file or directory.
   /// @return     The associated comment.
@@ -228,25 +164,7 @@ public:
   /// @param path The file.
   /// @param guid The new GUID.
   virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException) = 0;
-
-  /// Get the group name associated with a group id.
-  /// @param gid The group ID.
-  /// @return    The group.
-  virtual GroupInfo getGroup(gid_t gid) throw (DmException) = 0;
-
-  /// Get the group id of a specific group name.
-  /// @param groupName The group name.
-  /// @return          The group.
-  virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
-
-  /// Get the name associated with a user id.
-  /// @param uid      The user ID.
-  virtual UserInfo getUser(uid_t uid) throw (DmException) = 0;
-
-  /// Get the user id of a specific user name.
-  /// @param userName The user name.
-  virtual UserInfo getUser(const std::string& userName) throw (DmException) = 0;
-
+  
   /// Open a directory for reading.
   /// @param path The directory to open.
   /// @return     A pointer to a handle that can be used for later calls.
@@ -343,4 +261,3 @@ private:
 };
 
 #endif	// DMLITE_CATALOG_H
-

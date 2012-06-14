@@ -114,6 +114,9 @@ static const char* STMT_UPDATE_PERMS =
 static const char* STMT_DELETE_REPLICA =
     "DELETE FROM Cns_file_replica\
         WHERE fileid = ? AND sfn = ?";
+static const char* STMT_DELETE_ALL_REPLICAS =
+    "DELETE FROM Cns_file_replica\
+        WHERE fileid = ?";
 static const char* STMT_ADD_REPLICA =
     "INSERT INTO Cns_file_replica\
           (fileid, nbaccesses,\

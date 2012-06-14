@@ -62,6 +62,13 @@ Catalog* NsAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 
 
 
+UserGroupDb* NsAdapterFactory::createUserGroupDb(StackInstance* si) throw (DmException)
+{
+  return new NsAdapterCatalog(this->retryLimit_);
+}
+
+
+
 DpmAdapterFactory::DpmAdapterFactory() throw (DmException): NsAdapterFactory()
 {
   // Nothing
@@ -90,7 +97,7 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
 
 Catalog* DpmAdapterFactory::createCatalog(StackInstance* si) throw (DmException)
 {
-  return new DpmAdapterCatalog(this->retryLimit_);
+  return new DpmAdapterCatalog(this->retryLimit_, si);
 }
 
 
@@ -120,23 +127,24 @@ PoolHandler* DpmAdapterFactory::createPoolHandler(StackInstance* si, const Pool&
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsAdapterFactory());
+  pm->registerFactory((CatalogFactory*)new NsAdapterFactory());
 }
 
 
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new DpmAdapterFactory());
-  pm->registerPoolFactory(new DpmAdapterFactory());
-  pm->registerPoolHandlerFactory(new DpmAdapterFactory());
+  pm->registerFactory(static_cast<CatalogFactory*>(new DpmAdapterFactory()));
+  pm->registerFactory(static_cast<PoolManagerFactory*>(new DpmAdapterFactory()));
+  pm->registerFactory(static_cast<PoolHandlerFactory*>(new DpmAdapterFactory()));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new DpmAdapterFactory()));
 }
 
 
 
 static void registerPluginHandler(PluginManager* pm) throw (DmException)
 {
-  pm->registerPoolHandlerFactory(new DpmAdapterFactory());
+  pm->registerFactory(static_cast<PoolHandlerFactory*>(new DpmAdapterFactory()));
 }
 
 

@@ -5,7 +5,7 @@
 #define	NSORACLE_H
 
 #include <dmlite/common/Security.h>
-#include <dmlite/dm_catalog.h>
+#include <dmlite/dm_inode.h>
 #include <occi.h>
 #include <vector>
 
@@ -30,196 +30,84 @@ struct ExtendedReplica {
 };
 
 /// Implementation of NS Oracle backend.
-class NsOracleCatalog: public Catalog {
+class INodeOracle: public INode {
 public:
 
   /// Constructor
   /// @param pool     The Oracle connection pool.
   /// @param conn     The Oracle connection.
-  /// @param symLimit The recursion limit for symbolic links.
-  NsOracleCatalog(oracle::occi::ConnectionPool* pool,
-                  oracle::occi::Connection* conn,
-                  unsigned int symLimit) throw (DmException);
+  INodeOracle(oracle::occi::ConnectionPool* pool,
+              oracle::occi::Connection* conn) throw (DmException);
 
   /// Destructor
-  ~NsOracleCatalog() throw (DmException);
+  ~INodeOracle() throw (DmException);
 
   // Overloading
   std::string getImplId(void) throw ();
-
-  void set(const std::string& key, va_list varg) throw (DmException);
-
-  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
-  void setSecurityContext(const SecurityContext*) throw (DmException);
-
-  void        changeDir     (const std::string&) throw (DmException);
-  std::string getWorkingDir (void)               throw (DmException);
-  ino_t       getWorkingDirI(void)               throw (DmException);
-
-  ExtendedStat extendedStat(const std::string&, bool = true) throw (DmException);
-  ExtendedStat extendedStat(ino_t)              throw (DmException);
-  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
-
-  SymLink readLink(ino_t) throw (DmException);
-
-  void addReplica(const std::string&, int64_t, const std::string&,
-                  const std::string&, char, char,
-                  const std::string&, const std::string&) throw (DmException);
-
-  void deleteReplica(const std::string&, int64_t,
-                     const std::string&) throw (DmException);
-
-  std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  std::vector<Uri>         getReplicasLocation(const std::string&) throw (DmException);
-  Uri                      get        (const std::string&) throw (DmException);
-
-  void symlink(const std::string&, const std::string&) throw (DmException);
-  void unlink (const std::string&)                     throw (DmException);
-
-  void create(const std::string&, mode_t) throw (DmException);
-
-  std::string put      (const std::string&, Uri*)                     throw (DmException);
-  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
-
-  Directory* openDir (const std::string&) throw (DmException);
-  void       closeDir(Directory*)         throw (DmException);
-
-  struct dirent* readDir (Directory*) throw (DmException);
-  ExtendedStat*  readDirx(Directory*) throw (DmException);
-
-  mode_t umask(mode_t) throw ();
-
-  void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
   
-  void changeSize(const std::string&, size_t) throw (DmException);
+  void begin(void) throw (DmException);
+  void commit(void) throw (DmException);
+  void rollback(void) throw (DmException);
 
-  void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
+  ExtendedStat create(ino_t parent, const std::string& name,
+                      uid_t uid, gid_t gid, mode_t mode,
+                      size_t size, short type, char status,
+                      const std::string& csumtype, const std::string& csumvalue,
+                      const std::string& acl) throw (DmException);
 
-  void utime(const std::string&, const struct utimbuf*) throw (DmException);
-  void utime(ino_t, const struct utimbuf*)              throw (DmException);
+  void symlink(ino_t inode, const std::string &link) throw (DmException);
 
-  std::string getComment(const std::string&)                     throw (DmException);
-  void        setComment(const std::string&, const std::string&) throw (DmException);
+  void unlink(ino_t inode) throw (DmException);
+  
+  void move  (ino_t inode, ino_t dest) throw (DmException);
+  void rename(ino_t inode, const std::string& name) throw (DmException);
+  
+  ExtendedStat extendedStat(ino_t inode) throw (DmException);
+  ExtendedStat extendedStat(ino_t parent, const std::string& name) throw (DmException);
+  ExtendedStat extendedStat(const std::string& guid) throw (DmException);
 
-  void setGuid(const std::string& path, const std::string &guid) throw (DmException);
-
-  void makeDir  (const std::string&, mode_t) throw (DmException);
-  void removeDir(const std::string&)         throw (DmException);
-
-  void rename(const std::string&, const std::string&) throw (DmException);
-
-  void replicaSetLifeTime  (const std::string&, time_t) throw (DmException);
-  void replicaSetAccessTime(const std::string&)         throw (DmException);
-  void replicaSetType      (const std::string&, char)   throw (DmException);
-  void replicaSetStatus    (const std::string&, char)   throw (DmException);
-
-  UserInfo  getUser (uid_t)              throw (DmException);
-  UserInfo  getUser (const std::string&) throw (DmException);
-  GroupInfo getGroup(gid_t)              throw (DmException);
-  GroupInfo getGroup(const std::string&) throw (DmException);
+  SymLink readLink(ino_t inode) throw (DmException);
+  
+  void addReplica   (ino_t inode, const std::string& server,
+                     const std::string& sfn, char status, char fileType,
+                     const std::string& poolName, const std::string& fileSystem) throw (DmException);  
+  void deleteReplica(ino_t id, const std::string& sfn) throw (DmException);
+  
+  std::vector<FileReplica> getReplicas(ino_t inode) throw (DmException);
+  
+  FileReplica getReplica(const std::string& sfn) throw (DmException);
+  void        setReplica(const FileReplica& replica) throw (DmException);
+  
+  void utime(ino_t inode, const struct utimbuf* buf) throw (DmException);
+  
+  void changeMode (ino_t inode, uid_t uid, gid_t gid, mode_t mode, const std::string& acl) throw (DmException);
+  
+  void changeSize(ino_t inode, size_t size) throw (DmException);
+  
+  std::string getComment   (ino_t inode) throw (DmException);
+  void        setComment   (ino_t inode, const std::string& comment) throw (DmException);
+  void        deleteComment(ino_t inode) throw (DmException);
+  
+  void setGuid(ino_t inode, const std::string& guid) throw (DmException);
+  
+  IDirectory*    openDir (ino_t inode) throw (DmException);
+  void           closeDir(IDirectory* dir) throw (DmException);  
+  ExtendedStat*  readDirx(IDirectory* dir) throw (DmException);
+  struct dirent* readDir (IDirectory* dir) throw (DmException);
 
 protected:
-  /// Security context
-  const SecurityContext* secCtx_;
-
   /// The Oracle connection pool.
   oracle::occi::ConnectionPool* pool_;
 
   /// The Oracle connection
   oracle::occi::Connection* conn_;
-
-  /// Current working dir (path)
-  std::string cwdPath_;
-
-  /// Current working dir
-  ino_t cwd_;
-
-  /// Get a list of replicas using file id
-  std::vector<FileReplica> getReplicas(ino_t) throw (DmException);
-
-  /// Umask
-  mode_t umask_;
+  
+  /// Transaction level, so begins and commits can be nested.
+  unsigned transactionLevel_;
 
 private:
-  /// Symlink limit
-  unsigned int symLinkLimit_;
-
-  // Private methods
-
-  /// Returns the preparted statement with the specified ID.
-  /// @param stId The statement ID (see STMT_*)
-  /// @return     A pointer to a Oracle statement.
-  oracle::occi::Statement* getPreparedStatement(unsigned stId);
-
-  /// Get a file using its GUID.
-  /// @param guid The file GUID.
-  ExtendedStat guidStat(const std::string& guid) throw (DmException);
-
-  /// Create a file/directory and returns its metadata.
-  /// @param parent    The parent metadata.
-  /// @param name      The new file name.
-  /// @param mode      The new file mode.
-  /// @param nlink     The number of links.
-  /// @param size      The file size.
-  /// @param type      The file type.
-  /// @param status    The file status.
-  /// @param csumtype  The checksum type.
-  /// @param csumvalue The checksum value.
-  /// @param acl       The access control list.
-  /// @note No transaction is used! Calling method is supposed to do it.
-  ExtendedStat newFile(ExtendedStat& parent, const std::string& name, mode_t mode,
-                       long nlink, size_t size, short type, char status,
-                       const std::string& csumtype, const std::string& csumvalue,
-                       const std::string& acl) throw (DmException);
-
-  /// Get the parent of a directory.
-  /// @param path       The path to split.
-  /// @param parentPath Where to put the parent path.
-  /// @param name       Where to put the file name (stripping last /).
-  /// @return           The parent metadata.
-  ExtendedStat getParent(const std::string& path, std::string* parentPath,
-                         std::string* name) throw (DmException);
-
-  /// Add a new user.
-  /// @param uname The user name.
-  /// @param ca    The user CA.
-  /// @return      A UserInfo struct, including the new uid.
-  /// @note        Transactions are used.
-  UserInfo  newUser(const std::string& uname, const std::string& ca) throw (DmException);
-
-  /// Add a new group.
-  /// @param gname The group name.
-  /// @return      A GroupInfo struct, including the new gid.
-  /// @note        Transactions are used.
-  GroupInfo newGroup(const std::string& gname) throw (DmException);
-
-  /// Change the file owner
-  /// @param meta
-  /// @param newUid
-  /// @param newGid
-  void changeOwner(ExtendedStat& meta, uid_t newUid, gid_t newGid) throw (DmException);
-
-  /// Traverse backwards to check permissions.
-  /// @param file The file at the end
-  /// @note       Throws an exception if it is not possible.
-  void traverseBackwards(const ExtendedStat& meta) throw (DmException);
-
-  /// Get a replica by its URL
-  /// @param replica The replica URL.
-  FileReplica replicaGet(const std::string& replica) throw (DmException);
-
-  /// Set the replica attributes
-  void replicaSet(const FileReplica& rdata) throw (DmException);
-
-  /// Get user mapping.
-  void getIdMap(const std::string&, const std::vector<std::string>&,
-                UserInfo*, std::vector<GroupInfo>*) throw (DmException);
-
   /// Update nlinks
-  void updateNlink(ino_t fileid, int diff) throw (DmException);
+  void updateNlink(ino_t inode, int diff) throw (DmException);
 };
 
 };

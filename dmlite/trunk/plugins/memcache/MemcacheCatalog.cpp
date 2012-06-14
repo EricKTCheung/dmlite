@@ -57,6 +57,7 @@ var = this->decorated_->method(__VA_ARGS__);
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool, 
 																 Catalog* decorates,
+                                 StackInstance* si,
 																 unsigned int symLinkLimit,
 																 time_t memcachedExpirationLimit,
                                  bool memcachedStrict,
@@ -68,7 +69,8 @@ MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 	 memcachedExpirationLimit_(memcachedExpirationLimit),
    memcachedStrict_(memcachedStrict),
    memcachedPOSIX_(memcachedPOSIX),
-   updateATime_(updateATime)
+   updateATime_(updateATime),
+   si_(si)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -420,12 +422,6 @@ void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmExceptio
 }
 
 
-SecurityContext* MemcacheCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
-{
-  DELEGATE_RETURN(createSecurityContext, cred);
-}
-
-
 
 void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
@@ -556,7 +552,7 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t fileId) throw (DmException)
 		deserialize(valMemc, meta);
 	} else // valMemc was not in memcached
 	{
-		DELEGATE_ASSIGN(meta, extendedStat, fileId);
+    meta = this->si_->getINode()->extendedStat(fileId);
 		valMemc = serialize(meta);
 		safeSetMemcachedFromKeyValue(key, valMemc);
 	}
@@ -579,7 +575,7 @@ ExtendedStat MemcacheCatalog::extendedStat(ino_t parent, const std::string& name
 		deserialize(valMemc, meta);
 	} else // valMemc was not in memcached
 	{
-		DELEGATE_ASSIGN(meta, extendedStat, parent, name);
+    meta = this->si_->getINode()->extendedStat(parent, name);
 		valMemc = serialize(meta);
 		safeSetMemcachedFromKeyValue(key, valMemc);
 	}
@@ -602,7 +598,7 @@ SymLink MemcacheCatalog::readLink(ino_t linkId) throw(DmException)
 		deserializeLink(valMemc, meta);
 	} else // valMemc was not in memcached
 	{
-		DELEGATE_ASSIGN(meta, readLink, linkId);
+    meta = this->si_->getINode()->readLink(linkId);
 		valMemc = serializeLink(meta);
 		safeSetMemcachedFromKeyValue(key, valMemc);
 	}
@@ -850,7 +846,7 @@ void MemcacheCatalog::linkChangeOwner(const std::string& path,
                                       uid_t newUid, gid_t newGid)
   throw (DmException)
 {
-	DELEGATE(linkChangeOwner, path, newUid, newGid);
+	DELEGATE(changeOwner, path, newUid, newGid, false);
 	delMemcachedFromPath(path, KEEP_DIRLIST);
 }
 
@@ -870,7 +866,7 @@ void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) 
 
 void MemcacheCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
 {
-  DELEGATE(utime, inode, buf);
+  this->si_->getINode()->utime(inode, buf);
   if (this->memcachedStrict_) {
     delMemcachedFromInode(inode, KEEP_DIRLIST);
   }
@@ -1390,7 +1386,7 @@ std::vector<ExtendedStat>
       //printf("getting the xstat from the db\n");
       inode = getInodeFromStatKey(*itKeys);
       //printf("key = %s, inode = %d.\n", (*itKeys).c_str(), inode);
-      DELEGATE_ASSIGN(xstat, extendedStat, inode);
+      xstat = this->si_->getINode()->extendedStat(inode);
       srand(time(NULL));
       int r = rand() % 10;
       if (r < PROB_CACHE * 10) {

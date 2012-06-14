@@ -16,8 +16,8 @@ using namespace dmlite;
 
 
 
-DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit)
-  throw (DmException): NsAdapterCatalog(retryLimit)
+DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit, StackInstance* si)
+  throw (DmException): NsAdapterCatalog(retryLimit), si_(si)
 {
   dpm_client_resetAuthorizationId();
 }
@@ -34,21 +34,6 @@ DpmAdapterCatalog::~DpmAdapterCatalog()
 std::string DpmAdapterCatalog::getImplId() throw ()
 {
   return std::string("DpmAdapter");
-}
-
-
-
-void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmException)
-{
-  if (key == "SpaceToken") {
-    const char* sToken = va_arg(value, const char*);
-    if (sToken == 0x00)
-      this->spaceToken_.clear();
-    else
-      this->spaceToken_ = std::string(sToken);
-  }
-  else
-    NsAdapterCatalog::set(key, value);
 }
 
 
@@ -141,6 +126,7 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   int                       nReplies, wait;
   char                      token[CA_MAXDPMTOKENLEN + 1];
   std::string               absolute;
+  const char*               spaceToken;
 
   if (path[0] == '/')
     absolute = path;
@@ -155,11 +141,18 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   reqfile.ret_policy     = '\0';
   reqfile.ac_latency     = '\0';
   reqfile.s_token[0]     = '\0';
+  
+  try {
+    spaceToken = this->si_->get("SpaceToken").array.str;
+  }
+  catch (...) {
+    spaceToken = 0x00;
+  }
 
-  if (!this->spaceToken_.empty()) {
+  if (!spaceToken) {
     char **space_ids;
 
-    RETRY(dpm_getspacetoken(this->spaceToken_.c_str(), &nReplies, &space_ids),
+    RETRY(dpm_getspacetoken(spaceToken, &nReplies, &space_ids),
           this->retryLimit_);
     
     strncpy(reqfile.s_token, space_ids[0], sizeof(reqfile.s_token));

@@ -29,42 +29,6 @@ if (index > this->nFields_)\
   throw DmException(DM_QUERY_FAILED, "Wrong index in bindResult");
 
 
-Transaction::Transaction(MYSQL* conn) throw (DmException)
-{
-  this->connection_ = conn;
-  this->pending_    = true;
-
-  if (mysql_query(conn, "BEGIN") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(conn));
-}
-
-
-
-Transaction::~Transaction() throw (DmException)
-{
-  if (this->pending_)
-    this->rollback();
-}
-
-
-
-void Transaction::commit() throw (DmException)
-{
-  if (mysql_query(this->connection_, "COMMIT") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection_));
-  this->pending_ = false;
-}
-
-
-
-void Transaction::rollback() throw (DmException)
-{
-  if (mysql_query(this->connection_, "ROLLBACK") != 0)
-    throw DmException(DM_QUERY_FAILED, mysql_error(this->connection_));
-  this->pending_ = false;
-}
-
-
 
 Statement::Statement(MYSQL* conn, const std::string& db, const char* query) throw (DmException):
   nFields_(0), result_(0x00), status_(STMT_CREATED)

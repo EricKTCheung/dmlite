@@ -1,17 +1,20 @@
 /// @file   core/Catalog.cpp
 /// @brief  Implementation of non abstract dm::Catalog methods.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <cstdarg>
-#include <cstdio>
-#include <dmlite/dm_catalog.h>
-
-#include "dmlite/dm_pool.h"
-#include "dmlite/dm_poolhandler.h"
+#include <dmlite/dmlite++.h>
 
 using namespace dmlite;
 
+/* Need to provide default constructors */
 
-PoolManager::~PoolManager()
+UserGroupDbFactory::~UserGroupDbFactory()
+{
+  // Nothing
+}
+
+
+
+INodeFactory::~INodeFactory()
 {
   // Nothing
 }
@@ -19,6 +22,13 @@ PoolManager::~PoolManager()
 
 
 CatalogFactory::~CatalogFactory()
+{
+  // Nothing
+}
+
+
+
+PoolManager::~PoolManager()
 {
   // Nothing
 }
@@ -53,13 +63,16 @@ PoolMetadata::~PoolMetadata()
 
 
 
-void Catalog::set(const std::string& key, ...) throw (DmException)
+UserGroupDb::~UserGroupDb()
 {
-  va_list vargs;
+  // Nothing
+}
 
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
+
+
+INode::~INode()
+{
+  // Nothing
 }
 
 
@@ -76,6 +89,15 @@ Catalog::~Catalog()
   // Nothing
 }
 
+/* Common and default methods */
+
+struct stat Catalog::stat(const std::string& path, bool followSym) throw (DmException)
+{
+  return this->extendedStat(path, followSym).stat;
+}
+
+
+
 void Catalog::setParent(Catalog* parent)
 {
   this->parent_ = parent;
@@ -86,32 +108,4 @@ void Catalog::setParent(Catalog* parent)
 Catalog* Catalog::getParent(void)
 {
   return this->parent_;
-}
-
-
-
-struct stat Catalog::stat(const std::string& path) throw (DmException)
-{
-  return this->extendedStat(path, true).stat;
-}
-
-
-
-struct stat Catalog::stat(ino_t inode) throw (DmException)
-{
-  return this->extendedStat(inode).stat;
-}
-
-
-
-struct stat Catalog::stat(ino_t parent, const std::string& name) throw (DmException)
-{
-  return this->extendedStat(parent, name).stat;
-}
-
-
-
-struct stat Catalog::linkStat(const std::string& path) throw (DmException)
-{
-  return this->extendedStat(path, false).stat;
 }

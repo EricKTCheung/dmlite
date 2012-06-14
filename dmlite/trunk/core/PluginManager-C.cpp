@@ -109,47 +109,67 @@ dm_context* dm_context_new(dm_manager* handle)
     return NULL;
 
   ctx = new dm_context();
+  ctx->errorCode = 0;
   ctx->stack   = 0x00;
+  ctx->userdb  = 0x00;
+  ctx->inode   = 0x00;
   ctx->catalog = 0x00;
   ctx->pool    = 0x00;
   
   try {
     ctx->stack = new dmlite::StackInstance(handle->manager);
-  }
-  catch (dmlite::DmException e) {
-    handle->errorCode   = e.code();
-    handle->errorString = e.what();
-    delete ctx;
-    return NULL;
-  }
-  
-  try {
-    ctx->catalog = ctx->stack->getCatalog();
-  }
-  catch (dmlite::DmException e) {
-    handle->errorCode   = e.code();
-    handle->errorString = e.what();
-    delete ctx;
-    return NULL;
-  }
-
-  // There may be no pool manager factory, and that's fine!
-
-  try {
-    ctx->pool =ctx->stack->getPoolManager();
-  }
-  catch (dmlite::DmException e) {
-    if (e.code() != DM_NO_POOL_MANAGER) {
-      handle->errorCode   = e.code();
-      handle->errorString = e.what();
-      delete ctx->catalog;
-      delete ctx;
-      return NULL;
+    
+    // UserGroupDb
+    try {
+      ctx->userdb = ctx->stack->getUserGroupDb();
     }
-    ctx->pool = 0x00;
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_USERGROUPDB)
+        throw;
+    }
+  
+    // INode
+    try {
+      ctx->inode = ctx->stack->getINode();
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_INODE)
+        throw;
+    }
+    
+    // Catalog
+    try {
+      ctx->catalog = ctx->stack->getCatalog();
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_CATALOG)
+        throw;
+    }
+    
+    // PoolManager
+    try {
+      ctx->pool    = ctx->stack->getPoolManager();
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_POOL_MANAGER)
+        throw;
+    }
+    
+    // IOFactory
+    try {
+      ctx->io = handle->manager->getIOFactory();   
+    }
+    catch (dmlite::DmException e) {
+      if (e.code() != DM_NO_FACTORY)
+        throw;
+    }
   }
-
-  ctx->io = handle->manager->getIOFactory();
+  catch (dmlite::DmException e) {
+    handle->errorCode   = e.code();
+    handle->errorString = e.what();
+    delete ctx;
+    return NULL;
+  }
 
   return ctx;
 }

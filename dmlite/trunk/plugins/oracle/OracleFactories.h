@@ -13,7 +13,7 @@
 namespace dmlite {
 
 /// Concrete factory for DPNS/LFC.
-class NsOracleFactory: public CatalogFactory {
+class NsOracleFactory: public INodeFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsOracleFactory() throw(DmException);
@@ -21,8 +21,9 @@ public:
   ~NsOracleFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog(StackInstance*) throw(DmException);
-
+  INode* createINode(StackInstance*) throw(DmException);
+  UserGroupDb* createUserGroupDb(StackInstance*) throw (DmException);
+  
 protected:
   /// NS db.
   std::string nsDb_;

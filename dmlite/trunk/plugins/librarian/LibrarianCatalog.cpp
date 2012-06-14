@@ -9,6 +9,14 @@
 
 using namespace dmlite;
 
+static bool isExcluded(uint64_t id, uint64_t* excluded, size_t size)
+{
+  for (int i = 0; i < size; ++i)
+    if (excluded[i] == id)
+      return true;
+  return false;
+}
+
 
 
 LibrarianCatalog::LibrarianCatalog(StackInstance* si, Catalog* decorates) throw (DmException):
@@ -33,29 +41,10 @@ std::string LibrarianCatalog::getImplId() throw ()
 
 
 
-void LibrarianCatalog::set(const std::string& key, va_list vargs) throw (DmException)
-{
-  if (key == "ExcludeReplicas") {
-    int      n_list  = va_arg(vargs, int);
-    int64_t* id_list = va_arg(vargs, int64_t*);
-
-    for (int i = 0; i < n_list; ++i)
-      this->exclude(id_list[i]);
-  }
-  else if (key == "ClearExcluded") {
-    this->excluded_.clear();
-  }
-  else if (this->decorated_ != 0x00)
-    this->decorated_->set(key, vargs);
-  else
-    throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
-}
-
-
-
 std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   std::vector<FileReplica> replicas;
+  Value excluded = this->stack_->get("ExcludeReplicas");
 
   if (this->decorated_ == 0x00)
     throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin to serve get request");
@@ -66,7 +55,7 @@ std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) 
   // Remove excluded
   std::vector<FileReplica>::iterator i;
   for (i = replicas.begin(); i != replicas.end();) {
-    if (this->isExcluded(i->replicaid))
+    if (isExcluded(i->replicaid, excluded.array.u64v, excluded.array.size))
       i = replicas.erase(i);
     else
       ++i;
@@ -117,18 +106,4 @@ Uri LibrarianCatalog::get(const std::string& path) throw (DmException)
   
   
   return dmlite::splitUri(replicas[0].url);
-}
-
-
-
-void LibrarianCatalog::exclude(int64_t replicaId)
-{
-  this->excluded_.insert(replicaId);
-}
-
-
-
-bool LibrarianCatalog::isExcluded(int64_t replicaId)
-{
-  return this->excluded_.count(replicaId) != 0;
 }

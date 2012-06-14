@@ -68,6 +68,7 @@ public:
   /// @param decorates The underlying decorated catalog.
   MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 									Catalog* decorates,
+                  StackInstance* si,
 									unsigned int symLinkLimit,
 									time_t memcachedExpirationLimit,
                   bool memcachedStrict,
@@ -83,7 +84,6 @@ public:
 
   void set(const std::string& key, va_list varg) throw (DmException);
 
-  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
 //  void        changeDir    (const std::string&) throw (DmException);
@@ -162,6 +162,10 @@ protected:
   
   /// Update access time.
   bool updateATime_;
+  
+  /// Stack instance
+  StackInstance* si_;
+  
 private:
   /// Serialize an ExtendedStat object into a string.
   /// @param var The object to serialize.

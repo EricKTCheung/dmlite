@@ -319,12 +319,12 @@ PoolHandler* HadoopIOFactory::createPoolHandler(StackInstance* si, const Pool& p
 
 static void registerPluginHadoop(PluginManager* pm) throw (DmException)
 {
-  pm->registerPoolHandlerFactory(new HadoopIOFactory());
+  pm->registerFactory(static_cast<PoolHandlerFactory*>(new HadoopIOFactory()));
 }
 
 static void registerIOHadoop(PluginManager* pm) throw (DmException)
 {
-  pm->registerIOFactory(new HadoopIOFactory());
+  pm->registerFactory(static_cast<IOFactory*>(new HadoopIOFactory()));
 }
 
 /// This is what the PluginManager looks for

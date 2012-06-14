@@ -15,15 +15,13 @@ class DpmAdapterCatalog: public NsAdapterCatalog {
 public:
   /// Constructor
   /// @param retryLimit The limit of retrials.
-  DpmAdapterCatalog(unsigned retryLimit) throw (DmException);
+  DpmAdapterCatalog(unsigned retryLimit, StackInstance* si) throw (DmException);
 
   /// Destructor
   ~DpmAdapterCatalog();
 
   // Overload
   std::string getImplId(void) throw ();
-
-  void set(const std::string&, va_list) throw (DmException);
 
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
@@ -34,8 +32,8 @@ public:
   void        unlink   (const std::string&)                           throw (DmException);
  
 private:
-  std::string dpmHost_;
-  std::string spaceToken_;
+  std::string    dpmHost_;
+  StackInstance* si_;
 };
 
 
