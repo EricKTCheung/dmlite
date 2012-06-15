@@ -12,7 +12,6 @@ add_library(dmlite SHARED Auth.cpp
                           builtin/Catalog.cpp
                           builtin/IO.cpp
                           dummy/DummyCatalog.cpp
-                          dummy/DummyINode.cpp
                           dummy/DummyPool.cpp)
 
 target_link_libraries(dmlite dl pthread dmlitecommon)
