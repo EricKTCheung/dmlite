@@ -1,10 +1,12 @@
-/// @file    plugins/oracle/OracleFactories.cpp
+// @file    plugins/oracle/OracleFactories.cpp
 /// @brief   Oracle backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
 #include "OracleFactories.h"
 #include "NsOracle.h"
 #include "UserGroupDbOracle.h"
+#include <stdlib.h>
+
 
 using namespace dmlite;
 using namespace oracle;
