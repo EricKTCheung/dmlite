@@ -15,7 +15,7 @@ class LibrarianCatalog: public DummyCatalog {
 public:
   /// Constructor
   /// @param decorates The underlying decorated catalog.
-  LibrarianCatalog(StackInstance* si, Catalog* decorates) throw (DmException);
+  LibrarianCatalog(Catalog* decorates) throw (DmException);
 
   /// Destructor
   ~LibrarianCatalog() throw (DmException);
@@ -23,10 +23,9 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
   
-  void set      (const std::string&, va_list) throw (DmException);
+  void setStackInstance(StackInstance*) throw (DmException);
 
-  virtual std::vector<FileReplica> getReplicas(const std::string&)               throw (DmException);
-  virtual Uri                      get        (const std::string&)               throw (DmException);
+  std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
   
 private:
   StackInstance* stack_;
@@ -41,7 +40,7 @@ public:
   ~LibrarianFactory() throw (DmException);
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog(StackInstance* si) throw (DmException);
+  Catalog* createCatalog(PluginManager* pm) throw (DmException);
   
 protected:
   CatalogFactory* nestedFactory_;

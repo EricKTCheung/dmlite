@@ -14,13 +14,13 @@
 #include "dm_inode.h"
 #include "dm_io.h"
 #include "dm_pool.h"
-#include "dm_poolhandler.h"
+#include "dm_pooldriver.h"
 #include "dm_types.h"
 
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120613;
+const unsigned API_VERSION = 20120618;
 
 class StackInstance;
 
@@ -67,9 +67,9 @@ public:
   /// @param factory The IO concrete factory.
   void registerFactory(IOFactory* factory) throw (DmException);
 
-  /// Register a PoolHandler factory.
-  /// @param factory The PoolHandler factory.
-  void registerFactory(PoolHandlerFactory* factory) throw (DmException);
+  /// Register a PoolDriver factory.
+  /// @param factory The PoolDriver factory.
+  void registerFactory(PoolDriverFactory* factory) throw (DmException);
 
   /// Get the UserGroupDbFactory implementation on top of the plugin stack.
   UserGroupDbFactory* getUserGroupDbFactory() throw (DmException);
@@ -83,8 +83,8 @@ public:
   /// Get the PoolFactory implementation on top of the plugin stack.
   PoolManagerFactory* getPoolManagerFactory() throw (DmException);
 
-  /// Get the appropiate pool handler factory for the pool.
-  PoolHandlerFactory* getPoolHandlerFactory(const std::string& pooltype) throw (DmException);
+  /// Get the appropiate pool driver factory for the pool.
+  PoolDriverFactory* getPoolDriverFactory(const std::string& pooltype) throw (DmException);
 
   /// Get the IOFactory implementation on top of the plugin stack.
   IOFactory* getIOFactory() throw (DmException);
@@ -97,7 +97,7 @@ private:
   std::list<CatalogFactory*>     catalog_plugins_;
   std::list<PoolManagerFactory*> pool_plugins_;
   std::list<IOFactory*>          io_plugins_;
-  std::list<PoolHandlerFactory*> pool_handler_plugins_;
+  std::list<PoolDriverFactory*>  pool_driver_plugins_;
 
   /// Keep pointers returned by dlopen at hand to free on destruction
   std::list<void*> dlHandles_;
@@ -109,6 +109,8 @@ private:
 /// We need to have something that allows one plugin stack to access
 /// another plugin stack, so this represents a instantiation
 /// of each plugin stack.
+/// It also keeps common state: user credentials, security context,
+/// and run-time parameters (see set)
 class StackInstance {
 public:
   
@@ -142,8 +144,11 @@ public:
   /// Set the security context.
   void setSecurityContext(const SecurityContext& ctx) throw (DmException);
   
+  /// Set the security context.
+  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+  
   /// Return the security context.
-  const SecurityContext* getSecurityContext(void) throw ();
+  const SecurityContext* getSecurityContext(void) const throw ();
   
   /// Get the UsersDb interface.
   UserGroupDb* getUserGroupDb() throw (DmException);
@@ -160,9 +165,9 @@ public:
   /// Get the PoolManager.
   PoolManager* getPoolManager() throw (DmException);
   
-  /// Get a pool handler.
-  /// @note The caller must free the returned pointer.
-  PoolHandler* getPoolHandler(const Pool& pool) throw (DmException);
+  /// Get a pool driver
+  /// @note The caller must NOT free the returned pointer.
+  PoolDriver* getPoolDriver(const Pool& pool) throw (DmException);
   
 private:
   PluginManager* pluginManager_;
@@ -174,7 +179,7 @@ private:
   
   const SecurityContext* secCtx_;
   
-  std::map<std::string, PoolHandler*> poolHandlers_;
+  std::map<std::string, PoolDriver*> poolDrivers_;
   
   std::map<std::string, Value> stackMsg_;
 };

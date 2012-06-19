@@ -12,7 +12,7 @@
 #include <dmlite/common/PoolContainer.h>
 #include <dmlite/common/Security.h>
 #include <dmlite/dummy/Dummy.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 namespace dmlite {
 
@@ -68,7 +68,6 @@ public:
   /// @param decorates The underlying decorated catalog.
   MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
 									Catalog* decorates,
-                  StackInstance* si,
 									unsigned int symLinkLimit,
 									time_t memcachedExpirationLimit,
                   bool memcachedStrict,
@@ -82,8 +81,7 @@ public:
   // Overloading 
   std::string getImplId(void) throw ();
 
-  void set(const std::string& key, va_list varg) throw (DmException);
-
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
 //  void        changeDir    (const std::string&) throw (DmException);
@@ -101,9 +99,8 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
+  Location get(const std::string&) throw (DmException);
   
-  Uri              get        (const std::string&) throw (DmException);
-
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&) throw (DmException);
 
@@ -617,7 +614,7 @@ public:
   ~MemcacheFactory() throw (DmException);
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog(StackInstance*) throw (DmException);
+  Catalog* createCatalog(PluginManager*) throw (DmException);
 protected:
   /// Decorated
   CatalogFactory* nestedFactory_;

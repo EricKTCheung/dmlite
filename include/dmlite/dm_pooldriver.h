@@ -1,25 +1,30 @@
-/// @file   include/dmlite/dm_poolhandler.h
+/// @file   include/dmlite/dm_pooldriver.h
 /// @brief  Pool handling API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_POOLHANDLER_H
-#define	DMLITE_POOLHANDLER_H
+#ifndef DMLITE_POOLDRIVER_H
+#define	DMLITE_POOLDRIVER_H
 
+#include <map>
+#include <vector>
 #include "dm_auth.h"
 #include "dm_exceptions.h"
 #include "dm_types.h"
-#include <vector>
 
 namespace dmlite {
 
-/// Interface for a pool handler
-class PoolHandler {
+// Advanced declarations
+class PoolManager;
+class StackInstance;
+  
+/// Interface for a pool driver
+class PoolDriver {
 public:
   /// Destructor
-  virtual ~PoolHandler();
+  virtual ~PoolDriver();
   
   /// Set the security context.
   virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
-
+  
   /// Get the pool type of this pool.
   virtual std::string getPoolType(void) throw (DmException) = 0;
 
@@ -34,31 +39,27 @@ public:
   
   /// Check if the pool is actually available
   virtual bool isAvailable(bool write = true) throw (DmException) = 0;
-  
-  /// Return true if the specified replica is available in the pool.
-  virtual bool replicaAvailable(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
 
   /// Get the actual location of the file replica. This is pool-dependant.
-  virtual Uri getLocation(const std::string &sfn, const FileReplica& replica) throw (DmException) = 0;
+  virtual Location getLocation(const std::string &fn, const FileReplica& replica) throw (DmException) = 0;
   
   /// Remove a replica from the pool.
-  virtual void remove(const std::string& sfn, const FileReplica& replica) throw (DmException) = 0;
+  virtual void remove(const std::string& fn, const FileReplica& replica) throw (DmException) = 0;
 
   /// Get where to put a file
-  virtual std::string putLocation(const std::string& sfn, Uri* uri) throw (DmException) = 0;
+  virtual Location putLocation(const std::string& fn) throw (DmException) = 0;
   
   /// Finish a put
-  virtual void putDone(const std::string& sfn, const Uri& uri, const std::string& token) throw (DmException) = 0;
+  virtual void putDone(const FileReplica& replica, const std::map<std::string, std::string>& extras) throw (DmException) = 0;
 };
 
-class PoolManager;
-class StackInstance;
 
-/// PoolHandler factory
-class PoolHandlerFactory {
+
+/// PoolDriver factory
+class PoolDriverFactory {
 public:
   /// Destructor.
-  virtual ~PoolHandlerFactory();
+  virtual ~PoolDriverFactory();
 
   /// Set a configuration parameter
   /// @param key   The configuration parameter
@@ -68,10 +69,10 @@ public:
   /// Supported pool type
   virtual std::string implementedPool() throw () = 0;
 
-  /// Instantiate a handler wrapping the passed pool.
-  virtual PoolHandler* createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException) = 0;
+  /// Instantiate a driver wrapping the passed pool.
+  virtual PoolDriver* createPoolDriver(StackInstance* si, const Pool& pool) throw (DmException) = 0;
 };
 
 };
 
-#endif	// DMLITE_POOLTYPE_H
+#endif	// DMLITE_POOLDRIVER_H

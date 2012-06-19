@@ -8,7 +8,7 @@
 #include <vector>
 #include <mysql/mysql.h>
 #include <stdlib.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
@@ -44,6 +44,20 @@ INodeMySql::~INodeMySql() throw(DmException)
 std::string INodeMySql::getImplId() throw ()
 {
   return std::string("NsMySqlINode");
+}
+
+
+
+void INodeMySql::setStackInstance(StackInstance* si) throw (DmException)
+{
+  // Nothing
+}
+
+
+
+void INodeMySql::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  // Nothing
 }
 
 
@@ -403,7 +417,7 @@ SymLink INodeMySql::readLink(ino_t inode) throw (DmException)
   stmt.bindParam(0, inode);
   stmt.execute();
 
-  stmt.bindResult(0, &link.fileId);
+  stmt.bindResult(0, &link.inode);
   stmt.bindResult(1, link.link, sizeof(link), 0);
 
   if (!stmt.fetch())
@@ -423,7 +437,7 @@ void INodeMySql::addReplica(ino_t inode, const std::string& server,
 
   // If server is empty, parse the surl
   if (server.empty()) {
-    Uri u = splitUri(sfn);
+    Url u = splitUrl(sfn);
     host = u.host;
   }
   else {
@@ -485,7 +499,7 @@ std::vector<FileReplica> INodeMySql::getReplicas(ino_t inode) throw (DmException
   stmt.bindResult( 8, replica.pool,       sizeof(replica.pool));
   stmt.bindResult( 9, replica.server,     sizeof(replica.server));
   stmt.bindResult(10, replica.filesystem, sizeof(replica.filesystem));
-  stmt.bindResult(11, replica.url,        sizeof(replica.url));
+  stmt.bindResult(11, replica.rfn,        sizeof(replica.rfn));
 
   std::vector<FileReplica> replicas;
 
@@ -501,10 +515,10 @@ std::vector<FileReplica> INodeMySql::getReplicas(ino_t inode) throw (DmException
 
 
 
-FileReplica INodeMySql::getReplica(const std::string& sfn) throw (DmException)
+FileReplica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
 {
   Statement stmt(this->conn_, this->nsDb_, STMT_GET_REPLICA_BY_URL);
-  stmt.bindParam(0, sfn);
+  stmt.bindParam(0, rfn);
   
   stmt.execute();
 
@@ -521,10 +535,10 @@ FileReplica INodeMySql::getReplica(const std::string& sfn) throw (DmException)
   stmt.bindResult( 8, r.pool,       sizeof(r.pool));
   stmt.bindResult( 9, r.server,     sizeof(r.server));
   stmt.bindResult(10, r.filesystem, sizeof(r.filesystem));
-  stmt.bindResult(11, r.url,        sizeof(r.url));
+  stmt.bindResult(11, r.rfn,        sizeof(r.rfn));
 
   if (!stmt.fetch())
-    throw DmException(DM_NO_REPLICAS, "Replica " + sfn + " not found");
+    throw DmException(DM_NO_SUCH_REPLICA, "Replica " + rfn + " not found");
 
   return r;
 }

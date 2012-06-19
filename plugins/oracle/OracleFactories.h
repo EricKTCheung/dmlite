@@ -21,8 +21,8 @@ public:
   ~NsOracleFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  INode* createINode(StackInstance*) throw(DmException);
-  UserGroupDb* createUserGroupDb(StackInstance*) throw (DmException);
+  INode* createINode(PluginManager*) throw(DmException);
+  UserGroupDb* createUserGroupDb(PluginManager*) throw (DmException);
   
 protected:
   /// NS db.

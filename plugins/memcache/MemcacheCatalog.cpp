@@ -57,7 +57,6 @@ var = this->decorated_->method(__VA_ARGS__);
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool, 
 																 Catalog* decorates,
-                                 StackInstance* si,
 																 unsigned int symLinkLimit,
 																 time_t memcachedExpirationLimit,
                                  bool memcachedStrict,
@@ -70,7 +69,7 @@ MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>* connPool,
    memcachedStrict_(memcachedStrict),
    memcachedPOSIX_(memcachedPOSIX),
    updateATime_(updateATime),
-   si_(si)
+   si_(0x00)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
@@ -164,7 +163,7 @@ std::string MemcacheCatalog::serializeLink(const SymLink& var)
   std::string serialString;
   SerialSymLink seLink;
 
-  seLink.set_fileid(var.fileId);
+  seLink.set_fileid(var.inode);
   seLink.set_link(var.link);
 
   return seLink.SerializeAsString();
@@ -180,7 +179,7 @@ void MemcacheCatalog::deserializeLink(const std::string& serial_str,
   seLink.ParseFromString(serial_str);
 //  seStat.PrintDebugString();
 
-  var.fileId = seLink.fileid();
+  var.inode = seLink.fileid();
   std::memcpy(&var.link, seLink.link().c_str(),
               seLink.link().length()+1);
 }
@@ -378,7 +377,7 @@ std::string MemcacheCatalog::serializeFileReplica(const FileReplica& replica)
   repl.set_pool(replica.pool);
   repl.set_server(replica.server);
   repl.set_filesystem(replica.filesystem);
-  repl.set_url(replica.url);
+  repl.set_url(replica.rfn);
 
 //  repl.PrintDebugString();
   
@@ -406,7 +405,7 @@ FileReplica MemcacheCatalog::deserializeFileReplica(std::string& serial)
   std::memcpy(&repl.pool, serialRepl.pool().c_str(), serialRepl.pool().length()+1); 
   std::memcpy(&repl.server, serialRepl.server().c_str(), serialRepl.server().length()+1); 
   std::memcpy(&repl.filesystem, serialRepl.filesystem().c_str(), serialRepl.filesystem().length()+1); 
-  std::memcpy(&repl.url, serialRepl.url().c_str(), serialRepl.url().length()+1); 
+  std::memcpy(&repl.rfn, serialRepl.url().c_str(), serialRepl.url().length()+1); 
 
   return repl;
 }
@@ -416,12 +415,11 @@ std::string MemcacheCatalog::getImplId() throw ()
   return std::string("MemcacheCatalog");
 }
 
-void MemcacheCatalog::set(const std::string& key, va_list varg) throw(DmException)
+void MemcacheCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  throw DmException(DM_UNKNOWN_OPTION, "Option " + key + " unknown");
+  DELEGATE(setStackInstance, si);
+  this->si_ = si;
 }
-
-
 
 void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
@@ -993,7 +991,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path, i
   return replicas;
 }
 
-Uri MemcacheCatalog::get(const std::string& path) throw(DmException)
+Location MemcacheCatalog::get(const std::string& path) throw(DmException)
 {
   std::vector<std::string> vecValMemc;
   FileReplica repl;
@@ -1038,7 +1036,7 @@ Uri MemcacheCatalog::get(const std::string& path) throw(DmException)
   } 
 
   // Copy
-  return dmlite::splitUri(repl.url);
+  return dmlite::splitUrl(repl.rfn);
 }
 
 void MemcacheCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
@@ -1850,7 +1848,7 @@ void MemcacheCatalog::setMemcachedFromReplicas(std::vector<FileReplica>& replica
 
   for (int i = 0; i < replicas.size(); i++) {
     serialReplica =  serializeFileReplica(replicas[i]);
-    keys.push_back(keyFromURI(key_prefix[PRE_REPL], replicas[i].url));
+    keys.push_back(keyFromURI(key_prefix[PRE_REPL], replicas[i].rfn));
 
     setMemcachedFromKeyValue(keys.back(), serialReplica);
   }

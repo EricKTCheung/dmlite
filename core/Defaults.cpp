@@ -42,14 +42,14 @@ PoolManagerFactory::~PoolManagerFactory()
 
 
 
-PoolHandlerFactory::~PoolHandlerFactory()
+PoolDriverFactory::~PoolDriverFactory()
 {
   // Nothing
 }
 
 
 
-PoolHandler::~PoolHandler()
+PoolDriver::~PoolDriver()
 {
   // Nothing
 }
@@ -85,6 +85,20 @@ Catalog::Catalog() throw (DmException): parent_(0x00)
 
 
 Catalog::~Catalog()
+{
+  // Nothing
+}
+
+
+
+IOHandler::~IOHandler()
+{
+  // Nothing
+}
+
+
+
+IOFactory::~IOFactory()
 {
   // Nothing
 }

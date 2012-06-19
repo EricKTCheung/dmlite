@@ -50,7 +50,7 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
 
 
 
-INode* NsOracleFactory::createINode(StackInstance* si) throw(DmException)
+INode* NsOracleFactory::createINode(PluginManager*) throw(DmException)
 {
   try {
     if (this->pool_ == 0x00)
@@ -68,7 +68,7 @@ INode* NsOracleFactory::createINode(StackInstance* si) throw(DmException)
 
 
 
-UserGroupDb* NsOracleFactory::createUserGroupDb(StackInstance* si) throw (DmException)
+UserGroupDb* NsOracleFactory::createUserGroupDb(PluginManager*) throw (DmException)
 {
   try {
     if (this->pool_ == 0x00)

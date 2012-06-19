@@ -10,7 +10,7 @@
 #include <dmlite/dmlite++.h>
 #include <dmlite/common/Security.h>
 #include <dmlite/dummy/Dummy.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 #include "hdfs.h"
 
@@ -19,7 +19,7 @@ namespace dmlite {
 class HadoopIOHandler: public IOHandler{
 public:
 
-  HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
+  HadoopIOHandler(const std::string& pfn, std::iostream::openmode openmode) throw (DmException);
   ~HadoopIOHandler();
 
   void close(void) throw (DmException);
@@ -38,11 +38,12 @@ private:
   std::string path_;
 };
 
-class HadoopPoolHandler: public PoolHandler {
+class HadoopPoolDriver: public PoolDriver {
 public:
-  HadoopPoolHandler(StackInstance*, const Pool& pool) throw (DmException);
-  ~HadoopPoolHandler();
+  HadoopPoolDriver(StackInstance*, const Pool& pool) throw (DmException);
+  ~HadoopPoolDriver();
   
+  void setStackInstance(StackInstance*) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
   std::string getPoolType(void) throw (DmException);
@@ -52,12 +53,11 @@ public:
   uint64_t getFreeSpace(void) throw (DmException);
   bool isAvailable(bool) throw (DmException);
   
-  bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
-  Uri  getLocation     (const std::string&, const FileReplica&) throw (DmException);
-  void remove          (const std::string&, const FileReplica&) throw (DmException);
+  Location getLocation(const std::string&, const FileReplica&) throw (DmException);
+  void remove         (const std::string&, const FileReplica&) throw (DmException);
   
-  std::string putLocation (const std::string&, Uri*) throw (DmException);
-  void putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
+  Location putLocation(const std::string&) throw (DmException);
+  void     putDone    (const FileReplica&, const std::map<std::string, std::string>&) throw (DmException);
 
 private:
   StackInstance* stack;
@@ -67,16 +67,24 @@ private:
   std::string host;
   std::string uname;
   int         port;
+  
+  bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
 };
 
-class HadoopIOFactory: public IOFactory, public PoolHandlerFactory {
+class HadoopIOFactory: public IOFactory, public PoolDriverFactory {
 public:
   HadoopIOFactory() throw (DmException);
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  IOHandler *createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
+  
+  IOHandler *createIO(const StackInstance*,
+                      const std::string& pfn, std::iostream::openmode openmode,
+                      const std::map<std::string, std::string>& extras) throw (DmException);
+  
+  struct stat pStat(const StackInstance* si,
+                    const std::string& pfn) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(StackInstance*, const Pool&) throw (DmException);
+  PoolDriver* createPoolDriver(StackInstance*, const Pool&) throw (DmException);
 
 protected:
 private:

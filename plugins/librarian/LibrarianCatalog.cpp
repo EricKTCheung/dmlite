@@ -3,7 +3,7 @@
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <set>
 #include <vector>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 #include "Librarian.h"
 
@@ -19,8 +19,8 @@ static bool isExcluded(uint64_t id, uint64_t* excluded, size_t size)
 
 
 
-LibrarianCatalog::LibrarianCatalog(StackInstance* si, Catalog* decorates) throw (DmException):
-   DummyCatalog(decorates), stack_(si)
+LibrarianCatalog::LibrarianCatalog(Catalog* decorates) throw (DmException):
+   DummyCatalog(decorates), stack_(0x00)
 {
   // Nothing
 }
@@ -65,45 +65,4 @@ std::vector<FileReplica> LibrarianCatalog::getReplicas(const std::string& path) 
   if (replicas.size() == 0)
     throw DmException(DM_NO_REPLICAS, "There are no available replicas");
   return replicas;
-}
-
-
-
-Uri LibrarianCatalog::get(const std::string& path) throw (DmException)
-{
-  std::vector<FileReplica> replicas;
-
-  // Get all the available
-  replicas = this->getReplicas(path);
-
-  // If there is no PoolManager, return the url field
-  PoolManager *poolManager;
-  try {
-    poolManager = this->stack_->getPoolManager();
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_POOL_MANAGER)
-      throw;
-    return dmlite::splitUri(replicas[0].url);
-  }
-   
-  Uri  uri;
-  bool found = false;
-  for (int i = 0; i < replicas.size() && !found; ++i) {
-    Pool         pool    = this->stack_->getPoolManager()->getPool(replicas[0].pool);
-    PoolHandler* handler = this->stack_->getPoolHandler(pool);
-    
-    if (handler->replicaAvailable(path, replicas[i])) {
-      uri = handler->getLocation(path, replicas[i]);
-      found = true;
-    }
-  }
-  
-  if (found)
-    return uri;
-  else
-    throw DmException(DM_NO_REPLICAS, "There is no replica in an active pool");
-  
-  
-  return dmlite::splitUri(replicas[0].url);
 }

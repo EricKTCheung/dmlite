@@ -42,7 +42,7 @@ public:
         struct stat s = this->catalog->stat(FILE);
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (int i = 0; i < replicas.size(); i++) {
-          this->catalog->deleteReplica("", s.st_ino, replicas[i].url);
+          this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
         }
       }
       catch (...) {

@@ -17,6 +17,8 @@
 #define DM_NO_CATALOG           0x0008
 #define DM_NO_INODE             0x0009
 #define DM_NO_USERGROUPDB       0x000A
+#define DM_NO_SECUTIRY_CONTEXT  0x000B
+#define DM_NO_IO                0x000C
 
 #define DM_MALFORMED_CONF       0x0100
 #define DM_UNKNOWN_OPTION       0x0101

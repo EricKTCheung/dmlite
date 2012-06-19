@@ -8,7 +8,7 @@
 #include <dmlite/dm_catalog.h>
 #include <dmlite/dm_inode.h>
 #include <dmlite/dm_pool.h>
-#include <dmlite/dm_poolhandler.h>
+#include <dmlite/dm_pooldriver.h>
 
 namespace dmlite {
   
@@ -19,12 +19,14 @@ struct BuiltInDir {
   
 class BuiltInCatalog: public Catalog {
 public:
-  BuiltInCatalog(StackInstance* si, bool updateATime, unsigned symLinkLimit) throw (DmException);
+  BuiltInCatalog(bool updateATime, unsigned symLinkLimit) throw (DmException);
   ~BuiltInCatalog();
 
   std::string getImplId(void) throw();
   
-  void setSecurityContext(const SecurityContext*) throw (DmException);
+  void setStackInstance(StackInstance* si) throw (DmException);
+  
+  void setSecurityContext(const SecurityContext*) throw (DmException);  
   
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void) throw (DmException);
@@ -38,9 +40,14 @@ public:
   void deleteReplica(const std::string& guid, int64_t id,
                      const std::string& sfn) throw (DmException);
 
-  std::vector<FileReplica> getReplicas        (const std::string& path) throw (DmException);
-  std::vector<Uri>         getReplicasLocation(const std::string& path) throw (DmException);
-  Uri                      get                (const std::string& path) throw (DmException);
+  std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException);
+  Location get(const std::string& path) throw (DmException);
+  
+  Location put(const std::string& path) throw (DmException);
+  Location put(const std::string& path,
+               const std::string& guid) throw (DmException);
+  void     putDone(const std::string& host, const std::string& rfn,
+                   const std::map<std::string, std::string>& params) throw (DmException);
 
   void symlink(const std::string& oldpath, const std::string& newpath) throw (DmException);
 
@@ -52,12 +59,6 @@ public:
   void removeDir(const std::string& path) throw (DmException);
 
   void rename(const std::string& oldPath, const std::string& newPath) throw (DmException);
-
-  std::string put    (const std::string& path, Uri* uri) throw (DmException);
-  std::string put    (const std::string& path, Uri* uri,
-                      const std::string& guid) throw (DmException);
-  void        putDone(const std::string& path, const Uri& uri,
-                      const std::string& token) throw (DmException);
 
   mode_t umask(mode_t mask) throw ();
 
@@ -124,7 +125,7 @@ public:
   
   void configure(const std::string&, const std::string&) throw (DmException);
   
-  Catalog* createCatalog(StackInstance*) throw (DmException);
+  Catalog* createCatalog(PluginManager*) throw (DmException);
 
 protected:
 private:

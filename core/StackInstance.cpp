@@ -9,7 +9,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm), secCtx_(0)
 {
   try {
-    this->ugDb_ = pm->getUserGroupDbFactory()->createUserGroupDb(this);
+    this->ugDb_ = pm->getUserGroupDbFactory()->createUserGroupDb(pm);
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -18,7 +18,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   }
   
   try {
-    this->inode_ = pm->getINodeFactory()->createINode(this);
+    this->inode_ = pm->getINodeFactory()->createINode(pm);
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -27,7 +27,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   }
   
   try {
-    this->catalog_ = pm->getCatalogFactory()->createCatalog(this);
+    this->catalog_ = pm->getCatalogFactory()->createCatalog(pm);
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -36,7 +36,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   }
   
   try {
-    this->poolManager_ = pm->getPoolManagerFactory()->createPoolManager(this);
+    this->poolManager_ = pm->getPoolManagerFactory()->createPoolManager(pm);
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -44,6 +44,10 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     this->poolManager_ = 0;
   }
   
+  // Everything is up, so pass this to the stacks
+  if (this->inode_)       this->inode_->setStackInstance(this);
+  if (this->catalog_)     this->catalog_->setStackInstance(this);
+  if (this->poolManager_) this->poolManager_->setStackInstance(this);
 }
 
 
@@ -57,13 +61,13 @@ StackInstance::~StackInstance() throw ()
   if (this->secCtx_)      delete this->secCtx_;
   
   // Clean pool handlers
-  std::map<std::string, PoolHandler*>::iterator i;
-  for (i = this->poolHandlers_.begin();
-       i != this->poolHandlers_.end();
+  std::map<std::string, PoolDriver*>::iterator i;
+  for (i = this->poolDrivers_.begin();
+       i != this->poolDrivers_.end();
        ++i) {
     delete i->second;
   }
-  this->poolHandlers_.clear();
+  this->poolDrivers_.clear();
 }
 
 
@@ -143,19 +147,21 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 
 
 
-PoolHandler* StackInstance::getPoolHandler(const Pool& pool) throw (DmException)
+PoolDriver* StackInstance::getPoolDriver(const Pool& pool) throw (DmException)
 {
   // Try from dictionary first
-  std::map<std::string, PoolHandler*>::iterator i;
-  i = this->poolHandlers_.find(pool.pool_name);
-  if (i != this->poolHandlers_.end())
+  std::map<std::string, PoolDriver*>::iterator i;
+  i = this->poolDrivers_.find(pool.pool_name);
+  if (i != this->poolDrivers_.end())
     return i->second;
   
   // Instantiate
-  PoolHandlerFactory* phf = this->pluginManager_->getPoolHandlerFactory(pool.pool_type);
-  PoolHandler* ph = phf->createPoolHandler(this, pool);
+  PoolDriverFactory* phf = this->pluginManager_->getPoolDriverFactory(pool.pool_type);
+  PoolDriver* ph = phf->createPoolDriver(this, pool);
+  ph->setSecurityContext(this->secCtx_);
   
-  this->poolHandlers_[pool.pool_name] = ph;
+  this->poolDrivers_[pool.pool_name] = ph;
+  
   
   return ph;
 }
@@ -164,26 +170,28 @@ PoolHandler* StackInstance::getPoolHandler(const Pool& pool) throw (DmException)
 
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
-  if (this->catalog_ == 0)
-    throw DmException(DM_NO_CATALOG, "No catalog to initialize the security context");
-
   if (this->ugDb_ == 0)
-    throw DmException(DM_NO_USERGROUPDB, "There is no plugin that provides user and group mapping");
+    throw DmException(DM_NO_USERGROUPDB, "There is no plugin that provides createSecurityContext");
   
-  this->secCtx_ = this->ugDb_->createSecurityContext(cred);
-  this->catalog_->setSecurityContext(this->secCtx_);
-  
-  if (this->poolManager_ != 0)
-    this->poolManager_->setSecurityContext(this->secCtx_);
+  this->setSecurityContext(this->ugDb_->createSecurityContext(cred));
 }
 
 
 
 void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmException)
 {
+  this->setSecurityContext(&ctx);
+}
+
+
+
+void StackInstance::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
   if (this->secCtx_) delete this->secCtx_;
-  this->secCtx_ = new SecurityContext(ctx);
+  this->secCtx_ = new SecurityContext(*ctx);
   
+  if (this->inode_ != 0)
+    this->inode_->setSecurityContext(this->secCtx_);
   if (this->catalog_ != 0)
     this->catalog_->setSecurityContext(this->secCtx_);
   if (this->poolManager_ != 0)
@@ -192,8 +200,9 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
 
 
 
-const SecurityContext* StackInstance::getSecurityContext() throw ()
+const SecurityContext* StackInstance::getSecurityContext() const throw ()
 {
+  if (this->secCtx_ == 0)
+    throw DmException(DM_NO_SECUTIRY_CONTEXT, "The security context has not been initialized");
   return this->secCtx_;
 }
-

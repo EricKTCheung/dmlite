@@ -31,6 +31,13 @@ std::string ProfilerCatalog::getImplId() throw ()
 
 
 
+void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
+{
+  PROFILE(setStackInstance, si);
+}
+
+
+
 void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   PROFILE(setSecurityContext, ctx);
@@ -100,16 +107,31 @@ std::vector<FileReplica> ProfilerCatalog::getReplicas(const std::string& path) t
 
 
 
-std::vector<Uri> ProfilerCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+Location ProfilerCatalog::get(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(std::vector<Uri>, getReplicasLocation, path);
+  PROFILE_RETURN(Location, get, path);
 }
 
 
 
-Uri ProfilerCatalog::get(const std::string& path) throw (DmException)
+Location ProfilerCatalog::put(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(Uri, get, path);
+  PROFILE_RETURN(Location, put, path);
+}
+
+
+
+Location ProfilerCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  PROFILE_RETURN(Location, put, path, guid);
+}
+
+
+
+void ProfilerCatalog::putDone(const std::string& host, const std::string& rfn, 
+                              const std::map<std::string,std::string>& params) throw (DmException)
+{
+  PROFILE(putDone, host, rfn, params);
 }
 
 
@@ -131,27 +153,6 @@ void ProfilerCatalog::unlink(const std::string& path) throw (DmException)
 void ProfilerCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   PROFILE(create, path, mode);
-}
-
-
-
-std::string ProfilerCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  PROFILE_RETURN(std::string, put, path, uri);
-}
-
-
-
-std::string ProfilerCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  PROFILE_RETURN(std::string, put, path, uri, guid);
-}
-
-
-
-void ProfilerCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  PROFILE(putDone, path, pfn, token);
 }
 
 

@@ -3,9 +3,9 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdlib>
 #include <cstring>
-#include <dmlite/dm_errno.h>
+#include <dmlite/dmlite++.h>
 #include <dmlite/common/Security.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 #include <serrno.h>
 #include <algorithm>
 
@@ -45,6 +45,13 @@ NsAdapterCatalog::~NsAdapterCatalog()
 std::string NsAdapterCatalog::getImplId() throw ()
 {
   return std::string("NsAdapterCatalog");
+}
+
+
+
+void NsAdapterCatalog::setStackInstance(StackInstance* si) throw (DmException)
+{
+  this->si_ = si;
 }
 
 
@@ -191,7 +198,7 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
   // If server is empty, parse the surl
   std::string host;
   if (server.empty()) {
-    Uri u = splitUri(sfn);
+    Url u = splitUrl(sfn);
     host = u.host;
     if (host.empty())
       throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
@@ -255,7 +262,7 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
     strncpy(replica.filesystem, entries[i].fs,       sizeof(replica.filesystem));
     strncpy(replica.pool,       entries[i].poolname, sizeof(replica.pool));
     strncpy(replica.server,     entries[i].host,     sizeof(replica.server));
-    strncpy(replica.url,        entries[i].sfn,      sizeof(replica.url));
+    strncpy(replica.rfn,        entries[i].sfn,      sizeof(replica.rfn));
 
     replicas.push_back(replica);
   }
@@ -267,32 +274,42 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
 
 
 
-std::vector<Uri> NsAdapterCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+Location NsAdapterCatalog::get(const std::string& path) throw (DmException)
 {
+  unsigned i;
   std::vector<FileReplica> replicas = this->getReplicas(path);
-  std::vector<Uri> uris;
+  std::vector<Location>    available;
   
-  uris.reserve(replicas.size());
-  
-  std::vector<FileReplica>::const_iterator i;
-  for (i = replicas.begin(); i != replicas.end(); ++i)
-    uris.push_back(dmlite::splitUri(i->url));
-  
-  return uris;
+  // Pick a random one from the available
+  if (replicas.size() > 0) {
+    i = rand() % replicas.size();
+    return dmlite::splitUrl(replicas[i].rfn);
+  }
+  else {
+    throw DmException(DM_NO_REPLICAS, "No available replicas");
+  }
 }
 
 
 
-Uri NsAdapterCatalog::get(const std::string& path) throw (DmException)
+Location NsAdapterCatalog::put(const std::string& path) throw (DmException)
 {
-  // Naive implementation: first occurrence
-  // Better implementations are left for other plugins
-  std::vector<FileReplica> replicas = this->getReplicas(path);
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::put not implemented");
+}
 
-  if (replicas.size() == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
 
-  return dmlite::splitUri(replicas[0].url);
+
+Location NsAdapterCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::put not implemented");
+}
+
+
+
+void NsAdapterCatalog::putDone(const std::string& host, const std::string& rfn,
+                               const std::map<std::string,std::string>& params) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::putDone not implemented");
 }
 
 
@@ -314,27 +331,6 @@ void NsAdapterCatalog::unlink(const std::string& path) throw (DmException)
 void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   wrapCall(dpns_creat(path.c_str(), mode));
-}
-
-
-
-std::string NsAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "put not implemented for NsAdapterCatalog");
-}
-
-
-
-std::string NsAdapterCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "put not implemented for NsAdapterCatalog");
-}
-
-
-
-void NsAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "putDone not implemented for NsAdapterCatalog");
 }
 
 

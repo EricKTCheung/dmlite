@@ -1,13 +1,16 @@
 /// @file   plugins/adapter/DpmAdapter.cpp
 /// @brief  DPM wrapper.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/dm_errno.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Security.h>
+#include <dmlite/common/Urls.h>
 #include <dpm_api.h>
 #include <serrno.h>
 #include <vector>
+#include <map>
 
 #include "Adapter.h"
 #include "DpmAdapter.h"
@@ -16,8 +19,10 @@ using namespace dmlite;
 
 
 
-DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit, StackInstance* si)
-  throw (DmException): NsAdapterCatalog(retryLimit), si_(si)
+DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit,
+                                     const std::string& passwd, bool useIp, unsigned life) throw (DmException):
+  NsAdapterCatalog(retryLimit), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life),
+  userId_("")
 {
   dpm_client_resetAuthorizationId();
 }
@@ -33,7 +38,7 @@ DpmAdapterCatalog::~DpmAdapterCatalog()
 
 std::string DpmAdapterCatalog::getImplId() throw ()
 {
-  return std::string("DpmAdapter");
+  return std::string("DpmAdapterCatalog");
 }
 
 
@@ -51,17 +56,22 @@ void DpmAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (Dm
     wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
                                      (char**)ctx->getCredentials().fqans,
                                      ctx->groupCount()));
+  
+  if (this->tokenUseIp_)
+    this->userId_ = ctx->getCredentials().remote_addr;
+  else
+    this->userId_ = ctx->getCredentials().client_name;
 }
 
 
 
-Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
+Location DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   struct dpm_getfilereq     request;
   struct dpm_getfilestatus *statuses = 0x00;
   int                       nReplies, wait;
   char                      r_token[CA_MAXDPMTOKENLEN + 1];
-  FileReplica               replica;
+  char                      rfn[PATH_MAX];
   std::string               absolute;
 
   if (path[0] == '/')
@@ -101,13 +111,15 @@ Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
       }
     }
 
-    memset(&replica, 0x00, sizeof(replica));
-    strncpy(replica.url, statuses[0].turl, URI_MAX);
-    replica.fileid = -1;
-    replica.status = statuses[0].status;
+    strncpy(rfn, statuses[0].turl, URI_MAX);
     dpm_free_gfilest(nReplies, statuses);
-
-    return dmlite::splitUri(replica.url);
+    
+    Url rloc = dmlite::splitUrl(rfn);
+    return Location(rloc.host, rloc.path, true,
+                    1,
+                    "token",
+                    dmlite::generateToken(this->userId_, rloc.path,
+                                          this->tokenPasswd_, this->tokenLife_).c_str());          
   }
   catch (...) {
     // On exceptions, free first!
@@ -119,7 +131,7 @@ Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 
 
 
-std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
+Location DpmAdapterCatalog::put(const std::string& path) throw (DmException)
 {
   struct dpm_putfilereq     reqfile;
   struct dpm_putfilestatus *statuses = 0x00;
@@ -186,9 +198,15 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
       }
     }
     
-    *uri = splitUri(statuses[0].turl);
+    Url rloc = splitUrl(statuses[0].turl);
     dpm_free_pfilest(nReplies, statuses);
-    return std::string(token);
+    
+    dmlite::normalizePath(rloc.path);
+    return Location(rloc.host, rloc.path, true, 3,
+                    "sfn", absolute.c_str(),
+                    "dpmtoken", token,
+                    "token", dmlite::generateToken(this->userId_, rloc.path,
+                                                   this->tokenPasswd_, this->tokenLife_, true).c_str());
   }
   catch (...) {
     // On exceptions, free first!
@@ -200,28 +218,37 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
 
 
 
-std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException)
+Location DpmAdapterCatalog::put(const std::string&, const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapter");
 }
 
 
 
-void DpmAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
+void DpmAdapterCatalog::putDone(const std::string& host, const std::string& rfn,
+                                const std::map<std::string, std::string>& extras) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
-  const char            *path_c;
+  const char            *sfn;
   std::string            absolute;
+  std::map<std::string, std::string>::const_iterator i;
+  
+  // Need the sfn
+  i = extras.find("sfn");
+  if (i == extras.end())
+    throw DmException(DM_INVALID_VALUE, "sfn not specified");
+  sfn = i->second.c_str();
 
-  if (path[0] == '/')
-    absolute = path;
-  else
-    absolute = this->cwdPath_ + "/" + path;
+  // Need the dpm token
+  const char* token;
+  i = extras.find("dpmtoken");
+  if (i == extras.end())
+    throw DmException(DM_INVALID_VALUE, "dpmtoken not specified");
+  
+  token = i->second.c_str();
 
-  path_c = absolute.c_str();
-
-  RETRY(dpm_putdone((char*)token.c_str(), 1, (char**)&path_c, &nReplies, &statuses),
+  RETRY(dpm_putdone((char*)token, 1, (char**)&sfn, &nReplies, &statuses),
         this->retryLimit_);
 
   dpm_free_filest(nReplies, statuses);
@@ -272,6 +299,13 @@ DpmAdapterPoolManager::~DpmAdapterPoolManager()
 std::string DpmAdapterPoolManager::getImplId() throw()
 {
   return std::string("DpmAdapter");
+}
+
+
+
+void DpmAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  // Nothing
 }
 
 

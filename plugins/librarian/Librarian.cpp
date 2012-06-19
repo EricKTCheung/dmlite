@@ -28,12 +28,12 @@ void LibrarianFactory::configure(const std::string& key, const std::string& valu
 
 
 
-Catalog* LibrarianFactory::createCatalog(StackInstance* si) throw(DmException)
+Catalog* LibrarianFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   if (this->nestedFactory_ != 0x00)
-    return new LibrarianCatalog(si, this->nestedFactory_->createCatalog(si));
+    return new LibrarianCatalog(this->nestedFactory_->createCatalog(pm));
   else
-    return new LibrarianCatalog(si, 0x00);
+    throw DmException(DM_NO_CATALOG, "Librarian need an underlying plug-in");
 }
 
 

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include <utime.h>
-#include "dm_auth.h"
 #include "dm_exceptions.h"
 #include "dm_types.h"
 
@@ -16,6 +15,9 @@ namespace dmlite {
   
 /// Typedef for directories
 typedef void IDirectory;
+
+// Advanced declaration
+class StackInstance;
 
 /// Low-level interface. Based on i-nodes.
 /// @note Security checks NOT done on this level.
@@ -26,6 +28,15 @@ public:
   
   /// String ID of the inode implementation.
   virtual std::string getImplId(void) throw() = 0;
+  
+  /// Set the StackInstance.
+  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
+  /// However, at construction time not all the stacks have been populated, so this will
+  /// be called once all are instantiated.
+  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+  
+  /// Set the security context.
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Start a transaction
   virtual void begin(void) throw (DmException) = 0;
@@ -118,8 +129,8 @@ public:
                              const std::string& sfn) throw (DmException) = 0;
   
   /// Get a replica.
-  /// @param sfn The replica to retrieve.
-  virtual FileReplica getReplica(const std::string& sfn) throw (DmException) = 0;
+  /// @param rfn The replica to retrieve.
+  virtual FileReplica getReplica(const std::string& rfn) throw (DmException) = 0;
   
   /// Modify a replica.
   /// @param replica The replica data.
@@ -198,8 +209,7 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of INode
-  /// @param si The StackInstance that is instantiating the context. It may be NULL.
-  virtual INode* createINode(StackInstance* si) throw (DmException) = 0;
+  virtual INode* createINode(PluginManager* pm) throw (DmException) = 0;
   
 protected:
 private:
