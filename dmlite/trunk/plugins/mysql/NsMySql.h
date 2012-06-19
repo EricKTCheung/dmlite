@@ -39,6 +39,9 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
   
+  void setStackInstance(StackInstance* si) throw (DmException);
+  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+  
   void begin(void) throw (DmException);
   void commit(void) throw (DmException);
   void rollback(void) throw (DmException);

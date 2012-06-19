@@ -6,6 +6,7 @@
 #define	DM_IO_H
 
 #include <iostream>
+#include <map>
 #include "dm_exceptions.h"
 
 namespace dmlite {
@@ -49,6 +50,8 @@ public:
   virtual struct stat pstat(void) throw (DmException) = 0;
 };
 
+class StackInstance;
+
 /// Plug-ins must implement a concrete factory to be instantiated.
 class IOFactory {
 public:
@@ -61,7 +64,13 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of std::iostream
-  virtual IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException) = 0;
+  virtual IOHandler* createIO(const StackInstance* si,
+                              const std::string& uri, std::iostream::openmode openmode,
+                              const std::map<std::string, std::string>& extras) throw (DmException) = 0;
+  
+  /// Perform a stat over pfn.
+  virtual struct stat pStat(const StackInstance* si,
+                            const std::string& pfn) throw (DmException) = 0;
   
 protected:
 private:

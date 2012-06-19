@@ -2,7 +2,7 @@
 /// @brief   MySQL DPM Implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dmlite/dmlite++.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,9 +16,8 @@ using namespace dmlite;
 
 
 MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool,
-                                   const std::string& dpmDb,
-                                   StackInstance* si) throw (DmException):
-      connectionPool_(connPool), dpmDb_(dpmDb), stack_(si)
+                                   const std::string& dpmDb) throw (DmException):
+      connectionPool_(connPool), dpmDb_(dpmDb), stack_(0x00)
 {
   this->conn_ = connPool->acquire();
 }
@@ -35,6 +34,13 @@ MySqlPoolManager::~MySqlPoolManager()
 std::string MySqlPoolManager::getImplId() throw ()
 {
   return "mysql_pool_manager";
+}
+
+
+
+void MySqlPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  this->stack_ = si;
 }
 
 
@@ -116,7 +122,7 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
   std::vector<Pool> available;
   
   for (unsigned i = 0; i < pools.size(); ++i) {
-    PoolHandler* handler = this->stack_->getPoolHandler(pools[i]);
+    PoolDriver* handler = this->stack_->getPoolDriver(pools[i]);
     
     if (handler->isAvailable())
       available.push_back(pools[i]);

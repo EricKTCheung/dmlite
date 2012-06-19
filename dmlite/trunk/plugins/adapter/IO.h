@@ -4,7 +4,7 @@
 #ifndef IO_H
 #define	IO_H
 
-#include <dmlite/dm_io.h>
+#include <dmlite/dmlite++.h>
 #include <fstream>
 
 namespace dmlite {
@@ -14,9 +14,16 @@ public:
   StdIOFactory();
   ~StdIOFactory();
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  IOHandler* createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
+  IOHandler* createIO(const StackInstance*,
+                      const std::string& pfn, std::iostream::openmode openmode,
+                      const std::map<std::string, std::string>& extras) throw (DmException);
+  
+  struct stat pStat(const StackInstance*, const std::string& pfn) throw (DmException);
+  
 protected:
 private:
+  std::string passwd;
+  bool useIp;
 };
 
 

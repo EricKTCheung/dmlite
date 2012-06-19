@@ -43,8 +43,8 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  INode*       createINode(StackInstance* si)       throw (DmException);
-  UserGroupDb* createUserGroupDb(StackInstance* si) throw (DmException);
+  INode*       createINode(PluginManager* pm)       throw (DmException);
+  UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException);
 
 protected:
   /// Connection factory.
@@ -71,7 +71,7 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  PoolManager* createPoolManager(PluginManager* pm) throw (DmException);
 
 protected:
   /// Connection factory.

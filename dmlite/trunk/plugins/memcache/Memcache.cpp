@@ -180,16 +180,15 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 
 
 
-Catalog* MemcacheFactory::createCatalog(StackInstance* si) throw(DmException)
+Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   Catalog* nested = 0x00;
 
   if (this->nestedFactory_ != 0x00)
-    nested = this->nestedFactory_->createCatalog(si);
+    nested = this->nestedFactory_->createCatalog(pm);
 
   return new MemcacheCatalog(&this->connectionPool_,
                              nested,
-                             si,
                              this->symLinkLimit_,
                              (time_t)this->memcachedExpirationLimit_,
                              this->memcachedStrict_,

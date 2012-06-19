@@ -2,19 +2,19 @@
 #include <dmlite/dm_types.h>
 #include <iostream>
 #include <string.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 inline int Validate(const char* uri,
                     const char* scheme, const char* host, unsigned port,
-                    const char* path)
+                    const char* path, const char* query = NULL)
 {
-  Uri  parsed;
+  Url  parsed;
   bool failed = false;
 
   // Log
   std::cout << "- Checking " << uri;
 
-  parsed = dmlite::splitUri(uri);
+  parsed = dmlite::splitUrl(uri);
 
   // And check it is like it should
   if (parsed.port != port) {
@@ -41,6 +41,12 @@ inline int Validate(const char* uri,
               << "', got '" << parsed.path << "'";
     failed = true;
   }
+  if (query != NULL && strcmp(parsed.query, query) != 0) {
+    std::cout << std::endl
+              << "\tExpected query '" << query
+              << "', got '" << parsed.query << "'";
+    failed = true;
+  }
 
   if (!failed)
     std::cout << "\t[OK]" << std::endl;
@@ -57,7 +63,7 @@ int main(int argc, char **argv)
   int r = 0;
 
   r += Validate("https://something.else.com:443/mypath?query",
-                "https", "something.else.com", 443, "/mypath?query");
+                "https", "something.else.com", 443, "/mypath", "query");
   r += Validate("http://something.else.com:/mypath",
                 "http", "something.else.com", 0, "/mypath");
   r += Validate("/path",

@@ -38,6 +38,13 @@ DummyCatalog::~DummyCatalog()
 
 
 
+void DummyCatalog::setStackInstance(StackInstance* si) throw (DmException)
+{
+  DELEGATE(setStackInstance, si);
+}
+
+
+
 void DummyCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   DELEGATE(setSecurityContext, ctx);
@@ -100,16 +107,31 @@ std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) thro
 
 
 
-std::vector<Uri> DummyCatalog::getReplicasLocation(const std::string& path) throw (DmException)
+Location DummyCatalog::get(const std::string& path) throw (DmException)
 {
-  DELEGATE_RETURN(getReplicasLocation, path);
+  DELEGATE_RETURN(get, path);
 }
 
 
 
-Uri DummyCatalog::get(const std::string& path) throw (DmException)
+Location DummyCatalog::put(const std::string& path) throw (DmException)
 {
-  DELEGATE_RETURN(get, path);
+  DELEGATE_RETURN(put, path);
+}
+
+
+
+Location DummyCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  DELEGATE_RETURN(put, path, guid);
+}
+
+
+
+void DummyCatalog::putDone(const std::string& path, const std::string& rfn, 
+                           const std::map<std::string,std::string>& params) throw (DmException)
+{
+  DELEGATE(putDone, path, rfn, params);
 }
 
 
@@ -131,27 +153,6 @@ void DummyCatalog::unlink(const std::string& path) throw (DmException)
 void DummyCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   DELEGATE(create, path, mode);
-}
-
-
-
-std::string DummyCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  DELEGATE_RETURN(put, path, uri);
-}
-
-
-
-std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  DELEGATE_RETURN(put, path, uri, guid);
-}
-
-
-
-void DummyCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  DELEGATE(putDone, path, pfn, token);
 }
 
 

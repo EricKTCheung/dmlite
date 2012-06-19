@@ -122,7 +122,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
 }
 
 
-INode* NsMySqlFactory::createINode(StackInstance* si) throw(DmException)
+INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
   return new INodeMySql(&this->connectionPool_, this->nsDb_);
@@ -130,7 +130,7 @@ INode* NsMySqlFactory::createINode(StackInstance* si) throw(DmException)
 
 
 
-UserGroupDb* NsMySqlFactory::createUserGroupDb(StackInstance* si) throw (DmException)
+UserGroupDb* NsMySqlFactory::createUserGroupDb(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
   return new UserGroupDbMySql(&this->connectionPool_, this->nsDb_);
@@ -172,11 +172,11 @@ if (key == "MySqlHost")
 
 
 
-PoolManager* DpmMySqlFactory::createPoolManager(StackInstance* si) throw (DmException)
+PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
   return new MySqlPoolManager(&this->connectionPool_,
-                              this->dpmDb_, si);
+                              this->dpmDb_);
 }
 
 

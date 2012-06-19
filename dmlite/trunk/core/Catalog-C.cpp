@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "Private.h"
-#include "dmlite/common/Uris.h"
+#include "dmlite/common/Urls.h"
 #include "dmlite/common/Security.h"
 
 
@@ -153,38 +153,22 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
 
 
 
-int dm_getreplicaslocation(dm_context* context, const char* path, int* nReplicas, struct uri** uris)
+int dm_freelocation(dm_context* context, struct location* loc)
 {
-  TRY(context, getreplicaslocation)
-  NOT_NULL(path);
-  NOT_NULL(nReplicas);
-  
-  std::vector<Uri> replicaSet = context->catalog->getReplicasLocation(path);
-  
-  *uris      = new Uri[replicaSet.size()];
-  *nReplicas = replicaSet.size();
-  
-  std::copy(replicaSet.begin(), replicaSet.end(), *uris);
-  
-  CATCH(context, getreplicaslocation)
-}
-
-
-
-int dm_freereplicaslocation(dm_context* context, int nReplicas, struct uri* uris)
-{
-  delete [] uris;
+  Location *locp = (Location*)loc;
+  delete locp;
   return 0;
 }
 
 
 
-int dm_get(dm_context* context, const char* path, struct uri* uri)
+int dm_get(dm_context* context, const char* path, struct location** loc)
 {
   TRY(context, get)
   NOT_NULL(path);
-  NOT_NULL(uri);
-  *uri = context->catalog->get(path);
+  NOT_NULL(loc);
+  Location *locp = new Location(context->catalog->get(path));
+  *loc = locp;
   CATCH(context, get)
 }
 
@@ -200,43 +184,46 @@ int dm_create(dm_context* context, const char* path, mode_t mode)
 
 
 
-int dm_put(dm_context* context, const char* path, struct uri* uri, char* token)
+int dm_put(dm_context* context, const char* path, struct location** loc)
 {
   TRY(context, put)
   NOT_NULL(path);
-  NOT_NULL(uri);
-  NOT_NULL(token);
-  std::string t = context->catalog->put(path, uri);
-  strcpy(token, t.c_str());
+  NOT_NULL(loc);
+  Location *locp = new Location(context->catalog->put(path));
+  *loc = locp;
   CATCH(context, put)
 }
 
 
 
-int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token)
+int dm_putg(dm_context* context, const char* path, struct location** loc, const char* guid)
 {
   TRY(context, putg)
   NOT_NULL(path);
-  NOT_NULL(uri);
-  NOT_NULL(token);
-  std::string t;
+  NOT_NULL(loc);
+  Location *locp;
   if (guid != NULL)
-    t = context->catalog->put(path, uri, guid);
+    locp = new Location(context->catalog->put(path, guid));
   else
-    t = context->catalog->put(path, uri);
-  strcpy(token, t.c_str());
+    locp = new Location(context->catalog->put(path));
+  *loc = locp;
   CATCH(context, putg)
 }
 
 
 
-int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token)
+int dm_putdone(dm_context* context, const char* host, const char* rfn, unsigned nextras, struct keyvalue* extrasp)
 {
   TRY(context, putdone)
-  NOT_NULL(path);
-  NOT_NULL(pfn);
-  NOT_NULL(token);
-  context->catalog->putDone(path, *pfn, token);
+  NOT_NULL(host);
+  NOT_NULL(rfn);
+  
+  std::map<std::string, std::string> extras;
+  
+  for (unsigned i = 0; i < nextras; ++i)
+    extras.insert(std::pair<std::string, std::string>(extrasp[i].key, extrasp[i].value));
+  
+  context->catalog->putDone(host, rfn, extras);
   CATCH(context, putdone)
 }
 
@@ -544,9 +531,9 @@ const char* dm_error(dm_context* context)
 
 
 
-void dm_parse_uri(const char* source, struct uri* dest)
+void dm_parse_url(const char* source, struct url* dest)
 {
-  *dest = dmlite::splitUri(source);
+  *dest = dmlite::splitUrl(source);
 }
 
 

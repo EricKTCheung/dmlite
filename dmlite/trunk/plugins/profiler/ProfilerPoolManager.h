@@ -15,6 +15,7 @@ public:
 
   std::string getImplId(void) throw();
 
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
   PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include <utime.h>
-#include "dm_auth.h"
 #include "dm_exceptions.h"
 #include "dm_types.h"
 
@@ -16,6 +15,10 @@ namespace dmlite {
 
 /// Typedef for directories
 typedef void Directory;
+
+// Advanced declarations
+class StackInstance;
+class PluginManager;
 
 /// Interface for Catalog (Namespaces)
 class Catalog {
@@ -29,6 +32,12 @@ public:
   /// String ID of the catalog implementation.
   virtual std::string getImplId(void) throw() = 0;
 
+  /// Set the StackInstance.
+  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
+  /// However, at construction time not all the stacks have been populated, so this will
+  /// be called once all are instantiated.
+  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+  
   /// Set the security context.
   virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
 
@@ -56,34 +65,49 @@ public:
   /// Add a new replica for a file.
   /// @param guid       The Grid Unique Identifier. It can be null.
   /// @param id         The file ID within the NS.
-  /// @param server     The SE that hosts the file (if NULL, it will be retrieved from the sfn).
-  /// @param sfn        The SURL or physical path of the replica being added.
+  /// @param server     The SE that hosts the file (if NULL, it will be retrieved from the rfn).
+  /// @param rfn        The SURL or physical path of the replica being added.
   /// @param status     '-' for available, 'P' for being populated, 'D' for being deleted.
   /// @param fileType   'V' for volatile, 'D' for durable, 'P' for permanent.
   /// @param poolName   The pool where the replica is (not used for LFCs)
   /// @param fileSystem The filesystem where the replica is (not used for LFCs)
   virtual void addReplica(const std::string& guid, int64_t id, const std::string& server,
-                          const std::string& sfn, char status, char fileType,
+                          const std::string& rfn, char status, char fileType,
                           const std::string& poolName, const std::string& fileSystem) throw (DmException) = 0;
 
   /// Delete a replica.
   /// @param guid The Grid Unique Identifier. it can be null.
   /// @param id   The file ID within the NS.
-  /// @param sfn  The replica being removed.
+  /// @param rfn  The replica being removed.
   virtual void deleteReplica(const std::string& guid, int64_t id,
-                             const std::string& sfn) throw (DmException) = 0;
+                             const std::string& rfn) throw (DmException) = 0;
 
   /// Get replicas for a file.
   /// @param path The file for which replicas will be retrieved.
   virtual std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException) = 0;
-  
-  /// Get replicas for a file, and process them with the PoolHandler.
-  /// @param path The file for which replicas will be retrieved.
-  virtual std::vector<Uri> getReplicasLocation(const std::string& path) throw (DmException) = 0;
 
   /// Get a location for a logical name.
   /// @param path     The path to get.
-  virtual Uri get(const std::string& path) throw (DmException) = 0;
+  virtual Location get(const std::string& path) throw (DmException) = 0;
+  
+  /// Start the PUT of a file.
+  /// @param path  The path of the file to create.
+  /// @return      The physical location where to write.
+  virtual Location put(const std::string& path) throw (DmException) = 0;
+
+  /// Start the PUT of a file.
+  /// @param path  The path of the file to create.
+  /// @param guid  The Grid Unique ID.
+  /// @return      The physical location where to write.
+  virtual Location put(const std::string& path,
+                       const std::string& guid) throw (DmException) = 0;
+
+  /// Finish a PUT
+  /// @param host   The host where the replica is hosted.
+  /// @param rfn    The replica file name.
+  /// @param params The extra parameters returned by dm::Catalog::put
+  virtual void putDone(const std::string& host, const std::string& rfn,
+                       const std::map<std::string, std::string>& params) throw (DmException) = 0;
 
   /// Creates a new symlink.
   /// @param oldpath The existing path.
@@ -98,26 +122,6 @@ public:
   /// @param path The new file.
   /// @param mode The creation mode.
   virtual void create(const std::string& path, mode_t mode) throw (DmException) = 0;
-
-  /// Start the PUT of a file.
-  /// @param path  The path of the file to create.
-  /// @param uri   The destination location will be put here.
-  /// @return      The PUT token.
-  virtual std::string put(const std::string& path, Uri* uri) throw (DmException) = 0;
-
-  /// Start the PUT of a file.
-  /// @param path  The path of the file to create.
-  /// @param uri   The destination location will be put here.
-  /// @param guid  The Grid Unique ID.
-  /// @return      The PUT token.
-  virtual std::string put(const std::string& path, Uri* uri,
-                          const std::string& guid) throw (DmException) = 0;
-
-  /// Finish a PUT
-  /// @param path  The path of the file that was put
-  /// @param uri   The physical location
-  /// @param token As returned by dm::Catalog::put
-  virtual void putDone(const std::string& path, const Uri& uri, const std::string& token) throw (DmException) = 0;
 
   /// Sets the calling process’s file mode creation mask to mask & 0777.
   /// @param mask The new mask.
@@ -203,27 +207,27 @@ public:
   /// @param replica The replica to modify.
   /// @param ltime   The new life time.
   /// @return        0 on success, error code otherwise.
-  virtual void replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException) = 0;
+  virtual void replicaSetLifeTime(const std::string& rfn, time_t ltime) throw (DmException) = 0;
 
   /// Set the access time of a replica
   /// @param context The DM context.
   /// @param replica The replica to modify.
   /// @return        0 on success, error code otherwise.
-  virtual void replicaSetAccessTime(const std::string& replica) throw (DmException) = 0;
+  virtual void replicaSetAccessTime(const std::string& rfn) throw (DmException) = 0;
 
   /// Set the type of a replica
   /// @param context The DM context.
   /// @param replica The replica to modify.
   /// @param ftype   The new type ('V', 'D' or 'P')
   /// @return        0 on success, error code otherwise.
-  virtual void replicaSetType(const std::string& replica, char type) throw (DmException) = 0;
+  virtual void replicaSetType(const std::string& rfn, char type) throw (DmException) = 0;
 
   /// Set the status of a replica.
   /// @param context The DM context.
   /// @param replica The replica to modify.
   /// @param status  The new status ('-', 'P', 'D')
   /// @return        0 on success, error code otherwise.
-  virtual void replicaSetStatus(const std::string& replica, char status) throw (DmException) = 0;
+  virtual void replicaSetStatus(const std::string& rfn, char status) throw (DmException) = 0;
 
 protected:
   /// The parent plugin can use this to let the decorated know
@@ -237,7 +241,7 @@ private:
   Catalog* parent_;
 };
 
-class StackInstance;
+
 
 /// Plug-ins must implement a concrete factory to be instantiated.
 class CatalogFactory {
@@ -251,8 +255,7 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of Catalog
-  /// @param si The StackInstance that is instantiating the context. It may be NULL.
-  virtual Catalog* createCatalog(StackInstance* si) throw (DmException) = 0;
+  virtual Catalog* createCatalog(PluginManager* pm) throw (DmException) = 0;
 
 protected:
 private:

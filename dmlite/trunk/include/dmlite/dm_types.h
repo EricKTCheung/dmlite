@@ -29,6 +29,7 @@
 #define SUMTYPE_MAX       3
 #define SUMVALUE_MAX     33
 #define SETNAME_MAX      36
+#define QUERY_MAX      1024
 
 #define TYPE_EXPERIMENT 1
 #define TYPE_USER       2
@@ -55,19 +56,10 @@ typedef struct xstat ExtendedStat;
 
 /** Symbolic links */
 struct symlink {
-  uint64_t fileId;         /**< The file unique ID. */
-  char     link[PATH_MAX]; /**< Where the link is pointing to. */
+  ino_t inode;         /**< The file unique ID. */
+  char  link[PATH_MAX]; /**< Where the link is pointing to. */
 };
 typedef struct symlink SymLink;
-
-/** Simplified URI struct */
-struct uri {
-  char     scheme[SCHEME_MAX];
-  char     host  [HOST_NAME_MAX];
-  unsigned port;
-  char     path  [PATH_MAX];
-};
-typedef struct uri Uri;
 
 /** File replica */
 struct filereplica {
@@ -82,10 +74,39 @@ struct filereplica {
   char       pool      [POOL_MAX];
   char       server    [HOST_NAME_MAX];
   char       filesystem[FILESYSTEM_MAX]; /**< Do we still want this? */
-  char       url       [URI_MAX];
+  char       rfn       [URI_MAX];        /**< Replica file name*/
   uint8_t    priority;                   /**< 0 highest priority. */
 };
 typedef struct filereplica FileReplica;
+
+/** Used to hold a key-value pair */
+struct keyvalue {
+  const char *key;
+  const char *value;
+};
+
+/** Physical location of a replica
+ * When used from C, do not free it directly!
+ * Check dm_location_free
+ */
+struct location {
+  char             host [HOST_NAME_MAX];
+  char             path [PATH_MAX];
+  unsigned         nextra;
+  struct keyvalue *extra;
+  uint8_t          available;
+  uint8_t          priority;
+};
+
+/** Simplified URL struct */
+struct url {
+  char     scheme[SCHEME_MAX];
+  char     host  [HOST_NAME_MAX];
+  unsigned port;
+  char     path  [PATH_MAX];
+  char     query [QUERY_MAX];
+};
+typedef struct url Url;
 
 /** Pool */
 struct pool {
@@ -149,18 +170,20 @@ typedef struct dm_acl Acl;
  * @note Pointers are owned by caller!
  */
 union value {
-  bool        b;
+  char        c;
   uint64_t    u64;
   int64_t     i64;
   struct {
-    size_t    size;
-    uint64_t *u64v;
-    int64_t  *i64v;
-    char     *str;
+    size_t      size;
+    uint64_t   *u64v;
+    int64_t    *i64v;
+    char       *str;
+    const char *cstr;
   } array;
 };
 typedef union value Value;
 
+/** C++ helpers */
 #ifdef __cplusplus
 /// Operator < for UserInfo (needed for sets)
 inline bool operator < (const userinfo &a, const userinfo &b)
@@ -173,6 +196,21 @@ inline bool operator < (const groupinfo &a, const groupinfo &b)
 {
   return a.gid < b.gid;
 }
+
+// Wrap some structs to make handling easier
+class Location: public location {
+public:
+  Location();
+  Location(const Location&);
+  Location(const struct location&);
+  Location(const Url& url);
+  
+  /// @param npairs Number of key-value pairs following
+  /// @note The key-value pairs must be passed as key1, value1, key2, value2...
+  /// @example Location("localhost", "/", true, 2, "Key", "Value", "Key2", "Value2");
+  Location(const char* host, const char* path, bool available, unsigned npairs, ...);
+  ~Location();
+};
 #endif
 
 #endif	/* DMLITE_TYPES_H */

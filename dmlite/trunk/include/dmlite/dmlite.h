@@ -5,6 +5,7 @@
 #ifndef DMLITE_H
 #define	DMLITE_H
 
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <utime.h>
 #include "dm_errno.h"
@@ -210,35 +211,22 @@ int dm_getreplicas(dm_context* context, const char* path, int *nReplicas,
  */
 int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* fileReplicas);
 
-
-/**
- * Get the replicas of a file, processed by the corresponding PoolHandler
- * @param context   The DM context.
- * @param path      The logical file name.
- * @param nReplicas The number of entries will be put here.
- * @param uris      An array with nEntries elements will be stored here. <b>Use dm_freereplicaslocation to free it.</b>
- * @return          0 on success, error code otherwise.
- */
-int dm_getreplicaslocation(dm_context* context, const char* path, int* nReplicas, struct uri** uris);
-
-
-/**
- * Free a replica list.
- * @param context   The DM context.
- * @param nReplicas The number of replicas contained in the array.
- * @param uirs      The array to free.
- * @return          0 on success, error code otherwise.
- */
-int dm_freereplicaslocation(dm_context* context, int nReplicas, struct uri* uris);
-
 /**
  * Get a single replica (synchronous).
  * @param context The DM context.
  * @param path    The logical file name.
- * @param uri     Physical location of the replica.
+ * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
  * @return        0 on success, error code otherwise.
  */
-int dm_get(dm_context* context, const char* path, struct uri* uri);
+int dm_get(dm_context* context, const char* path, struct location** loc);
+
+/**
+ * Free a location struct.
+ * @param context The DM context.
+ * @param loc     The struct to free.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_freelocation(dm_context* context, struct location* loc);
 
 /**
  * Remove a file.
@@ -262,32 +250,31 @@ int dm_create(dm_context* context, const char* path, mode_t mode);
  * Put a file (synchronous).
  * @param context The DM context.
  * @param path    The logical file name to put.
- * @param uri     Where to put the final destination.
- * @param token   Where to put the token identifying the request. It must be at least of size TOKEN_MAX.
+ * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
  * @return        0 on success, error code otherwise.
  */
-int dm_put(dm_context* context, const char* path, struct uri* uri, char* token);
+int dm_put(dm_context* context, const char* path, struct location** loc);
 
 /**
  * Put a file (synchronous).
  * @param context The DM context.
  * @param path    The logical file name to put.
- * @param uri     Where to put the final destination.
+ * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
  * @param guid    The Grid Unique ID.
- * @param token   Where to put the token identifying the request. It must be at least of size TOKEN_MAX.
  * @return        0 on success, error code otherwise.
  */
-int dm_putg(dm_context* context, const char* path, struct uri* uri, const char* guid, char* token);
+int dm_putg(dm_context* context, const char* path, struct location** loc, const char* guid);
 
 /**
  * Finish a PUT request.
  * @param context The DM context.
- * @param path    The logical filename that was put.
- * @param pfn     The physical location.
- * @param token   The token identifying the request.
+ * @param host    The host where the replica is.
+ * @param rfn     The replica file name.
+ * @param nextras The number of extra parameters returned by put.
+ * @param extras  The extra parameters returned by put.
  * @return        0 on success, error code otherwise.
  */
-int dm_putdone(dm_context* context, const char* path, const Uri* pfn, const char* token);
+int dm_putdone(dm_context* context, const char*host, const char* rfn, unsigned nextras, struct keyvalue* extras);
 
 /**
  * Change the mode of a file or directory.
@@ -511,13 +498,25 @@ int dm_getpools(dm_context* context, int* nPools, struct pool** pools);
 int dm_freepools(dm_context* context, int nPools, struct pool* pools);
 
 /**
+ * Do a stat over a physical file.
+ * @param context The DM context.
+ * @param rfn     The path to stat.
+ * @param st      Where to put the stat.
+ * @return        0 on sucess,  error code otherwise.
+ */
+int dm_pstat(dm_context* context, const char* rfn, struct stat* st);
+
+/**
  * Open a file.
  * @param context The DM context.
  * @param path    The path to open.
  * @param flags   See open()
+ * @param nextras Number of key-value parameters, usually as provided by dm_get
+ * @param extras  The key-value pairs.
  * @return        An opaque handler for the file, NULL on failure.
  */
-dm_fd* dm_fopen(dm_context* context, const char* path, int flags);
+dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
+                unsigned nextras, struct keyvalue* extras);
 
 /**
  * Close a file.
@@ -590,11 +589,11 @@ int dm_errno(dm_context* context);
 const char* dm_error(dm_context* context);
 
 /**
- * Parses a URI.
- * @param source Original URI.
- * @param dest   Parsed URI.
+ * Parses a URL.
+ * @param source Original URL.
+ * @param dest   Parsed URL.
  */
-void dm_parse_uri(const char* source, struct uri* dest);
+void dm_parse_url(const char* source, struct url* dest);
 
 /**
  * Serialize into a string a set of ACL entries

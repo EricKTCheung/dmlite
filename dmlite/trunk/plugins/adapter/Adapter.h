@@ -17,16 +17,16 @@ public:
   ~NsAdapterFactory();
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog(StackInstance* si)                        throw (DmException);
   
-  UserGroupDb* createUserGroupDb(StackInstance* si) throw (DmException);
+  Catalog*     createCatalog(PluginManager*)     throw (DmException);  
+  UserGroupDb* createUserGroupDb(PluginManager*) throw (DmException);
 
 protected:
   unsigned retryLimit_;
 };
 
 /// Concrete factory for DPM wrapper
-class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory, public PoolHandlerFactory {
+class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory, public PoolDriverFactory {
 public:
   /// Constructor
   DpmAdapterFactory() throw (DmException);
@@ -35,13 +35,18 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  Catalog*     createCatalog(PluginManager*)     throw (DmException);
+  PoolManager* createPoolManager(PluginManager*) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException);
+  PoolDriver* createPoolDriver(StackInstance* si, const Pool& pool) throw (DmException);
   
 protected:
+  unsigned retryLimit_;
+  
+  std::string tokenPasswd_;
+  bool        tokenUseIp_;
+  unsigned    tokenLife_;
 };
 
 void ThrowExceptionFromSerrno(int serr, const char* extra = 0x00) throw(DmException);

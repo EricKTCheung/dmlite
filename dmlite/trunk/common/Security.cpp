@@ -2,21 +2,18 @@
 /// @brief   Security functionality shared between modules.
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <algorithm>
 #include <cctype>
-#include <cerrno>
+#include <cstring>
+#include <dmlite/dm_auth.h>
 #include <dmlite/dm_exceptions.h>
 #include <dmlite/dm_errno.h>
 #include <dmlite/common/Security.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <algorithm>
 #include <map>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/hmac.h>
 #include <sstream>
-#include <queue>
-
-#include "dmlite/dm_auth.h"
 
 using namespace dmlite;
 
@@ -452,4 +449,95 @@ std::vector<Acl> dmlite::inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid
   }
 
   return childAcl;
+}
+
+
+
+// Base 64 encoding
+static unsigned base64_encode(const char *input, unsigned length, char* output)
+{
+  BIO *bmem, *b64;
+  BUF_MEM *bptr;
+  unsigned written;
+
+  b64  = BIO_new(BIO_f_base64());
+  bmem = BIO_new(BIO_s_mem());
+  b64  = BIO_push(b64, bmem);
+  BIO_write(b64, input, length);
+  BIO_ctrl(b64, BIO_CTRL_FLUSH, 0, NULL);
+  BIO_get_mem_ptr(b64, &bptr);
+
+  written = bptr->length - 1;
+  memcpy(output, bptr->data, written);
+  output[written] = 0;
+  
+  BIO_free_all(b64);
+
+  return written;
+}
+
+
+
+std::string dmlite::generateToken(const std::string& id, const std::string& pfn, const std::string& passwd, time_t lifetime, bool write)
+{
+  char     buffer1[1024];
+  char     buffer2[1024];
+  unsigned inl, outl;
+
+  time_t expires = time(NULL) + lifetime;
+  
+  // Concatenate
+  inl = snprintf((char*)buffer1, sizeof(buffer1),
+                 "%s\035%s\035%ld\035%d", pfn.c_str(), id.c_str(), expires, write);
+
+  // HMAC auth code
+  HMAC(EVP_sha1(), passwd.c_str(), passwd.length(),
+       (unsigned char*)buffer1, inl,
+       (unsigned char*)buffer2, &outl);
+
+  // Base64
+  outl = base64_encode(buffer2, outl, buffer1);
+  snprintf(buffer1 + outl, sizeof(buffer1) - outl, "@%ld@%d", expires, write);
+
+  // Done
+  return std::string(buffer1);
+}
+
+
+
+bool dmlite::validateToken(const std::string& token, const std::string& id, const std::string& pfn, const std::string& passwd, bool write)
+{
+  char     buffer1[1024];
+  char     buffer2[1024];
+  long     expires;
+  unsigned tokenForWrite;
+  unsigned inl, outl;
+
+  // Search for '='
+  size_t separator = token.find('@');
+  if (separator == std::string::npos)
+    return false;
+
+  // Grab expiration and write mode
+  sscanf(token.c_str() + separator + 1, "%ld@%d", &expires, &tokenForWrite);
+
+  // Generate validation string
+  inl = snprintf(buffer1, sizeof(buffer1),
+                 "%s\035%s\035%ld\035%d", pfn.c_str(), id.c_str(), expires, tokenForWrite);
+  HMAC(EVP_sha1(), passwd.c_str(), passwd.length(),
+       (unsigned char*)buffer1, inl,
+       (unsigned char*)buffer2, &outl);
+  outl = base64_encode(buffer2, outl, buffer1);
+
+  // Compare validation strings
+  if (strncmp(buffer1, token.c_str(), outl) != 0)
+    return false;
+
+  // Expiration and mode
+  if ((expires < time(NULL)) || (write && !tokenForWrite)) {
+    return false;
+  }
+
+  // We are good!
+  return true;
 }

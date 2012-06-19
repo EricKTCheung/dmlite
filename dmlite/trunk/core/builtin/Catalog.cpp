@@ -8,7 +8,7 @@
 #include <list>
 #include <dmlite/dmlite++.h>
 #include <dmlite/common/Security.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
 #include "Catalog.h"
 
@@ -45,15 +45,15 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
 
 
 
-Catalog* BuiltInCatalogFactory::createCatalog(StackInstance* si) throw (DmException)
+Catalog* BuiltInCatalogFactory::createCatalog(PluginManager*) throw (DmException)
 {
-  return new BuiltInCatalog(si, this->updateATime_, this->symLinkLimit_);
+  return new BuiltInCatalog(this->updateATime_, this->symLinkLimit_);
 }
 
 
 
-BuiltInCatalog::BuiltInCatalog(StackInstance* si, bool updateATime, unsigned symLinkLimit) throw (DmException):
-    si_(si), secCtx_(), cwd_(0), umask_(022), updateATime_(updateATime), symLinkLimit_(symLinkLimit)
+BuiltInCatalog::BuiltInCatalog(bool updateATime, unsigned symLinkLimit) throw (DmException):
+    si_(0x00), secCtx_(), cwd_(0), umask_(022), updateATime_(updateATime), symLinkLimit_(symLinkLimit)
 {
   // Nothing
 }
@@ -73,10 +73,19 @@ std::string BuiltInCatalog::getImplId(void) throw()
 }
 
 
+
+void BuiltInCatalog::setStackInstance(StackInstance* si) throw (DmException)
+{
+  this->si_ = si;
+}
+
+
+
 void BuiltInCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   this->secCtx_ = ctx;
 }
+
 
 
 void BuiltInCatalog::changeDir(const std::string& path) throw (DmException)
@@ -236,42 +245,11 @@ std::vector<FileReplica> BuiltInCatalog::getReplicas(const std::string& path) th
 
 
 
-std::vector<Uri> BuiltInCatalog::getReplicasLocation(const std::string& path) throw (DmException)
-{
-  std::vector<FileReplica> replicas = this->getReplicas(path);
-  std::vector<Uri> uris;
-  
-  uris.reserve(replicas.size());
-  
-  // No PoolManager available
-  if (this->si_->getPoolManager() == 0x00) {
-    std::vector<FileReplica>::const_iterator i;
-    for (i = replicas.begin(); i != replicas.end(); ++i)
-      uris.push_back(dmlite::splitUri(i->url));
-
-    return uris;
-  }
-  // Ask the PoolHandler
-  else {
-    unsigned i;
-    for (i = 0; i < replicas.size(); ++i) {
-      Pool pool            = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler *handler = this->si_->getPoolHandler(pool);
-
-      uris.push_back(handler->getLocation(path, replicas[i]));
-    }
-  
-    return uris;
-  }
-}
-
-
-
-Uri BuiltInCatalog::get(const std::string& path) throw (DmException)
+Location BuiltInCatalog::get(const std::string& path) throw (DmException)
 {
   unsigned i;
   std::vector<FileReplica> replicas = this->getReplicas(path);
-  std::vector<Uri>         available;
+  std::vector<Location>    available;
   
   if (replicas.size() == 0)
     throw DmException(DM_NO_REPLICAS, "No replicas");
@@ -280,19 +258,21 @@ Uri BuiltInCatalog::get(const std::string& path) throw (DmException)
   if (this->si_->isTherePoolManager()) {
     for (i = 0; i < replicas.size(); ++i) {
       Pool pool = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler* handler = this->si_->getPoolHandler(pool);
+      PoolDriver* handler = this->si_->getPoolDriver(pool);
+      
+      Location location = handler->getLocation(path, replicas[i]);
 
-      if (handler->replicaAvailable(path, replicas[i])) {
-        available.push_back(handler->getLocation(path, replicas[i]));
+      if (location.available) {
+        available.push_back(location);
       }
     }
   }
   // If no pool manager, make sure we can guess the whole location (LFC)
   else {
     for (i = 0; i < replicas.size(); ++i) {
-      Uri uri = dmlite::splitUri(replicas[i].url);
-      if (uri.host[0] != '\0')
-        available.push_back(uri);
+      Url url = dmlite::splitUrl(replicas[i].rfn);
+      if (url.host[0] != '\0')
+        available.push_back(url);
     }
   }
   
@@ -304,6 +284,73 @@ Uri BuiltInCatalog::get(const std::string& path) throw (DmException)
   else {
     throw DmException(DM_NO_REPLICAS, "No available replicas");
   }
+}
+
+
+
+Location BuiltInCatalog::put(const std::string& path) throw (DmException)
+{
+  return this->put(path, std::string());
+}
+
+
+
+Location BuiltInCatalog::put(const std::string& path,
+                             const std::string& guid) throw (DmException)
+{ 
+  // Get the available pool list
+  if (this->si_->isTherePoolManager() == 0x00)
+    throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
+    
+  std::vector<Pool> pools = this->si_->getPoolManager()->getAvailablePools();
+  
+  // Pick a random one
+  unsigned i = rand()  % pools.size();
+  
+  // Get the handler
+  PoolDriver* driver = this->si_->getPoolDriver(pools[i]);
+  
+  // Create the entry
+  this->create(path, 0777);
+  
+  // Delegate to it
+  Location loc = driver->putLocation(path);
+  
+  // Set the GUID
+  if (!guid.empty())
+    this->setGuid(path, guid);
+  
+  // Done!
+  return loc;
+}
+
+
+
+void BuiltInCatalog::putDone(const std::string& host, const std::string& rfn,
+                             const std::map<std::string, std::string>& extras) throw (DmException)
+{
+  // Get the available pool list
+  if (this->si_->isTherePoolManager() == 0x00)
+    throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
+  
+  FileReplica replica;
+  
+  // Try to fetch using host
+  try {
+    replica = this->si_->getINode()->getReplica(host + ":" + rfn);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_SUCH_REPLICA)
+      throw;
+    // Try without
+    replica = this->si_->getINode()->getReplica(rfn);
+  }
+  
+  // Get the driver and delegate
+  Pool pool           = this->si_->getPoolManager()->getPool(replica.pool);
+  PoolDriver* handler = this->si_->getPoolDriver(pool);
+ 
+  handler->putDone(replica, extras);
 }
 
 
@@ -386,14 +433,32 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
   }
 
   // Check there are no replicas
-  // TODO: Remove replicas?
   if (!S_ISLNK(file.stat.st_mode)) {
-    if (this->si_->getINode()->getReplicas(file.stat.st_ino).size() != 0)
+    std::vector<FileReplica> replicas = this->si_->getINode()->getReplicas(file.stat.st_ino);
+    
+    // Pure catalogs must not remove files with replicas    
+    if (!this->si_->isTherePoolManager() && replicas.size() != 0)
       throw DmException(DM_EXISTS, path + " has replicas, can not remove");
+    
+    // Try to remove replicas first
+    for (unsigned i = 0; i < replicas.size(); ++i) {
+      Pool pool          = this->si_->getPoolManager()->getPool(replicas[i].pool);
+      PoolDriver* driver = this->si_->getPoolDriver(pool);
+      
+      driver->remove(path, replicas[i]);
+    }
   }
   
   // All preconditions are good, so remove
-  this->si_->getINode()->unlink(file.stat.st_ino);
+  try {
+    this->si_->getINode()->unlink(file.stat.st_ino);
+  }
+  catch (DmException e) {
+    if (e.code() != DM_NO_SUCH_FILE)
+      throw;
+    // If not found, that's good, as the pool driver probably
+    // did it (i.e. legacy DPM)
+  }
 }
 
 
@@ -661,76 +726,6 @@ std::string oldParentPath, newParentPath;
 
   // Done!
   this->si_->getINode()->commit();
-}
-
-
-
-std::string BuiltInCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  return this->put(path, uri, std::string());
-}
-
-
-
-std::string BuiltInCatalog::put(const std::string& path, Uri* uri,
-                                const std::string& guid) throw (DmException)
-{ 
-  // Get the available pool list
-  if (this->si_->isTherePoolManager() == 0x00)
-    throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
-    
-  std::vector<Pool> pools = this->si_->getPoolManager()->getAvailablePools();
-  
-  // Pick a random one
-  unsigned i = rand()  % pools.size();
-  
-  // Get the handler
-  PoolHandler* handler = this->si_->getPoolHandler(pools[i]);
-  
-  // Create the entry
-  this->create(path, 0777);
-  
-  // Delegate to it
-  std::string token = handler->putLocation(path, uri);
-  
-  // Set the GUID
-  if (!guid.empty())
-    this->setGuid(path, guid);
-  
-  // Done!
-  return token;
-}
-
-
-
-void BuiltInCatalog::putDone(const std::string& path, const Uri& uri,
-                             const std::string& token) throw (DmException)
-{
-  // Get the available pool list
-  if (this->si_->isTherePoolManager() == 0x00)
-    throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
-  
-  // Get the replicas
-  std::vector<FileReplica> replicas = this->getReplicas(path);
- 
-  // Pick the proper one
-  for (unsigned i = 0; i < replicas.size(); ++i) {
-    Uri replicaUri = dmlite::splitUri(replicas[i].url);
-    
-    if ((replicaUri.host[0] == '\0' || strcmp(replicaUri.host, uri.host) == 0) &&
-        strcmp(replicaUri.path, uri.path) == 0) {
-      Pool pool            = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler* handler = this->si_->getPoolHandler(pool);
-      
-      handler->putDone(path, uri, token);
-
-      return;
-    }
-  }
-  
-  // :(
-  throw DmException(DM_NO_SUCH_REPLICA,
-                    "Replica %s for file %s not found", uri.path, path.c_str());
 }
 
 

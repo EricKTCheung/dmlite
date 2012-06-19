@@ -6,7 +6,8 @@ include_directories (${DPM_INCLUDE_DIR}/dpm)
 add_definitions (-D_REENTRANT)
 
 add_library (adapter MODULE Adapter.cpp
-                            FilesystemHandler.cpp
+                            IO.cpp
+                            FilesystemDriver.cpp
                             NsAdapter.cpp DpmAdapter.cpp
                             Throw.cpp)
 

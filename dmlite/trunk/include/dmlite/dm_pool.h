@@ -25,6 +25,9 @@ public:
   virtual int getInt(const std::string& field) throw (DmException) = 0;
 };
 
+// Advanced declaration
+class StackInstance;
+
 /// Interface for pool types.
 class PoolManager {
 public:
@@ -34,8 +37,14 @@ public:
   /// String ID of the pool implementation.
   virtual std::string getImplId(void) throw() = 0;
 
+  /// Set the StackInstance.
+  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
+  /// However, at construction time not all the stacks have been populated, so this will
+  /// be called once all are instantiated.
+  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+  
   /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) = 0;
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Get metadata corresponding to a pool type and name
   /// @note To be freed by the caller.
@@ -53,7 +62,6 @@ public:
   virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException) = 0;
 };
 
-class StackInstance;
 
 /// Plug-ins must implement a concrete factory to be instantiated.
 class PoolManagerFactory {
@@ -67,8 +75,7 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of Pool
-  /// @param si The StackInstance that is instantiating the context. It may be NULL.
-  virtual PoolManager* createPoolManager(StackInstance* si) throw (DmException) = 0;
+  virtual PoolManager* createPoolManager(PluginManager* pm) throw (DmException) = 0;
 
 protected:
 private:

@@ -1,30 +1,21 @@
 /// @file   core/builtin/IO.cpp
 /// @brief  Built-in IO factory (std::fstream)
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <cstring>
+#include <dmlite/dmlite++.h>
+#include <dmlite/common/Security.h>
 #include <errno.h>
 #include <fstream>
 #include <iosfwd>
 #include <sys/stat.h>
+#include "Adapter.h"
 #include "IO.h"
 
 using namespace dmlite;
 
 
-IOHandler::~IOHandler()
-{
-  // Nothing
-}
 
-
-
-IOFactory::~IOFactory()
-{
-  // Nothing
-}
-
-
-
-StdIOFactory::StdIOFactory()
+StdIOFactory::StdIOFactory(): passwd("default"), useIp(true)
 {
   // Nothing
 }
@@ -40,14 +31,55 @@ StdIOFactory::~StdIOFactory()
 
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  if (key == "TokenPassword") {
+    this->passwd = value;
+  }
+  else if (key == "TokenId") {
+    if (strcasecmp(value.c_str(), "ip") == 0)
+      this->useIp = true;
+    else
+      this->useIp = false;
+  }
   throw DmException(DM_UNKNOWN_OPTION, key + " not known");
 }
 
 
 
-IOHandler* StdIOFactory::createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException)
+IOHandler* StdIOFactory::createIO(const StackInstance* si,
+                                  const std::string& pfn, std::iostream::openmode openmode,
+                                  const std::map<std::string, std::string>& extras) throw (DmException)
 {
-  return new StdIOHandler(uri, openmode);
+  // Validate request
+  std::map<std::string, std::string>::const_iterator i = extras.find("token");
+  
+  if (i == extras.end())
+    throw DmException(DM_FORBIDDEN, "Missing token");
+  
+  const char* id;
+  if (this->useIp)
+    id = si->getSecurityContext()->getCredentials().remote_addr;
+  else
+    id = si->getSecurityContext()->getCredentials().client_name;
+  
+  if (!dmlite::validateToken(i->second,
+                             id,
+                             pfn, this->passwd, openmode == std::ios_base::out))
+    throw DmException(DM_FORBIDDEN, "Token does not validate");
+  
+  // Create
+  return new StdIOHandler(pfn, openmode);
+}
+
+
+
+struct stat StdIOFactory::pStat(const StackInstance*, const std::string& pfn) throw (DmException)
+{
+  struct stat st;
+  
+  if (stat(pfn.c_str(), &st) != 0)
+    ThrowExceptionFromSerrno(errno);
+  
+  return st;
 }
 
 

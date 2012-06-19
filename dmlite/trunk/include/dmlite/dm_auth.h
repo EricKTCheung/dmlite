@@ -60,6 +60,9 @@ private:
   std::vector<GroupInfo> groups_;
 };
 
+// Advanced declaration
+class StackInstance;
+
 /// User and group handling.
 class UserGroupDb {
 public:
@@ -112,7 +115,9 @@ public:
                         std::vector<GroupInfo>* groups) throw (DmException) = 0;
 };
 
-class StackInstance;
+
+class PluginManager;
+
 
 /// UserGroupDbFactory
 class UserGroupDbFactory {
@@ -126,8 +131,7 @@ public:
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   /// Instantiate a implementation of UserGroupDb
-  /// @param si The StackInstance that is instantiating the context. It may be NULL.
-  virtual UserGroupDb* createUserGroupDb(StackInstance* si) throw (DmException) = 0;
+  virtual UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException) = 0;
   
 protected:
 private:

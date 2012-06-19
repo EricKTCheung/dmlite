@@ -26,11 +26,12 @@ struct DpmFileSystem {
 /// Pool manager implementation.
 class MySqlPoolManager: public PoolManager {
 public:
-  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb, StackInstance* si) throw (DmException);
+  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb) throw (DmException);
   ~MySqlPoolManager();
   
   std::string getImplId(void) throw ();
   
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
   PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);

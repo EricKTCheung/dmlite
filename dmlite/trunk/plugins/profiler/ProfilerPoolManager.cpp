@@ -33,6 +33,13 @@ std::string ProfilerPoolManager::getImplId() throw ()
 
 
 
+void ProfilerPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  PROFILE(setStackInstance, si);
+}
+
+
+
 void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   PROFILE(setSecurityContext, ctx);

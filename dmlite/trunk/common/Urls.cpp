@@ -5,22 +5,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 
-Uri dmlite::splitUri(const std::string& uri)
+Url dmlite::splitUrl(const std::string& uri)
 {
   regex_t     regexp;
-  regmatch_t  matches[7];
+  regmatch_t  matches[8];
   const char *p = uri.c_str();
-  Uri         parsed;
+  Url         parsed;
 
   // Compile the first time
   regcomp(&regexp,
-          "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(/.*)?",
+          "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?([^?]*)?(.*)",
           REG_EXTENDED | REG_ICASE);
 
   // Match and extract
-  if (regexec(&regexp, p, 7, matches, 0) == 0) {
+  memset(matches, 0, sizeof(matches));
+  if (regexec(&regexp, p, 8, matches, 0) == 0) {
     int len;
 
     // Scheme
@@ -40,13 +41,23 @@ Uri dmlite::splitUri(const std::string& uri)
     else
       parsed.port = 0;
 
-    // Rest
-    strncpy(parsed.path, p + matches[6].rm_so, PATH_MAX);
+    // Path
+    len = matches[6].rm_eo - matches[6].rm_so;
+    memcpy(parsed.path, p + matches[6].rm_so, len);
+    parsed.path[len] = '\0';
+    
+    // Query
+    len = matches[7].rm_eo - matches[7].rm_so;
+    if (len > 0)
+      strncpy(parsed.query, p + matches[7].rm_so + 1, QUERY_MAX);
+    else
+      parsed.query[0] = '\0';
   }
 
   regfree(&regexp);
   return parsed;
 }
+
 
 
 std::list<std::string> dmlite::splitPath(const std::string& path)
@@ -68,4 +79,26 @@ std::list<std::string> dmlite::splitPath(const std::string& path)
   }
 
   return components;
+}
+
+
+
+char* dmlite::normalizePath(char *path)
+{
+  int   i = 0;
+  char *p = path;
+
+  while (*p != '\0') {
+    path[i] = *p;
+    ++i;
+    if (*p == '/') {
+      while (*p == '/')
+        ++p;
+    }
+    else {
+      ++p;
+    }
+  }
+  path[i] = '\0';
+  return path;
 }

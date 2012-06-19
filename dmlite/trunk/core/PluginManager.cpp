@@ -7,7 +7,6 @@
 #include <sstream>
 
 #include "Private.h"
-#include "builtin/IO.h"
 #include "builtin/Catalog.h"
 
 using namespace dmlite;
@@ -17,7 +16,6 @@ using namespace dmlite;
 PluginManager::PluginManager() throw()
 {
   // Register built-in plugins
-  this->registerFactory(new StdIOFactory());
   this->registerFactory(new BuiltInCatalogFactory());
 }
 
@@ -56,8 +54,8 @@ PluginManager::~PluginManager() throw()
     delete *i;
   }
 
-  for (std::list<PoolHandlerFactory*>::iterator i = this->pool_handler_plugins_.begin();
-       i != this->pool_handler_plugins_.end();
+  for (std::list<PoolDriverFactory*>::iterator i = this->pool_driver_plugins_.begin();
+       i != this->pool_driver_plugins_.end();
        ++i) {
     delete *i;
   }
@@ -169,8 +167,8 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
   }
 
   // Pool handlers plugins
-  for (std::list<PoolHandlerFactory*>::const_iterator i = this->pool_handler_plugins_.begin();
-       i != this->pool_handler_plugins_.end(); ++i) {
+  for (std::list<PoolDriverFactory*>::const_iterator i = this->pool_driver_plugins_.begin();
+       i != this->pool_driver_plugins_.end(); ++i) {
     try {
       (*i)->configure(key, value);
       r = 0; // At least one recognised this
@@ -179,6 +177,22 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
       if (e.code() != DM_UNKNOWN_OPTION)
         throw;
     }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }
+  
+  // IO Factories
+  for (std::list<IOFactory*>::const_iterator i = this->io_plugins_.begin();
+       i != this->io_plugins_.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      r = 0;
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }   
     catch (...) {
       throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
     }
@@ -341,19 +355,19 @@ IOFactory* PluginManager::getIOFactory() throw (DmException)
 
 
 
-void PluginManager::registerFactory(PoolHandlerFactory* factory) throw (DmException)
+void PluginManager::registerFactory(PoolDriverFactory* factory) throw (DmException)
 {
-  this->pool_handler_plugins_.push_front(factory);
+  this->pool_driver_plugins_.push_front(factory);
 }
 
 
 
-PoolHandlerFactory* PluginManager::getPoolHandlerFactory(const std::string& pooltype) throw (DmException)
+PoolDriverFactory* PluginManager::getPoolDriverFactory(const std::string& pooltype) throw (DmException)
 {
-  std::list<PoolHandlerFactory*>::iterator i;
+  std::list<PoolDriverFactory*>::iterator i;
 
-  for (i = this->pool_handler_plugins_.begin();
-       i != this->pool_handler_plugins_.end();
+  for (i = this->pool_driver_plugins_.begin();
+       i != this->pool_driver_plugins_.end();
        ++i)
   {
     if ((*i)->implementedPool() == pooltype) {

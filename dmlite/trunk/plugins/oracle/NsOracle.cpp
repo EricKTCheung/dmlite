@@ -3,7 +3,7 @@
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include "NsOracle.h"
 #include <assert.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/Urls.h>
 #include <string.h>
 #include <stdlib.h>
 #include "Queries.h"
@@ -58,6 +58,20 @@ INodeOracle::~INodeOracle() throw (DmException)
 std::string INodeOracle::getImplId() throw ()
 {
   return std::string("INodeOracle");
+}
+
+
+
+void INodeOracle::setStackInstance(StackInstance* si) throw (DmException)
+{
+  // Nothing
+}
+
+
+
+void INodeOracle::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  // Nothing
 }
 
 
@@ -389,7 +403,7 @@ SymLink INodeOracle::readLink(ino_t inode) throw (DmException)
       this->conn_->terminateStatement(stmt);
       throw DmException(DM_NO_SUCH_FILE, "Link %ld not found", inode);
     }
-    link.fileId = rs->getNumber(1);
+    link.inode = rs->getNumber(1);
     strncpy(link.link, rs->getString(2).c_str(), sizeof(link.link));
   }
   catch (occi::SQLException& ex) {
@@ -414,7 +428,7 @@ void INodeOracle::addReplica(ino_t inode, const std::string& server,
 
   // If server is empty, parse the surl
   if (server.empty()) {
-    Uri u = splitUri(sfn);
+    Url u = splitUrl(sfn);
     host = u.host;
     if (host.empty())
       throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
@@ -517,7 +531,7 @@ std::vector<FileReplica> INodeOracle::getReplicas(ino_t inode) throw (DmExceptio
     strncpy(replica.pool,       rs->getString( 9).c_str(), sizeof(replica.pool));
     strncpy(replica.server,     rs->getString(10).c_str(), sizeof(replica.server));
     strncpy(replica.filesystem, rs->getString(11).c_str(), sizeof(replica.filesystem));
-    strncpy(replica.url,        rs->getString(12).c_str(), sizeof(replica.url));
+    strncpy(replica.rfn,        rs->getString(12).c_str(), sizeof(replica.rfn));
 
     replicas.push_back(replica);
   }
@@ -538,7 +552,7 @@ FileReplica INodeOracle::getReplica(const std::string& sfn) throw (DmException)
 
   if (!rs->next()) {
     this->conn_->terminateStatement(stmt);
-    throw DmException(DM_NO_REPLICAS, "Replica " + sfn + " not found");
+    throw DmException(DM_NO_SUCH_REPLICA, "Replica " + sfn + " not found");
   }
 
   FileReplica r;
@@ -554,7 +568,7 @@ FileReplica INodeOracle::getReplica(const std::string& sfn) throw (DmException)
   strncpy(r.pool,       rs->getString( 9).c_str(), sizeof(r.pool));
   strncpy(r.server,     rs->getString(10).c_str(), sizeof(r.server));
   strncpy(r.filesystem, rs->getString(11).c_str(), sizeof(r.filesystem));
-  strncpy(r.url,        rs->getString(12).c_str(), sizeof(r.url));
+  strncpy(r.rfn,        rs->getString(12).c_str(), sizeof(r.rfn));
 
   stmt->closeResultSet(rs);
   this->conn_->terminateStatement(stmt);
@@ -571,7 +585,7 @@ void INodeOracle::setReplica(const FileReplica& replica) throw (DmException)
   stmt->setNumber(3, replica.nbaccesses);
   stmt->setString(4, std::string(&replica.status, 1));
   stmt->setString(5, std::string(&replica.type, 1));
-  stmt->setString(6, replica.url);
+  stmt->setString(6, replica.rfn);
 
   stmt->executeUpdate();
   this->conn_->terminateStatement(stmt);

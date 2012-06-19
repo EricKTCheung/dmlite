@@ -23,7 +23,8 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
 
-  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setStackInstance(StackInstance* si) throw (DmException);
+  
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
@@ -41,17 +42,18 @@ public:
                              const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  std::vector<Uri> getReplicasLocation(const std::string&) throw (DmException);
-  Uri                      get        (const std::string&) throw (DmException);
+  Location get(const std::string&) throw (DmException);
+  
+  Location put(const std::string& path) throw (DmException);
+  Location put(const std::string& path,
+               const std::string& guid) throw (DmException);
+  void     putDone(const std::string& host, const std::string& rfn,
+                   const std::map<std::string, std::string>& params) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
 
   void create(const std::string&, mode_t) throw (DmException);
-
-  std::string put(const std::string&, Uri*)                     throw (DmException);
-  std::string put(const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
 
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
