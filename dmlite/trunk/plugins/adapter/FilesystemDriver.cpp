@@ -37,25 +37,27 @@ FilesystemPoolDriver::~FilesystemPoolDriver()
 
 void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  // Call DPM API
-  wrapCall(dpm_client_setAuthorizationId(ctx->getUser().uid,
-                                         ctx->getGroup(0).gid,
-                                         "GSI",
-                                         (char*)ctx->getUser().name));
+  if (ctx) {
+    // Call DPM API
+    wrapCall(dpm_client_setAuthorizationId(ctx->getUser().uid,
+                                          ctx->getGroup(0).gid,
+                                          "GSI",
+                                          (char*)ctx->getUser().name));
 
-  if (ctx->groupCount() > 0)
-    wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
-                                     (char**)ctx->getCredentials().fqans,
-                                     ctx->groupCount()));
-  
-  // Store
-  this->secCtx_ = ctx;
-  
-  // Id mechanism
-  if (this->tokenUseIp_)
-    this->userId_ = this->secCtx_->getCredentials().remote_addr;
-  else
-    this->userId_ = this->secCtx_->getCredentials().client_name;
+    if (ctx->groupCount() > 0)
+      wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
+                                      (char**)ctx->getCredentials().fqans,
+                                      ctx->groupCount()));
+
+    // Store
+    this->secCtx_ = ctx;
+
+    // Id mechanism
+    if (this->tokenUseIp_)
+      this->userId_ = this->secCtx_->getCredentials().remote_addr;
+    else
+      this->userId_ = this->secCtx_->getCredentials().client_name;
+  }
 }
 
 

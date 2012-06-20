@@ -60,13 +60,13 @@ private:
 /// PoolMetadata handler
 class MySqlPoolMetadata: public PoolMetadata {
 public:
-  MySqlPoolMetadata(Statement* stmt);
+  MySqlPoolMetadata(const char* meta);
   ~MySqlPoolMetadata();
   
   std::string getString(const std::string& field) throw (DmException);
   int getInt(const std::string& field) throw (DmException);
 private:
-  Statement* stmt_;
+  std::map<std::string, std::string> meta_;
 };
 
 };

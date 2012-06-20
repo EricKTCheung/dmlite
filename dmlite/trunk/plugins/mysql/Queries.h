@@ -170,6 +170,10 @@ static const char* STMT_UPDATE_REPLICA =
     "UPDATE Cns_file_replica\
         SET atime = ?, ltime = ?, nbaccesses = ?, status = ?, f_type = ?\
         WHERE rowid = ?";
+static const char* STMT_CHANGE_SIZE =
+  "UPDATE Cns_file_metadata\
+        SET filesize = ?, ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?";
 
 // Pool queries
 static const char* STMT_GET_POOLS =
@@ -182,10 +186,10 @@ static const char* STMT_GET_POOL =
   "SELECT poolname, COALESCE(pooltype, 'filesystem')\
         FROM dpm_pool\
         where poolname = ?";
-static const char* STMT_CHANGE_SIZE =
-  "UPDATE Cns_file_metadata\
-        SET filesize = ?, ctime = UNIX_TIMESTAMP()\
-        WHERE fileid = ?";
+static const char* STMT_GET_POOL_META=
+  "SELECT poolmeta\
+        FROM dpm_pool\
+        WHERE poolname = ?";
 
 #endif	// QUERIES_H
 
