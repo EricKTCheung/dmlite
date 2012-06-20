@@ -472,7 +472,10 @@ static unsigned base64_encode(const char *input, unsigned length, char* output)
   output[written] = 0;
   
   BIO_free_all(b64);
-
+  // Avoid a memory leak coming from CRYPTO
+  // See: http://www.mail-archive.com/openssl-dev@openssl.org/msg30097.html
+  CRYPTO_cleanup_all_ex_data();
+  
   return written;
 }
 
