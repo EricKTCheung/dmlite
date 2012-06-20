@@ -135,47 +135,68 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
 
 PoolMetadata* MySqlPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
 {
-  // Build the query
-  char query[128];
-  snprintf(query, sizeof(query), "SELECT * FROM %s_pools WHERE poolname = ?", pool.pool_type);
+  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL_META);
+  stmt.bindParam(0, pool.pool_name);
+  stmt.execute();
   
-  Statement* stmt = new Statement(this->conn_, this->dpmDb_, query);
-  stmt->bindParam(0, pool.pool_name);
-  stmt->execute(true);
+  char buffer[1024];
+  stmt.bindResult(0, buffer, sizeof(buffer));
   
-  if (!stmt->fetch()) {
-    delete stmt;
+  if (!stmt.fetch()) {
     throw DmException(DM_NO_SUCH_POOL, "Pool %s not found (type %s)",
                                        pool.pool_name, pool.pool_type);
   }    
   
-  return new MySqlPoolMetadata(stmt);
+  return new MySqlPoolMetadata(buffer);
 }
 
 
 
-MySqlPoolMetadata::MySqlPoolMetadata(Statement* stmt): stmt_(stmt)
+MySqlPoolMetadata::MySqlPoolMetadata(const char* meta)
 {
-  // Nothing
+  const char *cur, *next, *eq;
+  std::string key, val;
+  
+  cur  = meta;
+  
+  while (cur != 0x00) {
+    eq   = strchr(cur, '=');
+    next = strchr(cur, ';');
+
+    if (eq) {
+      key = std::string(cur, eq - cur);
+      if (next)
+        val = std::string(eq + 1, next - eq - 1);
+      else
+        val = std::string(eq + 1);
+      
+      this->meta_.insert(std::pair<std::string, std::string>(key, val));
+    }
+    
+    if (next)
+      cur = next + 1;
+    else
+      cur = 0x00;
+  };  
 }
 
 
 
 MySqlPoolMetadata::~MySqlPoolMetadata()
 {
-  delete this->stmt_;
+  // Nothing
 }
 
 
 
 std::string MySqlPoolMetadata::getString(const std::string& field) throw (DmException)
 {
-  return this->stmt_->getString(this->stmt_->getFieldIndex(field));
+  return this->meta_[field];
 }
 
 
 
 int MySqlPoolMetadata::getInt(const std::string& field) throw (DmException)
 {
-  return this->stmt_->getInt(this->stmt_->getFieldIndex(field));
+  return atoi(this->meta_[field].c_str());
 }

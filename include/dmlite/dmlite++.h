@@ -145,6 +145,8 @@ public:
   void setSecurityContext(const SecurityContext& ctx) throw (DmException);
   
   /// Set the security context.
+  /// A copy will be done, so it is safe to destroy
+  /// the object after calling this method.
   void setSecurityContext(const SecurityContext* ctx) throw (DmException);
   
   /// Return the security context.
@@ -165,7 +167,7 @@ public:
   /// Get the PoolManager.
   PoolManager* getPoolManager() throw (DmException);
   
-  /// Get a pool driver
+  /// Get a pool driver.
   /// @note The caller must NOT free the returned pointer.
   PoolDriver* getPoolDriver(const Pool& pool) throw (DmException);
   

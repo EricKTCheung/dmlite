@@ -1,3 +1,4 @@
-use dpm_db;
+USE dpm_db;
 
-alter table dpm_pool add column pooltype varchar(32);
+ALTER TABLE dpm_pool ADD COLUMN pooltype VARCHAR(32);
+ALTER TABLE dpm_pool ADD COLUMN poolmeta TEXT;
