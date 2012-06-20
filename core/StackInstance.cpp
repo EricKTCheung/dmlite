@@ -173,22 +173,23 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
   if (this->ugDb_ == 0)
     throw DmException(DM_NO_USERGROUPDB, "There is no plugin that provides createSecurityContext");
   
-  this->setSecurityContext(this->ugDb_->createSecurityContext(cred));
+  if (this->secCtx_) delete this->secCtx_;
+  this->secCtx_ = this->ugDb_->createSecurityContext(cred);
+  
+  if (this->inode_ != 0)
+    this->inode_->setSecurityContext(this->secCtx_);
+  if (this->catalog_ != 0)
+    this->catalog_->setSecurityContext(this->secCtx_);
+  if (this->poolManager_ != 0)
+    this->poolManager_->setSecurityContext(this->secCtx_);
 }
 
 
 
 void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmException)
 {
-  this->setSecurityContext(&ctx);
-}
-
-
-
-void StackInstance::setSecurityContext(const SecurityContext* ctx) throw (DmException)
-{
   if (this->secCtx_) delete this->secCtx_;
-  this->secCtx_ = new SecurityContext(*ctx);
+  this->secCtx_ = new SecurityContext(ctx);
   
   if (this->inode_ != 0)
     this->inode_->setSecurityContext(this->secCtx_);

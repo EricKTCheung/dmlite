@@ -144,11 +144,6 @@ public:
   /// Set the security context.
   void setSecurityContext(const SecurityContext& ctx) throw (DmException);
   
-  /// Set the security context.
-  /// A copy will be done, so it is safe to destroy
-  /// the object after calling this method.
-  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
-  
   /// Return the security context.
   const SecurityContext* getSecurityContext(void) const throw ();
   
