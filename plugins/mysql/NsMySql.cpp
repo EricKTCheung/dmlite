@@ -26,7 +26,7 @@ using namespace dmlite;
 
 INodeMySql::INodeMySql(PoolContainer<MYSQL*>* connPool,
                        const std::string& db) throw(DmException):
-  nsDb_(db), transactionLevel_(0)
+  transactionLevel_(0), nsDb_(db)
 {
   this->connectionPool_ = connPool;
   this->conn_           = connPool->acquire();
