@@ -16,7 +16,7 @@ using namespace dmlite;
 
 
 BuiltInCatalogFactory::BuiltInCatalogFactory():
-  symLinkLimit_(3), updateATime_(true)
+  updateATime_(true), symLinkLimit_(3)
 {
   // Nothing
 }

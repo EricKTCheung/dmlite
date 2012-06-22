@@ -11,7 +11,7 @@ using namespace dmlite;
 
 static bool isExcluded(uint64_t id, uint64_t* excluded, size_t size)
 {
-  for (int i = 0; i < size; ++i)
+  for (size_t i = 0; i < size; ++i)
     if (excluded[i] == id)
       return true;
   return false;

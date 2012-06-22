@@ -66,10 +66,6 @@ Statement::~Statement() throw ()
   if (this->result_ != 0x00) {
     delete [] this->result_;
   }
-  
-  for (unsigned i = 0; i < this->fieldBuffer_.size(); ++i) {
-    std::free(this->fieldBuffer_[i]);
-  }
 
   // Close statement
   mysql_stmt_close(this->stmt_);
@@ -124,7 +120,7 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 
 
-unsigned long Statement::execute(bool autobind) throw (DmException)
+unsigned long Statement::execute(void) throw (DmException)
 {
   SANITY_CHECK(STMT_CREATED, execute);
 
@@ -144,42 +140,6 @@ unsigned long Statement::execute(bool autobind) throw (DmException)
     this->result_  = new MYSQL_BIND[this->nFields_];
     std::memset(this->result_, 0x00, sizeof(MYSQL_BIND) * this->nFields_);
     this->status_ = STMT_EXECUTED;
-    
-    // If autobind is true, we need to allocate and bind
-    if (autobind) {
-      MYSQL_FIELD* field;
-      unsigned index = 0;
-      
-      this->fieldBuffer_.resize(this->nFields_, 0);
-            
-      while ((field = mysql_fetch_field(meta)) != NULL) {
-        void* b;
-        
-        this->fieldIndex_.insert(std::pair<std::string,unsigned>(field->name, index));
-        
-        switch (field->type) {
-          case MYSQL_TYPE_DECIMAL: case MYSQL_TYPE_TINY:
-            b = std::malloc(sizeof(int));
-            this->bindResult(index, (int*)b);
-            break;
-          case MYSQL_TYPE_LONG:
-            b = std::malloc(sizeof(long));
-            this->bindResult(index, (long*)b);
-            break;
-          case MYSQL_TYPE_VAR_STRING:
-            b = std::malloc(256);
-            this->bindResult(index, (char*)b, 256);
-            break;
-          default:
-            throw DmException(DM_NOT_IMPLEMENTED, "Unknown field type %i", field->type);
-        }
-        this->fieldBuffer_[index] = b;
-        
-        
-        ++index;
-      }
-    }
-
     // Free
     mysql_free_result(meta);
   }
@@ -313,17 +273,18 @@ bool Statement::fetch(void) throw (DmException)
 
   switch (mysql_stmt_fetch(this->stmt_)) {
     case 0:
-      return true;
     case MYSQL_NO_DATA:
       this->status_ = STMT_DONE;
       return false;
     default:
       this->throwException();
   }
+  
+  return true;
 }
 
 
-
+/*
 unsigned Statement::getFieldIndex(const std::string& fieldname) throw (DmException)
 {
   std::map<std::string, unsigned>::const_iterator i;
@@ -356,7 +317,7 @@ std::string Statement::getString(unsigned index)
     return std::string((char*)this->fieldBuffer_[index]);
 }
 
-
+*/
 
 void Statement::throwException() throw (DmException)
 {

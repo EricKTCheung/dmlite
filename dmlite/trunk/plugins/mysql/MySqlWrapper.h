@@ -22,7 +22,7 @@ public:
   void bindParam(unsigned index, const std::string& value) throw (DmException);
   void bindParam(unsigned index, const char* value, size_t size) throw (DmException);
 
-  unsigned long execute(bool autobind = false) throw (DmException);
+  unsigned long execute(void) throw (DmException);
 
   void bindResult(unsigned index, short*              destination) throw (DmException);
   void bindResult(unsigned index, signed int*         destination) throw (DmException);
@@ -38,12 +38,6 @@ public:
 
   bool fetch(void) throw (DmException);
   
-  // When autobind is set an internal allocated memory area is used, so
-  // get* can be used
-  unsigned    getFieldIndex(const std::string& fieldname) throw (DmException);
-  int         getInt   (unsigned index);
-  std::string getString(unsigned index);
-  
 protected:
 private:
   enum Step {STMT_CREATED, STMT_EXECUTED,
@@ -56,10 +50,6 @@ private:
   MYSQL_BIND*   params_;
   MYSQL_BIND*   result_;
   Step          status_;
-  
-  // For autobind
-  std::map<std::string, unsigned> fieldIndex_;
-  std::vector<void*> fieldBuffer_;
   
   /// Throws the proper exception
   void throwException() throw (DmException);

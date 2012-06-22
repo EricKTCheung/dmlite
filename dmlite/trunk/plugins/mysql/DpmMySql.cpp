@@ -17,7 +17,7 @@ using namespace dmlite;
 
 MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool,
                                    const std::string& dpmDb) throw (DmException):
-      connectionPool_(connPool), dpmDb_(dpmDb), stack_(0x00)
+      stack_(0x00), dpmDb_(dpmDb), connectionPool_(connPool)
 {
   this->conn_ = connPool->acquire();
 }

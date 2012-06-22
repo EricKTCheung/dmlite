@@ -305,7 +305,9 @@ IOHandler *HadoopIOFactory::createIO(const StackInstance* si,
 }
 
 struct stat HadoopIOFactory::pStat(const StackInstance* si, const std::string& pfn) throw (DmException)
-{/*
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "pStat not implemented");
+  /*
   if(hdfsExists(this->fs, pfn.c_str()) != 0)
     throw DmException(DM_INTERNAL_ERROR, "URI %s Does not exists", pfn.c_str());
 
