@@ -71,7 +71,7 @@ Location DpmAdapterCatalog::get(const std::string& path) throw (DmException)
   struct dpm_getfilestatus *statuses = 0x00;
   int                       nReplies, wait;
   char                      r_token[CA_MAXDPMTOKENLEN + 1];
-  char                      rfn[PATH_MAX];
+  char                      rfn[URI_MAX];
   std::string               absolute;
 
   if (path[0] == '/')
@@ -115,6 +115,7 @@ Location DpmAdapterCatalog::get(const std::string& path) throw (DmException)
     dpm_free_gfilest(nReplies, statuses);
     
     Url rloc = dmlite::splitUrl(rfn);
+    dmlite::normalizePath(rloc.path);
     return Location(rloc.host, rloc.path, true,
                     1,
                     "token",
@@ -366,7 +367,7 @@ Pool DpmAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcept
 {
   std::vector<Pool> pools = this->getPools();
   
-  for (int i = 0; i < pools.size(); ++i) {
+  for (unsigned i = 0; i < pools.size(); ++i) {
     if (poolname == pools[i].pool_name)
       return pools[i];
   }
@@ -388,7 +389,7 @@ std::vector<Pool> DpmAdapterPoolManager::getAvailablePools(bool write) throw (Dm
     if (dpm_getpoolfs(pools[i].pool_name, &nFs, &dpm_fs) < 0)
       ThrowExceptionFromSerrno(serrno);
     
-    for (unsigned j = 0; j < nFs; ++j) {
+    for (int j = 0; j < nFs; ++j) {
       if ((write && dpm_fs[j].status == 0) || (!write && dpm_fs[i].status != FS_DISABLED))
         available.push_back(pools[i]);
     }
