@@ -273,6 +273,7 @@ bool Statement::fetch(void) throw (DmException)
 
   switch (mysql_stmt_fetch(this->stmt_)) {
     case 0:
+      break;
     case MYSQL_NO_DATA:
       this->status_ = STMT_DONE;
       return false;
@@ -284,40 +285,6 @@ bool Statement::fetch(void) throw (DmException)
 }
 
 
-/*
-unsigned Statement::getFieldIndex(const std::string& fieldname) throw (DmException)
-{
-  std::map<std::string, unsigned>::const_iterator i;
-  
-  i = this->fieldIndex_.find(fieldname);
-  
-  if (i == this->fieldIndex_.end())
-    throw DmException(DM_INTERNAL_ERROR, "Someone tried to get an unknown field: " + fieldname);
-    
-  return i->second;
-}
-
-
-
-int Statement::getInt(unsigned index)
-{
-  if (this->result_[index].is_null_value)
-    return 0;
-  else
-    return *((int*)this->fieldBuffer_[index]);
-}
-
-
-
-std::string Statement::getString(unsigned index)
-{
-  if (this->result_[index].is_null_value)
-    return "";
-  else
-    return std::string((char*)this->fieldBuffer_[index]);
-}
-
-*/
 
 void Statement::throwException() throw (DmException)
 {
