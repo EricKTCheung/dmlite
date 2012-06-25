@@ -54,7 +54,6 @@ rm -rf $RPM_BUILD_ROOT
 %files plugins-hadoop
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_hadoop.so
-%{_datadir}/dmlite/hadoop/hadoop-mysql.sql
 
 %changelog
 * Wed Apr 11 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-1
