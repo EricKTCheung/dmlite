@@ -48,7 +48,7 @@ public:
   
   /// Get metadata corresponding to a pool type and name
   /// @note To be freed by the caller.
-  virtual PoolMetadata* getPoolMetadata(const Pool& pool) throw (DmException) = 0;
+  virtual PoolMetadata* getPoolMetadata(const std::string& poolName) throw (DmException) = 0;
 
   /// Get the list of pools.
   /// @return A set with all the pools.

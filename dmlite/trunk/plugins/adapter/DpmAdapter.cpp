@@ -327,7 +327,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
 
 
 
-PoolMetadata* DpmAdapterPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* DpmAdapterPoolManager::getPoolMetadata(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "DpmAdapterPoolManager does not support pluggable pool types");
 }

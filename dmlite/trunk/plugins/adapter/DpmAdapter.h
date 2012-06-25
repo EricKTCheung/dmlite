@@ -54,12 +54,12 @@ public:
   void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  PoolMetadata* getPoolMetadata(const Pool& pool) throw (DmException);
+  PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
 
   std::vector<Pool> getPools(void) throw (DmException);
-  Pool getPool(const std::string& poolname) throw (DmException);
+  Pool getPool(const std::string&) throw (DmException);
   
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
   
 private:
   std::string dpmHost_;

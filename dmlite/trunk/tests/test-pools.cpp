@@ -34,13 +34,14 @@ int main(int argn, char **argv)
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
     try {
-      dmlite::PoolDriver *handler = stack->getPoolDriver(pools[i]);
+      dmlite::PoolHandler *handler = stack->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
 
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl
                 << "Capacity:    " << handler->getTotalSpace() / GB << " GB" << std::endl
                 << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl;
-
+      
+      delete handler;
     }
     catch (dmlite::DmException e) {
       if (e.code() != DM_UNKNOWN_POOL_TYPE)

@@ -16,6 +16,7 @@
 
 namespace dmlite {
 
+// IO Handler
 class HadoopIOHandler: public IOHandler{
 public:
 
@@ -38,14 +39,28 @@ private:
   std::string path_;
 };
 
+
+/// PoolDriver
 class HadoopPoolDriver: public PoolDriver {
 public:
-  HadoopPoolDriver(StackInstance*, const Pool& pool) throw (DmException);
+  HadoopPoolDriver() throw (DmException);
   ~HadoopPoolDriver();
   
   void setStackInstance(StackInstance*) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
+  
+private:
+  StackInstance* stack;
+};
 
+/// PoolHandler
+class HadoopPoolHandler: public PoolHandler {
+public:
+  HadoopPoolHandler(const std::string& poolName, hdfsFS fs, StackInstance* si);
+  ~HadoopPoolHandler();
+  
   std::string getPoolType(void) throw (DmException);
   std::string getPoolName(void) throw (DmException);
   uint64_t getTotalSpace(void) throw (DmException);
@@ -58,19 +73,17 @@ public:
   
   Location putLocation(const std::string&) throw (DmException);
   void     putDone    (const FileReplica&, const std::map<std::string, std::string>&) throw (DmException);
-
-private:
-  StackInstance* stack;
-  Pool           pool;
-  hdfsFS         fs;
   
-  std::string host;
-  std::string uname;
-  int         port;
+private:
+  hdfsFS         fs;
+  std::string    poolName;
+  StackInstance* stack;
   
   bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
 };
 
+
+/// IO Factory
 class HadoopIOFactory: public IOFactory, public PoolDriverFactory {
 public:
   HadoopIOFactory() throw (DmException);
@@ -84,7 +97,7 @@ public:
                     const std::string& pfn) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolDriver* createPoolDriver(StackInstance*, const Pool&) throw (DmException);
+  PoolDriver* createPoolDriver() throw (DmException);
 
 protected:
 private:

@@ -13,17 +13,13 @@
 namespace dmlite {
 
 // Advanced declarations
-class PoolManager;
 class StackInstance;
-  
-/// Interface for a pool driver
-class PoolDriver {
+
+/// Handler for a pool. Works similary to a file handler.
+class PoolHandler {
 public:
   /// Destructor
-  virtual ~PoolDriver();
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
+  virtual ~PoolHandler();
   
   /// Get the pool type of this pool.
   virtual std::string getPoolType(void) throw (DmException) = 0;
@@ -50,7 +46,23 @@ public:
   virtual Location putLocation(const std::string& fn) throw (DmException) = 0;
   
   /// Finish a put
-  virtual void putDone(const FileReplica& replica, const std::map<std::string, std::string>& extras) throw (DmException) = 0;
+  virtual void putDone(const FileReplica& replica, const std::map<std::string, std::string>& extras) throw (DmException) = 0; 
+};
+  
+/// Interface for a pool driver
+class PoolDriver {
+public:
+  /// Destructor
+  virtual ~PoolDriver();
+  
+  /// Set the stack instance.
+  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+  
+  /// Set the security context.
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
+ 
+  /// Create a handler.
+  virtual PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException) = 0;
 };
 
 
@@ -68,9 +80,9 @@ public:
 
   /// Supported pool type
   virtual std::string implementedPool() throw () = 0;
-
-  /// Instantiate a driver wrapping the passed pool.
-  virtual PoolDriver* createPoolDriver(StackInstance* si, const Pool& pool) throw (DmException) = 0;
+  
+  /// Instantiate the implemented pool driver.
+  virtual PoolDriver* createPoolDriver(void) throw (DmException) = 0;
 };
 
 };

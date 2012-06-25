@@ -20,7 +20,7 @@
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120618;
+const unsigned API_VERSION = 20120625;
 
 class StackInstance;
 
@@ -163,8 +163,7 @@ public:
   PoolManager* getPoolManager() throw (DmException);
   
   /// Get a pool driver.
-  /// @note The caller must NOT free the returned pointer.
-  PoolDriver* getPoolDriver(const Pool& pool) throw (DmException);
+  PoolDriver* getPoolDriver(const std::string& poolType) throw (DmException);
   
 private:
   PluginManager* pluginManager_;

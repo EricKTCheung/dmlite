@@ -18,7 +18,7 @@ public:
   void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
-  PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
   
   std::vector<Pool> getPools(void) throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);
