@@ -11,6 +11,41 @@
 
 using namespace dmlite;
 
+/// Helper to free factories
+template <class T>
+static void freeFactories(std::list<T*>& l)
+{
+  typename std::list<T*>::iterator i;
+  
+  for (i = l.begin(); i != l.end(); ++i)
+    delete *i;
+}
+
+
+/// Helper for configuration
+template <class T>
+static bool configureFactories(std::list<T*>& l,
+                               const std::string& key, const std::string& value)
+{
+  typename std::list<T*>::iterator i;
+  bool recognized=  false;
+  
+  for (i = l.begin(); i != l.end(); ++i) {
+    try {
+      (*i)->configure(key, value);
+      recognized = true;
+    }
+    catch (DmException e) {
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
+    }
+    catch (...) {
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
+    }
+  }
+  
+  return recognized;
+}
 
 
 PluginManager::PluginManager() throw()
@@ -24,41 +59,12 @@ PluginManager::PluginManager() throw()
 PluginManager::~PluginManager() throw()
 {
   // Delete the instantiated factories
-  for (std::list<UserGroupDbFactory*>::iterator i = this->usergroup_plugins_.begin();
-       i != this->usergroup_plugins_.end();
-       ++i) {
-    delete *i;
-  }
-  
-  for (std::list<INodeFactory*>::iterator i = this->inode_plugins_.begin();
-       i != this->inode_plugins_.end();
-       ++i) {
-    delete *i;
-  }
-  
-  for (std::list<CatalogFactory*>::iterator i = this->catalog_plugins_.begin();
-       i != this->catalog_plugins_.end();
-       ++i) {
-    delete *i;
-  }
-
-  for (std::list<PoolManagerFactory*>::iterator i = this->pool_plugins_.begin();
-       i != this->pool_plugins_.end();
-       ++i) {
-    delete *i;
-  }
-
-  for (std::list<IOFactory*>::iterator i = this->io_plugins_.begin();
-       i != this->io_plugins_.end();
-       ++i) {
-    delete *i;
-  }
-
-  for (std::list<PoolDriverFactory*>::iterator i = this->pool_driver_plugins_.begin();
-       i != this->pool_driver_plugins_.end();
-       ++i) {
-    delete *i;
-  }
+  freeFactories<UserGroupDbFactory>(this->usergroup_plugins_);
+  freeFactories<INodeFactory>      (this->inode_plugins_);
+  freeFactories<CatalogFactory>    (this->catalog_plugins_);
+  freeFactories<PoolManagerFactory>(this->pool_plugins_);
+  freeFactories<IOFactory>         (this->io_plugins_);
+  freeFactories<PoolDriverFactory> (this->pool_driver_plugins_);
 
   // dlclose
   std::list<void*>::iterator j;
@@ -99,107 +105,16 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
 
 void PluginManager::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  // Bad option by default
-  int r = -1;
+  bool recognized = false;
   
-  // UserGroupDb plugins
-  for (std::list<UserGroupDbFactory*>::const_iterator i = this->usergroup_plugins_.begin();
-       i != this->usergroup_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0; // At least one recognised this
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }  
-  
-  // INode plugins
-  for (std::list<INodeFactory*>::const_iterator i = this->inode_plugins_.begin();
-       i != this->inode_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0; // At least one recognised this
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }
+  recognized |= configureFactories<UserGroupDbFactory>(this->usergroup_plugins_, key, value);
+  recognized |= configureFactories<INodeFactory>      (this->inode_plugins_, key, value);
+  recognized |= configureFactories<CatalogFactory>    (this->catalog_plugins_, key, value);
+  recognized |= configureFactories<PoolManagerFactory>(this->pool_plugins_, key, value);
+  recognized |= configureFactories<PoolDriverFactory> (this->pool_driver_plugins_, key, value);
+  recognized |= configureFactories<IOFactory>         (this->io_plugins_, key, value);
 
-  // Catalog plugins
-  for (std::list<CatalogFactory*>::const_iterator i = this->catalog_plugins_.begin();
-       i != this->catalog_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0; // At least one recognised this
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }
-
-  // Pool manager plugins
-  for (std::list<PoolManagerFactory*>::const_iterator i = this->pool_plugins_.begin();
-       i != this->pool_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0; // At least one recognised this
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }
-
-  // Pool handlers plugins
-  for (std::list<PoolDriverFactory*>::const_iterator i = this->pool_driver_plugins_.begin();
-       i != this->pool_driver_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0; // At least one recognised this
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }
-  
-  // IO Factories
-  for (std::list<IOFactory*>::const_iterator i = this->io_plugins_.begin();
-       i != this->io_plugins_.end(); ++i) {
-    try {
-      (*i)->configure(key, value);
-      r = 0;
-    }
-    catch (DmException e) {
-      if (e.code() != DM_UNKNOWN_OPTION)
-        throw;
-    }   
-    catch (...) {
-      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
-    }
-  }
-
-  // Failed?
-  if (r != 0)
+  if (!recognized)
     throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
 }
 
