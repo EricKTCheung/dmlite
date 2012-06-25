@@ -81,11 +81,12 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
+protected:
+  friend class StackInstance;
 
   /// Create a IODriver
   virtual IODriver* createIODriver(PluginManager* pm) throw (DmException) = 0;  
   
-protected:
 private:
 };
 

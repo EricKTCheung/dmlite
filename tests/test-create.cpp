@@ -39,7 +39,7 @@ public:
       this->catalog->changeMode(FOLDER, 0777);
       
       try {
-        struct stat s = this->catalog->stat(FILE);
+        struct stat s = this->catalog->extendedStat(FILE).stat;
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); i++) {
           this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
@@ -65,7 +65,7 @@ public:
     struct stat s;
     time_t ini_mtime;
     // Empty
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(0, (int)s.st_nlink);
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFDIR, (int)s.st_mode);
     ini_mtime = s.st_mtime;
@@ -73,7 +73,7 @@ public:
 
     // Add a folder
     this->catalog->makeDir(NESTED, MODE);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
     CPPUNIT_ASSERT(s.st_mtime > ini_mtime);
     CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
@@ -81,29 +81,29 @@ public:
 
     // Add a symlink
     this->catalog->symlink(FOLDER, SYMLINK);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(2, (int)s.st_nlink);
     
     // Add a file
     this->catalog->create(FILE, MODE);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(3, (int)s.st_nlink);
     CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
     
     // Remove the file
     this->catalog->unlink(FILE);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(2, (int)s.st_nlink);
 
     // Remove the folder
     this->catalog->removeDir(NESTED);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
 
     // And the symlink
     this->catalog->unlink(SYMLINK);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(0, (int)s.st_nlink);
   }
 
@@ -112,11 +112,11 @@ public:
     struct stat s;
 
     this->catalog->changeMode(FOLDER, MODE | S_ISGID);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_ISGID | S_IFDIR, (int)s.st_mode);
 
     this->catalog->makeDir(NESTED, MODE);
-    s = this->catalog->stat(NESTED);
+    s = this->catalog->extendedStat(NESTED).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFDIR | S_ISGID, (int)s.st_mode);
     this->catalog->removeDir(NESTED);
   }
@@ -126,28 +126,28 @@ public:
     struct stat s;
 
     this->catalog->create(FILE, MODE);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
 
     // Change user
     this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested file shouldn't pass
-    CPPUNIT_ASSERT_THROW(s = this->catalog->stat(NESTED), dmlite::DmException);
+    CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(NESTED), dmlite::DmException);
 
     // Change user back 
     this->stackInstance->setSecurityCredentials(cred2);
 
     // Changing the mode of the parent
     this->catalog->changeMode(FILE, MODE_ALL);
-    s = this->catalog->stat(FOLDER);
+    s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
 
     // Change user
     this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested file should pass
-    s = this->catalog->stat(NESTED);
+    s = this->catalog->extendedStat(NESTED).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
   }
 
@@ -160,7 +160,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(066, (int)prev);
     
     this->catalog->makeDir(NESTED, 0777);
-    s = this->catalog->stat(NESTED);
+    s = this->catalog->extendedStat(NESTED).stat;
     CPPUNIT_ASSERT_EQUAL(0700 | S_IFDIR, (int)s.st_mode);
 
     this->catalog->removeDir(NESTED);
@@ -174,7 +174,7 @@ public:
     // Again, should not fail
     this->catalog->create(FILE, MODE);
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(0l, (long)s.st_size);
   }
 
@@ -183,7 +183,7 @@ public:
     struct stat s;
 
     this->catalog->create(FILE, MODE);
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica("", s.st_ino,
                               "localhost", "sfn://something",
@@ -219,7 +219,7 @@ public:
 
     this->catalog->changeMode(FOLDER, 0600);
     try {
-      this->catalog->stat(FILE);
+      this->catalog->extendedStat(FILE).stat;
       CPPUNIT_FAIL("Exception not thrown");
     }
     catch (dmlite::DmException e) {
@@ -232,7 +232,7 @@ public:
   {
     this->catalog->create(FILE, MODE);
     this->catalog->changeSize(FILE, 555);
-    struct stat s = this->catalog->stat(FILE);
+    struct stat s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
   }
 

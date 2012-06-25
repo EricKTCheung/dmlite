@@ -208,10 +208,16 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
+protected:
+  // Stack instance is allowed to instantiate INodes
+  friend class StackInstance;  
+  
+  /// Children of INodeFactory are allowed to instantiate too (decorator)
+  static INode* createINode(INodeFactory* factory, PluginManager* pm) throw (DmException);
+  
   /// Instantiate a implementation of INode
   virtual INode* createINode(PluginManager* pm) throw (DmException) = 0;
-  
-protected:
+
 private:
 };
   

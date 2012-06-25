@@ -31,7 +31,7 @@ void LibrarianFactory::configure(const std::string& key, const std::string& valu
 Catalog* LibrarianFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   if (this->nestedFactory_ != 0x00)
-    return new LibrarianCatalog(this->nestedFactory_->createCatalog(pm));
+    return new LibrarianCatalog(CatalogFactory::createCatalog(this->nestedFactory_, pm));
   else
     throw DmException(DM_NO_CATALOG, "Librarian need an underlying plug-in");
 }

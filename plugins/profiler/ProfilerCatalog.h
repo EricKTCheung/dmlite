@@ -31,7 +31,6 @@ public:
   std::string getWorkingDir (void)               throw (DmException);
   ino_t       getWorkingDirI(void)               throw (DmException);
 
-  struct stat  stat        (const std::string&) throw (DmException);
   ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,

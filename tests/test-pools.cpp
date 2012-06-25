@@ -15,13 +15,17 @@ int main(int argn, char **argv)
   }
 
   // Load plugin
-  dmlite::PluginManager  manager;
-  dmlite::StackInstance *stack;
-  dmlite::PoolManager   *poolManager;
+  dmlite::PluginManager   manager;
+  dmlite::StackInstance*  stack;
+  dmlite::PoolManager*    poolManager;
+  dmlite::SecurityContext secCtx;
 
   try {
     manager.loadConfiguration(argv[1]);
     stack = new dmlite::StackInstance(&manager);
+    
+    stack->setSecurityContext(secCtx);
+    
     poolManager = stack->getPoolManager();
     // Ask for the pools
     pools = poolManager->getPools();

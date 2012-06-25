@@ -35,7 +35,7 @@ public:
     this->stackInstance->setSecurityContext(root);
     this->catalog->changeOwner(FILE, 500, 200);
 
-    struct stat s = this->catalog->stat(FILE);
+    struct stat s = this->catalog->extendedStat(FILE).stat;
 
     CPPUNIT_ASSERT_EQUAL(500, (int)s.st_uid);
     CPPUNIT_ASSERT_EQUAL(200, (int)s.st_gid);
@@ -49,13 +49,13 @@ public:
 
     // It should be OK a -1, -1
     this->catalog->changeOwner(FILE, -1, -1);
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
 
     // Also, it should be ok to change to current value
     this->catalog->changeOwner(FILE, s.st_uid, s.st_gid);
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     // It should NOT be able to change the user
     try {
@@ -67,7 +67,7 @@ public:
 
     // It should BE able to change the group to one it belongs to
     this->catalog->changeOwner(FILE, -1, ctx->getGroup(1).gid);
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(s.st_uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, s.st_gid);
 
@@ -106,13 +106,13 @@ public:
   {
     this->stackInstance->setSecurityContext(root);
     // First stat
-    struct stat before = this->catalog->stat(FILE);
+    struct stat before = this->catalog->extendedStat(FILE).stat;
     // Make sure the clock moves!
     sleep(1);
     // Change the owner
     this->catalog->changeOwner(FILE, 500, 200);
     // Second stat
-    struct stat after = this->catalog->stat(FILE);
+    struct stat after = this->catalog->extendedStat(FILE).stat;
     // ctime should have incremented
     CPPUNIT_ASSERT(before.st_ctime < after.st_ctime);
   }

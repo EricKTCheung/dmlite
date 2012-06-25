@@ -306,7 +306,7 @@ Location HadoopPoolHandler::putLocation(const std::string& fn) throw (DmExceptio
   Location loc("dpmhadoop-data1.cern.ch", fn.c_str(), true, 0);
   
   // Add this replica
-  struct stat s = this->stack->getCatalog()->stat(fn);
+  struct stat s = this->stack->getCatalog()->extendedStat(fn).stat;
   this->stack->getCatalog()->addReplica(std::string(), s.st_ino,
                                         std::string(),
                                         loc.path, '-', 'P',

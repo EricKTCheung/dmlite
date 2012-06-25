@@ -29,13 +29,13 @@ public:
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime == after.st_atime);
   }
@@ -44,14 +44,14 @@ public:
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(2);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->readDir(d);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime < after.st_atime);
   }
@@ -59,28 +59,30 @@ public:
 
   void testOpenAndReadNoUpdate()
   {
-    dmlite::Catalog *catalog2;
-    
     this->pluginManager->configure("UpdateAccessTime", "no");
-    catalog2 = this->pluginManager->getCatalogFactory()->createCatalog(this->pluginManager);
+    dmlite::StackInstance* si2 = new dmlite::StackInstance(this->pluginManager);
+    
+    si2->setSecurityCredentials(this->cred1);
+    
+    dmlite::Catalog* catalog2 = si2->getCatalog();
     catalog2->setStackInstance(this->stackInstance);
     catalog2->setSecurityContext(&this->root);
     catalog2->changeDir(BASE_DIR);
     
     struct stat before, after;
 
-    before = catalog2->stat(FOLDER);
+    before = catalog2->extendedStat(FOLDER).stat;
 
     sleep(2);
     dmlite::Directory* d = catalog2->openDir(FOLDER);
     catalog2->readDir(d);
     catalog2->closeDir(d);
 
-    after = catalog2->stat(FOLDER);
+    after = catalog2->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime == after.st_atime);
     
-    delete catalog2;
+    delete si2;
   }
 
 

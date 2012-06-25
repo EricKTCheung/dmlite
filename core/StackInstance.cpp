@@ -17,6 +17,11 @@ catch (DmException e) {\
 }
 
 
+#define VALIDATE_SECURITY_CONTEXT \
+  if (this->secCtx_ == 0)\
+    throw DmException(DM_NO_SECURITY_CONTEXT,\
+      "setSecurityContext or setSecurityCredentials must be called before accessing the instances");
+
 
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm), secCtx_(0)
@@ -104,6 +109,8 @@ UserGroupDb* StackInstance::getUserGroupDb() throw (DmException)
 
 INode* StackInstance::getINode() throw (DmException)
 {
+  VALIDATE_SECURITY_CONTEXT;
+  
   if (this->inode_ == 0)
     throw DmException(DM_NO_INODE, "No plugin provides INode");
   return this->inode_;
@@ -113,6 +120,8 @@ INode* StackInstance::getINode() throw (DmException)
 
 Catalog* StackInstance::getCatalog() throw (DmException)
 {
+  VALIDATE_SECURITY_CONTEXT;
+  
   if (this->catalog_ == 0)
     throw DmException(DM_NO_CATALOG, "No plugin provides Catalog");
   return this->catalog_;
@@ -129,6 +138,8 @@ bool StackInstance::isTherePoolManager() throw ()
 
 PoolManager* StackInstance::getPoolManager() throw (DmException)
 {
+  VALIDATE_SECURITY_CONTEXT;
+  
   if (this->poolManager_ == 0)
     throw DmException(DM_NO_POOL_MANAGER, "No plugin provides PoolManager");
   return this->poolManager_;
@@ -138,6 +149,8 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 
 PoolDriver* StackInstance::getPoolDriver(const std::string& poolType) throw (DmException)
 {
+  VALIDATE_SECURITY_CONTEXT;
+  
   // Try from dictionary first
   std::map<std::string, PoolDriver*>::iterator i;
   i = this->poolDrivers_.find(poolType);
@@ -159,6 +172,8 @@ PoolDriver* StackInstance::getPoolDriver(const std::string& poolType) throw (DmE
 
 IODriver* StackInstance::getIODriver() throw (DmException)
 {
+  VALIDATE_SECURITY_CONTEXT;
+  
   if (this->ioDriver_ == 0)
     throw DmException(DM_NO_IO, "No plugin provides the IO interface");
   return this->ioDriver_;
@@ -206,6 +221,6 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
 const SecurityContext* StackInstance::getSecurityContext() const throw ()
 {
   if (this->secCtx_ == 0)
-    throw DmException(DM_NO_SECUTIRY_CONTEXT, "The security context has not been initialized");
+    throw DmException(DM_NO_SECURITY_CONTEXT, "The security context has not been initialized");
   return this->secCtx_;
 }

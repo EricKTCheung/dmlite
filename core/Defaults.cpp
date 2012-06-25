@@ -84,13 +84,6 @@ INode::~INode()
 
 
 
-Catalog::Catalog() throw (DmException): parent_(0x00)
-{
-  // Nothing
-}
-
-
-
 Catalog::~Catalog()
 {
   // Nothing
@@ -118,22 +111,28 @@ IODriver::~IODriver()
 }
 
 /* Common and default methods */
-
-struct stat Catalog::stat(const std::string& path, bool followSym) throw (DmException)
+UserGroupDb* UserGroupDbFactory::createUserGroupDb(UserGroupDbFactory* f, PluginManager* pm) throw (DmException)
 {
-  return this->extendedStat(path, followSym).stat;
+  return f->createUserGroupDb(pm);
 }
 
 
 
-void Catalog::setParent(Catalog* parent)
+INode* INodeFactory::createINode(INodeFactory* factory, PluginManager* pm) throw (DmException)
 {
-  this->parent_ = parent;
+  return factory->createINode(pm);
 }
 
 
 
-Catalog* Catalog::getParent(void)
+Catalog* CatalogFactory::createCatalog(CatalogFactory* factory, PluginManager* pm) throw (DmException)
 {
-  return this->parent_;
+  return factory->createCatalog(pm);
+}
+
+
+
+PoolManager* PoolManagerFactory::createPoolManager(PoolManagerFactory* factory, PluginManager* pm) throw (DmException)
+{
+  return factory->createPoolManager(pm);
 }

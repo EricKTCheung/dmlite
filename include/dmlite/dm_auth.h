@@ -130,10 +130,16 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
+protected:
+  // Stack instance is allowed to instantiate UserGroupDb
+  friend class StackInstance;
+  
+  /// Children of UserGroupDbFactory are allowed to instantiate too (decorator)
+  static UserGroupDb* createUserGroupDb(UserGroupDbFactory* factory, PluginManager* pm) throw (DmException);
+  
   /// Instantiate a implementation of UserGroupDb
   virtual UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException) = 0;
-  
-protected:
+
 private:
 };
 

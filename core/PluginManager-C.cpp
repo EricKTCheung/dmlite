@@ -111,58 +111,9 @@ dm_context* dm_context_new(dm_manager* handle)
   ctx = new dm_context();
   ctx->errorCode = 0;
   ctx->stack   = 0x00;
-  ctx->userdb  = 0x00;
-  ctx->inode   = 0x00;
-  ctx->catalog = 0x00;
-  ctx->pool    = 0x00;
   
   try {
     ctx->stack = new dmlite::StackInstance(handle->manager);
-    
-    // UserGroupDb
-    try {
-      ctx->userdb = ctx->stack->getUserGroupDb();
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_USERGROUPDB)
-        throw;
-    }
-  
-    // INode
-    try {
-      ctx->inode = ctx->stack->getINode();
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_INODE)
-        throw;
-    }
-    
-    // Catalog
-    try {
-      ctx->catalog = ctx->stack->getCatalog();
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_CATALOG)
-        throw;
-    }
-    
-    // PoolManager
-    try {
-      ctx->pool    = ctx->stack->getPoolManager();
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_POOL_MANAGER)
-        throw;
-    }
-    
-    // IOFactory
-    try {
-      ctx->io = ctx->stack->getIODriver();
-    }
-    catch (dmlite::DmException e) {
-      if (e.code() != DM_NO_FACTORY)
-        throw;
-    }
   }
   catch (dmlite::DmException e) {
     handle->errorCode   = e.code();

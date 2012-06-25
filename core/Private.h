@@ -61,13 +61,6 @@ struct dm_context {
   dmlite::StackInstance* stack;
   int                    errorCode;
   std::string            errorString;
-  
-  // Shortcuts
-  dmlite::UserGroupDb*   userdb;
-  dmlite::INode*         inode;
-  dmlite::Catalog*       catalog;
-  dmlite::PoolManager*   pool;
-  dmlite::IODriver*      io;
 };
 
 #endif	/* PRIVATE_H */
