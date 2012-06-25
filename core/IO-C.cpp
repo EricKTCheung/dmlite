@@ -22,7 +22,7 @@ int dm_pstat(dm_context* context, const char* rfn, struct stat* st)
   if (context->io == 0x00)
     throw dmlite::DmException(DM_NO_IO, "No plugin provides i/o operations");
   
-  *st = context->io->pStat(context->stack, rfn);
+  *st = context->io->pStat(rfn);
   
   CATCH(context, pstat)
 }
@@ -62,9 +62,9 @@ dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
   for (unsigned i = 0; i < nextras; ++i)
     extras.insert(std::pair<std::string, std::string>(extrasp[i].key, extrasp[i].value));
   
-  dmlite::IOHandler* stream = context->io->createIO(context->stack, path,
-                                                    openmode,
-                                                    extras);
+  dmlite::IOHandler* stream = context->io->createIOHandler(path,
+                                                           openmode,
+                                                           extras);
   dm_fd* iofd = new dm_fd();
   iofd->context = context;
   iofd->stream  = stream;
@@ -151,16 +151,4 @@ int dm_feof(dm_fd* fd)
   NOT_NULL(fd);
   return fd->stream->eof();
   CATCH(fd->context, feof)
-}
-
-
-
-int dm_fstat(dm_fd* fd, struct stat* s)
-{
-  if (fd == 0x00)
-    return DM_NULL_POINTER;
-  TRY(fd->context, pstat)
-  NOT_NULL(s);
-  *s = fd->stream->pstat();
-  CATCH(fd->context, pstat)
 }

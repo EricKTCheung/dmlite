@@ -165,6 +165,9 @@ public:
   /// Get a pool driver.
   PoolDriver* getPoolDriver(const std::string& poolType) throw (DmException);
   
+  /// Get the IO driver.
+  IODriver* getIODriver() throw (DmException);
+  
 private:
   PluginManager* pluginManager_;
   
@@ -172,6 +175,7 @@ private:
   INode*         inode_;
   Catalog*       catalog_;
   PoolManager*   poolManager_;
+  IODriver*      ioDriver_;
   
   const SecurityContext* secCtx_;
   

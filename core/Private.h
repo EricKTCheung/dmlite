@@ -67,7 +67,7 @@ struct dm_context {
   dmlite::INode*         inode;
   dmlite::Catalog*       catalog;
   dmlite::PoolManager*   pool;
-  dmlite::IOFactory*     io;
+  dmlite::IODriver*      io;
 };
 
 #endif	/* PRIVATE_H */

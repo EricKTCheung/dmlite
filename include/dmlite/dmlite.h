@@ -567,14 +567,6 @@ size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
 int dm_feof(dm_fd* fd);
 
 /**
- * Get physical file status
- * @param fd The file descriptor.
- * @param s  Where to put the data.
- * @return   0 on sucess, error code otherwise.
- */
-int dm_fstat(dm_fd* fd, struct stat* s);
-
-/**
  * Return the error code from the last failure.
  * @param context The context that was used in the failed function.
  * @return        The error code.

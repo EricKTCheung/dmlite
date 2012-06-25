@@ -5,49 +5,37 @@
 
 using namespace dmlite;
 
+
+#define INSTANTIATE(var, createFunc)\
+try {\
+  var = createFunc;\
+}\
+catch (DmException e) {\
+  if (e.code() != DM_NO_FACTORY)\
+    throw;\
+  var = 0;\
+}
+
+
+
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm), secCtx_(0)
 {
-  try {
-    this->ugDb_ = pm->getUserGroupDbFactory()->createUserGroupDb(pm);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->ugDb_ = 0;
-  }
+  // Instantiate each interface
+  INSTANTIATE(this->ugDb_,        pm->getUserGroupDbFactory()->createUserGroupDb(pm));
+  INSTANTIATE(this->inode_,       pm->getINodeFactory()->createINode(pm));
+  INSTANTIATE(this->catalog_,     pm->getCatalogFactory()->createCatalog(pm));
+  INSTANTIATE(this->poolManager_, pm->getPoolManagerFactory()->createPoolManager(pm));
+  INSTANTIATE(this->ioDriver_,    pm->getIOFactory()->createIODriver(pm));
   
-  try {
-    this->inode_ = pm->getINodeFactory()->createINode(pm);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->inode_ = 0;
-  }
-  
-  try {
-    this->catalog_ = pm->getCatalogFactory()->createCatalog(pm);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->catalog_ = 0;
-  }
-  
-  try {
-    this->poolManager_ = pm->getPoolManagerFactory()->createPoolManager(pm);
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-    this->poolManager_ = 0;
-  }
   
   // Everything is up, so pass this to the stacks
+  // Do it here since they may need other stacks to be already up
+  // (i.e. catalog may need inode)
   if (this->inode_)       this->inode_->setStackInstance(this);
   if (this->catalog_)     this->catalog_->setStackInstance(this);
   if (this->poolManager_) this->poolManager_->setStackInstance(this);
+  if (this->ioDriver_)    this->ioDriver_->setStackInstance(this);
 }
 
 
@@ -58,6 +46,7 @@ StackInstance::~StackInstance() throw ()
   if (this->inode_)       delete this->inode_;
   if (this->catalog_)     delete this->catalog_;
   if (this->poolManager_) delete this->poolManager_;
+  if (this->ioDriver_)    delete this->ioDriver_;
   if (this->secCtx_)      delete this->secCtx_;
   
   // Clean pool handlers
@@ -168,6 +157,15 @@ PoolDriver* StackInstance::getPoolDriver(const std::string& poolType) throw (DmE
 
 
 
+IODriver* StackInstance::getIODriver() throw (DmException)
+{
+  if (this->ioDriver_ == 0)
+    throw DmException(DM_NO_IO, "No plugin provides the IO interface");
+  return this->ioDriver_;
+}
+
+
+
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
   if (this->ugDb_ == 0)
@@ -182,6 +180,8 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
     this->catalog_->setSecurityContext(this->secCtx_);
   if (this->poolManager_ != 0)
     this->poolManager_->setSecurityContext(this->secCtx_);
+  if (this->ioDriver_ != 0)
+    this->ioDriver_->setSecurityContext(this->secCtx_);
 }
 
 
@@ -197,6 +197,8 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
     this->catalog_->setSecurityContext(this->secCtx_);
   if (this->poolManager_ != 0)
     this->poolManager_->setSecurityContext(this->secCtx_);
+  if (this->ioDriver_ != 0)
+    this->ioDriver_->setSecurityContext(this->secCtx_);
 }
 
 

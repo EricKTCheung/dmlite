@@ -13,17 +13,36 @@ class StdIOFactory: public IOFactory {
 public:
   StdIOFactory();
   ~StdIOFactory();
-  void configure(const std::string& key, const std::string& value) throw (DmException);
-  IOHandler* createIO(const StackInstance*,
-                      const std::string& pfn, std::iostream::openmode openmode,
-                      const std::map<std::string, std::string>& extras) throw (DmException);
   
-  struct stat pStat(const StackInstance*, const std::string& pfn) throw (DmException);
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+  IODriver* createIODriver(PluginManager* pm) throw (DmException);
   
 protected:
 private:
-  std::string passwd;
-  bool useIp;
+  std::string passwd_;
+  bool        useIp_;
+};
+
+class StdIODriver: public IODriver {
+public:
+  StdIODriver(std::string passwd, bool useIp);
+  ~StdIODriver();
+  
+  void setStackInstance(StackInstance* si) throw (DmException);
+  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+  
+  IOHandler* createIOHandler(const std::string& pfn, std::iostream::openmode openmode,
+                             const std::map<std::string, std::string>& extras) throw (DmException);
+  
+  struct stat pStat(const std::string& pfn) throw (DmException);
+  
+protected:
+private:
+  StackInstance*         si_;
+  const SecurityContext* secCtx_;
+  
+  std::string passwd_;
+  bool        useIp_;
 };
 
 
@@ -40,6 +59,7 @@ public:
   void   flush(void) throw (DmException);
   bool   eof  (void) throw (DmException);
   struct stat pstat(void) throw (DmException);
+
 protected:
   std::fstream stream_;
   std::string  path_;
