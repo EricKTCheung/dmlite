@@ -15,7 +15,7 @@ using namespace dmlite;
 
 
 
-StdIOFactory::StdIOFactory(): passwd("default"), useIp(true)
+StdIOFactory::StdIOFactory(): passwd_("default"), useIp_(true)
 {
   // Nothing
 }
@@ -32,22 +32,57 @@ StdIOFactory::~StdIOFactory()
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   if (key == "TokenPassword") {
-    this->passwd = value;
+    this->passwd_ = value;
   }
   else if (key == "TokenId") {
     if (strcasecmp(value.c_str(), "ip") == 0)
-      this->useIp = true;
+      this->useIp_ = true;
     else
-      this->useIp = false;
+      this->useIp_ = false;
   }
   throw DmException(DM_UNKNOWN_OPTION, key + " not known");
 }
 
 
 
-IOHandler* StdIOFactory::createIO(const StackInstance* si,
-                                  const std::string& pfn, std::iostream::openmode openmode,
-                                  const std::map<std::string, std::string>& extras) throw (DmException)
+IODriver* StdIOFactory::createIODriver(PluginManager* pm) throw (DmException)
+{
+  return new StdIODriver(this->passwd_, this->useIp_);
+}
+
+
+
+StdIODriver::StdIODriver(std::string passwd, bool useIp):
+  si_(0), secCtx_(0), passwd_(passwd), useIp_(useIp_)
+{
+  // Nothing
+}
+
+
+
+StdIODriver::~StdIODriver()
+{
+  // Nothing
+}
+
+
+
+void StdIODriver::setStackInstance(StackInstance* si) throw (DmException)
+{
+  this->si_ = si;
+}
+
+
+
+void StdIODriver::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  this->secCtx_ = ctx;
+}
+
+
+
+IOHandler* StdIODriver::createIOHandler(const std::string& pfn, std::iostream::openmode openmode,
+                                        const std::map<std::string, std::string>& extras) throw (DmException)
 {
   // Validate request
   std::map<std::string, std::string>::const_iterator i = extras.find("token");
@@ -55,15 +90,16 @@ IOHandler* StdIOFactory::createIO(const StackInstance* si,
   if (i == extras.end())
     throw DmException(DM_FORBIDDEN, "Missing token");
   
-  const char* id;
-  if (this->useIp)
-    id = si->getSecurityContext()->getCredentials().remote_addr;
+  std::string userId;
+  if (this->useIp_)
+    userId = this->secCtx_->getCredentials().remote_addr;
   else
-    id = si->getSecurityContext()->getCredentials().client_name;
+    userId = this->secCtx_->getCredentials().client_name;
   
   if (!dmlite::validateToken(i->second,
-                             id,
-                             pfn, this->passwd, openmode == std::ios_base::out))
+                             userId,
+                             pfn, this->passwd_,
+                             openmode == std::ios_base::out))
     throw DmException(DM_FORBIDDEN, "Token does not validate");
   
   // Create
@@ -72,7 +108,7 @@ IOHandler* StdIOFactory::createIO(const StackInstance* si,
 
 
 
-struct stat StdIOFactory::pStat(const StackInstance*, const std::string& pfn) throw (DmException)
+struct stat StdIODriver::pStat(const std::string& pfn) throw (DmException)
 {
   struct stat st;
   
@@ -81,6 +117,7 @@ struct stat StdIOFactory::pStat(const StackInstance*, const std::string& pfn) th
   
   return st;
 }
+
 
 
 

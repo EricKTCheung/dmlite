@@ -15,46 +15,7 @@
 #include "hdfs.h"
 
 namespace dmlite {
-
-// IO Handler
-class HadoopIOHandler: public IOHandler{
-public:
-
-  HadoopIOHandler(const std::string& pfn, std::iostream::openmode openmode) throw (DmException);
-  ~HadoopIOHandler();
-
-  void close(void) throw (DmException);
-  size_t read(char* buffer, size_t count) throw (DmException);
-  size_t write(const char* buffer, size_t count) throw (DmException);
-  void seek(long offset, std::ios_base::seekdir whence) throw (DmException);
-  long tell(void) throw (DmException);
-  void flush(void) throw (DmException);
-  bool eof(void) throw (DmException);
-  struct stat pstat(void) throw (DmException);
-
-private:
-  hdfsFS fs;		// Hadoop file system
-  hdfsFile file;	// Hadoop file descriptor
-  bool isEof;		// Set to true if end of the file is reached
-  std::string path_;
-};
-
-
-/// PoolDriver
-class HadoopPoolDriver: public PoolDriver {
-public:
-  HadoopPoolDriver() throw (DmException);
-  ~HadoopPoolDriver();
   
-  void setStackInstance(StackInstance*) throw (DmException);
-  void setSecurityContext(const SecurityContext*) throw (DmException);
-  
-  PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
-  
-private:
-  StackInstance* stack;
-};
-
 /// PoolHandler
 class HadoopPoolHandler: public PoolHandler {
 public:
@@ -83,25 +44,89 @@ private:
 };
 
 
-/// IO Factory
-class HadoopIOFactory: public IOFactory, public PoolDriverFactory {
-public:
-  HadoopIOFactory() throw (DmException);
-  void configure(const std::string& key, const std::string& value) throw (DmException);
-  
-  IOHandler *createIO(const StackInstance*,
-                      const std::string& pfn, std::iostream::openmode openmode,
-                      const std::map<std::string, std::string>& extras) throw (DmException);
-  
-  struct stat pStat(const StackInstance* si,
-                    const std::string& pfn) throw (DmException);
 
+/// PoolDriver
+class HadoopPoolDriver: public PoolDriver {
+public:
+  HadoopPoolDriver() throw (DmException);
+  ~HadoopPoolDriver();
+  
+  void setStackInstance(StackInstance*) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
+  
+private:
+  StackInstance* stack;
+};
+
+
+
+// IO Handler
+class HadoopIODriver;
+
+class HadoopIOHandler: public IOHandler{
+public:
+
+  HadoopIOHandler(HadoopIODriver* driver, const std::string& pfn, std::iostream::openmode openmode) throw (DmException);
+  ~HadoopIOHandler();
+
+  void close(void) throw (DmException);
+  size_t read(char* buffer, size_t count) throw (DmException);
+  size_t write(const char* buffer, size_t count) throw (DmException);
+  void seek(long offset, std::ios_base::seekdir whence) throw (DmException);
+  long tell(void) throw (DmException);
+  void flush(void) throw (DmException);
+  bool eof(void) throw (DmException);
+
+private:
+  HadoopIODriver* driver;
+  
+  hdfsFile file;  // Hadoop file descriptor
+  bool     isEof; // Set to true if end of the file is reached
+  std::string path;
+};
+
+
+
+/// IO Driver
+class HadoopIODriver: public IODriver {
+public:
+  HadoopIODriver();
+  ~HadoopIODriver();
+  
+  void setStackInstance(StackInstance*) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  IOHandler *createIOHandler(const std::string& pfn,
+                             std::iostream::openmode openmode,
+                             const std::map<std::string, std::string>& extras) throw (DmException);
+  
+  struct stat pStat(const std::string& pfn) throw (DmException);
+private:
+  friend class HadoopIOHandler;
+  
+  hdfsFS fs;
+};
+
+
+
+/// IO Factory
+class HadoopFactory: public IOFactory, public PoolDriverFactory {
+public:
+  HadoopFactory() throw (DmException);
+  
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+   
   std::string implementedPool() throw();
   PoolDriver* createPoolDriver() throw (DmException);
+  
+  IODriver* createIODriver(PluginManager*) throw (DmException);
 
 protected:
 private:
 };
 
 };
+
 #endif	// HADOOP_H

@@ -110,6 +110,13 @@ IOFactory::~IOFactory()
   // Nothing
 }
 
+
+
+IODriver::~IODriver()
+{
+  // Nothing
+}
+
 /* Common and default methods */
 
 struct stat Catalog::stat(const std::string& path, bool followSym) throw (DmException)

@@ -157,7 +157,7 @@ dm_context* dm_context_new(dm_manager* handle)
     
     // IOFactory
     try {
-      ctx->io = handle->manager->getIOFactory();   
+      ctx->io = ctx->stack->getIODriver();
     }
     catch (dmlite::DmException e) {
       if (e.code() != DM_NO_FACTORY)

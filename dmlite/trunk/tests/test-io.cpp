@@ -8,11 +8,13 @@
 #include <iosfwd>
 #include <string.h>
 
+#include "dmlite/common/Security.h"
+
 class TestIO: public CppUnit::TestFixture
 {
 private:
   dmlite::PluginManager* manager;
-  dmlite::IOFactory*     io;
+  dmlite::IODriver*      io;
   dmlite::StackInstance* si;
   std::map<std::string, std::string> extras;
 
@@ -23,8 +25,9 @@ public:
   {
     manager = new dmlite::PluginManager();
     manager->loadConfiguration(config);
-    io = manager->getIOFactory();
+    manager->configure("TokenPassword", "test");
     si = new dmlite::StackInstance(manager);
+    io = si->getIODriver();
   }
 
   void tearDown()
@@ -38,9 +41,9 @@ public:
   void testOpen(void)
   {
     char b;
-
-    dmlite::IOHandler* s = io->createIO(this->si, "/dev/zero", std::ios_base::in,
-                                        extras);
+    
+    dmlite::IOHandler* s = io->createIOHandler("/dev/zero", std::ios_base::in,
+                                               extras);
 
     s->read(&b, sizeof(char));
     CPPUNIT_ASSERT_EQUAL((char)0, b);
@@ -50,8 +53,8 @@ public:
 
   void testNotExist(void)
   {
-    CPPUNIT_ASSERT_THROW(io->createIO(this->si, "/this/should/not/exist", std::ios_base::in,
-                                      extras),
+    CPPUNIT_ASSERT_THROW(io->createIOHandler("/this/should/not/exist", std::ios_base::in,
+                                             extras),
                          dmlite::DmException);
   }
 
@@ -60,17 +63,16 @@ public:
     const char ostring[] = "This-is-the-string-to-be-checked!";
 
     // Open to write
-    dmlite::IOHandler* os = io->createIO(this->si, "/tmp/test-io-wr",
-                                         std::ios_base::out | std::ios_base::trunc,
-                                         extras);
+    dmlite::IOHandler* os = io->createIOHandler("/tmp/test-io-wr",
+                                                std::ios_base::out | std::ios_base::trunc,
+                                                extras);
     os->write(ostring, strlen(ostring));
     delete os;
 
     // Open to read
     char buffer[512] = "";
-    dmlite::IOHandler* is = io->createIO(this->si, 
-                                         "/tmp/test-io-wr", std::ios_base::in,
-                                         extras);
+    dmlite::IOHandler* is = io->createIOHandler("/tmp/test-io-wr", std::ios_base::in,
+                                                extras);
     size_t nb = is->read(buffer, sizeof(buffer));
 
     CPPUNIT_ASSERT_EQUAL(strlen(ostring), nb);

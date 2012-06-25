@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <map>
+#include "dm_auth.h"
 #include "dm_exceptions.h"
 
 namespace dmlite {
@@ -45,12 +46,29 @@ public:
 
   /// Return true if end of file.
   virtual bool eof(void) throw (DmException) = 0;
-  
-  /// Stat the file
-  virtual struct stat pstat(void) throw (DmException) = 0;
 };
 
 class StackInstance;
+
+class IODriver {
+public:
+  /// Virtual destructor
+  virtual ~IODriver();
+  
+  /// Set the stack instance
+  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+  
+  /// Set the security context
+  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
+  
+  /// Instantiate a implementation of IOHandler
+  virtual IOHandler* createIOHandler(const std::string& uri,
+                                     std::iostream::openmode openmode,
+                                     const std::map<std::string, std::string>& extras) throw (DmException) = 0;
+  
+  /// Perform a stat over pfn.
+  virtual struct stat pStat(const std::string& pfn) throw (DmException) = 0;
+};
 
 /// Plug-ins must implement a concrete factory to be instantiated.
 class IOFactory {
@@ -63,14 +81,9 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
-  /// Instantiate a implementation of std::iostream
-  virtual IOHandler* createIO(const StackInstance* si,
-                              const std::string& uri, std::iostream::openmode openmode,
-                              const std::map<std::string, std::string>& extras) throw (DmException) = 0;
-  
-  /// Perform a stat over pfn.
-  virtual struct stat pStat(const StackInstance* si,
-                            const std::string& pfn) throw (DmException) = 0;
+
+  /// Create a IODriver
+  virtual IODriver* createIODriver(PluginManager* pm) throw (DmException) = 0;  
   
 protected:
 private:
