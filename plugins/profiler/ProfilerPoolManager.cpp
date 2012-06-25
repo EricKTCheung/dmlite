@@ -47,7 +47,7 @@ void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (
 
 
 
-PoolMetadata* ProfilerPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* ProfilerPoolManager::getPoolMetadata(const std::string& pool) throw (DmException)
 {
   PROFILE_RETURN(PoolMetadata*, getPoolMetadata, pool);
 }

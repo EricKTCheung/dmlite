@@ -30,7 +30,7 @@ void DummyPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmE
 
 
 
-PoolMetadata* DummyPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* DummyPoolManager::getPoolMetadata(const std::string& pool) throw (DmException)
 {
   DELEGATE_RETURN(getPoolMetadata, pool);
 }

@@ -147,21 +147,21 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
 
 
 
-PoolDriver* StackInstance::getPoolDriver(const Pool& pool) throw (DmException)
+PoolDriver* StackInstance::getPoolDriver(const std::string& poolType) throw (DmException)
 {
   // Try from dictionary first
   std::map<std::string, PoolDriver*>::iterator i;
-  i = this->poolDrivers_.find(pool.pool_name);
+  i = this->poolDrivers_.find(poolType);
   if (i != this->poolDrivers_.end())
     return i->second;
   
   // Instantiate
-  PoolDriverFactory* phf = this->pluginManager_->getPoolDriverFactory(pool.pool_type);
-  PoolDriver* ph = phf->createPoolDriver(this, pool);
+  PoolDriverFactory* phf = this->pluginManager_->getPoolDriverFactory(poolType);
+  PoolDriver* ph = phf->createPoolDriver();
+  ph->setStackInstance(this);
   ph->setSecurityContext(this->secCtx_);
   
-  this->poolDrivers_[pool.pool_name] = ph;
-  
+  this->poolDrivers_[poolType] = ph;
   
   return ph;
 }

@@ -39,7 +39,7 @@ public:
   PoolManager* createPoolManager(PluginManager*) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolDriver* createPoolDriver(StackInstance* si, const Pool& pool) throw (DmException);
+  PoolDriver* createPoolDriver(void) throw (DmException);
   
 protected:
   unsigned retryLimit_;

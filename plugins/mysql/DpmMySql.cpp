@@ -122,10 +122,12 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
   std::vector<Pool> available;
   
   for (unsigned i = 0; i < pools.size(); ++i) {
-    PoolDriver* handler = this->stack_->getPoolDriver(pools[i]);
+    PoolHandler* handler = this->stack_->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
     
     if (handler->isAvailable())
       available.push_back(pools[i]);
+    
+    delete handler;
   }
   
   return available;
@@ -133,18 +135,17 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
 
 
 
-PoolMetadata* MySqlPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* MySqlPoolManager::getPoolMetadata(const std::string& pool) throw (DmException)
 {
   Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL_META);
-  stmt.bindParam(0, pool.pool_name);
+  stmt.bindParam(0, pool.c_str());
   stmt.execute();
   
   char buffer[1024];
   stmt.bindResult(0, buffer, sizeof(buffer));
   
   if (!stmt.fetch()) {
-    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found (type %s)",
-                                       pool.pool_name, pool.pool_type);
+    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", pool.c_str());
   }    
   
   return new MySqlPoolMetadata(buffer);

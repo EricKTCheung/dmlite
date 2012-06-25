@@ -56,6 +56,13 @@ PoolDriver::~PoolDriver()
 
 
 
+PoolHandler::~PoolHandler()
+{
+  // Nothing
+}
+
+
+
 PoolMetadata::~PoolMetadata()
 {
   // Nothing

@@ -15,7 +15,7 @@ public:
 
   virtual void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  virtual PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  virtual PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
 
   virtual std::vector<Pool> getPools(void) throw (DmException);
   

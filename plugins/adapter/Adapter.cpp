@@ -141,12 +141,9 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 
 
 
-PoolDriver* DpmAdapterFactory::createPoolDriver(StackInstance* si, const Pool& pool) throw (DmException)
+PoolDriver* DpmAdapterFactory::createPoolDriver() throw (DmException)
 {
-  if (std::string(pool.pool_type) != this->implementedPool())
-    throw DmException(DM_UNKNOWN_POOL_TYPE, "DpmAdapter does not recognise the pool type %s", pool.pool_type);
-  return new FilesystemPoolDriver(si, pool,
-                                  tokenPasswd_, tokenUseIp_, tokenLife_);
+  return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_);
 }
 
 

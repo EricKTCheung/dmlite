@@ -17,18 +17,22 @@ using namespace dmlite;
 
 
 
-FilesystemPoolDriver::FilesystemPoolDriver(StackInstance* si, const Pool& pool,
-                                           const std::string& passwd, bool useIp, unsigned life):
-    secCtx_(0x00), manager_(0x00), pool_(pool), total_(0), free_(0),
-    tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life)
+FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp, unsigned life):
+    secCtx_(0x00), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life)
 {
-  this->manager_ = si->getPoolManager();
-  
+  // Nothing
 }
 
 
 
 FilesystemPoolDriver::~FilesystemPoolDriver()
+{
+  // Nothing
+}
+
+
+
+void FilesystemPoolDriver::setStackInstance(StackInstance* si) throw (DmException)
 {
   // Nothing
 }
@@ -62,21 +66,43 @@ void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw 
 
 
 
-std::string FilesystemPoolDriver::getPoolType(void) throw (DmException)
+PoolHandler* FilesystemPoolDriver::createPoolHandler(const std::string& poolName) throw (DmException)
 {
-  return this->pool_.pool_type;
+  return new FilesystemPoolHandler(this, poolName);
 }
 
 
 
-std::string FilesystemPoolDriver::getPoolName(void) throw (DmException)
+FilesystemPoolHandler::FilesystemPoolHandler(FilesystemPoolDriver* driver, const std::string& poolName):
+  driver_(driver), poolName_(poolName)
 {
-  return this->pool_.pool_name;
+  // Nothing
 }
 
 
 
-uint64_t FilesystemPoolDriver::getTotalSpace(void) throw (DmException)
+FilesystemPoolHandler::~FilesystemPoolHandler()
+{
+  // Nothing
+}
+
+
+
+std::string FilesystemPoolHandler::getPoolType(void) throw (DmException)
+{
+  return "filesystem";
+}
+
+
+
+std::string FilesystemPoolHandler::getPoolName(void) throw (DmException)
+{
+  return this->poolName_;
+}
+
+
+
+uint64_t FilesystemPoolHandler::getTotalSpace(void) throw (DmException)
 {
   this->update();
   return this->total_;
@@ -84,7 +110,7 @@ uint64_t FilesystemPoolDriver::getTotalSpace(void) throw (DmException)
 
 
 
-uint64_t FilesystemPoolDriver::getFreeSpace(void) throw (DmException)
+uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
 {
   this->update();
   return this->free_;
@@ -92,9 +118,9 @@ uint64_t FilesystemPoolDriver::getFreeSpace(void) throw (DmException)
 
 
 
-bool FilesystemPoolDriver::isAvailable(bool write = true) throw (DmException)
+bool FilesystemPoolHandler::isAvailable(bool write = true) throw (DmException)
 {
-  std::vector<dpm_fs> fs = this->getFilesystems(this->pool_.pool_name);
+  std::vector<dpm_fs> fs = this->getFilesystems(this->poolName_);
   
   for (unsigned i = 0; i < fs.size(); ++i) {
     if ((write && fs[i].status == 0) || (!write && fs[i].status != FS_DISABLED))
@@ -106,7 +132,7 @@ bool FilesystemPoolDriver::isAvailable(bool write = true) throw (DmException)
 
 
 
-bool FilesystemPoolDriver::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
+bool FilesystemPoolHandler::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
   // No API call for getting one specific FS
   std::vector<dpm_fs> fs = this->getFilesystems(replica.pool);
@@ -122,7 +148,7 @@ bool FilesystemPoolDriver::replicaAvailable(const std::string& sfn, const FileRe
 
 
 
-void FilesystemPoolDriver::update() throw (DmException)
+void FilesystemPoolHandler::update() throw (DmException)
 {
   int npools;
   struct dpm_pool *pool_array;
@@ -132,7 +158,7 @@ void FilesystemPoolDriver::update() throw (DmException)
 
   bool found = false;
   for (int i = 0; i < npools && !found; ++i) {
-    if (strcmp(pool_array[i].poolname, this->pool_.pool_name) == 0) {
+    if (this->poolName_ == pool_array[i].poolname) {
       found = true;
       
       this->total_ = pool_array[i].capacity;
@@ -150,12 +176,12 @@ void FilesystemPoolDriver::update() throw (DmException)
 
   // Failed?
   if (!found)
-    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", this->pool_.pool_name);
+    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", this->poolName_.c_str());
 }
 
 
 
-Location FilesystemPoolDriver::getLocation(const std::string &sfn, const FileReplica& replica) throw (DmException)
+Location FilesystemPoolHandler::getLocation(const std::string &sfn, const FileReplica& replica) throw (DmException)
 {
 
   Url rloc = dmlite::splitUrl(replica.rfn);
@@ -163,13 +189,14 @@ Location FilesystemPoolDriver::getLocation(const std::string &sfn, const FileRep
   return Location(rloc.host, rloc.path, this->replicaAvailable(sfn, replica),
                   1,
                   "token",
-                  dmlite::generateToken(this->userId_, rloc.path,
-                                        this->tokenPasswd_, this->tokenLife_).c_str());
+                  dmlite::generateToken(this->driver_->userId_, rloc.path,
+                                        this->driver_->tokenPasswd_,
+                                        this->driver_->tokenLife_).c_str());
 }
 
 
 
-void FilesystemPoolDriver::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
+void FilesystemPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
 {
   if (dpm_delreplica((char*)replica.rfn) != 0)
     ThrowExceptionFromSerrno(serrno);
@@ -177,7 +204,7 @@ void FilesystemPoolDriver::remove(const std::string& sfn, const FileReplica& rep
 
 
 
-Location FilesystemPoolDriver::putLocation(const std::string& sfn) throw (DmException)
+Location FilesystemPoolHandler::putLocation(const std::string& sfn) throw (DmException)
 {
   struct dpm_putfilereq     reqfile;
   struct dpm_putfilestatus *statuses = 0x00;
@@ -229,8 +256,10 @@ Location FilesystemPoolDriver::putLocation(const std::string& sfn) throw (DmExce
     return Location(url.host, url.path, true, 3,
                     "sfn", sfn.c_str(),
                     "dpmtoken", token,
-                    "token", dmlite::generateToken(this->userId_,
-                                                   url.path, this->tokenPasswd_, tokenLife_, true).c_str());
+                    "token", dmlite::generateToken(this->driver_->userId_,
+                                                   url.path,
+                                                   this->driver_->tokenPasswd_,
+                                                   this->driver_->tokenLife_, true).c_str());
   }
   catch (...) {
     // On exceptions, free first!
@@ -242,8 +271,8 @@ Location FilesystemPoolDriver::putLocation(const std::string& sfn) throw (DmExce
 
 
 
-void FilesystemPoolDriver::putDone(const FileReplica& replica,
-                                   const std::map<std::string, std::string>& extras) throw (DmException)
+void FilesystemPoolHandler::putDone(const FileReplica& replica,
+                                    const std::map<std::string, std::string>& extras) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
@@ -274,7 +303,7 @@ void FilesystemPoolDriver::putDone(const FileReplica& replica,
 
 
 
-std::vector<dpm_fs> FilesystemPoolDriver::getFilesystems(const std::string& poolname) throw (DmException)
+std::vector<dpm_fs> FilesystemPoolHandler::getFilesystems(const std::string& poolname) throw (DmException)
 {
   std::vector<dpm_fs> fsV;
   int nfs;

@@ -258,13 +258,15 @@ Location BuiltInCatalog::get(const std::string& path) throw (DmException)
   if (this->si_->isTherePoolManager()) {
     for (i = 0; i < replicas.size(); ++i) {
       Pool pool = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolDriver* handler = this->si_->getPoolDriver(pool);
+      PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
       
       Location location = handler->getLocation(path, replicas[i]);
 
       if (location.available) {
         available.push_back(location);
       }
+      
+      delete handler;
     }
   }
   // If no pool manager, make sure we can guess the whole location (LFC)
@@ -308,17 +310,19 @@ Location BuiltInCatalog::put(const std::string& path,
   unsigned i = rand()  % pools.size();
   
   // Get the handler
-  PoolDriver* driver = this->si_->getPoolDriver(pools[i]);
+  PoolHandler* handler = this->si_->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
   
   // Create the entry
   this->create(path, 0777);
   
   // Delegate to it
-  Location loc = driver->putLocation(path);
+  Location loc = handler->putLocation(path);
   
   // Set the GUID
   if (!guid.empty())
     this->setGuid(path, guid);
+  
+  delete handler;
   
   // Done!
   return loc;
@@ -347,10 +351,12 @@ void BuiltInCatalog::putDone(const std::string& host, const std::string& rfn,
   }
   
   // Get the driver and delegate
-  Pool pool           = this->si_->getPoolManager()->getPool(replica.pool);
-  PoolDriver* handler = this->si_->getPoolDriver(pool);
+  Pool pool            = this->si_->getPoolManager()->getPool(replica.pool);
+  PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
  
   handler->putDone(replica, extras);
+  
+  delete handler;
 }
 
 
@@ -442,10 +448,12 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
     
     // Try to remove replicas first
     for (unsigned i = 0; i < replicas.size(); ++i) {
-      Pool pool          = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolDriver* driver = this->si_->getPoolDriver(pool);
+      Pool         pool   = this->si_->getPoolManager()->getPool(replicas[i].pool);
+      PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
       
-      driver->remove(path, replicas[i]);
+      handler->remove(path, replicas[i]);
+      
+      delete handler;
     }
   }
   
