@@ -22,10 +22,7 @@ class PluginManager;
 
 /// Interface for Catalog (Namespaces)
 class Catalog {
-public:
-  /// Constructor.
-  Catalog() throw (DmException);
-  
+public: 
   /// Destructor.
   virtual ~Catalog();
 
@@ -52,9 +49,6 @@ public:
   /// Get the current working dir inode.
   /// @return The cwd inode.
   virtual ino_t getWorkingDirI(void) throw (DmException) = 0;
-  
-  /// Default implementation calls getMetadata
-  virtual struct stat stat(const std::string& path, bool followSym = true) throw (DmException);
 
   /// Do an extended stat of a file or directory.
   /// @param path      The path of the file or directory.
@@ -228,17 +222,6 @@ public:
   /// @param status  The new status ('-', 'P', 'D')
   /// @return        0 on success, error code otherwise.
   virtual void replicaSetStatus(const std::string& rfn, char status) throw (DmException) = 0;
-
-protected:
-  /// The parent plugin can use this to let the decorated know
-  /// who is over.
-  virtual void setParent(Catalog* parent);
-
-  /// Allow the plugin to get its parent.
-  virtual Catalog* getParent(void);
-
-private:
-  Catalog* parent_;
 };
 
 
@@ -254,10 +237,16 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
+protected:
+  // Stack instance is allowed to instantiate catalogs
+  friend class StackInstance;  
+  
+  /// Children of CatalogFactory are allowed to instantiate too (decorator)
+  static Catalog* createCatalog(CatalogFactory* factory, PluginManager* pm) throw (DmException);
+  
   /// Instantiate a implementation of Catalog
   virtual Catalog* createCatalog(PluginManager* pm) throw (DmException) = 0;
 
-protected:
 private:
 };
 

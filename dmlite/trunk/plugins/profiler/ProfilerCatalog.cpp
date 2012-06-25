@@ -66,13 +66,6 @@ ino_t ProfilerCatalog::getWorkingDirI(void) throw (DmException)
 
 
 
-struct stat ProfilerCatalog::stat(const std::string& path) throw (DmException)
-{
-  PROFILE_RETURN(struct stat, stat, path);
-}
-
-
-
 ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   PROFILE_RETURN(ExtendedStat, extendedStat, path, follow);

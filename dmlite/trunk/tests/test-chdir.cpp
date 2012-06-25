@@ -36,7 +36,7 @@ public:
     else
       CPPUNIT_ASSERT_EQUAL(BASE_DIR, cwd);
 
-    statBuf = this->catalog->stat(".");
+    statBuf = this->catalog->extendedStat(".").stat;
     CPPUNIT_ASSERT_EQUAL(S_IFDIR, (int)statBuf.st_mode & S_IFMT);
 
     // Adapter doesn't implement

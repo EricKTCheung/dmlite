@@ -74,10 +74,16 @@ public:
   /// @param value The value for the configuration parameter
   virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
+protected:
+  // Stack instance is allowed to instantiate PoolManager
+  friend class StackInstance;  
+  
+  /// Children of PoolManagerFactory are allowed to instantiate too (decorator)
+  static PoolManager* createPoolManager(PoolManagerFactory* factory, PluginManager* pm) throw (DmException);
+  
   /// Instantiate a implementation of Pool
   virtual PoolManager* createPoolManager(PluginManager* pm) throw (DmException) = 0;
 
-protected:
 private:
 };
 

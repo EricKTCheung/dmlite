@@ -81,6 +81,9 @@ public:
   /// Supported pool type
   virtual std::string implementedPool() throw () = 0;
   
+protected:
+  friend class StackInstance;
+  
   /// Instantiate the implemented pool driver.
   virtual PoolDriver* createPoolDriver(void) throw (DmException) = 0;
 };

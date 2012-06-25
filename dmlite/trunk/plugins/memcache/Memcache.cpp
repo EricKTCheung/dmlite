@@ -185,7 +185,7 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
   Catalog* nested = 0x00;
 
   if (this->nestedFactory_ != 0x00)
-    nested = this->nestedFactory_->createCatalog(pm);
+    nested = CatalogFactory::createCatalog(this->nestedFactory_, pm);
 
   return new MemcacheCatalog(&this->connectionPool_,
                              nested,

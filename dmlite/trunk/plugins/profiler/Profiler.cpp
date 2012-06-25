@@ -33,14 +33,15 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
 Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 {
-  return new ProfilerCatalog(this->nestedCatalogFactory_->createCatalog(pm));
+  
+  return new ProfilerCatalog(CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm));
 }
 
 
 
 PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmException)
 {
-  return new ProfilerPoolManager(this->nestedPoolManagerFactory_->createPoolManager(pm));
+  return new ProfilerPoolManager(PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm));
 }
 
 
