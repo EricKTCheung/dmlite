@@ -9,7 +9,7 @@ add_library (mysql MODULE DpmMySql.cpp
                           Queries.cpp
                           UserGroupDbMySql.cpp)
 
-target_link_libraries (mysql dmlite dmlitecommon mysqlclient_r)
+target_link_libraries (mysql dmlite dmliteutils mysqlclient_r)
 set_target_properties (mysql PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       mysql

@@ -4,9 +4,9 @@
 #ifndef URLS_H
 #define	URLS_H
 
-#include <dmlite/dm_types.h>
 #include <list>
 #include <string>
+#include "../../common/dm_types.h"
 
 namespace dmlite {
 

@@ -4,7 +4,7 @@
 #ifndef PROFILERPOOLMANAGER_H
 #define	PROFILERPOOLMANAGER_H
 
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 
 namespace dmlite {
 

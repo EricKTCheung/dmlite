@@ -4,7 +4,7 @@
 #ifndef USERGROUPDBORACLEL_H
 #define	USERGROUPDBORACLE_H
 
-#include <dmlite/dm_auth.h>
+#include <dmlite/cpp/dm_auth.h>
 #include <occi.h>
 
 namespace dmlite {

@@ -11,7 +11,7 @@ add_library (adapter MODULE Adapter.cpp
                             NsAdapter.cpp DpmAdapter.cpp
                             Throw.cpp)
 
-target_link_libraries (adapter ${DPM_LIBRARIES} dmlite dmlitecommon pthread)
+target_link_libraries (adapter ${DPM_LIBRARIES} dmlite dmliteutils pthread)
 set_target_properties (adapter PROPERTIES PREFIX "plugin_")
 
 install (TARGETS       adapter

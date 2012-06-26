@@ -3,9 +3,9 @@
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include "NsOracle.h"
 #include <assert.h>
-#include <dmlite/common/Urls.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include "Queries.h"
 
 using namespace dmlite;

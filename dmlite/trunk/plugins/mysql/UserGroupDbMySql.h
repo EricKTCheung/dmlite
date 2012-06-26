@@ -4,8 +4,8 @@
 #ifndef USERGROUPDBMYSQL_H
 #define	USERGROUPDBMYSQL_H
 
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/dm_auth.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
+#include <dmlite/cpp/dm_auth.h>
 #include <mysql/mysql.h>
 #include "MySqlWrapper.h"
 

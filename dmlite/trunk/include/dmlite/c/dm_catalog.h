@@ -1,100 +1,13 @@
-/** @file   include/dmlite/dmlite.h
- *  @brief  C wrapper for dm::PluginManager.
+/** @file   include/dmlite/c/dm_catalog.h
+ *  @brief  C wrapper for DMLite Catalog API.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */
-#ifndef DMLITE_H
-#define	DMLITE_H
-
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <utime.h>
-#include "dm_errno.h"
-#include "dm_types.h"
+#ifndef DM_CATALOG_H
+#define	DM_CATALOG_H
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
-
-/** Handle for the plugin manager. */
-typedef struct dm_manager dm_manager;
-/** Handle for a initialized context. */
-typedef struct dm_context dm_context;
-/** Handle for a file descriptor. */
-typedef struct dm_fd dm_fd;
-
-/**
- * Get the API version.
- */
-unsigned dm_api_version(void);
-
-/**
- * Initialize a dm_manager.
- * @return NULL on failure.
- */
-dm_manager* dm_manager_new(void);
-
-/**
- * Destroy the manager.
- * @param manager The manager to be destroyed.
- */
-int dm_manager_free(dm_manager* manager);
-
-/**
- * Load a library.
- * @param manager The plugin manager.
- * @param lib     The .so file. Usually, (path)/plugin_name.so.
- * @param id      The plugin ID. Usually, plugin_name.
- * @return        0 on success, error code otherwise.
- */
-int dm_manager_load_plugin(dm_manager *manager, const char* lib, const char* id);
-
-/**
- * Set a configuration parameter.
- * @param manager The plugin manager.
- * @param key     The parameter to set.
- * @param value   The value.
- * @return        0 on success, error code otherwise.
- */
-int dm_manager_set(dm_manager* manager, const char* key, const char* value);
-
-/**
- * Load a configuration file.
- * @param manager The plugin manager.
- * @param file    The configuration file
- * @return        0 on success, error code otherwise.
- */
-int dm_manager_load_configuration(dm_manager* manager, const char* file);
-
-/**
- * Return the string that describes the last error.
- * @param manager The plugin manager used in the failing function.
- * @return        A pointer to the error string. Do NOT free it.
- */
-const char* dm_manager_error(dm_manager* manager);
-
-/**
- * Return a usable context from the loaded libraries.
- * @param manager The plugin manager.
- * @return        NULL on failure. The error code can be checked with dm_manager_error.
- */
-dm_context* dm_context_new(dm_manager* manager);
-
-/**
- * Destroy the context.
- * @param context The context to free.
- * @return        0 on success, error code otherwise.
- */
-int dm_context_free(dm_context* context);
-
-/**
- * Set a configuration parameter tied to a context.
- * This can be used to pass advanced parameters to a plugin.
- * @param context The DM context.
- * @param k The configuration key.
- * @param v Value.
- * @return  0 on success, error code otherwise.
- */
-int dm_set(dm_context* context, const char* k, union value v);
 
 /**
  * Change the working dir.
@@ -139,28 +52,6 @@ int dm_lstat(dm_context* context, const char* path, struct stat* buf);
  * @return        0 on success, error code otherwise.
  */
 int dm_xstat(dm_context* context, const char* path, struct xstat* buf);
-
-/**
- * Do a stat of an entry using the inode instead of the path.
- * @param context The DM context.
- * @param inode   The entry inode.
- * @param buf     Where to put the retrieved information.
- * @return        0 on success, error code otherwise.
- * @note          Security checks won't be done if you use this function,
- *                so keep in mind doing it yourself.
- */
-int dm_istat(dm_context* context, ino_t inode, struct stat* buf);
-
-/**
- * Do an extended stat of an entry using the inode instead of the path.
- * @param context The DM context.
- * @param inode   The entry inode.
- * @param buf     Where to put the retrieved information.
- * @return        0 on success, error code otherwise.
- * @note          Security checks won't be done if you use this function,
- *                so keep in mind doing it yourself.
- */
-int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf);
 
 /**
  * Add a new replica to an entry.
@@ -471,149 +362,9 @@ int dm_replica_settype(dm_context* context, const char* replica, char ftype);
  */
 int dm_replica_setstatus(dm_context* context, const char* replica, char status);
 
-/**
- * Set the user ID
- * @param context The DM context.
- * @param cred    The security credentials.
- * @return        0 on success, error code otherwise.
- */
-int dm_setcredentials(dm_context* context, struct credentials* cred);
-
-/**
- * Get the list of pools.
- * @param context The DM context.
- * @param nPools  The number of pools.
- * @param pools   An array with the pools. <b>Use dm_freepools to free</b>.
- * @return        0 on succes, -1 on failure.
- */
-int dm_getpools(dm_context* context, int* nPools, struct pool** pools);
-
-/**
- * Free an array of pools.
- * @param context The DM context.
- * @param nPools  The number of pools in the array.
- * @param pools   The array to free.
- * @return        0 on succes, -1 on failure.
- */
-int dm_freepools(dm_context* context, int nPools, struct pool* pools);
-
-/**
- * Do a stat over a physical file.
- * @param context The DM context.
- * @param rfn     The path to stat.
- * @param st      Where to put the stat.
- * @return        0 on sucess,  error code otherwise.
- */
-int dm_pstat(dm_context* context, const char* rfn, struct stat* st);
-
-/**
- * Open a file.
- * @param context The DM context.
- * @param path    The path to open.
- * @param flags   See open()
- * @param nextras Number of key-value parameters, usually as provided by dm_get
- * @param extras  The key-value pairs.
- * @return        An opaque handler for the file, NULL on failure.
- */
-dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
-                unsigned nextras, struct keyvalue* extras);
-
-/**
- * Close a file.
- * @param fd The file descriptor as returned by dm_open.
- * @return   0 on sucess,  error code otherwise.
- */
-int dm_fclose(dm_fd* fd);
-
-/**
- * Set the file position.
- * @param fd     The file descriptor.
- * @param offset The offset.
- * @param whence See fseek()
- * @return       0 on sucess,  error code otherwise.
- */
-int dm_fseek(dm_fd* fd, long offset, int whence);
-
-/**
- * Return the cursor position.
- * @param fd The file descriptor.
- * @return   The cursor position, or -1 on error.
- */
-long dm_ftell(dm_fd* fd);
-
-/**
- * Read from a file.
- * @param fd     The file descriptor.
- * @param buffer Where to put the data.
- * @param count  Number of bytes to read.
- * @return       Number of bytes actually read on success. -1 on failure.
- */
-size_t dm_fread(dm_fd* fd, void* buffer, size_t count);
-
-/**
- * Write to a file.
- * @param fd     The file descriptor.
- * @param buffer A pointer to the data.
- * @param count  Number of bytes to write.
- * @return       Number of bytes actually written. -1 on failure.
- */
-size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count);
-
-/**
- * Return 1 if EOF.
- * @param fd The file descriptor.
- * @return   0 if there is more to read. 1 if EOF.
- */
-int dm_feof(dm_fd* fd);
-
-/**
- * Return the error code from the last failure.
- * @param context The context that was used in the failed function.
- * @return        The error code.
- */
-int dm_errno(dm_context* context);
-
-/**
- * Error string from the last failed function.
- * @param context The context that was used in the failed function.
- * @return        A string with the error description. Do NOT free it.
- */
-const char* dm_error(dm_context* context);
-
-/**
- * Parses a URL.
- * @param source Original URL.
- * @param dest   Parsed URL.
- */
-void dm_parse_url(const char* source, struct url* dest);
-
-/**
- * Serialize into a string a set of ACL entries
- * @param nAcls  The number of ACLs in the array.
- * @param acls   The ACL array.
- * @param buffer Where to put the resulting string.
- * @param bsize  The buffer size.
- */
-void dm_serialize_acls(int nAcls, struct dm_acl* acls, char* buffer, size_t bsize);
-
-/**
- * Deserialize a string into an array of ACLs.
- * @param buffer The string.
- * @param nAcls  The resulting number of ACLs.
- * @param acls   The resulting ACLs.
- */
-void dm_deserialize_acls(const char* buffer, int* nAcls, struct dm_acl** acls);
-
-/**
- * Free an array of ACLs as returned by dm_deserialize_acls
- * @param nAcls The number of entries in the array.
- * @param acls  The ACL array.
- */
-void dm_freeacls(int nAcls, struct dm_acl* acls);
-
-
 #ifdef	__cplusplus
 }
 #endif
 
-#endif	/* DMLITE_H */
+#endif	/* DM_CATALOG_H */
+

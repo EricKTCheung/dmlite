@@ -5,7 +5,7 @@
 #define	DPM_ADAPTER_H
 
 #include "NsAdapter.h"
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 #include <syslog.h>
 
 namespace dmlite {

@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <dmlite/dm_auth.h>
-#include <dmlite/dm_config.h>
-#include <dmlite/dm_exceptions.h>
-#include <dmlite/dm_errno.h>
-#include <dmlite/common/Security.h>
+#include <dmlite/common/dm_config.h>
+#include <dmlite/common/dm_errno.h>
+#include <dmlite/cpp/dm_auth.h>
+#include <dmlite/cpp/dm_exceptions.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <map>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>

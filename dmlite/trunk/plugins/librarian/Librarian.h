@@ -4,8 +4,8 @@
 #ifndef LIBRARIAN_H
 #define	LIBRARIAN_H
 
-#include <dmlite/dmlite++.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
 #include <set>
 
 namespace dmlite {

@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "test-base.h"
-#include "dmlite/common/Security.h"
+#include "dmlite/cpp/utils/dm_security.h"
 
 class TestCreate: public TestBase
 {

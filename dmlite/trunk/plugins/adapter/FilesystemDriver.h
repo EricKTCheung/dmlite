@@ -4,7 +4,7 @@
 #ifndef FILESYSTEMDRIVER_H
 #define	FILESYSTEMDRIVER_H
 
-#include <dmlite/dm_pooldriver.h>
+#include <dmlite/cpp/dm_pooldriver.h>
 #include <dpm_api.h>
 
 namespace dmlite {

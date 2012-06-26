@@ -3,9 +3,9 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdlib>
 #include <cstring>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <serrno.h>
 #include <algorithm>
 

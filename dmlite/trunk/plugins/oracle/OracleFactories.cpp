@@ -2,10 +2,10 @@
 /// @brief   Oracle backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include "OracleFactories.h"
+#include <cstdlib>
 #include "NsOracle.h"
+#include "OracleFactories.h"
 #include "UserGroupDbOracle.h"
-#include <stdlib.h>
 
 
 using namespace dmlite;

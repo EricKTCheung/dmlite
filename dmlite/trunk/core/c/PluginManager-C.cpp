@@ -1,8 +1,8 @@
 /// @file   core/PluginManager-C.cpp
 /// @brief  C wrapper for dmlite::PluginManager.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
-#include <dmlite/dmlite++.h>
-#include <dmlite/dmlite.h>
+#include <dmlite/c/dmlite.h>
+#include <dmlite/cpp/dmlite.h>
 
 #include "Private.h"
 

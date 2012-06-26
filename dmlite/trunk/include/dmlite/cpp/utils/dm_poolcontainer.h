@@ -5,13 +5,13 @@
 #ifndef POOL_H
 #define	POOL_H
 
-#include <dmlite/dm_exceptions.h>
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <set>
 #include <syslog.h>
 #include <queue>
+#include "../dm_exceptions.h"
 
 namespace dmlite {
 

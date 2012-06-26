@@ -1,7 +1,7 @@
 /// @file   core/PluginManager.cpp
 /// @brief  Implementation of dm::StackInstance
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 
 using namespace dmlite;
 

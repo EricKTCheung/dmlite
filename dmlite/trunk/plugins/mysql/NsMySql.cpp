@@ -8,7 +8,7 @@
 #include <vector>
 #include <mysql/mysql.h>
 #include <stdlib.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 #include "MySqlWrapper.h"
 #include "NsMySql.h"

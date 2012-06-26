@@ -4,9 +4,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <dmlite/dm_errno.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/common/dm_errno.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <dpm_api.h>
 #include <serrno.h>
 #include <vector>

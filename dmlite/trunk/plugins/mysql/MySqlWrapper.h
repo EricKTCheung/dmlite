@@ -4,7 +4,7 @@
 #ifndef MYSQLWRAPPER_H
 #define	MYSQLWRAPPER_H
 
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/cpp/dm_exceptions.h>
 #include <mysql/mysql.h>
 #include <stdint.h>
 #include <map>

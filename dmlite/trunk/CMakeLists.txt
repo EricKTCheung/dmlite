@@ -28,14 +28,14 @@ add_definitions (-D_REENTRANT)
 
 # Subdirectories
 add_subdirectory (etc)
-add_subdirectory (common)
+add_subdirectory (utils)
 add_subdirectory (core)
 add_subdirectory (plugins)
 add_subdirectory (tests)
 
 # Config header
-configure_file (${CMAKE_SOURCE_DIR}/include/dmlite/dm_config.h.cmake
-                ${CMAKE_SOURCE_DIR}/include/dmlite/dm_config.h)
+configure_file (${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h.cmake
+                ${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h)
 
 # Install headers
 install (DIRECTORY   include/

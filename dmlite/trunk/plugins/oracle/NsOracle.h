@@ -4,8 +4,8 @@
 #ifndef NSORACLEL_H
 #define	NSORACLE_H
 
-#include <dmlite/common/Security.h>
-#include <dmlite/dm_inode.h>
+#include <dmlite/cpp/dm_inode.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <occi.h>
 #include <vector>
 

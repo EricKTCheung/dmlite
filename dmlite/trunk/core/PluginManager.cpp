@@ -2,11 +2,9 @@
 /// @brief  Implementation of dm::PluginManager
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dlfcn.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <fstream>
 #include <sstream>
-
-#include "Private.h"
 #include "builtin/Catalog.h"
 
 using namespace dmlite;

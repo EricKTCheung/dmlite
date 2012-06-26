@@ -98,7 +98,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include/dmlite
+INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include/dmlite/c
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = dmlite.h
 RECURSIVE              = NO

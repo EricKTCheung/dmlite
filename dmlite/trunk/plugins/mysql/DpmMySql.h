@@ -5,7 +5,7 @@
 #define	DPMMYSQL_H
 
 #include "NsMySql.h"
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 
 namespace dmlite {
 

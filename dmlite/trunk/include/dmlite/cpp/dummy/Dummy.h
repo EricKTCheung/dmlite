@@ -5,7 +5,7 @@
 #ifndef DMLITE_DUMMY_H
 #define	DMLITE_DUMMY_H
 
-#include <dmlite/dmlite++.h>
+#include "../dmlite.h"
 #include "DummyCatalog.h"
 #include "DummyPool.h"
 

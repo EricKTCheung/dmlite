@@ -9,7 +9,7 @@
 #include <vector>
 #include <utime.h>
 #include "dm_exceptions.h"
-#include "dm_types.h"
+#include "../common/dm_types.h"
 
 namespace dmlite {
 

@@ -2,13 +2,14 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <iostream>
 #include <ios>
 #include <iosfwd>
 #include <string.h>
 
-#include "dmlite/common/Security.h"
+
 
 class TestIO: public CppUnit::TestFixture
 {
