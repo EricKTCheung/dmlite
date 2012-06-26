@@ -222,19 +222,30 @@ UserInfo UserGroupDbMySql::getUser(uid_t uid) throw (DmException)
 UserInfo UserGroupDbMySql::getUser(const std::string& userName) throw (DmException)
 {
   UserInfo  user;
-  Statement stmt(this->conn_, this->nsDb_, STMT_GET_USERINFO_BY_NAME);
+  
+  // If the username is the host DN, root!
+  if (userName == dmlite::getHostDN()) {
+    strncpy(user.name, userName.c_str(), sizeof(user.name));
+    user.ca[0] = '\0';
+    user.banned = 0;
+    user.uid    = 0;
+  }
+  else {
+    // Search in the DB
+    Statement stmt(this->conn_, this->nsDb_, STMT_GET_USERINFO_BY_NAME);
 
-  stmt.bindParam(0, userName);
-  stmt.execute();
+    stmt.bindParam(0, userName);
+    stmt.execute();
 
-  stmt.bindResult(0, &user.uid);
-  stmt.bindResult(1, user.name, sizeof(user.name));
-  stmt.bindResult(2, user.ca, sizeof(user.ca));
-  stmt.bindResult(3, &user.banned);
+    stmt.bindResult(0, &user.uid);
+    stmt.bindResult(1, user.name, sizeof(user.name));
+    stmt.bindResult(2, user.ca, sizeof(user.ca));
+    stmt.bindResult(3, &user.banned);
 
-  if (!stmt.fetch())
-    throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
-
+    if (!stmt.fetch())
+      throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
+  }
+  
   return user;
 }
 

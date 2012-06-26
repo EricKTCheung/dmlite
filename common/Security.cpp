@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstring>
 #include <dmlite/dm_auth.h>
+#include <dmlite/dm_config.h>
 #include <dmlite/dm_exceptions.h>
 #include <dmlite/dm_errno.h>
 #include <dmlite/common/Security.h>
@@ -13,6 +14,8 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/hmac.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
 #include <sstream>
 
 using namespace dmlite;
@@ -225,6 +228,40 @@ std::string dmlite::voFromRole(const std::string& role)
     return vo.substr(0, i);
   else
     return vo;
+}
+
+
+// This hack allows to parse only once the file
+static std::string initHostDN(void)
+{
+  X509*       hostX509;
+  BIO*        in = BIO_new(BIO_s_file());
+
+  if (BIO_read_filename(in, HOST_CERTIFICATE) < 0) {
+    BIO_free_all(in);
+    throw DmException(DM_INTERNAL_ERROR,
+                      "Could not read the host certificate (BIO: %s)", HOST_CERTIFICATE);
+  }
+
+  hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
+  BIO_free_all(in);
+  if (hostX509 == NULL) {
+    throw DmException(DM_INTERNAL_ERROR,
+                      "Could not read the host certificate (X509: %s)", HOST_CERTIFICATE);
+  }
+
+  std::string hostDN = hostX509->name;
+  X509_free(hostX509);
+  
+  return hostDN;
+}
+
+
+
+std::string dmlite::getHostDN(void)
+{
+  static const std::string hostDN = initHostDN();
+  return hostDN;
 }
 
 

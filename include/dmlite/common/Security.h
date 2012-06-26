@@ -44,6 +44,9 @@ std::string voFromDn(const std::string& mapfile, const std::string& dn);
 /// @return     The VO.
 std::string voFromRole(const std::string& role);
 
+/// Get the host DN from the host certificate
+std::string getHostDN(void);
+
 /// Get an array of Acl structs from the string serialization.
 std::vector<Acl> deserializeAcl(const std::string& aclStr);
 

@@ -7,6 +7,9 @@ set(dmlite_MAJOR 0)
 set(dmlite_MINOR 3)
 set(dmlite_PATCH 0)
 
+# Host certificate location
+set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")
+
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX "")
@@ -30,11 +33,16 @@ add_subdirectory (core)
 add_subdirectory (plugins)
 add_subdirectory (tests)
 
+# Config header
+configure_file (${CMAKE_SOURCE_DIR}/include/dmlite/dm_config.h.cmake
+                ${CMAKE_SOURCE_DIR}/include/dmlite/dm_config.h)
+
 # Install headers
 install (DIRECTORY   include/
          DESTINATION usr/include
          COMPONENT   dmlite-devel
-         PATTERN     ".svn" EXCLUDE)
+         PATTERN     ".svn" EXCLUDE
+         PATTERN     ".cmake" EXCLUDE)
 
 # Generate documentation
 find_package (Doxygen)
