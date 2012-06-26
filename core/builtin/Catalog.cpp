@@ -6,9 +6,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <list>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 #include "Catalog.h"
 

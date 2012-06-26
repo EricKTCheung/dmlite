@@ -4,7 +4,7 @@
 #ifndef QUERIES_H
 #define	QUERIES_H
 
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/cpp/dm_exceptions.h>
 #include <occi.h>
 
 enum {

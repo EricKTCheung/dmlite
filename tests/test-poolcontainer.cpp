@@ -3,7 +3,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include <dmlite/common/PoolContainer.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 
 using namespace dmlite;
 

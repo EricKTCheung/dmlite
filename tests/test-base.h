@@ -2,8 +2,7 @@
 #define	TEST_BASE_H
 
 #include <cppunit/TestFixture.h>
-#include <dmlite/dmlite++.h>
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/cpp/dmlite.h>
 
 #define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException e) { if (e.code() != DM_NO_SUCH_FILE) throw; }
 

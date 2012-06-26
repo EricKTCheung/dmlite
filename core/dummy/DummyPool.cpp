@@ -2,7 +2,7 @@
 /// @brief   DummyPoolManager implementation.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dummy/Dummy.h>
 
 using namespace dmlite;
 

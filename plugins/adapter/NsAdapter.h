@@ -4,7 +4,7 @@
 #ifndef NS_ADAPTER_H
 #define	NS_ADAPTER_H
 
-#include <dmlite/dm_catalog.h>
+#include <dmlite/cpp/dm_catalog.h>
 #include <dpns_api.h>
 
 namespace dmlite {

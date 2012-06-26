@@ -4,7 +4,7 @@
 #ifndef ADAPTER_H
 #define	ADAPTER_H
 
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 
 namespace dmlite {
 

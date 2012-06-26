@@ -2,15 +2,15 @@
 /// @brief  C wrapper for dmlite::Catalog.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
-#include <dmlite/dmlite++.h>
-#include <dmlite/dmlite.h>
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/c/dmlite.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dm_exceptions.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <set>
 #include <vector>
 
 #include "Private.h"
-#include "dmlite/common/Urls.h"
-#include "dmlite/common/Security.h"
 
 
 

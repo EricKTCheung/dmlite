@@ -3,7 +3,7 @@
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstdarg>
 #include <cstring>
-#include <dmlite/dm_types.h>
+#include <dmlite/common/dm_types.h>
 
 
 

@@ -8,11 +8,11 @@
 #include <sstream>
 
 #include <libmemcached/memcached.h>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/dummy/Dummy.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 namespace dmlite {
 

@@ -4,8 +4,7 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 Url dmlite::splitUrl(const std::string& uri)
 {

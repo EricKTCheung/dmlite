@@ -4,9 +4,9 @@
 #ifndef NSMYSQL_H
 #define	NSMYSQL_H
 
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/dm_inode.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/dm_inode.h>
 #include <mysql/mysql.h>
 #include <vector>
 

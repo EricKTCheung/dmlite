@@ -1,7 +1,7 @@
-#include <dmlite/common/Security.h>
+#include <cstring>
+#include <dmlite/cpp/utils/dm_security.h>
 #include "Queries.h"
 #include "UserGroupDbOracle.h"
-#include <string.h>
 
 using namespace dmlite;
 using namespace oracle;

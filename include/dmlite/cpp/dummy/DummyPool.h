@@ -5,7 +5,7 @@
 #ifndef DMLITE_DUMMYPOOL_H
 #define	DMLITE_DUMMYPOOL_H
 
-#include <dmlite/dmlite++.h>
+#include "../dmlite.h"
 
 namespace dmlite {
 

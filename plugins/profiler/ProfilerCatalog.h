@@ -4,7 +4,7 @@
 #ifndef PROFILERCATALOG_H
 #define	PROFILERCATALOG_H
 
-#include <dmlite/dm_catalog.h>
+#include <dmlite/cpp/dm_catalog.h>
 
 namespace dmlite {
 

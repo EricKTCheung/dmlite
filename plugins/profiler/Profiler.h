@@ -10,7 +10,7 @@
 #include <string>
 #include <syslog.h>
 
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 
 #include "ProfilerCatalog.h"
 #include "ProfilerPoolManager.h"

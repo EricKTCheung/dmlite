@@ -5,7 +5,7 @@
 #ifndef DMLITE_DUMMY_CATALOG_H
 #define	DMLITE_DUMMY_CATALOG_H
 
-#include <dmlite/dmlite++.h>
+#include "../dmlite.h"
 
 namespace dmlite {
 

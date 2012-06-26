@@ -1,7 +1,7 @@
 /// @file   core/IO-C.cpp
 /// @brief  C wrapper for dmlite::IOFactory.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
-#include <dmlite/dmlite.h>
+#include <dmlite/c/dmlite.h>
 #include <fcntl.h>
 #include <map>
 #include "Private.h"

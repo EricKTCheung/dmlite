@@ -7,7 +7,7 @@
 #include <cstdarg>
 #include <exception>
 #include <string>
-#include "dm_errno.h"
+#include "../common/dm_errno.h"
 
 namespace dmlite {
 

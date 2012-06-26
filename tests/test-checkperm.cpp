@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/common/Security.h>
+#include <dmlite/cpp/utils/dm_security.h>
 
 class ChkPerm: public CppUnit::TestFixture {
 protected:

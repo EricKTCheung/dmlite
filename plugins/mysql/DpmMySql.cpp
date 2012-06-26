@@ -1,8 +1,8 @@
 /// @file    plugins/mysql/DpmMySql.cpp
 /// @brief   MySQL DPM Implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

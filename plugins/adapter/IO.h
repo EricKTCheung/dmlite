@@ -4,7 +4,7 @@
 #ifndef IO_H
 #define	IO_H
 
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <fstream>
 
 namespace dmlite {

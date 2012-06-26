@@ -1,8 +1,9 @@
 #include <assert.h>
-#include <dmlite/dm_types.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <iostream>
 #include <string.h>
-#include <dmlite/common/Urls.h>
+
+
 
 inline int Validate(const char* uri,
                     const char* scheme, const char* host, unsigned port,

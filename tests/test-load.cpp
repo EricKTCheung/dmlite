@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <iostream>
 #include <sys/stat.h>
 

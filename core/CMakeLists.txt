@@ -2,19 +2,22 @@ cmake_minimum_required (VERSION 2.6)
 
 add_library(dmlite SHARED Auth.cpp
                           Defaults.cpp
-                          Catalog-C.cpp
                           Exceptions.cpp
-                          IO-C.cpp
                           PluginManager.cpp
-                          PluginManager-C.cpp
-                          Pool-C.cpp
                           StackInstance.cpp
                           Types.cpp
+
                           builtin/Catalog.cpp
+
+                          c/Catalog-C.cpp
+                          c/IO-C.cpp
+                          c/PluginManager-C.cpp
+                          c/Pool-C.cpp
+                          
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
 
-target_link_libraries(dmlite dl pthread dmlitecommon)
+target_link_libraries(dmlite dl pthread dmliteutils)
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}

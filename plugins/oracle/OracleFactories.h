@@ -4,9 +4,9 @@
 #ifndef ORACLE_H
 #define	ORACLE_H
 
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 #include <occi.h>
 
 

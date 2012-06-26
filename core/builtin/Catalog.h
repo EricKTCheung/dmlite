@@ -5,10 +5,10 @@
 #ifndef CATALOG_H
 #define	CATALOG_H
 
-#include <dmlite/dm_catalog.h>
-#include <dmlite/dm_inode.h>
-#include <dmlite/dm_pool.h>
-#include <dmlite/dm_pooldriver.h>
+#include <dmlite/cpp/dm_catalog.h>
+#include <dmlite/cpp/dm_inode.h>
+#include <dmlite/cpp/dm_pool.h>
+#include <dmlite/cpp/dm_pooldriver.h>
 
 namespace dmlite {
   

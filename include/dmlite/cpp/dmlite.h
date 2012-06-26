@@ -9,18 +9,18 @@
 #include <string>
 #include "dm_auth.h"
 #include "dm_catalog.h"
-#include "dm_errno.h"
 #include "dm_exceptions.h"
 #include "dm_inode.h"
 #include "dm_io.h"
 #include "dm_pool.h"
 #include "dm_pooldriver.h"
-#include "dm_types.h"
+#include "../common/dm_errno.h"
+#include "../common/dm_types.h"
 
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120625;
+const unsigned API_VERSION = 20120626;
 
 class StackInstance;
 

@@ -5,12 +5,13 @@
 #ifndef SECURITY_H
 #define	SECURITY_H
 
-#include <dmlite/dm_auth.h>
-#include <dmlite/dm_exceptions.h>
-#include <dmlite/dm_types.h>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
+#include "../dm_auth.h"
+#include "../dm_exceptions.h"
+#include "../../common/dm_types.h"
+
 
 namespace dmlite {
 

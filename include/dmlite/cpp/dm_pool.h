@@ -8,7 +8,7 @@
 #include <vector>
 #include "dm_auth.h"
 #include "dm_exceptions.h"
-#include "dm_types.h"
+#include "../common/dm_types.h"
 
 namespace dmlite {
   

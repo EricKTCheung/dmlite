@@ -1,4 +1,4 @@
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <iostream>
 #include <vector>
 

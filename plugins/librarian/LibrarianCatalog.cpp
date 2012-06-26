@@ -3,7 +3,7 @@
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <set>
 #include <vector>
-#include <dmlite/common/Urls.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 #include "Librarian.h"
 

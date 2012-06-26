@@ -1,9 +1,9 @@
 /// @file   plugins/adapter/FilesystemDriver.cpp
 /// @brief  Regular Filesystem pool
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/common/Urls.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_urls.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <dpm_api.h>
 #include <serrno.h>
 #include <stdlib.h>

@@ -10,7 +10,7 @@ add_library (oracle MODULE OracleFactories.cpp
                            NsOracle.cpp
                            UserGroupDbOracle.cpp)
 
-target_link_libraries (oracle dmlite dmlitecommon occi clntsh)
+target_link_libraries (oracle dmlite dmliteutils occi clntsh)
 set_target_properties (oracle PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       oracle

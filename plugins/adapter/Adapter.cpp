@@ -2,7 +2,7 @@
 /// @brief  Adapter Plugin entry point.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <pthread.h>
 
 #include "Adapter.h"

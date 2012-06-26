@@ -2,8 +2,8 @@
 /// @brief  Built-in IO factory (std::fstream)
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Security.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <errno.h>
 #include <fstream>
 #include <iosfwd>
