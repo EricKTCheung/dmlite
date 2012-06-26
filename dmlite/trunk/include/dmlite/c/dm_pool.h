@@ -5,6 +5,8 @@
 #ifndef DM_POOL_H
 #define	DM_POOL_H
 
+#include "dmlite.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif

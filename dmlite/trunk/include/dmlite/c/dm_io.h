@@ -5,13 +5,15 @@
 #ifndef DM_IO_H
 #define	DM_IO_H
 
-#include "../common/dm_errno.h"
-#include "../common/dm_types.h"
+#include "dmlite.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
+/** Handle for a file descriptor. */
+typedef struct dm_fd dm_fd;
+  
 /**
  * Do a stat over a physical file.
  * @param context The DM context.

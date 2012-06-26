@@ -5,6 +5,8 @@
 #ifndef DM_CATALOG_H
 #define	DM_CATALOG_H
 
+#include "dmlite.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
