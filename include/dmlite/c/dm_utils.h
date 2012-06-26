@@ -5,6 +5,8 @@
 #ifndef DM_UTILS_H
 #define	DM_UTILS_H
 
+#include "../common/dm_types.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif

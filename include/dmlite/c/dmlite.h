@@ -19,8 +19,6 @@ extern "C" {
 typedef struct dm_manager dm_manager;
 /** Handle for a initialized context. */
 typedef struct dm_context dm_context;
-/** Handle for a file descriptor. */
-typedef struct dm_fd dm_fd;
 
 /**
  * Get the API version.

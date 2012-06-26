@@ -5,6 +5,8 @@
 #ifndef DM_INODE_H
 #define	DM_INODE_H
 
+#include "dmlite.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
