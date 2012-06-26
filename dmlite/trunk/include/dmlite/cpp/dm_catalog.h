@@ -1,8 +1,8 @@
 /// @file   include/dmlite/dm_catalog.h
 /// @brief  Catalog API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_CATALOG_H
-#define	DMLITE_CATALOG_H
+#ifndef DMLITEPP_CATALOG_H
+#define	DMLITEPP_CATALOG_H
 
 #include <cstdarg>
 #include <string>
@@ -252,4 +252,4 @@ private:
 
 };
 
-#endif	// DMLITE_CATALOG_H
+#endif	// DMLITEPP_CATALOG_H

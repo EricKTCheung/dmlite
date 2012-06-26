@@ -135,3 +135,13 @@ int dm_context_free(dm_context* context)
   }
   return 0;
 }
+
+
+
+int dm_setcredentials(dm_context* context, struct credentials* cred)
+{
+  TRY(context, setcredentials)
+  NOT_NULL(cred);
+  context->stack->setSecurityCredentials(dmlite::SecurityCredentials(*cred));
+  CATCH(context, setcredentials)
+}

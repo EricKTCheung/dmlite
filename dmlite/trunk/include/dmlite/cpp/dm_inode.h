@@ -1,8 +1,8 @@
 /// @file   include/dmlite/dm_inode.h
 /// @brief  Low-level access API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_INODE_H
-#define	DMLITE_INODE_H
+#ifndef DMLITEPP_INODE_H
+#define	DMLITEPP_INODE_H
 
 #include <cstdarg>
 #include <string>
@@ -224,4 +224,4 @@ private:
   
 };
 
-#endif	// DMLITE_INODE_H
+#endif	// DMLITEPP_INODE_H

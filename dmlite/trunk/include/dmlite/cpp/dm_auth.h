@@ -1,8 +1,8 @@
 /// @file   include/dmlite/dm_auth.h
 /// @brief  Security API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_AUTH_H
-#define	DMLITE_AUTH_H
+#ifndef DMLITEPP_AUTH_H
+#define	DMLITEPP_AUTH_H
 
 #include <string>
 #include <vector>
@@ -145,4 +145,4 @@ private:
 
 };
 
-#endif	// DMLITE_AUTH_H
+#endif	// DMLITEPP_AUTH_H

@@ -2,8 +2,8 @@
 /// @brief  I/O API. Abstracts how to write or read to/from a disk within
 ///         a pool.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DM_IO_H
-#define	DM_IO_H
+#ifndef DMLITEPP_IO_H
+#define	DMLITEPP_IO_H
 
 #include <iostream>
 #include <map>
@@ -92,4 +92,4 @@ private:
 
 };
 
-#endif	// DM_IO_H
+#endif	// DMLITEPP_IO_H

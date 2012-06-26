@@ -3,6 +3,7 @@
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
 #include <dmlite/c/dmlite.h>
+#include <dmlite/c/dm_catalog.h>
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/dm_exceptions.h>
 #include <dmlite/cpp/utils/dm_security.h>
@@ -170,6 +171,30 @@ int dm_get(dm_context* context, const char* path, struct location** loc)
   Location *locp = new Location(context->stack->getCatalog()->get(path));
   *loc = locp;
   CATCH(context, get)
+}
+
+
+
+int dm_getlocation(dm_context* context, const FileReplica* replica, struct location** loc)
+{
+  TRY(context, getlocation)
+  NOT_NULL(replica);
+  
+  Pool pool = context->stack->getPoolManager()->getPool(replica->pool);
+  dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.pool_type);
+  dmlite::PoolHandler* handler = driver->createPoolHandler(pool.pool_name);
+  
+  try {
+    Location *locp = new Location(handler->getLocation(*replica));
+    *loc = locp;
+    delete handler;
+  }
+  catch (...) {
+    delete handler;
+    throw;
+  }
+  
+  CATCH(context, getlocation)
 }
 
 
@@ -476,34 +501,6 @@ int dm_replica_setstatus(dm_context* context, const char* replica, char status)
 
 
 
-int dm_setcredentials(dm_context* context, struct credentials* cred)
-{
-  TRY(context, setcredentials)
-  NOT_NULL(cred);
-  context->stack->setSecurityCredentials(dmlite::SecurityCredentials(*cred));
-  CATCH(context, setcredentials)
-}
-
-
-
-int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
-{
-  TRY(context, getpools)
-  NOT_NULL(nbpools);
-  NOT_NULL(pools);
-  
-  std::vector<pool> poolSet = context->stack->getPoolManager()->getPools();
-
-  *pools   = new pool[poolSet.size()];
-  *nbpools = poolSet.size();
-
-  std::copy(poolSet.begin(), poolSet.end(), *pools);
-
-  CATCH(context, getpools)
-}
-
-
-
 int dm_errno(dm_context* context)
 {
   if (context == NULL)
@@ -519,40 +516,4 @@ const char* dm_error(dm_context* context)
   if (context == NULL)
     return "The context is a NULL pointer";
   return context->errorString.c_str();
-}
-
-
-
-void dm_parse_url(const char* source, struct url* dest)
-{
-  *dest = dmlite::splitUrl(source);
-}
-
-
-
-void dm_serialize_acls(int nAcls, struct dm_acl* acls, char* buffer, size_t bsize)
-{
-  std::vector<Acl> aclV(nAcls);
-  aclV.assign(acls, acls + nAcls);
-
-  std::string aclStr = dmlite::serializeAcl(aclV);
-
-  std::strncpy(buffer, aclStr.c_str(), bsize);
-}
-
-void dm_deserialize_acls(const char* buffer, int* nAcls, struct dm_acl** acls)
-{
-  std::vector<Acl> aclV = dmlite::deserializeAcl(buffer);
-
-  *nAcls = aclV.size();
-  *acls  = new Acl[*nAcls];
-
-  std::copy(aclV.begin(), aclV.end(), *acls);
-}
-
-
-
-void dm_freeacls(int nAcls, struct dm_acl* acls)
-{
-  delete [] acls;
 }
