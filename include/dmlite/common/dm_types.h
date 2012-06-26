@@ -210,6 +210,9 @@ public:
   /// @example Location("localhost", "/", true, 2, "Key", "Value", "Key2", "Value2");
   Location(const char* host, const char* path, bool available, unsigned npairs, ...);
   ~Location();
+  
+  /// Operator =
+  const Location& operator = (const Location&);
 };
 #endif
 
