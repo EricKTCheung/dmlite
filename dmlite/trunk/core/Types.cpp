@@ -129,3 +129,27 @@ Location::~Location()
     delete [] this->extra;
   }
 }
+
+
+
+const Location& Location::operator = (const Location& src)
+{
+  this->available = src.available;
+  this->priority  = src.priority;
+  
+  strncpy(this->host, src.host, sizeof(Location::host));
+  strncpy(this->path, src.path, sizeof(Location::path));
+  
+  this->nextra = src.nextra;
+  if (this->nextra > 0) {
+    this->extra = new keyvalue[this->nextra];
+    for (unsigned i = 0; i < src.nextra; ++i) {
+      this->extra[i].key   = duplicate(src.extra[i].key);
+      this->extra[i].value = duplicate(src.extra[i].value);
+    }
+  }
+  else
+    this->extra = 0x00;
+  
+  return *this;
+}
