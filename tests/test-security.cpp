@@ -1,5 +1,6 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
+#include <cstring>
 #include <dmlite/dm_config.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
