@@ -114,6 +114,15 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
 int dm_get(dm_context* context, const char* path, struct location** loc);
 
 /**
+ * Get the location of a replica.
+ * @param context The DM context.
+ * @param replica The replica to translate.
+ * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
+ * @return        0 on success, error code otherwise.
+ */
+int dm_getlocation(dm_context* context, const FileReplica* replica, struct location** loc);
+
+/**
  * Free a location struct.
  * @param context The DM context.
  * @param loc     The struct to free.

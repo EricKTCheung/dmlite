@@ -28,8 +28,8 @@ public:
   uint64_t getFreeSpace(void) throw (DmException);
   bool isAvailable(bool) throw (DmException);
   
-  Location getLocation(const std::string&, const FileReplica&) throw (DmException);
-  void remove         (const std::string&, const FileReplica&) throw (DmException);
+  Location getLocation(const FileReplica&) throw (DmException);
+  void     remove     (const FileReplica&) throw (DmException);
   
   Location putLocation(const std::string&) throw (DmException);
   void     putDone    (const FileReplica&, const std::map<std::string, std::string>&) throw (DmException);
@@ -39,7 +39,7 @@ private:
   std::string    poolName;
   StackInstance* stack;
   
-  bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
+  bool replicaAvailable(const FileReplica&) throw (DmException);
 };
 
 

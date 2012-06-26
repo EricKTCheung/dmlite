@@ -260,7 +260,7 @@ Location BuiltInCatalog::get(const std::string& path) throw (DmException)
       Pool pool = this->si_->getPoolManager()->getPool(replicas[i].pool);
       PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
       
-      Location location = handler->getLocation(path, replicas[i]);
+      Location location = handler->getLocation(replicas[i]);
 
       if (location.available) {
         available.push_back(location);
@@ -451,7 +451,7 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
       Pool         pool   = this->si_->getPoolManager()->getPool(replicas[i].pool);
       PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
       
-      handler->remove(path, replicas[i]);
+      handler->remove(replicas[i]);
       
       delete handler;
     }

@@ -240,22 +240,22 @@ bool HadoopPoolHandler::isAvailable(bool write) throw (DmException)
 
 
 
-bool HadoopPoolHandler::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
+bool HadoopPoolHandler::replicaAvailable(const FileReplica& replica) throw (DmException)
 {
-  if(hdfsExists(this->fs, sfn.c_str()) == 0)
+  if(hdfsExists(this->fs, replica.rfn) == 0)
     return true;
   return false;
 }
 
 
 
-Location HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplica& replica) throw (DmException)
+Location HadoopPoolHandler::getLocation(const FileReplica& replica) throw (DmException)
 {
   // To be done
 //  throw DmException(DM_NOT_IMPLEMENTED, "hadoop::getLocation");
   std::vector<std::string> datanodes;
-  if(hdfsExists(this->fs, sfn.c_str()) == 0){
-    char*** hosts = hdfsGetHosts(this->fs, sfn.c_str(), 0, 1);
+  if(hdfsExists(this->fs, replica.rfn) == 0){
+    char*** hosts = hdfsGetHosts(this->fs, replica.rfn, 0, 1);
     if(hosts){
       int i=0;
       while(hosts[i]) {
@@ -273,22 +273,22 @@ Location HadoopPoolHandler::getLocation(const std::string& sfn, const FileReplic
   // Beware! If the file size is 0, no host will be returned
   // Remit to the name node (for instance)
   if (datanodes.size() == 0) {
-    throw DmException(DM_NO_REPLICAS, "No replicas found on Hadoop for " + sfn);
+    throw DmException(DM_NO_REPLICAS, "No replicas found on Hadoop for %s", replica.rfn);
   }
 
   // Pick a location
   srand(time(NULL));
   unsigned i = rand() % datanodes.size();
-  return Location(datanodes[i].c_str(), sfn.c_str(),
-                  this->replicaAvailable(sfn, replica),
+  return Location(datanodes[i].c_str(), replica.rfn,
+                  this->replicaAvailable(replica),
                   0);
 }
 
 
 
-void HadoopPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
+void HadoopPoolHandler::remove(const FileReplica& replica) throw (DmException)
 {
-  hdfsDelete(this->fs, sfn.c_str());
+  hdfsDelete(this->fs, replica.rfn);
 }
 
 

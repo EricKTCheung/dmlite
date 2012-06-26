@@ -1,8 +1,8 @@
 /// @file   include/dmlite/dm_pooldriver.h
 /// @brief  Pool handling API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_POOLDRIVER_H
-#define	DMLITE_POOLDRIVER_H
+#ifndef DMLITEPP_POOLDRIVER_H
+#define	DMLITEPP_POOLDRIVER_H
 
 #include <map>
 #include <vector>
@@ -37,10 +37,10 @@ public:
   virtual bool isAvailable(bool write = true) throw (DmException) = 0;
 
   /// Get the actual location of the file replica. This is pool-dependant.
-  virtual Location getLocation(const std::string &fn, const FileReplica& replica) throw (DmException) = 0;
-  
+  virtual Location getLocation(const FileReplica& replica) throw (DmException) = 0;
+    
   /// Remove a replica from the pool.
-  virtual void remove(const std::string& fn, const FileReplica& replica) throw (DmException) = 0;
+  virtual void remove(const FileReplica& replica) throw (DmException) = 0;
 
   /// Get where to put a file
   virtual Location putLocation(const std::string& fn) throw (DmException) = 0;
@@ -90,4 +90,4 @@ protected:
 
 };
 
-#endif	// DMLITE_POOLDRIVER_H
+#endif	// DMLITEPP_POOLDRIVER_H

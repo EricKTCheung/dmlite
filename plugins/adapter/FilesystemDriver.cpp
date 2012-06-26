@@ -132,7 +132,7 @@ bool FilesystemPoolHandler::isAvailable(bool write = true) throw (DmException)
 
 
 
-bool FilesystemPoolHandler::replicaAvailable(const std::string& sfn, const FileReplica& replica) throw (DmException)
+bool FilesystemPoolHandler::replicaAvailable(const FileReplica& replica) throw (DmException)
 {
   // No API call for getting one specific FS
   std::vector<dpm_fs> fs = this->getFilesystems(replica.pool);
@@ -181,12 +181,12 @@ void FilesystemPoolHandler::update() throw (DmException)
 
 
 
-Location FilesystemPoolHandler::getLocation(const std::string &sfn, const FileReplica& replica) throw (DmException)
+Location FilesystemPoolHandler::getLocation(const FileReplica& replica) throw (DmException)
 {
 
   Url rloc = dmlite::splitUrl(replica.rfn);
   
-  return Location(rloc.host, rloc.path, this->replicaAvailable(sfn, replica),
+  return Location(rloc.host, rloc.path, this->replicaAvailable(replica),
                   1,
                   "token",
                   dmlite::generateToken(this->driver_->userId_, rloc.path,
@@ -196,7 +196,7 @@ Location FilesystemPoolHandler::getLocation(const std::string &sfn, const FileRe
 
 
 
-void FilesystemPoolHandler::remove(const std::string& sfn, const FileReplica& replica) throw (DmException)
+void FilesystemPoolHandler::remove(const FileReplica& replica) throw (DmException)
 {
   if (dpm_delreplica((char*)replica.rfn) != 0)
     ThrowExceptionFromSerrno(serrno);

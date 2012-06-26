@@ -44,8 +44,8 @@ public:
   uint64_t getFreeSpace(void) throw (DmException);
   bool isAvailable(bool) throw (DmException);
 
-  Location getLocation (const std::string&, const FileReplica&) throw (DmException);
-  void remove          (const std::string&, const FileReplica&) throw (DmException);
+  Location getLocation(const FileReplica& replica) throw (DmException);
+  void remove         (const FileReplica&) throw (DmException);
   
   Location putLocation(const std::string&) throw (DmException);
   void putDone(const FileReplica&,
@@ -58,7 +58,7 @@ private:
 
   void update(void) throw (DmException);
   std::vector<dpm_fs> getFilesystems(const std::string&) throw (DmException);
-  bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
+  bool replicaAvailable(const FileReplica&) throw (DmException);
 };
 
 };

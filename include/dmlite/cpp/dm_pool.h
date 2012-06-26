@@ -1,8 +1,8 @@
 /// @file   include/dmlite/dm_pool.h
 /// @brief  Pool API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITE_POOL_H
-#define	DMLITE_POOL_H
+#ifndef DMLITEPP_POOL_H
+#define	DMLITEPP_POOL_H
 
 #include <string>
 #include <vector>
@@ -89,4 +89,4 @@ private:
 
 };
 
-#endif	// DMLITE_POOL_H
+#endif	// DMLITEPP_POOL_H
