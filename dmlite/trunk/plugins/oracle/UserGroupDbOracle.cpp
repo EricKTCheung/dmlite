@@ -243,21 +243,31 @@ UserInfo UserGroupDbOracle::getUser(uid_t uid) throw (DmException)
 UserInfo UserGroupDbOracle::getUser(const std::string& userName) throw (DmException)
 {
   UserInfo  user;
-  occi::Statement* stmt = getPreparedStatement(this->conn_, STMT_GET_USERINFO_BY_NAME);
+  
+    // If the username is the host DN, root!
+  if (userName == dmlite::getHostDN()) {
+    strncpy(user.name, userName.c_str(), sizeof(user.name));
+    user.ca[0] = '\0';
+    user.banned = 0;
+    user.uid    = 0;
+  }
+  else {
+    occi::Statement* stmt = getPreparedStatement(this->conn_, STMT_GET_USERINFO_BY_NAME);
 
-  stmt->setString(1, userName);
-  occi::ResultSet* rs = stmt->executeQuery();
+    stmt->setString(1, userName);
+    occi::ResultSet* rs = stmt->executeQuery();
 
-  if (!rs->next())
-    throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
+    if (!rs->next())
+      throw DmException(DM_NO_SUCH_USER, "User " + userName + " not found");
 
-  user.uid = rs->getNumber(1);
-  strncpy(user.name, rs->getString(2).c_str(), sizeof(user.name));
-  strncpy(user.ca, rs->getString(3).c_str(), sizeof(user.ca));
-  user.banned = rs->getNumber(4);
+    user.uid = rs->getNumber(1);
+    strncpy(user.name, rs->getString(2).c_str(), sizeof(user.name));
+    strncpy(user.ca, rs->getString(3).c_str(), sizeof(user.ca));
+    user.banned = rs->getNumber(4);
 
-  stmt->closeResultSet(rs);
-  this->conn_->terminateStatement(stmt);
+    stmt->closeResultSet(rs);
+    this->conn_->terminateStatement(stmt);
+  }
 
   return user;
 }
