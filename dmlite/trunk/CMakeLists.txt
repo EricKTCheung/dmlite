@@ -44,7 +44,7 @@ install (DIRECTORY   include/
          PATTERN     ".svn" EXCLUDE
          PATTERN     ".cmake" EXCLUDE)
 
-# Generate documentation 
+# Generate documentation
 find_package (Doxygen)
 
 if (DOXYGEN_FOUND)
