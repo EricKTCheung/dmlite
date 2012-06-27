@@ -447,11 +447,11 @@ static void registerIOHadoop(PluginManager* pm) throw (DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_hadoop_pooldriver = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginHadoop
 };
 
 PluginIdCard plugin_hadoop_io = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerIOHadoop
 };

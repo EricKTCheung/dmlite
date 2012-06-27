@@ -214,6 +214,6 @@ static void registerPluginMemcache(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_memcache = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginMemcache
 };

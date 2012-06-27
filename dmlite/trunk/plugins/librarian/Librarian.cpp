@@ -54,6 +54,6 @@ static void registerPluginLibrarian(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_librarian = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginLibrarian
 };

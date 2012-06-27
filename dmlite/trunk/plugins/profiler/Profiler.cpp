@@ -69,6 +69,6 @@ static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_profiler = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerProfilerPlugin
 };

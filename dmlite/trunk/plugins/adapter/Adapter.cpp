@@ -181,21 +181,21 @@ static void registerIOPlugin(PluginManager* pm) throw (DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_adapter_ns = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginNs
 };
 
 PluginIdCard plugin_adapter_dpm = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginDpm
 };
 
 PluginIdCard plugin_fs_pooldriver = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginDriver
 };
 
 PluginIdCard plugin_fs_io = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerIOPlugin
 };
