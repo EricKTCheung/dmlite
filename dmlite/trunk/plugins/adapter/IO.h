@@ -31,7 +31,7 @@ public:
   void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext* ctx) throw (DmException);
   
-  IOHandler* createIOHandler(const std::string& pfn, std::iostream::openmode openmode,
+  IOHandler* createIOHandler(const std::string& pfn, int openmode,
                              const std::map<std::string, std::string>& extras) throw (DmException);
   
   struct stat pStat(const std::string& pfn) throw (DmException);
@@ -49,20 +49,21 @@ private:
 
 class StdIOHandler: public IOHandler {
 public:
-  StdIOHandler(const std::string& path, std::iostream::openmode openmode) throw (DmException);
+  StdIOHandler(const std::string& path, int openmode) throw (DmException);
   ~StdIOHandler();
   void   close(void) throw (DmException);
   size_t read (char* buffer, size_t count) throw (DmException);
   size_t write(const char* buffer, size_t count) throw (DmException);
-  void   seek (long offset, std::ios_base::seekdir whence) throw (DmException);
+  void   seek (long offset, int whence) throw (DmException);
   long   tell (void) throw (DmException);
   void   flush(void) throw (DmException);
   bool   eof  (void) throw (DmException);
   struct stat pstat(void) throw (DmException);
 
 protected:
-  std::fstream stream_;
-  std::string  path_;
+  int  fd_;
+  bool eof_;
+  long pos_;
 };
 
 };
