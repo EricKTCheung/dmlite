@@ -53,7 +53,7 @@ IODriver* StdIOFactory::createIODriver(PluginManager* pm) throw (DmException)
 
 
 StdIODriver::StdIODriver(std::string passwd, bool useIp):
-  si_(0), secCtx_(0), passwd_(passwd), useIp_(useIp_)
+  si_(0), secCtx_(0), passwd_(passwd), useIp_(useIp)
 {
   // Nothing
 }
@@ -100,7 +100,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn, std::iostream::o
                              userId,
                              pfn, this->passwd_,
                              openmode == std::ios_base::out))
-    throw DmException(DM_FORBIDDEN, "Token does not validate");
+    throw DmException(DM_FORBIDDEN, "Token does not validate (%s)", userId.c_str());
   
   // Create
   return new StdIOHandler(pfn, openmode);
