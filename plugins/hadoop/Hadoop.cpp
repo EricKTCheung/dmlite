@@ -10,21 +10,11 @@ using namespace dmlite;
 
 
 
-HadoopIOHandler::HadoopIOHandler(HadoopIODriver* driver, const std::string& uri, std::iostream::openmode openmode) throw (DmException):
+HadoopIOHandler::HadoopIOHandler(HadoopIODriver* driver, const std::string& uri, int openmode) throw (DmException):
   driver(driver), path(uri)
 {
-
-  // Set up correctly the flag to open a hdfs file
-  int flag;
-  if(openmode == std::ios_base::in)
-    flag = O_RDONLY;
-  else if (openmode == std::ios_base::out)
-    flag = O_WRONLY;
-  else
-    throw DmException(DM_INTERNAL_ERROR, "Could not understand the openmode");
-
   // Try to open the hdfs file, map the errno to the DmException otherwise
-  this->file = hdfsOpenFile(driver->fs, uri.c_str(), flag, 0, 0, 0);
+  this->file = hdfsOpenFile(driver->fs, uri.c_str(), openmode, 0, 0, 0);
   if (!this->file) {
     switch(errno) {
       case ENOENT:
@@ -81,20 +71,20 @@ size_t HadoopIOHandler::write(const char* buffer, size_t count) throw (DmExcepti
 
 
 // Position the reader pointer to the desired offset
-void HadoopIOHandler::seek(long offset, std::ios_base::seekdir whence) throw (DmException){
+void HadoopIOHandler::seek(long offset, int whence) throw (DmException){
 
 	long positionToSet = 0;	
 
 	// Whence described from where the offset has to be set (begin, current or end)
 	switch(whence)
 	{
-		case std::ios_base::beg:
+    case SEEK_SET:
 			positionToSet = offset;
 			break;	
-		case std::ios_base::cur:
+    case SEEK_CUR:
 			positionToSet = (this->tell() + offset);
 			break;
-		case std::ios_base::end:
+    case SEEK_END:
 			positionToSet = (hdfsAvailable(this->driver->fs, this->file) - offset);
 			break;
 		default:
@@ -385,7 +375,7 @@ void HadoopIODriver::setSecurityContext(const SecurityContext*) throw (DmExcepti
 
 
 IOHandler *HadoopIODriver::createIOHandler(const std::string& uri,
-                                           std::iostream::openmode openmode,
+                                           int openmode,
                                            const std::map<std::string, std::string>& extras) throw (DmException)
 {
 	return new HadoopIOHandler(this, uri, openmode);

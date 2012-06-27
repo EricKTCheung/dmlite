@@ -31,25 +31,6 @@ int dm_pstat(dm_context* context, const char* rfn, struct stat* st)
 dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
                 unsigned nextras, struct keyvalue* extrasp)
 {
-  std::ios_base::openmode openmode;
-
-  switch (flags & 07) {
-    case O_WRONLY:
-      openmode = std::ios_base::out;
-      break;
-    case O_RDWR:
-      openmode = std::ios_base::in | std::ios_base::out;
-      break;
-    default:
-      openmode = std::ios_base::in;
-      break;
-  }
-  
-  if (flags & O_APPEND)
-    openmode |= std::ios_base::app;
-  if (flags & O_TRUNC)
-    openmode |= std::ios_base::trunc;
-
   TRY(context, fopen)
   NOT_NULL(path);
    
@@ -60,7 +41,7 @@ dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
   
   dmlite::IOHandler* stream = context->stack->
                                  getIODriver()->
-                                 createIOHandler(path, openmode, extras);
+                                 createIOHandler(path, flags, extras);
   dm_fd* iofd = new dm_fd();
   iofd->context = context;
   iofd->stream  = stream;
@@ -86,24 +67,7 @@ int dm_fseek(dm_fd* fd, long offset, int whence)
 {
   TRY(fd->context, fseek)
   NOT_NULL(fd);
-
-  std::ios_base::seekdir seek;
-
-  switch (whence) {
-    case SEEK_SET:
-      seek = std::ios_base::beg;
-      break;
-    case SEEK_CUR:
-      seek = std::ios_base::cur;
-      break;
-    case SEEK_END:
-      seek = std::ios_base::end;
-      break;
-    default:
-      return DM_INVALID_VALUE;
-  }
-  
-  fd->stream->seek(offset, seek);
+  fd->stream->seek(offset, whence);
   CATCH(fd->context, fseek)
 }
 
