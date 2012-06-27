@@ -208,11 +208,11 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_mysql_ns = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginNs
 };
 
 PluginIdCard plugin_mysql_dpm = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginDpm
 };
