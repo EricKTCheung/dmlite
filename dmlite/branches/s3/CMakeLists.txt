@@ -7,13 +7,14 @@ set(dmlite_MAJOR 0)
 set(dmlite_MINOR 3)
 set(dmlite_PATCH 0)
 
+# Host certificate location
+set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")
+
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX "")
-  set (PKG_ARCH "i386")
 else (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX 64)
-  set (PKG_ARCH "x86_64")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 # Cmake module directory
@@ -27,16 +28,21 @@ add_definitions (-D_REENTRANT)
 
 # Subdirectories
 add_subdirectory (etc)
-add_subdirectory (common)
+add_subdirectory (utils)
 add_subdirectory (core)
 add_subdirectory (plugins)
 add_subdirectory (tests)
+
+# Config header
+configure_file (${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h.cmake
+                ${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h)
 
 # Install headers
 install (DIRECTORY   include/
          DESTINATION usr/include
          COMPONENT   dmlite-devel
-         PATTERN     ".svn" EXCLUDE)
+         PATTERN     ".svn" EXCLUDE
+         PATTERN     ".cmake" EXCLUDE)
 
 # Generate documentation
 find_package (Doxygen)

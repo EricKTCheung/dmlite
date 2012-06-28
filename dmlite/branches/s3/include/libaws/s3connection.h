@@ -159,6 +159,11 @@ namespace aws {
                      const std::string& aKey,
                      time_t aExpiration) = 0;
 
+      virtual std::string
+      putQueryString(const std::string& aBucketName,
+                     const std::string& aKey,
+                     time_t aExpiration) = 0;
+
       /*! \brief Receive an object from S3.
        *
        * This function receives and object from S3. The object is retrieved from the

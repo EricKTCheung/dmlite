@@ -9,12 +9,6 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsOracle.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/MemcacheNsMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/MemcacheNsMySql.conf)
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/lxNsMySql.conf
-                ${CMAKE_CURRENT_BINARY_DIR}/lxNsMySql.conf)
-
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/lxMemcacheNsMySql.conf
-                ${CMAKE_CURRENT_BINARY_DIR}/lxMemcacheNsMySql.conf)
-
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsAdapter.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/NsAdapter.conf)
 

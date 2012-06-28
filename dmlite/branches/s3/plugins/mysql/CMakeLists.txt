@@ -2,9 +2,14 @@ cmake_minimum_required (VERSION 2.6)
 
 link_directories (/usr/lib64/mysql /usr/lib/mysql)
 
-add_library (mysql MODULE MySqlFactories.cpp MySqlWrapper.cpp NsMySql.cpp DpmMySql.cpp)
+add_library (mysql MODULE DpmMySql.cpp
+                          MySqlFactories.cpp
+                          MySqlWrapper.cpp
+                          NsMySql.cpp
+                          Queries.cpp
+                          UserGroupDbMySql.cpp)
 
-target_link_libraries (mysql dmlite dmlitecommon mysqlclient_r)
+target_link_libraries (mysql dmlite dmliteutils mysqlclient_r)
 set_target_properties (mysql PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       mysql

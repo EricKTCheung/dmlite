@@ -5,7 +5,7 @@
 #define	DPMMYSQL_H
 
 #include "NsMySql.h"
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 
 namespace dmlite {
 
@@ -23,55 +23,18 @@ struct DpmFileSystem {
   int  weight;                 ///< The associated weight.
 };
 
-/// Implementation of DPM MySQL backend.
-class DpmMySqlCatalog: public NsMySqlCatalog {
-public:
-
-  /// Constructor
-  /// @param conn      The MySQL connection pool.
-  /// @param nsDb      The MySQL DB name for the NS.
-  /// @param dpmDb     The MySQL DB name for DPM.
-  /// @param symLimit  The recursion limit for symbolic links.
-  /// @param si        The stack instance.
-  DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool,
-                  const std::string& nsDb, const std::string& dpmDb,
-                  unsigned int symLimit,
-                  StackInstance* si) throw(DmException);
-
-  /// Destructor
-  ~DpmMySqlCatalog() throw (DmException);
-
-  // Overloading
-  std::string getImplId(void) throw ();
-  
-  Uri get (const std::string&) throw (DmException);
-
-  void unlink (const std::string&) throw (DmException);
-
-  std::string put      (const std::string&, Uri*)                     throw (DmException);
-  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
-  
-protected:
-private:
-  /// DPM DB.
-  std::string dpmDb_;
-  
-  /// Stack instance.
-  StackInstance* stack_;
-};
-
 /// Pool manager implementation.
 class MySqlPoolManager: public PoolManager {
 public:
-  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb, StackInstance* si) throw (DmException);
+  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb) throw (DmException);
   ~MySqlPoolManager();
   
   std::string getImplId(void) throw ();
   
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
   
   std::vector<Pool> getPools() throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);
@@ -97,13 +60,13 @@ private:
 /// PoolMetadata handler
 class MySqlPoolMetadata: public PoolMetadata {
 public:
-  MySqlPoolMetadata(Statement* stmt);
+  MySqlPoolMetadata(const char* meta);
   ~MySqlPoolMetadata();
   
   std::string getString(const std::string& field) throw (DmException);
   int getInt(const std::string& field) throw (DmException);
 private:
-  Statement* stmt_;
+  std::map<std::string, std::string> meta_;
 };
 
 };

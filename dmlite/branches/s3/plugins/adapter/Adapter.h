@@ -4,12 +4,12 @@
 #ifndef ADAPTER_H
 #define	ADAPTER_H
 
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 
 namespace dmlite {
 
 /// Concrete factory for DPNS/LFC wrapper
-class NsAdapterFactory: public CatalogFactory {
+class NsAdapterFactory: public CatalogFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsAdapterFactory() throw (DmException);
@@ -17,14 +17,16 @@ public:
   ~NsAdapterFactory();
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
-  Catalog* createCatalog(StackInstance* si)                        throw (DmException);
+  
+  Catalog*     createCatalog(PluginManager*)     throw (DmException);  
+  UserGroupDb* createUserGroupDb(PluginManager*) throw (DmException);
 
 protected:
   unsigned retryLimit_;
 };
 
 /// Concrete factory for DPM wrapper
-class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory, public PoolHandlerFactory {
+class DpmAdapterFactory: public NsAdapterFactory, public PoolManagerFactory, public PoolDriverFactory {
 public:
   /// Constructor
   DpmAdapterFactory() throw (DmException);
@@ -33,13 +35,18 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  Catalog*     createCatalog(PluginManager*)     throw (DmException);
+  PoolManager* createPoolManager(PluginManager*) throw (DmException);
 
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(StackInstance* si, const Pool& pool) throw (DmException);
-
+  PoolDriver* createPoolDriver(void) throw (DmException);
+  
 protected:
+  unsigned retryLimit_;
+  
+  std::string tokenPasswd_;
+  bool        tokenUseIp_;
+  unsigned    tokenLife_;
 };
 
 void ThrowExceptionFromSerrno(int serr, const char* extra = 0x00) throw(DmException);

@@ -4,7 +4,7 @@
 #ifndef PROFILERPOOLMANAGER_H
 #define	PROFILERPOOLMANAGER_H
 
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 
 namespace dmlite {
 
@@ -15,9 +15,10 @@ public:
 
   std::string getImplId(void) throw();
 
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
-  PoolMetadata* getPoolMetadata(const Pool&) throw (DmException);
+  PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
   
   std::vector<Pool> getPools(void) throw (DmException);
   Pool getPool(const std::string& poolname) throw (DmException);

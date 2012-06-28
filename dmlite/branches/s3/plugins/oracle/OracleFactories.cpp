@@ -1,11 +1,12 @@
-/// @file    plugins/oracle/OracleFactories.cpp
+// @file    plugins/oracle/OracleFactories.cpp
 /// @brief   Oracle backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include "OracleFactories.h"
+#include <cstdlib>
 #include "NsOracle.h"
+#include "OracleFactories.h"
+#include "UserGroupDbOracle.h"
 
-#include <stdlib.h>
 
 using namespace dmlite;
 using namespace oracle;
@@ -49,7 +50,7 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
 
 
 
-Catalog* NsOracleFactory::createCatalog() throw(DmException)
+INode* NsOracleFactory::createINode(PluginManager*) throw(DmException)
 {
   try {
     if (this->pool_ == 0x00)
@@ -57,8 +58,26 @@ Catalog* NsOracleFactory::createCatalog() throw(DmException)
                                                      this->nsDb_,
                                                      this->minPool_, this->maxPool_);
 
-    return new NsOracleCatalog(this->pool_, this->pool_->createConnection(this->user_, this->passwd_),
-                               this->symLinkLimit_);
+    return new INodeOracle(this->pool_,
+                           this->pool_->createConnection(this->user_, this->passwd_));
+  }
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
+  }
+}
+
+
+
+UserGroupDb* NsOracleFactory::createUserGroupDb(PluginManager*) throw (DmException)
+{
+  try {
+    if (this->pool_ == 0x00)
+      this->pool_ = this->env_->createConnectionPool(this->user_, this->passwd_,
+                                                     this->nsDb_,
+                                                     this->minPool_, this->maxPool_);
+
+    return new UserGroupDbOracle(this->pool_,
+                                 this->pool_->createConnection(this->user_, this->passwd_));
   }
   catch (occi::SQLException& ex) {
     throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
@@ -69,7 +88,8 @@ Catalog* NsOracleFactory::createCatalog() throw(DmException)
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsOracleFactory());
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsOracleFactory()));
+  pm->registerFactory(static_cast<INodeFactory*>(new NsOracleFactory()));
 }
 
 
