@@ -96,6 +96,6 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_oracle_ns = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginNs
 };
