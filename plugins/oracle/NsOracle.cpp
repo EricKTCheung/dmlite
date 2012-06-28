@@ -744,10 +744,9 @@ IDirectory* INodeOracle::openDir(ino_t inode) throw (DmException)
 {
   NsOracleDir  *dir;
 
-  dir->stmt = getPreparedStatement(this->conn_, STMT_GET_LIST_FILES);
-
   dir = new NsOracleDir();
   dir->dirId = inode;
+  dir->stmt = getPreparedStatement(this->conn_, STMT_GET_LIST_FILES);
 
   try {
     dir->stmt->setNumber(1, dir->dirId);
