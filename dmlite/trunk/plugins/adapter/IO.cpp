@@ -40,7 +40,8 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
     else
       this->useIp_ = false;
   }
-  throw DmException(DM_UNKNOWN_OPTION, key + " not known");
+  else
+    throw DmException(DM_UNKNOWN_OPTION, key + " not known");
 }
 
 

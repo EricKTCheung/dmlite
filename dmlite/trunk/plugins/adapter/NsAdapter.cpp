@@ -100,10 +100,11 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
                                           "GSI",
                                           (char*)ctx->getUser().name));
 
-  if (ctx->groupCount() > 0)
+  // Call this function only if fqans where provided
+  if (ctx->getCredentials().fqans != 0x00)
     wrapCall(dpns_client_setVOMS_data((char*)ctx->getGroup(0).name,
                                       (char**)ctx->getCredentials().fqans,
-                                      ctx->groupCount()));
+                                       ctx->groupCount()));
 }
 
 
