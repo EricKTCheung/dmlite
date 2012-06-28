@@ -81,7 +81,7 @@ add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmliteutils dmlite cppunit dl)
 
 add_executable        (test-s3 test-s3.cpp)
-target_link_libraries (test-s3 test-base dmlitecommon dmlite cppunit dl aws)
+target_link_libraries (test-s3 test-base dmliteutils dmlite cppunit dl aws)
 
 # Configure CTest testing
 ENABLE_TESTING()
