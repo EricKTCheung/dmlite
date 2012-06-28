@@ -157,6 +157,10 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_profiler.so
 
+%files plugins-s3
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_s3pool.so
+
 %files docs
 %defattr(-,root,root,-)
 %{_mandir}/man3/*
