@@ -4,28 +4,13 @@
 #ifndef MYSQLWRAPPER_H
 #define	MYSQLWRAPPER_H
 
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/cpp/dm_exceptions.h>
 #include <mysql/mysql.h>
 #include <stdint.h>
 #include <map>
 #include <vector>
 
 namespace dmlite {
-
-/// Lock and transaction handler
-/// Used to avoid manual tracking of exit paths, so any destruction
-/// before a commit() call will be a rollback.
-class Transaction {
-public:
-  Transaction(MYSQL* conn) throw (DmException);
-  ~Transaction() throw (DmException);
-
-  void commit(void) throw (DmException);
-  void rollback(void) throw (DmException);
-private:
-  bool   pending_;
-  MYSQL *connection_;
-};
 
 /// Prepared statement wrapper.
 class Statement {
@@ -37,7 +22,7 @@ public:
   void bindParam(unsigned index, const std::string& value) throw (DmException);
   void bindParam(unsigned index, const char* value, size_t size) throw (DmException);
 
-  unsigned long execute(bool autobind = false) throw (DmException);
+  unsigned long execute(void) throw (DmException);
 
   void bindResult(unsigned index, short*              destination) throw (DmException);
   void bindResult(unsigned index, signed int*         destination) throw (DmException);
@@ -53,12 +38,6 @@ public:
 
   bool fetch(void) throw (DmException);
   
-  // When autobind is set an internal allocated memory area is used, so
-  // get* can be used
-  unsigned    getFieldIndex(const std::string& fieldname) throw (DmException);
-  int         getInt   (unsigned index);
-  std::string getString(unsigned index);
-  
 protected:
 private:
   enum Step {STMT_CREATED, STMT_EXECUTED,
@@ -71,10 +50,6 @@ private:
   MYSQL_BIND*   params_;
   MYSQL_BIND*   result_;
   Step          status_;
-  
-  // For autobind
-  std::map<std::string, unsigned> fieldIndex_;
-  std::vector<void*> fieldBuffer_;
   
   /// Throws the proper exception
   void throwException() throw (DmException);

@@ -1,7 +1,7 @@
 /// @file   core/Auth.cpp
 /// @brief  Security API.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dm_auth.h>
+#include <dmlite/cpp/dm_auth.h>
 #include <string.h>
 
 using namespace dmlite;
@@ -178,6 +178,14 @@ SecurityContext::SecurityContext()
   GroupInfo rootg;
   memset(&rootg, 0x00, sizeof(GroupInfo));
   groups_.push_back(rootg);
+}
+
+
+
+SecurityContext::SecurityContext(const SecurityCredentials& cred):
+  credentials_(cred)
+{
+  // Nothing here
 }
 
 

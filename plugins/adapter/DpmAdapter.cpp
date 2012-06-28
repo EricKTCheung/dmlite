@@ -1,13 +1,16 @@
 /// @file   plugins/adapter/DpmAdapter.cpp
 /// @brief  DPM wrapper.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <dmlite/dm_errno.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/common/dm_errno.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <dpm_api.h>
 #include <serrno.h>
 #include <vector>
+#include <map>
 
 #include "Adapter.h"
 #include "DpmAdapter.h"
@@ -16,8 +19,10 @@ using namespace dmlite;
 
 
 
-DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit)
-  throw (DmException): NsAdapterCatalog(retryLimit)
+DpmAdapterCatalog::DpmAdapterCatalog(unsigned retryLimit,
+                                     const std::string& passwd, bool useIp, unsigned life) throw (DmException):
+  NsAdapterCatalog(retryLimit), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life),
+  userId_("")
 {
   dpm_client_resetAuthorizationId();
 }
@@ -33,22 +38,7 @@ DpmAdapterCatalog::~DpmAdapterCatalog()
 
 std::string DpmAdapterCatalog::getImplId() throw ()
 {
-  return std::string("DpmAdapter");
-}
-
-
-
-void DpmAdapterCatalog::set(const std::string& key, va_list value) throw (DmException)
-{
-  if (key == "SpaceToken") {
-    const char* sToken = va_arg(value, const char*);
-    if (sToken == 0x00)
-      this->spaceToken_.clear();
-    else
-      this->spaceToken_ = std::string(sToken);
-  }
-  else
-    NsAdapterCatalog::set(key, value);
+  return std::string("DpmAdapterCatalog");
 }
 
 
@@ -66,17 +56,22 @@ void DpmAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (Dm
     wrapCall(dpm_client_setVOMS_data((char*)ctx->getGroup(0).name,
                                      (char**)ctx->getCredentials().fqans,
                                      ctx->groupCount()));
+  
+  if (this->tokenUseIp_)
+    this->userId_ = ctx->getCredentials().remote_addr;
+  else
+    this->userId_ = ctx->getCredentials().client_name;
 }
 
 
 
-Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
+Location DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 {
   struct dpm_getfilereq     request;
   struct dpm_getfilestatus *statuses = 0x00;
   int                       nReplies, wait;
   char                      r_token[CA_MAXDPMTOKENLEN + 1];
-  FileReplica               replica;
+  char                      rfn[URI_MAX];
   std::string               absolute;
 
   if (path[0] == '/')
@@ -116,13 +111,16 @@ Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
       }
     }
 
-    memset(&replica, 0x00, sizeof(replica));
-    strncpy(replica.url, statuses[0].turl, URI_MAX);
-    replica.fileid = -1;
-    replica.status = statuses[0].status;
+    strncpy(rfn, statuses[0].turl, URI_MAX);
     dpm_free_gfilest(nReplies, statuses);
-
-    return dmlite::splitUri(replica.url);
+    
+    Url rloc = dmlite::splitUrl(rfn);
+    dmlite::normalizePath(rloc.path);
+    return Location(rloc.host, rloc.path, true,
+                    1,
+                    "token",
+                    dmlite::generateToken(this->userId_, rloc.path,
+                                          this->tokenPasswd_, this->tokenLife_).c_str());          
   }
   catch (...) {
     // On exceptions, free first!
@@ -134,13 +132,14 @@ Uri DpmAdapterCatalog::get(const std::string& path) throw (DmException)
 
 
 
-std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
+Location DpmAdapterCatalog::put(const std::string& path) throw (DmException)
 {
   struct dpm_putfilereq     reqfile;
   struct dpm_putfilestatus *statuses = 0x00;
   int                       nReplies, wait;
   char                      token[CA_MAXDPMTOKENLEN + 1];
   std::string               absolute;
+  const char*               spaceToken;
 
   if (path[0] == '/')
     absolute = path;
@@ -155,11 +154,18 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
   reqfile.ret_policy     = '\0';
   reqfile.ac_latency     = '\0';
   reqfile.s_token[0]     = '\0';
+  
+  try {
+    spaceToken = this->si_->get("SpaceToken").array.str;
+  }
+  catch (...) {
+    spaceToken = 0x00;
+  }
 
-  if (!this->spaceToken_.empty()) {
+  if (!spaceToken) {
     char **space_ids;
 
-    RETRY(dpm_getspacetoken(this->spaceToken_.c_str(), &nReplies, &space_ids),
+    RETRY(dpm_getspacetoken(spaceToken, &nReplies, &space_ids),
           this->retryLimit_);
     
     strncpy(reqfile.s_token, space_ids[0], sizeof(reqfile.s_token));
@@ -193,9 +199,15 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
       }
     }
     
-    *uri = splitUri(statuses[0].turl);
+    Url rloc = splitUrl(statuses[0].turl);
     dpm_free_pfilest(nReplies, statuses);
-    return std::string(token);
+    
+    dmlite::normalizePath(rloc.path);
+    return Location(rloc.host, rloc.path, true, 3,
+                    "sfn", absolute.c_str(),
+                    "dpmtoken", token,
+                    "token", dmlite::generateToken(this->userId_, rloc.path,
+                                                   this->tokenPasswd_, this->tokenLife_, true).c_str());
   }
   catch (...) {
     // On exceptions, free first!
@@ -207,28 +219,37 @@ std::string DpmAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmE
 
 
 
-std::string DpmAdapterCatalog::put(const std::string&, Uri*, const std::string&) throw (DmException)
+Location DpmAdapterCatalog::put(const std::string&, const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "put with guid not implemented for DpmAdapter");
 }
 
 
 
-void DpmAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
+void DpmAdapterCatalog::putDone(const std::string& host, const std::string& rfn,
+                                const std::map<std::string, std::string>& extras) throw (DmException)
 {
   struct dpm_filestatus *statuses;
   int                    nReplies;
-  const char            *path_c;
+  const char            *sfn;
   std::string            absolute;
+  std::map<std::string, std::string>::const_iterator i;
+  
+  // Need the sfn
+  i = extras.find("sfn");
+  if (i == extras.end())
+    throw DmException(DM_INVALID_VALUE, "sfn not specified");
+  sfn = i->second.c_str();
 
-  if (path[0] == '/')
-    absolute = path;
-  else
-    absolute = this->cwdPath_ + "/" + path;
+  // Need the dpm token
+  const char* token;
+  i = extras.find("dpmtoken");
+  if (i == extras.end())
+    throw DmException(DM_INVALID_VALUE, "dpmtoken not specified");
+  
+  token = i->second.c_str();
 
-  path_c = absolute.c_str();
-
-  RETRY(dpm_putdone((char*)token.c_str(), 1, (char**)&path_c, &nReplies, &statuses),
+  RETRY(dpm_putdone((char*)token, 1, (char**)&sfn, &nReplies, &statuses),
         this->retryLimit_);
 
   dpm_free_filest(nReplies, statuses);
@@ -283,6 +304,13 @@ std::string DpmAdapterPoolManager::getImplId() throw()
 
 
 
+void DpmAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  // Nothing
+}
+
+
+
 void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   // Call DPM API
@@ -299,7 +327,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
 
 
 
-PoolMetadata* DpmAdapterPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* DpmAdapterPoolManager::getPoolMetadata(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "DpmAdapterPoolManager does not support pluggable pool types");
 }
@@ -339,7 +367,7 @@ Pool DpmAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcept
 {
   std::vector<Pool> pools = this->getPools();
   
-  for (int i = 0; i < pools.size(); ++i) {
+  for (unsigned i = 0; i < pools.size(); ++i) {
     if (poolname == pools[i].pool_name)
       return pools[i];
   }
@@ -361,7 +389,7 @@ std::vector<Pool> DpmAdapterPoolManager::getAvailablePools(bool write) throw (Dm
     if (dpm_getpoolfs(pools[i].pool_name, &nFs, &dpm_fs) < 0)
       ThrowExceptionFromSerrno(serrno);
     
-    for (unsigned j = 0; j < nFs; ++j) {
+    for (int j = 0; j < nFs; ++j) {
       if ((write && dpm_fs[j].status == 0) || (!write && dpm_fs[i].status != FS_DISABLED))
         available.push_back(pools[i]);
     }

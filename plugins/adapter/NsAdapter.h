@@ -4,7 +4,7 @@
 #ifndef NS_ADAPTER_H
 #define	NS_ADAPTER_H
 
-#include <dmlite/dm_catalog.h>
+#include <dmlite/cpp/dm_catalog.h>
 #include <dpns_api.h>
 
 namespace dmlite {
@@ -17,7 +17,7 @@ struct PrivateDir {
 };
 
 /// Catalog implemented as a wrapper around Cns API
-class NsAdapterCatalog: public Catalog
+class NsAdapterCatalog: public Catalog, public UserGroupDb
 {
 public:
   /// Constructor
@@ -31,9 +31,8 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
 
-  void set(const std::string&, ...)     throw (DmException);
-  void set(const std::string&, va_list) throw (DmException);
-
+  void setStackInstance(StackInstance* si) throw (DmException);
+  
   SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
@@ -42,8 +41,6 @@ public:
   ino_t       getWorkingDirI(void)               throw (DmException);
 
   ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-  ExtendedStat extendedStat(ino_t)              throw (DmException);
-  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
 
   SymLink readLink(ino_t) throw (DmException);
 
@@ -55,29 +52,28 @@ public:
                      const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-
-  Uri get(const std::string&) throw (DmException);
+  Location get(const std::string&) throw (DmException);
+  
+  Location put(const std::string& path) throw (DmException);
+  Location put(const std::string& path,
+               const std::string& guid) throw (DmException);
+  void     putDone(const std::string& host, const std::string& rfn,
+                   const std::map<std::string, std::string>& params) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
 
   void create(const std::string&, mode_t) throw (DmException);
 
-  std::string put(const std::string&, Uri*)                           throw (DmException);
-  std::string put(const std::string&, Uri*, const std::string&)       throw (DmException);
-  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
-
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
   void changeSize(const std::string&, size_t) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
-  void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
@@ -106,7 +102,17 @@ public:
   void replicaSetType      (const std::string&, char)   throw (DmException);
   void replicaSetStatus    (const std::string&, char)   throw (DmException);
   
+  // Not supported (yet)
+  GroupInfo newGroup(const std::string& gname) throw (DmException);
+  UserInfo newUser(const std::string& uname, const std::string& ca) throw (DmException);
+  void getIdMap(const std::string& userName,
+                const std::vector<std::string>& groupNames,
+                UserInfo* user,
+                std::vector<GroupInfo>* groups) throw (DmException);
+  
 protected:
+  StackInstance* si_;
+  
   unsigned    retryLimit_;
   std::string cwdPath_;
 

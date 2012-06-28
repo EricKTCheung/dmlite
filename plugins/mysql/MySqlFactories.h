@@ -4,9 +4,9 @@
 #ifndef MYSQL_H
 #define	MYSQL_H
 
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 #include <mysql/mysql.h>
 
 
@@ -34,7 +34,7 @@ private:
 };
 
 /// Concrete factory for DPNS/LFC.
-class NsMySqlFactory: public CatalogFactory {
+class NsMySqlFactory: public INodeFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsMySqlFactory() throw(DmException);
@@ -42,7 +42,9 @@ public:
   ~NsMySqlFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
+  
+  INode*       createINode(PluginManager* pm)       throw (DmException);
+  UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException);
 
 protected:
   /// Connection factory.
@@ -54,15 +56,12 @@ protected:
   /// NS db.
   std::string nsDb_;
 
-  /// The recursion limit following symbolic links.
-  unsigned int symLinkLimit_;
-
 private:
 };
 
 
 
-class DpmMySqlFactory: public NsMySqlFactory, public PoolManagerFactory {
+class DpmMySqlFactory: public PoolManagerFactory {
 public:
   /// Constructor
   DpmMySqlFactory() throw(DmException);
@@ -72,10 +71,15 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  PoolManager* createPoolManager(PluginManager* pm) throw (DmException);
 
 protected:
+  /// Connection factory.
+  MySqlConnectionFactory connectionFactory_;
+
+  /// Connection pool.
+  PoolContainer<MYSQL*> connectionPool_;
+  
   /// DPM db.
   std::string dpmDb_;
 };

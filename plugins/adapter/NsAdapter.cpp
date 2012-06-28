@@ -3,10 +3,11 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdlib>
 #include <cstring>
-#include <dmlite/dm_errno.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <serrno.h>
+#include <algorithm>
 
 #include "Adapter.h"
 #include "NsAdapter.h"
@@ -48,20 +49,9 @@ std::string NsAdapterCatalog::getImplId() throw ()
 
 
 
-void NsAdapterCatalog::set(const std::string& key, ...) throw (DmException)
+void NsAdapterCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  va_list vargs;
-
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
-}
-
-
-
-void NsAdapterCatalog::set(const std::string& key, va_list) throw (DmException)
-{
-  throw DmException(DM_UNKNOWN_OPTION, "Option not recognised");
+  this->si_ = si;
 }
 
 
@@ -197,27 +187,6 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
 
 
 
-ExtendedStat NsAdapterCatalog::extendedStat(ino_t) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
-ExtendedStat NsAdapterCatalog::extendedStat(ino_t, const std::string&) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
-SymLink NsAdapterCatalog::readLink(ino_t inode) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
 void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
                                   const std::string& server, const std::string& sfn,
                                   char status, char fileType,
@@ -229,7 +198,7 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
   // If server is empty, parse the surl
   std::string host;
   if (server.empty()) {
-    Uri u = splitUri(sfn);
+    Url u = splitUrl(sfn);
     host = u.host;
     if (host.empty())
       throw DmException(DM_INVALID_VALUE, "Empty server specified, and SFN does not include it: " + sfn);
@@ -239,7 +208,7 @@ void NsAdapterCatalog::addReplica(const std::string& guid, int64_t id,
   }
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPNS_HOST"), sizeof(uniqueId.server));
 
   wrapCall(dpns_addreplica(guid.c_str(), &uniqueId, host.c_str(),
                            sfn.c_str(), status, fileType,
@@ -254,7 +223,7 @@ void NsAdapterCatalog::deleteReplica(const std::string& guid, int64_t id,
   struct dpns_fileid uniqueId;
 
   uniqueId.fileid = id;
-  strncpy(uniqueId.server, getenv("DPM_HOST"), sizeof(uniqueId.server));
+  strncpy(uniqueId.server, getenv("DPNS_HOST"), sizeof(uniqueId.server));
 
   if (guid.empty())
     wrapCall(dpns_delreplica(NULL, &uniqueId, sfn.c_str()));
@@ -293,7 +262,7 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
     strncpy(replica.filesystem, entries[i].fs,       sizeof(replica.filesystem));
     strncpy(replica.pool,       entries[i].poolname, sizeof(replica.pool));
     strncpy(replica.server,     entries[i].host,     sizeof(replica.server));
-    strncpy(replica.url,        entries[i].sfn,      sizeof(replica.url));
+    strncpy(replica.rfn,        entries[i].sfn,      sizeof(replica.rfn));
 
     replicas.push_back(replica);
   }
@@ -305,16 +274,42 @@ std::vector<FileReplica> NsAdapterCatalog::getReplicas(const std::string& path) 
 
 
 
-Uri NsAdapterCatalog::get(const std::string& path) throw (DmException)
+Location NsAdapterCatalog::get(const std::string& path) throw (DmException)
 {
-  // Naive implementation: first occurrence
-  // Better implementations are left for other plugins
+  unsigned i;
   std::vector<FileReplica> replicas = this->getReplicas(path);
+  std::vector<Location>    available;
+  
+  // Pick a random one from the available
+  if (replicas.size() > 0) {
+    i = rand() % replicas.size();
+    return dmlite::splitUrl(replicas[i].rfn);
+  }
+  else {
+    throw DmException(DM_NO_REPLICAS, "No available replicas");
+  }
+}
 
-  if (replicas.size() == 0)
-    throw DmException(DM_NO_REPLICAS, "No replicas found for " + path);
 
-  return dmlite::splitUri(replicas[0].url);
+
+Location NsAdapterCatalog::put(const std::string& path) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::put not implemented");
+}
+
+
+
+Location NsAdapterCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::put not implemented");
+}
+
+
+
+void NsAdapterCatalog::putDone(const std::string& host, const std::string& rfn,
+                               const std::map<std::string,std::string>& params) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "NsAdapterCatalog::putDone not implemented");
 }
 
 
@@ -340,27 +335,6 @@ void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmExc
 
 
 
-std::string NsAdapterCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "put not implemented for NsAdapterCatalog");
-}
-
-
-
-std::string NsAdapterCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "put not implemented for NsAdapterCatalog");
-}
-
-
-
-void NsAdapterCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "putDone not implemented for NsAdapterCatalog");
-}
-
-
-
 mode_t NsAdapterCatalog::umask(mode_t mask) throw ()
 {
   return dpns_umask(mask);
@@ -375,16 +349,12 @@ void NsAdapterCatalog::changeMode(const std::string& path, mode_t mode) throw (D
 
 
 
-void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
+void NsAdapterCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
 {
-  wrapCall(dpns_chown(path.c_str(), newUid, newGid));
-}
-
-
-
-void NsAdapterCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
-{
-  wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
+  if (followSymLink)
+    wrapCall(dpns_chown(path.c_str(), newUid, newGid));
+  else
+    wrapCall(dpns_lchown(path.c_str(), newUid, newGid));
 }
 
 
@@ -425,13 +395,6 @@ void NsAdapterCatalog::utime(const std::string& path, const struct utimbuf* buf)
 
 
 
-void NsAdapterCatalog::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
-{
-  throw DmException(DM_NOT_IMPLEMENTED, "Access by inode not supported");
-}
-
-
-
 std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmException)
 {
   char comment[COMMENT_MAX];
@@ -446,6 +409,14 @@ std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmExcep
 void NsAdapterCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
   wrapCall(dpns_setcomment(path.c_str(), (char*)comment.c_str()));
+}
+
+
+
+GroupInfo NsAdapterCatalog::newGroup(const std::string& gname) throw (DmException)
+{
+  wrapCall(dpns_entergrpmap(-1, (char*)gname.c_str()));
+  return this->getGroup(gname);
 }
 
 
@@ -483,6 +454,14 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmExce
 
 
 
+UserInfo NsAdapterCatalog::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+{
+  wrapCall(dpns_enterusrmap(-1, (char*)uname.c_str()));
+  return this->getUser(uname);
+}
+
+
+
 UserInfo NsAdapterCatalog::getUser(const std::string& userName) throw (DmException)
 {
   UserInfo user;
@@ -506,6 +485,29 @@ UserInfo NsAdapterCatalog::getUser(uid_t uid) throw (DmException)
   user.ca[0] = '\0';
   
   return user;
+}
+
+
+
+void NsAdapterCatalog::getIdMap(const std::string& userName,
+                                const std::vector<std::string>& groupNames,
+                                UserInfo* user, std::vector<GroupInfo>* groups) throw (DmException)
+{
+  unsigned    ngroups = groupNames.size();
+  const char *gnames[ngroups];
+  gid_t       gids[ngroups + 1];
+  
+  memset(user, 0, sizeof(UserInfo));
+  
+  for (unsigned i = 0; i < ngroups; ++i)
+    gnames[i] = groupNames[i].c_str();
+  
+  wrapCall(dpns_getidmap(userName.c_str(), ngroups, gnames, &user->uid, gids));
+  
+  strncpy(user->name, userName.c_str(), sizeof(user->name));
+  
+  for (unsigned i = 0; i < ngroups; ++i)
+    groups->push_back(this->getGroup(gids[i]));
 }
 
 
