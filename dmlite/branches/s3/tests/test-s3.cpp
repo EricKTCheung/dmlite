@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <iostream>
 #include <ios>
 #include <iosfwd>
@@ -36,17 +36,21 @@ public:
 
   void testGetLocation(void)
   {
-    Uri uri;
+    Location loc;
     FileReplica repl;
+    std::memcpy(repl.rfn, KEY, strlen(KEY));
 
     for (int i = 0; i < pools.size(); ++i) {
-      dmlite::PoolHandler *handler = stackInstance->getPoolHandler(pools[i]);
+      dmlite::PoolHandler *handler = stackInstance->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
       printf("%s\n", KEY);
       printf("pool type = %s, pool name = %s.\n",
               handler->getPoolType().c_str(),
               handler->getPoolName().c_str());
-      uri = handler->getLocation(std::string(KEY), repl);
-      printf("%s + %s + %d + %s\n", uri.scheme, uri.host, uri.port, uri.path);
+      if (handler->getPoolType() == std::string("s3")) {
+        loc = handler->getLocation(repl);
+        printf("Host, Path: %s + %s\n", loc.host, loc.path);
+        handler->putLocation(std::string(KEY));
+      }
     }
   }
 
@@ -56,8 +60,8 @@ public:
 };
 
 //const char* TestS3::KEY  = "/dpm/cern.ch/home/dteam/atlas-higgs-boson.found";
-//const char* TestS3::KEY  = "atlas-higgs-boson.found";
-const char* TestS3::KEY  = "testfile.txt";
+const char* TestS3::KEY  = "atlas-higgs-boson.found";
+//const char* TestS3::KEY  = "testfile.txt";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestS3);
 

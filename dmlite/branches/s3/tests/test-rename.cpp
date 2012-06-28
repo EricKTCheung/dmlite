@@ -45,8 +45,8 @@ public:
     this->catalog->create(SOURCE_FILE, 0755);
     this->catalog->rename(SOURCE_FILE, DEST_FILE);
 
-    CPPUNIT_ASSERT_THROW(this->catalog->stat(SOURCE_FILE), dmlite::DmException);
-    this->catalog->stat(DEST_FILE);
+    CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(SOURCE_FILE), dmlite::DmException);
+    this->catalog->extendedStat(DEST_FILE);
   }
 
   void testRenameDir()
@@ -54,8 +54,8 @@ public:
     this->catalog->makeDir(SOURCE_DIR, 0755);
     this->catalog->rename(SOURCE_DIR, DEST_DIR);
 
-    CPPUNIT_ASSERT_THROW(this->catalog->stat(SOURCE_DIR), dmlite::DmException);
-    this->catalog->stat(DEST_DIR);
+    CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(SOURCE_DIR), dmlite::DmException);
+    this->catalog->extendedStat(DEST_DIR);
   }
 
   void testDescendant()
@@ -94,7 +94,7 @@ public:
 
     // This must pass
     this->catalog->rename(SOURCE_DIR, DEST_DIR);
-    struct stat s = this->catalog->stat(DEST_DIR);
+    struct stat s = this->catalog->extendedStat(DEST_DIR).stat;
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
   }
 
@@ -120,7 +120,7 @@ public:
     this->catalog->changeMode(NESTED_FILE, 0777);
     this->catalog->rename(NESTED_FILE, DEST_FILE);
 
-    this->catalog->stat(DEST_FILE);
+    this->catalog->extendedStat(DEST_FILE);
   }
 
   CPPUNIT_TEST_SUITE(TestRename);

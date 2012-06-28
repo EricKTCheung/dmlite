@@ -1,6 +1,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <utime.h>
 #include "test-base.h"
 
@@ -33,7 +34,7 @@ public:
 
     this->catalog->utime(FILE, &tim);
 
-    struct stat s = this->catalog->stat(FILE);
+    struct stat s = this->catalog->extendedStat(FILE).stat;
 
     CPPUNIT_ASSERT_EQUAL(tim.actime, s.st_atime);
     CPPUNIT_ASSERT_EQUAL(tim.modtime, s.st_mtime);
@@ -43,10 +44,10 @@ public:
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FILE);
+    before = this->catalog->extendedStat(FILE).stat;
     sleep(1);
     this->catalog->utime(FILE, 0x00);
-    after = this->catalog->stat(FILE);
+    after = this->catalog->extendedStat(FILE).stat;
 
     CPPUNIT_ASSERT(before.st_atime < after.st_atime);
     CPPUNIT_ASSERT(before.st_mtime < after.st_mtime);
