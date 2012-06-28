@@ -1,4 +1,4 @@
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <iostream>
 #include <vector>
 
@@ -15,13 +15,17 @@ int main(int argn, char **argv)
   }
 
   // Load plugin
-  dmlite::PluginManager  manager;
-  dmlite::StackInstance *stack;
-  dmlite::PoolManager   *poolManager;
+  dmlite::PluginManager   manager;
+  dmlite::StackInstance*  stack;
+  dmlite::PoolManager*    poolManager;
+  dmlite::SecurityContext secCtx;
 
   try {
     manager.loadConfiguration(argv[1]);
     stack = new dmlite::StackInstance(&manager);
+    
+    stack->setSecurityContext(secCtx);
+    
     poolManager = stack->getPoolManager();
     // Ask for the pools
     pools = poolManager->getPools();
@@ -34,13 +38,14 @@ int main(int argn, char **argv)
   // Print info
   for (unsigned i = 0; i < pools.size(); ++i) {
     try {
-      dmlite::PoolHandler *handler = stack->getPoolHandler(pools[i]);
+      dmlite::PoolHandler *handler = stack->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
 
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl
                 << "Capacity:    " << handler->getTotalSpace() / GB << " GB" << std::endl
                 << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl;
-
+      
+      delete handler;
     }
     catch (dmlite::DmException e) {
       if (e.code() != DM_UNKNOWN_POOL_TYPE)

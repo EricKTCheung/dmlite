@@ -43,10 +43,10 @@ public:
 
   void testRegular()
   {
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
 
-    statBuf = this->catalog->stat(NESTED);
+    statBuf = this->catalog->extendedStat(NESTED).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
   }
 
@@ -56,37 +56,37 @@ public:
     this->stackInstance->setSecurityCredentials(cred2);
 
     // First level should pass
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
 
     // Nested shouldn't
-    CPPUNIT_ASSERT_THROW(statBuf = this->catalog->stat(NESTED), dmlite::DmException);
+    CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(NESTED), dmlite::DmException);
   }
 
   void testSymLink()
   {
     // Stat the link
-    statBuf = this->catalog->linkStat(SYMLINK);
+    statBuf = this->catalog->extendedStat(SYMLINK, false).stat;
     CPPUNIT_ASSERT_EQUAL(S_IFLNK, (int)statBuf.st_mode & S_IFLNK);
     // Stat the folder
-    statBuf = this->catalog->stat(SYMLINK);
+    statBuf = this->catalog->extendedStat(SYMLINK).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
     // Stat relative link
-    statBuf = this->catalog->stat(SYMREL);
+    statBuf = this->catalog->extendedStat(SYMREL).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
   }
 
   void testRelative()
   {
-    statBuf = this->catalog->stat(RELATIVE);
+    statBuf = this->catalog->extendedStat(RELATIVE).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
   }
 
   /// @note Adapter will not pass this since it does not implement inode access
   void testIStat()
   {
-    statBuf = this->catalog->stat(FOLDER);
-    iStat   = this->catalog->stat(statBuf.st_ino);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
+    iStat   = this->stackInstance->getINode()->extendedStat(statBuf.st_ino).stat;;
 
     // Check some only, if they are fine, the rest should be fine.
     CPPUNIT_ASSERT_EQUAL(statBuf.st_ino,  iStat.st_ino);
@@ -96,8 +96,8 @@ public:
 
   void testCacheRegular()
   {
-    statBuf = this->catalog->stat(NESTED);
-    statBufCached = this->catalog->stat(NESTED);
+    statBuf = this->catalog->extendedStat(NESTED).stat;
+    statBufCached = this->catalog->extendedStat(NESTED).stat;
 
     CPPUNIT_ASSERT_EQUAL((int)statBuf.st_mode, (int)statBufCached.st_mode);
     CPPUNIT_ASSERT_EQUAL((int)statBuf.st_ino, (int)statBufCached.st_ino);
@@ -108,23 +108,23 @@ public:
     this->stackInstance->setSecurityCredentials(cred1);
 
     // stat to cache result
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
 
     // Change user
     this->stackInstance->setSecurityCredentials(cred2);
 
     // First level should pass
-    statBufCached = this->catalog->stat(FOLDER);
+    statBufCached = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL((int)statBuf.st_mode, (int)statBufCached.st_mode);
     CPPUNIT_ASSERT_EQUAL((int)statBuf.st_ino, (int)statBufCached.st_ino);
 
     // switch user back to cache
     this->stackInstance->setSecurityCredentials(cred1);
-    statBuf = this->catalog->stat(NESTED);
+    statBuf = this->catalog->extendedStat(NESTED).stat;
     this->stackInstance->setSecurityCredentials(cred2);
 
     // Nested shouldn't
-    CPPUNIT_ASSERT_THROW(statBuf = this->catalog->stat(NESTED), dmlite::DmException);
+    CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(NESTED), dmlite::DmException);
   }
 
 
