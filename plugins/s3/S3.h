@@ -12,8 +12,6 @@
 #include <dmlite/cpp/utils/dm_urls.h>
 
 #include "s3driver.h"
-//#include "libs3.h"
-//#include <libaws/aws.h>
 
 namespace dmlite {
 
