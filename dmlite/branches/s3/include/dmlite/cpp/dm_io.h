@@ -5,7 +5,6 @@
 #ifndef DMLITEPP_IO_H
 #define	DMLITEPP_IO_H
 
-#include <iostream>
 #include <map>
 #include "dm_auth.h"
 #include "dm_exceptions.h"
@@ -35,8 +34,8 @@ public:
 
   /// Move the cursor.
   /// @param offset The offset.
-  /// @param whence Reference.
-  virtual void seek(long offset, std::ios_base::seekdir whence) throw (DmException) = 0;
+  /// @param whence Reference (see lseek).
+  virtual void seek(long offset, int whence) throw (DmException) = 0;
 
   /// Return the cursor position.
   virtual long tell(void) throw (DmException) = 0;
@@ -62,8 +61,11 @@ public:
   virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Instantiate a implementation of IOHandler
-  virtual IOHandler* createIOHandler(const std::string& uri,
-                                     std::iostream::openmode openmode,
+  /// @param pfn    The file name.
+  /// @param flags  The open mode (see open)
+  /// @param extras As was given by the PoolHandler
+  virtual IOHandler* createIOHandler(const std::string& pfn,
+                                     int flags,
                                      const std::map<std::string, std::string>& extras) throw (DmException) = 0;
   
   /// Perform a stat over pfn.
