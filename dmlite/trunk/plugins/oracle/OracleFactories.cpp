@@ -14,7 +14,7 @@ using namespace oracle;
 
 NsOracleFactory::NsOracleFactory() throw(DmException):
   nsDb_("cns_db"), user_("root"), passwd_(""), pool_(0x00),
-  minPool_(0), maxPool_(1), symLinkLimit_(3)
+  minPool_(0), maxPool_(1), mapFile_("/etc/lcgdm-mapfile")
 {
   this->env_ = occi::Environment::createEnvironment(occi::Environment::THREADED_MUTEXED);
 }
@@ -38,12 +38,12 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
     this->passwd_ = value;
   else if (key == "OracleDatabase")
     this->nsDb_ = value;
-  else if (key == "SymLinkLimit")
-    this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "OraclePoolMin")
     this->minPool_ = atoi(value.c_str());
   else if (key == "OraclePoolMax")
     this->maxPool_ = atoi(value.c_str());
+  else if (key == "MapFile")
+    this->mapFile_ = value;
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -77,7 +77,8 @@ UserGroupDb* NsOracleFactory::createUserGroupDb(PluginManager*) throw (DmExcepti
                                                      this->minPool_, this->maxPool_);
 
     return new UserGroupDbOracle(this->pool_,
-                                 this->pool_->createConnection(this->user_, this->passwd_));
+                                 this->pool_->createConnection(this->user_, this->passwd_),
+                                 this->mapFile_);
   }
   catch (occi::SQLException& ex) {
     throw DmException(DM_INTERNAL_ERROR, ex.getMessage());

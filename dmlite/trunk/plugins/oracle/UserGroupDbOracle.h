@@ -13,7 +13,8 @@ class UserGroupDbOracle: public UserGroupDb {
 public:
   /// Constructor.
   UserGroupDbOracle(oracle::occi::ConnectionPool* pool,
-                    oracle::occi::Connection* conn) throw(DmException);
+                    oracle::occi::Connection* conn,
+                    const std::string& mapfile) throw(DmException);
   
   /// Destructor.
   ~UserGroupDbOracle() throw(DmException);
@@ -43,6 +44,9 @@ protected:
 
   /// The Oracle connection
   oracle::occi::Connection* conn_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };

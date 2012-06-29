@@ -31,7 +31,7 @@ protected:
   std::string user_;
   /// Password
   std::string passwd_;
-
+  
   /// Oracle environment
   oracle::occi::Environment* env_;
 
@@ -43,9 +43,9 @@ protected:
 
   /// Maximum pool size
   unsigned int maxPool_;
-
-  /// The recursion limit following symbolic links.
-  unsigned int symLinkLimit_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };
