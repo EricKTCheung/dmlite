@@ -794,11 +794,6 @@ ExtendedStat* INodeOracle::readDirx(IDirectory* dir) throw (DmException)
             dirp->current.name,
             sizeof(dirp->ds.d_name));
 
-    // Touch
-    struct utimbuf tim;
-    tim.actime  = time(NULL);
-    tim.modtime = dirp->current.stat.st_mtime;
-    this->utime(dirp->dirId, &tim);
 
     return &dirp->current;
   }
