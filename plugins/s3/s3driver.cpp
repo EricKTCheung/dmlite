@@ -81,7 +81,7 @@ std::string S3Driver::canonicalize(std::string method, std::string bucket,
 
   if (headerMap.count("expires") > 0) {
     itHeaderMap = headerMap.find("expires");
-    stringToSign << itHeaderMap->first << ":" << itHeaderMap->second;
+    stringToSign << itHeaderMap->second;
   }
 
   // add bucket
