@@ -9,11 +9,12 @@
 using namespace dmlite;
 
 UserGroupDbMySql::UserGroupDbMySql(PoolContainer<MYSQL*>* connPool,
-                  const std::string& db) throw(DmException):
-  nsDb_(db)
+                                   const std::string& db,
+                                   const std::string& mapfile) throw(DmException):
+  nsDb_(db), mapFile_(mapfile)
 {
   this->connectionPool_ = connPool;
-  this->conn_ = connPool->acquire();
+  this->conn_    = connPool->acquire();
 }
 
 
@@ -275,7 +276,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
-    vo = voFromDn("/etc/lcgdm-mapfile", userName);
+    vo = voFromDn(this->mapFile_, userName);
     try {
       group = this->getGroup(vo);
     }

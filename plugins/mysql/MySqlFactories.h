@@ -55,6 +55,9 @@ protected:
 
   /// NS db.
   std::string nsDb_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };

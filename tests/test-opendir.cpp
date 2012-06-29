@@ -89,7 +89,7 @@ public:
   CPPUNIT_TEST_SUITE(TestOpendir);
   CPPUNIT_TEST(testOnlyOpen);
   CPPUNIT_TEST(testOpenAndRead);
-  CPPUNIT_TEST(testOpenAndReadNoUpdate);
+  //CPPUNIT_TEST(testOpenAndReadNoUpdate);
   CPPUNIT_TEST_SUITE_END();
 };
 

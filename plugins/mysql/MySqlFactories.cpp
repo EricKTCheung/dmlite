@@ -87,7 +87,8 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db")
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"),
+  mapFile_("/etc/lcgdm-mapfile")
 {
   // Initialize MySQL library
   mysql_library_init(0, NULL, NULL);
@@ -117,6 +118,8 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     this->nsDb_ = value;
   else if (key == "NsPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
+  else if (key == "MapFile")
+    this->mapFile_ = value;
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
@@ -133,7 +136,8 @@ INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 UserGroupDb* NsMySqlFactory::createUserGroupDb(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new UserGroupDbMySql(&this->connectionPool_, this->nsDb_);
+  return new UserGroupDbMySql(&this->connectionPool_, 
+                              this->nsDb_, this->mapFile_);
 }
 
 
