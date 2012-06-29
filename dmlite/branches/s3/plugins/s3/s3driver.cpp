@@ -58,7 +58,7 @@ Location S3Driver::getQueryString(std::string method, std::string host,
   conversionStream << "?AWSAccessKeyId=" << s3AccessKeyID_ << "&Expires=" << expirationString << "&Signature=" << signature;
   token = conversionStream.str();
 
-  rloc = Location(host.c_str(), path.c_str(), 3, true, "AWSAccessKeyId", s3AccessKeyID_.c_str(),
+  rloc = Location(host.c_str(), path.c_str(), true, 3, "AWSAccessKeyId", s3AccessKeyID_.c_str(),
                                                        "Expires", expirationString.c_str(),
                                                        "Signature", signature.c_str());
 
