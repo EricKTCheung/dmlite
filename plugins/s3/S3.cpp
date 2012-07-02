@@ -117,7 +117,7 @@ Location S3PoolHandler::putLocation(const std::string& fn) throw (DmException)
               "PUT",
               this->driver_->host_,
               this->driver_->bucketName_,
-              replica.rfn,
+              fn,
               expiration);
 
   return rloc;
