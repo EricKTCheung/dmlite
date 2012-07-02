@@ -10,23 +10,24 @@
 
 #include "DpmMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 using namespace dmlite;
 
 
 
-MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool,
+MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
                                    const std::string& dpmDb) throw (DmException):
-      stack_(0x00), dpmDb_(dpmDb), connectionPool_(connPool)
+      stack_(0x00), dpmDb_(dpmDb), factory_(factory)
 {
-  this->conn_ = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 MySqlPoolManager::~MySqlPoolManager()
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 

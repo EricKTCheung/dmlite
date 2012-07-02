@@ -123,6 +123,9 @@ private:
 /// of each plugin stack.
 /// It also keeps common state: user credentials, security context,
 /// and run-time parameters (see set)
+/// @note Assume a StackInstance (and every instantiated interface under it)
+///       is NOT thread-safe. This means, a StackInstance must be used by only
+///       one thread at the same time.
 class StackInstance {
 public:
   

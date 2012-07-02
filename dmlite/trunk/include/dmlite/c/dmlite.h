@@ -74,6 +74,7 @@ const char* dm_manager_error(dm_manager* manager);
  * Return a usable context from the loaded libraries.
  * @param manager The plugin manager.
  * @return        NULL on failure. The error code can be checked with dm_manager_error.
+ * @note          A context is NOT thread safe.
  */
 dm_context* dm_context_new(dm_manager* manager);
 

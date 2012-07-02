@@ -23,15 +23,15 @@ struct NsMySqlDir {
   Statement    *stmt;          ///< The statement.
 };
 
+class NsMySqlFactory;
+
 /// Implementation of INode MySQL backend.
 class INodeMySql: public INode {
 public:
 
   /// Constructor
-  /// @param connPool    The MySQL connection pool.
-  /// @param db          The MySQL db to use.
-  INodeMySql(PoolContainer<MYSQL*>* connPool,
-               const std::string& db) throw (DmException);
+  INodeMySql(NsMySqlFactory* factory,
+             const std::string& db) throw (DmException);
 
   /// Destructor
   ~INodeMySql() throw (DmException);
@@ -96,8 +96,8 @@ protected:
   /// The MySQL connection
   MYSQL* conn_;
 
-  /// The connection pool.
-  PoolContainer<MYSQL*>* connectionPool_;
+  /// The corresponding factory.
+  NsMySqlFactory* factory_;
   
   /// Transaction level, so begins and commits can be nested.
   unsigned transactionLevel_;
