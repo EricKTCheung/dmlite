@@ -187,24 +187,19 @@ PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmExcepti
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerFactory(static_cast<INodeFactory*>(new NsMySqlFactory()));
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsMySqlFactory()));
+  NsMySqlFactory* nsFactory = new NsMySqlFactory();
+  pm->registerFactory(static_cast<INodeFactory*>(nsFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(nsFactory));
 }
 
 
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
-{
-  CatalogFactory* nested = 0x00;
-  try {
-    nested = pm->getCatalogFactory();
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-  }
-  pm->registerFactory(static_cast<INodeFactory*>(new NsMySqlFactory()));
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsMySqlFactory()));
+{ 
+  NsMySqlFactory* nsFactory = new NsMySqlFactory();
+  
+  pm->registerFactory(static_cast<INodeFactory*>(nsFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(nsFactory));
   pm->registerFactory(new DpmMySqlFactory());
 }
 

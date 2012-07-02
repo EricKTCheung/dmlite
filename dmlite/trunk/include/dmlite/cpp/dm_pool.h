@@ -64,7 +64,7 @@ public:
 
 
 /// Plug-ins must implement a concrete factory to be instantiated.
-class PoolManagerFactory {
+class PoolManagerFactory: public virtual BaseFactory {
 public:
   /// Virtual destructor
   virtual ~PoolManagerFactory();

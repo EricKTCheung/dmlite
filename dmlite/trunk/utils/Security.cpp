@@ -253,6 +253,8 @@ static std::string initHostDN(void)
   std::string hostDN = hostX509->name;
   X509_free(hostX509);
   
+  CRYPTO_cleanup_all_ex_data();
+  
   return hostDN;
 }
 

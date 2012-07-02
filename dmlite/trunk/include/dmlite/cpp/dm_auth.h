@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include "dm_basefactory.h"
 #include "dm_exceptions.h"
 #include "../common/dm_types.h"
 
@@ -120,7 +121,7 @@ class PluginManager;
 
 
 /// UserGroupDbFactory
-class UserGroupDbFactory {
+class UserGroupDbFactory: public virtual BaseFactory {
 public:
   /// Destructor
   virtual ~UserGroupDbFactory();
