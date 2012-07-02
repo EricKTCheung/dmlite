@@ -111,7 +111,16 @@ void S3PoolHandler::remove(const FileReplica& replica) throw (DmException)
 
 Location S3PoolHandler::putLocation(const std::string& fn) throw (DmException)
 {
-  return Location();
+  Location rloc;
+  time_t expiration = time(NULL) + static_cast<time_t>(60);
+  rloc = this->driver_->s3connection_.getQueryString(
+              "PUT",
+              this->driver_->host_,
+              this->driver_->bucketName_,
+              replica.rfn,
+              expiration);
+
+  return rloc;
 }
 
 void S3PoolHandler::putDone(const FileReplica& replica, const std::map<std::string, std::string>& extras) throw (DmException)
