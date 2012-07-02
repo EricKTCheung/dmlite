@@ -90,15 +90,14 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"),
   mapFile_("/etc/lcgdm-mapfile")
 {
-  // Initialize MySQL library
-  mysql_library_init(0, NULL, NULL);
+  mysql_library_init(0, NULL, NULL);  
+  pthread_key_create(&this->thread_mysql_conn_, NULL);
 }
 
 
 
 NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 {
-  // Close MySQL library
   mysql_library_end();
 }
 
@@ -128,7 +127,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
 INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new INodeMySql(&this->connectionPool_, this->nsDb_);
+  return new INodeMySql(this, this->nsDb_);
 }
 
 
@@ -136,15 +135,44 @@ INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 UserGroupDb* NsMySqlFactory::createUserGroupDb(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new UserGroupDbMySql(&this->connectionPool_, 
-                              this->nsDb_, this->mapFile_);
+  return new UserGroupDbMySql(this, this->nsDb_, this->mapFile_);
+}
+
+
+
+MYSQL* NsMySqlFactory::getConnection(void) throw (DmException)
+{
+  MYSQL* conn;
+  
+  // Try from the thread local storage
+  conn = static_cast<MYSQL*>(pthread_getspecific(this->thread_mysql_conn_));
+  
+  // If NULL, instantiate and set in the thread local storage
+  if (conn == NULL) {
+    conn = this->connectionPool_.acquire();
+    pthread_setspecific(this->thread_mysql_conn_, conn);
+  }
+  // Increase reference count otherwise
+  else {
+    this->connectionPool_.acquire(conn);
+  }
+  
+  // Return
+  return conn;
+}
+
+
+
+void NsMySqlFactory::releaseConnection(MYSQL* conn) throw (DmException)
+{
+  if (this->connectionPool_.release(conn) == 0)
+    pthread_setspecific(this->thread_mysql_conn_, NULL);
 }
 
 
 
 DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
-  connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), dpmDb_("dpm_db")
+  NsMySqlFactory(), dpmDb_("dpm_db")
 {
   // MySQL initialization done by NsMySqlFactory
 }
@@ -160,18 +188,10 @@ DpmMySqlFactory::~DpmMySqlFactory() throw(DmException)
 
 void DpmMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-if (key == "MySqlHost")
-    this->connectionFactory_.host = value;
-  else if (key == "MySqlUsername")
-    this->connectionFactory_.user = value;
-  else if (key == "MySqlPassword")
-    this->connectionFactory_.passwd = value;
-  else if (key == "MySqlPort")
-    this->connectionFactory_.port = atoi(value.c_str());
-  else if (key == "DpmDatabase")
+  if (key == "DpmDatabase")
     this->dpmDb_ = value;
   else
-    throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
+    NsMySqlFactory::configure(key, value);
 }
 
 
@@ -179,8 +199,7 @@ if (key == "MySqlHost")
 PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new MySqlPoolManager(&this->connectionPool_,
-                              this->dpmDb_);
+  return new MySqlPoolManager(this, this->dpmDb_);
 }
 
 
@@ -196,11 +215,11 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 { 
-  NsMySqlFactory* nsFactory = new NsMySqlFactory();
+  DpmMySqlFactory* dpmFactory = new DpmMySqlFactory();
   
-  pm->registerFactory(static_cast<INodeFactory*>(nsFactory));
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(nsFactory));
-  pm->registerFactory(new DpmMySqlFactory());
+  pm->registerFactory(static_cast<INodeFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolManagerFactory*>(dpmFactory));
 }
 
 

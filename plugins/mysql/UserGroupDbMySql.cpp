@@ -5,23 +5,23 @@
 #include <dmlite/cpp/utils/dm_security.h>
 #include "UserGroupDbMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 using namespace dmlite;
 
-UserGroupDbMySql::UserGroupDbMySql(PoolContainer<MYSQL*>* connPool,
+UserGroupDbMySql::UserGroupDbMySql(NsMySqlFactory* factory,
                                    const std::string& db,
                                    const std::string& mapfile) throw(DmException):
-  nsDb_(db), mapFile_(mapfile)
+  factory_(factory), nsDb_(db), mapFile_(mapfile)
 {
-  this->connectionPool_ = connPool;
-  this->conn_    = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 UserGroupDbMySql::~UserGroupDbMySql() throw(DmException)
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 

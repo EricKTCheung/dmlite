@@ -3,6 +3,7 @@
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
 #include <algorithm>
 #include <cstring>
+#include <set>
 #include <vector>
 
 #include "Memcache.h"

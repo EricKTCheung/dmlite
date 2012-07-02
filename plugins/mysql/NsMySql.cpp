@@ -13,6 +13,7 @@
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 #define NOT_IMPLEMENTED(p)\
 p {\
@@ -24,19 +25,18 @@ using namespace dmlite;
 
 
 
-INodeMySql::INodeMySql(PoolContainer<MYSQL*>* connPool,
+INodeMySql::INodeMySql(NsMySqlFactory* factory,
                        const std::string& db) throw(DmException):
-  transactionLevel_(0), nsDb_(db)
+  factory_(factory), transactionLevel_(0), nsDb_(db)
 {
-  this->connectionPool_ = connPool;
-  this->conn_           = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 INodeMySql::~INodeMySql() throw(DmException)
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 

@@ -6,9 +6,9 @@
 #define	POOL_H
 
 #include <errno.h>
+#include <map>
 #include <pthread.h>
 #include <semaphore.h>
-#include <set>
 #include <syslog.h>
 #include <queue>
 #include "../dm_exceptions.h"
@@ -97,31 +97,67 @@ public:
       e = factory_->create();
     }
     // Keep track of used
-    used_.insert(e);
+    used_.insert(std::pair<E, unsigned>(e, 1));
     // End of critical section
+    pthread_mutex_unlock(&mutex_);
+    return e;
+  }
+  
+  /// Increases the reference count of a resource.
+  E acquire(E e)
+  {
+    // Critical section
+    pthread_mutex_lock(&mutex_);
+    
+    // Make sure it is there
+    typename std::map<E, unsigned>::const_iterator i = used_.find(e);
+    if (i == used_.end())
+      throw DmException(DM_INVALID_VALUE, std::string("The resource has not been locked previously!"));
+    
+    // Increase
+    used_[e]++;
+    
+    // End
     pthread_mutex_unlock(&mutex_);
     return e;
   }
 
   /// Releases a resource
   /// @param e The resource to release.
-  void release(E e)
+  /// @return  The reference count after releasing.
+  unsigned release(E e)
   {
     // Critical section
     pthread_mutex_lock(&mutex_);
-    // Remove from used
-    used_.erase(e);
-    // If the free size is less than the maximum, push to free and notify
-    if ((long)free_.size() < max_) {
-      free_.push(e);
-      sem_post(&available_);
-    }
-    else {
-      // If we are fine, destroy
-      factory_->destroy(e);
+    // Decrease reference count
+    unsigned remaining = --used_[e];
+    // No one else using it (hopefully...)
+    if (used_[e] == 0) {
+      // Remove from used
+      used_.erase(e);
+      // If the free size is less than the maximum, push to free and notify
+      if ((long)free_.size() < max_) {
+        free_.push(e);
+        sem_post(&available_);
+      }
+      else {
+        // If we are fine, destroy
+        factory_->destroy(e);
+      }
     }
     // End of critical section
     pthread_mutex_unlock(&mutex_);
+    
+    return remaining;
+  }
+  
+  /// Count the number of instances
+  unsigned refCount(E e)
+  {
+    typename std::map<E, unsigned>::const_iterator i = used_.find(e);
+    if (i == used_.end())
+      return 0;
+    return used_[e];
   }
 
   /// Change the pool size
@@ -156,8 +192,8 @@ private:
 
   PoolElementFactory<E> *factory_;
 
-  std::queue<E> free_;
-  std::set<E>   used_;
+  std::queue<E>         free_;
+  std::map<E, unsigned> used_;
 
   pthread_mutex_t mutex_;
   sem_t           available_;
