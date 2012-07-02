@@ -162,7 +162,7 @@ Location DpmAdapterCatalog::put(const std::string& path) throw (DmException)
     spaceToken = 0x00;
   }
 
-  if (!spaceToken) {
+  if (spaceToken != 0x00 && spaceToken[0] != '\0') {
     char **space_ids;
 
     RETRY(dpm_getspacetoken(spaceToken, &nReplies, &space_ids),
