@@ -199,7 +199,7 @@ public:
 };
 
 /// INodeFactory
-class INodeFactory {
+class INodeFactory: public virtual BaseFactory {
 public:
   /// Destructor
   virtual ~INodeFactory();

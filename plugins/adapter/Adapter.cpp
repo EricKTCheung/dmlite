@@ -157,10 +157,12 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
-  pm->registerFactory(static_cast<CatalogFactory*>(new DpmAdapterFactory()));
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsAdapterFactory()));
-  pm->registerFactory(static_cast<PoolManagerFactory*>(new DpmAdapterFactory()));
-  pm->registerFactory(static_cast<PoolDriverFactory*>(new DpmAdapterFactory()));
+  DpmAdapterFactory* dpmFactory = new DpmAdapterFactory();
+  
+  pm->registerFactory(static_cast<CatalogFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolManagerFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolDriverFactory*>(dpmFactory));
 }
 
 

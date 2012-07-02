@@ -68,7 +68,7 @@ public:
 
 
 /// PoolDriver factory
-class PoolDriverFactory {
+class PoolDriverFactory: public virtual BaseFactory {
 public:
   /// Destructor.
   virtual ~PoolDriverFactory();

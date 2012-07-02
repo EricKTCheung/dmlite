@@ -227,7 +227,7 @@ public:
 
 
 /// Plug-ins must implement a concrete factory to be instantiated.
-class CatalogFactory {
+class CatalogFactory: public virtual BaseFactory {
 public:
   /// Virtual destructor
   virtual ~CatalogFactory();
