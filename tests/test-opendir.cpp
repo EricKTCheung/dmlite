@@ -171,7 +171,7 @@ public:
     dirent *entry2;
     do {
       entry2 = this->catalog->readDir(d2);
-    } while (entry != 0x00);
+    } while (entry2 != 0x00);
 
     this->catalog->closeDir(d2);
 

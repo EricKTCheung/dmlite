@@ -688,7 +688,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
                                          local_dir->dirId);
 
-  valMemc = safeGetDListValFromMemcachedKey(listKey);
+  valMemc = getDListValFromMemcachedKey(listKey);
 
   if (!valMemc.empty()) {
     local_dir->isCached = deserializeDirList(valMemc, keyList, mtime);
@@ -785,8 +785,6 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
       }
     }
 
-//    ENCODE_DIRCACHED(dirp, isCached);
-
     return meta;
   }
   else {
@@ -799,7 +797,7 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   
       // append an empty list with 'white' elements, which is complete
       // to mark the list as complete
-      dirp->curKeysSegment = safeAddToDListFromMemcachedKey(listKey, 
+      dirp->curKeysSegment = addToDListFromMemcachedKey(listKey, 
                                                         std::string(),
                                                         true, true,
                                                         dirp->curKeysSegment);
