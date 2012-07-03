@@ -1008,6 +1008,9 @@ Location MemcacheCatalog::get(const std::string& path) throw(DmException)
     // otherwise, get replicas from mysql
     DELEGATE_ASSIGN(replicas, getReplicas, path);
 
+    if (replicas.size() == 0)
+      throw DmException(DM_NO_REPLICAS, "No Replicas found");
+
     // save replicas in memcached
     safeSetMemcachedFromReplicas(replicas, inode);
 
