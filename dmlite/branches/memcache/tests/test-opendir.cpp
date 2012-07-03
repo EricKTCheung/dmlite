@@ -191,8 +191,8 @@ public:
     int repeats = this->repeats;
 
 
-//    if (this->catalog->openDir(FOLDER) == 0x00)
-//      this->catalog->makeDir(FOLDER, MODE);
+    if (this->catalog->openDir(FOLDER) == 0x00)
+      this->catalog->makeDir(FOLDER, MODE);
 
     for (int i = 0; i < repeats; ++i) {
       file_prefix << NUMFILE;
