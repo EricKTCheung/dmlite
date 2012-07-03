@@ -4,7 +4,7 @@
 #ifndef PROFILERCATALOG_H
 #define	PROFILERCATALOG_H
 
-#include <dmlite/dm_catalog.h>
+#include <dmlite/cpp/dm_catalog.h>
 
 namespace dmlite {
 
@@ -23,25 +23,15 @@ public:
   // Overloading
   std::string getImplId(void) throw ();
 
-  void set(const std::string&, ...)     throw (DmException);
-  void set(const std::string&, va_list) throw (DmException);
-
-  SecurityContext* createSecurityContext(const SecurityCredentials&) throw (DmException);
+  void setStackInstance(StackInstance* si) throw (DmException);
+  
   void setSecurityContext(const SecurityContext*) throw (DmException);
 
   void        changeDir     (const std::string&) throw (DmException);
   std::string getWorkingDir (void)               throw (DmException);
   ino_t       getWorkingDirI(void)               throw (DmException);
 
-  struct stat  stat        (const std::string&) throw (DmException);
-  struct stat  stat        (ino_t)              throw (DmException);
-  struct stat  stat        (ino_t, const std::string&) throw (DmException);
-  struct stat  linkStat    (const std::string&) throw (DmException);
   ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-  ExtendedStat extendedStat(ino_t)              throw (DmException);
-  ExtendedStat extendedStat(ino_t, const std::string&) throw (DmException);
-
-  SymLink readLink(ino_t) throw (DmException);
 
   void addReplica(const std::string&, int64_t, const std::string&,
                   const std::string&, char, char,
@@ -51,39 +41,33 @@ public:
                              const std::string&) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  Uri                      get        (const std::string&) throw (DmException);
+  Location get(const std::string&) throw (DmException);
+  
+  Location put(const std::string& path) throw (DmException);
+  Location put(const std::string& path,
+               const std::string& guid) throw (DmException);
+  void     putDone(const std::string& host, const std::string& rfn,
+                   const std::map<std::string, std::string>& params) throw (DmException);
 
   void symlink(const std::string&, const std::string&) throw (DmException);
   void unlink (const std::string&)                     throw (DmException);
 
   void create(const std::string&, mode_t) throw (DmException);
 
-  std::string put(const std::string&, Uri*)                     throw (DmException);
-  std::string put(const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
-
   mode_t umask          (mode_t)                           throw ();
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  void   changeOwner    (const std::string&, uid_t, gid_t) throw (DmException);
-  void   linkChangeOwner(const std::string&, uid_t, gid_t) throw (DmException);
+  void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
   void changeSize(const std::string&, size_t) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 
   void utime(const std::string&, const struct utimbuf*) throw (DmException);
-  void utime(ino_t, const struct utimbuf*) throw (DmException);
 
   std::string getComment(const std::string&)                     throw (DmException);
   void        setComment(const std::string&, const std::string&) throw (DmException);
 
   void setGuid(const std::string&, const std::string&) throw (DmException);
-
-  GroupInfo getGroup(gid_t)              throw (DmException);
-  GroupInfo getGroup(const std::string&) throw (DmException);
-
-  UserInfo getUser(uid_t)              throw (DmException);
-  UserInfo getUser(const std::string&) throw (DmException);
 
   Directory* openDir (const std::string&) throw (DmException);
   void       closeDir(Directory*)         throw (DmException);

@@ -23,10 +23,10 @@ public:
   {
     if (this->catalog != 0x00) {
       try {
-        struct stat s = this->catalog->stat(FILE);
+        struct stat s = this->catalog->extendedStat(FILE).stat;
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
-          this->catalog->deleteReplica("", s.st_ino, replicas[i].url);
+          this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
         }
       }
       catch (dmlite::DmException e) {
@@ -48,7 +48,7 @@ public:
   {
     struct stat s;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
                               "http://a.host.com/replica", '-', 'P',
@@ -58,7 +58,7 @@ public:
 
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
-                         std::string(replica.url));
+                         std::string(replica.rfn));
     CPPUNIT_ASSERT_EQUAL('-', replica.status);
     CPPUNIT_ASSERT_EQUAL(std::string("the-fs"), std::string(replica.filesystem));
     CPPUNIT_ASSERT_EQUAL(std::string("the-pool"), std::string(replica.pool));
@@ -73,7 +73,7 @@ public:
   {
     struct stat s;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica(std::string(), s.st_ino, std::string(),
                               "http://a.host.com/replica", '-', 'P',
@@ -82,7 +82,7 @@ public:
     FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
-                         std::string(replica.url));
+                         std::string(replica.rfn));
     CPPUNIT_ASSERT_EQUAL(std::string("a.host.com"),
                          std::string(replica.server));
 
@@ -93,7 +93,7 @@ public:
   {
     struct stat s;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica(std::string(), s.st_ino, "a.host",
                               "https://a.host.com/replica", '-', 'P',
@@ -114,7 +114,7 @@ public:
   {
     struct stat s;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
                               "http://a.host.com/replica", '-', 'P',
@@ -124,8 +124,8 @@ public:
     FileReplica replicaCached = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)replicaCached.fileid, (unsigned)replica.fileid);
-    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.url),
-                         std::string(replica.url));
+    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.rfn),
+                         std::string(replica.rfn));
     CPPUNIT_ASSERT_EQUAL(replicaCached.status, replica.status);
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.filesystem), std::string(replica.filesystem));
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.pool), std::string(replica.pool));
@@ -144,7 +144,7 @@ public:
   {
     struct stat s;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
 
     this->catalog->addReplica(std::string(), s.st_ino, "a.host",
                               "https://a.host.com/replica", '-', 'P',

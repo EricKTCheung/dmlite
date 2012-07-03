@@ -2,17 +2,22 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_security.h>
 #include <iostream>
 #include <ios>
 #include <iosfwd>
 #include <string.h>
 
+
+
 class TestIO: public CppUnit::TestFixture
 {
 private:
   dmlite::PluginManager* manager;
-  dmlite::IOFactory*     io;
+  dmlite::IODriver*      io;
+  dmlite::StackInstance* si;
+  std::map<std::string, std::string> extras;
 
 public:
   static const char* config;
@@ -21,11 +26,15 @@ public:
   {
     manager = new dmlite::PluginManager();
     manager->loadConfiguration(config);
-    io = manager->getIOFactory();
+    manager->configure("TokenPassword", "test");
+    si = new dmlite::StackInstance(manager);
+    io = si->getIODriver();
   }
 
   void tearDown()
   {
+    if (si)
+      delete si;
     if (manager)
       delete manager;
   }
@@ -33,8 +42,9 @@ public:
   void testOpen(void)
   {
     char b;
-
-    dmlite::IOHandler* s = io->createIO("/dev/zero", std::ios_base::in);
+    
+    dmlite::IOHandler* s = io->createIOHandler("/dev/zero", std::ios_base::in,
+                                               extras);
 
     s->read(&b, sizeof(char));
     CPPUNIT_ASSERT_EQUAL((char)0, b);
@@ -44,7 +54,8 @@ public:
 
   void testNotExist(void)
   {
-    CPPUNIT_ASSERT_THROW(io->createIO("/this/should/not/exist", std::ios_base::in),
+    CPPUNIT_ASSERT_THROW(io->createIOHandler("/this/should/not/exist", std::ios_base::in,
+                                             extras),
                          dmlite::DmException);
   }
 
@@ -53,13 +64,16 @@ public:
     const char ostring[] = "This-is-the-string-to-be-checked!";
 
     // Open to write
-    dmlite::IOHandler* os = io->createIO("/tmp/test-io-wr", std::ios_base::out | std::ios_base::trunc);
+    dmlite::IOHandler* os = io->createIOHandler("/tmp/test-io-wr",
+                                                std::ios_base::out | std::ios_base::trunc,
+                                                extras);
     os->write(ostring, strlen(ostring));
     delete os;
 
     // Open to read
     char buffer[512] = "";
-    dmlite::IOHandler* is = io->createIO("/tmp/test-io-wr", std::ios_base::in);
+    dmlite::IOHandler* is = io->createIOHandler("/tmp/test-io-wr", std::ios_base::in,
+                                                extras);
     size_t nb = is->read(buffer, sizeof(buffer));
 
     CPPUNIT_ASSERT_EQUAL(strlen(ostring), nb);

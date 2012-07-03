@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/common/Security.h>
+#include <dmlite/cpp/utils/dm_security.h>
 
 class ChkPerm: public CppUnit::TestFixture {
 protected:
@@ -275,6 +275,56 @@ public:
     CPPUNIT_ASSERT_THROW(dmlite::validateAcl("A6101,B6101,C4101,D7101,E70,F40,a00,c50"), dmlite::DmException);
   }
 
+  void testTokenRead()
+  {
+    std::string token = dmlite::generateToken("myid", "/pfn", "dummy", 1000);
+    
+    // Everything matches
+    CPPUNIT_ASSERT_EQUAL(true, dmlite::validateToken(token, "myid", "/pfn", "dummy"));
+    
+    // Id does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "owned", "/pfn", "dummy"));
+    
+    // PFN does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/etc/root", "dummy"));
+    
+    /// Password does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/pfn", "forgot"));
+        
+    /// Token expired
+    token = dmlite::generateToken("myid", "/pfn", "dummy", 1);
+    sleep(2);
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/pfn", "dummy"));
+  }
+  
+  void testTokenWrite()
+  {
+    std::string token = dmlite::generateToken("myid", "/pfn", "dummy", 1000, true);
+    
+    // Everything matches
+    CPPUNIT_ASSERT_EQUAL(true, dmlite::validateToken(token, "myid", "/pfn", "dummy", true));
+    
+    // Trying to use it for read. It should be OK (i.e. for stats)
+    CPPUNIT_ASSERT_EQUAL(true, dmlite::validateToken(token, "myid", "/pfn", "dummy", false));
+    
+    // Id does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "owned", "/pfn", "dummy", true));
+    
+    // PFN does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/etc/root", "dummy", true));
+    
+    // Password does not match
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/pfn", "forgot", true));
+    
+    // Token expired
+    token = dmlite::generateToken("myid", "/pfn", "dummy", 1, true);
+    sleep(2);
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/pfn", "dummy", true));
+    
+    // Trying to write using read
+    token = dmlite::generateToken("myid", "/pfn", "dummy", 1000, false);
+    CPPUNIT_ASSERT_EQUAL(false, dmlite::validateToken(token, "myid", "/pfn", "dummy", true));
+  }
 
   CPPUNIT_TEST_SUITE(ChkPerm);
   CPPUNIT_TEST(testOwner);
@@ -288,6 +338,8 @@ public:
   CPPUNIT_TEST(testGetVoFromRole);
   CPPUNIT_TEST(testAclSerialization);
   CPPUNIT_TEST(testAclValidation);
+  CPPUNIT_TEST(testTokenRead);
+  CPPUNIT_TEST(testTokenWrite);
   CPPUNIT_TEST_SUITE_END();
 };
 

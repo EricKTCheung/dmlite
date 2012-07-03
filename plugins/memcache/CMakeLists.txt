@@ -9,7 +9,7 @@ add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
  ${PROTO_SRC})
 
 #find_package(Memcache)
-target_link_libraries (memcache dmlite dmlitecommon memcached protobuf pthread)
+target_link_libraries (memcache dmlite dmliteutils memcached protobuf pthread)
 set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       memcache

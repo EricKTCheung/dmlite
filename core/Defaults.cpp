@@ -1,17 +1,24 @@
 /// @file   core/Catalog.cpp
 /// @brief  Implementation of non abstract dm::Catalog methods.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <cstdarg>
-#include <cstdio>
-#include <dmlite/dm_catalog.h>
-
-#include "dmlite/dm_pool.h"
-#include "dmlite/dm_poolhandler.h"
+#include <dmlite/cpp/dmlite.h>
 
 using namespace dmlite;
 
+/* Need to provide default constructors */
+BaseFactory::~BaseFactory()
+{
+  // Nothing
+}
 
-PoolManager::~PoolManager()
+UserGroupDbFactory::~UserGroupDbFactory()
+{
+  // Nothing
+}
+
+
+
+INodeFactory::~INodeFactory()
 {
   // Nothing
 }
@@ -25,6 +32,13 @@ CatalogFactory::~CatalogFactory()
 
 
 
+PoolManager::~PoolManager()
+{
+  // Nothing
+}
+
+
+
 PoolManagerFactory::~PoolManagerFactory()
 {
   // Nothing
@@ -32,7 +46,14 @@ PoolManagerFactory::~PoolManagerFactory()
 
 
 
-PoolHandlerFactory::~PoolHandlerFactory()
+PoolDriverFactory::~PoolDriverFactory()
+{
+  // Nothing
+}
+
+
+
+PoolDriver::~PoolDriver()
 {
   // Nothing
 }
@@ -53,18 +74,14 @@ PoolMetadata::~PoolMetadata()
 
 
 
-void Catalog::set(const std::string& key, ...) throw (DmException)
+UserGroupDb::~UserGroupDb()
 {
-  va_list vargs;
-
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
+  // Nothing
 }
 
 
 
-Catalog::Catalog() throw (DmException): parent_(0x00)
+INode::~INode()
 {
   // Nothing
 }
@@ -76,42 +93,50 @@ Catalog::~Catalog()
   // Nothing
 }
 
-void Catalog::setParent(Catalog* parent)
+
+
+IOHandler::~IOHandler()
 {
-  this->parent_ = parent;
+  // Nothing
 }
 
 
 
-Catalog* Catalog::getParent(void)
+IOFactory::~IOFactory()
 {
-  return this->parent_;
+  // Nothing
 }
 
 
 
-struct stat Catalog::stat(const std::string& path) throw (DmException)
+IODriver::~IODriver()
 {
-  return this->extendedStat(path, true).stat;
+  // Nothing
+}
+
+/* Common and default methods */
+UserGroupDb* UserGroupDbFactory::createUserGroupDb(UserGroupDbFactory* f, PluginManager* pm) throw (DmException)
+{
+  return f->createUserGroupDb(pm);
 }
 
 
 
-struct stat Catalog::stat(ino_t inode) throw (DmException)
+INode* INodeFactory::createINode(INodeFactory* factory, PluginManager* pm) throw (DmException)
 {
-  return this->extendedStat(inode).stat;
+  return factory->createINode(pm);
 }
 
 
 
-struct stat Catalog::stat(ino_t parent, const std::string& name) throw (DmException)
+Catalog* CatalogFactory::createCatalog(CatalogFactory* factory, PluginManager* pm) throw (DmException)
 {
-  return this->extendedStat(parent, name).stat;
+  return factory->createCatalog(pm);
 }
 
 
 
-struct stat Catalog::linkStat(const std::string& path) throw (DmException)
+PoolManager* PoolManagerFactory::createPoolManager(PoolManagerFactory* factory, PluginManager* pm) throw (DmException)
 {
-  return this->extendedStat(path, false).stat;
+  return factory->createPoolManager(pm);
 }

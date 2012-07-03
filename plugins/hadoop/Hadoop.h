@@ -6,45 +6,21 @@
 
 #include <vector>
 
-#include <dmlite/dm_io.h>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Security.h>
-#include <dmlite/dummy/Dummy.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/cpp/dm_io.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 
 #include "hdfs.h"
 
 namespace dmlite {
-
-class HadoopIOHandler: public IOHandler{
-public:
-
-  HadoopIOHandler(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
-  ~HadoopIOHandler();
-
-  void close(void) throw (DmException);
-  size_t read(char* buffer, size_t count) throw (DmException);
-  size_t write(const char* buffer, size_t count) throw (DmException);
-  void seek(long offset, std::ios_base::seekdir whence) throw (DmException);
-  long tell(void) throw (DmException);
-  void flush(void) throw (DmException);
-  bool eof(void) throw (DmException);
-  struct stat pstat(void) throw (DmException);
-
-private:
-  hdfsFS fs;		// Hadoop file system
-  hdfsFile file;	// Hadoop file descriptor
-  bool isEof;		// Set to true if end of the file is reached
-  std::string path_;
-};
-
+  
+/// PoolHandler
 class HadoopPoolHandler: public PoolHandler {
 public:
-  HadoopPoolHandler(StackInstance*, const Pool& pool) throw (DmException);
+  HadoopPoolHandler(const std::string& poolName, hdfsFS fs, StackInstance* si);
   ~HadoopPoolHandler();
   
-  void setSecurityContext(const SecurityContext*) throw (DmException);
-
   std::string getPoolType(void) throw (DmException);
   std::string getPoolName(void) throw (DmException);
   uint64_t getTotalSpace(void) throw (DmException);
@@ -52,35 +28,104 @@ public:
   uint64_t getFreeSpace(void) throw (DmException);
   bool isAvailable(bool) throw (DmException);
   
-  bool replicaAvailable(const std::string&, const FileReplica&) throw (DmException);
-  Uri  getLocation     (const std::string&, const FileReplica&) throw (DmException);
-  void remove          (const std::string&, const FileReplica&) throw (DmException);
+  Location getLocation(const FileReplica&) throw (DmException);
+  void     remove     (const FileReplica&) throw (DmException);
   
-  std::string putLocation (const std::string&, Uri*) throw (DmException);
-  void putDone(const std::string&, const Uri&, const std::string&) throw (DmException);
-
+  Location putLocation(const std::string&) throw (DmException);
+  void     putDone    (const FileReplica&, const std::map<std::string, std::string>&) throw (DmException);
+  
 private:
-  StackInstance* stack;
-  Pool           pool;
   hdfsFS         fs;
+  std::string    poolName;
+  StackInstance* stack;
   
-  std::string host;
-  std::string uname;
-  int         port;
+  bool replicaAvailable(const FileReplica&) throw (DmException);
 };
 
-class HadoopIOFactory: public IOFactory, public PoolHandlerFactory {
-public:
-  HadoopIOFactory() throw (DmException);
-  void configure(const std::string& key, const std::string& value) throw (DmException);
-  IOHandler *createIO(const std::string& uri, std::iostream::openmode openmode) throw (DmException);
 
+
+/// PoolDriver
+class HadoopPoolDriver: public PoolDriver {
+public:
+  HadoopPoolDriver() throw (DmException);
+  ~HadoopPoolDriver();
+  
+  void setStackInstance(StackInstance*) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
+  
+private:
+  StackInstance* stack;
+};
+
+
+
+// IO Handler
+class HadoopIODriver;
+
+class HadoopIOHandler: public IOHandler{
+public:
+
+  HadoopIOHandler(HadoopIODriver* driver, const std::string& pfn, int openmode) throw (DmException);
+  ~HadoopIOHandler();
+
+  void close(void) throw (DmException);
+  size_t read(char* buffer, size_t count) throw (DmException);
+  size_t write(const char* buffer, size_t count) throw (DmException);
+  void seek(long offset, int whence) throw (DmException);
+  long tell(void) throw (DmException);
+  void flush(void) throw (DmException);
+  bool eof(void) throw (DmException);
+
+private:
+  HadoopIODriver* driver;
+  
+  hdfsFile file;  // Hadoop file descriptor
+  bool     isEof; // Set to true if end of the file is reached
+  std::string path;
+};
+
+
+
+/// IO Driver
+class HadoopIODriver: public IODriver {
+public:
+  HadoopIODriver();
+  ~HadoopIODriver();
+  
+  void setStackInstance(StackInstance*) throw (DmException);
+  void setSecurityContext(const SecurityContext*) throw (DmException);
+  
+  IOHandler *createIOHandler(const std::string& pfn,
+                             int openmode,
+                             const std::map<std::string, std::string>& extras) throw (DmException);
+  
+  struct stat pStat(const std::string& pfn) throw (DmException);
+private:
+  friend class HadoopIOHandler;
+  
+  hdfsFS fs;
+};
+
+
+
+/// IO Factory
+class HadoopFactory: public IOFactory, public PoolDriverFactory {
+public:
+  HadoopFactory() throw (DmException);
+  
+  void configure(const std::string& key, const std::string& value) throw (DmException);
+   
   std::string implementedPool() throw();
-  PoolHandler* createPoolHandler(StackInstance*, const Pool&) throw (DmException);
+  PoolDriver* createPoolDriver() throw (DmException);
+  
+  IODriver* createIODriver(PluginManager*) throw (DmException);
 
 protected:
 private:
 };
 
 };
+
 #endif	// HADOOP_H

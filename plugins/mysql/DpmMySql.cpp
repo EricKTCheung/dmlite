@@ -1,8 +1,8 @@
 /// @file    plugins/mysql/DpmMySql.cpp
 /// @brief   MySQL DPM Implementation.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/Uris.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/dm_urls.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,178 +10,24 @@
 
 #include "DpmMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 using namespace dmlite;
 
 
 
-DpmMySqlCatalog::DpmMySqlCatalog(PoolContainer<MYSQL*>* connPool, const std::string& nsDb,
-                                 const std::string& dpmDb,
-                                 unsigned int symLinkLimit, StackInstance* si) throw(DmException):
-  NsMySqlCatalog(connPool, nsDb, symLinkLimit), dpmDb_(dpmDb), stack_(si)
+MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
+                                   const std::string& dpmDb) throw (DmException):
+      stack_(0x00), dpmDb_(dpmDb), factory_(factory)
 {
-  // Nothing
-}
-
-
-
-DpmMySqlCatalog::~DpmMySqlCatalog() throw(DmException)
-{
-  // Nothing
-}
-
-
-
-std::string DpmMySqlCatalog::getImplId() throw ()
-{
-  return std::string("DpmMySqlCatalog");
-}
-
-
-
-Uri DpmMySqlCatalog::get(const std::string& path) throw(DmException)
-{
-  // Get replicas
-  std::vector<FileReplica> replicas = this->getReplicas(path);
-
-  // Get the status for the Fs+Pool+Server for each replica
-  std::vector<Uri> available;
-
-  // Iterate and mark as unavailable if the FS is unavailable
-  unsigned i;
-  for (i = 0; i < replicas.size(); ++i) {
-    Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
-    PoolHandler* handler = this->stack_->getPoolHandler(pool);
-
-    if (handler->replicaAvailable(path, replicas[i])) {
-      available.push_back(handler->getLocation(path, replicas[i]));
-    }
-  }
-
-  if (available.size() > 0) {
-    // Pick a random one from the available
-    i = rand() % available.size();
-    return available[i];
-  }
-  else {
-    throw DmException(DM_NO_REPLICAS, "No available replicas");
-  }
-}
-
-
-
-std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  return this->put(path, uri, std::string());
-}
-
-
-
-std::string DpmMySqlCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  PoolManager* pm = this->stack_->getPoolManager();
-  
-  // Get the available pool list
-  std::vector<Pool> pools = pm->getAvailablePools();
-  
-  // Pick a random one
-  unsigned i = rand()  % pools.size();
-  
-  // Get the handler
-  PoolHandler* handler = this->stack_->getPoolHandler(pools[i]);
-  
-  // Create the entry
-  this->create(path, 0777);
-  
-  // Delegate to it
-  std::string token = handler->putLocation(path, uri);
-  
-  // Set the GUID
-  if (!guid.empty())
-    this->setGuid(path, guid);
-  
-  // Done!
-  return token;
-}
-
-
-
-void DpmMySqlCatalog::putDone(const std::string& path, const Uri& uri, const std::string& token) throw (DmException)
-{
-  // Get the replicas
-  std::vector<FileReplica> replicas = this->getReplicas(path);
- 
-  // Pick the proper one
-  for (unsigned i = 0; i < replicas.size(); ++i) {
-    Uri replicaUri = dmlite::splitUri(replicas[i].url);
-    
-    if ((replicaUri.host[0] == '\0' || strcmp(replicaUri.host, uri.host) == 0) &&
-        strcmp(replicaUri.path, uri.path) == 0) {
-      Pool pool = this->stack_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler* handler = this->stack_->getPoolHandler(pool);
-      
-      handler->putDone(path, uri, token);
-
-      return;
-    }
-  }
-  
-  // :(
-  throw DmException(DM_NO_SUCH_REPLICA,
-                    "Replica %s for file %s not found", uri.path, path.c_str());
-}
-
-
-
-void DpmMySqlCatalog::unlink(const std::string& path) throw (DmException)
-{
-  // Stat without following
-  ExtendedStat stat = this->extendedStat(path, false);
-
-  switch (stat.stat.st_mode & S_IFMT) {
-    case S_IFDIR:
-      throw DmException(DM_IS_DIRECTORY, "Can not remove a directory");
-      break;
-    case S_IFLNK:
-      NsMySqlCatalog::unlink(path);
-      break;
-    default:
-      try {
-        std::vector<FileReplica> replicas = this->getReplicas(stat.stat.st_ino);
-        std::vector<FileReplica>::iterator i;
-        
-        for (i = replicas.begin(); i != replicas.end(); ++i) {
-          // Delegate to the proper pool handler
-          Pool pool = this->stack_->getPoolManager()->getPool(i->pool);
-          PoolHandler* handler = this->stack_->getPoolHandler(pool);
-          handler->remove(path, *i);
-          // Remove the replica itself
-          this->deleteReplica(std::string(), stat.stat.st_ino, i->url);
-        }
-      }
-      catch (DmException e) {
-        if (e.code() != DM_NO_REPLICAS)
-          throw;
-      }
-      NsMySqlCatalog::unlink(path);
-  }
-}
-
-
-
-MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool,
-                                   const std::string& dpmDb,
-                                   StackInstance* si) throw (DmException):
-      connectionPool_(connPool), dpmDb_(dpmDb), stack_(si)
-{
-  this->conn_ = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 MySqlPoolManager::~MySqlPoolManager()
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 
@@ -189,6 +35,13 @@ MySqlPoolManager::~MySqlPoolManager()
 std::string MySqlPoolManager::getImplId() throw ()
 {
   return "mysql_pool_manager";
+}
+
+
+
+void MySqlPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  this->stack_ = si;
 }
 
 
@@ -270,10 +123,12 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
   std::vector<Pool> available;
   
   for (unsigned i = 0; i < pools.size(); ++i) {
-    PoolHandler* handler = this->stack_->getPoolHandler(pools[i]);
+    PoolHandler* handler = this->stack_->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
     
     if (handler->isAvailable())
       available.push_back(pools[i]);
+    
+    delete handler;
   }
   
   return available;
@@ -281,49 +136,69 @@ std::vector<Pool> MySqlPoolManager::getAvailablePools(bool) throw (DmException)
 
 
 
-PoolMetadata* MySqlPoolManager::getPoolMetadata(const Pool& pool) throw (DmException)
+PoolMetadata* MySqlPoolManager::getPoolMetadata(const std::string& pool) throw (DmException)
 {
-  // Build the query
-  char query[128];
-  snprintf(query, sizeof(query), "SELECT * FROM %s_pools WHERE poolname = ?", pool.pool_type);
+  Statement stmt(this->conn_, this->dpmDb_, STMT_GET_POOL_META);
+  stmt.bindParam(0, pool.c_str());
+  stmt.execute();
   
-  Statement* stmt = new Statement(this->conn_, this->dpmDb_, query);
-  stmt->bindParam(0, pool.pool_name);
-  stmt->execute(true);
+  char buffer[1024];
+  stmt.bindResult(0, buffer, sizeof(buffer));
   
-  if (!stmt->fetch()) {
-    delete stmt;
-    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found (type %s)",
-                                       pool.pool_name, pool.pool_type);
+  if (!stmt.fetch()) {
+    throw DmException(DM_NO_SUCH_POOL, "Pool %s not found", pool.c_str());
   }    
   
-  return new MySqlPoolMetadata(stmt);
+  return new MySqlPoolMetadata(buffer);
 }
 
 
 
-MySqlPoolMetadata::MySqlPoolMetadata(Statement* stmt): stmt_(stmt)
+MySqlPoolMetadata::MySqlPoolMetadata(const char* meta)
 {
-  // Nothing
+  const char *cur, *next, *eq;
+  std::string key, val;
+  
+  cur  = meta;
+  
+  while (cur != 0x00) {
+    eq   = strchr(cur, '=');
+    next = strchr(cur, ';');
+
+    if (eq) {
+      key = std::string(cur, eq - cur);
+      if (next)
+        val = std::string(eq + 1, next - eq - 1);
+      else
+        val = std::string(eq + 1);
+      
+      this->meta_.insert(std::pair<std::string, std::string>(key, val));
+    }
+    
+    if (next)
+      cur = next + 1;
+    else
+      cur = 0x00;
+  };  
 }
 
 
 
 MySqlPoolMetadata::~MySqlPoolMetadata()
 {
-  delete this->stmt_;
+  // Nothing
 }
 
 
 
 std::string MySqlPoolMetadata::getString(const std::string& field) throw (DmException)
 {
-  return this->stmt_->getString(this->stmt_->getFieldIndex(field));
+  return this->meta_[field];
 }
 
 
 
 int MySqlPoolMetadata::getInt(const std::string& field) throw (DmException)
 {
-  return this->stmt_->getInt(this->stmt_->getFieldIndex(field));
+  return atoi(this->meta_[field].c_str());
 }

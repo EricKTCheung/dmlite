@@ -4,16 +4,16 @@
 #ifndef ORACLE_H
 #define	ORACLE_H
 
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 #include <occi.h>
 
 
 namespace dmlite {
 
 /// Concrete factory for DPNS/LFC.
-class NsOracleFactory: public CatalogFactory {
+class NsOracleFactory: public INodeFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsOracleFactory() throw(DmException);
@@ -21,8 +21,9 @@ public:
   ~NsOracleFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog() throw(DmException);
-
+  INode* createINode(PluginManager*) throw(DmException);
+  UserGroupDb* createUserGroupDb(PluginManager*) throw (DmException);
+  
 protected:
   /// NS db.
   std::string nsDb_;
@@ -30,7 +31,7 @@ protected:
   std::string user_;
   /// Password
   std::string passwd_;
-
+  
   /// Oracle environment
   oracle::occi::Environment* env_;
 
@@ -42,9 +43,9 @@ protected:
 
   /// Maximum pool size
   unsigned int maxPool_;
-
-  /// The recursion limit following symbolic links.
-  unsigned int symLinkLimit_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };

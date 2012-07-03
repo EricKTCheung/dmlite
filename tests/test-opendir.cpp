@@ -1,6 +1,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <utime.h>
 #include "test-base.h"
 
@@ -19,7 +20,7 @@ public:
   void setUp()
   {
     TestBase::setUp();
-    this->catalog->makeDir(FOLDER, MODE);
+//    this->catalog->makeDir(FOLDER, MODE);
     this->catalog->makeDir(NESTED, MODE);
   }
 
@@ -28,7 +29,7 @@ public:
     if (this->catalog != 0x00)
     {
       this->catalog->removeDir(NESTED);
-      this->catalog->removeDir(FOLDER);
+//      this->catalog->removeDir(FOLDER);
     }
     TestBase::tearDown();
   }
@@ -37,13 +38,13 @@ public:
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime == after.st_atime);
   }
@@ -52,13 +53,13 @@ public:
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime == after.st_atime);
 
@@ -66,37 +67,47 @@ public:
     d = this->catalog->openDir(FOLDER);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
   }
 
   void testOpenAndRead()
   {
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->readDir(d);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime <= after.st_atime);
   }
 
   void testOpenAndReadTwice()
   {
+    this->pluginManager->configure("UpdateAccessTime", "no");
+    dmlite::StackInstance* si2 = new dmlite::StackInstance(this->pluginManager);
+    
+    si2->setSecurityCredentials(this->cred1);
+    
+    dmlite::Catalog* catalog2 = si2->getCatalog();
+    catalog2->setStackInstance(this->stackInstance);
+    catalog2->setSecurityContext(&this->root);
+    catalog2->changeDir(BASE_DIR);
+    
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = catalog2->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     this->catalog->readDir(d);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = catalog2->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime <= after.st_atime);
     sleep(1);
@@ -105,23 +116,23 @@ public:
     this->catalog->readDir(d);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
   }
 
   void testOpenAndReadTwiceNotEmpty()
   {
     struct stat before, after, nested;
 
-    nested = this->catalog->stat(NESTED);
+    nested = this->catalog->extendedStat(NESTED).stat;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     dirent *entry = this->catalog->readDir(d);
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT_EQUAL(nested.st_ino, entry->d_ino);
 
@@ -137,9 +148,10 @@ public:
   {
     struct stat before, after, nested;
 
-    nested = this->catalog->stat(NESTED);
+    nested = this->catalog->extendedStat(NESTED).stat;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
+
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
@@ -150,7 +162,7 @@ public:
 
     this->catalog->closeDir(d);
 
-    after = this->catalog->stat(FOLDER);
+    after = this->catalog->extendedStat(FOLDER).stat;
 
     CPPUNIT_ASSERT(before.st_atime <= after.st_atime);
 
@@ -162,6 +174,7 @@ public:
     } while (entry != 0x00);
 
     this->catalog->closeDir(d2);
+
   }
 
   void testOpenAndReadDirtyCash()
@@ -169,64 +182,53 @@ public:
     struct stat before, after, nested;
     int count, count_cached, count_cached_twice;
     
-    nested = this->catalog->stat(NESTED);
+  }
 
-    before = this->catalog->stat(FOLDER);
+  void testCreateFiles()
+  {
+    std::stringstream file_prefix;
+    std::string file_name;
+    int repeats = this->repeats;
 
-    sleep(1);
-    dmlite::Directory* d = this->catalog->openDir(FOLDER);
-    dirent *entry;
-    count = 0;
-    do {
-      entry = this->catalog->readDir(d);
-      count++;
-    } while (entry != 0x00);
 
-    this->catalog->closeDir(d);
+//    if (this->catalog->openDir(FOLDER) == 0x00)
+//      this->catalog->makeDir(FOLDER, MODE);
 
-    after = this->catalog->stat(FOLDER);
+    for (int i = 0; i < repeats; ++i) {
+      file_prefix << NUMFILE;
+      file_prefix << i;
+      file_name = file_prefix.str();
+      file_prefix.str("");
+      std::cout << file_name << std::endl;
+      this->catalog->create(file_name, MODE);
+    }
+  }
 
-    sleep(1);
-    d = this->catalog->openDir(FOLDER);
-    count_cached = 0;
-    do {
-      entry = this->catalog->readDir(d);
-      count_cached++;
-    } while (entry != 0x00);
+  void testDeleteFiles()
+  {
+    std::stringstream file_prefix;
+    std::string file_name;
+    int repeats = this->repeats;
 
-    this->catalog->closeDir(d);
-    CPPUNIT_ASSERT_EQUAL(count, 2);
-    CPPUNIT_ASSERT_EQUAL(count, count_cached);
+    file_prefix << NUMFILE;
 
-    this->catalog->create(NUMFILE, MODE);
+    this->catalog->removeDir(FOLDER);
 
-    sleep(1);
-    d = this->catalog->openDir(FOLDER);
-    count_cached_twice = 0;
-    do {
-      entry = this->catalog->readDir(d);
-      count_cached_twice++;
-    } while (entry != 0x00);
-
-    this->catalog->closeDir(d);
-
-    this->catalog->unlink(NUMFILE);
-
-    // there should be one file more now
-    CPPUNIT_ASSERT_EQUAL(count_cached + 1, count_cached_twice);
+    for (int i = 0; i < repeats; ++i) {
+      file_prefix << i;
+      file_name = file_prefix.str();
+      file_prefix.str("");
+      this->catalog->unlink(file_name);
+    }
   }
 
   CPPUNIT_TEST_SUITE(TestOpendir);
-  //*
-  CPPUNIT_TEST(testOnlyOpen);
-  CPPUNIT_TEST(testOnlyOpenTwice);
-  CPPUNIT_TEST(testOpenAndRead);
-  CPPUNIT_TEST(testOnlyOpen);
-  CPPUNIT_TEST(testOpenAndReadTwice);
-  CPPUNIT_TEST(testOpenAndReadTwiceNotEmpty);
+  //CPPUNIT_TEST(testOnlyOpen);
+  //CPPUNIT_TEST(testOnlyOpenTwice);
   CPPUNIT_TEST(testOpenAndReadTwiceFull);
-  CPPUNIT_TEST(testOpenAndReadDirtyCash);
+  //CPPUNIT_TEST(testCreateFiles);
   //*/
+  //CPPUNIT_TEST(testOpenAndReadNoUpdate);
   CPPUNIT_TEST_SUITE_END();
 };
 

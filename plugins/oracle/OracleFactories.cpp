@@ -1,11 +1,12 @@
-/// @file    plugins/oracle/OracleFactories.cpp
+// @file    plugins/oracle/OracleFactories.cpp
 /// @brief   Oracle backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstring>
-#include "OracleFactories.h"
+#include <cstdlib>
 #include "NsOracle.h"
+#include "OracleFactories.h"
+#include "UserGroupDbOracle.h"
 
-#include <stdlib.h>
 
 using namespace dmlite;
 using namespace oracle;
@@ -13,7 +14,7 @@ using namespace oracle;
 
 NsOracleFactory::NsOracleFactory() throw(DmException):
   nsDb_("cns_db"), user_("root"), passwd_(""), pool_(0x00),
-  minPool_(0), maxPool_(1), symLinkLimit_(3)
+  minPool_(0), maxPool_(1), mapFile_("/etc/lcgdm-mapfile")
 {
   this->env_ = occi::Environment::createEnvironment(occi::Environment::THREADED_MUTEXED);
 }
@@ -37,19 +38,19 @@ void NsOracleFactory::configure(const std::string& key, const std::string& value
     this->passwd_ = value;
   else if (key == "OracleDatabase")
     this->nsDb_ = value;
-  else if (key == "SymLinkLimit")
-    this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "OraclePoolMin")
     this->minPool_ = atoi(value.c_str());
   else if (key == "OraclePoolMax")
     this->maxPool_ = atoi(value.c_str());
+  else if (key == "MapFile")
+    this->mapFile_ = value;
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
 
 
-Catalog* NsOracleFactory::createCatalog() throw(DmException)
+INode* NsOracleFactory::createINode(PluginManager*) throw(DmException)
 {
   try {
     if (this->pool_ == 0x00)
@@ -57,8 +58,27 @@ Catalog* NsOracleFactory::createCatalog() throw(DmException)
                                                      this->nsDb_,
                                                      this->minPool_, this->maxPool_);
 
-    return new NsOracleCatalog(this->pool_, this->pool_->createConnection(this->user_, this->passwd_),
-                               this->symLinkLimit_);
+    return new INodeOracle(this->pool_,
+                           this->pool_->createConnection(this->user_, this->passwd_));
+  }
+  catch (occi::SQLException& ex) {
+    throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
+  }
+}
+
+
+
+UserGroupDb* NsOracleFactory::createUserGroupDb(PluginManager*) throw (DmException)
+{
+  try {
+    if (this->pool_ == 0x00)
+      this->pool_ = this->env_->createConnectionPool(this->user_, this->passwd_,
+                                                     this->nsDb_,
+                                                     this->minPool_, this->maxPool_);
+
+    return new UserGroupDbOracle(this->pool_,
+                                 this->pool_->createConnection(this->user_, this->passwd_),
+                                 this->mapFile_);
   }
   catch (occi::SQLException& ex) {
     throw DmException(DM_INTERNAL_ERROR, ex.getMessage());
@@ -69,13 +89,14 @@ Catalog* NsOracleFactory::createCatalog() throw(DmException)
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsOracleFactory());
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsOracleFactory()));
+  pm->registerFactory(static_cast<INodeFactory*>(new NsOracleFactory()));
 }
 
 
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_oracle_ns = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginNs
 };

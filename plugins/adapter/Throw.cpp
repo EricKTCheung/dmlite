@@ -1,7 +1,7 @@
 /// @file   plugins/adapter/Serrno2Code.cpp
 /// @brief  Maps the serrno codes to DM_ERROR_*
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/dm_exceptions.h>
+#include <dmlite/cpp/dm_exceptions.h>
 #include <errno.h>
 #include <serrno.h>
 

@@ -31,16 +31,17 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
 
 
-Catalog* ProfilerFactory::createCatalog(StackInstance* si) throw (DmException)
+Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 {
-  return new ProfilerCatalog(this->nestedCatalogFactory_->createCatalog(si));
+  
+  return new ProfilerCatalog(CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm));
 }
 
 
 
-PoolManager* ProfilerFactory::createPoolManager(StackInstance* si) throw (DmException)
+PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmException)
 {
-  return new ProfilerPoolManager(this->nestedPoolManagerFactory_->createPoolManager(si));
+  return new ProfilerPoolManager(PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm));
 }
 
 
@@ -48,7 +49,7 @@ PoolManager* ProfilerFactory::createPoolManager(StackInstance* si) throw (DmExce
 static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
 {
   try {
-    pm->registerCatalogFactory(new ProfilerFactory(pm->getCatalogFactory(), 0x00));
+    pm->registerFactory(static_cast<CatalogFactory*>(new ProfilerFactory(pm->getCatalogFactory(), 0x00)));
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -56,7 +57,7 @@ static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
   }
 
   try {
-    pm->registerPoolFactory(new ProfilerFactory(0x00, pm->getPoolManagerFactory()));
+    pm->registerFactory(static_cast<PoolManagerFactory*>(new ProfilerFactory(0x00, pm->getPoolManagerFactory())));
   }
   catch (DmException e) {
     if (e.code() != DM_NO_FACTORY)
@@ -68,6 +69,6 @@ static void registerProfilerPlugin(PluginManager* pm) throw(DmException)
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_profiler = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerProfilerPlugin
 };

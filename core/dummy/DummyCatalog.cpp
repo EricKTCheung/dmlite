@@ -3,7 +3,7 @@
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <cstdarg>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dummy/Dummy.h>
 
 using namespace dmlite;
 
@@ -38,16 +38,9 @@ DummyCatalog::~DummyCatalog()
 
 
 
-void DummyCatalog::set(const std::string& key, va_list vargs) throw (DmException)
+void DummyCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  DELEGATE(set, key, vargs);
-}
-
-
-
-SecurityContext* DummyCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
-{
-  DELEGATE_RETURN(createSecurityContext, cred);
+  DELEGATE(setStackInstance, si);
 }
 
 
@@ -87,27 +80,6 @@ ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) th
 
 
 
-ExtendedStat DummyCatalog::extendedStat(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(extendedStat, inode);
-}
-
-
-
-ExtendedStat DummyCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
-{
-  DELEGATE_RETURN(extendedStat, parent, name);
-}
-
-
-
-SymLink DummyCatalog::readLink(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(readLink, inode);
-}
-
-
-
 void DummyCatalog::addReplica(const std::string& guid, int64_t id,
                               const std::string& server, const std::string& sfn,
                               char status, char fileType,
@@ -135,9 +107,31 @@ std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) thro
 
 
 
-Uri DummyCatalog::get(const std::string& path) throw (DmException)
+Location DummyCatalog::get(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(get, path);
+}
+
+
+
+Location DummyCatalog::put(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(put, path);
+}
+
+
+
+Location DummyCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  DELEGATE_RETURN(put, path, guid);
+}
+
+
+
+void DummyCatalog::putDone(const std::string& path, const std::string& rfn, 
+                           const std::map<std::string,std::string>& params) throw (DmException)
+{
+  DELEGATE(putDone, path, rfn, params);
 }
 
 
@@ -163,27 +157,6 @@ void DummyCatalog::create(const std::string& path, mode_t mode) throw (DmExcepti
 
 
 
-std::string DummyCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  DELEGATE_RETURN(put, path, uri);
-}
-
-
-
-std::string DummyCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  DELEGATE_RETURN(put, path, uri, guid);
-}
-
-
-
-void DummyCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  DELEGATE(putDone, path, pfn, token);
-}
-
-
-
 mode_t DummyCatalog::umask(mode_t mask) throw ()
 {
   DELEGATE_RETURN(umask, mask);
@@ -198,16 +171,9 @@ void DummyCatalog::changeMode(const std::string& path, mode_t mode) throw (DmExc
 
 
 
-void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
+void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool fs) throw (DmException)
 {
-  DELEGATE(changeOwner, path, newUid, newGid);
-}
-
-
-
-void DummyCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
-{
-  DELEGATE(linkChangeOwner, path, newUid, newGid);
+  DELEGATE(changeOwner, path, newUid, newGid, fs);
 }
 
 
@@ -233,13 +199,6 @@ void DummyCatalog::utime(const std::string& path, const struct utimbuf* buf) thr
 
 
 
-void DummyCatalog::utime(ino_t inode, const utimbuf* buf) throw (DmException)
-{
-  DELEGATE(utime, inode, buf);
-}
-
-
-
 std::string DummyCatalog::getComment(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(getComment, path);
@@ -257,34 +216,6 @@ void DummyCatalog::setComment(const std::string& path, const std::string& commen
 void DummyCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   DELEGATE(setGuid, path, guid);
-}
-
-
-
-GroupInfo DummyCatalog::getGroup(gid_t gid) throw (DmException)
-{
-  DELEGATE_RETURN(getGroup, gid);
-}
-
-
-
-GroupInfo DummyCatalog::getGroup(const std::string& groupName) throw (DmException)
-{
-  DELEGATE_RETURN(getGroup, groupName);
-}
-
-
-
-UserInfo DummyCatalog::getUser(const std::string& userName) throw (DmException)
-{
-  DELEGATE_RETURN(getUser, userName);
-}
-
-
-
-UserInfo DummyCatalog::getUser(uid_t uid) throw (DmException)
-{
-  DELEGATE_RETURN(getUser, uid);
 }
 
 

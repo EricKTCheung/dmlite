@@ -4,9 +4,9 @@
 #ifndef MYSQL_H
 #define	MYSQL_H
 
-#include <dmlite/dmlite++.h>
-#include <dmlite/common/PoolContainer.h>
-#include <dmlite/dummy/Dummy.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 #include <mysql/mysql.h>
 
 
@@ -34,7 +34,7 @@ private:
 };
 
 /// Concrete factory for DPNS/LFC.
-class NsMySqlFactory: public CatalogFactory {
+class NsMySqlFactory: public INodeFactory, public UserGroupDbFactory {
 public:
   /// Constructor
   NsMySqlFactory() throw(DmException);
@@ -42,7 +42,18 @@ public:
   ~NsMySqlFactory() throw(DmException);
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
+  
+  INode*       createINode(PluginManager* pm)       throw (DmException);
+  UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException);
+  
+  /// Get a MYSQL connection. It will allocate only one per thread from the
+  /// pool, and just increase the reference count on later requests from the same
+  /// thread.
+  MYSQL* getConnection(void)     throw (DmException);
+  
+  /// Release a MYSQL connection. If the reference counts drops to 0,
+  /// the connection will be released on the pool.
+  void releaseConnection(MYSQL*) throw (DmException);
 
 protected:
   /// Connection factory.
@@ -50,12 +61,15 @@ protected:
 
   /// Connection pool.
   PoolContainer<MYSQL*> connectionPool_;
+  
+  /// Key used to keep only one connection per thread and factory
+  pthread_key_t thread_mysql_conn_;
 
   /// NS db.
   std::string nsDb_;
-
-  /// The recursion limit following symbolic links.
-  unsigned int symLinkLimit_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };
@@ -72,10 +86,9 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw(DmException);
   
-  Catalog* createCatalog(StackInstance* si) throw(DmException);
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  PoolManager* createPoolManager(PluginManager* pm) throw (DmException);
 
-protected:
+protected:  
   /// DPM db.
   std::string dpmDb_;
 };
