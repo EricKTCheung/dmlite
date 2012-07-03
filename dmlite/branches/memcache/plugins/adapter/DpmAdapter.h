@@ -5,7 +5,7 @@
 #define	DPM_ADAPTER_H
 
 #include "NsAdapter.h"
-#include <dmlite/dm_pool.h>
+#include <dmlite/cpp/dm_pool.h>
 #include <syslog.h>
 
 namespace dmlite {
@@ -15,7 +15,8 @@ class DpmAdapterCatalog: public NsAdapterCatalog {
 public:
   /// Constructor
   /// @param retryLimit The limit of retrials.
-  DpmAdapterCatalog(unsigned retryLimit) throw (DmException);
+  DpmAdapterCatalog(unsigned retryLimit,
+                    const std::string&, bool, unsigned) throw (DmException);
 
   /// Destructor
   ~DpmAdapterCatalog();
@@ -23,19 +24,22 @@ public:
   // Overload
   std::string getImplId(void) throw ();
 
-  void set(const std::string&, va_list) throw (DmException);
-
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  Uri         get      (const std::string&)       throw (DmException);
-  std::string put      (const std::string&, Uri*) throw (DmException);
-  std::string put      (const std::string&, Uri*, const std::string&) throw (DmException);
-  void        putDone  (const std::string&, const Uri&, const std::string&) throw (DmException);
-  void        unlink   (const std::string&)                           throw (DmException);
+  Location get(const std::string&) throw (DmException);
+  Location put(const std::string& path) throw (DmException);
+  Location put(const std::string& path,
+               const std::string& guid) throw (DmException);
+  void     putDone(const std::string& host, const std::string& rfn,
+                   const std::map<std::string, std::string>& params) throw (DmException);
+  
+  void unlink(const std::string&)                           throw (DmException);
  
 private:
-  std::string dpmHost_;
-  std::string spaceToken_;
+  std::string tokenPasswd_;
+  bool        tokenUseIp_;
+  unsigned    tokenLife_;
+  const char* userId_;
 };
 
 
@@ -47,14 +51,15 @@ public:
 
   std::string getImplId() throw ();
 
+  void setStackInstance(StackInstance* si) throw (DmException);
   void setSecurityContext(const SecurityContext*) throw (DmException);
   
-  PoolMetadata* getPoolMetadata(const Pool& pool) throw (DmException);
+  PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
 
   std::vector<Pool> getPools(void) throw (DmException);
-  Pool getPool(const std::string& poolname) throw (DmException);
+  Pool getPool(const std::string&) throw (DmException);
   
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
+  std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
   
 private:
   std::string dpmHost_;

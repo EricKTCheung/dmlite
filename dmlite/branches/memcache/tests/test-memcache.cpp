@@ -54,10 +54,10 @@ public:
 //      this->catalog->setSecurityContext(root);
       
       try {
-        struct stat s = this->catalog->stat(FILE);
+        struct stat s = this->catalog->extendedStat(FILE).stat;
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
-          this->catalog->deleteReplica("", s.st_ino, replicas[i].url);
+          this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
         }
       }
       catch (dmlite::DmException e) {
@@ -95,7 +95,7 @@ public:
     float stime;
     
 	  gettimeofday(&start, NULL);
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
     gettimeofday(&end, NULL);
 
     seconds  = end.tv_sec  - start.tv_sec;
@@ -107,7 +107,7 @@ public:
 	  printf("stat:%f\n", stime);
 
 	  gettimeofday(&start, NULL);
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
     gettimeofday(&end, NULL);
 
     seconds  = end.tv_sec  - start.tv_sec;
@@ -117,7 +117,7 @@ public:
     stime = microtime / 1000000;
 
 	  printf("cached stat:%f\n", stime);
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
 
   }
 
@@ -131,12 +131,12 @@ public:
     int repeats = REPEATS; 
     
     // cache the entry
-    statBuf = this->catalog->stat(FOLDER);
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
 
     for (int i = 0; i < repeats; i++)
     {
 	    gettimeofday(&start, NULL);
-      statBuf = this->catalog->stat(FOLDER);
+      statBuf = this->catalog->extendedStat(FOLDER).stat;
       gettimeofday(&end, NULL);
 
       seconds  = end.tv_sec  - start.tv_sec;
@@ -176,7 +176,7 @@ public:
     this->catalog->makeDir(nested_stat, MODE);
 
 	  gettimeofday(&start, NULL);
-    statBuf = this->catalog->stat(nested_stat);
+    statBuf = this->catalog->extendedStat(nested_stat).stat;
     gettimeofday(&end, NULL);
 
     seconds  = end.tv_sec  - start.tv_sec;
@@ -188,7 +188,7 @@ public:
 	  printf("deep stat:%f\n", stime);
 
 	  gettimeofday(&start, NULL);
-    statBuf = this->catalog->stat(nested_stat);
+    statBuf = this->catalog->extendedStat(nested_stat).stat;
     gettimeofday(&end, NULL);
 
     seconds  = end.tv_sec  - start.tv_sec;
@@ -234,12 +234,12 @@ public:
     nested_stat += std::string(FOLDER);
 
     this->catalog->makeDir(nested_stat, MODE);
-    statBuf = this->catalog->stat(nested_stat);
+    statBuf = this->catalog->extendedStat(nested_stat).stat;
 
     for (int i = 0; i < repeats; i++)
     {
 	    gettimeofday(&start, NULL);
-      statBuf = this->catalog->stat(nested_stat);
+      statBuf = this->catalog->extendedStat(nested_stat).stat;
       gettimeofday(&end, NULL);
 
       seconds  = end.tv_sec  - start.tv_sec;
@@ -274,7 +274,7 @@ public:
     char replica_name[50]; 
     std::string this_replica_name;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     for (int i = 0; i < num_replicas; i++)
     {
       sprintf(replica_name, "%s%d", "http://a.host.com/replica", i);
@@ -324,7 +324,7 @@ public:
     char replica_name[50]; 
     std::string this_replica_name;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     for (int i = 0; i < num_replicas; i++)
     {
       sprintf(replica_name, "%s%d", "http://a.host.com/replica", i);
@@ -368,7 +368,7 @@ public:
     char replica_name[50]; 
     std::string this_replica_name;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     for (int i = 0; i < num_replicas; i++)
     {
       sprintf(replica_name, "%s%d", "http://a.host.com/replica", i);
@@ -417,7 +417,7 @@ public:
     char replica_name[50]; 
     std::string this_replica_name;
 
-    s = this->catalog->stat(FILE);
+    s = this->catalog->extendedStat(FILE).stat;
     for (int i = 0; i < num_replicas; i++)
     {
       sprintf(replica_name, "%s%d", "http://a.host.com/replica", i);
@@ -475,7 +475,7 @@ public:
 
 	  printf("create dir:%f\n", stime);
     // cache the entry
-    this->catalog->stat(nsf);
+    this->catalog->extendedStat(nsf).stat;
 
 	  gettimeofday(&start, NULL);
     this->catalog->removeDir(nsf);
@@ -520,7 +520,7 @@ public:
       ctime_acc += stime;
   
       // cache the entry
-      this->catalog->stat(nsf);
+      this->catalog->extendedStat(nsf).stat;
   
   	  gettimeofday(&start, NULL);
       this->catalog->removeDir(nsf);
@@ -564,7 +564,7 @@ public:
 
 	  printf("create file:%f\n", stime);
     // cache the entry
-    this->catalog->stat(nsf);
+    this->catalog->extendedStat(nsf).stat;
 
 	  gettimeofday(&start, NULL);
     this->catalog->unlink(nsf);
@@ -609,7 +609,7 @@ public:
       ctime_acc += stime;
   
       // cache the entry
-      this->catalog->stat(nsf);
+      this->catalog->extendedStat(nsf).stat;
   
   	  gettimeofday(&start, NULL);
       this->catalog->unlink(nsf);
@@ -636,7 +636,7 @@ public:
 
     struct stat before, after;
 
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     int num_files = 0;
     int num_cached_files = 0;
@@ -656,7 +656,7 @@ public:
   	microtime = seconds * 1000000 + useconds;
     stime = microtime / 1000000;
 
-	  printf("read dir with %d:%f\n", repeats, stime);
+	  printf("read dir with %d first file:%f\n", repeats, stime);
 
     sleep(1);
   	gettimeofday(&start, NULL);
@@ -694,7 +694,7 @@ public:
 	  struct timeval start, end, singleStart, singleEnd;
     long seconds, useconds;
   	double microtime;
-    float stime, stime2, stime3;
+    float stime, stime2, stime3, stime4, stime5, stime6, stime7, stime8;
     int repeats = TestBase::repeats;
 
     struct stat before, after;
@@ -708,10 +708,11 @@ public:
       this->catalog->create(std::string(currentFile), MODE);
     }
     */
-    before = this->catalog->stat(FOLDER);
+    before = this->catalog->extendedStat(FOLDER).stat;
 
     int num_files = 0;
     int num_cached_files = 0;
+    int num_cached2_files = 0;
     
     sleep(1);
     dmlite::Directory* d;
@@ -789,9 +790,90 @@ public:
   	microtime = seconds * 1000000 + useconds;
     stime3 = microtime / 1000000;
 
+    sleep(1);
+  	gettimeofday(&start, NULL);
+    d = this->catalog->openDir(FOLDER);
+    entry = this->catalog->readDir(d); 
+    while (entry)
+    {
+      entry = this->catalog->readDir(d); 
+      num_cached2_files++;
+    }
+    this->catalog->closeDir(d);
+    gettimeofday(&end, NULL);
+  
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+  
+  	microtime = seconds * 1000000 + useconds;
+    stime4 = microtime / 1000000;
+
+    sleep(1);
+  	gettimeofday(&start, NULL);
+    d = this->catalog->openDir(FOLDER);
+    entry = this->catalog->readDir(d); 
+    while (entry = this->catalog->readDir(d));
+    this->catalog->closeDir(d);
+    gettimeofday(&end, NULL);
+  
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+  
+  	microtime = seconds * 1000000 + useconds;
+    stime5 = microtime / 1000000;
+
+    sleep(1);
+  	gettimeofday(&start, NULL);
+    d = this->catalog->openDir(FOLDER);
+    while (entry = this->catalog->readDir(d));
+    this->catalog->closeDir(d);
+    gettimeofday(&end, NULL);
+  
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+  
+  	microtime = seconds * 1000000 + useconds;
+    stime6 = microtime / 1000000;
+
+    sleep(1);
+  	gettimeofday(&start, NULL);
+    d = this->catalog->openDir(FOLDER);
+    entry = this->catalog->readDir(d); 
+    while (entry = this->catalog->readDir(d));
+    this->catalog->closeDir(d);
+    gettimeofday(&end, NULL);
+  
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+  
+  	microtime = seconds * 1000000 + useconds;
+    stime7 = microtime / 1000000;
+
+    sleep(1);
+  	gettimeofday(&start, NULL);
+    d = this->catalog->openDir(FOLDER);
+    while (entry = this->catalog->readDir(d));
+    this->catalog->closeDir(d);
+    gettimeofday(&end, NULL);
+  
+    seconds  = end.tv_sec  - start.tv_sec;
+    useconds = end.tv_usec - start.tv_usec;
+  
+  	microtime = seconds * 1000000 + useconds;
+    stime8 = microtime / 1000000;
+
+
+    CPPUNIT_ASSERT_EQUAL(num_cached_files, num_cached2_files);
+
 	  printf("cached read dir with %d:%f\n", repeats, stime2);
+	  printf("cached read dir 2nd with %d:%f\n", repeats, stime4);
+	  printf("cached read dir 3rd with %d:%f\n", repeats, stime5);
+	  printf("cached read dir 4th with %d:%f\n", repeats, stime6);
+	  printf("cached read dir 5th with %d:%f\n", repeats, stime7);
+	  printf("cached read dir 6th with %d:%f\n", repeats, stime8);
     printf("cached read dir with %d first file:%f\n", repeats, stime3);
-    printf("%f,%f,%f\n", stime, stime2, stime3);
+    printf("%f,%f,%f,%f,%f,%f,%f,%f\n", stime, stime2, stime4, stime5, stime6, stime7, stime8, stime3);
+
     /*
     for (i = 0; i < REPEATS; i++)
     {
@@ -803,7 +885,7 @@ public:
 
 
   CPPUNIT_TEST_SUITE(TestMemcache);
-//*
+/*
   CPPUNIT_TEST(testStat);
   CPPUNIT_TEST(testRepeatedStat);
   CPPUNIT_TEST(testDeepStat);

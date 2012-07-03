@@ -3,7 +3,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include <dmlite/common/PoolContainer.h>
+#include <dmlite/cpp/utils/dm_poolcontainer.h>
 
 using namespace dmlite;
 
@@ -144,6 +144,7 @@ public:
     // Release
     pool->release(d1);
     pool->release(d2);
+    pool->release(d3);
   }
 
 
@@ -157,13 +158,54 @@ public:
     pool->release(d1);
     pool->release(d2);
   }
+  
+  
+  
+  void testIncreaseRef()
+  {
+    Dummy *d1, *d2, *d3, *d4;
+    
+    d1 = pool->acquire();
+    d2 = pool->acquire(d1);
+    d3 = pool->acquire();
+    
+    pool->resize(4);
+    
+    // Acquire 0 twice, and acquire a new one
+    CPPUNIT_ASSERT_EQUAL(0,  d1->id);
+    CPPUNIT_ASSERT_EQUAL(d1, d2);
+    CPPUNIT_ASSERT_EQUAL(1,  d3->id);
+    CPPUNIT_ASSERT_EQUAL(2u, pool->refCount(d1));
+    
+    // Decrease ref count of 0
+    pool->release(d1);
+    CPPUNIT_ASSERT_EQUAL(0, d2->id);
+    CPPUNIT_ASSERT_EQUAL(1u, pool->refCount(d1));
+    
+    // Make sure if we allocate a new one, it is not 0 (still in use)
+    d4 = pool->acquire();
+    CPPUNIT_ASSERT_EQUAL(2, d4->id);
+    
+    // Release the other pointer to 0
+    pool->release(d2);
+    CPPUNIT_ASSERT_EQUAL(0u, pool->refCount(d1));
+    
+    // It should be free, so 0 should be taken back in the next call
+    d1 = pool->acquire();
+    CPPUNIT_ASSERT_EQUAL(0, d1->id);
+
+    // Try to acquire an external resource to the pool
+    Dummy external;    
+    CPPUNIT_ASSERT_THROW(pool->acquire(&external), dmlite::DmException);
+  }
 
   CPPUNIT_TEST_SUITE(PoolContainerTest);
   CPPUNIT_TEST(testOne);
   CPPUNIT_TEST(testTwo);
   CPPUNIT_TEST(testInvalid);
   CPPUNIT_TEST(testResize);
-  CPPUNIT_TEST(testNoMore);
+  //CPPUNIT_TEST(testNoMore);
+  //CPPUNIT_TEST(testIncreaseRef);
   CPPUNIT_TEST_SUITE_END();
 };
 

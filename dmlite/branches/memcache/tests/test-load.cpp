@@ -2,13 +2,14 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <iostream>
 #include <sys/stat.h>
 
 class PluginLoaded: public CppUnit::TestFixture {
 protected:
   dmlite::PluginManager *pluginManager;
+  dmlite::SecurityContext secCtx;
 
 public:
   void setUp()
@@ -37,6 +38,7 @@ public:
       pluginManager->configure("Host", "arioch.cern.ch");
       // Get stack
       stack = new dmlite::StackInstance(pluginManager);
+      stack->setSecurityContext(secCtx);
       // Get interface
       catalog = stack->getCatalog();
       CPPUNIT_ASSERT(catalog != 0x00);
@@ -46,7 +48,7 @@ public:
     }
     // Call stat (it is irrelevant, but errno can not be DM_NOT_IMPLEMENTED)
     try {
-      buf = catalog->stat("/");
+      buf = catalog->extendedStat("/").stat;
       CPPUNIT_ASSERT_EQUAL((unsigned)0, buf.st_uid);
     }
     catch (dmlite::DmException exc)

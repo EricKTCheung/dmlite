@@ -1,12 +1,14 @@
 /// @file    plugins/mysql/MySqlFactories.cpp
 /// @brief   MySQL backend for libdm.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <algorithm>
 #include <cstring>
 #include <pthread.h>
 #include <stdlib.h>
 #include "MySqlFactories.h"
 #include "NsMySql.h"
 #include "DpmMySql.h"
+#include "UserGroupDbMySql.h"
 
 using namespace dmlite;
 
@@ -85,17 +87,17 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
-  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"), symLinkLimit_(3)
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"),
+  mapFile_("/etc/lcgdm-mapfile")
 {
-  // Initialize MySQL library
-  mysql_library_init(0, NULL, NULL);
+  mysql_library_init(0, NULL, NULL);  
+  pthread_key_create(&this->thread_mysql_conn_, NULL);
 }
 
 
 
 NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 {
-  // Close MySQL library
   mysql_library_end();
 }
 
@@ -103,7 +105,7 @@ NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  if (key == "Host")
+  if (key == "MySqlHost")
     this->connectionFactory_.host = value;
   else if (key == "MySqlUsername")
     this->connectionFactory_.user = value;
@@ -113,26 +115,64 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     this->connectionFactory_.port = atoi(value.c_str());
   else if (key == "NsDatabase")
     this->nsDb_ = value;
-  else if (key == "SymLinkLimit")
-    this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "NsPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
+  else if (key == "MapFile")
+    this->mapFile_ = value;
   else
     throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
 
-Catalog* NsMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
+INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new NsMySqlCatalog(&this->connectionPool_, this->nsDb_,
-                            this->symLinkLimit_);
+  return new INodeMySql(this, this->nsDb_);
+}
+
+
+
+UserGroupDb* NsMySqlFactory::createUserGroupDb(PluginManager*) throw (DmException)
+{
+  pthread_once(&initialize_mysql_thread, init_thread);
+  return new UserGroupDbMySql(this, this->nsDb_, this->mapFile_);
+}
+
+
+
+MYSQL* NsMySqlFactory::getConnection(void) throw (DmException)
+{
+  MYSQL* conn;
+  
+  // Try from the thread local storage
+  conn = static_cast<MYSQL*>(pthread_getspecific(this->thread_mysql_conn_));
+  
+  // If NULL, instantiate and set in the thread local storage
+  if (conn == NULL) {
+    conn = this->connectionPool_.acquire();
+    pthread_setspecific(this->thread_mysql_conn_, conn);
+  }
+  // Increase reference count otherwise
+  else {
+    this->connectionPool_.acquire(conn);
+  }
+  
+  // Return
+  return conn;
+}
+
+
+
+void NsMySqlFactory::releaseConnection(MYSQL* conn) throw (DmException)
+{
+  if (this->connectionPool_.release(conn) == 0)
+    pthread_setspecific(this->thread_mysql_conn_, NULL);
 }
 
 
 
 DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
-                  dpmDb_("dpm_db")
+  NsMySqlFactory(), dpmDb_("dpm_db")
 {
   // MySQL initialization done by NsMySqlFactory
 }
@@ -151,60 +191,46 @@ void DpmMySqlFactory::configure(const std::string& key, const std::string& value
   if (key == "DpmDatabase")
     this->dpmDb_ = value;
   else
-    return NsMySqlFactory::configure(key, value);
+    NsMySqlFactory::configure(key, value);
 }
 
 
 
-Catalog* DpmMySqlFactory::createCatalog(StackInstance* si) throw(DmException)
+PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmException)
 {
   pthread_once(&initialize_mysql_thread, init_thread);
-  return new DpmMySqlCatalog(&this->connectionPool_,
-                             this->nsDb_, this->dpmDb_,
-                             this->symLinkLimit_, si);
-}
-
-
-
-PoolManager* DpmMySqlFactory::createPoolManager(StackInstance* si) throw (DmException)
-{
-  pthread_once(&initialize_mysql_thread, init_thread);
-  return new MySqlPoolManager(&this->connectionPool_,
-                              this->dpmDb_, si);
+  return new MySqlPoolManager(this, this->dpmDb_);
 }
 
 
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerCatalogFactory(new NsMySqlFactory());
+  NsMySqlFactory* nsFactory = new NsMySqlFactory();
+  pm->registerFactory(static_cast<INodeFactory*>(nsFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(nsFactory));
 }
 
 
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
-{
-  CatalogFactory* nested = 0x00;
-  try {
-    nested = pm->getCatalogFactory();
-  }
-  catch (DmException e) {
-    if (e.code() != DM_NO_FACTORY)
-      throw;
-  }
-  pm->registerCatalogFactory(new DpmMySqlFactory());
-  pm->registerPoolFactory(new DpmMySqlFactory());
+{ 
+  DpmMySqlFactory* dpmFactory = new DpmMySqlFactory();
+  
+  pm->registerFactory(static_cast<INodeFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolManagerFactory*>(dpmFactory));
 }
 
 
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_mysql_ns = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginNs
 };
 
 PluginIdCard plugin_mysql_dpm = {
-  API_VERSION,
+  PLUGIN_ID_HEADER,
   registerPluginDpm
 };

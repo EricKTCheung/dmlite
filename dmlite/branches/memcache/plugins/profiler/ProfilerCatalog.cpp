@@ -31,27 +31,9 @@ std::string ProfilerCatalog::getImplId() throw ()
 
 
 
-void ProfilerCatalog::set(const std::string& key, ...) throw(DmException)
+void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  va_list vargs;
-
-  va_start(vargs, key);
-  this->set(key, vargs);
-  va_end(vargs);
-}
-
-
-
-void ProfilerCatalog::set(const std::string& key, va_list vargs) throw (DmException)
-{
-  PROFILE(set, key, vargs);
-}
-
-
-
-SecurityContext* ProfilerCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
-{
-  PROFILE_RETURN(SecurityContext*, createSecurityContext, cred);
+  PROFILE(setStackInstance, si);
 }
 
 
@@ -84,58 +66,9 @@ ino_t ProfilerCatalog::getWorkingDirI(void) throw (DmException)
 
 
 
-struct stat ProfilerCatalog::stat(const std::string& path) throw (DmException)
-{
-  PROFILE_RETURN(struct stat, stat, path);
-}
-
-
-
-struct stat ProfilerCatalog::stat(ino_t inode) throw (DmException)
-{
-  PROFILE_RETURN(struct stat, stat, inode);
-}
-
-
-
-struct stat ProfilerCatalog::stat(ino_t parent, const std::string& name) throw (DmException)
-{
-  PROFILE_RETURN(struct stat, stat, parent, name);
-}
-
-
-
-struct stat ProfilerCatalog::linkStat(const std::string& path) throw (DmException)
-{
-  PROFILE_RETURN(struct stat, linkStat, path);
-}
-
-
-
 ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   PROFILE_RETURN(ExtendedStat, extendedStat, path, follow);
-}
-
-
-
-ExtendedStat ProfilerCatalog::extendedStat(ino_t inode) throw (DmException)
-{
-  PROFILE_RETURN(ExtendedStat, extendedStat, inode);
-}
-
-
-
-ExtendedStat ProfilerCatalog::extendedStat(ino_t parent, const std::string& name) throw (DmException)
-{
-  PROFILE_RETURN(ExtendedStat, extendedStat, parent, name);
-}
-
-
-
-SymLink ProfilerCatalog::readLink(ino_t inode) throw (DmException)
-{
-  PROFILE_RETURN(SymLink, readLink, inode);
 }
 
 
@@ -167,9 +100,31 @@ std::vector<FileReplica> ProfilerCatalog::getReplicas(const std::string& path) t
 
 
 
-Uri ProfilerCatalog::get(const std::string& path) throw (DmException)
+Location ProfilerCatalog::get(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(Uri, get, path);
+  PROFILE_RETURN(Location, get, path);
+}
+
+
+
+Location ProfilerCatalog::put(const std::string& path) throw (DmException)
+{
+  PROFILE_RETURN(Location, put, path);
+}
+
+
+
+Location ProfilerCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
+{
+  PROFILE_RETURN(Location, put, path, guid);
+}
+
+
+
+void ProfilerCatalog::putDone(const std::string& host, const std::string& rfn, 
+                              const std::map<std::string,std::string>& params) throw (DmException)
+{
+  PROFILE(putDone, host, rfn, params);
 }
 
 
@@ -195,27 +150,6 @@ void ProfilerCatalog::create(const std::string& path, mode_t mode) throw (DmExce
 
 
 
-std::string ProfilerCatalog::put(const std::string& path, Uri* uri) throw (DmException)
-{
-  PROFILE_RETURN(std::string, put, path, uri);
-}
-
-
-
-std::string ProfilerCatalog::put(const std::string& path, Uri* uri, const std::string& guid) throw (DmException)
-{
-  PROFILE_RETURN(std::string, put, path, uri, guid);
-}
-
-
-
-void ProfilerCatalog::putDone(const std::string& path, const Uri& pfn, const std::string& token) throw (DmException)
-{
-  PROFILE(putDone, path, pfn, token);
-}
-
-
-
 mode_t ProfilerCatalog::umask(mode_t mask) throw ()
 {
   PROFILE_RETURN(mode_t, umask, mask);
@@ -230,16 +164,9 @@ void ProfilerCatalog::changeMode(const std::string& path, mode_t mode) throw (Dm
 
 
 
-void ProfilerCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
+void ProfilerCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool fs) throw (DmException)
 {
-  PROFILE(changeOwner, path, newUid, newGid);
-}
-
-
-
-void ProfilerCatalog::linkChangeOwner(const std::string& path, uid_t newUid, gid_t newGid) throw (DmException)
-{
-  PROFILE(linkChangeOwner, path, newUid, newGid);
+  PROFILE(changeOwner, path, newUid, newGid, fs);
 }
 
 
@@ -265,13 +192,6 @@ void ProfilerCatalog::utime(const std::string& path, const struct utimbuf* buf) 
 
 
 
-void ProfilerCatalog::utime(ino_t ino, const utimbuf* buf) throw (DmException)
-{
-  PROFILE(utime, ino, buf);
-}
-
-
-
 std::string ProfilerCatalog::getComment(const std::string& path) throw (DmException)
 {
   PROFILE_RETURN(std::string, getComment, path);
@@ -289,34 +209,6 @@ void ProfilerCatalog::setComment(const std::string& path, const std::string& com
 void ProfilerCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   PROFILE(setGuid, path, guid);
-}
-
-
-
-GroupInfo ProfilerCatalog::getGroup(gid_t gid) throw (DmException)
-{
-  PROFILE_RETURN(GroupInfo, getGroup, gid);
-}
-
-
-
-GroupInfo ProfilerCatalog::getGroup(const std::string& groupName) throw (DmException)
-{
-  PROFILE_RETURN(GroupInfo, getGroup, groupName);
-}
-
-
-
-UserInfo ProfilerCatalog::getUser(const std::string& userName) throw (DmException)
-{
-  PROFILE_RETURN(UserInfo, getUser, userName);
-}
-
-
-
-UserInfo ProfilerCatalog::getUser(uid_t uid) throw (DmException)
-{
-  PROFILE_RETURN(UserInfo, getUser, uid);
 }
 
 

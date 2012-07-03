@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include <vector>
 #include "test-base.h"
-#include "dmlite/common/Security.h"
+#include "dmlite/cpp/utils/dm_security.h"
 
 class TestAcls: public TestBase
 {

@@ -10,7 +10,7 @@
 #include <string>
 #include <syslog.h>
 
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 
 #include "ProfilerCatalog.h"
 #include "ProfilerPoolManager.h"
@@ -27,8 +27,8 @@ public:
 
   void configure(const std::string& key, const std::string& value) throw (DmException);
 
-  Catalog*     createCatalog(StackInstance* si)     throw (DmException);
-  PoolManager* createPoolManager(StackInstance* si) throw (DmException);
+  Catalog*     createCatalog(PluginManager*)     throw (DmException);
+  PoolManager* createPoolManager(PluginManager*) throw (DmException);
 
 protected:
   /// The decorated Catalog factory.
