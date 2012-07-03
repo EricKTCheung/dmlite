@@ -78,7 +78,7 @@ add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmliteutils dmlite cppunit dl)
 
 Add_executable        (test-memcache test-memcache.cpp test-base.cpp)
-target_link_libraries (test-memcache dmlitecommon dmlite cppunit dl)
+target_link_libraries (test-memcache dmliteutils dmlite cppunit dl)
 # Configure CTest testing
 ENABLE_TESTING()
 
