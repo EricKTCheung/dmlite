@@ -1645,7 +1645,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
          std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
                                           true, false,
                                           dirp->curKeysSegment);
-      } catch (MemcacheExeption e) {
+      } catch (MemcacheException e) {
         dirp->isCached = DIR_NOTCOMPLETE;
       }
       // Set the no reply behavior, don't care if it fails
