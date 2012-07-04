@@ -91,6 +91,9 @@ public:
     CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
     
+    s = this->catalog->extendedStat(FILE).stat;
+    CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
+    
     // Remove the file
     this->catalog->unlink(FILE);
     s = this->catalog->extendedStat(FOLDER).stat;
@@ -127,7 +130,7 @@ public:
 
     this->catalog->create(FILE, MODE);
     s = this->catalog->extendedStat(FOLDER).stat;
-    CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
+    CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
 
     // Change user
     this->stackInstance->setSecurityCredentials(cred2);
@@ -148,7 +151,7 @@ public:
 
     // Nested file should pass
     s = this->catalog->extendedStat(NESTED).stat;
-    CPPUNIT_ASSERT_EQUAL(MODE, (int)s.st_mode & MODE);
+    CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
   }
 
   void testUmask()

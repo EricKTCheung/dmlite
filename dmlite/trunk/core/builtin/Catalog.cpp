@@ -506,7 +506,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 
   // Create new
   if (code == DM_NO_SUCH_FILE) {
-    mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_);
+    mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFREG;
 
     // Generate inherited ACL's if there are defaults
     std::string aclStr;
