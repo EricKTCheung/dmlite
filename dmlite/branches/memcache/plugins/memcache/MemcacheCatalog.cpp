@@ -1640,12 +1640,14 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
     if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
 
 //      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
-      
-      dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
+      try {
+        dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
          std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
                                           true, false,
                                           dirp->curKeysSegment);
-
+      } catch (MemcacheExeption e) {
+        dirp->isCached = DIR_NOTCOMPLETE;
+      }
       // Set the no reply behavior, don't care if it fails
 //      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
@@ -2304,9 +2306,11 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
 
     if (statMemc != MEMCACHED_SUCCESS)
       throw MemcacheException(statMemc, this->conn_);
+/* This error gives us the same information as the one just above
     if ((noSegmentsIncremented - 1) != curSegment)
       throw DmException(DM_UNKNOWN_ERROR,
           std::string("Incrementing the number of segments on memcached failed."));
+      */
   }
   return curSegment;
 }
