@@ -99,6 +99,7 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
 NsMySqlFactory::~NsMySqlFactory() throw(DmException)
 {
   mysql_library_end();
+  pthread_key_delete(this->thread_mysql_conn_);
 }
 
 

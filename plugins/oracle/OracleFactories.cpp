@@ -89,8 +89,9 @@ UserGroupDb* NsOracleFactory::createUserGroupDb(PluginManager*) throw (DmExcepti
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsOracleFactory()));
-  pm->registerFactory(static_cast<INodeFactory*>(new NsOracleFactory()));
+  NsOracleFactory* nsFactory = new NsOracleFactory();
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(nsFactory));
+  pm->registerFactory(static_cast<INodeFactory*>(nsFactory));
 }
 
 
