@@ -147,18 +147,21 @@ public:
   void testOpenAndReadTwiceFull()
   {
     struct stat before, after, nested;
+    int number_files = 0;
 
     nested = this->catalog->extendedStat(NESTED).stat;
 
     before = this->catalog->extendedStat(FOLDER).stat;
-
 
     sleep(1);
     dmlite::Directory* d = this->catalog->openDir(FOLDER);
     dirent *entry;
     do {
       entry = this->catalog->readDir(d);
+      number_files++;
     } while (entry != 0x00);
+
+    printf("number of files = %d.\n", number_files);
 
     this->catalog->closeDir(d);
 
@@ -167,11 +170,15 @@ public:
     CPPUNIT_ASSERT(before.st_atime <= after.st_atime);
 
     sleep(1);
+    number_files = 0;
     dmlite::Directory* d2 = this->catalog->openDir(FOLDER);
     dirent *entry2;
     do {
       entry2 = this->catalog->readDir(d2);
+      number_files++;
     } while (entry2 != 0x00);
+
+    printf("number of files = %d.\n", number_files);
 
     this->catalog->closeDir(d2);
 
@@ -233,7 +240,8 @@ public:
 };
 
 const int   TestOpendir::MODE    = 0777;
-const char* TestOpendir::FOLDER  = "test-opendir";
+//const char* TestOpendir::FOLDER  = "test-opendir";
+const char* TestOpendir::FOLDER  = "perfsuite-martin/split_test";
 const char* TestOpendir::NESTED  = "test-opendir/nested";
 const char* TestOpendir::NUMFILE = "test-opendir/file_";
 
