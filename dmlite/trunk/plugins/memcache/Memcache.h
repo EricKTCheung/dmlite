@@ -87,7 +87,7 @@ public:
   std::string getImplId(void) throw ();
 
   void setStackInstance(StackInstance* si) throw (DmException);
-  void setSecurityContext(const SecurityContext*) throw (DmException);
+  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
 
 //  void        changeDir    (const std::string&) throw (DmException);
 
