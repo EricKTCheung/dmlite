@@ -1627,7 +1627,6 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
     listKey = keyFromAny(key_prefix[PRE_DIR], dirp->dirId);
     if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
 
-      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
       try {
         dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
          std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
