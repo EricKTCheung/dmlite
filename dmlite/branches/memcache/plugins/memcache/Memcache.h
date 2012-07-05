@@ -28,8 +28,8 @@ namespace dmlite {
 
 #define FETCH_COMBINED 30
 #define FETCH_COMBINED_MIN  1
-#define FETCH_COMBINED_MAX 50
-#define FETCH_COMBINED_MUL  2
+#define FETCH_COMBINED_MAX 5000
+#define FETCH_COMBINED_MUL  4
 #define PROB_CACHE 1.0
 
 struct MemcacheDir {
@@ -235,15 +235,6 @@ private:
   int deserializeDirList(std::string& serialList,
                          std::vector<std::string> &keyList,
                          time_t &mtime);
-
-  /// Deserialize a list of keys.
-  /// This function returns the isComplete bit of the list.
-  /// It does not take blacklisted items into consideration.
-  /// @param serialList The serialized List as string.
-  /// @param keyList    The List to write the result into.
-  /// @return           The isComplete value.
-  int deserializeList(std::string& serialList,
-                                      std::vector<std::string> &keyList);
 
   /// Deserialize a list of keys.
   /// This function takes blacklisted item into account

@@ -279,27 +279,6 @@ std::vector<std::string> MemcacheCatalog::deserializeList(std::string& serialLis
   return keyList;
 }
 
-int MemcacheCatalog::deserializeList(std::string& serialList,
-                                     std::vector<std::string>& keyList)
-{
-  //GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  SerialKey key;
-  SerialKeyList list;
-  list.ParseFromString(serialList);
-
-  for (int i = 0; i < list.key_size(); i++) 
-  {
-    key = list.key(i);
-    keyList.push_back(key.key());
-  }
-//  list.PrintDebugString();
-  if (list.iscomplete())
-    return DIR_CACHED;
-  else
-    return DIR_NOTCOMPLETE;
-}
-
 int MemcacheCatalog::deserializeDirList(std::string& serialList,
                                       std::vector<std::string>& keyList,
                                       time_t& mtime)
