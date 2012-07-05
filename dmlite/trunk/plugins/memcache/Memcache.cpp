@@ -184,6 +184,8 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   Catalog* nested = 0x00;
 
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
   if (this->nestedFactory_ != 0x00)
     nested = CatalogFactory::createCatalog(this->nestedFactory_, pm);
 
