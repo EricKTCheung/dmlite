@@ -410,32 +410,6 @@ void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmEx
   this->secCtx_ = *ctx;
 }
 
-/*
-ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
-{
-  if (this->memcachedPOSIX_) {
-    return this->extendedStatPOSIX(path, followSym);
-  } else {
-    return this->extendedStatDirect(path, followSym);
-  }
-}
-
-ExtendedStat MemcacheCatalog::extendedStatDirect(const std::string& path, bool followSym) throw (DmException)
-{
-  // add cwd to relative path
-
-  // get memcache key
-
-  // get enrty from memcached
-
-  // if not found, delegate
-
-  return meta;
-}
-
-ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool followSym) throw (DmException)
-{
-*/
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
 	std::string cwdPath;
@@ -670,7 +644,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
                                          local_dir->dirId);
 
-  valMemc = getDListValFromMemcachedKey(listKey);
+  valMemc = safeGetDListValFromMemcachedKey(listKey);
 
   if (!valMemc.empty()) {
     local_dir->isCached = deserializeDirList(valMemc, keyList, mtime);
@@ -780,7 +754,7 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   
       // append an empty list with 'white' elements, which is complete
       // to mark the list as complete
-      dirp->curKeysSegment = addToDListFromMemcachedKey(listKey, 
+      dirp->curKeysSegment = safeAddToDListFromMemcachedKey(listKey, 
                                                         std::string(),
                                                         true, true,
                                                         dirp->curKeysSegment);
@@ -1362,7 +1336,7 @@ std::vector<ExtendedStat>
       int r = rand() % 10;
       if (r < PROB_CACHE * 10) {
         valMemc = serialize(xstat);
-        setMemcachedFromKeyValue(*itKeys, valMemc);
+        safeSetMemcachedFromKeyValue(*itKeys, valMemc);
       }
     }
     xstatList.push_back(xstat);
@@ -1599,6 +1573,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
   std::string valMemc;
 	memcached_return statMemc;
 
+  // when the first file is read, create the DIR key on memcached
   if (dirp->keysPntr == 0) {
     // just set it to nonzero
     dirp->keysPntr++;
@@ -1641,7 +1616,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
 
       while (!dirp->keys.empty()) {
         valMemc = serialize(dirp->xstats.front());
-        setMemcachedFromKeyValue(dirp->keys.front(), valMemc);
+        safeSetMemcachedFromKeyValue(dirp->keys.front(), valMemc);
         dirp->keys.pop_front();
         dirp->xstats.pop_front();
       }
@@ -1846,10 +1821,10 @@ void MemcacheCatalog::setMemcachedFromReplicas(std::vector<FileReplica>& replica
     serialReplica =  serializeFileReplica(replicas[i]);
     keys.push_back(keyFromURI(key_prefix[PRE_REPL], replicas[i].rfn));
 
-    setMemcachedFromKeyValue(keys.back(), serialReplica);
+    safeSetMemcachedFromKeyValue(keys.back(), serialReplica);
   }
   serialList = serializeList(keys);
-  setMemcachedFromKeyValue(keyFromAny(key_prefix[PRE_REPL_LIST], inode),
+  safeSetMemcachedFromKeyValue(keyFromAny(key_prefix[PRE_REPL_LIST], inode),
                            serialList);
 }
 
@@ -2201,18 +2176,6 @@ void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, con
   }
 }
 
-int MemcacheCatalog::safeAddToDListFromMemcachedKeyListNoReply(const std::string& listKey,
-                               const std::vector<std::string>& keyList, 
-                                                const bool isWhite,
-                                                const bool isComplete,
-                                                int curSegment) throw (DmException)
-{
-  try {
-    return addToDListFromMemcachedKeyListNoReply(listKey, keyList, isWhite,
-                                      isComplete, curSegment);
-  } catch (MemcacheException) { /* pass */ }
-}
-
 
 int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
                                const std::string& listKey,
@@ -2305,7 +2268,7 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
 
 void MemcacheCatalog::removeListItemFromMemcachedKey(const std::string& listKey, std::string& key)
 {
-  addToListFromMemcachedKey(listKey, key, false);
+  safeAddToListFromMemcachedKey(listKey, key, false);
 }
 
 void MemcacheCatalog::safeRemoveListItemFromMemcachedKey(const std::string& listKey, std::string& key)
