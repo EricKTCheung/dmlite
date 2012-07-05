@@ -287,15 +287,18 @@ int MemcacheCatalog::deserializeDirList(std::string& serialList,
 
   SerialKey key;
   SerialKeyList list;
+  std::set<std::string> keySet;
   list.ParseFromString(serialList);
 
   for (int i = 0; i < list.key_size(); i++) 
   {
     key = list.key(i);
-    keyList.push_back(key.key());
+    keySet.insert(key.key());
   }
   
   mtime = list.mtime();
+
+  keyList.assign(keySet.begin(), keySet.end());
 
 //  list.PrintDebugString();
   if (list.iscomplete())
@@ -679,6 +682,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     if (local_dir->isCached == DIR_CACHED) { 
       local_dir->keys = std::list<std::string>(keyList.begin(), keyList.end());
       local_dir->keysOrigSize = local_dir->keys.size();
+      printf("keysOrigSize = %d.\n", local_dir->keys.size());
       local_dir->keysPntr = 0;
     } 
   } else {
@@ -1338,8 +1342,13 @@ std::vector<ExtendedStat>
 
   std::vector<std::string>::const_iterator itKeys;
   std::vector<std::string>::const_iterator itVals;
+  // the valList must always be as long as the keyList
+  if (valList.size() != keyList.size()) {
+    throw DmException(DM_UNKNOWN_ERROR,
+                "memcached: the number of values returned is incorrect");
+  }
   for (itKeys = keyList.begin(), itVals = valList.begin();
-       itKeys != keyList.end(), itVals != valList.end();
+       itKeys != keyList.end();
        itKeys++, itVals++) { 
     if (!(*itVals).empty()) {
       //printf("getting the xstat from memcached\n");
@@ -1533,8 +1542,8 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromMemcached(MemcacheDir *dirp)
   ExtendedStat *return_meta;
   std::vector<ExtendedStat> vecXstat;
   std::vector<std::string> keyList;
-  std::vector<std::string>::iterator itKeySliceBegin;
-  std::vector<std::string>::iterator itKeySliceEnd;
+//  std::vector<std::string>::iterator itKeySliceBegin;
+//  std::vector<std::string>::iterator itKeySliceEnd;
   
   //printf("sizeof xstats = %d.\n", dirp->xstats.size());
   if (dirp->xstats.empty()) {

@@ -28,7 +28,7 @@ namespace dmlite {
 
 #define FETCH_COMBINED 30
 #define FETCH_COMBINED_MIN  1
-#define FETCH_COMBINED_MAX 5000
+#define FETCH_COMBINED_MAX 500
 #define FETCH_COMBINED_MUL  4
 #define PROB_CACHE 1.0
 
