@@ -1627,7 +1627,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
     listKey = keyFromAny(key_prefix[PRE_DIR], dirp->dirId);
     if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
 
-//      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
       try {
         dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
          std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
@@ -1637,7 +1637,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
         dirp->isCached = DIR_NOTCOMPLETE;
       }
       // Set the no reply behavior, don't care if it fails
-//      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
 
       while (!dirp->keys.empty()) {
@@ -1647,10 +1647,10 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
         dirp->xstats.pop_front();
       }
       // unset no reply. check for failure, otherwise deletes hang
-/*      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
+      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
     	if (statMemc != MEMCACHED_SUCCESS)
 		    throw MemcacheException(statMemc, this->conn_);
-*/  
+  
     }
     if (metap != 0x00) {
       key = keyFromAny(key_prefix[PRE_STAT], metap->stat.st_ino);
@@ -2230,7 +2230,7 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
 
   segmentKey = listKey + ":" + this->toString(curSegment);
 
-//  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
   std::vector<std::string> mykeyList(keyList);
   std::vector<std::string>::iterator it;
@@ -2248,7 +2248,7 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
                        this->memcachedExpirationLimit_, 
                        (uint32_t)0);
   }
-//  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
+  statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 0);
 
   singleKey.assign(1,mykeyList.back());
   serialKey = serializeList(singleKey, isWhite, isComplete);
