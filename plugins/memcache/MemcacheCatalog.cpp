@@ -404,6 +404,12 @@ void MemcacheCatalog::setStackInstance(StackInstance* si) throw (DmException)
   this->si_ = si;
 }
 
+void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
+{
+  // Nothing
+}
+
+
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
 	std::string cwdPath;
