@@ -406,7 +406,8 @@ void MemcacheCatalog::setStackInstance(StackInstance* si) throw (DmException)
 
 void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  // Nothing
+ DELEGATE(setSecurityContext, ctx);
+ this->secCtx_ = *ctx;
 }
 
 
