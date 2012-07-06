@@ -657,7 +657,6 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     if (local_dir->isCached == DIR_CACHED) { 
       local_dir->keys = std::list<std::string>(keyList.begin(), keyList.end());
       local_dir->keysOrigSize = local_dir->keys.size();
-      printf("keysOrigSize = %d.\n", local_dir->keys.size());
       local_dir->keysPntr = 0;
     } 
   } else {
@@ -1601,7 +1600,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
 
   if (saveToMemc) {
     listKey = keyFromAny(key_prefix[PRE_DIR], dirp->dirId);
-    if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
+    if (dirp->keys.size() > FETCH_COMBINED || (metap == 0x00 && dirp->keys.size() > 0)) {
 
       try {
         dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
