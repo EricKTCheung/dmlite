@@ -10,7 +10,7 @@ using namespace dmlite;
 try {\
   var = createFunc;\
 }\
-catch (DmException e) {\
+catch (DmException& e) {\
   if (e.code() != DM_NO_FACTORY)\
     throw;\
   var = 0;\

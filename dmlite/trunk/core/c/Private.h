@@ -16,7 +16,7 @@ try {\
 /// Catch block.
 #define CATCH(context, method)\
   return 0;\
-} catch (dmlite::DmException e) {\
+} catch (dmlite::DmException& e) {\
   context->errorCode   = e.code();\
   context->errorString = e.what();\
   return e.code();\
@@ -30,7 +30,7 @@ try {\
 
 /// Catch block for functions that return a pointer.
 #define CATCH_POINTER(context, method)\
-} catch (dmlite::DmException e) {\
+} catch (dmlite::DmException& e) {\
   context->errorCode   = e.code();\
   context->errorString = e.what();\
   return NULL;\

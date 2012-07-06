@@ -205,7 +205,7 @@ static void registerPluginMemcache(PluginManager* pm) throw(DmException)
   try {
     pm->registerFactory(new MemcacheFactory(pm->getCatalogFactory()));
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_FACTORY)
       throw DmException(DM_NO_FACTORY, std::string("Memcache can not be loaded first"));
     throw;

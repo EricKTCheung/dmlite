@@ -609,7 +609,7 @@ void NsAdapterCatalog::removeDir(const std::string& path) throw (DmException)
   try {
     wrapCall(dpns_rmdir(path.c_str()));
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_INVALID_VALUE)
       throw DmException(DM_IS_CWD, e.what());
     throw;

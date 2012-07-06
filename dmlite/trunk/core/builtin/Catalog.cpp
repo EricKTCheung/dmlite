@@ -343,7 +343,7 @@ void BuiltInCatalog::putDone(const std::string& host, const std::string& rfn,
   try {
     replica = this->si_->getINode()->getReplica(host + ":" + rfn);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_NO_SUCH_REPLICA)
       throw;
     // Try without
@@ -461,7 +461,7 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
   try {
     this->si_->getINode()->unlink(file.stat.st_ino);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_NO_SUCH_FILE)
       throw;
     // If not found, that's good, as the pool driver probably
@@ -488,7 +488,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     if (this->si_->getINode()->getReplicas(file.stat.st_ino).size() > 0)
       throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;
@@ -703,7 +703,7 @@ std::string oldParentPath, newParentPath;
     else
       this->unlink(newPath);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_NO_SUCH_FILE)
       throw;
   }

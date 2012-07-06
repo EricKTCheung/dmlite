@@ -38,7 +38,7 @@ static bool configureFactories(std::list<T*>& l,
       (*i)->configure(key, value);
       recognized = true;
     }
-    catch (DmException e) {
+    catch (DmException& e) {
       if (e.code() != DM_UNKNOWN_OPTION)
         throw;
     }
@@ -177,7 +177,7 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           try {
             this->configure(parameter, value);
           }
-          catch (DmException e) {
+          catch (DmException& e) {
             // Error code is good, but error message can be better here.
             std::ostringstream out;
             out << "Invalid configuration parameter " << parameter <<

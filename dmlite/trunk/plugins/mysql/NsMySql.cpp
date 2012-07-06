@@ -132,7 +132,7 @@ ExtendedStat INodeMySql::create(ino_t parent, const std::string& name,
     ExtendedStat f = this->extendedStat(parent, name);
     throw DmException(DM_EXISTS, name + " already exists");
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_NO_SUCH_FILE)
       throw;
   }

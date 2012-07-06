@@ -219,7 +219,7 @@ void INodeOracle::unlink(ino_t inode) throw (DmException)
     // And decrement nlink
     this->updateNlink(file.parent, -1);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     this->rollback();
     throw;
   }

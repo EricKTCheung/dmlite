@@ -61,7 +61,7 @@ public:
     try {
       this->catalog->changeOwner(FILE, ctx->getUser().uid, -1);
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
@@ -75,7 +75,7 @@ public:
     try {
       this->catalog->changeOwner(FILE, -1, 0);
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
   }
@@ -90,14 +90,14 @@ public:
     try {
       this->catalog->changeOwner(FILE, ctx->getUser().uid, -1);
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     try {
       this->catalog->changeOwner(FILE, -1, ctx->getGroup(0).gid);
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
   }
