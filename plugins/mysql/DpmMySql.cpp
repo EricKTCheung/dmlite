@@ -69,7 +69,7 @@ std::vector<Pool> MySqlPoolManager::getPools() throw (DmException)
     while (stmt.fetch())
       pools.push_back(pool);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_UNKNOWN_FIELD)
       throw;
     
@@ -104,7 +104,7 @@ Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
     if (!stmt.fetch())
       throw DmException(DM_NO_SUCH_POOL, poolname + " not found");
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_UNKNOWN_FIELD)
       throw;
     // Fallback to legacy mode

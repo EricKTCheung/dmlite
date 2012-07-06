@@ -891,7 +891,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
   try {
     return this->getReplicas(path, meta.stat.st_ino);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_REPLICAS)
       throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
     throw;
@@ -1908,7 +1908,7 @@ void MemcacheCatalog::delMemcachedFromPath(const std::string& path, bool removeD
   try
   {  
     meta = this->extendedStat(path);
-  } catch (DmException e) {
+  } catch (DmException& e) {
     int code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;
@@ -1940,7 +1940,7 @@ void MemcacheCatalog::delMemcachedFromInode(const ino_t inode, bool removeDirEnt
   try
   {  
     meta = this->extendedStat(inode);
-  } catch (DmException e) {
+  } catch (DmException& e) {
     int code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;

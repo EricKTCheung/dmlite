@@ -204,7 +204,7 @@ public:
       this->catalog->create("/fake/something/else/file", MODE);
       CPPUNIT_FAIL("Exception not thrown");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_NO_SUCH_FILE, e.code());
     }
   }
@@ -216,7 +216,7 @@ public:
       this->catalog->create(FILE, MODE);
       CPPUNIT_FAIL("Exception not thrown");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
 
@@ -225,7 +225,7 @@ public:
       this->catalog->extendedStat(FILE).stat;
       CPPUNIT_FAIL("Exception not thrown");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       // The problem should have been the S_IEXEC!!
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }

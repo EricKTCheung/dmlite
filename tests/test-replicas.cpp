@@ -29,7 +29,7 @@ public:
           this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
         }
       }
-      catch (dmlite::DmException e) {
+      catch (dmlite::DmException& e) {
         switch (e.code()) {
           case DM_NO_SUCH_FILE: case DM_NO_REPLICAS:
             break;

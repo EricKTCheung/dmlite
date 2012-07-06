@@ -267,7 +267,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
   try {
     *user = this->getUser(userName);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_SUCH_USER)
       *user = this->newUser(userName, "");
     else
@@ -280,7 +280,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
     try {
       group = this->getGroup(vo);
     }
-    catch (DmException e) {
+    catch (DmException& e) {
       if (e.code() == DM_NO_SUCH_GROUP)
         group = this->newGroup(vo);
       else
@@ -296,7 +296,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
       try {
         group = this->getGroup(vo);
       }
-      catch (DmException e) {
+      catch (DmException& e) {
         if (e.code() == DM_NO_SUCH_GROUP)
           group = this->newGroup(vo);
         else
