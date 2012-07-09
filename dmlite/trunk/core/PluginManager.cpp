@@ -8,6 +8,7 @@
 #include <sstream>
 #include <set>
 #include "builtin/Catalog.h"
+#include "builtin/UserGroupDb.h"
 
 using namespace dmlite;
 
@@ -55,6 +56,7 @@ PluginManager::PluginManager() throw()
 {
   // Register built-in plugins
   this->registerFactory(new BuiltInCatalogFactory());
+  this->registerFactory(new BuiltInUserGroupDbFactory());
 }
 
 

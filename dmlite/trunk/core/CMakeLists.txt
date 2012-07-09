@@ -8,6 +8,7 @@ add_library(dmlite SHARED Auth.cpp
                           Types.cpp
 
                           builtin/Catalog.cpp
+                          builtin/UserGroupDb.cpp
 
                           c/Catalog-C.cpp
                           c/IO-C.cpp

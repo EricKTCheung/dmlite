@@ -2,8 +2,8 @@
 /// @brief    Implementation of a Catalog using other plugins, as INode.
 /// @detailed Intended to ease the development of database backends.
 /// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
-#ifndef CATALOG_H
-#define	CATALOG_H
+#ifndef BUILTIN_CATALOG_H
+#define	BUILTIN_CATALOG_H
 
 #include <dmlite/cpp/dm_catalog.h>
 #include <dmlite/cpp/dm_inode.h>
@@ -136,4 +136,4 @@ private:
   
 };
 
-#endif	// CATALOG_H
+#endif	// BUILTIN_CATALOG_H
