@@ -367,6 +367,18 @@ void NsAdapterCatalog::changeSize(const std::string& path, size_t newSize) throw
 
 
 
+void NsAdapterCatalog::changeChecksum(const std::string& path,
+                                      const std::string& csumtype,
+                                      const std::string& csumvalue) throw (DmException)
+{
+  ExtendedStat stat = this->extendedStat(path, false);
+  
+  wrapCall(dpns_setfsizec(path.c_str(), NULL, stat.stat.st_size,
+                          csumtype.c_str(), (char*)csumvalue.c_str()));
+}
+
+
+
 void NsAdapterCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   struct dpns_acl *aclp;

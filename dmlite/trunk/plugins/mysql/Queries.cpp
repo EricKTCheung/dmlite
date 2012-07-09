@@ -173,6 +173,10 @@ const char* STMT_CHANGE_SIZE =
   "UPDATE Cns_file_metadata\
         SET filesize = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?";
+const char* STMT_CHANGE_CHECKSUM =
+  "UPDATE Cns_file_metadata\
+        SET ctime = UNIX_TIMESTAMP(), csumtype = ?, csumvalue = ?\
+        WHERE fileid = ?";
 
 // Pool queries
 const char* STMT_GET_POOLS =

@@ -208,6 +208,27 @@ int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
 int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid);
 
 /**
+ * Change the size of a file in the catalog.
+ * @param context  The DM context.
+ * @param path     The logical path.
+ * @param filesize The new file size.
+ * @return         0 on success, error code otherwise.
+ */
+int dm_setfsize(dm_context* context, const char* path, uint64_t filesize);
+
+/**
+ * Change the size and checksum of a file in the catalog.
+ * @param context   The DM context.
+ * @param path      The logical path.
+ * @param filesize  The new file size.
+ * @param csumtype  The new checksum type (CS, AD or MD).
+ * @param csumvalue The new checksum value.
+ * @return          0 on success, error code otherwise.
+ */
+int dm_setfsizec(dm_context* context, const char* path, uint64_t filesize,
+                 const char* csumtype, const char* csumvalue);
+
+/**
  * Change the ACL of a file.
  * @param context  The DM context.
  * @param path     The logical path.

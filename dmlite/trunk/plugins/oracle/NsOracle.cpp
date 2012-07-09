@@ -656,6 +656,14 @@ void INodeOracle::changeSize(ino_t inode, size_t size) throw (DmException)
 
 
 
+void INodeOracle::changeChecksum(ino_t inode, const std::string& csumtype,
+                                 const std::string& csumvalue) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "changeChecksum not implemented in Oracle");
+}
+
+
+
 std::string INodeOracle::getComment(ino_t inode) throw (DmException)
 {
   occi::Statement* stmt = getPreparedStatement(this->conn_, STMT_GET_COMMENT);
