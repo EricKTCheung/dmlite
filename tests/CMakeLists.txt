@@ -77,6 +77,9 @@ target_link_libraries (test-io dmliteutils dmlite cppunit dl)
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmliteutils dmlite cppunit dl)
 
+add_executable        (test-checksum test-checksum.cpp)
+target_link_libraries (test-checksum test-base dmliteutils dmlite cppunit dl)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
@@ -122,3 +125,5 @@ ADD_TEST(test-opendir ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
 SET_TESTS_PROPERTIES(test-opendir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-acls ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
 SET_TESTS_PROPERTIES(test-acls PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-checksum ${CMAKE_CURRENT_BINARY_DIR}/test-checksum ${CONFIG})
+SET_TESTS_PROPERTIES(test-checksum PROPERTIES PASS_REGULAR_EXPRESSION "OK")

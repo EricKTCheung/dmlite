@@ -85,7 +85,8 @@ public:
   
   void changeMode (ino_t inode, uid_t uid, gid_t gid, mode_t mode, const std::string& acl) throw (DmException);
   
-  void changeSize(ino_t inode, size_t size) throw (DmException);
+  void changeSize    (ino_t inode, size_t size) throw (DmException);
+  void changeChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw (DmException);
   
   std::string getComment   (ino_t inode) throw (DmException);
   void        setComment   (ino_t inode, const std::string& comment) throw (DmException);

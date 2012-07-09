@@ -606,6 +606,18 @@ void INodeMySql::changeSize(ino_t inode, size_t size) throw (DmException)
 
 
 
+void INodeMySql::changeChecksum(ino_t inode, const std::string& csumtype,
+                                const std::string& csumvalue) throw (DmException)
+{
+  Statement stmt(this->conn_, this->nsDb_, STMT_CHANGE_CHECKSUM);
+  stmt.bindParam(0, csumtype);
+  stmt.bindParam(1, csumvalue);
+  stmt.bindParam(2, inode);
+  stmt.execute();
+}
+
+
+
 std::string INodeMySql::getComment(ino_t inode) throw (DmException)
 {
   char comment[COMMENT_MAX];

@@ -856,6 +856,24 @@ void BuiltInCatalog::changeSize(const std::string& path, size_t newSize) throw (
 
 
 
+void BuiltInCatalog::changeChecksum(const std::string& path,
+                                    const std::string& csumtype,
+                                    const std::string& csumvalue) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path, false);
+  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Can not change the checksum of " + path);
+  
+  if (csumtype != "MD" && csumtype != "AD" && csumtype != "CS")
+    throw DmException(DM_INVALID_VALUE,
+                      "%s is an invalid checksum type", csumtype.c_str());
+  
+  this->si_->getINode()->changeChecksum(meta.stat.st_ino, csumtype, csumvalue);
+}
+
+
+
 void BuiltInCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path);

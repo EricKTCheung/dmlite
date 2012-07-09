@@ -178,6 +178,13 @@ void ProfilerCatalog::changeSize(const std::string& path, size_t newSize) throw 
 
 
 
+void ProfilerCatalog::changeChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException)
+{
+  PROFILE(changeChecksum, path, csumtype, csumvalue);
+}
+
+
+
 void ProfilerCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   PROFILE(setAcl, path, acls);
