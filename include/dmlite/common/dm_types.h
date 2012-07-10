@@ -177,7 +177,6 @@ union value {
     size_t      size;
     uint64_t   *u64v;
     int64_t    *i64v;
-    char       *str;
     const char *cstr;
   } array;
 };
