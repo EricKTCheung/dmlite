@@ -3,6 +3,7 @@
 /// @detailed This will be used by default when no other UserGroupDb
 ///           implementeation is loaded.
 /// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+#include <cstring>
 #include <dmlite/cpp/utils/dm_security.h>
 #include <grp.h>
 #include <pwd.h>
