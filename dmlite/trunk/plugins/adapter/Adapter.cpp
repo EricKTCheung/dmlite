@@ -22,6 +22,8 @@ int Cthread_init(void);
 int _Cthread_addcid(char *, int, char *, int, pthread_t, unsigned, void *(*)(void *), int);
 }
 
+
+
 NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3)
 {
   Cthread_init();
@@ -143,7 +145,8 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 
 PoolDriver* DpmAdapterFactory::createPoolDriver() throw (DmException)
 {
-  return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_);
+  return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_,
+                                  retryLimit_);
 }
 
 
