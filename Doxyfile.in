@@ -100,7 +100,6 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include \
                          @CMAKE_CURRENT_SOURCE_DIR@/core    \
-                         @CMAKE_CURRENT_SOURCE_DIR@/plugins \
                          @CMAKE_CURRENT_SOURCE_DIR@/utils
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
