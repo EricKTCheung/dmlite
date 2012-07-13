@@ -12,7 +12,7 @@ namespace dmlite {
 /// Filesystem driver.
 class FilesystemPoolDriver: public PoolDriver {
 public:
-  FilesystemPoolDriver(const std::string&, bool, unsigned);
+  FilesystemPoolDriver(const std::string&, bool, unsigned, unsigned);
   ~FilesystemPoolDriver();
    
   void setStackInstance(StackInstance* si) throw (DmException);
@@ -27,10 +27,13 @@ private:
   
   const SecurityContext* secCtx_;
   
+  StackInstance* si_;
+  
   std::string tokenPasswd_;
   bool        tokenUseIp_;
   unsigned    tokenLife_;
   const char* userId_;
+  unsigned    retryLimit_;
 };
 
 class FilesystemPoolHandler: public PoolHandler {
