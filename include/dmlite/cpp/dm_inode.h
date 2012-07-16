@@ -129,13 +129,17 @@ public:
   virtual void deleteReplica(ino_t inode,
                              const std::string& sfn) throw (DmException) = 0;
   
+  /// Get a replica using the replica ID.
+  /// @param rid The replica ID.
+  virtual FileReplica getReplica(int64_t rid) throw (DmException) = 0;
+  
   /// Get a replica.
   /// @param rfn The replica to retrieve.
   virtual FileReplica getReplica(const std::string& rfn) throw (DmException) = 0;
   
   /// Modify a replica.
   /// @param replica The replica data.
-  virtual void setReplica(const FileReplica& replica) throw (DmException) = 0;
+  virtual void updateReplica(const FileReplica& replica) throw (DmException) = 0;
   
   /// Get replicas for a file.
   /// @param inode The entry inode.

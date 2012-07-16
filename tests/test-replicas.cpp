@@ -99,11 +99,15 @@ public:
                               "https://a.host.com/replica", '-', 'P',
                               "the-pool", "the-fs");
 
-    this->catalog->replicaSetLifeTime("https://a.host.com/replica", 12348);
-    this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
-    this->catalog->replicaSetType("https://a.host.com/replica", 'V');
-
-    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    FileReplica replica = this->catalog->getReplica("https://a.host.com/replica");
+    
+    replica.ltime  = 12348;
+    replica.status = 'D';
+    replica.type   = 'V';
+    
+    this->catalog->updateReplica(replica);
+    
+    replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
     CPPUNIT_ASSERT_EQUAL('D', replica.status);
@@ -153,9 +157,11 @@ public:
     // value might be cached
     FileReplica replica = this->catalog->getReplicas(FILE)[0];
 
-    this->catalog->replicaSetLifeTime("https://a.host.com/replica", 12348);
-    this->catalog->replicaSetStatus("https://a.host.com/replica", 'D');
-    this->catalog->replicaSetType("https://a.host.com/replica", 'V');
+    replica.ltime  = 12348;
+    replica.status = 'D';
+    replica.type   = 'V';
+    
+    this->catalog->updateReplica(replica);
 
     replica = this->catalog->getReplicas(FILE)[0];
 

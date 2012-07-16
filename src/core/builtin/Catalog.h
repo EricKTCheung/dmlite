@@ -81,10 +81,8 @@ public:
   struct dirent* readDir (Directory* dir) throw (DmException);
   ExtendedStat*  readDirx(Directory* dir) throw (DmException);
 
-  void replicaSetLifeTime  (const std::string& replica, time_t ltime) throw (DmException);
-  void replicaSetAccessTime(const std::string& replica) throw (DmException);
-  void replicaSetType      (const std::string& replica, char type) throw (DmException);
-  void replicaSetStatus    (const std::string& replica, char status) throw (DmException);
+  FileReplica getReplica(const std::string& rfn)        throw (DmException);
+  void        updateReplica(const FileReplica& replica) throw (DmException);
 
 protected:
   /// Get the parent of a directory.
