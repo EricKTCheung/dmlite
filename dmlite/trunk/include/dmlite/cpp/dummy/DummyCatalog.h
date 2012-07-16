@@ -27,7 +27,6 @@ public:
 
   virtual void        changeDir     (const std::string&) throw (DmException);
   virtual std::string getWorkingDir (void)               throw (DmException);
-  virtual ino_t       getWorkingDirI(void)               throw (DmException);
 
   virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
 

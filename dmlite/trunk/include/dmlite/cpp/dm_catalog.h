@@ -46,10 +46,6 @@ public:
   /// @return The current working dir.
   virtual std::string getWorkingDir(void) throw (DmException) = 0;
 
-  /// Get the current working dir inode.
-  /// @return The cwd inode.
-  virtual ino_t getWorkingDirI(void) throw (DmException) = 0;
-
   /// Do an extended stat of a file or directory.
   /// @param path      The path of the file or directory.
   /// @param followSym If true, symlinks will be followed.

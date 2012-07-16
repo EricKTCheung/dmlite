@@ -66,13 +66,6 @@ std::string DummyCatalog::getWorkingDir(void) throw (DmException)
 
 
 
-ino_t DummyCatalog::getWorkingDirI(void) throw (DmException)
-{
-  DELEGATE_RETURN(getWorkingDirI);
-}
-
-
-
 ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
   DELEGATE_RETURN(extendedStat, path, follow);
