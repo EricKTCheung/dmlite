@@ -80,11 +80,6 @@ public:
   /// Create a new group.
   /// @param gname The new group name.
   virtual GroupInfo newGroup(const std::string& gname) throw (DmException) = 0;
-  
-  /// Get the group name associated with a group id.
-  /// @param gid The group ID.
-  /// @return    The group.
-  virtual GroupInfo getGroup(gid_t gid) throw (DmException) = 0;
 
   /// Get the group id of a specific group name.
   /// @param groupName The group name.
@@ -95,10 +90,6 @@ public:
   /// @param uname The new user name.
   /// @param ca    The user Certification Authority.
   virtual UserInfo newUser(const std::string& uname, const std::string& ca) throw (DmException) = 0;
-  
-  /// Get the name associated with a user id.
-  /// @param uid      The user ID.
-  virtual UserInfo getUser(uid_t uid) throw (DmException) = 0;
 
   /// Get the user id of a specific user name.
   /// @param userName The user name.
