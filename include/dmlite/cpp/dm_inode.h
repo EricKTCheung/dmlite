@@ -112,22 +112,13 @@ public:
   virtual SymLink readLink(ino_t inode) throw (DmException) = 0;
   
   /// Add a new replica for a file.
-  /// @param inode      The inode of the file.
-  /// @param server     The SE that hosts the file (if empty, it will be retrieved from the sfn).
-  /// @param sfn        The SURL or physical path of the replica being added.
-  /// @param status     '-' for available, 'P' for being populated, 'D' for being deleted.
-  /// @param fileType   'V' for volatile, 'D' for durable, 'P' for permanent.
-  /// @param poolName   The pool where the replica is (not used for LFCs)
-  /// @param fileSystem The filesystem where the replica is (not used for LFCs)
-  virtual void addReplica(ino_t inode, const std::string& server,
-                          const std::string& sfn, char status, char fileType,
-                          const std::string& poolName, const std::string& fileSystem) throw (DmException) = 0;
+  /// @param replica Stores the data that is going to be added. fileid must
+  ///                point to the id of the logical file in the catalog.
+  virtual void addReplica(const FileReplica& replica) throw (DmException) = 0;
   
   /// Delete a replica.
-  /// @param inode The inode of the file.
-  /// @param sfn   The replica being removed.
-  virtual void deleteReplica(ino_t inode,
-                             const std::string& sfn) throw (DmException) = 0;
+  /// @param replica The replica to remove.
+  virtual void deleteReplica(const FileReplica& replica) throw (DmException) = 0;
   
   /// Get a replica using the replica ID.
   /// @param rid The replica ID.

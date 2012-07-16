@@ -107,9 +107,23 @@ int dm_addreplica(dm_context* context, const char* guid, int64_t id,
 {
   TRY(context, addReplica)
   NOT_NULL(surl);
-  context->stack->getCatalog()->addReplica(SAFE_STRING(guid), id, SAFE_STRING(server),
-                               surl, status, fileType,
-                               SAFE_STRING(poolName), SAFE_STRING(fileSystem));
+  
+  if (guid != NULL)
+    id = context->stack->getINode()->extendedStat(guid).stat.st_ino;
+  
+  FileReplica replica;
+  memset(&replica, 0, sizeof(FileReplica));
+  
+  replica.fileid = id;
+  replica.status = status;
+  replica.type   = fileType;
+  strncpy(replica.server,     server,     sizeof(replica.server));
+  strncpy(replica.rfn,        surl,       sizeof(replica.rfn));
+  strncpy(replica.pool,       poolName,   sizeof(replica.pool));
+  strncpy(replica.filesystem, fileSystem, sizeof(replica.filesystem));
+  
+  context->stack->getCatalog()->addReplica(replica);
+  
   CATCH(context, addReplica)
 }
 
@@ -120,7 +134,8 @@ int dm_delreplica(dm_context* context, const char* guid, int64_t id,
 {
   TRY(context, delreplica)
   NOT_NULL(surl);
-  context->stack->getCatalog()->deleteReplica(SAFE_STRING(guid), id, surl);
+  FileReplica replica = context->stack->getCatalog()->getReplica(surl);
+  context->stack->getCatalog()->deleteReplica(replica);
   CATCH(context, delreplica)
 }
 

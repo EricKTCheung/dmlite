@@ -34,11 +34,8 @@ public:
   
   ExtendedStat extendedStat(const std::string& path, bool followSym = true) throw (DmException);
 
-  void addReplica   (const std::string& guid, int64_t id, const std::string& server,
-                     const std::string& sfn, char status, char fileType,
-                     const std::string& poolName, const std::string& fileSystem) throw (DmException);
-  void deleteReplica(const std::string& guid, int64_t id,
-                     const std::string& sfn) throw (DmException);
+  void addReplica   (const FileReplica& replica) throw (DmException);
+  void deleteReplica(const FileReplica& replica) throw (DmException);
 
   std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException);
   Location get(const std::string& path) throw (DmException);

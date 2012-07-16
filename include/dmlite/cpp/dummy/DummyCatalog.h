@@ -30,12 +30,8 @@ public:
 
   virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
 
-  virtual void addReplica(const std::string&, int64_t, const std::string&,
-                          const std::string&, char, char,
-                          const std::string&, const std::string&) throw (DmException);
-
-  virtual void deleteReplica(const std::string&, int64_t,
-                             const std::string&) throw (DmException);
+  virtual void addReplica   (const FileReplica&) throw (DmException);
+  virtual void deleteReplica(const FileReplica&) throw (DmException);
 
   virtual std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
   Location get(const std::string&) throw (DmException);

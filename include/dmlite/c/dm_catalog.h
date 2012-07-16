@@ -69,9 +69,9 @@ int dm_xstat(dm_context* context, const char* path, struct xstat* buf);
  * @return           0 on success, error code otherwise.
  */
 int dm_addreplica(dm_context* context, const char* guid, int64_t id,
-                   const char* server, const char* surl, const char status,
-                   const char fileType, const char* poolName,
-                   const char* fileSystem);
+                  const char* server, const char* surl, const char status,
+                  const char fileType, const char* poolName,
+                  const char* fileSystem);
 
 /**
  * Delete a replica.
