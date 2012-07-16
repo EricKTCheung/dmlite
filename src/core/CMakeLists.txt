@@ -9,12 +9,6 @@ add_library(dmlite SHARED Auth.cpp
 
                           builtin/Catalog.cpp
                           builtin/UserGroupDb.cpp
-
-                          c/Catalog-C.cpp
-                          c/IO-C.cpp
-                          c/PluginManager-C.cpp
-                          c/Pool-C.cpp
-                          c/Utils-C.cpp
                           
                           dummy/DummyCatalog.cpp
                           dummy/DummyPool.cpp)
