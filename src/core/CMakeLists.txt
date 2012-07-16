@@ -23,9 +23,7 @@ target_link_libraries(dmlite dl pthread dmliteutils)
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
-                             SOVERSION ${dmlite_MAJOR}
-                             SOVERSION ${dmlite_MAJOR}.${dmlite_MINOR})
+                             SOVERSION ${dmlite_MAJOR})
 
 install(TARGETS       dmlite
-        LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}
-                      COMPONENT   dmlite-libs)
+        LIBRARY       DESTINATION usr/lib${LIB_SUFFIX})
