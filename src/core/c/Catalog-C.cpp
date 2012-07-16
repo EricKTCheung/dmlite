@@ -221,22 +221,6 @@ int dm_put(dm_context* context, const char* path, struct location** loc)
 
 
 
-int dm_putg(dm_context* context, const char* path, struct location** loc, const char* guid)
-{
-  TRY(context, putg)
-  NOT_NULL(path);
-  NOT_NULL(loc);
-  Location *locp;
-  if (guid != NULL)
-    locp = new Location(context->stack->getCatalog()->put(path, guid));
-  else
-    locp = new Location(context->stack->getCatalog()->put(path));
-  *loc = locp;
-  CATCH(context, putg)
-}
-
-
-
 int dm_putdone(dm_context* context, const char* host, const char* rfn, unsigned nextras, struct keyvalue* extrasp)
 {
   TRY(context, putdone)

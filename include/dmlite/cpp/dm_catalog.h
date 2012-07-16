@@ -85,13 +85,6 @@ public:
   /// @return      The physical location where to write.
   virtual Location put(const std::string& path) throw (DmException) = 0;
 
-  /// Start the PUT of a file.
-  /// @param path  The path of the file to create.
-  /// @param guid  The Grid Unique ID.
-  /// @return      The physical location where to write.
-  virtual Location put(const std::string& path,
-                       const std::string& guid) throw (DmException) = 0;
-
   /// Finish a PUT
   /// @param host   The host where the replica is hosted.
   /// @param rfn    The replica file name.

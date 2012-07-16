@@ -44,8 +44,6 @@ public:
   Location get(const std::string& path) throw (DmException);
   
   Location put(const std::string& path) throw (DmException);
-  Location put(const std::string& path,
-               const std::string& guid) throw (DmException);
   void     putDone(const std::string& host, const std::string& rfn,
                    const std::map<std::string, std::string>& params) throw (DmException);
 
