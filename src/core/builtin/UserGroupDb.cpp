@@ -89,28 +89,6 @@ GroupInfo BuiltInUserGroupDb::getGroup(const std::string& groupName) throw (DmEx
 
 
 
-UserInfo BuiltInUserGroupDb::getUser(uid_t uid) throw (DmException)
-{
-  struct passwd  pwd;
-  struct passwd *result;
-  char           buffer[16384];
-
-  getpwuid_r(uid, &pwd, buffer, sizeof(buffer), &result);
-  
-  if (result == NULL)
-    throw DmException(DM_NO_SUCH_GROUP, "User %d not found", uid);
-  
-  UserInfo ui;
-  
-  ui.banned = 0;
-  ui.uid    = result->pw_uid;
-  strncpy(ui.name, result->pw_name, sizeof(ui.name));
-  
-  return ui;
-}
-
-
-
 UserInfo BuiltInUserGroupDb::getUser(const std::string& userName, gid_t* group) throw (DmException)
 {
   struct passwd  pwd;

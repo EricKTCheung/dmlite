@@ -352,18 +352,6 @@ int dm_setcomment(dm_context* context, const char* path, const char* comment)
 
 
 
-
-int dm_getgrpbygid(dm_context* context, gid_t gid, char* groupName)
-{
-  TRY(context, getgrpbygid)
-  NOT_NULL(groupName);
-  groupinfo group = context->stack->getUserGroupDb()->getGroup(groupName);
-  strcpy(groupName, group.name);
-  CATCH(context, getgrpbygid)
-}
-
-
-
 int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid)
 {
   TRY(context, getgrpbynam)
@@ -382,17 +370,6 @@ int dm_getusrbynam(dm_context* context, const char* userName, uid_t* uid)
   NOT_NULL(userName);
   userinfo user = context->stack->getUserGroupDb()->getUser(userName);
   *uid = user.uid;
-  CATCH(context, getusrbyuid)
-}
-
-
-
-int dm_getusrbyuid(dm_context* context, uid_t uid, char* userName)
-{
-  TRY(context, getusrbyuid)
-  NOT_NULL(userName);
-  userinfo user = context->stack->getUserGroupDb()->getUser(uid);
-  strcpy(userName, user.name);
   CATCH(context, getusrbyuid)
 }
 

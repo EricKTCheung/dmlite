@@ -24,7 +24,6 @@ public:
   GroupInfo getGroup(const std::string& groupName) throw (DmException);
 
   UserInfo newUser(const std::string& uname, const std::string& ca) throw (DmException);
-  UserInfo getUser(uid_t uid) throw (DmException);
   UserInfo getUser(const std::string& userName) throw (DmException);
   UserInfo getUser(const std::string& userName, gid_t* group) throw (DmException);
   

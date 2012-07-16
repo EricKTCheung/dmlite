@@ -256,15 +256,6 @@ int dm_getcomment(dm_context* context, const char* path, char* comment);
 int dm_setcomment(dm_context* context, const char* path, const char* comment);
 
 /**
- * Get the name of a group.
- * @param context   The DM context.
- * @param gid       The group ID.
- * @param groupName Where to put the group name. It must be at least of size GROUP_NAME_MAX
- * @return          0 on success, error code otherwise.
- */
-int dm_getgrpbygid(dm_context* context, gid_t gid, char* groupName);
-
-/**
  * Get the id of a group.
  * @param context   The DM context.
  * @param groupName The group name.
@@ -281,15 +272,6 @@ int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid);
  * @return         0 on success, error code otherwise.
  */
 int dm_getusrbynam(dm_context* context, const char* userName, uid_t* uid);
-
-/**
- * Get the user name.
- * @param context  The DM context.
- * @param uid      The user ID.
- * @param userName Where to put the user name. It must be at least of size USER_NAME_MAX.
- * @return        0 on success, error code otherwise.
- */
-int dm_getusrbyuid(dm_context* context, uid_t uid, char* userName);
 
 /**
  * Open a directory to read it later.
