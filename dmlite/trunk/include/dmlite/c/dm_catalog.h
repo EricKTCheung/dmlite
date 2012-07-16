@@ -332,39 +332,21 @@ int dm_rename(dm_context* context, const char* oldPath, const char* newPath);
 int dm_rmdir(dm_context* context, const char* path);
 
 /**
- * Set the life time of a replica
+ * Get a specific replica.
  * @param context The DM context.
- * @param replica The replica to modify.
- * @param ltime   The new life time.
+ * @param rfn     The replica file name.
+ * @param replica A buffer where the retrieved data will be put.
  * @return        0 on success, error code otherwise.
  */
-int dm_replica_setltime(dm_context* context, const char* replica, time_t ltime);
+int dm_getreplica(dm_context* context, const char* rfn, struct filereplica* replica);
 
 /**
- * Set the access time of a replica
+ * Update a replica.
  * @param context The DM context.
  * @param replica The replica to modify.
  * @return        0 on success, error code otherwise.
  */
-int dm_replica_setatime(dm_context* context, const char* replica);
-
-/**
- * Set the type of a replica
- * @param context The DM context.
- * @param replica The replica to modify.
- * @param ftype   The new type ('V', 'D' or 'P')
- * @return        0 on success, error code otherwise.
- */
-int dm_replica_settype(dm_context* context, const char* replica, char ftype);
-
-/**
- * Set the status of a replica.
- * @param context The DM context.
- * @param replica The replica to modify.
- * @param status  The new status ('-', 'P', 'D')
- * @return        0 on success, error code otherwise.
- */
-int dm_replica_setstatus(dm_context* context, const char* replica, char status);
+int dm_updatereplica(dm_context* context, const struct filereplica* replica);
 
 #ifdef	__cplusplus
 }

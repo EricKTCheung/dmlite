@@ -264,28 +264,14 @@ void DummyCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
-void DummyCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+FileReplica DummyCatalog::getReplica(const std::string& rfn) throw (DmException)
 {
-  DELEGATE(replicaSetAccessTime, replica);
+  DELEGATE_RETURN(getReplica, rfn);
 }
 
 
 
-void DummyCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+void DummyCatalog::updateReplica(const FileReplica& replica) throw (DmException)
 {
-  DELEGATE(replicaSetLifeTime, replica, ltime);
-}
-
-
-
-void DummyCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
-{
-  DELEGATE(replicaSetStatus, replica, status);
-}
-
-
-
-void DummyCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
-{
-  DELEGATE(replicaSetType, replica, type);
+  DELEGATE(updateReplica, replica);
 }

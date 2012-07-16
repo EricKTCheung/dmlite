@@ -446,42 +446,23 @@ int dm_rmdir(dm_context* context, const char* path)
 
 
 
-int dm_replica_setltime(dm_context* context, const char* replica, time_t ltime)
+int dm_getreplica(dm_context* context, const char* rfn, struct filereplica* replica)
 {
-  TRY(context, setltime)
+  TRY(context, getreplica)
+  NOT_NULL(rfn);
   NOT_NULL(replica);
-  context->stack->getCatalog()->replicaSetLifeTime(replica, ltime);
-  CATCH(context, setltime);
+  *replica = context->stack->getCatalog()->getReplica(rfn);
+  CATCH(context, getreplica)
 }
 
 
 
-int dm_replica_setatime(dm_context* context, const char* replica)
+int dm_updatereplica(dm_context* context, const struct filereplica* replica)
 {
-  TRY(context, setatime)
+  TRY(context, updatereplica)
   NOT_NULL(replica);
-  context->stack->getCatalog()->replicaSetAccessTime(replica);
-  CATCH(context, setatime);
-}
-
-
-
-int dm_replica_settype(dm_context* context, const char* replica, char ftype)
-{
-  TRY(context, settype)
-  NOT_NULL(replica);
-  context->stack->getCatalog()->replicaSetType(replica, ftype);
-  CATCH(context, settype);
-}
-
-
-
-int dm_replica_setstatus(dm_context* context, const char* replica, char status)
-{
-  TRY(context, setstatus)
-  NOT_NULL(replica);
-  context->stack->getCatalog()->replicaSetStatus(replica, status);
-  CATCH(context, setlstatus);
+  context->stack->getCatalog()->updateReplica(*replica);
+  CATCH(context, updatereplica)
 }
 
 

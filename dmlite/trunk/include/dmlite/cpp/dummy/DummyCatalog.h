@@ -76,10 +76,8 @@ public:
   virtual void rename     (const std::string&, const std::string&) throw (DmException);
   virtual void removeDir  (const std::string&)                     throw (DmException);
 
-  virtual void replicaSetLifeTime  (const std::string&, time_t) throw (DmException);
-  virtual void replicaSetAccessTime(const std::string&)         throw (DmException);
-  virtual void replicaSetType      (const std::string&, char)   throw (DmException);
-  virtual void replicaSetStatus    (const std::string&, char)   throw (DmException);
+  virtual FileReplica getReplica(const std::string& rfn) throw (DmException);
+  virtual void        updateReplica(const FileReplica& replica) throw (DmException);
  
 protected:
   Catalog* decorated_;

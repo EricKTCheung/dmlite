@@ -1019,55 +1019,30 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
 }
 
 
-
-void BuiltInCatalog::replicaSetLifeTime(const std::string& replica, time_t ltime) throw (DmException)
+FileReplica BuiltInCatalog::getReplica(const std::string& rfn) throw (DmException)
 {
-  FileReplica rdata = this->si_->getINode()->getReplica(replica);
+  FileReplica rdata = this->si_->getINode()->getReplica(rfn);
   ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
   
   this->traverseBackwards(meta);
   
-  rdata.ltime = ltime;
-  this->si_->getINode()->setReplica(rdata);
+  return rdata;
 }
 
 
 
-void BuiltInCatalog::replicaSetAccessTime(const std::string& replica) throw (DmException)
+void BuiltInCatalog::updateReplica(const FileReplica& replica) throw (DmException)
 {
-  FileReplica rdata = this->si_->getINode()->getReplica(replica);
+  // Can not trust the fileid of replica!
+  FileReplica rdata = this->si_->getINode()->getReplica(replica.replicaid);
   ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
   
   this->traverseBackwards(meta);
   
-  rdata.atime = time(NULL);
-  this->si_->getINode()->setReplica(rdata);
-}
-
-
-
-void BuiltInCatalog::replicaSetType(const std::string& replica, char type) throw (DmException)
-{
-  FileReplica rdata = this->si_->getINode()->getReplica(replica);
-  ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
+  if (dmlite::checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Can not modify the replica");
   
-  this->traverseBackwards(meta);
-  
-  rdata.type = type;
-  this->si_->getINode()->setReplica(rdata);
-}
-
-
-
-void BuiltInCatalog::replicaSetStatus(const std::string& replica, char status) throw (DmException)
-{
-  FileReplica rdata = this->si_->getINode()->getReplica(replica);
-  ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
-  
-  this->traverseBackwards(meta);
-  
-  rdata.status = status;
-  this->si_->getINode()->setReplica(rdata);
+  this->si_->getINode()->updateReplica(replica);
 }
 
 
