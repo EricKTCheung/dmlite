@@ -4,7 +4,7 @@ project (dmlite)
 
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 3)
+set(dmlite_MINOR 4)
 set(dmlite_PATCH 0)
 
 # Host certificate location
@@ -30,8 +30,7 @@ add_definitions (-D_REENTRANT)
 
 # Subdirectories
 add_subdirectory (etc)
-add_subdirectory (utils)
-add_subdirectory (core)
+add_subdirectory (src)
 add_subdirectory (tests)
 
 # Config header

@@ -1,5 +1,5 @@
 Name:		dmlite
-Version:	0.3.0
+Version:	0.4.0
 Release:	1%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
@@ -7,8 +7,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_3_0 dmlite-0.3.0
-# tar -czvf dmlite-0.3.0.tar.gz dmlite-0.3.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_4_0 dmlite-0.4.0
+# tar -czvf dmlite-0.4.0.tar.gz dmlite-0.4.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
