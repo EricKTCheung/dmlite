@@ -158,16 +158,6 @@ int dm_create(dm_context* context, const char* path, mode_t mode);
 int dm_put(dm_context* context, const char* path, struct location** loc);
 
 /**
- * Put a file (synchronous).
- * @param context The DM context.
- * @param path    The logical file name to put.
- * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
- * @param guid    The Grid Unique ID.
- * @return        0 on success, error code otherwise.
- */
-int dm_putg(dm_context* context, const char* path, struct location** loc, const char* guid);
-
-/**
  * Finish a PUT request.
  * @param context The DM context.
  * @param host    The host where the replica is.

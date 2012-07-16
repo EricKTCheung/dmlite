@@ -292,14 +292,6 @@ Location BuiltInCatalog::get(const std::string& path) throw (DmException)
 
 Location BuiltInCatalog::put(const std::string& path) throw (DmException)
 {
-  return this->put(path, std::string());
-}
-
-
-
-Location BuiltInCatalog::put(const std::string& path,
-                             const std::string& guid) throw (DmException)
-{ 
   // Get the available pool list
   if (this->si_->isTherePoolManager() == 0x00)
     throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
@@ -317,11 +309,6 @@ Location BuiltInCatalog::put(const std::string& path,
   
   // Delegate to it
   Location loc = handler->putLocation(path);
-  
-  // Set the GUID
-  if (!guid.empty())
-    this->setGuid(path, guid);
-  
   delete handler;
   
   // Done!

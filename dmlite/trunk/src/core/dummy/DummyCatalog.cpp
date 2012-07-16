@@ -114,13 +114,6 @@ Location DummyCatalog::put(const std::string& path) throw (DmException)
 
 
 
-Location DummyCatalog::put(const std::string& path, const std::string& guid) throw (DmException)
-{
-  DELEGATE_RETURN(put, path, guid);
-}
-
-
-
 void DummyCatalog::putDone(const std::string& path, const std::string& rfn, 
                            const std::map<std::string,std::string>& params) throw (DmException)
 {

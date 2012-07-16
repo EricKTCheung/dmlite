@@ -23,7 +23,7 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # Include path
-include_directories (${CMAKE_SOURCE_DIR}/include/)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 # Definitions
 add_definitions (-D_REENTRANT)
@@ -34,8 +34,8 @@ add_subdirectory (src)
 add_subdirectory (tests)
 
 # Config header
-configure_file (${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h.cmake
-                ${CMAKE_SOURCE_DIR}/include/dmlite/common/dm_config.h)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/dm_config.h.cmake
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/dm_config.h)
 
 # Install headers
 install (DIRECTORY   include/
