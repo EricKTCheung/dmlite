@@ -38,16 +38,6 @@ public:
 
     statBuf = this->catalog->extendedStat(".").stat;
     CPPUNIT_ASSERT_EQUAL(S_IFDIR, (int)statBuf.st_mode & S_IFMT);
-
-    // Adapter doesn't implement
-    try {
-      CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, this->catalog->getWorkingDirI());
-    }
-    catch (dmlite::DmException& e) {
-      if (e.code() != DM_NOT_IMPLEMENTED)
-        throw;
-      CPPUNIT_NS::Message("Access by inode not implemented. Ignoring.");
-    }
   }
 
   void testRemoveCwd()
