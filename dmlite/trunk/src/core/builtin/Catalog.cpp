@@ -196,36 +196,28 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
 
 
-void BuiltInCatalog::addReplica(const std::string& guid, int64_t id, const std::string& server,
-                                const std::string& sfn, char status, char fileType,
-                                const std::string& poolName, const std::string& fileSystem) throw (DmException)
+void BuiltInCatalog::addReplica(const FileReplica& replica) throw (DmException)
 {
-  ExtendedStat meta;
-  
-  if (guid.empty())
-    meta = this->si_->getINode()->extendedStat(id);
-  else
-    meta = this->si_->getINode()->extendedStat(guid);
-  
+  ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
+   
   this->traverseBackwards(meta);
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Can not modify the file %d", replica.fileid);
   
-  this->si_->getINode()->addReplica(meta.stat.st_ino, server, sfn, status, fileType, poolName, fileSystem);
+  this->si_->getINode()->addReplica(replica);
 }
 
 
 
-void BuiltInCatalog::deleteReplica(const std::string& guid, int64_t id,
-                                   const std::string& sfn) throw (DmException)
+void BuiltInCatalog::deleteReplica(const FileReplica& replica) throw (DmException)
 {
-  ExtendedStat meta;
-  
-  if (guid.empty())
-    meta = this->si_->getINode()->extendedStat(id);
-  else
-    meta = this->si_->getINode()->extendedStat(guid);
-  
+  ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
+    
   this->traverseBackwards(meta);
-  this->si_->getINode()->deleteReplica(meta.stat.st_ino, sfn);
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Can not modify the file %d", replica.fileid);
+  
+  this->si_->getINode()->deleteReplica(replica);
 }
 
 

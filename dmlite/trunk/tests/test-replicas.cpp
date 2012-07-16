@@ -26,7 +26,7 @@ public:
         struct stat s = this->catalog->extendedStat(FILE).stat;
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
-          this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
+          this->catalog->deleteReplica(replicas[i]);
         }
       }
       catch (dmlite::DmException& e) {
@@ -49,12 +49,20 @@ public:
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.server,     "b.host.com");
+    strcpy(replica.rfn,        "http://a.host.com/replica");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
-                              "http://a.host.com/replica", '-', 'P',
-                              "the-pool", "the-fs");
+    this->catalog->addReplica(replica);
 
-    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
@@ -64,7 +72,9 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("the-pool"), std::string(replica.pool));
     CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
 
-    this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
+    replica = this->catalog->getReplica("http://a.host.com/replica");
+    
+    this->catalog->deleteReplica(replica);
 
     CPPUNIT_ASSERT_THROW(this->catalog->get(FILE), dmlite::DmException);
   }
@@ -74,19 +84,26 @@ public:
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.rfn,        "http://a.host.com/replica");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica(std::string(), s.st_ino, std::string(),
-                              "http://a.host.com/replica", '-', 'P',
-                              "the-pool", "the-fs");
+    this->catalog->addReplica(replica);
 
-    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
                          std::string(replica.rfn));
     CPPUNIT_ASSERT_EQUAL(std::string("a.host.com"),
                          std::string(replica.server));
 
-    this->catalog->deleteReplica(std::string(), s.st_ino, "http://a.host.com/replica");
+    this->catalog->deleteReplica(replica);
   }
 
   void testModify()
@@ -94,12 +111,20 @@ public:
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.server,     "a.host.com");
+    strcpy(replica.rfn,        "http://a.host.com/replica");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica(std::string(), s.st_ino, "a.host",
-                              "https://a.host.com/replica", '-', 'P',
-                              "the-pool", "the-fs");
+    this->catalog->addReplica(replica);
 
-    FileReplica replica = this->catalog->getReplica("https://a.host.com/replica");
+    replica = this->catalog->getReplica("https://a.host.com/replica");
     
     replica.ltime  = 12348;
     replica.status = 'D';
@@ -119,12 +144,20 @@ public:
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.server,     "b.host.com");
+    strcpy(replica.rfn,        "http://a.host.com/replica");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
-                              "http://a.host.com/replica", '-', 'P',
-                              "the-pool", "the-fs");
+    this->catalog->addReplica(replica);
 
-    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    replica = this->catalog->getReplicas(FILE)[0];
     FileReplica replicaCached = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)replicaCached.fileid, (unsigned)replica.fileid);
@@ -135,9 +168,16 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.pool), std::string(replica.pool));
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.server), std::string(replica.server));
 
-    this->catalog->addReplica(std::string(), s.st_ino, "b.host.com",
-                              "http://a.host.com/replica2", '-', 'P',
-                              "the-pool", "the-fs");
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.server,     "b.host.com");
+    strcpy(replica.rfn,        "http://a.host.com/replica2");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
+    
+    this->catalog->addReplica(replica);
 
     std::vector<FileReplica> replicaVector = this->catalog->getReplicas(FILE);
 
@@ -149,13 +189,21 @@ public:
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    replica.fileid = s.st_ino;
+    strcpy(replica.server,     "a.host.com");
+    strcpy(replica.rfn,        "http://a.host.com/replica");
+    strcpy(replica.pool,       "the-pool");
+    strcpy(replica.filesystem, "the-fs");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica(std::string(), s.st_ino, "a.host",
-                              "https://a.host.com/replica", '-', 'P',
-                              "the-pool", "the-fs");
+    this->catalog->addReplica(replica);
 
     // value might be cached
-    FileReplica replica = this->catalog->getReplicas(FILE)[0];
+    replica = this->catalog->getReplicas(FILE)[0];
 
     replica.ltime  = 12348;
     replica.status = 'D';

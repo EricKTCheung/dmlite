@@ -42,7 +42,7 @@ public:
         struct stat s = this->catalog->extendedStat(FILE).stat;
         std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); i++) {
-          this->catalog->deleteReplica("", s.st_ino, replicas[i].rfn);
+          this->catalog->deleteReplica(replicas[i]);
         }
       }
       catch (...) {
@@ -187,15 +187,22 @@ public:
 
     this->catalog->create(FILE, MODE);
     s = this->catalog->extendedStat(FILE).stat;
+    
+    FileReplica replica;
+    memset(&replica, 0, sizeof(FileReplica));
+    
+    replica.fileid = s.st_ino;
+    strcpy(replica.server, "localhost");
+    strcpy(replica.rfn,    "sfn://something");
+    replica.status = '-';
+    replica.type   = 'P';
 
-    this->catalog->addReplica("", s.st_ino,
-                              "localhost", "sfn://something",
-                              '-', 'P',
-                              "", "");
+    this->catalog->addReplica(replica);
 
     CPPUNIT_ASSERT_THROW(this->catalog->create(FILE, MODE), dmlite::DmException);
-
-    this->catalog->deleteReplica("", s.st_ino, "sfn://something");
+    
+    replica = this->catalog->getReplica("sfn://something");
+    this->catalog->deleteReplica(replica);
   }
 
   void testPathDoesNotExist()

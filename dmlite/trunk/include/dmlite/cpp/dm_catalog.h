@@ -53,24 +53,13 @@ public:
   virtual ExtendedStat extendedStat(const std::string& path, bool followSym = true) throw (DmException) = 0;
 
   /// Add a new replica for a file.
-  /// @param guid       The Grid Unique Identifier. It can be null.
-  /// @param id         The file ID within the NS.
-  /// @param server     The SE that hosts the file (if NULL, it will be retrieved from the rfn).
-  /// @param rfn        The SURL or physical path of the replica being added.
-  /// @param status     '-' for available, 'P' for being populated, 'D' for being deleted.
-  /// @param fileType   'V' for volatile, 'D' for durable, 'P' for permanent.
-  /// @param poolName   The pool where the replica is (not used for LFCs)
-  /// @param fileSystem The filesystem where the replica is (not used for LFCs)
-  virtual void addReplica(const std::string& guid, int64_t id, const std::string& server,
-                          const std::string& rfn, char status, char fileType,
-                          const std::string& poolName, const std::string& fileSystem) throw (DmException) = 0;
+  /// @param replica Stores the data that is going to be added. fileid must
+  ///                point to the id of the logical file in the catalog.
+  virtual void addReplica(const FileReplica& replica) throw (DmException) = 0;
 
   /// Delete a replica.
-  /// @param guid The Grid Unique Identifier. it can be null.
-  /// @param id   The file ID within the NS.
-  /// @param rfn  The replica being removed.
-  virtual void deleteReplica(const std::string& guid, int64_t id,
-                             const std::string& rfn) throw (DmException) = 0;
+  /// @param replica The replica to remove.
+  virtual void deleteReplica(const FileReplica& replica) throw (DmException) = 0;
 
   /// Get replicas for a file.
   /// @param path The file for which replicas will be retrieved.

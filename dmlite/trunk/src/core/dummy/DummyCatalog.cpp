@@ -73,22 +73,16 @@ ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) th
 
 
 
-void DummyCatalog::addReplica(const std::string& guid, int64_t id,
-                              const std::string& server, const std::string& sfn,
-                              char status, char fileType,
-                              const std::string& poolName,
-                              const std::string& fileSystem) throw (DmException)
+void DummyCatalog::addReplica(const FileReplica& replica) throw (DmException)
 {
-  DELEGATE(addReplica, guid, id, server, sfn, status, fileType,
-           poolName, fileSystem);
+  DELEGATE(addReplica, replica);
 }
 
 
 
-void DummyCatalog::deleteReplica(const std::string& guid, int64_t id,
-                                 const std::string& sfn) throw (DmException)
+void DummyCatalog::deleteReplica(const FileReplica& replica) throw (DmException)
 {
-  DELEGATE(deleteReplica, guid, id, sfn);
+  DELEGATE(deleteReplica, replica);
 }
 
 
