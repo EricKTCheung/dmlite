@@ -37,9 +37,9 @@ PoolMetadata* DummyPoolManager::getPoolMetadata(const std::string& pool) throw (
 
 
 
-std::vector<Pool> DummyPoolManager::getPools(void) throw (DmException)
+std::vector<Pool> DummyPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
-  DELEGATE_RETURN(getPools);
+  DELEGATE_RETURN(getPools, availability);
 }
 
 
@@ -47,11 +47,4 @@ std::vector<Pool> DummyPoolManager::getPools(void) throw (DmException)
 Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   DELEGATE_RETURN(getPool, poolname);
-}
-
-
-
-std::vector<Pool> DummyPoolManager::getAvailablePools(bool write) throw (DmException)
-{
-  DELEGATE_RETURN(getAvailablePools, write);
 }
