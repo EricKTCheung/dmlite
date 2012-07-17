@@ -106,11 +106,9 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
     // if the response was successful (file copmlete), change the db entry
     if (meta.has_contentlength()) {
       this->stack->getCatalog()->replicaSetStatus(replica.rfn, '-');
+    } else {
+      throw DmException(DM_NO_SUCH_REPLICA, std::string("The Replica is not yet completed or failed to complete or doesnt exist"));
     }
-  }
-
-  if (!meta.has_contentlength()) {
-    throw DmException(DM_NO_SUCH_REPLICA, std::string("The Replica is not yet completed or failed to complete or doesnt exist"));
   }
 
   // if successful (file exists), create GET link
