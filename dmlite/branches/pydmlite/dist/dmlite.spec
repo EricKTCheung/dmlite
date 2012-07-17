@@ -1,3 +1,20 @@
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
+
+%if 0%{?rhel} == 5
+%global with_python26 1
+%endif
+
+%if 0%{?with_python26}
+%global __python26 %{_bindir}/python2.6
+%global py26dir %{_builddir}/python26-%{name}-%{version}-%{release}
+%{!?python26_sitelib: %global python26_sitelib %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
+%{!?python26_sitearch: %global python26_sitearch %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
+# Update rpm byte compilation script so that we get the modules compiled by the
+# correct inerpreter
+%global __os_install_post %__multiple_python_os_install_post
+%endif
+
 Name:		dmlite
 Version:	0.4.0
 Release:	1%{?dist}
@@ -14,8 +31,13 @@ Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	cmake
 BuildRequires:	cppunit-devel
+BuildRequires:	boost-devel
 BuildRequires:	doxygen
 BuildRequires:	openssl-devel
+BuildRequires:	python-devel
+%if 0%{?with_python26}
+BuildRequires:  python26-devel, python26-distribute
+%endif
 
 %description
 This package provides a set of common libraries and plugins that implement
@@ -43,6 +65,23 @@ Group:		Applications/Internet
 %description docs
 Man pages and HTML documentation for dmlite.
 
+%package -n python-dmlite
+Summary:	Python wrapper for dmlite
+Group:		Development/Libraries
+
+%description -n python-dmlite
+This package provides a python wrapper for dmlite.
+
+%if 0%{?with_python26}
+%package -n python26-dmlite
+Summary:        Python 2.6 wrapper for dmlite
+Group:          Development/Libraries
+Requires:       python(abi) = 2.6
+
+%description -n python26-dmlite
+This package provides a python26 wrapper for dmlite.
+%endif #end of python2.6
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -56,6 +95,11 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 
 make install DESTDIR=%{buildroot}
+
+%if 0%{?with_python26}
+mkdir -p %{buildroot}%{python26_sitearch}
+install -m 755 -p %{buildroot}%{python_sitearch}/pydmlite.so %{buildroot}%{python26_sitearch}/pydmlite.so
+%endif
 
 %clean
 rm -rf %{buildroot}
@@ -83,6 +127,14 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_mandir}/man3/*
 %{_defaultdocdir}/%{name}-%{version}
+
+%files -n python-dmlite
+%{python_sitearch}/pydmlite.so
+
+%if 0%{?with_python26}
+%files -n python26-dmlite
+%{python26_sitearch}/pydmlite.so
+%endif
 
 %changelog
 * Fri Jul 13 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
