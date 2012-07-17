@@ -1,5 +1,6 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
+#include <cstring>
 #include <sys/stat.h>
 #include "test-base.h"
 
