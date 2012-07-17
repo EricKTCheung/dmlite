@@ -96,7 +96,6 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
 {
   // if PENDING, check the file on S3
   S3ObjectMetadata meta;
-  bool isReplicaComplete = false;
   if (replica.status == 'P') {
     meta = 
        this->driver_->s3connection_.headObject(this->driver_->host_,
