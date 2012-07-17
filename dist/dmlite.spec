@@ -19,6 +19,7 @@ BuildRequires:	dpm-devel
 BuildRequires:	libmemcached-devel
 BuildRequires:	mysql-devel
 BuildRequires:	protobuf-devel
+BuildRequires:  neon-devel
 
 %description
 This package provides a set of common libraries and plugins that implement
