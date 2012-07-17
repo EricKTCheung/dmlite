@@ -44,6 +44,7 @@ Location S3Driver::getQueryString(std::string method, std::string host,
   headerMap["expires"] = expirationString;
 
   signature = getSignature(method, bucket, key, headerMap, "");
+  signature = urlEncode(signature);
 
   std::string path;
   conversionStream.str("");
@@ -130,6 +131,8 @@ std::string S3Driver::urlEncode(const std::string& aContent)
     c = aContent[i];
     if (isalnum(c))
        encoded += c;
+    else if (c == ' ')
+      encoded += '+';
     else {
        high = c / 16;
        low = c % 16;
@@ -208,8 +211,8 @@ S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std:
     printf("Response status code was %d\n", ne_get_status(request)->code);
     meta.set_contenttype(ne_get_response_header(request, "Content-Type"));
     const char *clength = ne_get_response_header(request, "Content-Length");
-    meta.set_contentlength(atoi(clength));
     if (clength) {
+      meta.set_contentlength(atoi(clength));
       printf("/foo.txt has length %s\n", clength);
     }
   } else {
