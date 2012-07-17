@@ -49,16 +49,10 @@ public:
 
 class StackInstance;
 
-class IODriver {
+class IODriver: public virtual BaseInterface {
 public:
   /// Virtual destructor
   virtual ~IODriver();
-  
-  /// Set the stack instance
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Instantiate a implementation of IOHandler
   /// @param pfn    The file name.

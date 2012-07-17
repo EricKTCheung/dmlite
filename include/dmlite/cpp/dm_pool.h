@@ -29,24 +29,12 @@ public:
 class StackInstance;
 
 /// Interface for pool types.
-class PoolManager {
+class PoolManager: public virtual BaseInterface {
 public:
   enum PoolAvailability { kAny, kNone, kForRead, kForWrite, kForBoth};
   
   /// Destructor.
   virtual ~PoolManager();
-
-  /// String ID of the pool implementation.
-  virtual std::string getImplId(void) throw() = 0;
-
-  /// Set the StackInstance.
-  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
-  /// However, at construction time not all the stacks have been populated, so this will
-  /// be called once all are instantiated.
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Get metadata corresponding to a pool type and name
   /// @note To be freed by the caller.

@@ -40,14 +40,14 @@ DummyCatalog::~DummyCatalog()
 
 void DummyCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  DELEGATE(setStackInstance, si);
+  BaseInterface::setStackInstance(this->decorated_, si);
 }
 
 
 
 void DummyCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  DELEGATE(setSecurityContext, ctx);
+  BaseInterface::setSecurityContext(this->decorated_, ctx);
 }
 
 

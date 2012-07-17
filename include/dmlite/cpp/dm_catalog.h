@@ -21,13 +21,10 @@ class StackInstance;
 class PluginManager;
 
 /// Interface for Catalog (Namespaces)
-class Catalog {
+class Catalog: public virtual BaseInterface {
 public: 
   /// Destructor.
   virtual ~Catalog();
-
-  /// String ID of the catalog implementation.
-  virtual std::string getImplId(void) throw() = 0;
 
   /// Set the StackInstance.
   /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
