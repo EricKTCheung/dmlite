@@ -1,7 +1,12 @@
 cmake_minimum_required (VERSION 2.6)
 
-add_library(s3pool MODULE S3.cpp s3driver.cpp)
-target_link_libraries (s3pool dmlite dmliteutils dl)
+find_package(Protobuf REQUIRED)
+
+# build the protobuf *.pb.(h|cc) files
+wrap_proto(PROTO_SRC s3objects.proto)
+
+add_library(s3pool MODULE S3.cpp s3driver.cpp ${PROTO_SRC})
+target_link_libraries (s3pool dmlite dmliteutils neon dl protobuf)
 set_target_properties (s3pool PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       s3pool

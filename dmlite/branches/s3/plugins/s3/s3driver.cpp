@@ -18,7 +18,14 @@ S3Driver::S3Driver(std::string s3AccessKeyID, std::string s3SecretAccessKey):
   s3AccessKeyID_(s3AccessKeyID),
   s3SecretAccessKey_(s3SecretAccessKey)
 {
-  // Nothing
+  if(ne_sock_init() != 0) {
+    throw DmException(DM_UNKNOWN_ERROR, std::string("Could not initialize libneon"));
+  }
+}
+
+S3Driver::~S3Driver()
+{
+  ne_sock_exit();
 }
 
 Location S3Driver::getQueryString(std::string method, std::string host, 
@@ -27,12 +34,8 @@ Location S3Driver::getQueryString(std::string method, std::string host,
 {
   Location rloc;
   std::map<std::string, std::string> headerMap;
-  std::string stringToSign;
   std::string expirationString;
   std::string signature;
-  unsigned char encryptedResult[1024];
-  unsigned int encryptedResultSize;
-  long base64EncodedStringLength;
 
   std::stringstream conversionStream;
 
@@ -40,13 +43,7 @@ Location S3Driver::getQueryString(std::string method, std::string host,
   expirationString = conversionStream.str();
   headerMap["expires"] = expirationString;
 
-  stringToSign = canonicalize(method, bucket, key, headerMap, "");
-
-  HMAC(EVP_sha1(), s3SecretAccessKey_.c_str(), s3SecretAccessKey_.size(),
-          (const unsigned char *) stringToSign.c_str(), stringToSign.size(), encryptedResult, &encryptedResultSize);
-  signature = base64Encode(encryptedResult, encryptedResultSize,
-                 base64EncodedStringLength);
-  signature = urlEncode(signature);
+  signature = getSignature(method, bucket, key, headerMap, "");
 
   std::string path;
   conversionStream.str("");
@@ -65,6 +62,26 @@ Location S3Driver::getQueryString(std::string method, std::string host,
   return rloc;
 }
 
+std::string S3Driver::getSignature(std::string method, std::string bucket, 
+                                  std::string key, std::map<std::string,
+                                  std::string> headerMap, std::string param)
+{
+  std::string stringToSign;
+  std::string signature;
+  unsigned char encryptedResult[1024];
+  unsigned int encryptedResultSize;
+  long base64EncodedStringLength;
+
+  stringToSign = canonicalize(method, bucket, key, headerMap, param);
+  HMAC(EVP_sha1(), s3SecretAccessKey_.c_str(), s3SecretAccessKey_.size(),
+          (const unsigned char *) stringToSign.c_str(), stringToSign.size(), encryptedResult, &encryptedResultSize);
+  signature = base64Encode(encryptedResult, encryptedResultSize,
+                 base64EncodedStringLength);
+//  signature = urlEncode(signature);
+
+  return signature;
+}
+
 std::string S3Driver::canonicalize(std::string method, std::string bucket, 
                          std::string key, std::map<std::string,
                          std::string> headerMap, std::string param)
@@ -81,6 +98,9 @@ std::string S3Driver::canonicalize(std::string method, std::string bucket,
 
   if (headerMap.count("expires") > 0) {
     itHeaderMap = headerMap.find("expires");
+    stringToSign << itHeaderMap->second << '\n';
+  } else if (headerMap.count("Date") > 0) {
+    itHeaderMap = headerMap.find("Date");
     stringToSign << itHeaderMap->second << '\n';
   }
 
@@ -143,4 +163,64 @@ std::string S3Driver::base64Encode(const unsigned char* aContent, size_t aConten
 
   return lTmp.str(); // copy
 }
+
+std::string S3Driver::s3TimeStringFromNow()
+{
+  time_t rawTime;
+  tm *gmTime;
+  time(&rawTime);
+  gmTime = gmtime(&rawTime);
+
+  char dateString[31];
+  strftime(dateString, 31, DATE_FORMAT, gmTime);
+
+  return std::string(dateString);
+}
+
+S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std::string key)
+{
+  bool isReplicaComplete = false;
+
+  ne_session* session;
+  ne_request* request;
+
+  int errorValue = 0;
+  std::map<std::string, std::string> headerMap;
+  std::string signature;
+  std::stringstream authorizationStream;
+  std::stringstream path;
+  S3ObjectMetadata meta;
+
+  session = ne_session_create("http", host.c_str(), 80);
+
+  path << "/" << bucket << "/" << key;
+  request = ne_request_create(session, "HEAD", path.str().c_str());
+
+  headerMap["Date"] = s3TimeStringFromNow().c_str();
+
+  signature = getSignature("HEAD", bucket, key, headerMap, "");
+  authorizationStream << "AWS " << s3AccessKeyID_ << ":" << signature;
+
+  ne_add_request_header(request, "Date", headerMap["Date"].c_str());
+  ne_add_request_header(request, "Authorization", authorizationStream.str().c_str());
+
+  if (ne_request_dispatch(request) == NE_OK) {
+    printf("Response status code was %d\n", ne_get_status(request)->code);
+    meta.set_contenttype(ne_get_response_header(request, "Content-Type"));
+    const char *clength = ne_get_response_header(request, "Content-Length");
+    meta.set_contentlength(atoi(clength));
+    if (clength) {
+      printf("/foo.txt has length %s\n", clength);
+    }
+  } else {
+    throw DmException(DM_UNKNOWN_ERROR, std::string(ne_get_error(session)));
+  }
+
+
+  ne_close_connection(session);
+  ne_session_destroy(session);
+
+  return meta;
+}
+
 

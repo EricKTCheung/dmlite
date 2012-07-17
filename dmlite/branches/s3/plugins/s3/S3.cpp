@@ -32,7 +32,7 @@ void S3PoolDriver::setSecurityContext(const SecurityContext*) throw (DmException
 
 PoolHandler* S3PoolDriver::createPoolHandler(const std::string& poolName) throw (DmException)
 {
-  return new S3PoolHandler(this, poolName);
+  return new S3PoolHandler(this, poolName, this->stack);
 }
 
 void S3PoolDriver::setStackInstance(StackInstance* si) throw (DmException)
@@ -40,9 +40,10 @@ void S3PoolDriver::setStackInstance(StackInstance* si) throw (DmException)
   this->stack = si;
 }
 
-S3PoolHandler::S3PoolHandler(S3PoolDriver* driver, const std::string& poolName):
+S3PoolHandler::S3PoolHandler(S3PoolDriver* driver, const std::string& poolName, StackInstance* si):
   driver_(driver),
-  poolName(poolName)
+  poolName(poolName),
+  stack(si)
 {
   this->driver_->s3connection_ = S3Driver(
             this->driver_->s3AccessKeyID_,
@@ -93,6 +94,26 @@ bool S3PoolHandler::replicaAvailable(const FileReplica& replica) throw (DmExcept
 
 Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmException)
 {
+  // if PENDING, check the file on S3
+  S3ObjectMetadata meta;
+  bool isReplicaComplete = false;
+  if (replica.status == 'P') {
+    meta = 
+       this->driver_->s3connection_.headObject(this->driver_->host_,
+                                               this->driver_->bucketName_,
+                                               replica.rfn);
+
+    // if the response was successful (file copmlete), change the db entry
+    if (meta.has_contentlength()) {
+      this->stack->getCatalog()->replicaSetStatus(replica.rfn, '-');
+    }
+  }
+
+  if (!meta.has_contentlength()) {
+    throw DmException(DM_NO_SUCH_REPLICA, std::string("The Replica is not yet completed or failed to complete or doesnt exist"));
+  }
+
+  // if successful (file exists), create GET link
   Location rloc;
   time_t expiration = time(NULL) + static_cast<time_t>(60);
   rloc = this->driver_->s3connection_.getQueryString(
@@ -111,6 +132,14 @@ void S3PoolHandler::remove(const FileReplica& replica) throw (DmException)
 
 Location S3PoolHandler::putLocation(const std::string& fn) throw (DmException)
 {
+  // create database entry with state PENDING
+  struct stat st = this->stack->getCatalog()->extendedStat(fn).stat;
+  this->stack->getCatalog()->addReplica(std::string(), st.st_ino,
+                                        std::string(),
+                                        fn, 'P', 'P',
+                                        this->poolName, std::string());
+
+  // create PUT link
   Location rloc;
   time_t expiration = time(NULL) + static_cast<time_t>(60);
   rloc = this->driver_->s3connection_.getQueryString(
