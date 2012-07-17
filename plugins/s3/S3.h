@@ -12,6 +12,7 @@
 #include <dmlite/cpp/utils/dm_urls.h>
 
 #include "s3driver.h"
+#include "s3objects.pb.h"
 
 namespace dmlite {
 
@@ -51,7 +52,7 @@ private:
 /// PoolHandler
 class S3PoolHandler: public PoolHandler {
 public:
-  S3PoolHandler(S3PoolDriver* driver, const std::string& poolName);
+  S3PoolHandler(S3PoolDriver* driver, const std::string& poolName, StackInstance* si);
   ~S3PoolHandler();
 
   std::string getPoolType(void) throw (DmException);
@@ -71,6 +72,7 @@ public:
 private:
   S3PoolDriver*  driver_;
   std::string    poolName; 
+  StackInstance* stack;  
 
   bool replicaAvailable(const FileReplica&) throw (DmException);
 };

@@ -39,6 +39,7 @@ public:
     Location loc;
     FileReplica repl;
     std::memcpy(repl.rfn, KEY, strlen(KEY));
+    repl.status = 'P';
 
     for (int i = 0; i < pools.size(); ++i) {
       dmlite::PoolHandler *handler = stackInstance->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
@@ -49,7 +50,25 @@ public:
       if (handler->getPoolType() == std::string("s3")) {
         loc = handler->getLocation(repl);
         printf("Host, Path: %s + %s\n", loc.host, loc.path);
+      }
+    }
+  }
+
+  void testPutLocation(void)
+  {
+    Location loc;
+    FileReplica repl;
+    std::memcpy(repl.rfn, KEY, strlen(KEY));
+
+    for (int i = 0; i < pools.size(); ++i) {
+      dmlite::PoolHandler *handler = stackInstance->getPoolDriver(pools[i].pool_type)->createPoolHandler(pools[i].pool_name);
+      printf("%s\n", KEY);
+      printf("pool type = %s, pool name = %s.\n",
+              handler->getPoolType().c_str(),
+              handler->getPoolName().c_str());
+      if (handler->getPoolType() == std::string("s3")) {
         handler->putLocation(std::string(KEY));
+        printf("Host, Path: %s + %s\n", loc.host, loc.path);
       }
     }
   }
@@ -60,8 +79,9 @@ public:
 };
 
 //const char* TestS3::KEY  = "/dpm/cern.ch/home/dteam/atlas-higgs-boson.found";
-const char* TestS3::KEY  = "atlas-higgs-boson.found";
-//const char* TestS3::KEY  = "testfile.txt";
+//const char* TestS3::KEY  = "atlas-higgs-boson.found";
+const char* TestS3::KEY  = "testfile.txt";
+//const char* TestS3::KEY  = "puttest.txt";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestS3);
 

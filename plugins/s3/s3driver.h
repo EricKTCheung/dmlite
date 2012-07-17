@@ -4,11 +4,20 @@
 #ifndef S3Driver_H
 #define	S3Driver_H
 
-#include <map>
-#include <sstream>
-#include <iostream>
-#include <openssl/hmac.h>
 #include <dmlite/common/dm_types.h>
+#include <dmlite/cpp/dm_exceptions.h>
+#include <iostream>
+#include <map>
+#include <openssl/hmac.h>
+#include <sstream>
+
+#include <neon/ne_socket.h>
+#include <neon/ne_request.h>
+#include <neon/ne_session.h>
+
+#include "s3objects.pb.h"
+
+#define DATE_FORMAT "%a, %d %b %Y %H:%M:%S GMT"
 
 namespace dmlite {
 
@@ -17,7 +26,7 @@ public:
   S3Driver() {};
   S3Driver(std::string s3AccessKeyID, std::string s3SecretAccessKey);
 
-  ~S3Driver() {};
+  ~S3Driver();
   
   Location getQueryString(std::string method, std::string host, 
                           std::string bucket, std::string key,
@@ -27,6 +36,13 @@ public:
                            std::string key, std::map<std::string,
                            std::string> headerMap, std::string param);
 
+  std::string getSignature(std::string method, std::string bucket, 
+                           std::string key, std::map<std::string,
+                           std::string> headerMap, std::string param);
+
+  std::string s3TimeStringFromNow();
+
+  S3ObjectMetadata headObject(std::string host, std::string bucket, std::string key);
   private:
 
   /// The Amazon Access ID.
