@@ -156,7 +156,7 @@ Location DpmAdapterCatalog::put(const std::string& path) throw (DmException)
   reqfile.s_token[0]     = '\0';
   
   try {
-    spaceToken = this->si_->get("SpaceToken").array.str;
+    spaceToken = this->si_->get("SpaceToken").array.cstr;
   }
   catch (...) {
     spaceToken = 0x00;
