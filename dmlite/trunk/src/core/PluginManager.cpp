@@ -3,7 +3,7 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dlfcn.h>
 #include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/dm_basefactory.h>
+#include <dmlite/cpp/dm_base.h>
 #include <fstream>
 #include <sstream>
 #include <set>

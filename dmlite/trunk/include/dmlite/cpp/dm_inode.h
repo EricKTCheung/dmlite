@@ -22,22 +22,10 @@ class StackInstance;
 
 /// Low-level interface. Based on i-nodes.
 /// @note Security checks NOT done on this level.
-class INode {
+class INode: public virtual BaseInterface {
 public:
   /// Destructor
   virtual ~INode();
-  
-  /// String ID of the inode implementation.
-  virtual std::string getImplId(void) throw() = 0;
-  
-  /// Set the StackInstance.
-  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
-  /// However, at construction time not all the stacks have been populated, so this will
-  /// be called once all are instantiated.
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Start a transaction
   virtual void begin(void) throw (DmException) = 0;

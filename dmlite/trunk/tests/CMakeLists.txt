@@ -20,9 +20,6 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmMySql.conf
 
 add_library           (test-base STATIC test-base.cpp)
 
-add_executable        (test-load test-load.cpp)
-target_link_libraries (test-load dmlite cppunit dl)
-
 add_executable        (test-split_path test-split_path.cpp)
 target_link_libraries (test-split_path dmlite dl)
 
@@ -96,8 +93,6 @@ ADD_TEST(test-chdir ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})
 SET_TESTS_PROPERTIES(test-chdir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-create ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
 SET_TESTS_PROPERTIES(test-create PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-load ${CMAKE_CURRENT_BINARY_DIR}/test-load ${CONFIG})
-SET_TESTS_PROPERTIES(test-load PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-comment ${CMAKE_CURRENT_BINARY_DIR}/test-comment ${CONFIG})
 SET_TESTS_PROPERTIES(test-comment PROPERTIES PASS_REGULAR_EXPRESSION "OK")
 ADD_TEST(test-security ${CMAKE_CURRENT_BINARY_DIR}/test-security ${CONFIG})

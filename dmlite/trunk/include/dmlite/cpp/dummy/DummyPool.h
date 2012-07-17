@@ -13,6 +13,7 @@ class DummyPoolManager: public PoolManager {
 public:
   virtual ~DummyPoolManager();
 
+  virtual void setStackInstance(StackInstance*) throw (DmException);
   virtual void setSecurityContext(const SecurityContext*) throw (DmException);
   
   virtual PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);

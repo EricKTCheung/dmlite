@@ -23,9 +23,16 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
+void DummyPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  BaseInterface::setStackInstance(this->decorated_, si);
+}
+
+
+
 void DummyPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  DELEGATE(setSecurityContext, ctx);
+  BaseInterface::setSecurityContext(this->decorated_, ctx);
 }
 
 
