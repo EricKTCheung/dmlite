@@ -288,7 +288,7 @@ Location BuiltInCatalog::put(const std::string& path) throw (DmException)
   if (this->si_->isTherePoolManager() == 0x00)
     throw DmException(DM_NO_POOL_MANAGER, "Can not put if no PoolManager is loaded");
     
-  std::vector<Pool> pools = this->si_->getPoolManager()->getAvailablePools();
+  std::vector<Pool> pools = this->si_->getPoolManager()->getPools(PoolManager::kForWrite);
   
   // Pick a random one
   unsigned i = rand()  % pools.size();

@@ -31,6 +31,8 @@ class StackInstance;
 /// Interface for pool types.
 class PoolManager {
 public:
+  enum PoolAvailability { kAny, kNone, kForRead, kForWrite, kForBoth};
+  
   /// Destructor.
   virtual ~PoolManager();
 
@@ -51,15 +53,11 @@ public:
   virtual PoolMetadata* getPoolMetadata(const std::string& poolName) throw (DmException) = 0;
 
   /// Get the list of pools.
-  /// @return A set with all the pools.
-  virtual std::vector<Pool> getPools(void) throw (DmException) = 0;
+  /// @param availability Filter by availability.
+  virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException) = 0;
   
   /// Get a specific pool.
   virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
-  
-  /// Get only the available pools
-  /// @param write If true, it will be only the pools available for writting.
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException) = 0;
 };
 
 

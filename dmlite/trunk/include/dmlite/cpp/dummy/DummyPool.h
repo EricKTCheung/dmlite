@@ -17,11 +17,9 @@ public:
   
   virtual PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
 
-  virtual std::vector<Pool> getPools(void) throw (DmException);
+  virtual std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
   
   virtual Pool getPool(const std::string&) throw (DmException);
-  
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
 
 protected:
   PoolManager* decorated_;
