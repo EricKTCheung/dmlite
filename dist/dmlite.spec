@@ -68,16 +68,12 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/dmlite.conf
 %{_libdir}/libdmlite.so.*
-%{_libdir}/libdmlitec.so.*
-%{_libdir}/libdmliteutils.so.*
 %doc README LICENSE
 
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/dmlite
 %{_libdir}/libdmlite.so
-%{_libdir}/libdmlitec.so
-%{_libdir}/libdmliteutils.so
 
 %files docs
 %defattr(-,root,root,-)
