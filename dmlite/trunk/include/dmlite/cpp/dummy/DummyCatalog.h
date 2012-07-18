@@ -46,11 +46,11 @@ public:
   virtual void create(const std::string&, mode_t) throw (DmException);
 
   virtual mode_t umask          (mode_t)                           throw ();
-  virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  virtual void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
+  virtual void   setMode     (const std::string&, mode_t)       throw (DmException);
+  virtual void   setOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
-  virtual void changeSize    (const std::string&, size_t) throw (DmException);
-  virtual void changeChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
+  virtual void setSize    (const std::string&, size_t) throw (DmException);
+  virtual void setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
 
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 

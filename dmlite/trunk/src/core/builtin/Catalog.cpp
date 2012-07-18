@@ -505,7 +505,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     if (this->secCtx_->getUser().uid != file.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to truncate " + path);
-    this->si_->getINode()->changeSize(file.stat.st_ino, 0);
+    this->si_->getINode()->setSize(file.stat.st_ino, 0);
   }
 }
 
@@ -726,14 +726,14 @@ mode_t BuiltInCatalog::umask(mode_t mask) throw ()
 
 
 
-void BuiltInCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
+void BuiltInCatalog::setMode(const std::string& path, mode_t mode) throw (DmException)
 {
 ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
   if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       this->secCtx_->getUser().uid != 0)
-    throw DmException(DM_FORBIDDEN, "Only the owner can change the mode of " + path);
+    throw DmException(DM_FORBIDDEN, "Only the owner can set the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
@@ -768,12 +768,12 @@ ExtendedStat meta = this->extendedStat(path);
   }
 
   // Update entry
-  this->si_->getINode()->changeMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, mode, aclStr);
 }
 
 
 
-void BuiltInCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
+void BuiltInCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, followSymLink);
   
@@ -791,12 +791,12 @@ void BuiltInCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t ne
   if (this->secCtx_->getUser().uid != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
-      throw DmException(DM_BAD_OPERATION, "Only root can change the owner");
+      throw DmException(DM_BAD_OPERATION, "Only root can set the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
       if (meta.stat.st_uid != this->secCtx_->getUser().uid)
-        throw DmException(DM_BAD_OPERATION, "Only root or the owner can change the group");
+        throw DmException(DM_BAD_OPERATION, "Only root or the owner can set the group");
       // AND it has to belong to that group
       if (!this->secCtx_->hasGroup(newGid))
         throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
@@ -818,37 +818,37 @@ void BuiltInCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t ne
   }
 
   // Change!
-  this->si_->getINode()->changeMode(meta.stat.st_ino, newUid, newGid, meta.stat.st_mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino, newUid, newGid, meta.stat.st_mode, aclStr);
 }
 
 
 
-void BuiltInCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+void BuiltInCatalog::setSize(const std::string& path, size_t newSize) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, false);
   if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not change the size of " + path);
+    throw DmException(DM_FORBIDDEN, "Can not set the size of " + path);
   
-  this->si_->getINode()->changeSize(meta.stat.st_ino, newSize);
+  this->si_->getINode()->setSize(meta.stat.st_ino, newSize);
 }
 
 
 
-void BuiltInCatalog::changeChecksum(const std::string& path,
+void BuiltInCatalog::setChecksum(const std::string& path,
                                     const std::string& csumtype,
                                     const std::string& csumvalue) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, false);
   if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not change the checksum of " + path);
+    throw DmException(DM_FORBIDDEN, "Can not set the checksum of " + path);
   
   if (csumtype != "MD" && csumtype != "AD" && csumtype != "CS")
     throw DmException(DM_INVALID_VALUE,
                       "%s is an invalid checksum type", csumtype.c_str());
   
-  this->si_->getINode()->changeChecksum(meta.stat.st_ino, csumtype, csumvalue);
+  this->si_->getINode()->setChecksum(meta.stat.st_ino, csumtype, csumvalue);
 }
 
 
@@ -860,7 +860,7 @@ void BuiltInCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
   // Check we can change it
   if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
       this->secCtx_->getUser().uid != 0)
-    throw DmException(DM_FORBIDDEN, "Only the owner can change the ACL of " + path);
+    throw DmException(DM_FORBIDDEN, "Only the owner can set the ACL of " + path);
 
   std::vector<Acl> aclsCopy(acls);
 
@@ -901,7 +901,7 @@ void BuiltInCatalog::setAcl(const std::string& path, const std::vector<Acl>& acl
     aclStr = dmlite::serializeAcl(aclsCopy);
 
   // Update the file
-  this->si_->getINode()->changeMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, meta.stat.st_mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, meta.stat.st_mode, aclStr);
 }
 
 

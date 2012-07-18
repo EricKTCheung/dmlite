@@ -144,32 +144,32 @@ mode_t DummyCatalog::umask(mode_t mask) throw ()
 
 
 
-void DummyCatalog::changeMode(const std::string& path, mode_t mode) throw (DmException)
+void DummyCatalog::setMode(const std::string& path, mode_t mode) throw (DmException)
 {
-  DELEGATE(changeMode, path, mode);
+  DELEGATE(setMode, path, mode);
 }
 
 
 
-void DummyCatalog::changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool fs) throw (DmException)
+void DummyCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool fs) throw (DmException)
 {
-  DELEGATE(changeOwner, path, newUid, newGid, fs);
+  DELEGATE(setOwner, path, newUid, newGid, fs);
 }
 
 
 
-void DummyCatalog::changeSize(const std::string& path, size_t newSize) throw (DmException)
+void DummyCatalog::setSize(const std::string& path, size_t newSize) throw (DmException)
 {
-  DELEGATE(changeSize, path, newSize);
+  DELEGATE(setSize, path, newSize);
 }
 
 
 
-void DummyCatalog::changeChecksum(const std::string& path,
+void DummyCatalog::setChecksum(const std::string& path,
                                   const std::string& csumtype,
                                   const std::string& csumvalue) throw (DmException)
 {
-  DELEGATE(changeChecksum, path, csumtype, csumvalue);
+  DELEGATE(setChecksum, path, csumtype, csumvalue);
 }
 
 
