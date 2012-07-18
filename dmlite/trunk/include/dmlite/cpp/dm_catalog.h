@@ -62,22 +62,6 @@ public:
   /// @param path The file for which replicas will be retrieved.
   virtual std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException) = 0;
 
-  /// Get a location for a logical name.
-  /// @param path     The path to get.
-  virtual Location get(const std::string& path) throw (DmException) = 0;
-  
-  /// Start the PUT of a file.
-  /// @param path  The path of the file to create.
-  /// @return      The physical location where to write.
-  virtual Location put(const std::string& path) throw (DmException) = 0;
-
-  /// Finish a PUT
-  /// @param host   The host where the replica is hosted.
-  /// @param rfn    The replica file name.
-  /// @param params The extra parameters returned by dm::Catalog::put
-  virtual void putDone(const std::string& host, const std::string& rfn,
-                       const std::map<std::string, std::string>& params) throw (DmException) = 0;
-
   /// Creates a new symlink.
   /// @param oldpath The existing path.
   /// @param newpath The new access path.

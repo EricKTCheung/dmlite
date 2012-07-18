@@ -55,3 +55,26 @@ Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   DELEGATE_RETURN(getPool, poolname);
 }
+
+
+
+Location DummyPoolManager::whereToRead(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(whereToRead, path);
+}
+
+
+
+Location DummyPoolManager::whereToWrite(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(whereToWrite, path);
+}
+
+
+
+void DummyPoolManager::doneWriting(const std::string& host,
+                                   const std::string& rfn,
+                                   const std::map<std::string,std::string>& params) throw (DmException)
+{
+  DELEGATE(doneWriting, host, rfn, params);
+}
