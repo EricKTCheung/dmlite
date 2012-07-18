@@ -7,7 +7,7 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 		 OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
 		 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-include_directories (${Boost_INCLUDE_DIRS})
+include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ../include/dmlite/cpp)
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_library(pydmlite SHARED pydmlite.cpp)
