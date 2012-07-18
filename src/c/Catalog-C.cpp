@@ -169,86 +169,12 @@ int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* file
 
 
 
-int dm_freelocation(dm_context* context, struct location* loc)
-{
-  Location *locp = (Location*)loc;
-  delete locp;
-  return 0;
-}
-
-
-
-int dm_get(dm_context* context, const char* path, struct location** loc)
-{
-  TRY(context, get)
-  NOT_NULL(path);
-  NOT_NULL(loc);
-  Location *locp = new Location(context->stack->getCatalog()->get(path));
-  *loc = locp;
-  CATCH(context, get)
-}
-
-
-
-int dm_getlocation(dm_context* context, const FileReplica* replica, struct location** loc)
-{
-  TRY(context, getlocation)
-  NOT_NULL(replica);
-  
-  Pool pool = context->stack->getPoolManager()->getPool(replica->pool);
-  dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.pool_type);
-  dmlite::PoolHandler* handler = driver->createPoolHandler(pool.pool_name);
-  
-  try {
-    Location *locp = new Location(handler->getLocation(*replica));
-    *loc = locp;
-    delete handler;
-  }
-  catch (...) {
-    delete handler;
-    throw;
-  }
-  
-  CATCH(context, getlocation)
-}
-
-
-
 int dm_create(dm_context* context, const char* path, mode_t mode)
 {
   TRY(context, create)
   NOT_NULL(path);
   context->stack->getCatalog()->create(path, mode);
   CATCH(context, create)
-}
-
-
-
-int dm_put(dm_context* context, const char* path, struct location** loc)
-{
-  TRY(context, put)
-  NOT_NULL(path);
-  NOT_NULL(loc);
-  Location *locp = new Location(context->stack->getCatalog()->put(path));
-  *loc = locp;
-  CATCH(context, put)
-}
-
-
-
-int dm_putdone(dm_context* context, const char* host, const char* rfn, unsigned nextras, struct keyvalue* extrasp)
-{
-  TRY(context, putdone)
-  NOT_NULL(host);
-  NOT_NULL(rfn);
-  
-  std::map<std::string, std::string> extras;
-  
-  for (unsigned i = 0; i < nextras; ++i)
-    extras.insert(std::pair<std::string, std::string>(extrasp[i].key, extrasp[i].value));
-  
-  context->stack->getCatalog()->putDone(host, rfn, extras);
-  CATCH(context, putdone)
 }
 
 

@@ -77,7 +77,7 @@ public:
     
     this->catalog->deleteReplica(replica);
 
-    CPPUNIT_ASSERT_THROW(this->catalog->get(FILE), dmlite::DmException);
+    CPPUNIT_ASSERT_THROW(this->catalog->getReplicas(FILE), dmlite::DmException);
   }
 
   void testAddNoHost()

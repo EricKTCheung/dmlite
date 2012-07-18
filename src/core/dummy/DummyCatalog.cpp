@@ -94,28 +94,6 @@ std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) thro
 
 
 
-Location DummyCatalog::get(const std::string& path) throw (DmException)
-{
-  DELEGATE_RETURN(get, path);
-}
-
-
-
-Location DummyCatalog::put(const std::string& path) throw (DmException)
-{
-  DELEGATE_RETURN(put, path);
-}
-
-
-
-void DummyCatalog::putDone(const std::string& path, const std::string& rfn, 
-                           const std::map<std::string,std::string>& params) throw (DmException)
-{
-  DELEGATE(putDone, path, rfn, params);
-}
-
-
-
 void DummyCatalog::symlink(const std::string& oldpath, const std::string& newpath) throw (DmException)
 {
   DELEGATE(symlink, oldpath, newpath);
