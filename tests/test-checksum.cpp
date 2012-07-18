@@ -34,7 +34,7 @@ public:
     const char* csum = "1a31009319c99ebdefd23055b20ff034";
     
     // Change checksum to something else
-    this->catalog->changeChecksum(FILE, "MD", csum);
+    this->catalog->setChecksum(FILE, "MD", csum);
     
     // Compare
     ExtendedStat meta = this->catalog->extendedStat(FILE);

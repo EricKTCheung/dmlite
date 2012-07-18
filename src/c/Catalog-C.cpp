@@ -267,7 +267,7 @@ int dm_chmod(dm_context* context, const char* path, mode_t mode)
 {
   TRY(context, chmod)
   NOT_NULL(path);
-  context->stack->getCatalog()->changeMode(path, mode);
+  context->stack->getCatalog()->setMode(path, mode);
   CATCH(context, chmod)
 }
 
@@ -277,7 +277,7 @@ int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 {
   TRY(context, chown)
   NOT_NULL(path);
-  context->stack->getCatalog()->changeOwner(path, newUid, newGid);
+  context->stack->getCatalog()->setOwner(path, newUid, newGid);
   CATCH(context, chown)
 }
 
@@ -287,7 +287,7 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 {
   TRY(context, lchown)
   NOT_NULL(path);
-  context->stack->getCatalog()->changeOwner(path, newUid, newGid, false);
+  context->stack->getCatalog()->setOwner(path, newUid, newGid, false);
   CATCH(context, lchown)
 }
 
@@ -297,7 +297,7 @@ int dm_setfsize(dm_context* context, const char* path, uint64_t filesize)
 {
   TRY(context, setfsize)
   NOT_NULL(path);
-  context->stack->getCatalog()->changeSize(path, filesize);
+  context->stack->getCatalog()->setSize(path, filesize);
   CATCH(context, setfsize)
 }
 
@@ -310,8 +310,8 @@ int dm_setfsizec(dm_context* context, const char* path, uint64_t filesize,
   NOT_NULL(path);
   NOT_NULL(csumtype);
   NOT_NULL(csumvalue);
-  context->stack->getCatalog()->changeSize(path, filesize);
-  context->stack->getCatalog()->changeChecksum(path, csumtype, csumvalue);
+  context->stack->getCatalog()->setSize(path, filesize);
+  context->stack->getCatalog()->setChecksum(path, csumtype, csumvalue);
   CATCH(context, setfsizec)
 }
 

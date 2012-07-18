@@ -33,7 +33,7 @@ public:
   {
     // Root should be able to change the owner and the group
     this->stackInstance->setSecurityContext(root);
-    this->catalog->changeOwner(FILE, 500, 200);
+    this->catalog->setOwner(FILE, 500, 200);
 
     struct stat s = this->catalog->extendedStat(FILE).stat;
 
@@ -48,32 +48,32 @@ public:
     ctx = this->stackInstance->getSecurityContext();
 
     // It should be OK a -1, -1
-    this->catalog->changeOwner(FILE, -1, -1);
+    this->catalog->setOwner(FILE, -1, -1);
     s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
 
     // Also, it should be ok to change to current value
-    this->catalog->changeOwner(FILE, s.st_uid, s.st_gid);
+    this->catalog->setOwner(FILE, s.st_uid, s.st_gid);
     s = this->catalog->extendedStat(FILE).stat;
 
     // It should NOT be able to change the user
     try {
-      this->catalog->changeOwner(FILE, ctx->getUser().uid, -1);
+      this->catalog->setOwner(FILE, ctx->getUser().uid, -1);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     // It should BE able to change the group to one it belongs to
-    this->catalog->changeOwner(FILE, -1, ctx->getGroup(1).gid);
+    this->catalog->setOwner(FILE, -1, ctx->getGroup(1).gid);
     s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(s.st_uid, s.st_uid);
     CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, s.st_gid);
 
     // It should NOT be able to change the group to one it does not belong to
     try {
-      this->catalog->changeOwner(FILE, -1, 0);
+      this->catalog->setOwner(FILE, -1, 0);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
@@ -88,14 +88,14 @@ public:
 
     // It should NOT be able to change the group or the owner
     try {
-      this->catalog->changeOwner(FILE, ctx->getUser().uid, -1);
+      this->catalog->setOwner(FILE, ctx->getUser().uid, -1);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     try {
-      this->catalog->changeOwner(FILE, -1, ctx->getGroup(0).gid);
+      this->catalog->setOwner(FILE, -1, ctx->getGroup(0).gid);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
@@ -110,7 +110,7 @@ public:
     // Make sure the clock moves!
     sleep(1);
     // Change the owner
-    this->catalog->changeOwner(FILE, 500, 200);
+    this->catalog->setOwner(FILE, 500, 200);
     // Second stat
     struct stat after = this->catalog->extendedStat(FILE).stat;
     // ctime should have incremented

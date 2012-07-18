@@ -117,7 +117,7 @@ public:
 
     // Must succeed
     this->stackInstance->setSecurityCredentials(cred1);
-    this->catalog->changeMode(NESTED_FILE, 0777);
+    this->catalog->setMode(NESTED_FILE, 0777);
     this->catalog->rename(NESTED_FILE, DEST_FILE);
 
     this->catalog->extendedStat(DEST_FILE);

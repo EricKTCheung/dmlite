@@ -97,34 +97,34 @@ public:
   /// @return     The value of the previous mask.
   virtual mode_t umask(mode_t mask) throw () = 0;
 
-  /// Change the mode of a file.
-  /// @param path The file to change.
+  /// Set the mode of a file.
+  /// @param path The file to modify.
   /// @param mode The new mode as an integer (i.e. 0755)
-  virtual void changeMode(const std::string& path, mode_t mode) throw (DmException) = 0;
+  virtual void setMode(const std::string& path, mode_t mode) throw (DmException) = 0;
 
-  /// Change the owner of a file.
-  /// @param path   The file to change.
+  /// Set the owner of a file.
+  /// @param path   The file to modify.
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
-  virtual void changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException) = 0;
+  virtual void setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException) = 0;
   
-  /// Change the size of a file.
-  /// @param path    The file to change.
+  /// Set the size of a file.
+  /// @param path    The file to modify.
   /// @param newSize The new file size.
-  virtual void changeSize(const std::string& path, size_t newSize) throw (DmException) = 0;
+  virtual void setSize(const std::string& path, size_t newSize) throw (DmException) = 0;
   
-  /// Change the checksum of a file.
-  /// @param path      The file to change.
+  /// Set the checksum of a file.
+  /// @param path      The file to modify.
   /// @param csumtype  The checksum type (CS, AD or MD).
   /// @param csumvalue The checksum value.
-  virtual void changeChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
+  virtual void setChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
 
-  /// Change the ACLs
-  /// @param path The file to change.
+  /// Set the ACLs
+  /// @param path The file to modify.
   /// @param acls The ACL's.
   virtual void setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException) = 0;
 
-  /// Change access and/or modification time.
+  /// Set access and/or modification time.
   /// @param path The file path.
   /// @param buf  A struct holding the new times.
   virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) = 0;
