@@ -131,8 +131,6 @@ std::string S3Driver::urlEncode(const std::string& aContent)
     c = aContent[i];
     if (isalnum(c))
        encoded += c;
-    else if (c == ' ')
-      encoded += '+';
     else {
        high = c / 16;
        low = c % 16;
@@ -209,7 +207,6 @@ S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std:
 
   if (ne_request_dispatch(request) == NE_OK) {
     printf("Response status code was %d\n", ne_get_status(request)->code);
-    meta.set_contenttype(ne_get_response_header(request, "Content-Type"));
     const char *clength = ne_get_response_header(request, "Content-Length");
     if (clength) {
       meta.set_contentlength(atoi(clength));
