@@ -7,5 +7,12 @@ message S3ObjectMetadata {
 
 message S3RequestResponse {
   required int32 http_code = 1;
+  optional string http_reason = 3;
   optional S3ObjectMetadata s3object_meta = 2;
+}
+
+message S3Error {
+  optional string code = 1;
+  optional string errmessage = 2;
+  optional string resource = 3;
 }
