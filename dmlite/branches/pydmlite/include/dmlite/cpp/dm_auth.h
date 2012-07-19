@@ -6,7 +6,7 @@
 
 #include <string>
 #include <vector>
-#include "dm_basefactory.h"
+#include "dm_base.h"
 #include "dm_exceptions.h"
 #include "../common/dm_types.h"
 

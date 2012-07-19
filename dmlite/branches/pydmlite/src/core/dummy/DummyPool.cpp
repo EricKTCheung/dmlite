@@ -23,9 +23,16 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
+void DummyPoolManager::setStackInstance(StackInstance* si) throw (DmException)
+{
+  BaseInterface::setStackInstance(this->decorated_, si);
+}
+
+
+
 void DummyPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  DELEGATE(setSecurityContext, ctx);
+  BaseInterface::setSecurityContext(this->decorated_, ctx);
 }
 
 
@@ -37,9 +44,9 @@ PoolMetadata* DummyPoolManager::getPoolMetadata(const std::string& pool) throw (
 
 
 
-std::vector<Pool> DummyPoolManager::getPools(void) throw (DmException)
+std::vector<Pool> DummyPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
-  DELEGATE_RETURN(getPools);
+  DELEGATE_RETURN(getPools, availability);
 }
 
 
@@ -51,7 +58,23 @@ Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 
 
 
-std::vector<Pool> DummyPoolManager::getAvailablePools(bool write) throw (DmException)
+Location DummyPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  DELEGATE_RETURN(getAvailablePools, write);
+  DELEGATE_RETURN(whereToRead, path);
+}
+
+
+
+Location DummyPoolManager::whereToWrite(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(whereToWrite, path);
+}
+
+
+
+void DummyPoolManager::doneWriting(const std::string& host,
+                                   const std::string& rfn,
+                                   const std::map<std::string,std::string>& params) throw (DmException)
+{
+  DELEGATE(doneWriting, host, rfn, params);
 }

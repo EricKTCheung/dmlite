@@ -37,7 +37,7 @@ public:
   {
     if (this->catalog != 0x00) {
       this->stackInstance->setSecurityContext(root);
-      this->catalog->changeMode(FOLDER, 0777);
+      this->catalog->setMode(FOLDER, 0777);
       
       try {
         struct stat s = this->catalog->extendedStat(FILE).stat;
@@ -115,7 +115,7 @@ public:
   {
     struct stat s;
 
-    this->catalog->changeMode(FOLDER, MODE | S_ISGID);
+    this->catalog->setMode(FOLDER, MODE | S_ISGID);
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_ISGID | S_IFDIR, (int)s.st_mode);
 
@@ -143,7 +143,7 @@ public:
     this->stackInstance->setSecurityCredentials(cred2);
 
     // Changing the mode of the parent
-    this->catalog->changeMode(FILE, MODE_ALL);
+    this->catalog->setMode(FILE, MODE_ALL);
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
 
@@ -219,7 +219,7 @@ public:
 
   void testPermissionDenied()
   {
-    this->catalog->changeMode(FOLDER, 0500);
+    this->catalog->setMode(FOLDER, 0500);
     try {
       this->catalog->create(FILE, MODE);
       CPPUNIT_FAIL("Exception not thrown");
@@ -228,7 +228,7 @@ public:
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
 
-    this->catalog->changeMode(FOLDER, 0600);
+    this->catalog->setMode(FOLDER, 0600);
     try {
       this->catalog->extendedStat(FILE).stat;
       CPPUNIT_FAIL("Exception not thrown");
@@ -242,7 +242,7 @@ public:
   void testSetSize()
   {
     this->catalog->create(FILE, MODE);
-    this->catalog->changeSize(FILE, 555);
+    this->catalog->setSize(FILE, 555);
     struct stat s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
   }

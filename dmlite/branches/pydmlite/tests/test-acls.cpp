@@ -37,7 +37,7 @@ public:
   void tearDown()
   {
     if (this->catalog != 0x00) {
-      IGNORE_NOT_EXIST(this->catalog->changeMode(FOLDER, 0700));
+      IGNORE_NOT_EXIST(this->catalog->setMode(FOLDER, 0700));
       IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
       IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));
       IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
@@ -54,7 +54,7 @@ public:
 
   void testChown()
   {
-    this->catalog->changeOwner(FOLDER, -1, ctx->getGroup(1).gid);
+    this->catalog->setOwner(FOLDER, -1, ctx->getGroup(1).gid);
     ExtendedStat stat = this->catalog->extendedStat(FOLDER);
     std::vector<Acl> acls = dmlite::deserializeAcl(stat.acl);
 
@@ -71,7 +71,7 @@ public:
 
   void testChmod()
   {
-    this->catalog->changeMode(FOLDER, 0555);
+    this->catalog->setMode(FOLDER, 0555);
     ExtendedStat stat = this->catalog->extendedStat(FOLDER);
     std::vector<Acl> acls = dmlite::deserializeAcl(stat.acl);
 

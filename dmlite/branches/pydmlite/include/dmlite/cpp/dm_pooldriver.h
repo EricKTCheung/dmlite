@@ -50,16 +50,10 @@ public:
 };
   
 /// Interface for a pool driver
-class PoolDriver {
+class PoolDriver: public virtual BaseInterface {
 public:
   /// Destructor
   virtual ~PoolDriver();
-  
-  /// Set the stack instance.
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
  
   /// Create a handler.
   virtual PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException) = 0;
