@@ -58,10 +58,19 @@ BOOST_PYTHON_MODULE(pydmlite)
 		;
 
 	class_<PluginIdCard>("PluginIdCard")
-		// still to implement
+		// class still to be implemented
 		;
 
 #include "pydm_auth.cpp"
+//#include "pydm_base.cpp"
 #include "pydm_catalog.cpp"
+#include "pydm_exceptions.cpp"
+#include "pydm_inode.cpp"
+#include "pydm_io.cpp"
+#include "pydm_pool.cpp"
+#include "pydm_pooldriver.cpp"
+
+#include "pydm_errno.cpp"
+#include "pydm_types.cpp"
 
 }
