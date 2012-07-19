@@ -1,6 +1,11 @@
 package dmlite;
 
 message S3ObjectMetadata {
-  optional int64 contentlength = 1;
-  optional string contenttype = 2;
+  optional int64 content_length = 1;
+  optional string content_type = 2;
+}
+
+message S3RequestResponse {
+  required int32 http_code = 1;
+  optional S3ObjectMetadata s3object_meta = 2;
 }

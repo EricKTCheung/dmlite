@@ -178,7 +178,7 @@ std::string S3Driver::s3TimeStringFromNow()
   return std::string(dateString);
 }
 
-S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std::string key)
+S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std::string key)
 {
   bool isReplicaComplete = false;
 
@@ -190,7 +190,8 @@ S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std:
   std::string signature;
   std::stringstream authorizationStream;
   std::stringstream path;
-  S3ObjectMetadata meta;
+  S3RequestResponse response;
+  S3ObjectMetadata *pntMeta = response.mutable_s3object_meta();
 
   session = ne_session_create("http", host.c_str(), 80);
 
@@ -206,21 +207,20 @@ S3ObjectMetadata S3Driver::headObject(std::string host, std::string bucket, std:
   ne_add_request_header(request, "Authorization", authorizationStream.str().c_str());
 
   if (ne_request_dispatch(request) == NE_OK) {
-    printf("Response status code was %d\n", ne_get_status(request)->code);
+    response.set_http_code(ne_get_status(request)->code);
     const char *clength = ne_get_response_header(request, "Content-Length");
     if (clength) {
-      meta.set_contentlength(atoi(clength));
+      pntMeta->set_content_length(atoi(clength));
       printf("/foo.txt has length %s\n", clength);
     }
   } else {
     throw DmException(DM_UNKNOWN_ERROR, std::string(ne_get_error(session)));
   }
 
-
   ne_close_connection(session);
   ne_session_destroy(session);
 
-  return meta;
+  return response;
 }
 
 
