@@ -43,6 +43,8 @@ public:
   std::string s3TimeStringFromNow();
 
   S3RequestResponse headObject(std::string host, std::string bucket, std::string key);
+
+  S3Error getS3Error(ne_request *request);
   private:
 
   /// The Amazon Access ID.
