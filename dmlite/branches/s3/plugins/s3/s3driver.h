@@ -42,7 +42,7 @@ public:
 
   std::string s3TimeStringFromNow();
 
-  S3ObjectMetadata headObject(std::string host, std::string bucket, std::string key);
+  S3RequestResponse headObject(std::string host, std::string bucket, std::string key);
   private:
 
   /// The Amazon Access ID.

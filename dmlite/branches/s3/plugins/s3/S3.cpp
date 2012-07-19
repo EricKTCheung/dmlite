@@ -96,15 +96,20 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
 {
   // if PENDING, check the file on S3
   S3ObjectMetadata meta;
+  S3RequestResponse response;
   if (replica.status == 'P') {
-    meta = 
+    response = 
        this->driver_->s3connection_.headObject(this->driver_->host_,
                                                this->driver_->bucketName_,
                                                replica.rfn);
-
-    // if the response was successful (file copmlete), change the db entry
-    if (meta.has_contentlength()) {
-      this->stack->getCatalog()->replicaSetStatus(replica.rfn, '-');
+    if (response.http_code() == 200) {
+      meta = response.s3object_meta();
+      // if the response was successful (file complete), change the db entry
+      if (meta.has_content_length()) {
+        this->stack->getCatalog()->replicaSetStatus(replica.rfn, '-');
+      } else {
+        throw DmException(DM_NO_SUCH_REPLICA, std::string("The Replica is not yet completed or failed to complete or doesnt exist"));
+      }
     } else {
       throw DmException(DM_NO_SUCH_REPLICA, std::string("The Replica is not yet completed or failed to complete or doesnt exist"));
     }
