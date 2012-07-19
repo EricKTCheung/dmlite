@@ -6,10 +6,19 @@
 using namespace dmlite;
 
 /* Need to provide default constructors */
+BaseInterface::~BaseInterface()
+{
+  // Nothing
+}
+
+
+
 BaseFactory::~BaseFactory()
 {
   // Nothing
 }
+
+
 
 UserGroupDbFactory::~UserGroupDbFactory()
 {
@@ -115,6 +124,20 @@ IODriver::~IODriver()
 }
 
 /* Common and default methods */
+void BaseInterface::setStackInstance(BaseInterface* i, StackInstance* si) throw (DmException)
+{
+  i->setStackInstance(si);
+}
+
+
+
+void BaseInterface::setSecurityContext(BaseInterface* i, const SecurityContext* ctx) throw (DmException)
+{
+  i->setSecurityContext(ctx);
+}
+
+
+
 UserGroupDb* UserGroupDbFactory::createUserGroupDb(UserGroupDbFactory* f, PluginManager* pm) throw (DmException)
 {
   return f->createUserGroupDb(pm);

@@ -22,22 +22,10 @@ class StackInstance;
 
 /// Low-level interface. Based on i-nodes.
 /// @note Security checks NOT done on this level.
-class INode {
+class INode: public virtual BaseInterface {
 public:
   /// Destructor
   virtual ~INode();
-  
-  /// String ID of the inode implementation.
-  virtual std::string getImplId(void) throw() = 0;
-  
-  /// Set the StackInstance.
-  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
-  /// However, at construction time not all the stacks have been populated, so this will
-  /// be called once all are instantiated.
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Start a transaction
   virtual void begin(void) throw (DmException) = 0;
@@ -141,31 +129,31 @@ public:
   /// @param buf   A struct holding the new times.
   virtual void utime(ino_t inode, const struct utimbuf* buf) throw (DmException) = 0;
   
-  /// Change the mode of a file.
+  /// Set the mode of a file.
   /// @param inode The inode of the file.
   /// @param uid   The owner.
   /// @param gid   The group.
   /// @param mode  The new mode.
   /// @param acl   The new ACL.
-  virtual void changeMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const std::string& acl) throw (DmException) = 0;
+  virtual void setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const std::string& acl) throw (DmException) = 0;
   
-  /// Change the size of a file.
+  /// Set the size of a file.
   /// @param inode The inode of the file.
   /// @param size  The new size.
-  virtual void changeSize(ino_t inode, size_t size) throw (DmException) = 0;
+  virtual void setSize(ino_t inode, size_t size) throw (DmException) = 0;
   
-  /// Change the checksum of a file.
+  /// Set the checksum of a file.
   /// @param inode     The inode of the file.
   /// @param csumtype  The checksum type.
   /// @param csumvalue The checksum value.
-  virtual void changeChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
+  virtual void setChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
   
   /// Get the comment associated to a file.
   /// @param inode The inode of the file.
   /// @return The comment.
   virtual std::string getComment(ino_t inode) throw (DmException) = 0;
   
-  /// Change the comment associated to a file.
+  /// Set the comment associated to a file.
   /// @param inode   The inode of the file.
   /// @param comment The new comment.
   virtual void setComment(ino_t inode, const std::string& comment) throw (DmException) = 0;

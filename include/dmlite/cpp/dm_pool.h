@@ -29,37 +29,39 @@ public:
 class StackInstance;
 
 /// Interface for pool types.
-class PoolManager {
+class PoolManager: public virtual BaseInterface {
 public:
+  enum PoolAvailability { kAny, kNone, kForRead, kForWrite, kForBoth};
+  
   /// Destructor.
   virtual ~PoolManager();
-
-  /// String ID of the pool implementation.
-  virtual std::string getImplId(void) throw() = 0;
-
-  /// Set the StackInstance.
-  /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
-  /// However, at construction time not all the stacks have been populated, so this will
-  /// be called once all are instantiated.
-  virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
-  
-  /// Set the security context.
-  virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
   
   /// Get metadata corresponding to a pool type and name
   /// @note To be freed by the caller.
   virtual PoolMetadata* getPoolMetadata(const std::string& poolName) throw (DmException) = 0;
 
   /// Get the list of pools.
-  /// @return A set with all the pools.
-  virtual std::vector<Pool> getPools(void) throw (DmException) = 0;
+  /// @param availability Filter by availability.
+  virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException) = 0;
   
   /// Get a specific pool.
   virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
   
-  /// Get only the available pools
-  /// @param write If true, it will be only the pools available for writting.
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException) = 0;
+  /// Get a location for a logical name.
+  /// @param path     The path to get.
+  virtual Location whereToRead(const std::string& path) throw (DmException) = 0;
+  
+  /// Start the PUT of a file.
+  /// @param path  The path of the file to create.
+  /// @return      The physical location where to write.
+  virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
+
+  /// Finish a PUT
+  /// @param host   The host where the replica is hosted.
+  /// @param rfn    The replica file name.
+  /// @param params The extra parameters returned by dm::Catalog::put
+  virtual void doneWriting(const std::string& host, const std::string& rfn,
+                           const std::map<std::string, std::string>& params) throw (DmException) = 0;
 };
 
 

@@ -105,32 +105,6 @@ int dm_getreplicas(dm_context* context, const char* path, int *nReplicas,
 int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* fileReplicas);
 
 /**
- * Get a single replica (synchronous).
- * @param context The DM context.
- * @param path    The logical file name.
- * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
- * @return        0 on success, error code otherwise.
- */
-int dm_get(dm_context* context, const char* path, struct location** loc);
-
-/**
- * Get the location of a replica.
- * @param context The DM context.
- * @param replica The replica to translate.
- * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
- * @return        0 on success, error code otherwise.
- */
-int dm_getlocation(dm_context* context, const FileReplica* replica, struct location** loc);
-
-/**
- * Free a location struct.
- * @param context The DM context.
- * @param loc     The struct to free.
- * @return        0 on success, error code otherwise.
- */
-int dm_freelocation(dm_context* context, struct location* loc);
-
-/**
  * Remove a file.
  * @param context The DM context.
  * @param path    The logical file name.
@@ -147,26 +121,6 @@ int dm_unlink(dm_context* context, const char* path);
  * @return        0 on success, error code otherwise.
  */
 int dm_create(dm_context* context, const char* path, mode_t mode);
-
-/**
- * Put a file (synchronous).
- * @param context The DM context.
- * @param path    The logical file name to put.
- * @param loc     The pointer will be set to a struct location. Call dm_freelocation to free.
- * @return        0 on success, error code otherwise.
- */
-int dm_put(dm_context* context, const char* path, struct location** loc);
-
-/**
- * Finish a PUT request.
- * @param context The DM context.
- * @param host    The host where the replica is.
- * @param rfn     The replica file name.
- * @param nextras The number of extra parameters returned by put.
- * @param extras  The extra parameters returned by put.
- * @return        0 on success, error code otherwise.
- */
-int dm_putdone(dm_context* context, const char*host, const char* rfn, unsigned nextras, struct keyvalue* extras);
 
 /**
  * Change the mode of a file or directory.

@@ -32,13 +32,7 @@ public:
 
   virtual void addReplica   (const FileReplica&) throw (DmException);
   virtual void deleteReplica(const FileReplica&) throw (DmException);
-
   virtual std::vector<FileReplica> getReplicas(const std::string&) throw (DmException);
-  Location get(const std::string&) throw (DmException);
-  
-  Location put(const std::string& path) throw (DmException);
-  void     putDone(const std::string& fn, const std::string& rfn,
-                   const std::map<std::string, std::string>& params) throw (DmException);
 
   virtual void symlink(const std::string&, const std::string&) throw (DmException);
   virtual void unlink (const std::string&)                     throw (DmException);
@@ -46,11 +40,11 @@ public:
   virtual void create(const std::string&, mode_t) throw (DmException);
 
   virtual mode_t umask          (mode_t)                           throw ();
-  virtual void   changeMode     (const std::string&, mode_t)       throw (DmException);
-  virtual void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
+  virtual void   setMode     (const std::string&, mode_t)       throw (DmException);
+  virtual void   setOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
-  virtual void changeSize    (const std::string&, size_t) throw (DmException);
-  virtual void changeChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
+  virtual void setSize    (const std::string&, size_t) throw (DmException);
+  virtual void setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
 
   virtual void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 

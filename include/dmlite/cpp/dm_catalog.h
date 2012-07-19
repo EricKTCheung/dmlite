@@ -21,13 +21,10 @@ class StackInstance;
 class PluginManager;
 
 /// Interface for Catalog (Namespaces)
-class Catalog {
+class Catalog: public virtual BaseInterface {
 public: 
   /// Destructor.
   virtual ~Catalog();
-
-  /// String ID of the catalog implementation.
-  virtual std::string getImplId(void) throw() = 0;
 
   /// Set the StackInstance.
   /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
@@ -65,22 +62,6 @@ public:
   /// @param path The file for which replicas will be retrieved.
   virtual std::vector<FileReplica> getReplicas(const std::string& path) throw (DmException) = 0;
 
-  /// Get a location for a logical name.
-  /// @param path     The path to get.
-  virtual Location get(const std::string& path) throw (DmException) = 0;
-  
-  /// Start the PUT of a file.
-  /// @param path  The path of the file to create.
-  /// @return      The physical location where to write.
-  virtual Location put(const std::string& path) throw (DmException) = 0;
-
-  /// Finish a PUT
-  /// @param host   The host where the replica is hosted.
-  /// @param rfn    The replica file name.
-  /// @param params The extra parameters returned by dm::Catalog::put
-  virtual void putDone(const std::string& host, const std::string& rfn,
-                       const std::map<std::string, std::string>& params) throw (DmException) = 0;
-
   /// Creates a new symlink.
   /// @param oldpath The existing path.
   /// @param newpath The new access path.
@@ -100,34 +81,34 @@ public:
   /// @return     The value of the previous mask.
   virtual mode_t umask(mode_t mask) throw () = 0;
 
-  /// Change the mode of a file.
-  /// @param path The file to change.
+  /// Set the mode of a file.
+  /// @param path The file to modify.
   /// @param mode The new mode as an integer (i.e. 0755)
-  virtual void changeMode(const std::string& path, mode_t mode) throw (DmException) = 0;
+  virtual void setMode(const std::string& path, mode_t mode) throw (DmException) = 0;
 
-  /// Change the owner of a file.
-  /// @param path   The file to change.
+  /// Set the owner of a file.
+  /// @param path   The file to modify.
   /// @param newUid The uid of the new owneer.
   /// @param newGid The gid of the new group.
-  virtual void changeOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException) = 0;
+  virtual void setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException) = 0;
   
-  /// Change the size of a file.
-  /// @param path    The file to change.
+  /// Set the size of a file.
+  /// @param path    The file to modify.
   /// @param newSize The new file size.
-  virtual void changeSize(const std::string& path, size_t newSize) throw (DmException) = 0;
+  virtual void setSize(const std::string& path, size_t newSize) throw (DmException) = 0;
   
-  /// Change the checksum of a file.
-  /// @param path      The file to change.
+  /// Set the checksum of a file.
+  /// @param path      The file to modify.
   /// @param csumtype  The checksum type (CS, AD or MD).
   /// @param csumvalue The checksum value.
-  virtual void changeChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
+  virtual void setChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
 
-  /// Change the ACLs
-  /// @param path The file to change.
+  /// Set the ACLs
+  /// @param path The file to modify.
   /// @param acls The ACL's.
   virtual void setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException) = 0;
 
-  /// Change access and/or modification time.
+  /// Set access and/or modification time.
   /// @param path The file path.
   /// @param buf  A struct holding the new times.
   virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) = 0;

@@ -13,15 +13,20 @@ class DummyPoolManager: public PoolManager {
 public:
   virtual ~DummyPoolManager();
 
+  virtual void setStackInstance(StackInstance*) throw (DmException);
   virtual void setSecurityContext(const SecurityContext*) throw (DmException);
   
   virtual PoolMetadata* getPoolMetadata(const std::string&) throw (DmException);
 
-  virtual std::vector<Pool> getPools(void) throw (DmException);
+  virtual std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
   
   virtual Pool getPool(const std::string&) throw (DmException);
   
-  virtual std::vector<Pool> getAvailablePools(bool write = true) throw (DmException);
+  
+  virtual Location whereToRead (const std::string& path) throw (DmException);
+  virtual Location whereToWrite(const std::string& path) throw (DmException);
+  virtual void     doneWriting (const std::string& host, const std::string& rfn,
+                                const std::map<std::string, std::string>& params) throw (DmException);
 
 protected:
   PoolManager* decorated_;
