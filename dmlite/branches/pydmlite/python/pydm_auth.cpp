@@ -20,7 +20,24 @@
 
 	class_<SecurityContext>("SecurityContext", init<>())
 		.def(init<const SecurityCredentials&, const UserInfo&, const std::vector<GroupInfo>&>())
-//		.def("getUser", static_cast< const UserInfo&(SecurityContext::*)(void) > (&SecurityContext::getUser))
+
+		.def("getUser", static_cast< const UserInfo&(SecurityContext::*)(void) const > (&SecurityContext::getUser), return_internal_reference<>())
+		.def("getGroup", static_cast< const GroupInfo&(SecurityContext::*)(unsigned int) const > (&SecurityContext::getGroup), return_internal_reference<>())
+
+		.def("getUser", static_cast< UserInfo&(SecurityContext::*)(void) > (&SecurityContext::getUser), return_internal_reference<>())
+		.def("getGroup", static_cast< GroupInfo&(SecurityContext::*)(unsigned int) > (&SecurityContext::getGroup), return_internal_reference<>())
+
+		.def("resizeGroup", &SecurityContext::resizeGroup)
+		.def("getCredentials", &SecurityContext::getCredentials, return_internal_reference<>())
+		.def("setCredentials", &SecurityContext::setCredentials)
+
+		.def("hasGroup", &SecurityContext::hasGroup)
 		;
 
-
+	class_<UserGroupDb, boost::noncopyable>("UserGroupDb", no_init)
+		// pure virtual class still to be implemented
+		;
+		
+	class_<UserGroupDbFactory, boost::noncopyable>("UserGroupDbFactory", no_init)
+		// pure virtual class still to be implemented
+		;

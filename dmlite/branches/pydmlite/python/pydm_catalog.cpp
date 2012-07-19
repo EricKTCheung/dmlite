@@ -12,7 +12,7 @@
 		//.def("f", boost::python::pure_virtual(&Base1::f));
 		// (with additional wrapper class)
 
-		.def("getImplId", &Catalog::getImplId)
+		//.def("getImplId", &Catalog::getImplId) // function removed
 		.def("setStackInstance", &Catalog::setStackInstance)
 		.def("setSecurityContext", &Catalog::setSecurityContext)
 		.def("changeDir", &Catalog::changeDir)
@@ -22,20 +22,20 @@
 		.def("addReplica", &Catalog::addReplica)
 		.def("deleteReplica", &Catalog::deleteReplica)
 		.def("getReplicas", &Catalog::getReplicas)
-		.def("get", &Catalog::get)
 
-		.def("put", static_cast< Location(Catalog::*)(const std::string&) > (&Catalog::put))
+		//.def("get", &Catalog::get)
+		//.def("put", static_cast< Location(Catalog::*)(const std::string&) > (&Catalog::put)) // function removed
 		//.def("put", static_cast< Location(Catalog::*)(const std::string&, const std::string&) > (&Catalog::put)) // function removed
+		//.def("putDone", &Catalog::putDone)
 
-		.def("putDone", &Catalog::putDone)
 		.def("symlink", &Catalog::symlink)
 		.def("unlink", &Catalog::unlink)
 		.def("create", &Catalog::create)
 		.def("umask", &Catalog::umask)
-		.def("changeMode", &Catalog::changeMode)
-		.def("changeOwner", &Catalog::changeOwner)
-		.def("changeSize", &Catalog::changeSize)
-		.def("changeChecksum", &Catalog::changeChecksum)
+		.def("setMode", &Catalog::setMode)
+		.def("setOwner", &Catalog::setOwner)
+		.def("setSize", &Catalog::setSize)
+		.def("setChecksum", &Catalog::setChecksum)
 		.def("setAcl", &Catalog::setAcl)
 		.def("utime", &Catalog::utime)
 		.def("getComment", &Catalog::getComment)
@@ -56,12 +56,6 @@
 
 		.def("getReplica", &Catalog::getReplica)
 		.def("updateReplica", &Catalog::updateReplica)
-		
-		// the following functions were removed
-		//.def("replicaSetLifeTime", &Catalog::replicaSetLifeTime)
-		//.def("replicaSetAccessTime", &Catalog::replicaSetAccessTime)
-		//.def("replicaSetType", &Catalog::replicaSetType)
-		//.def("replicaSetStatus", &Catalog::replicaSetStatus)
 		;
 
 	class_<CatalogFactory, boost::noncopyable>("CatalogFactory", no_init)
