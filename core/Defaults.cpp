@@ -6,6 +6,10 @@
 using namespace dmlite;
 
 /* Need to provide default constructors */
+BaseFactory::~BaseFactory()
+{
+  // Nothing
+}
 
 UserGroupDbFactory::~UserGroupDbFactory()
 {

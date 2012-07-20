@@ -2,8 +2,8 @@
 /// @brief    Implementation of a Catalog using other plugins, as INode.
 /// @detailed Intended to ease the development of database backends.
 /// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
-#ifndef CATALOG_H
-#define	CATALOG_H
+#ifndef BUILTIN_CATALOG_H
+#define	BUILTIN_CATALOG_H
 
 #include <dmlite/cpp/dm_catalog.h>
 #include <dmlite/cpp/dm_inode.h>
@@ -65,8 +65,9 @@ public:
   void changeMode     (const std::string& path, mode_t mode) throw (DmException);
   void changeOwner    (const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink = true) throw (DmException);
   
-  void changeSize(const std::string& path, size_t newSize) throw (DmException);
-
+  void changeSize    (const std::string& path, size_t newSize) throw (DmException);
+  void changeChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException);
+  
   void setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException);
 
   void utime(const std::string& path, const struct utimbuf* buf) throw (DmException);
@@ -135,4 +136,4 @@ private:
   
 };
 
-#endif	// CATALOG_H
+#endif	// BUILTIN_CATALOG_H

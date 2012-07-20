@@ -12,9 +12,11 @@ set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location o
 
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-  set (LIB_SUFFIX "")
+  set (LIB_SUFFIX ""
+  		CACHE STRING "library directory suffix value")
 else (CMAKE_SIZEOF_VOID_P EQUAL 4)
-  set (LIB_SUFFIX 64)
+  set (LIB_SUFFIX "64"
+		CACHE STRING "library directory suffix value")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 # Cmake module directory

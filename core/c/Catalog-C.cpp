@@ -294,6 +294,30 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 
 
 
+int dm_setfsize(dm_context* context, const char* path, uint64_t filesize)
+{
+  TRY(context, setfsize)
+  NOT_NULL(path);
+  context->stack->getCatalog()->changeSize(path, filesize);
+  CATCH(context, setfsize)
+}
+
+
+
+int dm_setfsizec(dm_context* context, const char* path, uint64_t filesize,
+                 const char* csumtype, const char* csumvalue)
+{
+  TRY(context, setfsizec)
+  NOT_NULL(path);
+  NOT_NULL(csumtype);
+  NOT_NULL(csumvalue);
+  context->stack->getCatalog()->changeSize(path, filesize);
+  context->stack->getCatalog()->changeChecksum(path, csumtype, csumvalue);
+  CATCH(context, setfsizec)
+}
+
+
+
 int dm_setacl(dm_context* context, const char* path, int nEntries, struct dm_acl* acl)
 {
   TRY(context, setacl)

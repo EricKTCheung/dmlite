@@ -43,7 +43,7 @@ public:
     try {
       CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, this->catalog->getWorkingDirI());
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       if (e.code() != DM_NOT_IMPLEMENTED)
         throw;
       CPPUNIT_NS::Message("Access by inode not implemented. Ignoring.");
@@ -59,7 +59,7 @@ public:
       this->catalog->removeDir(std::string(BASE_DIR) + "/" + FOLDER);
       CPPUNIT_FAIL("Should have failed");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_IS_CWD, e.code());
     }
   }

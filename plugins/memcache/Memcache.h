@@ -14,6 +14,8 @@
 #include <dmlite/cpp/utils/dm_security.h>
 #include <dmlite/cpp/utils/dm_urls.h>
 
+#include "MemcacheCatalog.pb.h"
+
 namespace dmlite {
 
 #define DEFAULT_MEMCACHED_EXPIRATION 60
@@ -26,10 +28,10 @@ namespace dmlite {
 #define DEL_DIRLIST true
 #define KEEP_DIRLIST false
 
-#define FETCH_COMBINED 30
+#define FETCH_COMBINED 800
 #define FETCH_COMBINED_MIN  1
-#define FETCH_COMBINED_MAX 50
-#define FETCH_COMBINED_MUL  2
+#define FETCH_COMBINED_MAX 100
+#define FETCH_COMBINED_MUL  4
 #define PROB_CACHE 1.0
 
 struct MemcacheDir {
@@ -45,6 +47,9 @@ struct MemcacheDir {
   std::list<std::string>   keys;
   size_t                   keysOrigSize;
   std::list<ExtendedStat>  xstats;
+  std::list<std::string>  vals;
+  std::list<ExtendedStat>::iterator itXstatsCurrent;
+  std::list<ExtendedStat>::iterator itXstatsEnd;
   int                      keysPntr; 
   time_t                   mtime;
 };
@@ -82,7 +87,7 @@ public:
   std::string getImplId(void) throw ();
 
   void setStackInstance(StackInstance* si) throw (DmException);
-  void setSecurityContext(const SecurityContext*) throw (DmException);
+  void setSecurityContext(const SecurityContext* ctx) throw (DmException);
 
 //  void        changeDir    (const std::string&) throw (DmException);
 
@@ -234,15 +239,6 @@ private:
                          time_t &mtime);
 
   /// Deserialize a list of keys.
-  /// This function returns the isComplete bit of the list.
-  /// It does not take blacklisted items into consideration.
-  /// @param serialList The serialized List as string.
-  /// @param keyList    The List to write the result into.
-  /// @return           The isComplete value.
-  int deserializeList(std::string& serialList,
-                                      std::vector<std::string> &keyList);
-
-  /// Deserialize a list of keys.
   /// This function takes blacklisted item into account
   /// and subtracts those item from the output list.
   /// @param serialList The serialized List as string.
@@ -309,15 +305,25 @@ private:
 	/// @return      The value from memcached.
   const std::string safeGetValFromMemcachedVersionedKey(const std::string key);
   
+	/// Return the value to a given versioned key from memcached.
+  /// Doesn't throw MemcacheExceptions.
+	/// @param key   The memcached key as string.
+	/// @return      The value from memcached.
   const std::string getDListValFromMemcachedKey(const std::string key) throw (MemcacheException);
 
   const std::string safeGetDListValFromMemcachedKey(const std::string key) throw (MemcacheException);
+
   /// Return a list from memcached.
   /// This function returns a vector with the elements still
   /// serialized in it.
   /// @param       listKey.
   std::vector<std::string> getListFromMemcachedKey(const std::string& listKey) throw (MemcacheException);
 
+  /// Return a list from memcached.
+  /// This function returns a vector with the elements still
+  /// serialized in it.
+  /// Doesn't throw MemcacheExceptions.
+  /// @param       listKey.
   std::vector<std::string> safeGetListFromMemcachedKey(const std::string& listKey) throw (MemcacheException);
 
   /// Add an item to a list on memcached.
@@ -332,6 +338,17 @@ private:
   /// @param isComplete  Marks if the list is complete.
   void addToListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
 
+  /// Add an item to a list on memcached.
+  /// This function uses memcached_append() to add the element,
+  /// so it does not have to download the list from
+  /// memcached.
+  /// This function allows deletions from the list by
+  /// using the isWhite value to append a blacklist item.
+  /// Doesn't throw MemcacheExceptions.
+  /// @param listKey     The key of the list.
+  /// @param key         The key to add.  
+  /// @param isWhite     Marks the element a white- or blacklisted. 
+  /// @param isComplete  Marks if the list is complete.
   void safeAddToListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true);
 
   /// Add an item to a list with a distributed index on memcached.
@@ -346,6 +363,17 @@ private:
   /// @param isComplete  Marks if the list is complete.
   void addToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true) throw (DmException);
 
+  /// Add an item to a list with a distributed index on memcached.
+  /// This function uses memcached_append() to add the element,
+  /// so it does not have to download the list from
+  /// memcached.
+  /// This function allows deletions from the list by
+  /// using the isWhite value to append a blacklist item.
+  /// Doesn't throw MemcacheExceptions.
+  /// @param listKey     The key of the list.
+  /// @param key         The key to add.  
+  /// @param isWhite     Marks the element a white- or blacklisted. 
+  /// @param isComplete  Marks if the list is complete.
   void safeAddToDListFromMemcachedKey(const std::string& listKey, const std::string& key, const bool isWhite = true, const bool isComplete = true) throw (DmException);
 
   /// Add an item to a list with a distributed index on memcached.
@@ -368,6 +396,21 @@ private:
                                  const bool isComplete = true,
                                  int curSegment = 0) throw (DmException);
 
+  /// Add an item to a list with a distributed index on memcached.
+  /// This function uses memcached_append() to add the element,
+  /// so it does not have to download the list from memcached.
+  /// Element deletions are performed by
+  /// using the isWhite value to append a blacklist item.
+  /// This function does not retrieve the current segment, but needs it
+  /// as an argument. If a segment is full, a new one is created and
+  /// the entry inserted. The new current segment after appending is returned.
+  /// Doesn't throw MemcacheExceptions.
+  /// @param listKey     The key of the list.
+  /// @param key         The key to add.  
+  /// @param isWhite     Marks the element a white- or blacklisted. 
+  /// @param isComplete  Marks if the list is complete.
+  /// @param curSegment  The number of the current segment.
+  /// @return            The number of the new segment. 
   int safeAddToDListFromMemcachedKey(const std::string& listKey,
                                  const std::string& key, 
                                  const bool isWhite = true,
@@ -392,13 +435,6 @@ private:
                                  const bool isComplete = true,
                                  int curSegment = 0) throw (DmException);
 
-  int safeAddToDListFromMemcachedKeyListNoReply(
-                                 const std::string& listKey,
-                                 const std::vector<std::string>& keyList,
-                                 const bool isWhite = true,
-                                 const bool isComplete = true,
-                                 int curSegment = 0) throw (DmException);
-
   /// Remove an item from a list on memcached.
   /// This function removes an element by adding it to
   /// the list's blacklist. Like addToListFromMemcachedKey
@@ -407,6 +443,13 @@ private:
   /// @param key      The key to remove.
   void removeListItemFromMemcachedKey(const std::string& listKey, std::string& key);
 
+  /// Remove an item from a list on memcached.
+  /// This function removes an element by adding it to
+  /// the list's blacklist. Like addToListFromMemcachedKey
+  /// it uses memcached_append.
+  /// Doesn't throw MemcacheExceptions.
+  /// @param listKey  The key of the list.
+  /// @param key      The key to remove.
   void safeRemoveListItemFromMemcachedKey(const std::string& listKey, std::string& key);
 
   /// Fetch an ExtendedStat from memcached and store it in a Directory.
@@ -425,7 +468,7 @@ private:
   /// @param dirp         The MemcacheDir pointer.
   /// @param saveToMemc   The switch, if the value should be cached.
   /// @return             A pointer to the ExtendedStat.
-  ExtendedStat* fetchExtendedStatFromDelegate(MemcacheDir *dirp, const bool saveToMemc) 
+  ExtendedStat* fetchExtendedStatFromDelegate(MemcacheDir *dirp, bool saveToMemc) 
                             throw (DmException);
   /// Retrieve a list of values from a list of keys.
   /// The function uses memcached_mget to get several

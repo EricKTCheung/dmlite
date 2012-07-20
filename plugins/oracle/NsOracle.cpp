@@ -219,7 +219,7 @@ void INodeOracle::unlink(ino_t inode) throw (DmException)
     // And decrement nlink
     this->updateNlink(file.parent, -1);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     this->rollback();
     throw;
   }
@@ -656,6 +656,14 @@ void INodeOracle::changeSize(ino_t inode, size_t size) throw (DmException)
 
 
 
+void INodeOracle::changeChecksum(ino_t inode, const std::string& csumtype,
+                                 const std::string& csumvalue) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "changeChecksum not implemented in Oracle");
+}
+
+
+
 std::string INodeOracle::getComment(ino_t inode) throw (DmException)
 {
   occi::Statement* stmt = getPreparedStatement(this->conn_, STMT_GET_COMMENT);
@@ -794,11 +802,6 @@ ExtendedStat* INodeOracle::readDirx(IDirectory* dir) throw (DmException)
             dirp->current.name,
             sizeof(dirp->ds.d_name));
 
-    // Touch
-    struct utimbuf tim;
-    tim.actime  = time(NULL);
-    tim.modtime = dirp->current.stat.st_mtime;
-    this->utime(dirp->dirId, &tim);
 
     return &dirp->current;
   }

@@ -4,7 +4,7 @@
 #include <cppunit/TestFixture.h>
 #include <dmlite/cpp/dmlite.h>
 
-#define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException e) { if (e.code() != DM_NO_SUCH_FILE) throw; }
+#define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException& e) { if (e.code() != DM_NO_SUCH_FILE) throw; }
 
 
 class TestBase: public CppUnit::TestFixture {

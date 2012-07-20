@@ -184,6 +184,8 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   Catalog* nested = 0x00;
 
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
   if (this->nestedFactory_ != 0x00)
     nested = CatalogFactory::createCatalog(this->nestedFactory_, pm);
 
@@ -203,7 +205,7 @@ static void registerPluginMemcache(PluginManager* pm) throw(DmException)
   try {
     pm->registerFactory(new MemcacheFactory(pm->getCatalogFactory()));
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_FACTORY)
       throw DmException(DM_NO_FACTORY, std::string("Memcache can not be loaded first"));
     throw;

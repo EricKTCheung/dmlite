@@ -73,7 +73,7 @@ public:
 };
 
 /// Plug-ins must implement a concrete factory to be instantiated.
-class IOFactory {
+class IOFactory: public virtual BaseFactory {
 public:
   /// Virtual destructor
   virtual ~IOFactory();

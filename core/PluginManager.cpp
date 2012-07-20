@@ -3,20 +3,26 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dlfcn.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/dm_basefactory.h>
 #include <fstream>
 #include <sstream>
+#include <set>
 #include "builtin/Catalog.h"
+#include "builtin/UserGroupDb.h"
 
 using namespace dmlite;
 
-/// Helper to free factories
+/// Helper to populate unique pointer set
 template <class T>
-static void freeFactories(std::list<T*>& l)
+static void populateUnique(std::set<BaseFactory*>& unique,
+                           const std::list<T*>& l)
 {
-  typename std::list<T*>::iterator i;
+  typename std::list<T*>::const_iterator i;
   
-  for (i = l.begin(); i != l.end(); ++i)
-    delete *i;
+  for (i = l.begin(); i != l.end(); ++i) {
+    if (unique.count(static_cast<BaseFactory*>(*i)) == 0)
+      unique.insert(static_cast<BaseFactory*>(*i));
+  }
 }
 
 
@@ -33,7 +39,7 @@ static bool configureFactories(std::list<T*>& l,
       (*i)->configure(key, value);
       recognized = true;
     }
-    catch (DmException e) {
+    catch (DmException& e) {
       if (e.code() != DM_UNKNOWN_OPTION)
         throw;
     }
@@ -50,19 +56,27 @@ PluginManager::PluginManager() throw()
 {
   // Register built-in plugins
   this->registerFactory(new BuiltInCatalogFactory());
+  this->registerFactory(new BuiltInUserGroupDbFactory());
 }
 
 
 
 PluginManager::~PluginManager() throw()
 {
-  // Delete the instantiated factories
-  freeFactories<UserGroupDbFactory>(this->usergroup_plugins_);
-  freeFactories<INodeFactory>      (this->inode_plugins_);
-  freeFactories<CatalogFactory>    (this->catalog_plugins_);
-  freeFactories<PoolManagerFactory>(this->pool_plugins_);
-  freeFactories<IOFactory>         (this->io_plugins_);
-  freeFactories<PoolDriverFactory> (this->pool_driver_plugins_);
+  // Set with unique pointers
+  std::set<BaseFactory*> uniqueFactories;
+  
+  populateUnique(uniqueFactories, this->usergroup_plugins_);
+  populateUnique(uniqueFactories, this->inode_plugins_);
+  populateUnique(uniqueFactories, this->catalog_plugins_);
+  populateUnique(uniqueFactories, this->pool_plugins_);
+  populateUnique(uniqueFactories, this->io_plugins_);
+  populateUnique(uniqueFactories, this->pool_driver_plugins_);
+
+  // Free
+  for (std::set<BaseFactory*>::iterator i = uniqueFactories.begin();
+       i != uniqueFactories.end(); ++i)
+    delete *i;
 
   // dlclose
   std::list<void*>::iterator j;
@@ -105,12 +119,12 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
 {
   bool recognized = false;
   
-  recognized |= configureFactories<UserGroupDbFactory>(this->usergroup_plugins_, key, value);
-  recognized |= configureFactories<INodeFactory>      (this->inode_plugins_, key, value);
-  recognized |= configureFactories<CatalogFactory>    (this->catalog_plugins_, key, value);
-  recognized |= configureFactories<PoolManagerFactory>(this->pool_plugins_, key, value);
-  recognized |= configureFactories<PoolDriverFactory> (this->pool_driver_plugins_, key, value);
-  recognized |= configureFactories<IOFactory>         (this->io_plugins_, key, value);
+  recognized |= configureFactories(this->usergroup_plugins_, key, value);
+  recognized |= configureFactories(this->inode_plugins_, key, value);
+  recognized |= configureFactories(this->catalog_plugins_, key, value);
+  recognized |= configureFactories(this->pool_plugins_, key, value);
+  recognized |= configureFactories(this->pool_driver_plugins_, key, value);
+  recognized |= configureFactories(this->io_plugins_, key, value);
 
   if (!recognized)
     throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
@@ -165,7 +179,7 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           try {
             this->configure(parameter, value);
           }
-          catch (DmException e) {
+          catch (DmException& e) {
             // Error code is good, but error message can be better here.
             std::ostringstream out;
             out << "Invalid configuration parameter " << parameter <<

@@ -22,6 +22,8 @@ int Cthread_init(void);
 int _Cthread_addcid(char *, int, char *, int, pthread_t, unsigned, void *(*)(void *), int);
 }
 
+
+
 NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3)
 {
   Cthread_init();
@@ -143,7 +145,8 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 
 PoolDriver* DpmAdapterFactory::createPoolDriver() throw (DmException)
 {
-  return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_);
+  return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_,
+                                  retryLimit_);
 }
 
 
@@ -157,10 +160,12 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 {
-  pm->registerFactory(static_cast<CatalogFactory*>(new DpmAdapterFactory()));
-  pm->registerFactory(static_cast<UserGroupDbFactory*>(new NsAdapterFactory()));
-  pm->registerFactory(static_cast<PoolManagerFactory*>(new DpmAdapterFactory()));
-  pm->registerFactory(static_cast<PoolDriverFactory*>(new DpmAdapterFactory()));
+  DpmAdapterFactory* dpmFactory = new DpmAdapterFactory();
+  
+  pm->registerFactory(static_cast<CatalogFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<UserGroupDbFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolManagerFactory*>(dpmFactory));
+  pm->registerFactory(static_cast<PoolDriverFactory*>(dpmFactory));
 }
 
 
