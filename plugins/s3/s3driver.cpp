@@ -218,7 +218,7 @@ S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std
   ne_add_request_header(request, "Date", headerMap["Date"].c_str());
   ne_add_request_header(request, "Authorization", authorizationStream.str().c_str());
 
-  if (ne_request_dispatch(request) == NE_OK) {
+  if (ne_begin_request(request) == NE_OK) {
     const ne_status *requestStatus = ne_get_status(request);
     response.set_http_code(requestStatus->code);
     response.set_http_reason(requestStatus->reason_phrase);
@@ -226,8 +226,11 @@ S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std
     if (clength) {
       pntMeta->set_content_length(atoi(clength));
     }
-    if (requestStatus->code != 200) {
+    if (!ne_accept_2xx(NULL, request, requestStatus)) {
       getS3Error(request);
+    }
+    if (ne_end_request != NE_OK) {
+      throw DmException(DM_UNKNOWN_ERROR, std::string(ne_get_error(session)));  
     }
   } else {
     throw DmException(DM_UNKNOWN_ERROR, std::string(ne_get_error(session)));
