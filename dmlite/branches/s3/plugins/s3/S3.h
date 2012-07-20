@@ -62,6 +62,14 @@ public:
   uint64_t getFreeSpace(void) throw (DmException);
   bool isAvailable(bool) throw (DmException);
   
+  /// Return the location of the replica.
+  /// This function returns the replica location to which the client can 
+  /// connect directly. The location is a signed link to S3 valid for a given time.
+  /// For compatibility with dmlite 0.3, this function performs a check, if the
+  /// replica has been successfully uploaded. In later version, this functionality 
+  /// will be called from outside and can be removed here.
+  /// @param replica      The file replica.
+  /// @return             The file location.
   Location getLocation (const FileReplica&) throw (DmException);
   void remove          (const FileReplica&) throw (DmException);
   
@@ -74,6 +82,14 @@ private:
   std::string    poolName; 
   StackInstance* stack;  
 
+  /// Check, if the replica exists on S3.
+  /// If the replica has status 'Pending', it checks if the upload has
+  /// been completed successfully.
+  /// If it is marked as deleted, it return false, if '-' (active), it
+  /// return true.
+  /// Any other status returns false.
+  /// @param replica      The file replica.
+  /// @return             Whether the file is available or not.
   bool replicaAvailable(const FileReplica&) throw (DmException);
 };
 
