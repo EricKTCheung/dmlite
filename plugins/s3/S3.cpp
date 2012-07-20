@@ -93,7 +93,12 @@ bool S3PoolHandler::replicaAvailable(const FileReplica& replica) throw (DmExcept
   // if PENDING, check the file on S3
   S3ObjectMetadata meta;
   S3RequestResponse response;
-  if (replica.status == 'P') {
+
+  switch (replica.status) {
+  case '-':
+    isAvailable = true;
+    break;
+  case 'P':
     response = 
        this->driver_->s3connection_.headObject(this->driver_->host_,
                                                this->driver_->bucketName_,
@@ -107,6 +112,10 @@ bool S3PoolHandler::replicaAvailable(const FileReplica& replica) throw (DmExcept
         isAvailable = true;
       }
     }
+    break;
+  case 'D':
+    isAvailable = false;
+    break;
   }
 
   return isAvailable;
