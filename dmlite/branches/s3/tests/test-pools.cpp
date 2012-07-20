@@ -30,8 +30,8 @@ int main(int argn, char **argv)
     // Ask for the pools
     pools = poolManager->getPools();
   }
-  catch (dmlite::DmException exc) {
-    std::cerr << exc.what() << std::endl;
+  catch (dmlite::DmException& e) {
+    std::cerr << e.what() << std::endl;
     return -1;
   }
 
@@ -47,7 +47,7 @@ int main(int argn, char **argv)
       
       delete handler;
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       if (e.code() != DM_UNKNOWN_POOL_TYPE)
         throw;
       std::cout << "Pool type:   " << pools[i].pool_type << std::endl

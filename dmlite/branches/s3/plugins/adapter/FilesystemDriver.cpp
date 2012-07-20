@@ -9,16 +9,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "FilesystemDriver.h"
 #include "Adapter.h"
+#include "DpmAdapter.h"
+#include "FilesystemDriver.h"
 
 
 using namespace dmlite;
 
 
 
-FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp, unsigned life):
-    secCtx_(0x00), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life)
+FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp,
+                                           unsigned life, unsigned retryLimit):
+    secCtx_(0x00), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life),
+    retryLimit_(retryLimit)
 {
   // Nothing
 }
@@ -34,7 +37,7 @@ FilesystemPoolDriver::~FilesystemPoolDriver()
 
 void FilesystemPoolDriver::setStackInstance(StackInstance* si) throw (DmException)
 {
-  // Nothing
+  this->si_ = si;
 }
 
 
@@ -210,6 +213,7 @@ Location FilesystemPoolHandler::putLocation(const std::string& sfn) throw (DmExc
   struct dpm_putfilestatus *statuses = 0x00;
   int                       nReplies, wait;
   char                      token[CA_MAXDPMTOKENLEN + 1];
+  const char*               spaceToken;
 
   reqfile.to_surl        = (char*)sfn.c_str();
   reqfile.f_type         = 'P';
@@ -219,6 +223,26 @@ Location FilesystemPoolHandler::putLocation(const std::string& sfn) throw (DmExc
   reqfile.ret_policy     = '\0';
   reqfile.ac_latency     = '\0';
   reqfile.s_token[0]     = '\0';
+  
+  try {
+    spaceToken = this->driver_->si_->get("SpaceToken").array.cstr;
+  }
+  catch (...) {
+    spaceToken = 0x00;
+  }
+
+  if (spaceToken != 0x00 && spaceToken[0] != '\0') {
+    char **space_ids;
+
+    RETRY(dpm_getspacetoken(spaceToken, &nReplies, &space_ids),
+          this->driver_->retryLimit_);
+    
+    strncpy(reqfile.s_token, space_ids[0], sizeof(reqfile.s_token));
+
+    for(int i = 0; i < nReplies; ++i)
+      free(space_ids[i]);
+    free(space_ids);
+  }
 
   try {
     // 4 on overwrite allows to add additional replicas

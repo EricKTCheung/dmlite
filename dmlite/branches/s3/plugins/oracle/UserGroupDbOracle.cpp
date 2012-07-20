@@ -8,8 +8,9 @@ using namespace oracle;
 
 
 UserGroupDbOracle::UserGroupDbOracle(oracle::occi::ConnectionPool* pool,
-                                     oracle::occi::Connection* conn) throw(DmException):
-  pool_(pool), conn_(conn)
+                                     oracle::occi::Connection* conn,
+                                     const std::string& mapfile) throw(DmException):
+  pool_(pool), conn_(conn), mapFile_(mapfile)
 {
   // Nothing
 }
@@ -289,7 +290,7 @@ void UserGroupDbOracle::getIdMap(const std::string& userName,
   try {
     *user = this->getUser(userName);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_SUCH_USER)
       *user = this->newUser(userName, "");
     else
@@ -298,11 +299,11 @@ void UserGroupDbOracle::getIdMap(const std::string& userName,
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
-    vo = voFromDn("/etc/lcgdm-mapfile", userName);
+    vo = voFromDn(this->mapFile_, userName);
     try {
       group = this->getGroup(vo);
     }
-    catch (DmException e) {
+    catch (DmException& e) {
       if (e.code() == DM_NO_SUCH_GROUP)
         group = this->newGroup(vo);
       else
@@ -318,7 +319,7 @@ void UserGroupDbOracle::getIdMap(const std::string& userName,
       try {
         group = this->getGroup(vo);
       }
-      catch (DmException e) {
+      catch (DmException& e) {
         if (e.code() == DM_NO_SUCH_GROUP)
           group = this->newGroup(vo);
         else

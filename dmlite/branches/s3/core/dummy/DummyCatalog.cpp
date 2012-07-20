@@ -185,6 +185,15 @@ void DummyCatalog::changeSize(const std::string& path, size_t newSize) throw (Dm
 
 
 
+void DummyCatalog::changeChecksum(const std::string& path,
+                                  const std::string& csumtype,
+                                  const std::string& csumvalue) throw (DmException)
+{
+  DELEGATE(changeChecksum, path, csumtype, csumvalue);
+}
+
+
+
 void DummyCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
 {
   DELEGATE(setAcl, path, acls);

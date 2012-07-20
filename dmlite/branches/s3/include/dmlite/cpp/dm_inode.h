@@ -159,6 +159,12 @@ public:
   /// @param size  The new size.
   virtual void changeSize(ino_t inode, size_t size) throw (DmException) = 0;
   
+  /// Change the checksum of a file.
+  /// @param inode     The inode of the file.
+  /// @param csumtype  The checksum type.
+  /// @param csumvalue The checksum value.
+  virtual void changeChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
+  
   /// Get the comment associated to a file.
   /// @param inode The inode of the file.
   /// @return The comment.
@@ -199,7 +205,7 @@ public:
 };
 
 /// INodeFactory
-class INodeFactory {
+class INodeFactory: public virtual BaseFactory {
 public:
   /// Destructor
   virtual ~INodeFactory();

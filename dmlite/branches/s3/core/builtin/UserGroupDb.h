@@ -1,28 +1,22 @@
-/// @file    plugins/oracle/UserGroupDbOracle.h
-/// @brief   Oracle UserGroupDB Implementation.
-/// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef USERGROUPDBORACLEL_H
-#define	USERGROUPDBORACLE_H
+/// @file     core/builtin/UserGroupDb.h
+/// @brief    User and group mapping using the system's ones.
+/// @detailed This will be used by default when no other UserGroupDb
+///           implementeation is loaded.
+/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+#ifndef BUILTIN_AUTH_H
+#define	BUILTIN_AUTH_H
 
 #include <dmlite/cpp/dm_auth.h>
-#include <occi.h>
 
 namespace dmlite {
   
-class UserGroupDbOracle: public UserGroupDb {
+class BuiltInUserGroupDb: public UserGroupDb {
 public:
-  /// Constructor.
-  UserGroupDbOracle(oracle::occi::ConnectionPool* pool,
-                    oracle::occi::Connection* conn,
-                    const std::string& mapfile) throw(DmException);
-  
-  /// Destructor.
-  ~UserGroupDbOracle() throw(DmException);
-  
-  // Override
+  BuiltInUserGroupDb();
+  ~BuiltInUserGroupDb();
   
   std::string getImplId(void) throw();
-
+  
   SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
   
   GroupInfo newGroup(const std::string& gname) throw (DmException);
@@ -32,25 +26,24 @@ public:
   UserInfo newUser(const std::string& uname, const std::string& ca) throw (DmException);
   UserInfo getUser(uid_t uid) throw (DmException);
   UserInfo getUser(const std::string& userName) throw (DmException);
-
+  UserInfo getUser(const std::string& userName, gid_t* group) throw (DmException);
+  
   void getIdMap(const std::string& userName,
                 const std::vector<std::string>& groupNames,
                 UserInfo* user,
                 std::vector<GroupInfo>* groups) throw (DmException);
-  
-protected:
-  /// The Oracle connection pool.
-  oracle::occi::ConnectionPool* pool_;
+};
 
-  /// The Oracle connection
-  oracle::occi::Connection* conn_;
+class BuiltInUserGroupDbFactory: public UserGroupDbFactory {
+public:
+  BuiltInUserGroupDbFactory();
+  ~BuiltInUserGroupDbFactory();
   
-  /// Mapfile
-  std::string mapFile_;
+  void configure(const std::string& key, const std::string& value) throw (DmException);
 
-private:
+  UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException);
 };
   
 };
 
-#endif	// USERGROUPDBMYSQL_H
+#endif	// BUILTIN_AUTH_H

@@ -10,7 +10,7 @@
 try {\
   handle->manager->method(__VA_ARGS__);\
 }\
-catch (dmlite::DmException e) {\
+catch (dmlite::DmException& e) {\
   handle->errorCode   = e.code();\
   handle->errorString = e.what();\
   return e.code();\
@@ -115,7 +115,7 @@ dm_context* dm_context_new(dm_manager* handle)
   try {
     ctx->stack = new dmlite::StackInstance(handle->manager);
   }
-  catch (dmlite::DmException e) {
+  catch (dmlite::DmException& e) {
     handle->errorCode   = e.code();
     handle->errorString = e.what();
     delete ctx;

@@ -23,10 +23,12 @@ struct DpmFileSystem {
   int  weight;                 ///< The associated weight.
 };
 
+class DpmMySqlFactory;
+
 /// Pool manager implementation.
 class MySqlPoolManager: public PoolManager {
 public:
-  MySqlPoolManager(PoolContainer<MYSQL*>* connPool, const std::string& dpmDb) throw (DmException);
+  MySqlPoolManager(DpmMySqlFactory* factory, const std::string& dpmDb) throw (DmException);
   ~MySqlPoolManager();
   
   std::string getImplId(void) throw ();
@@ -50,8 +52,8 @@ private:
   /// The MySQL connection
   MYSQL* conn_;
 
-  /// The connection pool.
-  PoolContainer<MYSQL*>* connectionPool_;
+  /// The corresponding factory.
+  DpmMySqlFactory* factory_;
   
   /// Security context
   const SecurityContext* secCtx_;

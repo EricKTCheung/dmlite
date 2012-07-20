@@ -5,22 +5,23 @@
 #include <dmlite/cpp/utils/dm_security.h>
 #include "UserGroupDbMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 using namespace dmlite;
 
-UserGroupDbMySql::UserGroupDbMySql(PoolContainer<MYSQL*>* connPool,
-                  const std::string& db) throw(DmException):
-  nsDb_(db)
+UserGroupDbMySql::UserGroupDbMySql(NsMySqlFactory* factory,
+                                   const std::string& db,
+                                   const std::string& mapfile) throw(DmException):
+  factory_(factory), nsDb_(db), mapFile_(mapfile)
 {
-  this->connectionPool_ = connPool;
-  this->conn_ = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 UserGroupDbMySql::~UserGroupDbMySql() throw(DmException)
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 
@@ -266,7 +267,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
   try {
     *user = this->getUser(userName);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_SUCH_USER)
       *user = this->newUser(userName, "");
     else
@@ -275,11 +276,11 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
 
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
-    vo = voFromDn("/etc/lcgdm-mapfile", userName);
+    vo = voFromDn(this->mapFile_, userName);
     try {
       group = this->getGroup(vo);
     }
-    catch (DmException e) {
+    catch (DmException& e) {
       if (e.code() == DM_NO_SUCH_GROUP)
         group = this->newGroup(vo);
       else
@@ -295,7 +296,7 @@ void UserGroupDbMySql::getIdMap(const std::string& userName,
       try {
         group = this->getGroup(vo);
       }
-      catch (DmException e) {
+      catch (DmException& e) {
         if (e.code() == DM_NO_SUCH_GROUP)
           group = this->newGroup(vo);
         else

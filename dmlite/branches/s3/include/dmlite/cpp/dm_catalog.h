@@ -137,6 +137,12 @@ public:
   /// @param path    The file to change.
   /// @param newSize The new file size.
   virtual void changeSize(const std::string& path, size_t newSize) throw (DmException) = 0;
+  
+  /// Change the checksum of a file.
+  /// @param path      The file to change.
+  /// @param csumtype  The checksum type (CS, AD or MD).
+  /// @param csumvalue The checksum value.
+  virtual void changeChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) = 0;
 
   /// Change the ACLs
   /// @param path The file to change.
@@ -227,7 +233,7 @@ public:
 
 
 /// Plug-ins must implement a concrete factory to be instantiated.
-class CatalogFactory {
+class CatalogFactory: public virtual BaseFactory {
 public:
   /// Virtual destructor
   virtual ~CatalogFactory();

@@ -11,11 +11,14 @@
 
 namespace dmlite {
   
+class NsMySqlFactory;
+  
 class UserGroupDbMySql: public UserGroupDb {
 public:
   /// Constructor.
-  UserGroupDbMySql(PoolContainer<MYSQL*>* connPool,
-                   const std::string& db) throw(DmException);
+  UserGroupDbMySql(NsMySqlFactory* factory,
+                   const std::string& db,
+                   const std::string& mapfile) throw(DmException);
   
   /// Destructor.
   ~UserGroupDbMySql() throw(DmException);
@@ -43,12 +46,15 @@ protected:
   /// The MySQL connection
   MYSQL* conn_;
 
-  /// The connection pool.
-  PoolContainer<MYSQL*>* connectionPool_;
+  /// The corresponding factory.
+  NsMySqlFactory* factory_;
 
 private:
   /// NS DB.
   std::string nsDb_;
+  
+  /// Mapfile
+  std::string mapFile_;
 };
   
 };

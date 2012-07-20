@@ -43,7 +43,7 @@ static void registerPluginLibrarian(PluginManager* pm) throw(DmException)
   try {
     pm->registerFactory(new LibrarianFactory(pm->getCatalogFactory()));
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_FACTORY)
       throw DmException(DM_NO_FACTORY, std::string("Librarian can not be loaded first"));
     throw;

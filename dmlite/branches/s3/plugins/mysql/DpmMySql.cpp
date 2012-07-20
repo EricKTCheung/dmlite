@@ -10,23 +10,24 @@
 
 #include "DpmMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 using namespace dmlite;
 
 
 
-MySqlPoolManager::MySqlPoolManager(PoolContainer<MYSQL*>* connPool,
+MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
                                    const std::string& dpmDb) throw (DmException):
-      stack_(0x00), dpmDb_(dpmDb), connectionPool_(connPool)
+      stack_(0x00), dpmDb_(dpmDb), factory_(factory)
 {
-  this->conn_ = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 MySqlPoolManager::~MySqlPoolManager()
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 
@@ -68,7 +69,7 @@ std::vector<Pool> MySqlPoolManager::getPools() throw (DmException)
     while (stmt.fetch())
       pools.push_back(pool);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_UNKNOWN_FIELD)
       throw;
     
@@ -103,7 +104,7 @@ Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
     if (!stmt.fetch())
       throw DmException(DM_NO_SUCH_POOL, poolname + " not found");
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_UNKNOWN_FIELD)
       throw;
     // Fallback to legacy mode

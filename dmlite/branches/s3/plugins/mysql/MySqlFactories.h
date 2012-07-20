@@ -45,6 +45,15 @@ public:
   
   INode*       createINode(PluginManager* pm)       throw (DmException);
   UserGroupDb* createUserGroupDb(PluginManager* pm) throw (DmException);
+  
+  /// Get a MYSQL connection. It will allocate only one per thread from the
+  /// pool, and just increase the reference count on later requests from the same
+  /// thread.
+  MYSQL* getConnection(void)     throw (DmException);
+  
+  /// Release a MYSQL connection. If the reference counts drops to 0,
+  /// the connection will be released on the pool.
+  void releaseConnection(MYSQL*) throw (DmException);
 
 protected:
   /// Connection factory.
@@ -52,16 +61,22 @@ protected:
 
   /// Connection pool.
   PoolContainer<MYSQL*> connectionPool_;
+  
+  /// Key used to keep only one connection per thread and factory
+  pthread_key_t thread_mysql_conn_;
 
   /// NS db.
   std::string nsDb_;
+  
+  /// Mapfile
+  std::string mapFile_;
 
 private:
 };
 
 
 
-class DpmMySqlFactory: public PoolManagerFactory {
+class DpmMySqlFactory: public NsMySqlFactory, public PoolManagerFactory {
 public:
   /// Constructor
   DpmMySqlFactory() throw(DmException);
@@ -73,13 +88,7 @@ public:
   
   PoolManager* createPoolManager(PluginManager* pm) throw (DmException);
 
-protected:
-  /// Connection factory.
-  MySqlConnectionFactory connectionFactory_;
-
-  /// Connection pool.
-  PoolContainer<MYSQL*> connectionPool_;
-  
+protected:  
   /// DPM db.
   std::string dpmDb_;
 };

@@ -13,6 +13,7 @@
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
 #include "Queries.h"
+#include "MySqlFactories.h"
 
 #define NOT_IMPLEMENTED(p)\
 p {\
@@ -24,19 +25,18 @@ using namespace dmlite;
 
 
 
-INodeMySql::INodeMySql(PoolContainer<MYSQL*>* connPool,
+INodeMySql::INodeMySql(NsMySqlFactory* factory,
                        const std::string& db) throw(DmException):
-  transactionLevel_(0), nsDb_(db)
+  factory_(factory), transactionLevel_(0), nsDb_(db)
 {
-  this->connectionPool_ = connPool;
-  this->conn_           = connPool->acquire();
+  this->conn_ = factory->getConnection();
 }
 
 
 
 INodeMySql::~INodeMySql() throw(DmException)
 {
-  this->connectionPool_->release(this->conn_);
+  this->factory_->releaseConnection(this->conn_);
 }
 
 
@@ -129,10 +129,10 @@ ExtendedStat INodeMySql::create(ino_t parent, const std::string& name,
  
   // Destination must not exist!
   try {
-    ExtendedStat f = this->extendedStat(parent, name);
+    this->extendedStat(parent, name);
     throw DmException(DM_EXISTS, name + " already exists");
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() != DM_NO_SUCH_FILE)
       throw;
   }
@@ -601,6 +601,18 @@ void INodeMySql::changeSize(ino_t inode, size_t size) throw (DmException)
   Statement stmt(this->conn_, this->nsDb_, STMT_CHANGE_SIZE);
   stmt.bindParam(0, size);
   stmt.bindParam(1, inode);
+  stmt.execute();
+}
+
+
+
+void INodeMySql::changeChecksum(ino_t inode, const std::string& csumtype,
+                                const std::string& csumvalue) throw (DmException)
+{
+  Statement stmt(this->conn_, this->nsDb_, STMT_CHANGE_CHECKSUM);
+  stmt.bindParam(0, csumtype);
+  stmt.bindParam(1, csumvalue);
+  stmt.bindParam(2, inode);
   stmt.execute();
 }
 

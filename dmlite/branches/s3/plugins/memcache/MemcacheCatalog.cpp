@@ -3,6 +3,7 @@
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
 #include <algorithm>
 #include <cstring>
+#include <set>
 #include <vector>
 
 #include "Memcache.h"
@@ -84,7 +85,7 @@ MemcacheCatalog::~MemcacheCatalog() throw (DmException)
 
 std::string MemcacheCatalog::serialize(const ExtendedStat& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   std::string serialString;
   SerialExtendedStat seStat;
@@ -122,7 +123,7 @@ std::string MemcacheCatalog::serialize(const ExtendedStat& var)
 
 void MemcacheCatalog::deserialize(const std::string& serial_str, ExtendedStat& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialExtendedStat seStat;
   const SerialStat* pntSerialStat;
@@ -158,7 +159,7 @@ void MemcacheCatalog::deserialize(const std::string& serial_str, ExtendedStat& v
 
 std::string MemcacheCatalog::serializeLink(const SymLink& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   std::string serialString;
   SerialSymLink seLink;
@@ -172,7 +173,7 @@ std::string MemcacheCatalog::serializeLink(const SymLink& var)
 void MemcacheCatalog::deserializeLink(const std::string& serial_str,
                                       SymLink& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialSymLink seLink;
 
@@ -186,7 +187,7 @@ void MemcacheCatalog::deserializeLink(const std::string& serial_str,
 
 std::string MemcacheCatalog::serializeComment(const std::string& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   std::string serialString;
   SerialComment seComment;
@@ -199,7 +200,7 @@ std::string MemcacheCatalog::serializeComment(const std::string& var)
 void MemcacheCatalog::deserializeComment(std::string& serial_str,
                                          std::string& var)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialComment seComment;
 
@@ -211,7 +212,7 @@ void MemcacheCatalog::deserializeComment(std::string& serial_str,
 
 std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, const bool isWhite, const bool isComplete)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialKey* pntKey;
   SerialKeyList list;
@@ -236,7 +237,7 @@ std::string MemcacheCatalog::serializeList(std::vector<std::string>& keyList, co
 
 std::string MemcacheCatalog::serializeDirList(std::vector<std::string>& keyList, const time_t mtime, const bool isWhite, const bool isComplete)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialKey* pntKey;
   SerialKeyList list;
@@ -263,7 +264,7 @@ std::string MemcacheCatalog::serializeDirList(std::vector<std::string>& keyList,
 std::vector<std::string> MemcacheCatalog::deserializeList(std::string& serialList)
 {
   std::vector<std::string> keyList;
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialKey key;
   SerialKeyList list;
@@ -278,44 +279,26 @@ std::vector<std::string> MemcacheCatalog::deserializeList(std::string& serialLis
   return keyList;
 }
 
-int MemcacheCatalog::deserializeList(std::string& serialList,
-                                     std::vector<std::string>& keyList)
-{
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  SerialKey key;
-  SerialKeyList list;
-  list.ParseFromString(serialList);
-
-  for (int i = 0; i < list.key_size(); i++) 
-  {
-    key = list.key(i);
-    keyList.push_back(key.key());
-  }
-//  list.PrintDebugString();
-  if (list.iscomplete())
-    return DIR_CACHED;
-  else
-    return DIR_NOTCOMPLETE;
-}
-
 int MemcacheCatalog::deserializeDirList(std::string& serialList,
                                       std::vector<std::string>& keyList,
                                       time_t& mtime)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialKey key;
   SerialKeyList list;
+  std::set<std::string> keySet;
   list.ParseFromString(serialList);
 
   for (int i = 0; i < list.key_size(); i++) 
   {
     key = list.key(i);
-    keyList.push_back(key.key());
+    keySet.insert(key.key());
   }
   
   mtime = list.mtime();
+
+  keyList.assign(keySet.begin(), keySet.end());
 
 //  list.PrintDebugString();
   if (list.iscomplete())
@@ -333,7 +316,7 @@ std::vector<std::string> MemcacheCatalog::deserializeBlackList(std::string& seri
   std::vector<std::string> keyList;
   std::vector<std::string>::iterator keyListEnd; 
 
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 //  SerialBlackKey bkey;
   SerialKeyList list;
@@ -363,7 +346,7 @@ std::vector<std::string> MemcacheCatalog::deserializeBlackList(std::string& seri
 
 std::string MemcacheCatalog::serializeFileReplica(const FileReplica& replica)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   SerialFileReplica repl;
   repl.set_replicaid(replica.replicaid);
@@ -386,7 +369,7 @@ std::string MemcacheCatalog::serializeFileReplica(const FileReplica& replica)
 
 FileReplica MemcacheCatalog::deserializeFileReplica(std::string& serial)
 {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+  //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   FileReplica repl;
   SerialFileReplica serialRepl;
@@ -423,36 +406,11 @@ void MemcacheCatalog::setStackInstance(StackInstance* si) throw (DmException)
 
 void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  DELEGATE(setSecurityContext, ctx);
-  this->secCtx_ = *ctx;
+ DELEGATE(setSecurityContext, ctx);
+ this->secCtx_ = *ctx;
 }
 
-/*
-ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
-{
-  if (this->memcachedPOSIX_) {
-    return this->extendedStatPOSIX(path, followSym);
-  } else {
-    return this->extendedStatDirect(path, followSym);
-  }
-}
 
-ExtendedStat MemcacheCatalog::extendedStatDirect(const std::string& path, bool followSym) throw (DmException)
-{
-  // add cwd to relative path
-
-  // get memcache key
-
-  // get enrty from memcached
-
-  // if not found, delegate
-
-  return meta;
-}
-
-ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool followSym) throw (DmException)
-{
-*/
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
 	std::string cwdPath;
@@ -755,23 +713,6 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
 
   dirp = (MemcacheDir*)dir;
 
-  if (dirp->isCached == DIR_NOTCACHED && dirp->keysPntr == 0) {
-    // just set it to nonzero
-    dirp->keysPntr++;
-    std::string valMemc;
-    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
-                                           dirp->dirId);
-    // create an empty list with 'white' elements, which is not complete
-    std::vector<std::string> empty;
-    valMemc = serializeDirList(empty, dirp->mtime, true, false);
-    try 
-    {
-      addMemcachedDListFromKeyValue(listKey, valMemc);
-    } catch (...) {
-      dirp->isCached = DIR_NOTCOMPLETE;
-    }
-  }
-
   switch (dirp->isCached) {
     case DIR_NOTCACHED:
       meta = this->fetchExtendedStatFromDelegate(dirp, true);
@@ -800,8 +741,6 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
         this->utime(dirp->dirId, &tim);
       }
     }
-
-//    ENCODE_DIRCACHED(dirp, isCached);
 
     return meta;
   }
@@ -952,7 +891,7 @@ std::vector<FileReplica> MemcacheCatalog::getReplicas(const std::string& path) t
   try {
     return this->getReplicas(path, meta.stat.st_ino);
   }
-  catch (DmException e) {
+  catch (DmException& e) {
     if (e.code() == DM_NO_REPLICAS)
       throw DmException(DM_NO_REPLICAS, "No replicas available for " + path);
     throw;
@@ -1025,6 +964,9 @@ Location MemcacheCatalog::get(const std::string& path) throw(DmException)
 
     // otherwise, get replicas from mysql
     DELEGATE_ASSIGN(replicas, getReplicas, path);
+
+    if (replicas.size() == 0)
+      throw DmException(DM_NO_REPLICAS, "No Replicas found");
 
     // save replicas in memcached
     safeSetMemcachedFromReplicas(replicas, inode);
@@ -1374,8 +1316,13 @@ std::vector<ExtendedStat>
 
   std::vector<std::string>::const_iterator itKeys;
   std::vector<std::string>::const_iterator itVals;
+  // the valList must always be as long as the keyList
+  if (valList.size() != keyList.size()) {
+    throw DmException(DM_UNKNOWN_ERROR,
+                "memcached: the number of values returned is incorrect");
+  }
   for (itKeys = keyList.begin(), itVals = valList.begin();
-       itKeys != keyList.end(), itVals != valList.end();
+       itKeys != keyList.end();
        itKeys++, itVals++) { 
     if (!(*itVals).empty()) {
       //printf("getting the xstat from memcached\n");
@@ -1389,7 +1336,7 @@ std::vector<ExtendedStat>
       int r = rand() % 10;
       if (r < PROB_CACHE * 10) {
         valMemc = serialize(xstat);
-        setMemcachedFromKeyValue(*itKeys, valMemc);
+        safeSetMemcachedFromKeyValue(*itKeys, valMemc);
       }
     }
     xstatList.push_back(xstat);
@@ -1569,8 +1516,8 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromMemcached(MemcacheDir *dirp)
   ExtendedStat *return_meta;
   std::vector<ExtendedStat> vecXstat;
   std::vector<std::string> keyList;
-  std::vector<std::string>::iterator itKeySliceBegin;
-  std::vector<std::string>::iterator itKeySliceEnd;
+//  std::vector<std::string>::iterator itKeySliceBegin;
+//  std::vector<std::string>::iterator itKeySliceEnd;
   
   //printf("sizeof xstats = %d.\n", dirp->xstats.size());
   if (dirp->xstats.empty()) {
@@ -1598,7 +1545,8 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromMemcached(MemcacheDir *dirp)
     //printf("sizeof keys = %d.\n", dirp->keys.size());
     //printf("sizeof keyList = %d.\n", keyList.size());
 
-    vecXstat = getExtendedStatListFromMemcachedKeyList(keyList);
+    vecXstat =
+    getExtendedStatListFromMemcachedKeyList(keyList);
     //printf("sizeof vecXstat = %d.\n", vecXstat.size());
     dirp->xstats.assign(vecXstat.begin(), vecXstat.end());
   }
@@ -1615,7 +1563,7 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromMemcached(MemcacheDir *dirp)
 	return return_meta;
 }
 
-ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, const bool saveToMemc)
+ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, bool saveToMemc)
                             throw (DmException)
 {
   std::string valMemcStr;
@@ -1625,27 +1573,50 @@ ExtendedStat* MemcacheCatalog::fetchExtendedStatFromDelegate(MemcacheDir *dirp, 
   std::string valMemc;
 	memcached_return statMemc;
 
+  // when the first file is read, create the DIR key on memcached
+  if (dirp->keysPntr == 0) {
+    // just set it to nonzero
+    dirp->keysPntr++;
+    std::string valMemc;
+    const std::string listKey = keyFromAny(key_prefix[PRE_DIR], 
+                                           dirp->dirId);
+    // create an empty list with 'white' elements, which is not complete
+    {
+      std::vector<std::string> empty;
+      valMemc = serializeDirList(empty, dirp->mtime, true, false);
+    }
+    try 
+    {
+      addMemcachedDListFromKeyValue(listKey, valMemc);
+    } catch (...) {
+      dirp->isCached = DIR_NOTCOMPLETE;
+      saveToMemc = false;
+    }
+  }
+
+
   DELEGATE_ASSIGN(metap, readDirx, (Directory *) dirp->dirp);
 
 
   if (saveToMemc) {
     listKey = keyFromAny(key_prefix[PRE_DIR], dirp->dirId);
-    if (dirp->keys.size() > FETCH_COMBINED || metap == 0x00) {
+    if (dirp->keys.size() > FETCH_COMBINED || (metap == 0x00 && dirp->keys.size() > 0)) {
 
-      statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
-      
-      dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
+      try {
+        dirp->curKeysSegment = addToDListFromMemcachedKeyListNoReply(listKey,
          std::vector<std::string>(dirp->keys.begin(), dirp->keys.end()),
                                           true, false,
                                           dirp->curKeysSegment);
-
+      } catch (MemcacheException e) {
+        dirp->isCached = DIR_NOTCOMPLETE;
+      }
       // Set the no reply behavior, don't care if it fails
       statMemc = memcached_behavior_set(this->conn_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
 
       while (!dirp->keys.empty()) {
         valMemc = serialize(dirp->xstats.front());
-        setMemcachedFromKeyValue(dirp->keys.front(), valMemc);
+        safeSetMemcachedFromKeyValue(dirp->keys.front(), valMemc);
         dirp->keys.pop_front();
         dirp->xstats.pop_front();
       }
@@ -1850,10 +1821,10 @@ void MemcacheCatalog::setMemcachedFromReplicas(std::vector<FileReplica>& replica
     serialReplica =  serializeFileReplica(replicas[i]);
     keys.push_back(keyFromURI(key_prefix[PRE_REPL], replicas[i].rfn));
 
-    setMemcachedFromKeyValue(keys.back(), serialReplica);
+    safeSetMemcachedFromKeyValue(keys.back(), serialReplica);
   }
   serialList = serializeList(keys);
-  setMemcachedFromKeyValue(keyFromAny(key_prefix[PRE_REPL_LIST], inode),
+  safeSetMemcachedFromKeyValue(keyFromAny(key_prefix[PRE_REPL_LIST], inode),
                            serialList);
 }
 
@@ -1937,7 +1908,7 @@ void MemcacheCatalog::delMemcachedFromPath(const std::string& path, bool removeD
   try
   {  
     meta = this->extendedStat(path);
-  } catch (DmException e) {
+  } catch (DmException& e) {
     int code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;
@@ -1969,7 +1940,7 @@ void MemcacheCatalog::delMemcachedFromInode(const ino_t inode, bool removeDirEnt
   try
   {  
     meta = this->extendedStat(inode);
-  } catch (DmException e) {
+  } catch (DmException& e) {
     int code = e.code();
     if (code != DM_NO_SUCH_FILE)
       throw;
@@ -2205,18 +2176,6 @@ void MemcacheCatalog::addToDListFromMemcachedKey(const std::string& listKey, con
   }
 }
 
-int MemcacheCatalog::safeAddToDListFromMemcachedKeyListNoReply(const std::string& listKey,
-                               const std::vector<std::string>& keyList, 
-                                                const bool isWhite,
-                                                const bool isComplete,
-                                                int curSegment) throw (DmException)
-{
-  try {
-    return addToDListFromMemcachedKeyListNoReply(listKey, keyList, isWhite,
-                                      isComplete, curSegment);
-  } catch (MemcacheException) { /* pass */ }
-}
-
 
 int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
                                const std::string& listKey,
@@ -2297,9 +2256,11 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
 
     if (statMemc != MEMCACHED_SUCCESS)
       throw MemcacheException(statMemc, this->conn_);
+/* This error gives us the same information as the one just above
     if ((noSegmentsIncremented - 1) != curSegment)
       throw DmException(DM_UNKNOWN_ERROR,
           std::string("Incrementing the number of segments on memcached failed."));
+      */
   }
   return curSegment;
 }
@@ -2307,7 +2268,7 @@ int MemcacheCatalog::addToDListFromMemcachedKeyListNoReply(
 
 void MemcacheCatalog::removeListItemFromMemcachedKey(const std::string& listKey, std::string& key)
 {
-  addToListFromMemcachedKey(listKey, key, false);
+  safeAddToListFromMemcachedKey(listKey, key, false);
 }
 
 void MemcacheCatalog::safeRemoveListItemFromMemcachedKey(const std::string& listKey, std::string& key)

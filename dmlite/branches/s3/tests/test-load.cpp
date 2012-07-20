@@ -43,7 +43,7 @@ public:
       catalog = stack->getCatalog();
       CPPUNIT_ASSERT(catalog != 0x00);
     }
-    catch (dmlite::DmException exc) {
+    catch (dmlite::DmException& exc) {
       CPPUNIT_FAIL(exc.what());
     }
     // Call stat (it is irrelevant, but errno can not be DM_NOT_IMPLEMENTED)
@@ -51,7 +51,7 @@ public:
       buf = catalog->extendedStat("/").stat;
       CPPUNIT_ASSERT_EQUAL((unsigned)0, buf.st_uid);
     }
-    catch (dmlite::DmException exc)
+    catch (dmlite::DmException& exc)
     {
       CPPUNIT_ASSERT(exc.code() != DM_NOT_IMPLEMENTED);
     }

@@ -20,7 +20,7 @@
 /// Namespace for the libdm C++ API
 namespace dmlite {
 
-const unsigned API_VERSION = 20120627;
+const unsigned API_VERSION = 20120702;
 
 class StackInstance;
 
@@ -49,26 +49,38 @@ public:
   
   /// Register a UserGroupDb factory. To be used by concrete implementations (i.e. Plugins)
   /// @param factory The UserDbGroup concrete factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(UserGroupDbFactory* factory) throw (DmException);
   
   /// Register a INode factory. To be used by concrete implementations (i.e. Plugins)
   /// @param factory The INode concrete factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(INodeFactory* factory) throw (DmException);
 
   /// Register a catalog factory. To be used by concrete implementations (i.e. Plugins)
   /// @param factory The catalog concrete factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(CatalogFactory* factory) throw (DmException);
 
   /// Register a pool factory.
   /// @param factory The pool concrete factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(PoolManagerFactory* factory) throw (DmException);
 
   /// Register a IO factory.
   /// @param factory The IO concrete factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(IOFactory* factory) throw (DmException);
 
   /// Register a PoolDriver factory.
   /// @param factory The PoolDriver factory.
+  /// @note  The same object can be passed to other register functions.
+  ///        DMLite will take care of freeing it only once.
   void registerFactory(PoolDriverFactory* factory) throw (DmException);
 
   /// Get the UserGroupDbFactory implementation on top of the plugin stack.
@@ -111,6 +123,9 @@ private:
 /// of each plugin stack.
 /// It also keeps common state: user credentials, security context,
 /// and run-time parameters (see set)
+/// @note Assume a StackInstance (and every instantiated interface under it)
+///       is NOT thread-safe. This means, a StackInstance must be used by only
+///       one thread at the same time.
 class StackInstance {
 public:
   

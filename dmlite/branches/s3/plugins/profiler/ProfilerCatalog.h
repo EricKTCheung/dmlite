@@ -58,7 +58,8 @@ public:
   void   changeMode     (const std::string&, mode_t)       throw (DmException);
   void   changeOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
   
-  void changeSize(const std::string&, size_t) throw (DmException);
+  void changeSize    (const std::string&, size_t) throw (DmException);
+  void changeChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
 
   void setAcl(const std::string&, const std::vector<Acl>&) throw (DmException);
 

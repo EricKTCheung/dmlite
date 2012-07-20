@@ -38,7 +38,7 @@ public:
       this->catalog->rename(SOURCE_FILE, DEST_FILE);
       CPPUNIT_FAIL("Should have failed");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_NO_SUCH_FILE, e.code());
     }
 
@@ -65,7 +65,7 @@ public:
       this->catalog->rename(SOURCE_DIR, NESTED_DIR);
       CPPUNIT_FAIL("Should have failed");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_INVALID_VALUE, e.code());
     }
   }
@@ -88,7 +88,7 @@ public:
       this->catalog->rename(DEST_DIR, SOURCE_DIR);
       CPPUNIT_FAIL("Should have failed");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_EXISTS, e.code());
     }
 
@@ -111,7 +111,7 @@ public:
       this->catalog->rename(NESTED_FILE, DEST_FILE);
       CPPUNIT_FAIL("Should have failed");
     }
-    catch (dmlite::DmException e) {
+    catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
 

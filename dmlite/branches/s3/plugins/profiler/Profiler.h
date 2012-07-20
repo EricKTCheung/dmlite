@@ -50,7 +50,7 @@ if (this->decorated_ == 0x00)\
 clock_gettime(CLOCK_REALTIME, &start);\
 try {\
   this->decorated_->method(__VA_ARGS__);\
-} catch (DmException e) {\
+} catch (DmException& e) {\
   exception = e;\
   failed = true;\
 }\
@@ -73,7 +73,7 @@ if (this->decorated_ == 0x00)\
 clock_gettime(CLOCK_REALTIME, &start);\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
-} catch (DmException e) {\
+} catch (DmException& e) {\
   exception = e;\
   failed = true;\
 }\

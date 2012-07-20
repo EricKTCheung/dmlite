@@ -101,7 +101,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn, int openmode,
                              userId,
                              pfn, this->passwd_,
                              openmode & std::ios_base::out))
-    throw DmException(DM_FORBIDDEN, "Token does not validate (%s)", userId.c_str());
+    throw DmException(DM_FORBIDDEN, "Token does not validate (using %s)", this->useIp_?"IP":"DN");
   
   // Create
   return new StdIOHandler(pfn, openmode);
