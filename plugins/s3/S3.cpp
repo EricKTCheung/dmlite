@@ -132,7 +132,7 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
               replica.rfn,
               expiration);
 
-  rloc.available = replicaAvailable(replica);
+  rloc.available = static_cast<uint8_t>(replicaAvailable(replica));
 
   return rloc;
 }
