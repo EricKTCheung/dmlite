@@ -229,7 +229,7 @@ S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std
     if (!ne_accept_2xx(NULL, request, requestStatus)) {
       getS3Error(request);
     }
-    if (ne_end_request != NE_OK) {
+    if (ne_end_request(request) != NE_OK) {
       throw DmException(DM_UNKNOWN_ERROR, std::string(ne_get_error(session)));  
     }
   } else {
