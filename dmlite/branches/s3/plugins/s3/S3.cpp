@@ -83,7 +83,7 @@ uint64_t S3PoolHandler::getFreeSpace(void) throw (DmException)
 
 bool S3PoolHandler::isAvailable(bool write) throw (DmException)
 {
-  // TODO
+  // TODO: check connection to S3
   return true;
 }
 
@@ -122,6 +122,8 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
               this->driver_->bucketName_,
               replica.rfn,
               expiration);
+
+  rloc.available = replicaAvailable(replica);
 
   return rloc;
 }
