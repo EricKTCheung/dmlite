@@ -58,8 +58,11 @@ BOOST_PYTHON_MODULE(pydmlite)
 		;
 
 	class_<PluginIdCard>("PluginIdCard")
-		// class still to be implemented
+		.def_readonly("ApiVersion", &PluginIdCard::ApiVersion)
+		// registerPlugin not exposed yet
 		;
+
+	scope().attr("PLUGIN_ID_HEADER") = PLUGIN_ID_HEADER; 
 
 #include "pydm_auth.cpp"
 //#include "pydm_base.cpp"
