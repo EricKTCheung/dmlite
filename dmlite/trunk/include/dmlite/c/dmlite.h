@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <utime.h>
-#include "../common/dm_errno.h"
+#include "../common/errno.h"
 #include "../common/dm_types.h"
 
 #ifdef	__cplusplus

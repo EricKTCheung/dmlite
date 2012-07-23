@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <dmlite/cpp/utils/dm_urls.h>
+#include <dmlite/cpp/utils/urls.h>
 #include <iostream>
 #include <string.h>
 
@@ -9,13 +9,11 @@ inline int Validate(const char* uri,
                     const char* scheme, const char* host, unsigned port,
                     const char* path, const char* query = NULL)
 {
-  Url  parsed;
-  bool failed = false;
+  dmlite::Url parsed(uri);
+  bool        failed = false;
 
   // Log
   std::cout << "- Checking " << uri;
-
-  parsed = dmlite::splitUrl(uri);
 
   // And check it is like it should
   if (parsed.port != port) {
@@ -24,25 +22,25 @@ inline int Validate(const char* uri,
               << "', got '" << parsed.port << "'";
     failed = true;
   }
-  if (strcmp(parsed.scheme, scheme) != 0) {
+  if (parsed.scheme != scheme) {
     std::cout << std::endl
               << "\tExpected scheme '" << scheme
               << "', got '" << parsed.scheme << "'";
     failed = true;
   }
-  if (strcmp(parsed.host, host) != 0) {
+  if (parsed.domain != host) {
     std::cout << std::endl
               << "\tExpected host '" << host
-              << "', got '" << parsed.host << "'";
+              << "', got '" << parsed.domain << "'";
     failed = true;
   }
-  if (strcmp(parsed.path, path) != 0) {
+  if (parsed.path != path) {
     std::cout << std::endl
               << "\tExpected path '" << path
               << "', got '" << parsed.path << "'";
     failed = true;
   }
-  if (query != NULL && strcmp(parsed.query, query) != 0) {
+  if (query != NULL && parsed.query != query) {
     std::cout << std::endl
               << "\tExpected query '" << query
               << "', got '" << parsed.query << "'";
@@ -79,5 +77,6 @@ int main(int argc, char **argv)
                 "file", "", 0, "//tmp/file");
   r += Validate("host-with-hyphen.cern.ch:/scratch/file",
                 "", "host-with-hyphen.cern.ch", 0, "/scratch/file");
-  return r == 0;
+  r += Validate("http://a.host.com/replica", "http", "a.host.com", 0, "/replica", "");
+  return r;
 }

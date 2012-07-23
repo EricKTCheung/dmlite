@@ -23,7 +23,7 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ /usr/include/boost141/)
 
 # Definitions
 add_definitions (-D_REENTRANT)
@@ -34,8 +34,8 @@ add_subdirectory (src)
 add_subdirectory (tests)
 
 # Config header
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/dm_config.h.cmake
-                ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/dm_config.h)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h)
 
 # Install headers
 install (DIRECTORY   include/
@@ -45,34 +45,34 @@ install (DIRECTORY   include/
          PATTERN     ".cmake" EXCLUDE)
 
 # Generate documentation
-find_package (Doxygen)
+#find_package (Doxygen)
 
-if (DOXYGEN_FOUND)
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile-man.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man @ONLY)
+#if (DOXYGEN_FOUND)
+#  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+#  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile-man.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man @ONLY)
 
-  add_custom_target(doc ALL
-                    DEPENDS doc/html doc/man)
+#  add_custom_target(doc ALL
+#                   DEPENDS doc/html doc/man)
 
-  add_custom_command(OUTPUT doc/html
-                     COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                     COMMENT "Generating API documentation with Doxygen" VERBATIM)
+#  add_custom_command(OUTPUT doc/html
+#                    COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+#                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+#                     COMMENT "Generating API documentation with Doxygen" VERBATIM)
 
-  add_custom_command(OUTPUT doc/man
-                     COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                     COMMENT "Generating man documentation with Doxygen" VERBATIM)
+#  add_custom_command(OUTPUT doc/man
+#                     COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man
+#                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+#                     COMMENT "Generating man documentation with Doxygen" VERBATIM)
 
 
-  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/html/
-           DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
-           COMPONENT   dmlite-devel)
-  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/man/
-           DESTINATION usr/share/man
-           COMPONENT   dmlite-devel)
+#  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/html/
+#           DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
+#           COMPONENT   dmlite-devel)
+#  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/man/
+#           DESTINATION usr/share/man
+#           COMPONENT   dmlite-devel)
 
-endif (DOXYGEN_FOUND)
+#endif (DOXYGEN_FOUND)
 
 # Configure CTest testing
-ENABLE_TESTING()
+#ENABLE_TESTING()

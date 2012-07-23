@@ -1,6 +1,5 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <sys/stat.h>
 #include "test-base.h"
 
 class TestStat: public TestBase

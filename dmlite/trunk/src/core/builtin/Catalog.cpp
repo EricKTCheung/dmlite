@@ -5,14 +5,39 @@
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
-#include <list>
 #include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/utils/dm_security.h>
-#include <dmlite/cpp/utils/dm_urls.h>
+#include <dmlite/cpp/utils/security.h>
+#include <dmlite/cpp/utils/urls.h>
+#include <vector>
 
 #include "Catalog.h"
 
 using namespace dmlite;
+
+
+
+inline uid_t getUid(const SecurityContext* ctx)
+{
+  return ctx->user.getUnsigned("uid");
+}
+
+
+
+inline gid_t getGid(const SecurityContext* ctx, unsigned index)
+{
+  return ctx->groups[index].getUnsigned("gid");
+}
+
+
+
+inline bool hasGroup(const SecurityContext* ctx, gid_t gid)
+{
+  for (unsigned i = 0; i < ctx->groups.size(); ++i)
+    if (getGid(ctx, i) == gid)
+      return true;
+  return false;
+}
+
 
 
 BuiltInCatalogFactory::BuiltInCatalogFactory():
@@ -53,7 +78,8 @@ Catalog* BuiltInCatalogFactory::createCatalog(PluginManager*) throw (DmException
 
 
 BuiltInCatalog::BuiltInCatalog(bool updateATime, unsigned symLinkLimit) throw (DmException):
-    si_(0x00), secCtx_(), cwd_(0), umask_(022), updateATime_(updateATime), symLinkLimit_(symLinkLimit)
+    si_(NULL), secCtx_(), cwd_(0), umask_(022),
+    updateATime_(updateATime), symLinkLimit_(symLinkLimit)
 {
   // Nothing
 }
@@ -67,7 +93,7 @@ BuiltInCatalog::~BuiltInCatalog()
 
 
 
-std::string BuiltInCatalog::getImplId(void) throw()
+std::string BuiltInCatalog::getImplId(void) const throw()
 {
   return std::string("BuiltInCatalog");
 }
@@ -90,9 +116,18 @@ void BuiltInCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmExc
 
 void BuiltInCatalog::changeDir(const std::string& path) throw (DmException)
 {
+  if (path.empty()) {
+    this->cwdPath_.clear();
+    this->cwd_ = 0;
+    return;
+  }
+  
   ExtendedStat cwd = this->extendedStat(path);
-  this->cwdPath_   = path;
   this->cwd_       = cwd.stat.st_ino;
+  if (path[0] == '/')
+    this->cwdPath_ = path;
+  else
+    this->cwdPath_ = Url::normalizePath(this->cwdPath_ + "/" + path);
 }
 
 
@@ -114,7 +149,7 @@ ino_t BuiltInCatalog::getWorkingDirI(void) throw (DmException)
 ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
  // Split the path always assuming absolute
-  std::list<std::string> components = splitPath(path);
+  std::vector<std::string> components = Url::splitPath(path);
 
   // Iterate starting from absolute root (parent of /) (0)
   uint64_t     parent       = 0;
@@ -124,10 +159,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
   // If path is absolute OR cwd is empty, start in root
   if (path[0] == '/' || this->cwdPath_.empty()) {
-    // Push "/", as we have to look for it too
-    components.push_front("/");
     // Root parent "is" a dir and world-readable :)
-    memset(&meta, 0x00, sizeof(ExtendedStat));
     meta.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
@@ -137,21 +169,22 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   }
   
 
-  while (!components.empty()) {
+  for (unsigned i = 0; i < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      throw DmException(DM_NOT_DIRECTORY, "%s is not a directory", meta.name);
+      throw DmException(DM_NOT_DIRECTORY,
+                        "%s is not a directory", meta.name.c_str());
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to list %s", meta.name);
+      throw DmException(DM_FORBIDDEN,
+                        "Not enough permissions to list %s", meta.name.c_str());
 
     // Pop next component
-    c = components.front();
-    components.pop_front();
+    c = components[i];
 
     // Stay here
     if (c == ".") {
-      continue;
+      // Nothing
     }
     // Up one level
     else if (c == "..") {
@@ -175,20 +208,25 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
         // We have the symbolic link now. Split it and push
         // into the component
-        std::list<std::string> symPath = splitPath(link.link);
-        components.splice(components.begin(), symPath);
-        // Push / if absolute
-        if (link.link[0] == '/') {
+        std::vector<std::string> symPath = Url::splitPath(link.link);
+        
+        for (unsigned j = i + 1; j < components.size(); ++j)
+          symPath.push_back(components[j]);
+        
+        components.swap(symPath);
+        i = 0;
+        continue; // Jump directly to the beginning of the loop
+        
+        // If absolute, need to reset parent
+        if (link.link[0] == '/')
           parent = 0;
-          components.push_front("/");
-        }
       }
       // Next one!
       else {
         parent = meta.stat.st_ino;
       }
     }
-    
+    ++i; // Next in array
   }
 
   return meta;
@@ -196,7 +234,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
 
 
-void BuiltInCatalog::addReplica(const FileReplica& replica) throw (DmException)
+void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
    
@@ -209,7 +247,7 @@ void BuiltInCatalog::addReplica(const FileReplica& replica) throw (DmException)
 
 
 
-void BuiltInCatalog::deleteReplica(const FileReplica& replica) throw (DmException)
+void BuiltInCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
     
@@ -222,7 +260,7 @@ void BuiltInCatalog::deleteReplica(const FileReplica& replica) throw (DmExceptio
 
 
 
-std::vector<FileReplica> BuiltInCatalog::getReplicas(const std::string& path) throw (DmException)
+std::vector<Replica> BuiltInCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path);
   
@@ -257,17 +295,20 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
     mode |= S_ISGID;
   }
   else {
-    egid = this->secCtx_->getGroup(0).gid;
+    egid = getGid(this->secCtx_, 0);
   }
   
   this->si_->getINode()->begin();
   
   try {
     // Create file
-    ExtendedStat linkMeta = this->si_->getINode()->create(parent.stat.st_ino, symName,
-                                                 this->secCtx_->getUser().uid,
-                                                 egid, mode | S_IFLNK,
-                                                 0, 0, '-', "", "", "");
+    ExtendedStat linkMeta = this->si_->getINode()->
+                              create(parent.stat.st_ino, symName,
+                                     getUid(this->secCtx_), egid,
+                                     mode | S_IFLNK,
+                                     0, ExtendedStat::kOnline,
+                                     "", "",
+                                     Acl());
     // Create symlink
     this->si_->getINode()->symlink(linkMeta.stat.st_ino, oldPath);
   }
@@ -302,8 +343,8 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->secCtx_->getUser().uid != file.stat.st_uid &&
-        this->secCtx_->getUser().uid != parent.stat.st_uid &&
+    if (getUid(this->secCtx_) != file.stat.st_uid &&
+        getUid(this->secCtx_) != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
                                       path + "( sticky bit set)");
@@ -316,7 +357,7 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
 
   // Check there are no replicas
   if (!S_ISLNK(file.stat.st_mode)) {
-    std::vector<FileReplica> replicas = this->si_->getINode()->getReplicas(file.stat.st_ino);
+    std::vector<Replica> replicas = this->si_->getINode()->getReplicas(file.stat.st_ino);
     
     // Pure catalogs must not remove files with replicas    
     if (!this->si_->isTherePoolManager() && replicas.size() != 0)
@@ -324,10 +365,13 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
     
     // Try to remove replicas first
     for (unsigned i = 0; i < replicas.size(); ++i) {
-      Pool         pool   = this->si_->getPoolManager()->getPool(replicas[i].pool);
-      PoolHandler* handler = this->si_->getPoolDriver(pool.pool_type)->createPoolHandler(pool.pool_name);
+      Pool pool   = this->si_->getPoolManager()->
+                      getPool(replicas[i].getString("pool"));
       
-      handler->remove(replicas[i]);
+      PoolHandler* handler = this->si_->getPoolDriver(pool.type)->
+                               createPoolHandler(pool.name);
+      
+      handler->removeReplica(replicas[i]);
       
       delete handler;
     }
@@ -356,7 +400,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   
   // Need to be able to write to the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Need write access on the parent");
+    throw DmException(DM_FORBIDDEN, "Need write access on %s", parentPath.c_str());
 
   // Check that the file does not exist, or it has no replicas
   try {
@@ -377,7 +421,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     mode |= S_ISGID;
   }
   else {
-    egid = this->secCtx_->getGroup(0).gid;
+    egid = getGid(this->secCtx_, 0);
   }
 
   // Create new
@@ -385,21 +429,20 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFREG;
 
     // Generate inherited ACL's if there are defaults
-    std::string aclStr;
-    if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
-      aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                       this->secCtx_->getUser().uid,
-                                       this->secCtx_->getGroup(0).gid,
-                                       &newMode, mode));
-    }
+    Acl inheritedAcl;
+    if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)))
+      inheritedAcl = Acl(parent.acl, getUid(this->secCtx_), egid, mode, &newMode);
 
     this->si_->getINode()->create(parent.stat.st_ino, name,
-                         this->secCtx_->getUser().uid ,egid, newMode,
-                         0, 0, '-', "", "", aclStr);
+                                  getUid(this->secCtx_) ,egid, newMode,
+                                  0, ExtendedStat::kOnline,
+                                  "", "",
+                                  inheritedAcl);
   }
+  
   // Truncate
   else if (code == DM_NO_REPLICAS) {
-    if (this->secCtx_->getUser().uid != file.stat.st_uid &&
+    if (getUid(this->secCtx_) != file.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to truncate " + path);
     this->si_->getINode()->setSize(file.stat.st_ino, 0);
@@ -429,22 +472,20 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
     newMode |= S_ISGID;
   }
   else {
-    egid = this->secCtx_->getGroup(0).gid;
+    egid = getGid(this->secCtx_, 0);
   }
 
   // Generate inherited ACL's if there are defaults
-  std::string aclStr;
-  if (strchr (parent.acl, ACL_DEFAULT | ACL_USER_OBJ  | '@') != NULL) {
-    aclStr = serializeAcl(inheritAcl(deserializeAcl(parent.acl),
-                                     this->secCtx_->getUser().uid,
-                                     egid,
-                                     &newMode, mode));
-  }
+  Acl inheritedAcl;
+  if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)) > -1)
+    inheritedAcl = Acl(parent.acl, getUid(this->secCtx_), egid, mode, &newMode);
 
   // Create the file entry
   this->si_->getINode()->create(parent.stat.st_ino, name,
-                       this->secCtx_->getUser().uid, egid, newMode,
-                       0, parent.type, '-', "", "", aclStr);
+                                getUid(this->secCtx_), egid, newMode,
+                                0, ExtendedStat::kOnline,
+                                "", "",
+                                inheritedAcl);
 }
 
 
@@ -475,8 +516,8 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
-    if (this->secCtx_->getUser().uid != entry.stat.st_uid &&
-        this->secCtx_->getUser().uid != parent.stat.st_uid &&
+    if (getUid(this->secCtx_) != entry.stat.st_uid &&
+        getUid(this->secCtx_) != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, entry.acl, entry.stat, S_IWRITE) != 0)
       throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
                                       path + "( sticky bit set)");
@@ -551,8 +592,8 @@ std::string oldParentPath, newParentPath;
 
   // Check sticky
   if (oldParent.stat.st_mode & S_ISVTX &&
-      this->secCtx_->getUser().uid != oldParent.stat.st_uid &&
-      this->secCtx_->getUser().uid != old.stat.st_uid &&
+      getUid(this->secCtx_) != oldParent.stat.st_uid &&
+      getUid(this->secCtx_) != old.stat.st_uid &&
       checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
 
@@ -625,52 +666,55 @@ mode_t BuiltInCatalog::umask(mode_t mask) throw ()
 
 void BuiltInCatalog::setMode(const std::string& path, mode_t mode) throw (DmException)
 {
-ExtendedStat meta = this->extendedStat(path);
+  ExtendedStat meta = this->extendedStat(path);
 
   // User has to be the owner, or root
-  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
-      this->secCtx_->getUser().uid != 0)
+  if (getUid(this->secCtx_) != meta.stat.st_uid &&
+      getUid(this->secCtx_) != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can set the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
-  if (!S_ISDIR(meta.stat.st_mode) && this->secCtx_->getUser().uid != 0)
+  if (!S_ISDIR(meta.stat.st_mode) && getUid(this->secCtx_) != 0)
     mode &= ~S_ISVTX;
-  if (this->secCtx_->getUser().uid != 0 &&
-      !this->secCtx_->hasGroup(meta.stat.st_gid))
+  if (getUid(this->secCtx_) != 0 &&
+      !hasGroup(this->secCtx_, meta.stat.st_gid))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
   mode |= (meta.stat.st_mode & S_IFMT);
 
   // Update the ACL
-  std::string aclStr;
-  if (meta.acl[0] != '\0') {
-    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
-    for (size_t i = 0; i < acls.size(); ++i) {
-      switch (acls[i].type) {
-        case ACL_USER_OBJ:
-          acls[i].perm = mode >> 6 & 07;
+  if (!meta.acl.empty()) {
+    for (size_t i = 0; i < meta.acl.size(); ++i) {
+      switch (meta.acl[i].type) {
+        case AclEntry::kUserObj:
+          meta.acl[i].perm = mode >> 6 & 07;
           break;
-        case ACL_GROUP_OBJ:
-        case ACL_MASK:
-          acls[i].perm = mode >> 3 & 07;
+        case AclEntry::kGroupObj:
+        case AclEntry::kMask:
+          meta.acl[i].perm = mode >> 3 & 07;
           break;
-        case ACL_OTHER:
-          acls[i].perm = mode & 07;
+        case AclEntry::kOther:
+          meta.acl[i].perm = mode & 07;
           break;
+        default:
+          continue;
       }
     }
-    aclStr = dmlite::serializeAcl(acls);
   }
 
   // Update entry
-  this->si_->getINode()->setMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino,
+                                 meta.stat.st_uid, meta.stat.st_gid, mode,
+                                 meta.acl);
 }
 
 
 
-void BuiltInCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
+void BuiltInCatalog::setOwner(const std::string& path,
+                              uid_t newUid, gid_t newGid,
+                              bool followSymLink) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, followSymLink);
   
@@ -685,37 +729,36 @@ void BuiltInCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGi
     return;
 
   // If root, skip all checks
-  if (this->secCtx_->getUser().uid != 0) {
+  if (getUid(this->secCtx_) != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
       throw DmException(DM_BAD_OPERATION, "Only root can set the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
-      if (meta.stat.st_uid != this->secCtx_->getUser().uid)
+      if (meta.stat.st_uid != getUid(this->secCtx_))
         throw DmException(DM_BAD_OPERATION, "Only root or the owner can set the group");
       // AND it has to belong to that group
-      if (!this->secCtx_->hasGroup(newGid))
+      if (!hasGroup(this->secCtx_, newGid))
         throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
     }
   }
 
   // Update the ACL's if there is any
-  std::string aclStr;
-  if (meta.acl[0] != '\0') {
-    std::vector<Acl> acls = dmlite::deserializeAcl(meta.acl);
-    for (size_t i = 0; i < acls.size(); ++i) {
-      if (acls[i].type == ACL_USER_OBJ)
-        acls[i].id = newUid;
-      else if (acls[i].type == ACL_GROUP_OBJ)
-        acls[i].id = newGid;
+  if (!meta.acl.empty()) {
+    for (size_t i = 0; i < meta.acl.size(); ++i) {
+      if (meta.acl[i].type == AclEntry::kUserObj)
+        meta.acl[i].id = newUid;
+      else if (meta.acl[i].type == AclEntry::kGroupObj)
+        meta.acl[i].id = newGid;
     }
-    aclStr = dmlite::serializeAcl(acls);
   }
 
   // Change!
-  this->si_->getINode()->setMode(meta.stat.st_ino, newUid, newGid, meta.stat.st_mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino,
+                                 newUid, newGid, meta.stat.st_mode,
+                                 meta.acl);
 }
 
 
@@ -723,7 +766,7 @@ void BuiltInCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGi
 void BuiltInCatalog::setSize(const std::string& path, size_t newSize) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, false);
-  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+  if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Can not set the size of " + path);
   
@@ -737,7 +780,7 @@ void BuiltInCatalog::setChecksum(const std::string& path,
                                     const std::string& csumvalue) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, false);
-  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+  if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Can not set the checksum of " + path);
   
@@ -750,55 +793,59 @@ void BuiltInCatalog::setChecksum(const std::string& path,
 
 
 
-void BuiltInCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+void BuiltInCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path);
 
   // Check we can change it
-  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
-      this->secCtx_->getUser().uid != 0)
+  if (getUid(this->secCtx_) != meta.stat.st_uid &&
+      getUid(this->secCtx_) != 0)
     throw DmException(DM_FORBIDDEN, "Only the owner can set the ACL of " + path);
 
-  std::vector<Acl> aclsCopy(acls);
+  Acl aclCopy(acl);
 
   // Make sure the owner and group matches!
-  for (size_t i = 0; i < aclsCopy.size(); ++i) {
-    if (aclsCopy[i].type == ACL_USER_OBJ)
-      aclsCopy[i].id = meta.stat.st_uid;
-    else if (aclsCopy[i].type == ACL_GROUP_OBJ)
-      aclsCopy[i].id = meta.stat.st_gid;
-    else if (aclsCopy[i].type & ACL_DEFAULT && !S_ISDIR(meta.stat.st_mode))
+  for (size_t i = 0; i < aclCopy.size(); ++i) {
+    if (aclCopy[i].type == AclEntry::kUserObj)
+      aclCopy[i].id = meta.stat.st_uid;
+    else if (aclCopy[i].type == AclEntry::kGroupObj)
+      aclCopy[i].id = meta.stat.st_gid;
+    else if (aclCopy[i].type & AclEntry::kDefault && !S_ISDIR(meta.stat.st_mode))
       throw DmException(DM_INVALID_ACL, "Defaults can be only applied to directories");
   }
 
   // Validate the ACL
-  dmlite::validateAcl(aclsCopy);
+  aclCopy.validate();
 
   // Update the file mode
-  for (size_t i = 0; i < aclsCopy.size(); ++i) {
-    switch (aclsCopy[i].type) {
-      case ACL_USER_OBJ:
-        meta.stat.st_mode = (meta.stat.st_mode & 0177077) | (aclsCopy[i].perm << 6);
+  for (size_t i = 0; i < aclCopy.size(); ++i) {
+    switch (aclCopy[i].type) {
+      case AclEntry::kUserObj:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177077) |
+                            (aclCopy[i].perm << 6);
         break;
-      case ACL_GROUP_OBJ:
-        meta.stat.st_mode = (meta.stat.st_mode & 0177707) | (aclsCopy[i].perm << 3);
+      case AclEntry::kGroupObj:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177707) |
+                            (aclCopy[i].perm << 3);
         break;
-      case ACL_MASK:
-        meta.stat.st_mode = (meta.stat.st_mode & ~070) | (meta.stat.st_mode & aclsCopy[i].perm << 3);
+      case AclEntry::kMask:
+        meta.stat.st_mode = (meta.stat.st_mode & ~070) |
+                            (meta.stat.st_mode & aclCopy[i].perm << 3);
         break;
-      case ACL_OTHER:
-        meta.stat.st_mode = (meta.stat.st_mode & 0177770) | (aclsCopy[i].perm);
+      case AclEntry::kOther:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177770) |
+                            (aclCopy[i].perm);
         break;
+      default:
+        continue;
     }
   }
 
-  // If only 3 entries, no extended ACL
-  std::string aclStr;
-  if (aclsCopy.size() > 3)
-    aclStr = dmlite::serializeAcl(aclsCopy);
-
   // Update the file
-  this->si_->getINode()->setMode(meta.stat.st_ino, meta.stat.st_uid, meta.stat.st_gid, meta.stat.st_mode, aclStr);
+  this->si_->getINode()->setMode(meta.stat.st_ino,
+                                 meta.stat.st_uid, meta.stat.st_gid,
+                                 meta.stat.st_mode,
+                                 aclCopy);
 }
 
 
@@ -808,7 +855,7 @@ void BuiltInCatalog::utime(const std::string& path, const struct utimbuf* buf) t
   ExtendedStat meta = this->extendedStat(path);
 
   // The user is the owner OR buf is NULL and has write permissions
-  if (this->secCtx_->getUser().uid != meta.stat.st_uid &&
+  if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
 
@@ -908,10 +955,11 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
 }
 
 
-FileReplica BuiltInCatalog::getReplica(const std::string& rfn) throw (DmException)
+
+Replica BuiltInCatalog::getReplica(const std::string& rfn) throw (DmException)
 {
-  FileReplica rdata = this->si_->getINode()->getReplica(rfn);
-  ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
+  Replica      rdata = this->si_->getINode()->getReplica(rfn);
+  ExtendedStat meta  = this->si_->getINode()->extendedStat(rdata.fileid);
   
   this->traverseBackwards(meta);
   
@@ -920,11 +968,11 @@ FileReplica BuiltInCatalog::getReplica(const std::string& rfn) throw (DmExceptio
 
 
 
-void BuiltInCatalog::updateReplica(const FileReplica& replica) throw (DmException)
+void BuiltInCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   // Can not trust the fileid of replica!
-  FileReplica rdata = this->si_->getINode()->getReplica(replica.replicaid);
-  ExtendedStat meta = this->si_->getINode()->extendedStat(rdata.fileid);
+  Replica      rdata = this->si_->getINode()->getReplica(replica.replicaid);
+  ExtendedStat meta  = this->si_->getINode()->extendedStat(rdata.fileid);
   
   this->traverseBackwards(meta);
   
@@ -952,29 +1000,28 @@ ExtendedStat BuiltInCatalog::getParent(const std::string& path,
                                        std::string* parentPath,
                                        std::string* name) throw (DmException)
 {
-  std::list<std::string> components = splitPath(path);
+  if (path.empty())
+    throw DmException(DM_INVALID_VALUE, "Empty path");
+  
+  std::vector<std::string> components = Url::splitPath(path);
 
-  parentPath->clear();
-  name->clear();
-
-  // Build parent (this is, skipping last one)
-  while (components.size() > 1) {
-    *parentPath += components.front() + "/";
-    components.pop_front();
-  }
-  if (path[0] == '/')
-    *parentPath = "/" + *parentPath;
-
-  *name = components.front();
-  components.pop_front();
+  *name = components.back();
+  components.pop_back();
+  
+  *parentPath = Url::joinPath(components);
 
   // Get the files now
-  if (!parentPath->empty())
+  if (!parentPath->empty()) {
     return this->extendedStat(*parentPath);
-  else if (!this->cwdPath_.empty())
+  }
+  else if (!this->cwdPath_.empty()) {
+    *parentPath = this->cwdPath_;
     return this->si_->getINode()->extendedStat(this->cwd_);
-  else
+  }
+  else {
+    *parentPath = "/";
     return this->extendedStat("/");
+  }
 }
 
 

@@ -1,7 +1,5 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include "test-base.h"
 
 class TestChown: public TestBase
@@ -50,8 +48,8 @@ public:
     // It should be OK a -1, -1
     this->catalog->setOwner(FILE, -1, -1);
     s = this->catalog->extendedStat(FILE).stat;
-    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx), s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx), s.st_gid);
 
     // Also, it should be ok to change to current value
     this->catalog->setOwner(FILE, s.st_uid, s.st_gid);
@@ -59,17 +57,17 @@ public:
 
     // It should NOT be able to change the user
     try {
-      this->catalog->setOwner(FILE, ctx->getUser().uid, -1);
+      this->catalog->setOwner(FILE, getUid(ctx), -1);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     // It should BE able to change the group to one it belongs to
-    this->catalog->setOwner(FILE, -1, ctx->getGroup(1).gid);
+    this->catalog->setOwner(FILE, -1, getGid(ctx, 1));
     s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(s.st_uid, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 1), s.st_gid);
 
     // It should NOT be able to change the group to one it does not belong to
     try {
@@ -88,14 +86,14 @@ public:
 
     // It should NOT be able to change the group or the owner
     try {
-      this->catalog->setOwner(FILE, ctx->getUser().uid, -1);
+      this->catalog->setOwner(FILE, getUid(ctx), -1);
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     try {
-      this->catalog->setOwner(FILE, -1, ctx->getGroup(0).gid);
+      this->catalog->setOwner(FILE, -1, getGid(ctx, 0));
     }
     catch (dmlite::DmException& e) {
       CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());

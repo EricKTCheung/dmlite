@@ -20,56 +20,11 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmMySql.conf
 
 add_library           (test-base STATIC test-base.cpp)
 
-add_executable        (test-split_path test-split_path.cpp)
-target_link_libraries (test-split_path dmlite dl)
-
-add_executable        (test-split_url test-split_url.cpp)
-target_link_libraries (test-split_url dmlite dl)
-
-add_executable        (test-security test-security.cpp)
-target_link_libraries (test-security test-base dmlite cppunit dl)
-
-add_executable        (test-comment test-comment.cpp)
-target_link_libraries (test-comment test-base dmlite cppunit dl)
-
-add_executable        (test-stat test-stat.cpp)
-target_link_libraries (test-stat test-base dmlite cppunit dl)
-
-add_executable        (test-pools test-pools.cpp)
-target_link_libraries (test-pools dmlite dl)
-
-add_executable        (test-poolcontainer test-poolcontainer.cpp)
-target_link_libraries (test-poolcontainer dmlite cppunit pthread)
-
-add_executable        (test-chdir test-chdir.cpp)
-target_link_libraries (test-chdir test-base dmlite cppunit dl)
-
-add_executable        (test-guid test-guid.cpp)
-target_link_libraries (test-guid test-base dmlite cppunit dl)
-
-add_executable        (test-create test-create.cpp)
-target_link_libraries (test-create test-base dmlite cppunit dl)
-
-add_executable        (test-replicas test-replicas.cpp)
-target_link_libraries (test-replicas test-base dmlite cppunit dl)
-
-add_executable        (test-rename test-rename.cpp)
-target_link_libraries (test-rename test-base dmlite cppunit dl)
-
-add_executable        (test-chown test-chown.cpp)
-target_link_libraries (test-chown test-base dmlite cppunit dl)
-
-add_executable        (test-utime test-utime.cpp)
-target_link_libraries (test-utime test-base dmlite cppunit dl)
-
-add_executable        (test-opendir test-opendir.cpp)
-target_link_libraries (test-opendir test-base dmlite cppunit dl)
-
 add_executable        (test-acls test-acls.cpp)
 target_link_libraries (test-acls test-base dmlite cppunit dl)
 
-add_executable        (test-io test-io.cpp)
-target_link_libraries (test-io dmlite cppunit dl)
+add_executable        (test-chdir test-chdir.cpp)
+target_link_libraries (test-chdir test-base dmlite cppunit dl)
 
 add_executable        (test-checkperm test-checkperm.cpp)
 target_link_libraries (test-checkperm dmlite cppunit dl)
@@ -77,48 +32,82 @@ target_link_libraries (test-checkperm dmlite cppunit dl)
 add_executable        (test-checksum test-checksum.cpp)
 target_link_libraries (test-checksum test-base dmlite cppunit dl)
 
+add_executable        (test-chown test-chown.cpp)
+target_link_libraries (test-chown test-base dmlite cppunit dl)
+
+add_executable        (test-comment test-comment.cpp)
+target_link_libraries (test-comment test-base dmlite cppunit dl)
+
+add_executable        (test-create test-create.cpp)
+target_link_libraries (test-create test-base dmlite cppunit dl)
+
+add_executable        (test-extensible test-extensible.cpp)
+target_link_libraries (test-extensible dmlite cppunit)
+
+add_executable        (test-guid test-guid.cpp)
+target_link_libraries (test-guid test-base dmlite cppunit dl)
+
+add_executable        (test-io test-io.cpp)
+target_link_libraries (test-io dmlite cppunit dl)
+
+add_executable        (test-opendir test-opendir.cpp)
+target_link_libraries (test-opendir test-base dmlite cppunit dl)
+
+add_executable        (test-poolcontainer test-poolcontainer.cpp)
+target_link_libraries (test-poolcontainer dmlite cppunit pthread)
+
+add_executable        (test-pools test-pools.cpp)
+target_link_libraries (test-pools dmlite dl)
+
+add_executable        (test-rename test-rename.cpp)
+target_link_libraries (test-rename test-base dmlite cppunit dl)
+
+add_executable        (test-replicas test-replicas.cpp)
+target_link_libraries (test-replicas test-base dmlite cppunit dl)
+
+add_executable        (test-security test-security.cpp)
+target_link_libraries (test-security test-base dmlite cppunit dl)
+
+add_executable        (test-split_path test-split_path.cpp)
+target_link_libraries (test-split_path dmlite dl)
+
+add_executable        (test-split_url test-split_url.cpp)
+target_link_libraries (test-split_url dmlite dl)
+
+add_executable        (test-stat test-stat.cpp)
+target_link_libraries (test-stat test-base dmlite cppunit dl)
+
+add_executable        (test-utime test-utime.cpp)
+target_link_libraries (test-utime test-base dmlite cppunit dl)
+
+
+
 # Configure CTest testing
 ENABLE_TESTING()
 
 # Set Test Parameters
 #set (CONFIG MemcacheNsMySql.conf)
-set (CONFIG NsMySql.conf)
-set (FSCONFIG DpmAdapter.conf)
-set (PLUGIN plugin_adapter_dpm)
-set (PLUGIN_SO ../plugins/adapter/plugin_adapter.so)
-set (POOL pool1)
+set (CONFIG   NsMySql.conf)
+set (FSCONFIG DpmMySql.conf)
 
 # Add CTest tests
-ADD_TEST(test-chdir ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})
-SET_TESTS_PROPERTIES(test-chdir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-create ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
-SET_TESTS_PROPERTIES(test-create PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-comment ${CMAKE_CURRENT_BINARY_DIR}/test-comment ${CONFIG})
-SET_TESTS_PROPERTIES(test-comment PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-security ${CMAKE_CURRENT_BINARY_DIR}/test-security ${CONFIG})
-SET_TESTS_PROPERTIES(test-security PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-replicas ${CMAKE_CURRENT_BINARY_DIR}/test-replicas ${CONFIG})
-SET_TESTS_PROPERTIES(test-replicas PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-guid ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
-SET_TESTS_PROPERTIES(test-guid PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-stat ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
-SET_TESTS_PROPERTIES(test-stat PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-#ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${PLUGIN_SO} ${PLUGIN} ${POOL})
-ADD_TEST(test-pools ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${FSCONFIG})
-SET_TESTS_PROPERTIES(test-pools PROPERTIES PASS_REGULAR_EXPRESSION "Pool;Capacity")
-ADD_TEST(test-poolcontainer ${CMAKE_CURRENT_BINARY_DIR}/test-poolcontainer ${PLUGIN_SO} ${PLUGIN} ${POOL})
-SET_TESTS_PROPERTIES(test-poolcontainer PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-split_path ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
-SET_TESTS_PROPERTIES(test-split_path PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-split_url ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
-SET_TESTS_PROPERTIES(test-split_url PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-chown ${CMAKE_CURRENT_BINARY_DIR}/test-chown ${CONFIG})
-SET_TESTS_PROPERTIES(test-chown PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-utime ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})
-SET_TESTS_PROPERTIES(test-utime PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-opendir ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
-SET_TESTS_PROPERTIES(test-opendir PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-acls ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
-SET_TESTS_PROPERTIES(test-acls PROPERTIES PASS_REGULAR_EXPRESSION "OK")
-ADD_TEST(test-checksum ${CMAKE_CURRENT_BINARY_DIR}/test-checksum ${CONFIG})
-SET_TESTS_PROPERTIES(test-checksum PROPERTIES PASS_REGULAR_EXPRESSION "OK")
+ADD_TEST(test-acls          ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
+ADD_TEST(test-chdir         ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})
+ADD_TEST(test-checkperm     ${CMAKE_CURRENT_BINARY_DIR}/test-checkperm ${CONFIG})
+ADD_TEST(test-checksum      ${CMAKE_CURRENT_BINARY_DIR}/test-checksum ${CONFIG})
+ADD_TEST(test-chown         ${CMAKE_CURRENT_BINARY_DIR}/test-chown ${CONFIG})
+ADD_TEST(test-comment       ${CMAKE_CURRENT_BINARY_DIR}/test-comment ${CONFIG})
+ADD_TEST(test-create        ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
+ADD_TEST(test-extensible    ${CMAKE_CURRENT_BINARY_DIR}/test-extensible ${CONFIG})
+ADD_TEST(test-guid          ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
+ADD_TEST(test-io            ${CMAKE_CURRENT_BINARY_DIR}/test-io ${FSCONFIG})
+ADD_TEST(test-opendir       ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
+ADD_TEST(test-pools         ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${FSCONFIG})
+ADD_TEST(test-poolcontainer ${CMAKE_CURRENT_BINARY_DIR}/test-poolcontainer)
+ADD_TEST(test-rename        ${CMAKE_CURRENT_BINARY_DIR}/test-rename ${CONFIG})
+ADD_TEST(test-replicas      ${CMAKE_CURRENT_BINARY_DIR}/test-replicas ${CONFIG})
+ADD_TEST(test-security      ${CMAKE_CURRENT_BINARY_DIR}/test-security ${CONFIG})
+ADD_TEST(test-split_path    ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
+ADD_TEST(test-split_url     ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
+ADD_TEST(test-stat          ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
+ADD_TEST(test-utime         ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})

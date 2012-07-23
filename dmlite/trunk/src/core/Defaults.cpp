@@ -1,7 +1,14 @@
 /// @file   core/Catalog.cpp
 /// @brief  Implementation of non abstract dm::Catalog methods.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <dmlite/cpp/base.h>
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/exceptions.h>
+#include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/io.h>
+#include <dmlite/cpp/pooldriver.h>
+#include <dmlite/cpp/poolmanager.h>
 
 using namespace dmlite;
 
@@ -20,7 +27,7 @@ BaseFactory::~BaseFactory()
 
 
 
-UserGroupDbFactory::~UserGroupDbFactory()
+AuthnFactory::~AuthnFactory()
 {
   // Nothing
 }
@@ -76,14 +83,7 @@ PoolHandler::~PoolHandler()
 
 
 
-PoolMetadata::~PoolMetadata()
-{
-  // Nothing
-}
-
-
-
-UserGroupDb::~UserGroupDb()
+Authn::~Authn()
 {
   // Nothing
 }
@@ -138,9 +138,9 @@ void BaseInterface::setSecurityContext(BaseInterface* i, const SecurityContext* 
 
 
 
-UserGroupDb* UserGroupDbFactory::createUserGroupDb(UserGroupDbFactory* f, PluginManager* pm) throw (DmException)
+Authn* AuthnFactory::createAuthn(AuthnFactory* f, PluginManager* pm) throw (DmException)
 {
-  return f->createUserGroupDb(pm);
+  return f->createAuthn(pm);
 }
 
 

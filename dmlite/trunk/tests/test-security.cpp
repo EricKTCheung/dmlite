@@ -1,7 +1,8 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <cstring>
-#include <dmlite/common/dm_config.h>
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/common/config.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
@@ -30,8 +31,7 @@ public:
     ctx = this->stackInstance->getSecurityContext();
 
     CPPUNIT_ASSERT_EQUAL(std::string(TEST_USER),
-                         std::string(ctx->getUser().name));
-    CPPUNIT_ASSERT(0 != ctx->getUser().uid);
+                         std::string(ctx->user.name));
   }
 
   void testDiff()
@@ -44,14 +44,14 @@ public:
     this->stackInstance->setSecurityCredentials(cred2);
     ctx2 = *this->stackInstance->getSecurityContext();
 
-    CPPUNIT_ASSERT(ctx1.getUser().uid != ctx2.getUser().uid);
+    CPPUNIT_ASSERT(boost::any_cast<uid_t>(ctx1.user["uid"]) !=
+                   boost::any_cast<uid_t>(ctx2.user["uid"]));
   }
   
   void testHostCert()
   {
     // Initialize
-    Credentials hostCreds;
-    memset(&hostCreds, 0, sizeof(Credentials));
+    dmlite::SecurityCredentials hostCreds;
     
     X509* hostX509;
     BIO*  in = BIO_new(BIO_s_file());
@@ -60,17 +60,16 @@ public:
     BIO_free_all(in);
     CPPUNIT_ASSERT(hostX509 != NULL);
     
-    hostCreds.client_name = hostX509->name;
+    hostCreds.clientName = hostX509->name;
     
     // Check
     const dmlite::SecurityContext* ctx;
     this->stackInstance->setSecurityCredentials(hostCreds);
     ctx = this->stackInstance->getSecurityContext();
     
-    CPPUNIT_ASSERT_EQUAL(0, (int)ctx->getUser().uid);
+    CPPUNIT_ASSERT_EQUAL(0u, boost::any_cast<uid_t>(ctx->user["uid"]));
     
     // Free
-    hostCreds.client_name = 0;
     X509_free(hostX509);
   }
 
