@@ -14,7 +14,9 @@
 
 using namespace dmlite;
 
-S3Driver::S3Driver(std::string s3AccessKeyID, std::string s3SecretAccessKey):
+S3Driver::S3Driver(std::string host, unsigned int port, 
+                   std::string s3AccessKeyID, std::string s3SecretAccessKey):
+  host_(host), port_(port),
   s3AccessKeyID_(s3AccessKeyID),
   s3SecretAccessKey_(s3SecretAccessKey)
 {
@@ -28,7 +30,7 @@ S3Driver::~S3Driver()
   ne_sock_exit();
 }
 
-Location S3Driver::getQueryString(std::string method, std::string host, 
+Location S3Driver::getQueryString(std::string method, 
                                  std::string bucket, std::string key,
                                  time_t expirationDate)
 {
@@ -56,7 +58,7 @@ Location S3Driver::getQueryString(std::string method, std::string host,
   conversionStream << "?AWSAccessKeyId=" << s3AccessKeyID_ << "&Expires=" << expirationString << "&Signature=" << signature;
   token = conversionStream.str();
 
-  rloc = Location(host.c_str(), path.c_str(), true, 3, "AWSAccessKeyId", s3AccessKeyID_.c_str(),
+  rloc = Location(host_.c_str(), path.c_str(), true, 3, "AWSAccessKeyId", s3AccessKeyID_.c_str(),
                                                        "Expires", expirationString.c_str(),
                                                        "Signature", signature.c_str());
 
@@ -193,7 +195,7 @@ S3Error S3Driver::getS3Error(ne_request *request) {
   return errorMsg;
 }
 
-S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std::string key)
+S3RequestResponse S3Driver::headObject(std::string bucket, std::string key)
 {
   ne_session* session;
   ne_request* request;
@@ -205,7 +207,7 @@ S3RequestResponse S3Driver::headObject(std::string host, std::string bucket, std
   S3RequestResponse response;
   S3ObjectMetadata *pntMeta = response.mutable_s3object_meta();
 
-  session = ne_session_create("http", host.c_str(), 80);
+  session = ne_session_create("http", host_.c_str(), port_);
 
   path << "/" << bucket << "/" << key;
   request = ne_request_create(session, "HEAD", path.str().c_str());

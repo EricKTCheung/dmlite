@@ -10,12 +10,9 @@
 using namespace dmlite;
 
 /* S3 pool handling */
-S3PoolDriver::S3PoolDriver(std::string host, std::string bucket, std::string s3AccessKeyID, std::string s3SecretAccessKey) throw (DmException):
+S3PoolDriver::S3PoolDriver(S3Factory *factory) throw (DmException):
             stack(0x00),
-            host_(host),
-            bucketName_(bucket),
-            s3AccessKeyID_(s3AccessKeyID),
-            s3SecretAccessKey_(s3SecretAccessKey)
+            factory_(factory)
 {
   // Nothing
 }
@@ -32,7 +29,7 @@ void S3PoolDriver::setSecurityContext(const SecurityContext*) throw (DmException
 
 PoolHandler* S3PoolDriver::createPoolHandler(const std::string& poolName) throw (DmException)
 {
-  return new S3PoolHandler(this, poolName, this->stack);
+  return new S3PoolHandler(this->factory_, poolName, this->stack);
 }
 
 void S3PoolDriver::setStackInstance(StackInstance* si) throw (DmException)
@@ -40,19 +37,18 @@ void S3PoolDriver::setStackInstance(StackInstance* si) throw (DmException)
   this->stack = si;
 }
 
-S3PoolHandler::S3PoolHandler(S3PoolDriver* driver, const std::string& poolName, StackInstance* si):
-  driver_(driver),
+S3PoolHandler::S3PoolHandler(S3Factory *factory, const std::string& poolName, StackInstance* si):
+  factory_(factory),
   poolName(poolName),
-  stack(si)
+  stack(si),
+  bucket_("mhellmic-dpm")
 {
-  this->driver_->s3connection_ = S3Driver(
-            this->driver_->s3AccessKeyID_,
-            this->driver_->s3SecretAccessKey_);
+  this->conn_ = factory_->getConnection();
 }
 
 S3PoolHandler::~S3PoolHandler()
 {
-  // Nothing
+  this->factory_->releaseConnection(this->conn_);
 }
 
 
@@ -100,9 +96,8 @@ bool S3PoolHandler::replicaAvailable(const FileReplica& replica) throw (DmExcept
     break;
   case 'P':
     response = 
-       this->driver_->s3connection_.headObject(this->driver_->host_,
-                                               this->driver_->bucketName_,
-                                               replica.rfn);
+       this->conn_->headObject(this->bucket_,
+                              replica.rfn);
     if (response.http_code() == 200) {
       meta = response.s3object_meta();
       // if the response was successful (file complete), change the db entry
@@ -125,10 +120,9 @@ Location S3PoolHandler::getLocation(const FileReplica& replica) throw (DmExcepti
 {
   Location rloc;
   time_t expiration = time(NULL) + static_cast<time_t>(60);
-  rloc = this->driver_->s3connection_.getQueryString(
+  rloc = this->conn_->getQueryString(
               "GET",
-              this->driver_->host_,
-              this->driver_->bucketName_,
+              this->bucket_,
               replica.rfn,
               expiration);
 
@@ -153,10 +147,9 @@ Location S3PoolHandler::putLocation(const std::string& fn) throw (DmException)
   // create PUT link
   Location rloc;
   time_t expiration = time(NULL) + static_cast<time_t>(60);
-  rloc = this->driver_->s3connection_.getQueryString(
+  rloc = this->conn_->getQueryString(
               "PUT",
-              this->driver_->host_,
-              this->driver_->bucketName_,
+              this->bucket_,
               fn,
               expiration);
 
@@ -166,49 +159,3 @@ Location S3PoolHandler::putLocation(const std::string& fn) throw (DmException)
 void S3PoolHandler::putDone(const FileReplica& replica, const std::map<std::string, std::string>& extras) throw (DmException)
 {
 }
-
-/* S3Factory implementation */
-S3Factory::S3Factory() throw (DmException):
-     bucketName_("default"),
-     host_("s3.amazonaws.com"),
-     s3AccessKeyID_("userID"),
-     s3SecretAccessKey_("password")
-{
-  // Nothing
-}
-
-void S3Factory::configure(const std::string& key, const std::string& value) throw (DmException)
-{
-  if (key == "S3Host") {
-    this->host_ = value;
-  } else if (key == "S3Bucket") {
-    this->bucketName_ = value;
-  } else if (key == "S3AccessKeyID") {
-    this->s3AccessKeyID_ = value;
-  } else if (key == "S3SecretAccessKey") {
-    this->s3SecretAccessKey_ = value;
-  } else {
-    throw DmException(DM_UNKNOWN_OPTION, "Option %s not recognised", key.c_str());
-  }
-}
-
-std::string S3Factory::implementedPool() throw ()
-{
-  return "s3";
-}
-
-PoolDriver* S3Factory::createPoolDriver() throw (DmException)
-{
-  return new S3PoolDriver(this->host_, this->bucketName_, this->s3AccessKeyID_, this->s3SecretAccessKey_);
-}
-
-static void registerPluginS3(PluginManager* pm) throw (DmException)
-{
-  pm->registerFactory(static_cast<PoolDriverFactory*>(new S3Factory()));
-}
-
-/// This is what the PluginManager looks for
-PluginIdCard plugin_s3_pooldriver = {
-  API_VERSION,
-  registerPluginS3
-};

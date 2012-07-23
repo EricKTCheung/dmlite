@@ -11,6 +11,8 @@
 #include <dmlite/cpp/dummy/Dummy.h>
 #include <dmlite/cpp/utils/dm_urls.h>
 
+#include "S3Factory.h"
+
 #include "s3driver.h"
 #include "s3objects.pb.h"
 
@@ -19,7 +21,7 @@ namespace dmlite {
 /// PoolDriver
 class S3PoolDriver: public PoolDriver {
 public:
-  S3PoolDriver(std::string host, std::string bucket, std::string s3AccessKeyID, std::string s3SecretAccessKey) throw (DmException);
+  S3PoolDriver(S3Factory *factory) throw (DmException);
 
   ~S3PoolDriver();
   
@@ -33,26 +35,13 @@ private:
 
   StackInstance* stack; 
 
-  /// The S3 host to connect to.
-  std::string host_;
-
-  /// The bucket to use.
-  std::string bucketName_;
-
-  /// The Amazon Access ID.
-  std::string s3AccessKeyID_;
-  
-  /// The Secret Access Key.
-  std::string s3SecretAccessKey_;
-
-  /// The S3 Connection.
-  S3Driver s3connection_;
+  S3Factory*     factory_;
 };
 
 /// PoolHandler
 class S3PoolHandler: public PoolHandler {
 public:
-  S3PoolHandler(S3PoolDriver* driver, const std::string& poolName, StackInstance* si);
+  S3PoolHandler(S3Factory *factory, const std::string& poolName, StackInstance* si);
   ~S3PoolHandler();
 
   std::string getPoolType(void) throw (DmException);
@@ -78,9 +67,15 @@ public:
 
 
 private:
-  S3PoolDriver*  driver_;
+  S3Factory*     factory_;
+
+  std::string    bucket_;
+
+  /// The S3 Connection.
+  S3Driver*      conn_;
   std::string    poolName; 
   StackInstance* stack;  
+
 
   /// Check, if the replica exists on S3.
   /// If the replica has status 'Pending', it checks if the upload has
@@ -94,29 +89,6 @@ private:
 };
 
 /// IO Factory
-class S3Factory: public PoolDriverFactory {
-public:
-  S3Factory() throw (DmException);
-  void configure(const std::string& key, const std::string& value) throw (DmException);
-
-  std::string implementedPool() throw();
-  PoolDriver* createPoolDriver() throw (DmException);
-
-protected:
-
-private:
-  /// The S3 host to connect to.
-  std::string host_;
-
-  /// The bucket to use.
-  std::string bucketName_;
-
-  /// The Amazon Access ID.
-  std::string s3AccessKeyID_;
-  
-  /// The Secret Access Key.
-  std::string s3SecretAccessKey_;
-};
 
 };
 #endif	// S3_H
