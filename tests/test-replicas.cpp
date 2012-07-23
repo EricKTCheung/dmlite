@@ -1,7 +1,5 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <cstring>
-#include <sys/stat.h>
 #include "test-base.h"
 
 class TestReplicas: public TestBase
@@ -25,7 +23,7 @@ public:
     if (this->catalog != 0x00) {
       try {
         struct stat s = this->catalog->extendedStat(FILE).stat;
-        std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
+        std::vector<dmlite::Replica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
           this->catalog->deleteReplica(replicas[i]);
         }
@@ -51,15 +49,16 @@ public:
 
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.server,     "b.host.com");
-    strcpy(replica.rfn,        "http://a.host.com/replica");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "b.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
 
     this->catalog->addReplica(replica);
 
@@ -68,16 +67,16 @@ public:
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string("http://a.host.com/replica"),
                          std::string(replica.rfn));
-    CPPUNIT_ASSERT_EQUAL('-', replica.status);
-    CPPUNIT_ASSERT_EQUAL(std::string("the-fs"), std::string(replica.filesystem));
-    CPPUNIT_ASSERT_EQUAL(std::string("the-pool"), std::string(replica.pool));
+    CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kAvailable, replica.status);
+    CPPUNIT_ASSERT_EQUAL(std::string("the-fs"),     replica.getString("filesystem"));
+    CPPUNIT_ASSERT_EQUAL(std::string("the-pool"),   replica.getString("pool"));
     CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
 
     replica = this->catalog->getReplica("http://a.host.com/replica");
     
     this->catalog->deleteReplica(replica);
 
-    CPPUNIT_ASSERT_THROW(this->catalog->getReplicas(FILE), dmlite::DmException);
+    CPPUNIT_ASSERT_EQUAL(0ul, this->catalog->getReplicas(FILE).size());
   }
 
   void testAddNoHost()
@@ -86,14 +85,15 @@ public:
 
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.rfn,        "http://a.host.com/replica");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
 
     this->catalog->addReplica(replica);
 
@@ -113,31 +113,32 @@ public:
 
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.server,     "a.host.com");
-    strcpy(replica.rfn,        "http://a.host.com/replica");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "a.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
 
     this->catalog->addReplica(replica);
 
-    replica = this->catalog->getReplica("https://a.host.com/replica");
+    replica = this->catalog->getReplica("http://a.host.com/replica");
     
     replica.ltime  = 12348;
-    replica.status = 'D';
-    replica.type   = 'V';
+    replica.status = dmlite::Replica::kToBeDeleted;
+    replica.type   = dmlite::Replica::kVolatile;
     
     this->catalog->updateReplica(replica);
     
     replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
-    CPPUNIT_ASSERT_EQUAL('D', replica.status);
-    CPPUNIT_ASSERT_EQUAL('V', replica.type);
+    CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kToBeDeleted, replica.status);
+    CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kVolatile,    replica.type);
   }
 
   void testCachedEntries()
@@ -146,41 +147,45 @@ public:
 
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.server,     "b.host.com");
-    strcpy(replica.rfn,        "http://a.host.com/replica");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "b.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
 
     this->catalog->addReplica(replica);
 
     replica = this->catalog->getReplicas(FILE)[0];
-    FileReplica replicaCached = this->catalog->getReplicas(FILE)[0];
+    dmlite::Replica replicaCached = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)replicaCached.fileid, (unsigned)replica.fileid);
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.rfn),
                          std::string(replica.rfn));
     CPPUNIT_ASSERT_EQUAL(replicaCached.status, replica.status);
-    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.filesystem), std::string(replica.filesystem));
-    CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.pool), std::string(replica.pool));
     CPPUNIT_ASSERT_EQUAL(std::string(replicaCached.server), std::string(replica.server));
-
-    memset(&replica, 0, sizeof(FileReplica));
+    
+    CPPUNIT_ASSERT_EQUAL(replicaCached.getString("filesystem"),
+                         replica.getString("filesystem"));
+    CPPUNIT_ASSERT_EQUAL(replicaCached.getString("pool"),
+                         replica.getString("pool"));
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.server,     "b.host.com");
-    strcpy(replica.rfn,        "http://a.host.com/replica2");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "b.host.com";
+    replica.rfn    = "http://a.host.com/replica2";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
     
     this->catalog->addReplica(replica);
 
-    std::vector<FileReplica> replicaVector = this->catalog->getReplicas(FILE);
+    std::vector<dmlite::Replica> replicaVector = this->catalog->getReplicas(FILE);
 
     CPPUNIT_ASSERT_EQUAL(2, (int) replicaVector.size());
   }
@@ -191,15 +196,16 @@ public:
 
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
+    
     replica.fileid = s.st_ino;
-    strcpy(replica.server,     "a.host.com");
-    strcpy(replica.rfn,        "http://a.host.com/replica");
-    strcpy(replica.pool,       "the-pool");
-    strcpy(replica.filesystem, "the-fs");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "a.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    replica["pool"]       = std::string("the-pool");
+    replica["filesystem"] = std::string("the-fs");
 
     this->catalog->addReplica(replica);
 
@@ -207,16 +213,16 @@ public:
     replica = this->catalog->getReplicas(FILE)[0];
 
     replica.ltime  = 12348;
-    replica.status = 'D';
-    replica.type   = 'V';
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kVolatile;
     
     this->catalog->updateReplica(replica);
 
     replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
-    CPPUNIT_ASSERT_EQUAL('D', replica.status);
-    CPPUNIT_ASSERT_EQUAL('V', replica.type);
+    CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kAvailable, replica.status);
+    CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kVolatile,  replica.type);
   }
 
 
@@ -239,4 +245,3 @@ int main(int argn, char **argv)
 {
   return testBaseMain(argn, argv);
 }
-

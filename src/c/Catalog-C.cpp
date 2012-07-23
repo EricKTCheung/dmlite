@@ -5,9 +5,9 @@
 #include <dmlite/c/dmlite.h>
 #include <dmlite/c/dm_catalog.h>
 #include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/dm_exceptions.h>
-#include <dmlite/cpp/utils/dm_security.h>
-#include <dmlite/cpp/utils/dm_urls.h>
+#include <dmlite/cpp/exceptions.h>
+#include <dmlite/cpp/utils/authz.h>
+#include <dmlite/cpp/utils/urls.h>
 #include <set>
 #include <vector>
 

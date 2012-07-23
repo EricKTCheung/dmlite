@@ -52,14 +52,12 @@ struct xstat {
   char        csumvalue[SUMVALUE_MAX];
   char        acl      [ACL_ENTRIES_MAX * ACL_SIZE];
 };
-typedef struct xstat ExtendedStat;
 
 /** Symbolic links */
 struct symlink {
   ino_t inode;         /**< The file unique ID. */
   char  link[PATH_MAX]; /**< Where the link is pointing to. */
 };
-typedef struct symlink SymLink;
 
 /** File replica */
 struct filereplica {
@@ -77,7 +75,6 @@ struct filereplica {
   char       rfn       [URI_MAX];        /**< Replica file name*/
   uint8_t    priority;                   /**< 0 highest priority. */
 };
-typedef struct filereplica FileReplica;
 
 /** Used to hold a key-value pair */
 struct keyvalue {
@@ -106,14 +103,13 @@ struct url {
   char     path  [PATH_MAX];
   char     query [QUERY_MAX];
 };
-typedef struct url Url;
+typedef struct url xUrl;
 
 /** Pool */
 struct pool {
   char      pool_type[POOL_TYPE_MAX];
   char      pool_name[POOL_MAX];
 };
-typedef struct pool Pool;
 
 /** Struct to hold information about a user. */
 struct userinfo {
@@ -130,7 +126,6 @@ struct groupinfo {
   char  name[255];
   int   banned;
 };
-typedef struct groupinfo GroupInfo;
 
 /* Macros to keep strings coherent */
 #define CRED_MECH_NONE "NONE"
@@ -147,7 +142,6 @@ struct credentials {
 
   void*    cred_data;
 };
-typedef struct credentials Credentials;
 
 /* ACL masks */
 #define ACL_USER_OBJ  1
@@ -164,7 +158,6 @@ struct dm_acl {
   unsigned char perm;
   uint32_t      id;
 };
-typedef struct dm_acl Acl;
 
 /** Union to handle different types of values.
  * @note Pointers are owned by caller!
@@ -180,39 +173,5 @@ union value {
     const char *cstr;
   } array;
 };
-typedef union value Value;
-
-/** C++ helpers */
-#ifdef __cplusplus
-/// Operator < for UserInfo (needed for sets)
-inline bool operator < (const userinfo &a, const userinfo &b)
-{
-  return a.uid < b.uid;
-}
-
-/// Operator < for GroupInfo (needed for sets)
-inline bool operator < (const groupinfo &a, const groupinfo &b)
-{
-  return a.gid < b.gid;
-}
-
-// Wrap some structs to make handling easier
-class Location: public location {
-public:
-  Location();
-  Location(const Location&);
-  Location(const struct location&);
-  Location(const Url& url);
-  
-  /// @param npairs Number of key-value pairs following
-  /// @note The key-value pairs must be passed as key1, value1, key2, value2...
-  /// @example Location("localhost", "/", true, 2, "Key", "Value", "Key2", "Value2");
-  Location(const char* host, const char* path, bool available, unsigned npairs, ...);
-  ~Location();
-  
-  /// Operator =
-  const Location& operator = (const Location&);
-};
-#endif
 
 #endif	/* DMLITE_TYPES_H */

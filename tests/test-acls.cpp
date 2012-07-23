@@ -1,9 +1,25 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <sys/stat.h>
+#include <sstream>
 #include <vector>
 #include "test-base.h"
-#include "dmlite/cpp/utils/dm_security.h"
+#include "dmlite/cpp/utils/security.h"
+
+
+static bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)
+{
+  return a.serialize() == b.serialize();
+}
+
+
+
+static std::ostringstream& operator << (std::ostringstream& of, const dmlite::Acl& acl)
+{
+  of << acl.serialize();
+  return of;
+}
+
+
 
 class TestAcls: public TestBase
 {
@@ -12,7 +28,7 @@ protected:
   const static char *NESTED;
   const static char *FILE;
 
-  std::string ACL_STRING;
+  dmlite::Acl ACL;
 
   const dmlite::SecurityContext* ctx;
 
@@ -27,11 +43,11 @@ public:
     ctx = this->stackInstance->getSecurityContext();
 
     std::stringstream ss;
-    ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F50";
-    ACL_STRING = ss.str();
+    ss << "A7" << getUid(ctx) << ",C0" << getGid(ctx) << ",E70,F50";
+    ACL = dmlite::Acl(ss.str());
 
     this->catalog->makeDir(FOLDER, 0700);
-    this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ACL_STRING));
+    this->catalog->setAcl(FOLDER, ACL);
   }
 
   void tearDown()
@@ -47,60 +63,60 @@ public:
   
   void testAcl()
   {
-    ExtendedStat stat = this->catalog->extendedStat(FOLDER);
-    CPPUNIT_ASSERT_EQUAL(ACL_STRING,
-                         std::string(stat.acl));
+    dmlite::ExtendedStat stat = this->catalog->extendedStat(FOLDER);
+    CPPUNIT_ASSERT_EQUAL(ACL, stat.acl);
   }
 
   void testChown()
   {
-    this->catalog->setOwner(FOLDER, -1, ctx->getGroup(1).gid);
-    ExtendedStat stat = this->catalog->extendedStat(FOLDER);
-    std::vector<Acl> acls = dmlite::deserializeAcl(stat.acl);
+    this->catalog->setOwner(FOLDER, -1, getGid(ctx, 1));
+    dmlite::ExtendedStat stat = this->catalog->extendedStat(FOLDER);
 
-    CPPUNIT_ASSERT_EQUAL((size_t)4, acls.size());
+    CPPUNIT_ASSERT_EQUAL((size_t)4, stat.acl.size());
 
-    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ,  (int)acls[0].type);
-    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, acls[0].id);
-    CPPUNIT_ASSERT_EQUAL(7,             (int)acls[0].perm);
+    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUserObj, stat.acl[0].type);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx),                stat.acl[0].id);
+    CPPUNIT_ASSERT_EQUAL(7u,               (unsigned)stat.acl[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ,   (int)acls[1].type);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(1).gid, acls[1].id);
-    CPPUNIT_ASSERT_EQUAL(0,               (int)acls[1].perm);
+    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroupObj, stat.acl[1].type);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 1),              stat.acl[1].id);
+    CPPUNIT_ASSERT_EQUAL(0u,                (unsigned)stat.acl[1].perm);
   }
 
   void testChmod()
   {
     this->catalog->setMode(FOLDER, 0555);
-    ExtendedStat stat = this->catalog->extendedStat(FOLDER);
-    std::vector<Acl> acls = dmlite::deserializeAcl(stat.acl);
+    dmlite::ExtendedStat stat = this->catalog->extendedStat(FOLDER);
 
-    CPPUNIT_ASSERT_EQUAL((size_t)4, acls.size());
+    CPPUNIT_ASSERT_EQUAL((size_t)4, stat.acl.size());
 
-    CPPUNIT_ASSERT_EQUAL(ACL_USER_OBJ,  (int)acls[0].type);
-    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, acls[0].id);
-    CPPUNIT_ASSERT_EQUAL(5,             (int)acls[0].perm);
+    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUserObj, stat.acl[0].type);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx),                stat.acl[0].id);
+    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(ACL_GROUP_OBJ,   (int)acls[1].type);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup(0).gid, acls[1].id);
-    CPPUNIT_ASSERT_EQUAL(5,               (int)acls[1].perm);
+    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroupObj, stat.acl[1].type);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 0),             stat.acl[1].id);
+    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[1].perm);
 
-    CPPUNIT_ASSERT_EQUAL(ACL_OTHER, (int)acls[3].type);
-    CPPUNIT_ASSERT_EQUAL(5,         (int)acls[3].perm);
+    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kOther, stat.acl[3].type);
+    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[3].perm);
   }
 
   void testInherit()
   {
     // Set default ACL's
-    this->catalog->setAcl(FOLDER, dmlite::deserializeAcl("A70,C00,E70,F50,a60,c50,f00"));
+    dmlite::Acl parentAcl("A70,C00,E70,F50,a60,c50,f00");
+    this->catalog->setAcl(FOLDER, parentAcl);
+    dmlite::ExtendedStat parent = this->catalog->extendedStat(FOLDER);
+    
     // Make dir
     this->catalog->makeDir(NESTED, 0700);
-    ExtendedStat stat = this->catalog->extendedStat(NESTED);
+    dmlite::ExtendedStat stat = this->catalog->extendedStat(NESTED);
 
     // Assert resulting ACL
-    std::stringstream acl;
-    acl << "A6" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",F00,a60,c50,f00";
-    CPPUNIT_ASSERT_EQUAL(acl.str(), std::string(stat.acl));
+    std::stringstream aclStr;
+    aclStr << "A6" << getUid(ctx) << ",C0" << getGid(ctx) << ",F00,a60,c50,f00";
+    CPPUNIT_ASSERT_EQUAL(dmlite::Acl(aclStr.str()), stat.acl);
   }
 
   CPPUNIT_TEST_SUITE(TestAcls);

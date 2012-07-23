@@ -3,7 +3,7 @@
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <dmlite/c/dmlite.h>
 #include <dmlite/c/dm_io.h>
-#include <dmlite/cpp/dm_io.h>
+#include <dmlite/cpp/io.h>
 #include <fcntl.h>
 #include <map>
 #include "Private.h"

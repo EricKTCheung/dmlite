@@ -1,13 +1,13 @@
-/// @file   include/dmlite/dm_exceptions.h
+/// @file   include/dmlite/cpp/exceptions.h
 /// @brief  Exceptions used by the API
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#ifndef DMLITEPP_EXCEPTIONS_H
-#define	DMLITEPP_EXCEPTIONS_H
+#ifndef DMLITE_CPP_EXCEPTIONS_H
+#define DMLITE_CPP_EXCEPTIONS_H
 
 #include <cstdarg>
 #include <exception>
 #include <string>
-#include "../common/dm_errno.h"
+#include "../common/errno.h"
 
 namespace dmlite {
 
@@ -32,9 +32,8 @@ protected:
   std::string errorMsg_;
 
   void setMessage(const char* fmt, va_list args);
-private:
 };
 
 };
 
-#endif	// DMLITEPP_EXCEPTIONS_H
+#endif // DMLITE_CPP_EXCEPTIONS_H

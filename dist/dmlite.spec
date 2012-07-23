@@ -12,9 +12,11 @@ URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+BuildRequires:	boost141-devel
 BuildRequires:	cmake
 BuildRequires:	cppunit-devel
 BuildRequires:	doxygen
+BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 
 %description

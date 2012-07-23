@@ -1,15 +1,15 @@
-/// @file    common/Security.cpp
+/// @file    utils/Security.cpp
 /// @brief   Security functionality shared between modules.
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <dmlite/common/dm_config.h>
-#include <dmlite/common/dm_errno.h>
-#include <dmlite/cpp/dm_auth.h>
-#include <dmlite/cpp/dm_exceptions.h>
-#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/common/config.h>
+#include <dmlite/common/errno.h>
+#include <dmlite/cpp/authn.h>
+#include <dmlite/cpp/exceptions.h>
+#include <dmlite/cpp/utils/security.h>
 #include <map>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -27,30 +27,287 @@ struct MapFileEntry {
 
 
 
+Acl::Acl() throw ()
+{
+  
+}
+
+
+
+Acl::Acl(const std::string& aclStr) throw ()
+{
+  AclEntry acl;
+
+  size_t i = 0;
+  while (i < aclStr.length()) {
+    acl.type = static_cast<AclEntry::AclType>(aclStr[i++] - '@');
+    acl.perm = aclStr[i++] - '0';
+    acl.id   = atoi(aclStr.c_str() + i);
+    this->push_back(acl);
+    if ((i = aclStr.find(',', i)) != std::string::npos)
+      ++i;
+  }
+}
+
+
+
+Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) throw ()
+{
+  bool thereIsMask = parent.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kMask));
+  Acl::const_iterator i;
+
+  // If directory, or default mask
+  if (thereIsMask || S_ISDIR(*fmode)) {
+    AclEntry entry;
+   
+    for (i = parent.begin(); i != parent.end(); ++i) {
+      if (i->type & AclEntry::kDefault) {
+        entry.id   = i->id;
+        entry.type = static_cast<AclEntry::AclType>(i->type & ~AclEntry::kDefault);
+
+        switch (i->type) {
+          case AclEntry::kDefault | AclEntry::kUserObj:
+            *fmode     = (*fmode & 0177077) | (cmode & i->perm << 6);
+            entry.id   = uid;
+            entry.perm = i->perm & (cmode >> 6 & 7);
+            break;
+          case AclEntry::kDefault | AclEntry::kGroupObj:
+            *fmode     = (*fmode & 0177707) | (cmode & i->perm << 3);
+            entry.id   = gid;
+            entry.perm = i->perm & (cmode >> 3 & 7);
+            break;
+          case AclEntry::kDefault | AclEntry::kOther:
+            *fmode     = (*fmode & 0177770) | (cmode & i->perm);
+            entry.perm = i->perm & (cmode & 7);
+            break;
+          default:
+            break;
+        }
+
+        this->push_back(entry);
+        this->push_back(*i); // Need to copy defaults
+      }
+    }
+  }
+  // Else, just set the mode
+  else {
+    for (i = parent.begin(); i != parent.end(); ++i) {
+      switch (i->type) {
+        case AclEntry::kDefault | AclEntry::kUserObj:
+          *fmode   = (*fmode & 0177077) | (cmode & i->perm << 6);
+          break;
+        case AclEntry::kDefault | AclEntry::kGroupObj:
+          *fmode   = (*fmode & 0177707) | (cmode & i->perm << 3);
+          break;
+        case AclEntry::kDefault | AclEntry::kOther:
+          *fmode   = (*fmode & 0177770) | (cmode & i->perm);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+}
+
+
+
+int Acl::has(AclEntry::AclType type) const throw ()
+{
+  for (unsigned i = 0; i < this->size(); ++i) {
+    if ((*this)[i].type == type)
+      return i;
+  }  
+  return -1;
+}
+
+
+
+static bool aclCompare(const AclEntry& a, const AclEntry& b)
+{
+  return a.type < b.type;
+}
+
+
+
+std::string Acl::serialize() const throw ()
+{
+  // First, we need a sorted copy of acls by type
+  Acl copy(*this);
+  std::sort(copy.begin(), copy.end(), aclCompare);
+
+  // Build the ACL string from the sorted
+  std::stringstream aclStr;
+  size_t            i;
+
+  for (i = 0; i < copy.size(); ++i) {
+    aclStr << (char)('@' + copy[i].type)
+           << (char)('0' + copy[i].perm)
+           << copy[i].id;
+
+    if (i + 1 < copy.size())
+      aclStr <<  ',';
+  }
+
+  // Return
+  return aclStr.str();
+}
+
+
+
+void Acl::validate() const throw (DmException)
+{
+  if (this->empty())
+    return;
+
+  int ndefs = 0;
+  int ndg = 0;
+  int ndgo = 0;
+  int ndm = 0;
+  int ndo = 0;
+  int ndu = 0;
+  int nduo = 0;
+  int ng = 0;
+  int ngo = 0;
+  int nm = 0;
+  int no = 0;
+  int nu = 0;
+  int nuo = 0;
+  Acl::const_iterator i;
+
+  for (i = this->begin(); i != this->end(); ++i) {
+    switch (i->type) {
+      case AclEntry::kUserObj:
+        nuo++;
+        break;
+      case AclEntry::kUser:
+        nu++;
+        break;
+      case AclEntry::kGroupObj:
+        ngo++;
+        break;
+      case AclEntry::kGroup:
+        ng++;
+        break;
+      case AclEntry::kMask:
+        nm++;
+        break;
+      case AclEntry::kOther:
+        no++;
+        break;
+      case AclEntry::kDefault | AclEntry::kUserObj:
+        ndefs++;
+        nduo++;
+        break;
+      case AclEntry::kDefault | AclEntry::kUser:
+        ndefs++;
+        ndu++;
+        break;
+      case AclEntry::kDefault | AclEntry::kGroupObj:
+        ndefs++;
+        ndgo++;
+        break;
+      case AclEntry::kDefault | AclEntry::kGroup:
+        ndefs++;
+        ndg++;
+        break;
+      case AclEntry::kDefault | AclEntry::kMask:
+        ndefs++;
+        ndm++;
+        break;
+      case AclEntry::kDefault | AclEntry::kOther:
+        ndefs++;
+        ndo++;
+        break;
+      default:
+        throw DmException(DM_INVALID_ACL, "Invalid ACL type: %c", i->type);
+    }
+    // Check perm
+    if (i->perm > 7)
+      throw DmException(DM_INVALID_ACL, "Invalid permission: %d", i->perm);
+
+    // Check it isn't duplicated
+    if (i != this->begin()) {
+      if (i->type == (i - 1)->type && i->id == (i - 1)->id)
+        throw DmException(DM_INVALID_ACL, "Duplicated USER or GROUP entry: %c%d", i->type, i->id);
+    }
+  }
+
+  // There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER
+  if (nuo != 1 || ngo != 1 || no != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER");
+  
+  // If there is any USER or GROUP entry, there must be a MASK entry
+  if ((nu || ng) && nm != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "If there is any USER or GROUP entry, there must be a MASK entry");
+
+  // If there are any default ACL entries, there must be one and only one
+  // entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER
+  if (ndefs && (nduo != 1 || ndgo != 1 || ndo != 1))
+    throw DmException(DM_INVALID_ACL,
+                      "If there are any default ACL entries, there must be one and only one entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER");
+
+  if ((ndu || ndg) && ndm != 1)
+    throw DmException(DM_INVALID_ACL,
+                      "If there is any default USER or default GROUP entry, there must be a default MASK entry");
+}
+
+
+
+static bool hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
+{
+  std::vector<GroupInfo>::const_iterator i;
+  for (i = groups.begin(); i != groups.end(); ++i) {
+    gid_t g = i->getUnsigned("gid");
+    long  banned;
+    if (i->hasField("banned"))
+      banned = i->getLong("banned");
+    else
+      banned = 0;
+    
+    if (g == gid && !banned)
+      return true;
+  }
+  
+  return false;
+}
+
+
+
 int dmlite::checkPermissions(const SecurityContext* context,
-                             const std::string& acl, const struct stat &stat,
+                             const Acl& acl, const struct stat &stat,
                              mode_t mode)
 {
-  size_t      iacl, p;
-  char        aclMask = 0x7F;
-  uid_t       aclId;
-  int         accPerm;
-  int         nGroups = 0;
+  unsigned iacl;
+  uint8_t  aclMask = 0x7F;
+  uid_t    aclId;
+  int      accPerm;
+  int      nGroups = 0;
   
   // If Context is NULL, die badly
   if (context == 0)
     throw DmException(DM_INVALID_VALUE, "Security context not initialized!!");
+  
+  // Extract used metadata
+  uid_t uid = context->user.getUnsigned("uid");
+  long banned;
+  
+  if (context->user.hasField("banned"))
+    banned = context->user.getLong("banned");
+  else
+    banned = 0; // Assume not banned
 
   // Root can do anything
-  if (context->getUser().uid == 0)
+  if (uid == 0)
     return 0;
 
   // Banned user, rejected
-  if (context->getUser().banned)
+  if (banned)
     return 1;
 
   // Check user. If owner, straigh-forward.
-  if (stat.st_uid == context->getUser().uid)
+  if (stat.st_uid == uid)
     return ((stat.st_mode & mode) != mode);
 
   // There is no ACL's?
@@ -58,7 +315,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
     // The user is not the owner
     mode >>= 3;
     // Belong to the group?
-    if (!context->hasGroup(stat.st_gid))
+    if (!hasGroup(context->groups, stat.st_gid))
       mode >>= 3;
 
     return ((stat.st_mode & mode) != mode);
@@ -68,49 +325,42 @@ int dmlite::checkPermissions(const SecurityContext* context,
   // Adapted from Cns_acl.c
 
   // Get ACL_MASK if any
-  if ((iacl = acl.find(ACL_MASK|'@')) != std::string::npos)
-    aclMask =  acl[iacl + 1] - '0';
+  if ((iacl = acl.has(AclEntry::kMask) != -1))
+    aclMask =  acl[iacl].perm;
   mode >>= 6;
 
   // check ACL_USER entries if any
-  iacl = 0;
-  for (iacl = 0; iacl != std::string::npos; iacl = p)
+  for (iacl = 0; iacl < acl.size(); ++iacl)
   {
-    if (acl[iacl] - '@' > ACL_USER)
+    if (acl[iacl].type > AclEntry::kUser)
       break;
-    p = acl.find(',', iacl);
-    if (p != std::string::npos)
-      p++;
-    if (acl[iacl] - '@' < ACL_USER)
+    if (acl[iacl].type < AclEntry::kUser)
       continue;
-    aclId = atoi(acl.substr(iacl + 2).c_str());
-    if (context->getUser().uid == aclId)
-      return ((acl[iacl + 1] & aclMask & mode) != mode);
-    if (context->getUser().uid < aclId)
+    aclId = acl[iacl].id;
+    if (uid == aclId)
+      return ((acl[iacl].perm & aclMask & mode) != mode);
+    if (uid < aclId)
       break;
   }
 
   // Check GROUP
-  iacl = acl.find(ACL_GROUP_OBJ|'@', iacl);
-  if (context->hasGroup(stat.st_gid)) {
-    accPerm = acl[iacl + 1];
+  iacl = acl.has(AclEntry::kGroupObj);
+  if (hasGroup(context->groups, stat.st_gid)) {
+    accPerm = acl[iacl].perm;
     nGroups++;
     if (aclMask == 0x7F) // no extended ACLs
       return ((accPerm & aclMask & mode) != mode);
   }
 
   // Check ACL_GROUP entries if any
-  for ( ; iacl != std::string::npos; iacl = p) {
-    if (acl[iacl] - '@' > ACL_GROUP)
+  for ( ; iacl < acl.size(); ++iacl) {
+    if (acl[iacl].type > AclEntry::kGroup)
       break;
-    p = acl.find(',', iacl);
-    if (p != std::string::npos)
-      p++;
-    if (acl[iacl] - '@' < ACL_GROUP)
+    if (acl[iacl].type < AclEntry::kGroup)
       continue;
-    aclId = atoi (acl.substr(iacl + 2).c_str());
-    if (context->hasGroup(aclId)) {
-      accPerm |= acl[iacl + 1];
+    aclId = acl[iacl].id;
+    if (hasGroup(context->groups, aclId)) {
+      accPerm |= acl[iacl].perm;
       nGroups++;
     }
   }
@@ -231,6 +481,7 @@ std::string dmlite::voFromRole(const std::string& role)
 }
 
 
+
 // This hack allows to parse only once the file
 static std::string initHostDN(void)
 {
@@ -264,230 +515,6 @@ std::string dmlite::getHostDN(void)
 {
   static const std::string hostDN = initHostDN();
   return hostDN;
-}
-
-
-
-std::vector<Acl> dmlite::deserializeAcl(const std::string& aclStr)
-{
-  std::vector<Acl> acls;
-  Acl              acl;
-
-  size_t i = 0;
-  while (i < aclStr.length()) {
-    acl.type = aclStr[i++] - '@';
-    acl.perm = aclStr[i++] - '0';
-    acl.id   = atoi(aclStr.c_str() + i);
-    acls.push_back(acl);
-    if ((i = aclStr.find(',', i)) != std::string::npos)
-      ++i;
-  }
-
-  return acls;
-}
-
-
-
-static bool aclCompare(const Acl& a, const Acl& b)
-{
-  return a.type < b.type;
-}
-
-
-
-std::string dmlite::serializeAcl(const std::vector<Acl>& acls)
-{
-  // First, we need a sorted copy of acls by type
-  std::vector<Acl> copy(acls);
-  std::sort(copy.begin(), copy.end(), aclCompare);
-
-  // Build the ACL string from the sorted
-  std::stringstream aclStr;
-  size_t            i;
-
-  for (i = 0; i < copy.size(); ++i) {
-    aclStr << (char)('@' + copy[i].type)
-           << (char)('0' + copy[i].perm)
-           << copy[i].id;
-
-    if (i + 1 < copy.size())
-      aclStr <<  ',';
-  }
-
-  // Return
-  return aclStr.str();
-}
-
-
-
-void dmlite::validateAcl(const std::string& acl) throw (DmException)
-{
-  dmlite::validateAcl(dmlite::deserializeAcl(acl));
-}
-
-
-
-void dmlite::validateAcl(const std::vector<Acl>& acls) throw (DmException)
-{
-  if (acls.empty())
-    return;
-
-  int ndefs = 0;
-  int ndg = 0;
-  int ndgo = 0;
-  int ndm = 0;
-  int ndo = 0;
-  int ndu = 0;
-  int nduo = 0;
-  int ng = 0;
-  int ngo = 0;
-  int nm = 0;
-  int no = 0;
-  int nu = 0;
-  int nuo = 0;
-  std::vector<Acl>::const_iterator i;
-
-  for (i = acls.begin(); i != acls.end(); ++i) {
-    switch (i->type) {
-      case ACL_USER_OBJ:
-        nuo++;
-        break;
-      case ACL_USER:
-        nu++;
-        break;
-      case ACL_GROUP_OBJ:
-        ngo++;
-        break;
-      case ACL_GROUP:
-        ng++;
-        break;
-      case ACL_MASK:
-        nm++;
-        break;
-      case ACL_OTHER:
-        no++;
-        break;
-      case ACL_DEFAULT | ACL_USER_OBJ:
-        ndefs++;
-        nduo++;
-        break;
-      case ACL_DEFAULT | ACL_USER:
-        ndefs++;
-        ndu++;
-        break;
-      case ACL_DEFAULT | ACL_GROUP_OBJ:
-        ndefs++;
-        ndgo++;
-        break;
-      case ACL_DEFAULT | ACL_GROUP:
-        ndefs++;
-        ndg++;
-        break;
-      case ACL_DEFAULT | ACL_MASK:
-        ndefs++;
-        ndm++;
-        break;
-      case ACL_DEFAULT | ACL_OTHER:
-        ndefs++;
-        ndo++;
-        break;
-      default:
-        throw DmException(DM_INVALID_ACL, "Invalid ACL type: %c", i->type);
-    }
-    // Check perm
-    if (i->perm > 7)
-      throw DmException(DM_INVALID_ACL, "Invalid permission: %d", i->perm);
-
-    // Check it isn't duplicated
-    if (i != acls.begin()) {
-      if (i->type == (i - 1)->type && i->id == (i - 1)->id)
-        throw DmException(DM_INVALID_ACL, "Duplicated USER or GROUP entry: %c%d", i->type, i->id);
-    }
-  }
-
-  // There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER
-  if (nuo != 1 || ngo != 1 || no != 1)
-    throw DmException(DM_INVALID_ACL,
-                      "There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER");
-  
-  // If there is any USER or GROUP entry, there must be a MASK entry
-  if ((nu || ng) && nm != 1)
-    throw DmException(DM_INVALID_ACL,
-                      "If there is any USER or GROUP entry, there must be a MASK entry");
-
-  // If there are any default ACL entries, there must be one and only one
-  // entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER
-  if (ndefs && (nduo != 1 || ndgo != 1 || ndo != 1))
-    throw DmException(DM_INVALID_ACL,
-                      "If there are any default ACL entries, there must be one and only one entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER");
-
-  if ((ndu || ndg) && ndm != 1)
-    throw DmException(DM_INVALID_ACL,
-                      "If there is any default USER or default GROUP entry, there must be a default MASK entry");
-}
-
-
-
-std::vector<Acl> dmlite::inheritAcl(const std::vector<Acl>& parentAcl, uid_t uid, gid_t gid, mode_t* fmode, mode_t mode)
-{
-  std::vector<Acl> childAcl;
-  std::vector<Acl>::const_iterator i;
-  bool thereIsMask = false;
-
-  // Search for the mask
-  for (i = parentAcl.begin(); i != parentAcl.end() && !thereIsMask; ++i) {
-    thereIsMask = (i->type == (ACL_DEFAULT | ACL_MASK));
-  }
-
-  // If directory, or default mask
-  if (thereIsMask || S_ISDIR(*fmode)) {
-    Acl acl;
-    
-    for (i = parentAcl.begin(); i != parentAcl.end(); ++i) {
-      if (i->type & ACL_DEFAULT) {
-        acl.id   = i->id;
-        acl.type = i->type & ~ACL_DEFAULT;
-
-        switch (i->type) {
-          case ACL_DEFAULT | ACL_USER_OBJ:
-            *fmode   = (*fmode & 0177077) | (mode & i->perm << 6);
-            acl.id   = uid;
-            acl.perm = i->perm & (mode >> 6 & 7);
-            break;
-          case ACL_DEFAULT | ACL_GROUP_OBJ:
-            *fmode   = (*fmode & 0177707) | (mode & i->perm << 3);
-            acl.id   = gid;
-            acl.perm = i->perm & (mode >> 3 & 7);
-            break;
-          case ACL_DEFAULT | ACL_OTHER:
-            *fmode   = (*fmode & 0177770) | (mode & i->perm);
-            acl.perm = i->perm & (mode & 7);
-            break;
-        }
-
-        childAcl.push_back(acl);
-        childAcl.push_back(*i); // Need to copy defaults
-      }
-    }
-  }
-  // Else, just set the mode
-  else {
-    for (i = parentAcl.begin(); i != parentAcl.end(); ++i) {
-      switch (i->type) {
-        case ACL_DEFAULT | ACL_USER_OBJ:
-          *fmode   = (*fmode & 0177077) | (mode & i->perm << 6);
-          break;
-        case ACL_DEFAULT | ACL_GROUP_OBJ:
-          *fmode   = (*fmode & 0177707) | (mode & i->perm << 3);
-          break;
-        case ACL_DEFAULT | ACL_OTHER:
-          *fmode   = (*fmode & 0177770) | (mode & i->perm);
-          break;
-      }
-    }
-  }
-
-  return childAcl;
 }
 
 
@@ -547,7 +574,9 @@ std::string dmlite::generateToken(const std::string& id, const std::string& pfn,
 
 
 
-bool dmlite::validateToken(const std::string& token, const std::string& id, const std::string& pfn, const std::string& passwd, bool write)
+TokenResult dmlite::validateToken(const std::string& token, const std::string& id,
+                                  const std::string& pfn,
+                                  const std::string& passwd, bool write)
 {
   char     buffer1[1024];
   char     buffer2[1024];
@@ -558,7 +587,7 @@ bool dmlite::validateToken(const std::string& token, const std::string& id, cons
   // Search for '='
   size_t separator = token.find('@');
   if (separator == std::string::npos)
-    return false;
+    return kTokenMalformed;
 
   // Grab expiration and write mode
   sscanf(token.c_str() + separator + 1, "%ld@%d", &expires, &tokenForWrite);
@@ -573,13 +602,16 @@ bool dmlite::validateToken(const std::string& token, const std::string& id, cons
 
   // Compare validation strings
   if (strncmp(buffer1, token.c_str(), outl) != 0)
-    return false;
+    return kTokenInvalid;
 
   // Expiration and mode
-  if ((expires < time(NULL)) || (write && !tokenForWrite)) {
-    return false;
-  }
+  if ((expires < time(NULL)))
+    return kTokenExpired;
+  
+  if (write && !tokenForWrite)
+    return kTokenInvalidMode;
 
   // We are good!
-  return true;
+  return kTokenOK;
 }
+

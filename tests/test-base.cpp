@@ -2,24 +2,23 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <iostream>
-#include <cstdlib>
-#include <cstring>
 #include "test-base.h"
-#include <stdlib.h>
 
-const char* TestBase::config             = 0x00;
-const char* TestBase::TEST_USER          = "/C=CH/O=CERN/OU=GD/CN=Test user 0";
-unsigned    TestBase::TEST_USER_NGROUPS  = 2;
-const char* TestBase::TEST_USER_GROUPS[] = {"dteam", "org.glite.voms-test"};
-
-const char* TestBase::TEST_USER_2          = "/C=CH/O=CERN/OU=GD/CN=Test user 1";
-unsigned    TestBase::TEST_USER_2_NGROUPS  = 1;
-const char* TestBase::TEST_USER_2_GROUPS[] = {"atlas"};
+std::string                    TestBase::config("");
 
 
-TestBase::TestBase(): pluginManager(0x00), catalog(0x00)
+
+TestBase::TestBase(): pluginManager(0x00), catalog(0x00),
+  TEST_USER("/C=CH/O=CERN/OU=GD/CN=Test user 0"),
+  TEST_USER_2("/C=CH/O=CERN/OU=GD/CN=Test user 1")
 {
   const char *testHome;
+  
+  // Populate groups
+  TEST_USER_GROUPS.push_back("dteam");
+  TEST_USER_GROUPS.push_back("org.glite.voms-test");
+  
+  TEST_USER_2_GROUPS.push_back("atlas");
 
   // Get the test root directory
   if ((testHome = getenv("DPNS_HOME")) != NULL)
@@ -30,12 +29,12 @@ TestBase::TestBase(): pluginManager(0x00), catalog(0x00)
     throw dmlite::DmException(DM_INVALID_VALUE,
                               "Could not guess the test directory. Try setting DPNS_HOME or LFC_HOME");
 
-  memset(&cred1, 0x00, sizeof(cred1));
-  memset(&cred2, 0x00, sizeof(cred2));
-
-  root.resizeGroup(1);
-  root.getUser().uid   = 0;
-  root.getGroup(0).gid = 0;
+  dmlite::GroupInfo group;
+  group.name   = "root";
+  group["gid"] = 0u;
+  
+  root.user["uid"] = 0u;
+  root.groups.push_back(group);
 }
 
 
@@ -53,16 +52,14 @@ void TestBase::setUp()
   catalog = stackInstance->getCatalog();
 
   // Credentials 1
-  this->cred1.client_name = TEST_USER;
-  this->cred1.fqans       = TEST_USER_GROUPS;
-  this->cred1.nfqans      = TEST_USER_NGROUPS;
-  this->cred1.mech        = CRED_MECH_NONE;
+  this->cred1.clientName = TEST_USER;
+  this->cred1.fqans      = TEST_USER_GROUPS;
+  this->cred1.mech       = "NONE";
 
   // Credentials 2
-  this->cred2.client_name = TEST_USER_2;
-  this->cred2.fqans       = TEST_USER_2_GROUPS;
-  this->cred2.nfqans      = TEST_USER_2_NGROUPS;
-  this->cred2.mech        = CRED_MECH_NONE;
+  this->cred2.clientName = TEST_USER_2;
+  this->cred2.fqans      = TEST_USER_2_GROUPS;
+  this->cred2.mech       = "NONE";
 
   // Change dir
   this->catalog->changeDir(BASE_DIR);
@@ -92,5 +89,5 @@ int testBaseMain(int argn, char **argv)
   CppUnit::TextUi::TestRunner runner;
   CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
   runner.addTest( registry.makeTest() );
-  return runner.run()?0:-1;
+  return runner.run()?0:1;
 }

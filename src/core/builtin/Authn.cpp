@@ -1,51 +1,51 @@
-/// @file     core/builtin/UserGroupDb.cpp
+/// @file     core/builtin/Authn.cpp
 /// @brief    User and group mapping using the system's ones.
-/// @detailed This will be used by default when no other UserGroupDb
+/// @detailed This will be used by default when no other Authn
 ///           implementeation is loaded.
 /// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
-#include <dmlite/cpp/utils/dm_security.h>
+#include <dmlite/cpp/utils/security.h>
 #include <grp.h>
 #include <pwd.h>
-#include "UserGroupDb.h"
+#include "Authn.h"
 
 using namespace dmlite;
 
 
 
-BuiltInUserGroupDb::BuiltInUserGroupDb()
+BuiltInAuthn::BuiltInAuthn()
 {
   // Nothing
 }
 
 
 
-BuiltInUserGroupDb::~BuiltInUserGroupDb()
+BuiltInAuthn::~BuiltInAuthn()
 {
   // Nothing
 }
 
 
 
-std::string BuiltInUserGroupDb::getImplId() throw ()
+std::string BuiltInAuthn::getImplId() const throw ()
 {
-  return std::string("BuiltInUserGroupDb");
+  return std::string("BuiltInAuthn");
 }
 
 
 
-SecurityContext* BuiltInUserGroupDb::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
+SecurityContext* BuiltInAuthn::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
   UserInfo user;
   std::vector<GroupInfo> groups;
 
-  this->getIdMap(cred.getClientName(), cred.getFqans(), &user, &groups);
+  this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
   return new SecurityContext(cred, user, groups);
 }
 
 
 
-GroupInfo BuiltInUserGroupDb::getGroup(gid_t gid) throw (DmException)
+GroupInfo BuiltInAuthn::getGroup(gid_t gid) throw (DmException)
 {
   struct group  grp;
   struct group *result;
@@ -58,16 +58,16 @@ GroupInfo BuiltInUserGroupDb::getGroup(gid_t gid) throw (DmException)
   
   GroupInfo gi;
   
-  gi.banned = 0;
-  gi.gid    = result->gr_gid;
-  strncpy(gi.name, result->gr_name, sizeof(gi.name));
+  gi["banned"] = 0;
+  gi["gid"]    = result->gr_gid;
+  gi.name      = result->gr_name;
   
   return gi;
 }
 
 
 
-GroupInfo BuiltInUserGroupDb::getGroup(const std::string& groupName) throw (DmException)
+GroupInfo BuiltInAuthn::getGroup(const std::string& groupName) throw (DmException)
 {
   struct group  grp;
   struct group *result;
@@ -80,16 +80,16 @@ GroupInfo BuiltInUserGroupDb::getGroup(const std::string& groupName) throw (DmEx
   
   GroupInfo gi;
   
-  gi.banned = 0;
-  gi.gid    = result->gr_gid;
-  strncpy(gi.name, result->gr_name, sizeof(gi.name));
+  gi["banned"] = 0;
+  gi["gid"]    = result->gr_gid;
+  gi.name      = result->gr_name;
   
   return gi;
 }
 
 
 
-UserInfo BuiltInUserGroupDb::getUser(const std::string& userName, gid_t* group) throw (DmException)
+UserInfo BuiltInAuthn::getUser(const std::string& userName, gid_t* group) throw (DmException)
 {
   struct passwd  pwd;
   struct passwd *result;
@@ -102,9 +102,9 @@ UserInfo BuiltInUserGroupDb::getUser(const std::string& userName, gid_t* group) 
   
   UserInfo ui;
   
-  ui.banned = 0;
-  ui.uid    = result->pw_uid;
-  strncpy(ui.name, result->pw_name, sizeof(ui.name));
+  ui["banned"] = 0;
+  ui["uid"]    = result->pw_uid;
+  ui.name      = result->pw_name;
   
   *group = result->pw_gid;
   
@@ -113,7 +113,7 @@ UserInfo BuiltInUserGroupDb::getUser(const std::string& userName, gid_t* group) 
 
 
 
-UserInfo BuiltInUserGroupDb::getUser(const std::string& userName) throw (DmException)
+UserInfo BuiltInAuthn::getUser(const std::string& userName) throw (DmException)
 {
   gid_t ignore;
   return this->getUser(userName, &ignore);
@@ -121,21 +121,21 @@ UserInfo BuiltInUserGroupDb::getUser(const std::string& userName) throw (DmExcep
 
 
 
-GroupInfo BuiltInUserGroupDb::newGroup(const std::string& gname) throw (DmException)
+GroupInfo BuiltInAuthn::newGroup(const std::string& gname) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "newGroup not supported in BuiltInuserGroupDb");
+  throw DmException(DM_NOT_IMPLEMENTED, "newGroup not supported in BuiltInAuthn");
 }
 
 
 
-UserInfo BuiltInUserGroupDb::newUser(const std::string& uname, const std::string& ca) throw (DmException)
+UserInfo BuiltInAuthn::newUser(const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "newUser not supported in BuiltInuserGroupDb");
+  throw DmException(DM_NOT_IMPLEMENTED, "newUser not supported in BuiltInAuthn");
 }
 
 
 
-void BuiltInUserGroupDb::getIdMap(const std::string& userName,
+void BuiltInAuthn::getIdMap(const std::string& userName,
                                   const std::vector<std::string>& groupNames,
                                   UserInfo* user,
                                   std::vector<GroupInfo>* groups) throw (DmException)
@@ -166,21 +166,21 @@ void BuiltInUserGroupDb::getIdMap(const std::string& userName,
 
 
 
-BuiltInUserGroupDbFactory::BuiltInUserGroupDbFactory()
+BuiltInAuthnFactory::BuiltInAuthnFactory()
 {
   // Nothing
 }
 
 
 
-BuiltInUserGroupDbFactory::~BuiltInUserGroupDbFactory()
+BuiltInAuthnFactory::~BuiltInAuthnFactory()
 {
   // Nothing
 }
 
 
 
-void BuiltInUserGroupDbFactory::configure(const std::string& key,
+void BuiltInAuthnFactory::configure(const std::string& key,
                                           const std::string& value) throw (DmException)
 {
   throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
@@ -188,7 +188,7 @@ void BuiltInUserGroupDbFactory::configure(const std::string& key,
 
 
 
-UserGroupDb* BuiltInUserGroupDbFactory::createUserGroupDb(PluginManager* pm) throw (DmException)
+Authn* BuiltInAuthnFactory::createAuthn(PluginManager* pm) throw (DmException)
 {
-  return new BuiltInUserGroupDb();
+  return new BuiltInAuthn();
 }
