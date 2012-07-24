@@ -24,7 +24,7 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # Find Boost 1.41
 set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
-set (Boost_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
+set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
 set (Boost_ADDITIONAL_VERSIONS "1.41" "1.41.0")
 
 find_package (Boost 1.41 REQUIRED)
@@ -34,15 +34,17 @@ if (Boost_FOUND)
   if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost141")
     message ("WARNING: Overriding Boost library location")
     set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost141/")
-    set (Boost_LIBRARIES "/usr/lib${LIB_SUFFIX}/boost141/libboost_regex.so")
   endif ()
 
   message ("Boost headers under: ${Boost_INCLUDE_DIR}")
-  message ("Boost libraries: ${Boost_LIBRARIES}")
+  message ("Boost libraries: ${Boost_LIBRARY_DIRS}")
 endif (Boost_FOUND)
 
 # Include path
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS})
+
+# Link path
+link_directories (${Boost_LIBRARY_DIRS})
 
 # Definitions
 add_definitions (-D_REENTRANT)
