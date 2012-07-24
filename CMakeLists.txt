@@ -27,7 +27,7 @@ set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
 set (Boost_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
 set (Boost_ADDITIONAL_VERSIONS "1.41" "1.41.0")
 
-find_package (Boost 1.41 COMPONENTS regex REQUIRED)
+find_package (Boost 1.41 REQUIRED)
 
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
