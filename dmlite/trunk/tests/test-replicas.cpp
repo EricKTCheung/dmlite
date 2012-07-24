@@ -76,7 +76,7 @@ public:
     
     this->catalog->deleteReplica(replica);
 
-    CPPUNIT_ASSERT_EQUAL(0ul, this->catalog->getReplicas(FILE).size());
+    CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)this->catalog->getReplicas(FILE).size());
   }
 
   void testAddNoHost()
