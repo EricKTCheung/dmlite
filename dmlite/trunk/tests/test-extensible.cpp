@@ -3,7 +3,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
-
+#include <cstring>
 #include <dmlite/cpp/utils/extensible.h>
 
 #define REMOVE_SPACES(str) str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
@@ -33,8 +33,10 @@ class TestExtensible: public CppUnit::TestFixture {
       CPPUNIT_ASSERT_EQUAL(std::string("else"), ext.getString("something"));
       
       // Put a char*, get a string
-      char *var = {"value"};
-      ext["second"] = var;
+      const char* cvar2 = "value";
+      char var[sizeof(cvar2)];
+      std::strcpy(var, cvar2);
+      ext["second"] = static_cast<char*>(var);
       CPPUNIT_ASSERT_EQUAL(std::string("value"), ext.getString("second"));
     }
     
