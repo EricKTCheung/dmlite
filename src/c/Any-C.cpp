@@ -68,34 +68,26 @@ void dmlite_any_free(dmlite_any* any)
 void dmlite_any_to_string(const dmlite_any* any, char* buffer, size_t bsize)
 {
   std::string str;
-  if (any->value.type() == typeid(std::string))
-    str = boost::any_cast<std::string>(any->value);
-  else if (any->value.type() == typeid(const char*))
-    str = boost::any_cast<const char*>(any->value);
-  else if (any->value.type() == typeid(char*))
-    str = boost::any_cast<char*>(any->value);
   
-  std::strncpy(buffer, str.c_str(), bsize);
+  try {
+    str = dmlite::Extensible::anyToString(any->value);
+    std::strncpy(buffer, str.c_str(), bsize);
+  }
+  catch (...) {
+    buffer[0] = '\0';
+  }
 }
 
 
 
 long dmlite_any_to_long(const dmlite_any* any)
 {
-  if (any->value.type() == typeid(long))
-    return boost::any_cast<long>(any->value);
-  else if (any->value.type() == typeid(int))
-    return boost::any_cast<int>(any->value);
-  else if (any->value.type() == typeid(short))
-    return boost::any_cast<short>(any->value);
-  else if (any->value.type() == typeid(char))
-    return boost::any_cast<char>(any->value);
-  else if (any->value.type() == typeid(unsigned))
-    return boost::any_cast<unsigned>(any->value);
-  else if (any->value.type() == typeid(bool))
-    return boost::any_cast<bool>(any->value);
-  else
+  try {
+    return dmlite::Extensible::anyToLong(any->value);
+  }
+  catch (...) {
     return 0;
+  }
 }
 
 
@@ -127,7 +119,7 @@ unsigned long dmlite_any_dict_count(const dmlite_any_dict* d)
 
 
 
-const dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k)
+dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k)
 {
   if (!d->extensible.hasField(k))
     return NULL;

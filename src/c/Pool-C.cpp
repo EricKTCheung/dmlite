@@ -27,7 +27,7 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
     }
   }
   else {
-    locp->chunks = 0;
+    locp->chunks = NULL;
   }
   
   return locp;
@@ -60,7 +60,7 @@ int dmlite_getpools(dmlite_context* context, unsigned* nbpools, dmlite_pool** po
 
 
 
-int dmlite_freepools(dmlite_context* context, unsigned npools, dmlite_pool* pools)
+int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* pools)
 {
   for (unsigned i = 0; i < npools; ++i)
     delete pools[i].extra;
@@ -70,12 +70,12 @@ int dmlite_freepools(dmlite_context* context, unsigned npools, dmlite_pool* pool
 
 
 
-int dmlite_freelocation(dmlite_context* context, dmlite_location* loc)
+int dmlite_location_free(dmlite_context* context, dmlite_location* loc)
 {
   for (unsigned i = 0; i < loc->nchunks; ++i)
     delete loc->chunks[i].extra;
-  delete loc->chunks;
-  delete loc;
+  delete [] loc->chunks;
+  delete    loc;
   return 0;
 }
 

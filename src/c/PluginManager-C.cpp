@@ -142,7 +142,7 @@ const char* dmlite_error(dmlite_context* context)
 
 
 
-int dmlite_setcredentials(dmlite_context* context, struct dmlite_credentials* cred)
+int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred)
 {
   TRY(context, setcredentials)
   NOT_NULL(cred);

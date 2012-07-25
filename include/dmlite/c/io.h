@@ -14,15 +14,6 @@ extern "C" {
 
 /** Handle for a file descriptor. */
 typedef struct dmlite_fd dmlite_fd;
-  
-/**
- * Do a stat over a physical file.
- * @param context The DM context.
- * @param rfn     The path to stat.
- * @param st      Where to put the stat.
- * @return        0 on sucess,  error code otherwise.
- */
-int dmlite_pstat(dmlite_context* context, const char* rfn, struct stat* st);
 
 /**
  * Open a file.

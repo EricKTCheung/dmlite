@@ -14,21 +14,8 @@ struct dmlite_fd {
 
 
 
-int dmlite_pstat(dmlite_context* context, const char* rfn, struct stat* st)
-{
-  TRY(context, pstat)
-  NOT_NULL(rfn);
-  NOT_NULL(st);
-  
-  *st = context->stack->getIODriver()->pStat(rfn);
-  
-  CATCH(context, pstat)
-}
-
-
-
 dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
-                        dmlite_any_dict* extra)
+                        const dmlite_any_dict* extra)
 {
   TRY(context, fopen)
   NOT_NULL(path);
@@ -53,6 +40,8 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
 
 int dmlite_fclose(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fclose)
   NOT_NULL(fd);
   fd->stream->close();
@@ -65,6 +54,8 @@ int dmlite_fclose(dmlite_fd* fd)
 
 int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fseek)
   NOT_NULL(fd);
   fd->stream->seek(offset, static_cast<dmlite::IOHandler::Whence>(whence));
@@ -75,6 +66,8 @@ int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
 
 long dmlite_ftell(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, ftell)
   NOT_NULL(fd);
   return fd->stream->tell();
@@ -85,6 +78,8 @@ long dmlite_ftell(dmlite_fd* fd)
 
 size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fread)
   NOT_NULL(fd);
   NOT_NULL(buffer);
@@ -96,6 +91,8 @@ size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
 
 size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fwrite)
   NOT_NULL(fd);
   NOT_NULL(buffer);
@@ -107,6 +104,8 @@ size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 
 int dmlite_feof(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, feof)
   NOT_NULL(fd);
   return fd->stream->eof();

@@ -25,7 +25,7 @@ typedef struct dmlite_context dmlite_context;
  * DMLite will keep a copy internaly.
  * Non used values MUST be NULL.
  */
-struct dmlite_credentials {
+typedef struct dmlite_credentials {
   const char* mech;
   const char* client_name;
   const char* remote_address;
@@ -35,7 +35,7 @@ struct dmlite_credentials {
   const char** fqans;
   
   dmlite_any_dict* extra;
-};
+} dmlite_credentials;
 
 /**
  * Get the API version.
@@ -129,7 +129,7 @@ const char* dmlite_error(dmlite_context* context);
  * @param cred    The security credentials.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_setcredentials(dmlite_context* context, struct credentials* cred);
+int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred);
 
 /**
  * Set a configuration parameter tied to a context.

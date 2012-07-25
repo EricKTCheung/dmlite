@@ -23,6 +23,20 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
+DummyPoolManager::DummyPoolManager(PoolManager* decorated) throw (DmException)
+{
+  this->decorated_ = decorated;
+}
+
+
+
+DummyPoolManager::~DummyPoolManager()
+{
+  delete this->decorated_;
+}
+
+
+
 void DummyPoolManager::setStackInstance(StackInstance* si) throw (DmException)
 {
   BaseInterface::setStackInstance(this->decorated_, si);

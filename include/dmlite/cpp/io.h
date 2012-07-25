@@ -62,8 +62,8 @@ namespace dmlite {
   class IODriver: public virtual BaseInterface {
    public:
     enum OpenMode { kReadOnly     = O_RDONLY,
-                    kWriteOnly    = O_WRONLY | O_CREAT,
-                    kReadAndWrite = O_RDWR | O_CREAT,
+                    kWriteOnly    = O_WRONLY,
+                    kReadAndWrite = O_RDWR
                   };
      
     /// Virtual destructor
@@ -76,9 +76,6 @@ namespace dmlite {
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        OpenMode flags,
                                        const Extensible& extras) throw (DmException) = 0;
-
-    /// Perform a stat over pfn.
-    virtual struct stat pStat(const std::string& pfn) throw (DmException) = 0;
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

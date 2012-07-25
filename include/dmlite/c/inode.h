@@ -50,14 +50,14 @@ enum dmlite_file_status { kOnline = '-',
                         
 /** File metadata */
 typedef struct dmlite_xstat {
-  ino_t              parent;
-  struct stat        stat;
-  dmlite_file_status status;
-  char               name     [NAME_MAX];
-  char               guid     [GUID_MAX];
-  char               csumtype [CSUMTYPE_MAX];
-  char               csumvalue[CSUMVALUE_MAX];
-  char               acl      [ACL_ENTRIES_MAX * ACL_SIZE];
+  ino_t                   parent;
+  struct stat             stat;
+  enum dmlite_file_status status;
+  char                    name     [NAME_MAX];
+  char                    guid     [GUID_MAX];
+  char                    csumtype [CSUMTYPE_MAX];
+  char                    csumvalue[CSUMVALUE_MAX];
+  char                    acl      [ACL_ENTRIES_MAX * ACL_SIZE];
   
   dmlite_any_dict* extra; /**< If != NULL, additional metadata will be put here.
                            *   Caller is responsible for allocating and freeing*/

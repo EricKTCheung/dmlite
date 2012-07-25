@@ -15,8 +15,8 @@ namespace dmlite {
    public:
 
     /// Constructor
-    /// @param decorates The underlying decorated catalog.
-    DummyCatalog(Catalog* decorates) throw (DmException);
+    /// @param decorated The underlying decorated catalog.
+    DummyCatalog(Catalog* decorated) throw (DmException);
 
     /// Destructor
     virtual ~DummyCatalog();
