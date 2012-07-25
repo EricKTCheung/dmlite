@@ -2,7 +2,7 @@
 /// @brief   DummyPoolManager implementation.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/dummy/DummyPool.h>
 
 using namespace dmlite;
 
@@ -10,14 +10,14 @@ using namespace dmlite;
 
 /// Little of help here to avoid redundancy
 #define DELEGATE(method, ...) \
-if (this->decorated_ == 0x00)\
+if (this->decorated_ == NULL)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 this->decorated_->method(__VA_ARGS__);
 
 
 /// Little of help here to avoid redundancy
 #define DELEGATE_RETURN(method, ...) \
-if (this->decorated_ == 0x00)\
+if (this->decorated_ == NULL)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 return this->decorated_->method(__VA_ARGS__);
 
@@ -33,13 +33,6 @@ void DummyPoolManager::setStackInstance(StackInstance* si) throw (DmException)
 void DummyPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
-}
-
-
-
-PoolMetadata* DummyPoolManager::getPoolMetadata(const std::string& pool) throw (DmException)
-{
-  DELEGATE_RETURN(getPoolMetadata, pool);
 }
 
 
@@ -74,7 +67,7 @@ Location DummyPoolManager::whereToWrite(const std::string& path) throw (DmExcept
 
 void DummyPoolManager::doneWriting(const std::string& host,
                                    const std::string& rfn,
-                                   const std::map<std::string,std::string>& params) throw (DmException)
+                                   const Extensible& params) throw (DmException)
 {
   DELEGATE(doneWriting, host, rfn, params);
 }

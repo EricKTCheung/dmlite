@@ -1,68 +1,45 @@
-/// @file   common/Uris.cpp
+/// @file   utils/Uris.cpp
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <regex.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dmlite/cpp/utils/dm_urls.h>
+#include <boost/regex.hpp>
+#include <cstdlib>
+#include <cstring>
+#include <dmlite/cpp/utils/urls.h>
 
-Url dmlite::splitUrl(const std::string& uri)
+using namespace dmlite;
+
+
+
+Url::Url(const std::string& url) throw (): port(0) 
 {
-  regex_t     regexp;
-  regmatch_t  matches[8];
-  const char *p = uri.c_str();
-  Url         parsed;
-
-  // Compile the first time
-  regcomp(&regexp,
-          "(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?([^?]*)?(.*)",
-          REG_EXTENDED | REG_ICASE);
-
-  // Match and extract
-  memset(matches, 0, sizeof(matches));
-  if (regexec(&regexp, p, 8, matches, 0) == 0) {
-    int len;
-
-    // Scheme
-    len = matches[2].rm_eo - matches[2].rm_so;
-    memcpy(parsed.scheme, p + matches[2].rm_so, len);
-    parsed.scheme[len] = '\0';
-
-    // Host
-    len = matches[3].rm_eo - matches[3].rm_so;
-    memcpy(parsed.host, p + matches[3].rm_so, len);
-    parsed.host[len] = '\0';
-
-    // Port
-    len = matches[5].rm_eo - matches[5].rm_so;
-    if (len > 0)
-      parsed.port = atoi(p + matches[5].rm_so + 1);
-    else
-      parsed.port = 0;
-
-    // Path
-    len = matches[6].rm_eo - matches[6].rm_so;
-    memcpy(parsed.path, p + matches[6].rm_so, len);
-    parsed.path[len] = '\0';
+  boost::regex regexp("(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?([^?]*)?(.*)",
+                      boost::regex::extended | boost::regex::icase);
+  boost::smatch what;
+  
+  if (boost::regex_match(url, what, regexp, boost::match_posix)) {
+    this->scheme = what[2];
+    this->domain = what[3];
     
-    // Query
-    len = matches[7].rm_eo - matches[7].rm_so;
-    if (len > 0)
-      strncpy(parsed.query, p + matches[7].rm_so + 1, QUERY_MAX);
-    else
-      parsed.query[0] = '\0';
+    std::string portStr(what[5]);
+    if (portStr.length() > 1)
+      this->port = std::atol(portStr.c_str() + 1);
+    
+    this->path   = what[6];
+    this->query  = what[7];
+    if (!this->query.empty())
+      this->query = this->query.substr(1);
   }
-
-  regfree(&regexp);
-  return parsed;
 }
 
 
 
-std::list<std::string> dmlite::splitPath(const std::string& path)
+std::vector<std::string> Url::splitPath(const std::string& path) throw()
 {
-  std::list<std::string> components;
+  std::vector<std::string> components;
   size_t s, e;
+  
+  if (!path.empty() && path[0] == '/')
+    components.push_back("/");
 
   s = path.find_first_not_of('/');
   while (s != std::string::npos) {
@@ -82,22 +59,49 @@ std::list<std::string> dmlite::splitPath(const std::string& path)
 
 
 
-char* dmlite::normalizePath(char *path)
+std::string Url::joinPath(const std::vector<std::string>& components) throw()
 {
-  int   i = 0;
-  char *p = path;
+  std::vector<std::string>::const_iterator i;
+  std::string path;
 
-  while (*p != '\0') {
-    path[i] = *p;
-    ++i;
-    if (*p == '/') {
-      while (*p == '/')
-        ++p;
-    }
-    else {
-      ++p;
-    }
+  for (i = components.begin(); i != components.end(); ++i) {
+    if (*i != "/")
+      path += *i + "/";
+    else
+      path += "/";
   }
-  path[i] = '\0';
+  
+  if (!path.empty())
+    path.erase(--path.end());
+    
   return path;
+}
+
+
+
+std::string Url::normalizePath(const std::string& path) throw ()
+{
+  std::vector<std::string> components = Url::splitPath(path);
+  std::string              result;
+  
+  result.reserve(path.length());
+  
+  unsigned i;
+  if (components[0] == "/") {
+    i      = 1;
+    result = "/";
+  } else {
+    i = 0;
+  }
+  
+  for ( ; i < components.size(); ++i) {
+    result.append(components[i]);
+    if (i < components.size() - 1)
+      result.append("/");
+  }
+  
+  if (components.size() > 1 && path[path.length() - 1] == '/')
+    result.append("/");
+  
+  return result;
 }

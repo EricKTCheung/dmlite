@@ -1,24 +1,25 @@
-/** @file   include/dmlite/dm_errno.h
+/** @file   include/dmlite/common/errno.h
  *  @brief  Error codes.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */
-#ifndef DMLITE_ERRNO_H
-#define	DMLITE_ERRNO_H
+#ifndef DMLITE_COMMON_ERRNO_H
+#define DMLITE_COMMON_ERRNO_H
 
 #define DM_NO_ERROR             0x0000
 
-#define DM_UNKNOWN_ERROR        0x0001
-#define DM_UNEXPECTED_EXCEPTION 0x0002
-#define DM_INTERNAL_ERROR       0x0003
-#define DM_NO_SUCH_SYMBOL       0x0004
-#define DM_API_VERSION_MISMATCH 0x0005
-#define DM_NO_FACTORY           0x0006
-#define DM_NO_POOL_MANAGER      0x0007
-#define DM_NO_CATALOG           0x0008
-#define DM_NO_INODE             0x0009
-#define DM_NO_USERGROUPDB       0x000A
-#define DM_NO_SECURITY_CONTEXT  0x000B
-#define DM_NO_IO                0x000C
+#define DM_UNKNOWN_ERROR          0x0001
+#define DM_UNEXPECTED_EXCEPTION   0x0002
+#define DM_INTERNAL_ERROR         0x0003
+#define DM_NO_SUCH_SYMBOL         0x0004
+#define DM_API_VERSION_MISMATCH   0x0005
+#define DM_NO_FACTORY             0x0006
+#define DM_NO_POOL_MANAGER        0x0007
+#define DM_NO_CATALOG             0x0008
+#define DM_NO_INODE               0x0009
+#define DM_NO_AUTHN               0x000A
+#define DM_NO_SECURITY_CONTEXT    0x000B
+#define DM_EMPTY_SECURITY_CONTEXT 0x000C
+#define DM_NO_IO                  0x000D
 
 #define DM_MALFORMED_CONF       0x0100
 #define DM_UNKNOWN_OPTION       0x0101
@@ -61,4 +62,4 @@
 #define DM_NO_SUCH_FS           0x2002
 #define DM_NO_SUCH_POOL         0x2003
 
-#endif	/* DMLITE_ERRNO_H */
+#endif /* DMLITE_COMMON_ERRNO_H */

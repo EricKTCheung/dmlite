@@ -29,10 +29,15 @@ URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
+BuildRequires:	boost-devel >= 1.41.0
+%else
+BuildRequires:	boost141-devel
+%endif
 BuildRequires:	cmake
 BuildRequires:	cppunit-devel
-BuildRequires:	boost-devel
 BuildRequires:	doxygen
+BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 BuildRequires:	python-devel
 %if 0%{?with_python26}
@@ -54,6 +59,11 @@ This package provides the libraries used by dmlite components.
 Summary:	Development libraries and headers for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
+Requires:	boost-devel >= 1.41.0
+%else
+Requires:	boost141-devel
+%endif
 
 %description devel
 This package provides headers and development libraries for dmlite.

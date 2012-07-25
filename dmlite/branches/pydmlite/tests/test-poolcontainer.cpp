@@ -3,7 +3,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include <dmlite/cpp/utils/dm_poolcontainer.h>
+#include <dmlite/cpp/utils/poolcontainer.h>
 
 using namespace dmlite;
 
@@ -204,8 +204,8 @@ public:
   CPPUNIT_TEST(testTwo);
   CPPUNIT_TEST(testInvalid);
   CPPUNIT_TEST(testResize);
-  //CPPUNIT_TEST(testNoMore);
-  //CPPUNIT_TEST(testIncreaseRef);
+  CPPUNIT_TEST(testNoMore);
+  CPPUNIT_TEST(testIncreaseRef);
   CPPUNIT_TEST_SUITE_END();
 };
 
@@ -217,5 +217,5 @@ int main(int argc, char **argv)
   CppUnit::TextUi::TestRunner runner;
   CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
   runner.addTest( registry.makeTest() );
-  return runner.run();
+  return runner.run()?0:1;
 }

@@ -2,8 +2,7 @@
 /// @brief   DummyCatalog implementation.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
-#include <cstdarg>
-#include <dmlite/cpp/dummy/Dummy.h>
+#include <dmlite/cpp/dummy/DummyCatalog.h>
 
 using namespace dmlite;
 
@@ -11,14 +10,14 @@ using namespace dmlite;
 
 /// Little of help here to avoid redundancy
 #define DELEGATE(method, ...) \
-if (this->decorated_ == 0x00)\
+if (this->decorated_ == NULL)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 this->decorated_->method(__VA_ARGS__);
 
 
 /// Little of help here to avoid redundancy
 #define DELEGATE_RETURN(method, ...) \
-if (this->decorated_ == 0x00)\
+if (this->decorated_ == NULL)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 return this->decorated_->method(__VA_ARGS__);
 
@@ -73,21 +72,21 @@ ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) th
 
 
 
-void DummyCatalog::addReplica(const FileReplica& replica) throw (DmException)
+void DummyCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   DELEGATE(addReplica, replica);
 }
 
 
 
-void DummyCatalog::deleteReplica(const FileReplica& replica) throw (DmException)
+void DummyCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
   DELEGATE(deleteReplica, replica);
 }
 
 
 
-std::vector<FileReplica> DummyCatalog::getReplicas(const std::string& path) throw (DmException)
+std::vector<Replica> DummyCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(getReplicas, path);
 }
@@ -152,7 +151,7 @@ void DummyCatalog::setChecksum(const std::string& path,
 
 
 
-void DummyCatalog::setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException)
+void DummyCatalog::setAcl(const std::string& path, const Acl& acls) throw (DmException)
 {
   DELEGATE(setAcl, path, acls);
 }
@@ -208,7 +207,7 @@ struct dirent* DummyCatalog::readDir(Directory* dir) throw (DmException)
 
 
 
-struct xstat* DummyCatalog::readDirx(Directory* dir) throw (DmException)
+ExtendedStat* DummyCatalog::readDirx(Directory* dir) throw (DmException)
 {
   DELEGATE_RETURN(readDirx, dir);
 }
@@ -236,14 +235,14 @@ void DummyCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
-FileReplica DummyCatalog::getReplica(const std::string& rfn) throw (DmException)
+Replica DummyCatalog::getReplica(const std::string& rfn) throw (DmException)
 {
   DELEGATE_RETURN(getReplica, rfn);
 }
 
 
 
-void DummyCatalog::updateReplica(const FileReplica& replica) throw (DmException)
+void DummyCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   DELEGATE(updateReplica, replica);
 }

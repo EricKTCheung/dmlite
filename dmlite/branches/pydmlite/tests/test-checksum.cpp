@@ -1,8 +1,6 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <cstring>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "test-base.h"
 
 class TestChecksum: public TestBase
@@ -31,16 +29,17 @@ public:
 
   void testBasic()
   {
-    const char* csum = "1a31009319c99ebdefd23055b20ff034";
+    const std::string csumtype("MD");
+    const std::string csumvalue("1a31009319c99ebdefd23055b20ff034");
     
     // Change checksum to something else
-    this->catalog->setChecksum(FILE, "MD", csum);
+    this->catalog->setChecksum(FILE, csumtype, csumvalue);
     
     // Compare
-    ExtendedStat meta = this->catalog->extendedStat(FILE);
+    dmlite::ExtendedStat meta = this->catalog->extendedStat(FILE);
     
-    CPPUNIT_ASSERT_MESSAGE(meta.csumtype, strcmp("MD", meta.csumtype) == 0);
-    CPPUNIT_ASSERT_MESSAGE(meta.csumvalue, strncmp(csum, meta.csumvalue, 33) == 0);
+    CPPUNIT_ASSERT_EQUAL(csumtype,  meta.csumtype);
+    CPPUNIT_ASSERT_EQUAL(csumvalue, meta.csumvalue);
   }
 
   CPPUNIT_TEST_SUITE(TestChecksum);
@@ -50,7 +49,7 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestChecksum);
 
-const char* TestChecksum::FILE        = "test-checksum";
+const char* TestChecksum::FILE  = "test-checksum";
 
 int main(int argn, char **argv)
 {

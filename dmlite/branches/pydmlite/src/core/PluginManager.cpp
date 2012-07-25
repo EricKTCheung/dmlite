@@ -2,13 +2,19 @@
 /// @brief  Implementation of dm::PluginManager
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dlfcn.h>
+#include <dmlite/cpp/authn.h>
+#include <dmlite/cpp/base.h>
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/dm_base.h>
+#include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/io.h>
+#include <dmlite/cpp/pooldriver.h>
+#include <dmlite/cpp/poolmanager.h>
 #include <fstream>
 #include <sstream>
 #include <set>
 #include "builtin/Catalog.h"
-#include "builtin/UserGroupDb.h"
+#include "builtin/Authn.h"
 
 using namespace dmlite;
 
@@ -55,18 +61,18 @@ static bool configureFactories(std::list<T*>& l,
 PluginManager::PluginManager() throw()
 {
   // Register built-in plugins
-  this->registerFactory(new BuiltInCatalogFactory());
-  this->registerFactory(new BuiltInUserGroupDbFactory());
+  this->registerCatalogFactory(new BuiltInCatalogFactory());
+  this->registerAuthnFactory(new BuiltInAuthnFactory());
 }
 
 
 
-PluginManager::~PluginManager() throw()
+PluginManager::~PluginManager()
 {
   // Set with unique pointers
   std::set<BaseFactory*> uniqueFactories;
   
-  populateUnique(uniqueFactories, this->usergroup_plugins_);
+  populateUnique(uniqueFactories, this->authn_plugins_);
   populateUnique(uniqueFactories, this->inode_plugins_);
   populateUnique(uniqueFactories, this->catalog_plugins_);
   populateUnique(uniqueFactories, this->pool_plugins_);
@@ -94,12 +100,12 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
   PluginIdCard *idCard;
 
   dl = dlopen(lib.c_str(), RTLD_NOW | RTLD_LOCAL);
-  if (dl == 0x00)
+  if (dl == NULL)
     throw DmException(DM_NO_SUCH_FILE, std::string(dlerror()));
   this->dlHandles_.push_back(dl);
 
   idCard = static_cast<PluginIdCard*>(dlsym(dl, id.c_str()));
-  if (idCard == 0x00)
+  if (idCard == NULL)
     throw DmException(DM_NO_SUCH_SYMBOL, std::string(dlerror()));
 
   if (idCard->ApiVersion < API_VERSION)
@@ -119,7 +125,7 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
 {
   bool recognized = false;
   
-  recognized |= configureFactories(this->usergroup_plugins_, key, value);
+  recognized |= configureFactories(this->authn_plugins_, key, value);
   recognized |= configureFactories(this->inode_plugins_, key, value);
   recognized |= configureFactories(this->catalog_plugins_, key, value);
   recognized |= configureFactories(this->pool_plugins_, key, value);
@@ -197,24 +203,24 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
 
 
 
-void PluginManager::registerFactory(UserGroupDbFactory* factory) throw (DmException)
+void PluginManager::registerAuthnFactory(AuthnFactory* factory) throw (DmException)
 {
-  this->usergroup_plugins_.push_front(factory);
+  this->authn_plugins_.push_front(factory);
 }
 
 
 
-UserGroupDbFactory* PluginManager::getUserGroupDbFactory() throw (DmException)
+AuthnFactory* PluginManager::getAuthnFactory() throw (DmException)
 {
-  if (this->usergroup_plugins_.empty())
+  if (this->authn_plugins_.empty())
     throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
-    return this->usergroup_plugins_.front();
+    return this->authn_plugins_.front();
 }
 
 
 
-void PluginManager::registerFactory(INodeFactory* factory) throw (DmException)
+void PluginManager::registerINodeFactory(INodeFactory* factory) throw (DmException)
 {
   this->inode_plugins_.push_front(factory);
 }
@@ -231,7 +237,7 @@ INodeFactory* PluginManager::getINodeFactory() throw (DmException)
 
 
 
-void PluginManager::registerFactory(CatalogFactory* factory) throw(DmException)
+void PluginManager::registerCatalogFactory(CatalogFactory* factory) throw(DmException)
 {
   this->catalog_plugins_.push_front(factory);
 }
@@ -248,7 +254,7 @@ CatalogFactory* PluginManager::getCatalogFactory() throw(DmException)
 
 
 
-void PluginManager::registerFactory(PoolManagerFactory* factory) throw (DmException)
+void PluginManager::registerPoolManagerFactory(PoolManagerFactory* factory) throw (DmException)
 {
   this->pool_plugins_.push_front(factory);
 }
@@ -265,7 +271,7 @@ PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
 
 
 
-void PluginManager::registerFactory(IOFactory* factory) throw (DmException)
+void PluginManager::registerIOFactory(IOFactory* factory) throw (DmException)
 {
   this->io_plugins_.push_front(factory);
 }
@@ -282,7 +288,7 @@ IOFactory* PluginManager::getIOFactory() throw (DmException)
 
 
 
-void PluginManager::registerFactory(PoolDriverFactory* factory) throw (DmException)
+void PluginManager::registerPoolDriverFactory(PoolDriverFactory* factory) throw (DmException)
 {
   this->pool_driver_plugins_.push_front(factory);
 }
