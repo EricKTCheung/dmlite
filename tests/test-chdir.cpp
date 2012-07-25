@@ -50,7 +50,8 @@ public:
       CPPUNIT_FAIL("Should have failed");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(DM_IS_CWD, e.code());
+      if (DM_IS_CWD != e.code())
+        throw;
     }
   }
 

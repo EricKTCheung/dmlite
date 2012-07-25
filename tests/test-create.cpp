@@ -1,10 +1,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <cstring>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <dmlite/cpp/utils/security.h>
 #include "test-base.h"
-#include "dmlite/cpp/utils/dm_security.h"
 
 class TestCreate: public TestBase
 {
@@ -29,8 +26,8 @@ public:
     // Reset ACL in case FOLDER inherited some (may break some tests)
     ctx = this->stackInstance->getSecurityContext();
     std::stringstream ss;
-    ss << "A7" << ctx->getUser().uid << ",C0" << ctx->getGroup(0).gid << ",E70,F00";
-    this->catalog->setAcl(FOLDER, dmlite::deserializeAcl(ss.str()));
+    ss << "A7" << getUid(ctx) << ",C0" << getGid(ctx) << ",E70,F00";
+    this->catalog->setAcl(FOLDER, dmlite::Acl(ss.str()));
   }
 
   void tearDown()
@@ -41,7 +38,7 @@ public:
       
       try {
         struct stat s = this->catalog->extendedStat(FILE).stat;
-        std::vector<FileReplica> replicas = this->catalog->getReplicas(FILE);
+        std::vector<dmlite::Replica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); i++) {
           this->catalog->deleteReplica(replicas[i]);
         }
@@ -77,8 +74,8 @@ public:
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(1, (int)s.st_nlink);
     CPPUNIT_ASSERT(s.st_mtime > ini_mtime);
-    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx), s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx), s.st_gid);
 
     // Add a symlink
     this->catalog->symlink(FOLDER, SYMLINK);
@@ -89,8 +86,8 @@ public:
     this->catalog->create(FILE, MODE);
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(3, (int)s.st_nlink);
-    CPPUNIT_ASSERT_EQUAL(ctx->getUser().uid, s.st_uid);
-    CPPUNIT_ASSERT_EQUAL(ctx->getGroup().gid, s.st_gid);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx), s.st_uid);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx), s.st_gid);
     
     s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL(MODE | S_IFREG, (int)s.st_mode);
@@ -189,14 +186,13 @@ public:
     this->catalog->create(FILE, MODE);
     s = this->catalog->extendedStat(FILE).stat;
     
-    FileReplica replica;
-    memset(&replica, 0, sizeof(FileReplica));
+    dmlite::Replica replica;
     
     replica.fileid = s.st_ino;
-    strcpy(replica.server, "localhost");
-    strcpy(replica.rfn,    "sfn://something");
-    replica.status = '-';
-    replica.type   = 'P';
+    replica.server = "localhost";
+    replica.rfn    = "sfn://something";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
 
     this->catalog->addReplica(replica);
 

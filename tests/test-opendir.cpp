@@ -1,8 +1,5 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <utime.h>
 #include "test-base.h"
 
 class TestOpendir: public TestBase
@@ -64,9 +61,8 @@ public:
     
     si2->setSecurityCredentials(this->cred1);
     
+    si2->setSecurityContext(this->root);
     dmlite::Catalog* catalog2 = si2->getCatalog();
-    catalog2->setStackInstance(this->stackInstance);
-    catalog2->setSecurityContext(&this->root);
     catalog2->changeDir(BASE_DIR);
     
     struct stat before, after;

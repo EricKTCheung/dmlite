@@ -1,9 +1,15 @@
 /// @file   core/PluginManager.cpp
 /// @brief  Implementation of dm::StackInstance
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <dmlite/cpp/authn.h>
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/io.h>
+#include <dmlite/cpp/poolmanager.h>
 
 using namespace dmlite;
+
 
 
 #define INSTANTIATE(var, createFunc)\
@@ -27,7 +33,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm), secCtx_(0)
 {
   // Instantiate each interface
-  INSTANTIATE(this->ugDb_,        pm->getUserGroupDbFactory()->createUserGroupDb(pm));
+  INSTANTIATE(this->authn_,       pm->getAuthnFactory()->createAuthn(pm));
   INSTANTIATE(this->inode_,       pm->getINodeFactory()->createINode(pm));
   INSTANTIATE(this->catalog_,     pm->getCatalogFactory()->createCatalog(pm));
   INSTANTIATE(this->poolManager_, pm->getPoolManagerFactory()->createPoolManager(pm));
@@ -45,9 +51,9 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
 
 
 
-StackInstance::~StackInstance() throw ()
+StackInstance::~StackInstance()
 {
-  if (this->ugDb_)        delete this->ugDb_;
+  if (this->authn_)       delete this->authn_;
   if (this->inode_)       delete this->inode_;
   if (this->catalog_)     delete this->catalog_;
   if (this->poolManager_) delete this->poolManager_;
@@ -66,16 +72,16 @@ StackInstance::~StackInstance() throw ()
 
 
 
-void StackInstance::set(const std::string& key, Value& value) throw (DmException)
+void StackInstance::set(const std::string& key, const boost::any& value) throw (DmException)
 {
-  this->stackMsg_.insert(std::pair<std::string, Value>(key, value));
+  this->stackMsg_[key] = value;
 }
 
 
 
-Value StackInstance::get(const std::string& key) throw (DmException)
+boost::any StackInstance::get(const std::string& key) const throw (DmException)
 {
-  std::map<std::string, Value>::const_iterator i;
+  std::map<std::string, boost::any>::const_iterator i;
   i = this->stackMsg_.find(key);
   if (i == this->stackMsg_.end())
     throw DmException(DM_UNKNOWN_KEY, "Key " + key + " not found in the Stack configuration");
@@ -98,11 +104,11 @@ PluginManager* StackInstance::getPluginManager() throw (DmException)
 
 
 
-UserGroupDb* StackInstance::getUserGroupDb() throw (DmException)
+Authn* StackInstance::getAuthn() throw (DmException)
 {
-  if (this->ugDb_ == 0)
-    throw DmException(DM_NO_USERGROUPDB, "No plugin provides UserGroupDb");
-  return this->ugDb_;
+  if (this->authn_ == 0)
+    throw DmException(DM_NO_AUTHN, "No plugin provides UserGroupDb");
+  return this->authn_;
 }
 
 
@@ -131,7 +137,7 @@ Catalog* StackInstance::getCatalog() throw (DmException)
 
 bool StackInstance::isTherePoolManager() throw ()
 {
-  return this->poolManager_ != 0x00;
+  return this->poolManager_ != NULL;
 }
 
 
@@ -183,11 +189,14 @@ IODriver* StackInstance::getIODriver() throw (DmException)
 
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
-  if (this->ugDb_ == 0)
-    throw DmException(DM_NO_USERGROUPDB, "There is no plugin that provides createSecurityContext");
+  if (this->authn_ == 0)
+    throw DmException(DM_NO_AUTHN, "There is no plugin that provides createSecurityContext");
   
-  if (this->secCtx_) delete this->secCtx_;
-  this->secCtx_ = this->ugDb_->createSecurityContext(cred);
+  if (this->secCtx_) {
+    delete this->secCtx_;
+    this->secCtx_ = NULL;
+  }
+  this->secCtx_ = this->authn_->createSecurityContext(cred);
   
   if (this->inode_ != 0)
     this->inode_->setSecurityContext(this->secCtx_);

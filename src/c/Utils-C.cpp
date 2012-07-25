@@ -1,7 +1,7 @@
 #include <cstring>
 #include <dmlite/c/dm_utils.h>
-#include <dmlite/cpp/utils/dm_security.h>
-#include <dmlite/cpp/utils/dm_urls.h>
+#include <dmlite/cpp/utils/authz.h>
+#include <dmlite/cpp/utils/urls.h>
 
 void dm_parse_url(const char* source, struct url* dest)
 {

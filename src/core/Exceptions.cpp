@@ -4,7 +4,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <dmlite/cpp/dm_exceptions.h>
+#include <dmlite/cpp/exceptions.h>
 
 using namespace dmlite;
 
