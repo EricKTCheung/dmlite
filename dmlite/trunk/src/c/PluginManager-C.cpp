@@ -1,38 +1,25 @@
-/// @file   core/PluginManager-C.cpp
+/// @file   c/PluginManager-C.cpp
 /// @brief  C wrapper for dmlite::PluginManager.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <dmlite/c/dmlite.h>
+#include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/dmlite.h>
-
 #include "Private.h"
 
-#define TRY_CATCH(handle, method, ...)\
-try {\
-  handle->manager->method(__VA_ARGS__);\
-}\
-catch (dmlite::DmException& e) {\
-  handle->errorCode   = e.code();\
-  handle->errorString = e.what();\
-  return e.code();\
-}\
-catch (...) {\
-  return DM_UNEXPECTED_EXCEPTION;\
-}\
-return DM_NO_ERROR;
 
 
-unsigned dm_api_version(void)
+unsigned dmlite_api_version(void)
 {
   return dmlite::API_VERSION;
 }
 
 
 
-dm_manager* dm_manager_new(void)
+dmlite_manager* dmlite_manager_new(void)
 {
-  dm_manager* handle;
+  dmlite_manager* handle;
 
-  handle = new dm_manager;
+  handle = new dmlite_manager;
   handle->manager = new dmlite::PluginManager();
   
   return handle;
@@ -40,7 +27,7 @@ dm_manager* dm_manager_new(void)
 
 
 
-int dm_manager_free(dm_manager* handle)
+int dmlite_manager_free(dmlite_manager* handle)
 {
   if (handle != NULL) {
     delete handle->manager;
@@ -51,7 +38,7 @@ int dm_manager_free(dm_manager* handle)
 
 
 
-int dm_manager_load_plugin(dm_manager* handle, const char* lib, const char* id)
+int dmlite_manager_load_plugin(dmlite_manager* handle, const char* lib, const char* id)
 {
   if (handle == NULL)
     return DM_NULL_POINTER;
@@ -61,7 +48,7 @@ int dm_manager_load_plugin(dm_manager* handle, const char* lib, const char* id)
 
 
 
-int dm_manager_set(dm_manager* handle, const char* key, const char* value)
+int dmlite_manager_set(dmlite_manager* handle, const char* key, const char* value)
 {
   if (handle == NULL)
     return -1;
@@ -71,7 +58,7 @@ int dm_manager_set(dm_manager* handle, const char* key, const char* value)
 
 
 
-int dm_manager_load_configuration(dm_manager* handle, const char* file)
+int dmlite_manager_load_configuration(dmlite_manager* handle, const char* file)
 {
   if (handle == NULL)
     return DM_NULL_POINTER;
@@ -81,7 +68,7 @@ int dm_manager_load_configuration(dm_manager* handle, const char* file)
 
 
 
-int dm_manager_errno(dm_manager* handle)
+int dmlite_manager_errno(dmlite_manager* handle)
 {
   if (handle == NULL)
     return DM_NULL_POINTER;
@@ -91,7 +78,7 @@ int dm_manager_errno(dm_manager* handle)
 
 
 
-const char* dm_manager_error(dm_manager* handle)
+const char* dmlite_manager_error(dmlite_manager* handle)
 {
   if (handle == NULL)
     return "The manager is a NULL pointer";
@@ -101,14 +88,14 @@ const char* dm_manager_error(dm_manager* handle)
 
 
 
-dm_context* dm_context_new(dm_manager* handle)
+dmlite_context* dmlite_context_new(dmlite_manager* handle)
 {
-  dm_context*         ctx;
+  dmlite_context*         ctx;
 
   if (handle == NULL)
     return NULL;
 
-  ctx = new dm_context();
+  ctx = new dmlite_context();
   ctx->errorCode = 0;
   ctx->stack   = 0x00;
   
@@ -127,7 +114,7 @@ dm_context* dm_context_new(dm_manager* handle)
 
 
 
-int dm_context_free(dm_context* context)
+int dmlite_context_free(dmlite_context* context)
 {
   if (context != NULL) {
     delete context->stack;
@@ -136,12 +123,52 @@ int dm_context_free(dm_context* context)
   return 0;
 }
 
+int dmlite_errno(dmlite_context* context)
+{
+  if (context == NULL)
+    return DM_NULL_POINTER;
+  else
+    return context->errorCode;
+}
 
 
-int dm_setcredentials(dm_context* context, struct credentials* cred)
+
+const char* dmlite_error(dmlite_context* context)
+{
+  if (context == NULL)
+    return "The context is a NULL pointer";
+  return context->errorString.c_str();
+}
+
+
+
+int dmlite_setcredentials(dmlite_context* context, struct dmlite_credentials* cred)
 {
   TRY(context, setcredentials)
   NOT_NULL(cred);
-  context->stack->setSecurityCredentials(dmlite::SecurityCredentials(*cred));
+  dmlite::SecurityCredentials credpp;
+  
+  if (cred->extra != NULL)
+    credpp.copy(cred->extra->extensible);
+  
+  credpp.mech          = SAFE_STRING(cred->mech);
+  credpp.clientName    = SAFE_STRING(cred->client_name);
+  credpp.remoteAddress = SAFE_STRING(cred->remote_address);
+  credpp.sessionId     = SAFE_STRING(cred->session_id);
+  
+  if (cred->fqans != NULL)
+    std::copy(cred->fqans, cred->fqans + cred->nfqans, credpp.fqans.begin());
+  
+  context->stack->setSecurityCredentials(credpp);
   CATCH(context, setcredentials)
+}
+
+
+
+int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v)
+{
+  TRY(context, set)
+  NOT_NULL(k);
+  context->stack->set(k, v->value);
+  CATCH(context, set)
 }

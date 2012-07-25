@@ -5,21 +5,36 @@
 #define DMLITE_CPP_UTILS_EXTENSIBLE_H
 
 #include <boost/any.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <dmlite/common/errno.h>
 #include <dmlite/cpp/exceptions.h>
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace dmlite {
-
+  
   /// Helpful typedef for KeyValue containers
   struct Extensible {
    private:
      typedef std::map<std::string, boost::any> DictType_;
      DictType_ dictionary_;
      
+     void populate(const boost::property_tree::ptree& root);
+     
    public:
+    /// Converts an any to a boolean, casting if needed.
+    static bool        anyToBoolean (const boost::any& any);
+    /// Converts an any to an unsigned, casting if needed.
+    static unsigned    anyToUnsigned(const boost::any& any);
+    /// Converts an any to a long, casting if needed.
+    static long        anyToLong    (const boost::any& any);
+    /// Converts an any to a double, casting if needed.
+    static double      anyToDouble  (const boost::any& any);
+    /// Converts an any to a string, casting if needed.
+    static std::string anyToString  (const boost::any& any);    
+     
      /// Returns true if there is a field name "key".
      bool hasField(const std::string& key) const;
      
@@ -31,8 +46,14 @@ namespace dmlite {
      /// Will create the entry if it does not exist.
      boost::any& operator [] (const std::string& key);
      
+     /// Number of elements inside this Extensible.
+     unsigned long size() const;
+     
      /// Removes all the content.
      void clear();
+     
+     /// Copy the content from another Extensible
+     void copy(const Extensible& s);
      
      /// Serializes to JSON. In principle, it only supports POD.
      std::string serialize(void) const;
@@ -54,6 +75,12 @@ namespace dmlite {
      
      /// Gets a string. May perform some conversions.
      std::string getString(const std::string& key) const throw (DmException);
+     
+     /// Gets a nested dictionary.
+     Extensible getExtensible(const std::string& key) const throw (DmException);
+     
+     /// Gets an array.
+     std::vector<boost::any> getVector(const std::string& key) const throw (DmException);
   };
 
 };

@@ -2,105 +2,162 @@
 /// @brief  C wrapper for dmlite::Pool.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <dmlite/c/dmlite.h>
-#include <dmlite/c/dm_pool.h>
+#include <dmlite/c/pool.h>
+#include <dmlite/cpp/poolmanager.h>
 #include "Private.h"
 
 
 
-int dm_getpools(dm_context* context, int* nbpools, struct pool** pools)
+static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& loc,
+                                                        dmlite_location* locp)
+{
+  locp->nchunks = loc.size();
+  if (locp->nchunks > 0) {
+    locp->chunks = new dmlite_chunk[locp->nchunks];
+    for (unsigned i = 0; i < locp->nchunks; ++i) {
+      locp->chunks[i].offset = loc[i].offset;
+      locp->chunks[i].size   = loc[i].size;
+      strncpy(locp->chunks[i].host, loc[i].host.c_str(),
+              sizeof(locp->chunks[i].host));
+      strncpy(locp->chunks[i].path, loc[i].path.c_str(),
+              sizeof(locp->chunks[i].path));
+      
+      locp->chunks[i].extra = new dmlite_any_dict();
+      locp->chunks[i].extra->extensible.copy(loc[i]);
+    }
+  }
+  else {
+    locp->chunks = 0;
+  }
+  
+  return locp;
+}
+
+
+int dmlite_getpools(dmlite_context* context, unsigned* nbpools, dmlite_pool** pools)
 {
   TRY(context, getpools)
   NOT_NULL(nbpools);
   NOT_NULL(pools);
   
-  std::vector<pool> poolSet = context->stack->getPoolManager()->getPools();
+  std::vector<dmlite::Pool> poolSet = context->stack->getPoolManager()->getPools();
 
-  *pools   = new pool[poolSet.size()];
+  *pools   = new dmlite_pool[poolSet.size()];
   *nbpools = poolSet.size();
 
-  std::copy(poolSet.begin(), poolSet.end(), *pools);
+  for (unsigned i = 0; i < poolSet.size(); ++i) {
+    strncpy((*pools)[i].pool_type, poolSet[i].type.c_str(),
+             sizeof((*pools)[i].pool_type));
+    strncpy((*pools)[i].pool_name, poolSet[i].name.c_str(),
+            sizeof((*pools)[i].pool_name));
+    
+    (*pools)[i].extra = new dmlite_any_dict;
+    (*pools)[i].extra->extensible.copy(poolSet[i]);
+  }
 
   CATCH(context, getpools)
 }
 
 
 
-int dm_freepools(dm_context* context, int npools, struct pool* pools)
+int dmlite_freepools(dmlite_context* context, unsigned npools, dmlite_pool* pools)
 {
+  for (unsigned i = 0; i < npools; ++i)
+    delete pools[i].extra;
   delete [] pools;
   return 0;
 }
 
 
 
-int dm_freelocation(dm_context* context, struct location* loc)
+int dmlite_freelocation(dmlite_context* context, dmlite_location* loc)
 {
-  Location *locp = (Location*)loc;
-  delete locp;
+  for (unsigned i = 0; i < loc->nchunks; ++i)
+    delete loc->chunks[i].extra;
+  delete loc->chunks;
+  delete loc;
   return 0;
 }
 
 
 
-int dm_get(dm_context* context, const char* path, struct location** loc)
+dmlite_location* dmlite_get(dmlite_context* context, const char* path)
 {
   TRY(context, get)
   NOT_NULL(path);
-  NOT_NULL(loc);
-  Location *locp = new Location(context->stack->getPoolManager()->whereToRead(path));
-  *loc = locp;
-  CATCH(context, get)
+  dmlite::Location loc = context->stack->getPoolManager()->whereToRead(path);
+  
+  dmlite_location *locp = new dmlite_location();  
+  return dmlite_cpplocation_to_clocation(loc, locp);
+  CATCH_POINTER(context, get)
 }
 
 
 
-int dm_getlocation(dm_context* context, const FileReplica* replica, struct location** loc)
+dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, getlocation)
   NOT_NULL(replica);
   
-  Pool pool = context->stack->getPoolManager()->getPool(replica->pool);
-  dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.pool_type);
-  dmlite::PoolHandler* handler = driver->createPoolHandler(pool.pool_name);
+  dmlite::Replica replicapp;
+  
+  replicapp.atime      = replica->atime;
+  replicapp.fileid     = replica->fileid;
+  replicapp.ltime      = replica->ltime;
+  replicapp.nbaccesses = replica->nbaccesses;
+  replicapp.ptime      = replica->ptime;
+  replicapp.replicaid  = replica->replicaid;
+  replicapp.rfn        = replica->rfn;
+  replicapp.server     = replica->server;
+  replicapp.status     = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
+  replicapp.type       = static_cast<dmlite::Replica::ReplicaType>(replica->type);
+  
+  if (replica->extra != NULL)
+    replicapp.copy(replica->extra->extensible);
+  
+  dmlite::Pool pool = context->stack->getPoolManager()->getPool(replicapp.getString("pool"));
+  dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.type);
+  dmlite::PoolHandler* handler = driver->createPoolHandler(pool.name);
   
   try {
-    Location *locp = new Location(handler->getLocation(*replica));
-    *loc = locp;
+    dmlite::Location loc = handler->whereToRead(replicapp);
     delete handler;
+    
+    dmlite_location* locp = new dmlite_location();    
+    return dmlite_cpplocation_to_clocation(loc, locp);
   }
   catch (...) {
     delete handler;
     throw;
   }
   
-  CATCH(context, getlocation)
+  CATCH_POINTER(context, getlocation)
 }
 
 
 
-int dm_put(dm_context* context, const char* path, struct location** loc)
+dmlite_location* dmlite_put(dmlite_context* context, const char* path)
 {
   TRY(context, put)
   NOT_NULL(path);
-  NOT_NULL(loc);
-  Location *locp = new Location(context->stack->getPoolManager()->whereToWrite(path));
-  *loc = locp;
-  CATCH(context, put)
+  dmlite::Location loc = context->stack->getPoolManager()->whereToWrite(path);
+  
+  dmlite_location* locp = new dmlite_location();  
+  return dmlite_cpplocation_to_clocation(loc, locp);
+  CATCH_POINTER(context, put)
 }
 
 
 
-int dm_putdone(dm_context* context, const char* host, const char* rfn, unsigned nextras, struct keyvalue* extrasp)
+int dmlite_putdone(dmlite_context* context, const char* host, const char* rfn,
+                   const dmlite_any_dict* extra)
 {
   TRY(context, putdone)
   NOT_NULL(host);
-  NOT_NULL(rfn);
-  
-  std::map<std::string, std::string> extras;
-  
-  for (unsigned i = 0; i < nextras; ++i)
-    extras.insert(std::pair<std::string, std::string>(extrasp[i].key, extrasp[i].value));
-  
-  context->stack->getPoolManager()->doneWriting(host, rfn, extras);
+  NOT_NULL(rfn);  
+  if (extra != NULL)
+    context->stack->getPoolManager()->doneWriting(host, rfn, extra->extensible);
+  else
+    context->stack->getPoolManager()->doneWriting(host, rfn, dmlite::Extensible());
   CATCH(context, putdone)
 }
