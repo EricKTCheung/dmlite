@@ -14,6 +14,7 @@
 namespace dmlite {
   
   // Forward declarations.
+  class PluginManager;
   class StackInstance;
   
   /// IO interface

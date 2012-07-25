@@ -1,0 +1,113 @@
+/** @file   include/dmlite/c/pool.h
+ *  @brief  C wrapper for DMLite Pool API.
+ *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+ */
+#ifndef DMLITE_POOL_H
+#define DMLITE_POOL_H
+
+#include "any.h"
+#include "inode.h"
+#include "dmlite.h"
+#include "utils.h"
+
+#define POOL_TYPE_MAX 16
+#define POOL_MAX      16
+
+#ifdef	__cplusplus
+extern "C" {
+#endif
+  
+/** Pool data */
+typedef struct dmlite_pool {
+  char pool_type[POOL_TYPE_MAX];
+  char pool_name[POOL_MAX];
+  
+  dmlite_any_dict* extra;
+} dmlite_pool;
+
+/** Chunk of data */
+typedef struct dmlite_chunk {
+  char host[HOST_NAME_MAX];
+  char path[PATH_MAX];
+  
+  off_t  offset;
+  size_t size;
+  
+  dmlite_any_dict* extra;
+} dmlite_chunk;
+
+/** Collection of chunks that form a replica
+ * There may be duplicated chunks.
+ */
+typedef struct dmlite_location {
+  dmlite_chunk* chunks;
+  unsigned      nchunks;
+};
+
+/**
+ * Get the list of pools.
+ * @param context The DM context.
+ * @param nPools  The number of pools.
+ * @param pools   An array with the pools. <b>Use dmlite_freepools to free</b>.
+ * @return        0 on succes, -1 on failure.
+ */
+int dmlite_getpools(dmlite_context* context, unsigned* nPools, dmlite_pool** pools);
+
+/**
+ * Free an array of pools.
+ * @param context The DM context.
+ * @param nPools  The number of pools in the array.
+ * @param pools   The array to free.
+ * @return        0 on succes, -1 on failure.
+ */
+int dmlite_freepools(dmlite_context* context, unsigned nPools, dmlite_pool* pools);
+
+/**
+ * Get a single replica (synchronous).
+ * @param context The DM context.
+ * @param path    The logical file name.
+ * @return        A pointer to a dmlite_location struct, or NULL on error.
+ */
+dmlite_location* dmlite_get(dmlite_context* context, const char* path);
+
+/**
+ * Get the location of a replica.
+ * @param context The DM context.
+ * @param replica The replica to translate.
+ * @return        A pointer to a dmlite_location struct, or NULL on error.
+ */
+dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replica* replica);
+
+/**
+ * Put a file (synchronous).
+ * @param context The DM context.
+ * @param path    The logical file name to put.
+ * @return        A pointer to a dmlite_location struct, or NULL on error.
+ */
+dmlite_location* dmlite_put(dmlite_context* context, const char* path);
+
+/**
+ * Finish a PUT request.
+ * @param context The DM context.
+ * @param host    The host where the replica is.
+ * @param rfn     The replica file name.
+ * @param extra   The extra parameters returned by put.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_putdone(dmlite_context* context,
+                   const char*host, const char* rfn,
+                   const dmlite_any_dict* extra);
+
+/**
+ * Free a location struct.
+ * @param context The DM context.
+ * @param loc     The struct to free.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_freelocation(dmlite_context* context, dmlite_location* loc);
+
+#ifdef	__cplusplus
+}
+#endif
+
+#endif /* DMLITE_POOL_H */

@@ -2,40 +2,57 @@
  *  @brief  C wrapper for DMLite
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  */
-#ifndef DMLITE_H
-#define	DMLITE_H
+#ifndef DMLITE_DMLITE_H
+#define DMLITE_DMLITE_H
 
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <utime.h>
+#include "any.h"
 #include "../common/errno.h"
-#include "../common/dm_types.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
 /** Handle for the plugin manager. */
-typedef struct dm_manager dm_manager;
+typedef struct dmlite_manager dmlite_manager;
 /** Handle for a initialized context. */
-typedef struct dm_context dm_context;
+typedef struct dmlite_context dmlite_context;
+
+/** Security credentials
+ * It is up to the caller to allocate and free this pointers.
+ * DMLite will keep a copy internaly.
+ * Non used values MUST be NULL.
+ */
+struct dmlite_credentials {
+  const char* mech;
+  const char* client_name;
+  const char* remote_address;
+  const char* session_id;
+
+  unsigned nfqans;
+  const char** fqans;
+  
+  dmlite_any_dict* extra;
+};
 
 /**
  * Get the API version.
  */
-unsigned dm_api_version(void);
+unsigned dmlite_api_version(void);
 
 /**
- * Initialize a dm_manager.
+ * Initialize a dmlite_manager.
  * @return NULL on failure.
  */
-dm_manager* dm_manager_new(void);
+dmlite_manager* dmlite_manager_new(void);
 
 /**
  * Destroy the manager.
  * @param manager The manager to be destroyed.
  */
-int dm_manager_free(dm_manager* manager);
+int dmlite_manager_free(dmlite_manager* manager);
 
 /**
  * Load a library.
@@ -44,7 +61,7 @@ int dm_manager_free(dm_manager* manager);
  * @param id      The plugin ID. Usually, plugin_name.
  * @return        0 on success, error code otherwise.
  */
-int dm_manager_load_plugin(dm_manager *manager, const char* lib, const char* id);
+int dmlite_manager_load_plugin(dmlite_manager *manager, const char* lib, const char* id);
 
 /**
  * Set a configuration parameter.
@@ -53,7 +70,7 @@ int dm_manager_load_plugin(dm_manager *manager, const char* lib, const char* id)
  * @param value   The value.
  * @return        0 on success, error code otherwise.
  */
-int dm_manager_set(dm_manager* manager, const char* key, const char* value);
+int dmlite_manager_set(dmlite_manager* manager, const char* key, const char* value);
 
 /**
  * Load a configuration file.
@@ -61,29 +78,58 @@ int dm_manager_set(dm_manager* manager, const char* key, const char* value);
  * @param file    The configuration file
  * @return        0 on success, error code otherwise.
  */
-int dm_manager_load_configuration(dm_manager* manager, const char* file);
+int dmlite_manager_load_configuration(dmlite_manager* manager, const char* file);
+
+/**
+ * Return the last error code.
+ * @param manager The plugin manager used in the failing function.
+ * @return        The last error code.
+ */
+int dmlite_manager_errno(dmlite_manager* manager);
 
 /**
  * Return the string that describes the last error.
  * @param manager The plugin manager used in the failing function.
  * @return        A pointer to the error string. Do NOT free it.
  */
-const char* dm_manager_error(dm_manager* manager);
+const char* dmlite_manager_error(dmlite_manager* manager);
 
 /**
  * Return a usable context from the loaded libraries.
  * @param manager The plugin manager.
- * @return        NULL on failure. The error code can be checked with dm_manager_error.
+ * @return        NULL on failure. The error code can be checked with dmlite_manager_error.
  * @note          A context is NOT thread safe.
  */
-dm_context* dm_context_new(dm_manager* manager);
+dmlite_context* dmlite_context_new(dmlite_manager* manager);
 
 /**
  * Destroy the context.
  * @param context The context to free.
  * @return        0 on success, error code otherwise.
  */
-int dm_context_free(dm_context* context);
+int dmlite_context_free(dmlite_context* context);
+
+/**
+ * Return the error code from the last failure.
+ * @param context The context that was used in the failed function.
+ * @return        The error code.
+ */
+int dmlite_errno(dmlite_context* context);
+
+/**
+ * Error string from the last failed function.
+ * @param context The context that was used in the failed function.
+ * @return        A string with the error description. Do NOT free it.
+ */
+const char* dmlite_error(dmlite_context* context);
+
+/**
+ * Set the user ID
+ * @param context The DM context.
+ * @param cred    The security credentials.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_setcredentials(dmlite_context* context, struct credentials* cred);
 
 /**
  * Set a configuration parameter tied to a context.
@@ -93,34 +139,10 @@ int dm_context_free(dm_context* context);
  * @param v Value.
  * @return  0 on success, error code otherwise.
  */
-int dm_set(dm_context* context, const char* k, union value v);
-
-/**
- * Set the user ID
- * @param context The DM context.
- * @param cred    The security credentials.
- * @return        0 on success, error code otherwise.
- */
-int dm_setcredentials(dm_context* context, struct credentials* cred);
-
-
-/**
- * Return the error code from the last failure.
- * @param context The context that was used in the failed function.
- * @return        The error code.
- */
-int dm_errno(dm_context* context);
-
-/**
- * Error string from the last failed function.
- * @param context The context that was used in the failed function.
- * @return        A string with the error description. Do NOT free it.
- */
-const char* dm_error(dm_context* context);
-
+int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v);
 
 #ifdef	__cplusplus
 }
 #endif
 
-#endif	/* DMLITE_H */
+#endif /* DMLITE_DMLITE_H */
