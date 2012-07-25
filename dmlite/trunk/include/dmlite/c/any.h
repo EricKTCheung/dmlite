@@ -2,6 +2,7 @@
  *  @brief  Opaque handler to pass different types of values to the API.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  *  @note   Basically it wraps boost::any and dmlite::Extensible.
+ *  @TODO   Add support for more complex type.
  */
 #ifndef DMLITE_ANY_H
 #define DMLITE_ANY_H
@@ -95,7 +96,7 @@ unsigned long dmlite_any_dict_count(const dmlite_any_dict* d);
  * Returns the value associated with the key k.
  * @return NULL if not found.
  */
-const dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k);
+dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k);
 
 /**
  * Generates a JSON serialization of the dictionary.

@@ -42,7 +42,7 @@ typedef struct dmlite_chunk {
 typedef struct dmlite_location {
   dmlite_chunk* chunks;
   unsigned      nchunks;
-};
+} dmlite_location;
 
 /**
  * Get the list of pools.
@@ -60,7 +60,7 @@ int dmlite_getpools(dmlite_context* context, unsigned* nPools, dmlite_pool** poo
  * @param pools   The array to free.
  * @return        0 on succes, -1 on failure.
  */
-int dmlite_freepools(dmlite_context* context, unsigned nPools, dmlite_pool* pools);
+int dmlite_pools_free(dmlite_context* context, unsigned nPools, dmlite_pool* pools);
 
 /**
  * Get a single replica (synchronous).
@@ -104,7 +104,7 @@ int dmlite_putdone(dmlite_context* context,
  * @param loc     The struct to free.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_freelocation(dmlite_context* context, dmlite_location* loc);
+int dmlite_location_free(dmlite_context* context, dmlite_location* loc);
 
 #ifdef	__cplusplus
 }

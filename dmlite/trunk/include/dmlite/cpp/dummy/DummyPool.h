@@ -11,6 +11,7 @@ namespace dmlite {
 
   class DummyPoolManager: public PoolManager {
    public:
+    DummyPoolManager(PoolManager* decorated) throw (DmException);
     virtual ~DummyPoolManager();
 
     virtual void setStackInstance(StackInstance*) throw (DmException);
@@ -18,14 +19,14 @@ namespace dmlite {
 
     virtual std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
 
-      virtual Pool getPool(const std::string& poolname) throw (DmException);
+    virtual Pool getPool(const std::string& poolname) throw (DmException);
 
-      virtual Location whereToRead(const std::string& path) throw (DmException);
+    virtual Location whereToRead(const std::string& path) throw (DmException);
 
-      virtual Location whereToWrite(const std::string& path) throw (DmException);
+    virtual Location whereToWrite(const std::string& path) throw (DmException);
 
-      virtual void doneWriting(const std::string& host, const std::string& rfn,
-                               const Extensible& params) throw (DmException);
+    virtual void doneWriting(const std::string& host, const std::string& rfn,
+                              const Extensible& params) throw (DmException);
 
    protected:
     PoolManager* decorated_;

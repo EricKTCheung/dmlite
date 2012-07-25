@@ -126,14 +126,14 @@ IODriver::~IODriver()
 /* Common and default methods */
 void BaseInterface::setStackInstance(BaseInterface* i, StackInstance* si) throw (DmException)
 {
-  i->setStackInstance(si);
+  if (i != NULL) i->setStackInstance(si);
 }
 
 
 
 void BaseInterface::setSecurityContext(BaseInterface* i, const SecurityContext* ctx) throw (DmException)
 {
-  i->setSecurityContext(ctx);
+  if (i != NULL) i->setSecurityContext(ctx);
 }
 
 

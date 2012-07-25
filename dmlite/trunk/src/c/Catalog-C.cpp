@@ -357,6 +357,9 @@ dmlite_dir* dmlite_opendir(dmlite_context* context, const char* path)
   
   dmlite_dir* dirp = new dmlite_dir();
   dirp->dir = d;
+  memset(&dirp->xstat, 0, sizeof(dirp->xstat));
+  dirp->xstat.extra = dmlite_any_dict_new();
+  
   return dirp;  
   CATCH_POINTER(context, opendir)
 }
@@ -368,6 +371,7 @@ int dmlite_closedir(dmlite_context* context, dmlite_dir* dir)
   TRY(context, closedir)
   NOT_NULL(dir);
   context->stack->getCatalog()->closeDir(dir->dir);
+  delete dir->xstat.extra;
   delete dir;
   CATCH(context, closedir)
 }
@@ -388,7 +392,7 @@ struct dmlite_xstat* dmlite_readdirx(dmlite_context* context, dmlite_dir* dir)
 {
   TRY(context, readdirx)
   NOT_NULL(dir);
-  dmlite::ExtendedStat* ex = context->stack->getCatalog()->readDirx(dir);
+  dmlite::ExtendedStat* ex = context->stack->getCatalog()->readDirx(dir->dir);
   if (ex == NULL)
     return NULL;
   

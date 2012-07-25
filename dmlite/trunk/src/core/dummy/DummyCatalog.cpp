@@ -23,9 +23,9 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
-DummyCatalog::DummyCatalog(Catalog* decorates) throw (DmException)
+DummyCatalog::DummyCatalog(Catalog* decorated) throw (DmException)
 {
-  this->decorated_ = decorates;
+  this->decorated_ = decorated;
 }
 
 
