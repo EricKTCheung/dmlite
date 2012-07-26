@@ -62,7 +62,7 @@ public:
     extras["token"] = dmlite::generateToken("", "/dev/zero", "test",
                                             1000, false);
     dmlite::IOHandler* s = io->createIOHandler("/dev/zero",
-                                               dmlite::IODriver::kReadOnly,
+                                               O_RDONLY,
                                                extras);
 
     s->read(&b, sizeof(char));
@@ -76,7 +76,7 @@ public:
     extras["token"] = dmlite::generateToken("", "/this/should/not/exist", "test",
                                             1000, false);
     CPPUNIT_ASSERT_THROW(io->createIOHandler("/this/should/not/exist",
-                                             dmlite::IODriver::kReadOnly,
+                                             O_RDONLY,
                                              extras),
                          dmlite::DmException);
   }
@@ -90,7 +90,7 @@ public:
 
     // Open to write
     dmlite::IOHandler* os = io->createIOHandler("/tmp/test-io-wr",
-                                                dmlite::IODriver::kWriteOnly,
+                                                O_WRONLY,
                                                 extras);
     os->write(ostring, strlen(ostring));
     delete os;
@@ -98,7 +98,7 @@ public:
     // Open to read
     char buffer[512] = "";
     dmlite::IOHandler* is = io->createIOHandler("/tmp/test-io-wr",
-                                                dmlite::IODriver::kReadOnly,
+                                                O_RDONLY,
                                                 extras);
     size_t nb = is->read(buffer, sizeof(buffer));
 

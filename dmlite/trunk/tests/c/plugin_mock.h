@@ -101,7 +101,7 @@ namespace dmlite {
      void setSecurityContext(const SecurityContext*) throw (DmException);
      
      IOHandler* createIOHandler(const std::string& pfn,
-                                OpenMode flags,
+                                int flags,
                                 const Extensible& extras) throw (DmException);
   };
 
