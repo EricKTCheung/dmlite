@@ -459,7 +459,7 @@ void MockIODriver::setSecurityContext(const SecurityContext*) throw (DmException
 
 
 
-IOHandler* MockIODriver::createIOHandler(const std::string& pfn, OpenMode flags,
+IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
                                          const Extensible& extras) throw (DmException)
 {
   // Only one recognised
@@ -467,12 +467,12 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, OpenMode flags,
     throw DmException(DM_NO_SUCH_FILE, "File  %s not found", pfn.c_str());
   
   // Check token
-  switch (flags) {
-    case kReadOnly:
+  switch (flags & ~O_CREAT) {
+    case O_RDONLY:
       if (extras.getString("token") != "123456789")
         throw DmException(DM_FORBIDDEN, "Invalid token for reading");
       break;
-    case kWriteOnly: case kReadAndWrite:
+    case O_WRONLY: case O_RDWR:
       if (extras.getString("token") != "987654321")
         throw DmException(DM_FORBIDDEN, "Invalid token for writing");
       break;

@@ -60,12 +60,7 @@ namespace dmlite {
 
   /// IO Driver
   class IODriver: public virtual BaseInterface {
-   public:
-    enum OpenMode { kReadOnly     = O_RDONLY,
-                    kWriteOnly    = O_WRONLY,
-                    kReadAndWrite = O_RDWR
-                  };
-     
+   public:    
     /// Virtual destructor
     virtual ~IODriver();
 
@@ -74,7 +69,7 @@ namespace dmlite {
     /// @param flags  The open mode.
     /// @param extras As was given by the PoolHandler.
     virtual IOHandler* createIOHandler(const std::string& pfn,
-                                       OpenMode flags,
+                                       int flags,
                                        const Extensible& extras) throw (DmException) = 0;
   };
 

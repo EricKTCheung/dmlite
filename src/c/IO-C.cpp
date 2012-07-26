@@ -19,15 +19,14 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
 {
   TRY(context, fopen)
   NOT_NULL(path);
-  dmlite::IODriver::OpenMode mode = static_cast<dmlite::IODriver::OpenMode>(flags);
   
   dmlite::IOHandler* stream;
   if (extra != NULL)
     stream = context->stack->getIODriver()->
-                              createIOHandler(path, mode, extra->extensible);
+                              createIOHandler(path, flags, extra->extensible);
   else
     stream = context->stack->getIODriver()->
-                              createIOHandler(path, mode, dmlite::Extensible());
+                              createIOHandler(path, flags, dmlite::Extensible());
   
   dmlite_fd* iofd = new dmlite_fd();
   iofd->context = context;
