@@ -173,8 +173,11 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
 
   std::vector<dmlite::Replica> replicaSet = context->stack->getCatalog()->getReplicas(path);
 
-  *fileReplicas = new dmlite_replica[replicaSet.size()];
   *nReplicas = replicaSet.size();
+  if (*nReplicas > 0)
+    *fileReplicas = new dmlite_replica[replicaSet.size()];
+  else
+    *fileReplicas = NULL;
 
   for (unsigned i = 0; i < *nReplicas; ++i) {
     (*fileReplicas)[i].atime  = replicaSet[i].atime;
