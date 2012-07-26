@@ -90,6 +90,8 @@ void testCreateAndModify(dmlite_context* context)
 {
   dmlite_xstat sx;
   
+  memset(&sx, 0, sizeof(sx));
+  
   SECTION("Create");
   dmlite_umask(context, 0000);
   
