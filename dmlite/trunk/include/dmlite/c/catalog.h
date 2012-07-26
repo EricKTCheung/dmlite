@@ -33,6 +33,14 @@ int dmlite_chdir(dmlite_context* context, const char* path);
 char* dmlite_getcwd(dmlite_context* context, char* buffer, size_t size);
 
 /**
+ * Set the file mode creation mask.
+ * @param context The DM context.
+ * @param mask    The new mask.
+ * @return        The previous mask.
+ */
+mode_t dmlite_umask(dmlite_context* context, mode_t mask);
+
+/**
  * Do a stat of a file or directory.
  * @param context The DM context.
  * @param path    The path.
@@ -62,23 +70,18 @@ int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf);
 /**
  * Add a new replica to an entry.
  * @param context    The DM context.
- * @param guid       The Grid Unique IDentifier of the file. It can be NULL.
- * @param id         The file unique ID within the server.
  * @param replica    The replica to add.
+ * @return        0 on success, error code otherwise.
  */
-int dmlite_addreplica(dmlite_context* context, const char* guid, int64_t id,
-                      const dmlite_replica* replica);
+int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica);
 
 /**
  * Delete a replica.
  * @param context The DM context.
- * @param guid    The Grid Unique IDentifier of the file.
- * @param id      The file unique ID within the server.
- * @param surl    Site URL (SE) or physical (Disk) path of the replica.
+ * @param replica The replica to delete.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_delreplica(dmlite_context* context, const char* guid, int64_t id,
-                      const char* surl);
+int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica);
 
 /**
  * Get the replicas of a file.
@@ -98,7 +101,7 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
  * @param fileReplicas The array to free.
  * @return             0 on success, error code otherwise.
  */
-int dmlite_freereplicas(dmlite_context* context, unsigned nReplicas, dmlite_replica* fileReplicas);
+int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas, dmlite_replica* fileReplicas);
 
 /**
  * Remove a file.

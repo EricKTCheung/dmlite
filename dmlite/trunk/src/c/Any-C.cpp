@@ -105,6 +105,13 @@ void dmlite_any_dict_free(dmlite_any_dict* d)
 
 
 
+void dmlite_any_dict_clear(dmlite_any_dict* d)
+{
+  d->extensible.clear();
+}
+
+
+
 void dmlite_any_dict_insert(dmlite_any_dict* d, const char* k, const dmlite_any* v)
 {
   d->extensible[k] = v->value;
