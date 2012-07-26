@@ -56,6 +56,18 @@ char* dmlite_getcwd(dmlite_context* context, char* buffer, size_t size)
 
 
 
+mode_t dmlite_umask(dmlite_context* context, mode_t mask)
+{
+  TRY(context, umask)
+  return context->stack->getCatalog()->umask(mask);
+  }
+  catch(...) {
+    return 0;
+  }
+}
+
+
+
 int dmlite_stat(dmlite_context *context, const char* path, struct stat* buf)
 {
   TRY(context, stat)
@@ -110,24 +122,19 @@ int dmlite_statix(dmlite_context* context, ino_t inode, dmlite_xstat* buf)
 
 
 
-int dmlite_addreplica(dmlite_context* context, const char* guid, int64_t id,
-                      const dmlite_replica* replica)
+int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addReplica)
-  NOT_NULL(replica);
-  
-  if (guid != NULL)
-    id = context->stack->getINode()->extendedStat(guid).stat.st_ino;
-  
+  NOT_NULL(replica);  
   dmlite::Replica replicapp;
   
-  replicapp.fileid = id;
+  replicapp.fileid = replica->fileid;
   replicapp.status = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
   replicapp.type   = static_cast<dmlite::Replica::ReplicaType>(replica->type);
   replicapp.server = replica->server;
   replicapp.rfn    = replica->rfn;
-  replicapp["pool"]       = dmlite::Extensible::anyToString(replica->extra->extensible["pool"]);
-  replicapp["filesystem"] = dmlite::Extensible::anyToString(replica->extra->extensible["filesystem"]);
+  if (replica->extra != NULL)
+    replicapp.copy(replica->extra->extensible);
   
   context->stack->getCatalog()->addReplica(replicapp);
   
@@ -136,13 +143,21 @@ int dmlite_addreplica(dmlite_context* context, const char* guid, int64_t id,
 
 
 
-int dmlite_delreplica(dmlite_context* context, const char* guid, int64_t id,
-                      const char* surl)
+int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, delreplica)
-  NOT_NULL(surl);
-  dmlite::Replica replica = context->stack->getCatalog()->getReplica(surl);
-  context->stack->getCatalog()->deleteReplica(replica);
+  NOT_NULL(replica);
+  dmlite::Replica replicapp;
+  
+  replicapp.fileid = replica->fileid;
+  replicapp.status = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
+  replicapp.type   = static_cast<dmlite::Replica::ReplicaType>(replica->type);
+  replicapp.server = replica->server;
+  replicapp.rfn    = replica->rfn;
+  if (replica->extra != NULL)
+    replicapp.copy(replica->extra->extensible);
+  
+  context->stack->getCatalog()->deleteReplica(replicapp);
   CATCH(context, delreplica)
 }
 
@@ -182,8 +197,8 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
 
 
 
-int dmlite_freereplicas(dmlite_context* context, unsigned nReplicas,
-                        dmlite_replica* fileReplicas)
+int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas,
+                         dmlite_replica* fileReplicas)
 {
   for (unsigned i = 0; i < nReplicas; ++i) {
     if (fileReplicas[i].extra != NULL)

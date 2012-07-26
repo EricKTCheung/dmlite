@@ -8,6 +8,7 @@
 #include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/dummy/DummyCatalog.h>
 #include <dmlite/cpp/dummy/DummyPool.h>
+#include <map>
 
 namespace dmlite {
   
@@ -18,6 +19,11 @@ namespace dmlite {
   
   /// Catalog mock plugin (uses FS calls)
   class MockCatalog: public DummyCatalog {
+   private:
+    typedef std::map<std::string, Replica> RfnReplicaType;
+    typedef std::map<ino_t, RfnReplicaType> InoReplicasType;
+    InoReplicasType replicas;
+    
    public:
     MockCatalog();
     ~MockCatalog();
@@ -32,6 +38,21 @@ namespace dmlite {
     Directory*    openDir (const std::string&) throw (DmException);
     void          closeDir(Directory*)         throw (DmException);
     ExtendedStat* readDirx(Directory*)         throw (DmException);
+    
+    mode_t umask    (mode_t)                           throw ();
+    void   setMode  (const std::string&, mode_t)       throw (DmException);
+    void   makeDir  (const std::string&, mode_t)       throw (DmException);
+    void   create   (const std::string&, mode_t)       throw (DmException);
+    void   rename   (const std::string&, const std::string&) throw (DmException);
+    void   removeDir(const std::string&)                     throw (DmException);
+    void   unlink   (const std::string&)                     throw (DmException);
+    
+    void addReplica   (const Replica&) throw (DmException);
+    void deleteReplica(const Replica&) throw (DmException);
+    std::vector<Replica> getReplicas(const std::string&) throw (DmException);
+    
+    Replica getReplica   (const std::string& rfn) throw (DmException);
+    void    updateReplica(const Replica& replica) throw (DmException);
   };
 
   /// Pool mock plugin

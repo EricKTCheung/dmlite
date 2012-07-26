@@ -1,5 +1,7 @@
 #include <dmlite/c/dmlite.h>
 #include <dmlite/c/catalog.h>
+#include <errno.h>
+#include <unistd.h>
 #include "utils.h"
 
 
@@ -84,6 +86,150 @@ void testReadDir(dmlite_context* context)
 
 
 
+void testCreateAndModify(dmlite_context* context)
+{
+  dmlite_xstat sx;
+  
+  SECTION("Create");
+  dmlite_umask(context, 0000);
+  
+  TEST_CONTEXT_CALL(context, dmlite_mkdir, "/tmp/test-catalog", 0755);
+  TEST_ASSERT_EQUAL(ENOENT,
+                    dmlite_statx(context, "/tmp/test-catalog/file", &sx))
+  
+  TEST_CONTEXT_CALL(context, dmlite_create, "/tmp/test-catalog/file", 0755);
+  TEST_CONTEXT_CALL(context, dmlite_statx, "/tmp/test-catalog/file", &sx);
+  
+  TEST_ASSERT_STR_EQUAL("file", sx.name);
+  TEST_ASSERT_EQUAL(getuid(), sx.stat.st_uid);
+  TEST_ASSERT_EQUAL(0755, (sx.stat.st_mode & ~S_IFMT));
+  
+  SECTION("Change mode");
+  
+  TEST_CONTEXT_CALL(context, dmlite_chmod, "/tmp/test-catalog/file", 0700);
+  TEST_CONTEXT_CALL(context, dmlite_statx, "/tmp/test-catalog/file", &sx);
+  TEST_ASSERT_EQUAL(0700, (sx.stat.st_mode & ~S_IFMT));
+  
+  SECTION("Rename");
+  TEST_CONTEXT_CALL(context, dmlite_rename, "/tmp/test-catalog/file",
+                                            "/tmp/test-catalog/file-2");
+  
+  SECTION("Remove");
+  
+  TEST_ASSERT_EQUAL(ENOTEMPTY, dmlite_rmdir(context, "/tmp/test-catalog"));
+  TEST_ASSERT_EQUAL(ENOENT,    dmlite_unlink(context, "/tmp/test-catalog/file"));
+  TEST_CONTEXT_CALL(context, dmlite_unlink, "/tmp/test-catalog/file-2");
+  TEST_CONTEXT_CALL(context, dmlite_rmdir, "/tmp/test-catalog");
+}
+
+
+
+void testReplicas(dmlite_context* context)
+{
+  struct stat    s;
+  dmlite_replica replica, *replicas;
+  unsigned       nReplicas;
+  
+  /* Initialize */
+  TEST_CONTEXT_CALL(context, dmlite_stat, "/etc/hosts", &s);
+  
+  replica.extra  = dmlite_any_dict_new();
+  replica.fileid = s.st_ino;
+  strcpy(replica.server, "disk.cern.ch");
+  strcpy(replica.rfn,    "/storage/replica.01");
+  replica.status = kOnline;
+  replica.type   = kPermanent;
+  
+  dmlite_any* any = dmlite_any_new_string("value");
+  dmlite_any_dict_insert(replica.extra, "additional", any);
+  dmlite_any_free(any);
+  
+  /* Create */
+  SECTION("Add replica");
+  TEST_CONTEXT_CALL(context, dmlite_addreplica, &replica);
+  
+  /* Get all */
+  SECTION("Get replicas");
+  TEST_CONTEXT_CALL(context, dmlite_getreplicas, "/etc/hosts",
+                    &nReplicas, &replicas);
+  
+  TEST_ASSERT_EQUAL(1, nReplicas);
+  TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replicas[0].server);
+  TEST_ASSERT_STR_EQUAL("/storage/replica.01", replicas[0].rfn);
+  TEST_ASSERT_EQUAL(kOnline,    replicas[0].status);
+  TEST_ASSERT_EQUAL(kPermanent, replicas[0].type);
+  
+  any = dmlite_any_dict_get(replicas[0].extra, "additional");
+  TEST_ASSERT_NOT_EQUAL(NULL, any);
+  if (any) {
+    char buffer[64];
+    dmlite_any_to_string(any, buffer, sizeof(buffer));
+    TEST_ASSERT_STR_EQUAL("value", buffer);
+    dmlite_any_free(any);
+  }
+  
+  TEST_CONTEXT_CALL(context, dmlite_replicas_free, nReplicas, replicas);
+  
+  /* Modify */
+  SECTION("Modify replica");
+  
+  TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
+  TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
+  TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
+  TEST_ASSERT_EQUAL(kOnline,    replica.status);
+  TEST_ASSERT_EQUAL(kPermanent, replica.type);
+  
+  any = dmlite_any_dict_get(replica.extra, "additional");
+  TEST_ASSERT_NOT_EQUAL(NULL, any);
+  if (any) {
+    char buffer[64];
+    dmlite_any_to_string(any, buffer, sizeof(buffer));
+    TEST_ASSERT_STR_EQUAL("value", buffer);
+    dmlite_any_free(any);
+  }
+  
+  replica.type  = kVolatile;
+  replica.ltime = 55;
+  any = dmlite_any_new_string("new one");
+  dmlite_any_dict_insert(replica.extra, "new", any);
+  dmlite_any_free(any);
+  
+  TEST_CONTEXT_CALL(context, dmlite_updatereplica, &replica);
+  replica.type  = 0;
+  replica.ltime = 0;
+  dmlite_any_dict_clear(replica.extra);
+  
+  TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
+  TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
+  TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
+  TEST_ASSERT_EQUAL(kOnline,   replica.status);
+  TEST_ASSERT_EQUAL(kVolatile, replica.type);
+  TEST_ASSERT_EQUAL(55,        replica.ltime);
+  
+  any = dmlite_any_dict_get(replica.extra, "new");
+  TEST_ASSERT_NOT_EQUAL(NULL, any);
+  if (any) {
+    char buffer[64];
+    dmlite_any_to_string(any, buffer, sizeof(buffer));
+    TEST_ASSERT_STR_EQUAL("new one", buffer);
+    dmlite_any_free(any);
+  }
+  
+  /* Remove */
+  SECTION("Remove replica");
+  
+  TEST_CONTEXT_CALL(context, dmlite_delreplica, &replica);
+  TEST_CONTEXT_CALL(context, dmlite_getreplicas, "/etc/hosts",
+                    &nReplicas, &replicas);
+  
+  TEST_ASSERT_EQUAL(0, nReplicas);
+  
+  /* Free */
+  dmlite_any_dict_free(replica.extra);
+}
+
+
+
 int main(int argn, char** argv)
 {
   dmlite_manager* manager;
@@ -108,6 +254,8 @@ int main(int argn, char** argv)
   testChDir(context);
   testStat(context);
   testReadDir(context);
+  testCreateAndModify(context);
+  testReplicas(context);
   
   /* Clean-up */
   dmlite_context_free(context);

@@ -39,7 +39,7 @@ namespace dmlite {
 
     virtual void create(const std::string&, mode_t) throw (DmException);
 
-    virtual mode_t umask          (mode_t)                           throw ();
+    virtual mode_t umask       (mode_t)                           throw ();
     virtual void   setMode     (const std::string&, mode_t)       throw (DmException);
     virtual void   setOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
 

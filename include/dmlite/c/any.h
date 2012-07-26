@@ -80,6 +80,11 @@ dmlite_any_dict* dmlite_any_dict_new();
 void dmlite_any_dict_free(dmlite_any_dict* d);
 
 /**
+ * Clears the dictionary.
+ */
+void dmlite_any_dict_clear(dmlite_any_dict* d);
+
+/**
  * Insert a new dmlite_any value into the dictionary. Replaces if already present.
  * @param d The dictionary.
  * @param k The key.
