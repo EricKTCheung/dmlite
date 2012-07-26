@@ -356,6 +356,20 @@ void Extensible::deserialize(const std::string& serial)
 
 
 
+std::vector<std::string> Extensible::getKeys(void) const throw (DmException)
+{
+  std::vector<std::string> keys;
+  
+  for (DictType_::const_iterator i = dictionary_.begin();
+       i != dictionary_.end(); ++i) {
+    keys.push_back(i->first);
+  }
+  
+  return keys;
+}
+
+
+
 bool Extensible::getBool(const std::string& key) const throw (DmException)
 {
   if (!hasField(key)) return 0;

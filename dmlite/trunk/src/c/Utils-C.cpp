@@ -39,7 +39,7 @@ void dmlite_serialize_acls(unsigned nEntries, dmlite_aclentry* acl,
   std::strncpy(buffer, aclpp.serialize().c_str(), bsize);
 }
 
-void dmlite_deserialize_acls(const char* buffer, unsigned* nEntries,
+void dmlite_deserialize_acl(const char* buffer, unsigned* nEntries,
                              dmlite_aclentry** acl)
 {
   dmlite::Acl aclpp(buffer);
@@ -56,7 +56,7 @@ void dmlite_deserialize_acls(const char* buffer, unsigned* nEntries,
 
 
 
-void dmlite_freeacls(unsigned nEntries, struct dmlite_aclentry* acl)
+void dmlite_acl_free(unsigned nEntries, struct dmlite_aclentry* acl)
 {
   delete [] acl;
 }
