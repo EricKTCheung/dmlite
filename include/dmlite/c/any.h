@@ -105,13 +105,25 @@ dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k);
 
 /**
  * Generates a JSON serialization of the dictionary.
+ * @return The same pointer as buffer.
  */
-void dmlite_any_dict_to_json(const dmlite_any_dict* d, char* buffer, size_t bsize);
+char* dmlite_any_dict_to_json(const dmlite_any_dict* d, char* buffer, size_t bsize);
 
 /**
  * Populates a dmlite_any_dict from a simple JSON.
  */
 dmlite_any_dict* dmlite_any_dict_from_json(const char* json);
+
+/**
+ * Puts in keys a pointer to an array of strings with all the available keys
+ * in d. Use dmlite_any_dict_keys_free to free.
+ */
+void dmlite_any_dict_keys(const dmlite_any_dict* d, unsigned* nkeys, char*** keys);
+
+/**
+ * Frees an array of strings allocated by dmlite_any_dict_keys.
+ */
+void dmlite_any_dict_keys_free(unsigned n, char** keys);
 
 #ifdef	__cplusplus
 }

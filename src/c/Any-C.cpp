@@ -139,9 +139,10 @@ dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k)
 
 
 
-void dmlite_any_dict_to_json(const dmlite_any_dict* d, char* buffer, size_t bsize)
+char* dmlite_any_dict_to_json(const dmlite_any_dict* d, char* buffer, size_t bsize)
 {
   strncpy(buffer, d->extensible.serialize().c_str(), bsize);
+  return buffer;
 }
 
 
@@ -152,4 +153,36 @@ dmlite_any_dict* dmlite_any_dict_from_json(const char* json)
   dict = new dmlite_any_dict();
   dict->extensible.deserialize(json);
   return dict;
+}
+
+
+
+void dmlite_any_dict_keys(const dmlite_any_dict* d, unsigned* nkeys, char*** keys)
+{
+  std::vector<std::string> v = d->extensible.getKeys();
+  
+  if (v.size() == 0) {
+    *nkeys = 0;
+    *keys  = NULL;
+    return;
+  }
+  
+  *keys = new char*[v.size()];
+  for (unsigned i = 0; i < v.size(); ++i) {
+    (*keys)[i] = new char[v[i].length() + 1];
+    strcpy((*keys)[i], v[i].c_str());
+  }
+  *nkeys = v.size();
+}
+
+
+
+void dmlite_any_dict_keys_free(unsigned n, char** keys)
+{
+  if (keys == NULL)
+    return;
+  
+  for (unsigned i = 0; i < n; ++i)
+    delete [] keys[i];
+  delete [] keys;
 }

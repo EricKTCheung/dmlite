@@ -72,7 +72,7 @@ void dmlite_serialize_acls(unsigned nEntries, dmlite_aclentry* acl,
  * @param nEntries The resulting number of ACL entries.
  * @param acl      The resulting ACL.
  */
-void dmlite_deserialize_acls(const char* buffer, unsigned* nEntries,
+void dmlite_deserialize_acl(const char* buffer, unsigned* nEntries,
                              dmlite_aclentry** acl);
 
 /**
@@ -80,7 +80,7 @@ void dmlite_deserialize_acls(const char* buffer, unsigned* nEntries,
  * @param nEntries The number of entries in the array.
  * @param acl      The ACL.
  */
-void dmlite_freeacls(unsigned nEntries, dmlite_aclentry* acl);
+void dmlite_acl_free(unsigned nEntries, dmlite_aclentry* acl);
 
 #ifdef	__cplusplus
 }

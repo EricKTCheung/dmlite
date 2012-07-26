@@ -50,6 +50,17 @@ int main(int argn, char** argv)
   TEST_ASSERT_STR_EQUAL("something something", buffer);
   dmlite_any_free(value);
   
+  SECTION("Get keys");
+  char**   keys;
+  unsigned nKeys;
+  dmlite_any_dict_keys(dict, &nKeys, &keys);
+  
+  TEST_ASSERT_EQUAL(2, nKeys);
+  TEST_ASSERT_STR_EQUAL("long", keys[0]);
+  TEST_ASSERT_STR_EQUAL("string", keys[1]);
+  
+  dmlite_any_dict_keys_free(nKeys, keys);
+  
   SECTION("JSON OUTPUT");
   dmlite_any_dict_to_json(dict, buffer, sizeof(buffer));
   log_dump("%s", buffer);
