@@ -1,7 +1,7 @@
 /*
- * pydm_errno.cpp
+ * errno.cpp
  *
- * Python bindings for dm_errno.h from the c++ dmlite library
+ * Python bindings for errno.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */

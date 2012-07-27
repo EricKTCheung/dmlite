@@ -1,7 +1,7 @@
 /*
- * pydm_exceptions.cpp
+ * exceptions.cpp
  *
- * Python bindings for dm_exceptions.h from the c++ dmlite library
+ * Python bindings for exceptions.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */
