@@ -63,7 +63,7 @@ install (DIRECTORY   include/
          DESTINATION usr/include
          COMPONENT   dmlite-devel
          PATTERN     ".svn" EXCLUDE
-         PATTERN     ".cmake" EXCLUDE)
+         PATTERN     "*.cmake" EXCLUDE)
 
 # Generate documentation
 find_package (Doxygen)
