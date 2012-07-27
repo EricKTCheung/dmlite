@@ -56,7 +56,7 @@ namespace dmlite {
     void removeDir(const std::string& path) throw (DmException);
 
     void rename(const std::string& oldPath,
-               onst std::string& newPath) throw (DmException);
+                const std::string& newPath) throw (DmException);
 
     mode_t umask(mode_t mask) throw ();
 
@@ -101,7 +101,7 @@ namespace dmlite {
     void updateAccessTime(const ExtendedStat& meta) throw (DmException);
 
     /// Traverse backwards to check permissions.
-    /// @param file The file at the end
+    /// @param meta The file at the end
     /// @note       Throws an exception if it is not possible.
     void traverseBackwards(const ExtendedStat& meta) throw (DmException);
 

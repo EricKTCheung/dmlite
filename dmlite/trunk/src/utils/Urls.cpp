@@ -1,4 +1,4 @@
-/// @file   utils/Uris.cpp
+/// @file   utils/Urls.cpp
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <boost/regex.hpp>
