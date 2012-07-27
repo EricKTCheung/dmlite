@@ -30,12 +30,12 @@
 	
 
 	class_<boost::any>("boost_any", init<>()) 
-		.def("set", &anySetBool)
-		.def("set", &anySetLong)
-		.def("set", &anySetInt)
-		.def("set", &anySetFloat)
-		.def("set", &anySetDouble)
-		.def("set", &anySetString)
+		.def("setBool", &anySetBool)
+		.def("setLong", &anySetLong)
+		.def("setInt", &anySetInt)
+		.def("setFloat", &anySetFloat)
+		.def("setDouble", &anySetDouble)
+		.def("setString", &anySetString)
 		.def("empty", &boost::any::empty) 
 		.def("extract", anyExtract) 
 		; 
