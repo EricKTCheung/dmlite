@@ -22,7 +22,7 @@ public:
   {
     if (this->catalog != 0x00) {
       try {
-        struct stat s = this->catalog->extendedStat(FILE).stat;
+        this->catalog->extendedStat(FILE).stat;
         std::vector<dmlite::Replica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
           this->catalog->deleteReplica(replicas[i]);

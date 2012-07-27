@@ -1,11 +1,12 @@
 /// @file  plugin_mock.cpp
 /// @brief Mock plugin for the C tests.
 #include <dirent.h>
-#include <errno.h>
-#include <unistd.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/urls.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "plugin_mock.h"
-#include "dmlite/cpp/utils/urls.h"
 
 using namespace dmlite;
 
