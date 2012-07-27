@@ -90,7 +90,21 @@ Authn::~Authn()
 
 
 
+IDirectory::~IDirectory()
+{
+  // Nothing
+}
+
+
+
 INode::~INode()
+{
+  // Nothing
+}
+
+
+
+Directory::~Directory()
 {
   // Nothing
 }

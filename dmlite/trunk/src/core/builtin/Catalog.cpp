@@ -936,7 +936,7 @@ void BuiltInCatalog::closeDir(Directory* dir) throw (DmException)
 
 
 
-struct dirent* BuiltInCatalog::readDir (Directory* dir) throw (DmException)
+struct dirent* BuiltInCatalog::readDir(Directory* dir) throw (DmException)
 {
   BuiltInDir* dirp = (BuiltInDir*)dir;
   struct dirent* d = this->si_->getINode()->readDir(dirp->idir);

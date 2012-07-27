@@ -21,7 +21,7 @@ namespace dmlite {
   class PluginManager;
   
   /// Typedef for directories.
-  typedef void Directory;
+  struct Directory { virtual ~Directory() = 0; };
   
   /// Interface for Catalog (Namespaces).
   class Catalog: public virtual BaseInterface {

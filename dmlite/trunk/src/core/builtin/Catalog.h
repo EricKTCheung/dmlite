@@ -12,7 +12,8 @@
 
 namespace dmlite {
   
-  struct BuiltInDir {
+  struct BuiltInDir: public Directory {
+    virtual ~BuiltInDir() {};
     IDirectory*  idir;
     ExtendedStat dir;
   };

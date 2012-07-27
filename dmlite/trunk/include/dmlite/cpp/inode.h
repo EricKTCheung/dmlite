@@ -18,7 +18,7 @@ namespace dmlite {
   class StackInstance;  
   
   /// Typedef for directories.
-  typedef void IDirectory;
+  struct IDirectory { virtual ~IDirectory() = 0; };
   
   /// File/directory metadata.
   struct ExtendedStat: public Extensible {
