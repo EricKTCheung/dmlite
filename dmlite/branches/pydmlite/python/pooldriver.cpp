@@ -1,7 +1,7 @@
 /*
- * pydm_pooldriver.cpp
+ * pooldriver.cpp
  *
- * Python bindings for dm_pooldriver.h from the c++ dmlite library
+ * Python bindings for pooldriver.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */

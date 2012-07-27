@@ -1,14 +1,12 @@
 /*
- * pydm_catalog.cpp
+ * catalog.cpp
  *
- * Python bindings for dm_catalog.h from the c++ dmlite library
+ * Python bindings for catalog.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */
 
 	class_<CatalogWrapper, bases< BaseInterface >, boost::noncopyable >("Catalog", no_init)
-		.def("setStackInstance", boost::python::pure_virtual(&Catalog::setStackInstance))
-		.def("setSecurityContext", boost::python::pure_virtual(&Catalog::setSecurityContext))
 		.def("changeDir", boost::python::pure_virtual(&Catalog::changeDir))
 		.def("getWorkingDir", boost::python::pure_virtual(&Catalog::getWorkingDir))
 
@@ -34,13 +32,12 @@
 		.def("setGuid", &Catalog::setGuid)
 
 		////////////////////////
-		// there are severe problems with the void*-parameters / return values of the
-		// "Dir"-methods, thus, int-handles now represent directories instead of void*
-		// still not sure, if it works correctly -> commented out
-		//.def("openDirInt", &CatalogWrapper::openDirInt)
-		//.def("closeDirInt", &CatalogWrapper::closeDirInt)
-		//.def("readDirInt", &CatalogWrapper::readDirInt, return_internal_reference<>())
-		//.def("readDirxInt", &CatalogWrapper::readDirxInt, return_internal_reference<>())
+		// there are problems with the void*-parameters / return values of the
+		// "Dir"-methods: write a Directory wrapper class for that!
+		//.def("openDir", &CatalogWrapper::openDir)
+		//.def("closeDir", &CatalogWrapper::closeDir)
+		//.def("readDir", &CatalogWrapper::readDir, return_internal_reference<>())
+		//.def("readDirx", &CatalogWrapper::readDirx, return_internal_reference<>())
 
 		.def("makeDir", &Catalog::makeDir)
 		.def("rename", &Catalog::rename)

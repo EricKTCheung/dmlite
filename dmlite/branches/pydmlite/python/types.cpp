@@ -1,7 +1,7 @@
 /*
- * pydm_types.cpp
+ * types.cpp
  *
- * Python bindings for dm_types.h from the c++ dmlite library
+ * Python bindings for types.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */

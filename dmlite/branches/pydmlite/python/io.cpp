@@ -1,7 +1,7 @@
 /*
- * pydm_io.cpp
+ * io.cpp
  *
- * Python bindings for dm_io.h from the c++ dmlite library
+ * Python bindings for io.h from the c++ dmlite library
  * via Boost:Python.
  * This file is included by pydmlite.cpp.
  */
