@@ -151,10 +151,10 @@ public:
 
   void testNoMore()
   {
-    Dummy *d1, *d2, *d3;
+    Dummy *d1, *d2;
     d1 = pool->acquire();
     d2 = pool->acquire();
-    CPPUNIT_ASSERT_THROW(d3 = pool->acquire(false), dmlite::DmException);
+    CPPUNIT_ASSERT_THROW(pool->acquire(false), dmlite::DmException);
     pool->release(d1);
     pool->release(d2);
   }

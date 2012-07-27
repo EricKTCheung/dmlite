@@ -139,7 +139,7 @@ void testReplicas(dmlite_context* context)
   replica.fileid = s.st_ino;
   strcpy(replica.server, "disk.cern.ch");
   strcpy(replica.rfn,    "/storage/replica.01");
-  replica.status = kOnline;
+  replica.status = kAvailable;
   replica.type   = kPermanent;
   
   dmlite_any* any = dmlite_any_new_string("value");
@@ -158,7 +158,7 @@ void testReplicas(dmlite_context* context)
   TEST_ASSERT_EQUAL(1, nReplicas);
   TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replicas[0].server);
   TEST_ASSERT_STR_EQUAL("/storage/replica.01", replicas[0].rfn);
-  TEST_ASSERT_EQUAL(kOnline,    replicas[0].status);
+  TEST_ASSERT_EQUAL(kAvailable, replicas[0].status);
   TEST_ASSERT_EQUAL(kPermanent, replicas[0].type);
   
   any = dmlite_any_dict_get(replicas[0].extra, "additional");
@@ -178,7 +178,7 @@ void testReplicas(dmlite_context* context)
   TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
   TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
   TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
-  TEST_ASSERT_EQUAL(kOnline,    replica.status);
+  TEST_ASSERT_EQUAL(kAvailable,    replica.status);
   TEST_ASSERT_EQUAL(kPermanent, replica.type);
   
   any = dmlite_any_dict_get(replica.extra, "additional");
@@ -204,9 +204,9 @@ void testReplicas(dmlite_context* context)
   TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
   TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
   TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
-  TEST_ASSERT_EQUAL(kOnline,   replica.status);
-  TEST_ASSERT_EQUAL(kVolatile, replica.type);
-  TEST_ASSERT_EQUAL(55,        replica.ltime);
+  TEST_ASSERT_EQUAL(kAvailable, replica.status);
+  TEST_ASSERT_EQUAL(kVolatile,  replica.type);
+  TEST_ASSERT_EQUAL(55,         replica.ltime);
   
   any = dmlite_any_dict_get(replica.extra, "new");
   TEST_ASSERT_NOT_EQUAL(NULL, any);
