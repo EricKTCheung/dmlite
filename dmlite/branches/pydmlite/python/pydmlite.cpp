@@ -25,6 +25,7 @@ using namespace boost::python;
 
 // include wrapper classes
 #include "helpers.cpp"
+#include "authnwrapper.cpp"
 #include "basewrapper.cpp"
 #include "catalogwrapper.cpp"
 
@@ -84,10 +85,10 @@ BOOST_PYTHON_MODULE(pydmlite)
 #include "authn.cpp"
 #include "base.cpp"
 #include "catalog.cpp"
-
-/*
 #include "exceptions.cpp"
 #include "inode.cpp"
+
+/*
 #include "io.cpp"
 #include "pool.cpp"
 #include "pooldriver.cpp"

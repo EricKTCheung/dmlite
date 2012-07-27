@@ -29,10 +29,20 @@
 		.def_readwrite("groups", &SecurityContext::groups)
 		;
 
-	class_<Authn, boost::noncopyable>("Authn", no_init)
-		// pure virtual class still to be implemented
+	class_<AuthnWrapper, boost::noncopyable>("Authn", no_init)
+		.def("getImplId", pure_virtual(&Authn::getImplId))
+
+		.def("createSecurityContext", pure_virtual(&Authn::createSecurityContext), return_internal_reference<>())
+
+		.def("newGroup", pure_virtual(&Authn::newGroup))
+		.def("getGroup", pure_virtual(&Authn::getGroup))
+
+		.def("newUser", pure_virtual(&Authn::newUser))
+		.def("getUser", pure_virtual(&Authn::getUser))
+		
+		.def("getIdMap", pure_virtual(&Authn::getIdMap))
 		;
 		
-	class_<AuthnFactory, boost::noncopyable>("AuthnFactory", no_init)
-		// pure virtual class still to be implemented
+	class_<AuthnFactoryWrapper, boost::noncopyable>("AuthnFactory", no_init)
+		.def("createAuthn", pure_virtual(&AuthnFactoryWrapper::createAuthn), return_internal_reference<>())
 		;

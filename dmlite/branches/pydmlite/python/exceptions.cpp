@@ -13,4 +13,6 @@
 
 		.def("code", &DmException::code)
 		.def("what", &DmException::what)
+
+		//.def("setMessage", &DmException::setMessage)
 		;
