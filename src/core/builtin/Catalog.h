@@ -1,7 +1,7 @@
-/// @file     core/builtin/Catalog.h
-/// @brief    Implementation of a Catalog using other plugins, as INode.
-/// @detailed Intended to ease the development of database backends.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Catalog.h
+/// @brief   Implementation of a Catalog using other plugins, as INode.
+/// @details Intended to ease the development of database backends.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #ifndef BUILTIN_CATALOG_H
 #define	BUILTIN_CATALOG_H
 
@@ -56,7 +56,7 @@ namespace dmlite {
     void removeDir(const std::string& path) throw (DmException);
 
     void rename(const std::string& oldPath,
-               const std::string& newPath) throw (DmException);
+               onst std::string& newPath) throw (DmException);
 
     mode_t umask(mode_t mask) throw ();
 

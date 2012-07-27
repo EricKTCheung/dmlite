@@ -1,7 +1,7 @@
-/// @file     core/builtin/Catalog.cpp
-/// @brief    Implementation of a Catalog using other plugins, as INode.
-/// @detailed Intended to ease the development of database backends.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file   core/builtin/Catalog.cpp
+/// @brief  Implementation of a Catalog using other plugins, as INode.
+/// @detail Intended to ease the development of database backends.
+/// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -56,7 +56,7 @@ BuiltInCatalogFactory::~BuiltInCatalogFactory()
 
 
 void BuiltInCatalogFactory::configure(const std::string& key, const std::string& value) throw (DmException)
-{
+
   if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "UpdateAccessTime") {
