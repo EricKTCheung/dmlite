@@ -1,4 +1,4 @@
-/// @file    include/dmlite/dummy/DummyPool.h
+/// @file    include/dmlite/cpp/dummy/DummyPool.h
 /// @brief   A dummy plugin that just delegates calls to a decorated one.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>

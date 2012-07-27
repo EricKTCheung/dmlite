@@ -69,7 +69,7 @@ namespace dmlite {
   /// @param stat    A struct stat which mode will be checked.
   /// @param mode    The mode to be checked.
   /// @return        0 if the mode is allowed, 1 if not.
-  int checkPermissions(const SecurityContext* contex,
+  int checkPermissions(const SecurityContext* context,
                        const Acl& acl, const struct stat& stat,
                        mode_t mode);
 

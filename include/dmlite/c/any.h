@@ -2,7 +2,6 @@
  *  @brief  Opaque handler to pass different types of values to the API.
  *  @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
  *  @note   Basically it wraps boost::any and dmlite::Extensible.
- *  @TODO   Add support for more complex type.
  */
 #ifndef DMLITE_ANY_H
 #define DMLITE_ANY_H

@@ -88,6 +88,7 @@ namespace dmlite {
     /// @param path   The file to modify.
     /// @param newUid The uid of the new owneer.
     /// @param newGid The gid of the new group.
+    /// @param followSymLink If set to true, symbolic links will be followed.
     virtual void setOwner(const std::string& path, uid_t newUid, gid_t newGid,
                           bool followSymLink = true) throw (DmException) = 0;
 

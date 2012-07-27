@@ -1,4 +1,4 @@
-/// @file    core/dummy/DummyCatalog.cpp
+/// @file    core/dummy/DummyPool.cpp
 /// @brief   DummyPoolManager implementation.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>

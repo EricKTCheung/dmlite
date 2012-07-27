@@ -1,8 +1,8 @@
-/// @file   core/builtin/Authn.h
-/// @brief  User and group mapping using the system's ones.
-/// @detail This will be used by default when no other Authn
-///         implementeation is loaded.
-/// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Authn.h
+/// @brief   User and group mapping using the system's ones.
+/// @details This will be used by default when no other Authn
+///          implementeation is loaded.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #ifndef BUILTIN_AUTHN_H
 #define	BUILTIN_AUTHN_H
 

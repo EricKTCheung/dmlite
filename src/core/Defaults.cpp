@@ -1,4 +1,4 @@
-/// @file   core/Catalog.cpp
+/// @file   core/Defaults.cpp
 /// @brief  Implementation of non abstract dm::Catalog methods.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dmlite/cpp/base.h>

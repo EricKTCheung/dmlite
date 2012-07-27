@@ -1,4 +1,4 @@
-/// @file   core/PluginManager.cpp
+/// @file   core/StackInstance.cpp
 /// @brief  Implementation of dm::StackInstance
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dmlite/cpp/authn.h>
