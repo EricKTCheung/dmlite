@@ -1,8 +1,8 @@
-/// @file     core/builtin/Authn.cpp
-/// @brief    User and group mapping using the system's ones.
-/// @detailed This will be used by default when no other Authn
-///           implementeation is loaded.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Authn.cpp
+/// @brief   User and group mapping using the system's ones.
+/// @details This will be used by default when no other Authn
+///          implementeation is loaded.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
 #include <dmlite/cpp/utils/security.h>
 #include <grp.h>
