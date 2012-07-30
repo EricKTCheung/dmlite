@@ -160,6 +160,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   // If path is absolute OR cwd is empty, start in root
   if (path[0] == '/' || this->cwdPath_.empty()) {
     // Root parent "is" a dir and world-readable :)
+    memset(&meta.stat, 0, sizeof(meta.stat));
     meta.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
