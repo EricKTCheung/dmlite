@@ -1,5 +1,6 @@
 #include <dmlite/c/any.h>
 #include <dmlite/c/dmlite.h>
+#include <dmlite/c/io.h>
 #include <dmlite/c/pool.h>
 #include "utils.h"
 
@@ -89,16 +90,16 @@ void testPut(dmlite_context* context)
   
   dmlite_location_free(context, loc);
   
-  /* A putdone without token will fail */
+  /* A donewriting without token will fail */
   dmlite_any_dict* dict = dmlite_any_dict_new();
-  TEST_ASSERT_EQUAL(DM_FORBIDDEN, dmlite_putdone(context, "host1.cern.ch",
-                                                 "/storage/chunk01", dict));
+  TEST_ASSERT_EQUAL(DM_FORBIDDEN, dmlite_donewriting(context,
+                                                     "/storage/chunk01", dict));
   
   /* With token */
   dmlite_any* token = dmlite_any_new_string("987654321");
   dmlite_any_dict_insert(dict, "token", token);
   
-  TEST_CONTEXT_CALL(context, dmlite_putdone, "host1.cern.ch",
+  TEST_CONTEXT_CALL(context, dmlite_donewriting,
                     "/storage/chunk01", dict);
   
   dmlite_any_free(token);

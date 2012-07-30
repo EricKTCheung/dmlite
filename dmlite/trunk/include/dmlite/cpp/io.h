@@ -71,6 +71,12 @@ namespace dmlite {
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        int flags,
                                        const Extensible& extras) throw (DmException) = 0;
+    
+    /// Must be called when the front-end is done writing.
+    /// @param pfn    The file name.
+    /// @param params The extra parameters as was returned by whereToWrite
+    virtual void doneWriting(const std::string& pfn,
+                             const Extensible& params) throw (DmException) = 0;
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

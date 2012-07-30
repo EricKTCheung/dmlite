@@ -76,12 +76,3 @@ Location DummyPoolManager::whereToWrite(const std::string& path) throw (DmExcept
 {
   DELEGATE_RETURN(whereToWrite, path);
 }
-
-
-
-void DummyPoolManager::doneWriting(const std::string& host,
-                                   const std::string& rfn,
-                                   const Extensible& params) throw (DmException)
-{
-  DELEGATE(doneWriting, host, rfn, params);
-}

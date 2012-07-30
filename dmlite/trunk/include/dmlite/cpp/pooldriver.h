@@ -59,11 +59,6 @@ namespace dmlite {
 
     /// Get where to put a file
     virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
-
-    /// Finish a put
-    /// TODO: To be removed!!
-    virtual void doneWriting(const Replica& replica,
-                             const Extensible& extras) throw (DmException) = 0; 
   };
 
   /// Interface for a pool driver

@@ -146,18 +146,3 @@ dmlite_location* dmlite_put(dmlite_context* context, const char* path)
   return dmlite_cpplocation_to_clocation(loc, locp);
   CATCH_POINTER(context, put)
 }
-
-
-
-int dmlite_putdone(dmlite_context* context, const char* host, const char* rfn,
-                   const dmlite_any_dict* extra)
-{
-  TRY(context, putdone)
-  NOT_NULL(host);
-  NOT_NULL(rfn);  
-  if (extra != NULL)
-    context->stack->getPoolManager()->doneWriting(host, rfn, extra->extensible);
-  else
-    context->stack->getPoolManager()->doneWriting(host, rfn, dmlite::Extensible());
-  CATCH(context, putdone)
-}
