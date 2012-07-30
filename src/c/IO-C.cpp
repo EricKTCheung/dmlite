@@ -110,3 +110,18 @@ int dmlite_feof(dmlite_fd* fd)
   return fd->stream->eof();
   CATCH(fd->context, feof)
 }
+
+
+
+int dmlite_donewriting(dmlite_context* context,
+                       const char* pfn,
+                       const dmlite_any_dict* extra)
+{
+  TRY(context, donewriting)
+  NOT_NULL(pfn);  
+  if (extra != NULL)
+    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
+  else
+    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
+  CATCH(context, donewriting)
+}

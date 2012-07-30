@@ -326,19 +326,6 @@ Location MockPoolManager::whereToWrite(const std::string& path) throw (DmExcepti
 
 
 
-void MockPoolManager::doneWriting(const std::string& host, const std::string& rfn,
-                                  const Extensible& params) throw (DmException)
-{
-  if (params.getString("token") != "987654321")
-    throw DmException(DM_FORBIDDEN, "Invalid token");
-  if (host != "host1.cern.ch")
-    throw DmException(DM_INVALID_VALUE, "Invalid host");
-  if (rfn != "/storage/chunk01")
-    throw DmException(DM_INVALID_VALUE, "Invalid rfn");
-}
-
-
-
 MockIOHandler::MockIOHandler(): p(0), closed(false)
 {
   char c = 'a';
@@ -482,6 +469,16 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
   }
   
   return new MockIOHandler();
+}
+
+
+
+void MockIODriver::doneWriting(const std::string& pfn, const Extensible& params) throw (DmException)
+{
+  if (params.getString("token") != "987654321")
+    throw DmException(DM_FORBIDDEN, "Invalid token");
+  if (pfn != "/storage/chunk01")
+    throw DmException(DM_INVALID_VALUE, "Invalid rfn");  
 }
 
 

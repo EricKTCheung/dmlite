@@ -25,9 +25,6 @@ namespace dmlite {
 
     virtual Location whereToWrite(const std::string& path) throw (DmException);
 
-    virtual void doneWriting(const std::string& host, const std::string& rfn,
-                              const Extensible& params) throw (DmException);
-
    protected:
     PoolManager* decorated_;
   };

@@ -87,18 +87,6 @@ dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replic
 dmlite_location* dmlite_put(dmlite_context* context, const char* path);
 
 /**
- * Finish a PUT request.
- * @param context The DM context.
- * @param host    The host where the replica is.
- * @param rfn     The replica file name.
- * @param extra   The extra parameters returned by put.
- * @return        0 on success, error code otherwise.
- */
-int dmlite_putdone(dmlite_context* context,
-                   const char*host, const char* rfn,
-                   const dmlite_any_dict* extra);
-
-/**
  * Free a location struct.
  * @param context The DM context.
  * @param loc     The struct to free.

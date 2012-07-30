@@ -45,13 +45,6 @@ namespace dmlite {
     /// @param path  The path of the file to create.
     /// @return      The physical location where to write.
     virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
-
-    /// Finish a PUT
-    /// @param host   The host where the replica is hosted.
-    /// @param rfn    The replica file name.
-    /// @param params The extra parameters as was returned by whereToWrite
-    virtual void doneWriting(const std::string& host, const std::string& rfn,
-                             const Extensible& params) throw (DmException) = 0;
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

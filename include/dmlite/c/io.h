@@ -74,6 +74,17 @@ size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
  */
 int dmlite_feof(dmlite_fd* fd);
 
+/**
+ * Finish a PUT.
+ * @param context The DM context.
+ * @param pfn     The replica file name.
+ * @param extra   The extra parameters as returned by dmlite_put.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_donewriting(dmlite_context* context,
+                       const char* pfn,
+                       const dmlite_any_dict* extra);
+
 #ifdef	__cplusplus
 }
 #endif

@@ -67,9 +67,6 @@ namespace dmlite {
      
      Location whereToRead (const std::string& path) throw (DmException);
      Location whereToWrite(const std::string& path) throw (DmException);
-     
-     void doneWriting(const std::string& host, const std::string& rfn,
-                      const Extensible& params) throw (DmException);
   };
   
   /// Mock IO handler
@@ -103,6 +100,9 @@ namespace dmlite {
      IOHandler* createIOHandler(const std::string& pfn,
                                 int flags,
                                 const Extensible& extras) throw (DmException);
+     
+     void doneWriting(const std::string& pfn,
+                      const Extensible& params) throw (DmException);
   };
 
   /// Factory for mock implementation
