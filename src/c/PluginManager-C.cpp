@@ -156,8 +156,8 @@ int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred)
   credpp.remoteAddress = SAFE_STRING(cred->remote_address);
   credpp.sessionId     = SAFE_STRING(cred->session_id);
   
-  if (cred->fqans != NULL)
-    std::copy(cred->fqans, cred->fqans + cred->nfqans, credpp.fqans.begin());
+  for (unsigned i = 0; i < cred->nfqans; ++i)
+    credpp.fqans.push_back(cred->fqans[i]);
   
   context->stack->setSecurityCredentials(credpp);
   CATCH(context, setcredentials)
