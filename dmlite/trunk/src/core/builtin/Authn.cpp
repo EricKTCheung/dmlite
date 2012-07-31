@@ -13,7 +13,7 @@ using namespace dmlite;
 
 
 
-BuiltInAuthn::BuiltInAuthn()
+BuiltInAuthn::BuiltInAuthn(const std::string& nb): nobody_(nb)
 {
   // Nothing
 }
@@ -98,7 +98,7 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName, gid_t* group) throw 
   getpwnam_r(userName.c_str(), &pwd, buffer, sizeof(buffer), &result);
   
   if (result == NULL)
-    throw DmException(DM_NO_SUCH_GROUP, "User %s not found", userName.c_str());
+    throw DmException(DM_NO_SUCH_USER, "User %s not found", userName.c_str());
   
   UserInfo ui;
   
@@ -146,7 +146,15 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
 
   groups->clear();
 
-  *user = this->getUser(userName, &gid);
+  try {
+    *user = this->getUser(userName, &gid);
+  }
+  catch (DmException &e) {
+    if (e.code() != DM_NO_SUCH_USER)
+      throw;
+    // Try again with nobody
+    *user = this->getUser(nobody_, &gid);
+  }
   
   // No VO information, so use the default from passwd
   if (groupNames.empty()) {
@@ -166,7 +174,7 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
 
 
 
-BuiltInAuthnFactory::BuiltInAuthnFactory()
+BuiltInAuthnFactory::BuiltInAuthnFactory(): nobody_("nobody")
 {
   // Nothing
 }
@@ -181,8 +189,10 @@ BuiltInAuthnFactory::~BuiltInAuthnFactory()
 
 
 void BuiltInAuthnFactory::configure(const std::string& key,
-                                          const std::string& value) throw (DmException)
+                                    const std::string& value) throw (DmException)
 {
+  if (key == "AnonymousUser")
+    this->nobody_ = value;
   throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
@@ -190,5 +200,5 @@ void BuiltInAuthnFactory::configure(const std::string& key,
 
 Authn* BuiltInAuthnFactory::createAuthn(PluginManager* pm) throw (DmException)
 {
-  return new BuiltInAuthn();
+  return new BuiltInAuthn(this->nobody_);
 }
