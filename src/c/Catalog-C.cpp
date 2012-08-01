@@ -321,13 +321,14 @@ int dmlite_utime(dmlite_context* context, const char* path, const struct utimbuf
 
 
 
-int dmlite_getcomment(dmlite_context* context, const char* path, char* comment)
+int dmlite_getcomment(dmlite_context* context, const char* path,
+                      char* comment, size_t bufsize)
 {
   TRY(context, getcomment)
   NOT_NULL(path);
   NOT_NULL(comment);
   std::string c = context->stack->getCatalog()->getComment(path);
-  strcpy(comment, c.c_str());
+  strncpy(comment, c.c_str(), bufsize);
   CATCH(context, getcomment)
 }
 

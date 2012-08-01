@@ -88,7 +88,7 @@ int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica);
  * @param context      The DM context.
  * @param path         The logical file name.
  * @param nReplicas    The number of entries will be put here.
- * @param fileReplicas An array with nEntries elements will be stored here. <b>Use dmlite_freereplicas to free it.</b>
+ * @param fileReplicas An array with nEntries elements will be stored here. <b>Use dmlite_replicas_free to free it.</b>
  * @return             0 on success, error code otherwise.
  */
 int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nReplicas,
@@ -195,9 +195,11 @@ int dmlite_utime(dmlite_context* context, const char* path, const struct utimbuf
  * @param context The DM context.
  * @param path    The logical path.
  * @param comment Where to put the retrieved comment. It must be at least of size COMMENT_MAX.
+ * @param bufsize Size of the memory zone pointed by comment.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_getcomment(dmlite_context* context, const char* path, char* comment);
+int dmlite_getcomment(dmlite_context* context, const char* path,
+                      char* comment, size_t bufsize);
 
 /**
  * Set the comment associated with a file.
