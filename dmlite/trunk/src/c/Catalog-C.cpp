@@ -13,24 +13,6 @@
 
 #include "Private.h"
 
-static void dmlite_cppxstat_to_cxstat(const dmlite::ExtendedStat& ex,
-                                      dmlite_xstat* buf)
-{
-  std::strncpy(buf->acl,       ex.acl.serialize().c_str(), sizeof(buf->acl));
-  std::strncpy(buf->csumtype,  ex.csumtype.c_str(),  sizeof(buf->csumtype));
-  std::strncpy(buf->csumvalue, ex.csumvalue.c_str(), sizeof(buf->csumvalue));
-  std::strncpy(buf->guid,      ex.guid.c_str(),      sizeof(buf->guid));
-  std::strncpy(buf->name,      ex.name.c_str(),      sizeof(buf->name));
-  buf->parent = ex.parent;
-  buf->stat   = ex.stat;
-  buf->status = static_cast<dmlite_file_status>(ex.status);
-  
-  if (buf->extra != NULL) {
-    buf->extra->extensible.clear();
-    buf->extra->extensible.copy(ex);
-  }
-}
-
 
 
 int dmlite_chdir(dmlite_context* context, const char* path)
@@ -101,43 +83,13 @@ int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf)
 
 
 
-int dmlite_stati(dmlite_context* context, ino_t inode, struct stat* buf)
-{
-  TRY(context, lstat)
-  NOT_NULL(buf);
-  *buf = context->stack->getINode()->extendedStat(inode).stat;
-  CATCH(context, lstat);
-}
-
-
-
-int dmlite_statix(dmlite_context* context, ino_t inode, dmlite_xstat* buf)
-{
-  TRY(context, ixstat)
-  NOT_NULL(buf);
-  dmlite::ExtendedStat ex = context->stack->getINode()->extendedStat(inode);
-  dmlite_cppxstat_to_cxstat(ex, buf);
-  CATCH(context, ixstat);
-}
-
-
-
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addReplica)
   NOT_NULL(replica);  
   dmlite::Replica replicapp;
-  
-  replicapp.fileid = replica->fileid;
-  replicapp.status = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
-  replicapp.type   = static_cast<dmlite::Replica::ReplicaType>(replica->type);
-  replicapp.server = replica->server;
-  replicapp.rfn    = replica->rfn;
-  if (replica->extra != NULL)
-    replicapp.copy(replica->extra->extensible);
-  
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
   context->stack->getCatalog()->addReplica(replicapp);
-  
   CATCH(context, addReplica)
 }
 
@@ -148,15 +100,7 @@ int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica)
   TRY(context, delreplica)
   NOT_NULL(replica);
   dmlite::Replica replicapp;
-  
-  replicapp.fileid = replica->fileid;
-  replicapp.status = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
-  replicapp.type   = static_cast<dmlite::Replica::ReplicaType>(replica->type);
-  replicapp.server = replica->server;
-  replicapp.rfn    = replica->rfn;
-  if (replica->extra != NULL)
-    replicapp.copy(replica->extra->extensible);
-  
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
   context->stack->getCatalog()->deleteReplica(replicapp);
   CATCH(context, delreplica)
 }
@@ -180,19 +124,8 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
     *fileReplicas = NULL;
 
   for (unsigned i = 0; i < *nReplicas; ++i) {
-    (*fileReplicas)[i].atime  = replicaSet[i].atime;
-    (*fileReplicas)[i].fileid = replicaSet[i].fileid;
-    (*fileReplicas)[i].ltime  = replicaSet[i].ltime;
-    (*fileReplicas)[i].nbaccesses = replicaSet[i].nbaccesses;
-    (*fileReplicas)[i].ptime  = replicaSet[i].ptime;
-    (*fileReplicas)[i].replicaid  = replicaSet[i].replicaid;
-    (*fileReplicas)[i].status = static_cast<dmlite_replica_status>(replicaSet[i].status);
-    (*fileReplicas)[i].type   = static_cast<dmlite_replica_type>(replicaSet[i].type);
-    strncpy((*fileReplicas)[i].rfn, replicaSet[i].rfn.c_str(), sizeof((*fileReplicas)[i].rfn));
-    strncpy((*fileReplicas)[i].server, replicaSet[i].server.c_str(), sizeof((*fileReplicas)[i].server));
-    
     (*fileReplicas)[i].extra = new dmlite_any_dict();
-    (*fileReplicas)[i].extra->extensible.copy(replicaSet[i]);
+    dmlite_cppreplica_to_creplica(replicaSet[i], &((*fileReplicas)[i]));
   }  
 
   CATCH(context, getreplicas)
@@ -210,6 +143,16 @@ int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas,
   delete [] fileReplicas;
   return 0;
 }
+
+
+
+int dmlite_symlink(dmlite_context* context,
+                   const char* oldPath, const char* newPath)
+{
+  TRY(context, symlink)
+  context->stack->getCatalog()->symlink(oldPath, newPath);
+  CATCH(context, symlink)
+}  
 
 
 
@@ -459,23 +402,7 @@ int dmlite_getreplica(dmlite_context* context, const char* rfn, dmlite_replica* 
   NOT_NULL(rfn);
   NOT_NULL(replica);
   dmlite::Replica replicapp = context->stack->getCatalog()->getReplica(rfn);
-  
-  if (replica->extra != NULL) {
-    replica->extra->extensible.clear();
-    replica->extra->extensible.copy(replicapp);
-  }
-  
-  replica->atime  = replicapp.atime;
-  replica->fileid = replicapp.fileid;
-  replica->ltime  = replicapp.ltime;
-  replica->nbaccesses = replicapp.nbaccesses;
-  replica->ptime  = replicapp.ptime;
-  replica->replicaid = replicapp.replicaid;
-  std::strncpy(replica->rfn, replicapp.rfn.c_str(), sizeof(replica->rfn));
-  std::strncpy(replica->server, replicapp.server.c_str(), sizeof(replica->server));
-  replica->status = static_cast<dmlite_replica_status>(replicapp.status);
-  replica->type   = static_cast<dmlite_replica_type>(replicapp.type);
-  
+  dmlite_cppreplica_to_creplica(replicapp, replica);
   CATCH(context, getreplica)
 }
 
@@ -486,21 +413,7 @@ int dmlite_updatereplica(dmlite_context* context, const dmlite_replica* replica)
   TRY(context, updatereplica)
   NOT_NULL(replica);
   dmlite::Replica replicapp;
-  
-  if (replica->extra != NULL)
-    replicapp.copy(replica->extra->extensible);
-  
-  replicapp.atime  = replica->atime;
-  replicapp.fileid = replica->fileid;
-  replicapp.ltime  = replica->ltime;
-  replicapp.nbaccesses = replica->nbaccesses;
-  replicapp.ptime  = replica->ptime;
-  replicapp.replicaid = replica->replicaid;
-  replicapp.rfn    = replica->rfn;
-  replicapp.server = replica->server;
-  replicapp.status = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
-  replicapp.type   = static_cast<dmlite::Replica::ReplicaType>(replica->type);
-  
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
   context->stack->getCatalog()->updateReplica(replicapp);
   CATCH(context, updatereplica)
 }

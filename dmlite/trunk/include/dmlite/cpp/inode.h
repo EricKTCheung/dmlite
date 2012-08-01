@@ -82,25 +82,11 @@ namespace dmlite {
 
     /// Rollback changes
     virtual void rollback(void) throw (DmException) = 0;
-
+    
     /// Create a new file or directory
-    /// @param parent    Parent id
-    /// @param name      New file name
-    /// @param uid       The owner user id.
-    /// @param gid       The group id.
-    /// @param mode      Creation mode. For directories, pass S_IFDIR & mode
-    /// @param size      File size in bytes.
-    /// @param status    File status.
-    /// @param csumtype  Checksum type. Only 2 bytes are stored!
-    /// @param csumvalue Checksum value. Only 32 bytesa re stored!
-    /// @param acl       Access Control List. This method will NOT proccess inheritance.
-    /// @return          An stat of the created file.
-    virtual ExtendedStat create(ino_t parent, const std::string& name,
-                                uid_t uid, gid_t gid, mode_t mode,
-                                size_t size, ExtendedStat::FileStatus status,
-                                const std::string& csumtype,
-                                const std::string& csumvalue,
-                                const Acl& acl) throw (DmException) = 0;
+    /// @param f  The file that will be inserted. Its fields must be initialized.
+    /// @return   An stat of the created file.
+    virtual ExtendedStat create(const ExtendedStat& f) throw (DmException) = 0;
 
     /// Create or modify the file inode to point to another file.
     /// @param inode The file to modify.

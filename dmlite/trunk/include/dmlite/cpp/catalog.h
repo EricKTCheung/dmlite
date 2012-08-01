@@ -32,7 +32,7 @@ namespace dmlite {
     /// Change the working dir. Future not-absolute paths will use this as root.
     /// @param path The new working dir.
     virtual void changeDir(const std::string& path) throw (DmException) = 0;
-
+    
     /// Get the current working dir.
     /// @return The current working dir.
     virtual std::string getWorkingDir(void) throw (DmException) = 0;

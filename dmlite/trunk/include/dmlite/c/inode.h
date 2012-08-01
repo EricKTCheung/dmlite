@@ -63,6 +63,19 @@ typedef struct dmlite_xstat {
                            *   Caller is responsible for allocating and freeing*/
 } dmlite_xstat;
 
+/** Opaque directory handler */
+typedef struct dmlite_idir dmlite_idir;
+
+int dmlite_icreate(dmlite_context* context, const dmlite_xstat* f);
+
+int dmlite_isymlink(dmlite_context* context, ino_t inode, const char* link);
+
+int dmlite_iunlink(dmlite_context* context, ino_t inode);
+
+int dmlite_imove(dmlite_context* context, ino_t inode, ino_t dest);
+
+int dmlite_irename(dmlite_context* context, ino_t inode, const char* name);
+
 /**
  * Do a stat of an entry using the inode instead of the path.
  * @param context The DM context.
@@ -72,7 +85,7 @@ typedef struct dmlite_xstat {
  * @note          Security checks won't be done if you use this function,
  *                so keep in mind doing it yourself.
  */
-int dmlite_stati(dmlite_context* context, ino_t inode, struct stat* buf);
+int dmlite_istat(dmlite_context* context, ino_t inode, struct stat* buf);
 
 /**
  * Do an extended stat of an entry using the inode instead of the path.
@@ -83,7 +96,51 @@ int dmlite_stati(dmlite_context* context, ino_t inode, struct stat* buf);
  * @note          Security checks won't be done if you use this function,
  *                so keep in mind doing it yourself.
  */
-int dmlite_statix(dmlite_context* context, ino_t inode, dmlite_xstat* buf);
+int dmlite_istatx(dmlite_context* context, ino_t inode, dmlite_xstat* buf);
+
+int dmlite_istatx_by_name(dmlite_context* context, ino_t parent, const char* name,
+                          dmlite_xstat* buf);
+
+int dmlite_ireadlink(dmlite_context* context, ino_t inode,
+                     char* path, size_t bufsize);
+
+int dmlite_iaddreplica(dmlite_context* context, const dmlite_replica* replica);
+
+int dmlite_ideletereplica(dmlite_context* context, const dmlite_replica* replica);
+
+int dmlite_igetreplica(dmlite_context* context, int64_t rid, dmlite_replica* buf);
+
+int dmlite_igetreplicas(dmlite_context* context, ino_t inode,
+                        unsigned* nreplicas, dmlite_replica** replicas);
+
+int dmlite_iutime(dmlite_context* context, ino_t inode,
+                  const struct utimbuf* buf);
+
+int dmlite_isetmode(dmlite_context* context, ino_t inode, uid_t uid, gid_t gid,
+                    mode_t mode, unsigned nentries, dmlite_aclentry* acl);
+
+int dmlite_isetsize(dmlite_context* context, ino_t inode, size_t size);
+
+int dmlite_isetchecksum(dmlite_context* context, ino_t inode,
+                        const char* csumtype, const char* csumvalue);
+
+int dmlite_igetcomment(dmlite_context* context, ino_t inode,
+                       char* comment, size_t bufsize);
+
+int dmlite_isetcomment(dmlite_context* context,  ino_t inode,
+                       const char* comment);
+
+int dmlite_ideletecomment(dmlite_context* context, ino_t inode);
+
+int dmlite_isetguid(dmlite_context* context, ino_t inode, const char* guid);
+
+dmlite_idir* dmlite_iopendir(dmlite_context* context, ino_t inode);
+
+int dmlite_iclosedir(dmlite_context* context, dmlite_idir* dir);
+
+dmlite_xstat* dmlite_ireaddirx(dmlite_context* context, dmlite_idir* dir);
+
+struct dirent* dmlite_ireaddir(dmlite_context* context, dmlite_idir* dir);
 
 #ifdef	__cplusplus
 }
