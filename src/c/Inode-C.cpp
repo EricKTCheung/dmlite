@@ -9,6 +9,33 @@
 
 
 
+int dmlite_ibegin(dmlite_context* context)
+{
+  TRY(context, ibegin)
+  context->stack->getINode()->begin();
+  CATCH(context, ibegin)
+}
+
+
+
+int dmlite_icommit(dmlite_context* context)
+{
+  TRY(context, icommit)
+  context->stack->getINode()->commit();
+  CATCH(context, icommit)
+}
+
+
+
+int dmlite_irollback(dmlite_context* context)
+{
+  TRY(context, irollback)
+  context->stack->getINode()->rollback();
+  CATCH(context, irollback)
+}
+
+
+
 int dmlite_icreate(dmlite_context* context, const dmlite_xstat* f)
 {
   TRY(context, icreate)

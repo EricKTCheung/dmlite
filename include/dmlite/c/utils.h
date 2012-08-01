@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-/** Handles URL */
+/** @brief Handles URL */
 typedef struct dmlite_url {
   char     scheme[SCHEME_MAX];
   char     domain[HOST_NAME_MAX];
@@ -41,7 +41,7 @@ typedef struct dmlite_url {
   char     query [QUERY_MAX];
 } dmlite_url;
 
-/** Handles ACL entries */
+/** @brief Handles ACL entries */
 typedef struct dmlite_aclentry {
   uint8_t  type;
   uint8_t  perm;
@@ -50,14 +50,14 @@ typedef struct dmlite_aclentry {
 
 
 /**
- * Parses a URL.
+ * @brief        Parses a URL.
  * @param source Original URL.
  * @param dest   Parsed URL.
  */
 void dmlite_parse_url(const char* source, dmlite_url* dest);
 
 /**
- * Serialize into a string a set of ACL entries
+ * @brief          Serializes into a string a set of ACL entries
  * @param nEntries The number of ACL entries in the array.
  * @param acl      The ACL.
  * @param buffer   Where to put the resulting string.
@@ -67,7 +67,7 @@ void dmlite_serialize_acls(unsigned nEntries, dmlite_aclentry* acl,
                            char* buffer, size_t bsize);
 
 /**
- * Deserialize a string into an array of ACL entries.
+ * @brief          Deserializes a string into an array of ACL entries.
  * @param buffer   The string.
  * @param nEntries The resulting number of ACL entries.
  * @param acl      The resulting ACL.
@@ -76,7 +76,7 @@ void dmlite_deserialize_acl(const char* buffer, unsigned* nEntries,
                              dmlite_aclentry** acl);
 
 /**
- * Free an array of ACL entries as returned by dm_deserialize_acls
+ * @brief          Frees an array of ACL entries as returned by dm_deserialize_acls
  * @param nEntries The number of entries in the array.
  * @param acl      The ACL.
  */
