@@ -16,7 +16,7 @@ extern "C" {
 typedef struct dmlite_fd dmlite_fd;
 
 /**
- * Open a file.
+ * @brief         Opens a file.
  * @param context The DM context.
  * @param path    The path to open.
  * @param flags   See open()
@@ -27,14 +27,14 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
                         const dmlite_any_dict* extra);
 
 /**
- * Close a file.
+ * @brief    Closes a file.
  * @param fd The file descriptor as returned by dmlite_open.
  * @return   0 on sucess,  error code otherwise.
  */
 int dmlite_fclose(dmlite_fd* fd);
 
 /**
- * Set the file position.
+ * @brief        Sets the file position.
  * @param fd     The file descriptor.
  * @param offset The offset.
  * @param whence See fseek()
@@ -43,14 +43,14 @@ int dmlite_fclose(dmlite_fd* fd);
 int dmlite_fseek(dmlite_fd* fd, long offset, int whence);
 
 /**
- * Return the cursor position.
+ * @brief    Returns the cursor position.
  * @param fd The file descriptor.
  * @return   The cursor position, or -1 on error.
  */
 long dmlite_ftell(dmlite_fd* fd);
 
 /**
- * Read from a file.
+ * @brief        Reads from a file.
  * @param fd     The file descriptor.
  * @param buffer Where to put the data.
  * @param count  Number of bytes to read.
@@ -59,7 +59,7 @@ long dmlite_ftell(dmlite_fd* fd);
 size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
 
 /**
- * Write to a file.
+ * @brief        Writes to a file.
  * @param fd     The file descriptor.
  * @param buffer A pointer to the data.
  * @param count  Number of bytes to write.
@@ -68,14 +68,14 @@ size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
 size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
 
 /**
- * Return 1 if EOF.
+ * @brief    Returns 1 if EOF.
  * @param fd The file descriptor.
  * @return   0 if there is more to read. 1 if EOF.
  */
 int dmlite_feof(dmlite_fd* fd);
 
 /**
- * Finish a PUT.
+ * @brief         Finishes a PUT.
  * @param context The DM context.
  * @param pfn     The replica file name.
  * @param extra   The extra parameters as returned by dmlite_put.

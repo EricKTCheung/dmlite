@@ -100,7 +100,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include/dmlite/c
 INPUT_ENCODING         = UTF-8
-FILE_PATTERNS          = dmlite.h
+FILE_PATTERNS          = *.h
 RECURSIVE              = NO
 EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
@@ -207,7 +207,7 @@ RTF_EXTENSIONS_FILE    =
 GENERATE_MAN           = YES
 MAN_OUTPUT             = man
 MAN_EXTENSION          = .3
-MAN_LINKS              = YES
+MAN_LINKS              = NO
 
 #---------------------------------------------------------------------------
 # configuration options related to the XML output

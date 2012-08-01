@@ -16,7 +16,7 @@ extern "C" {
 typedef struct dmlite_dir dmlite_dir;
   
 /**
- * Change the working dir.
+ * @brief         Changes the working dir.
  * @param context The DM context.
  * @param path    The new working dir.
  * @return        0 on success, error code otherwise.
@@ -24,7 +24,7 @@ typedef struct dmlite_dir dmlite_dir;
 int dmlite_chdir(dmlite_context* context, const char* path);
 
 /**
- * Get the current working directory.
+ * @brief         Gets the current working directory.
  * @param context The DM context.
  * @param buffer  If not NULL, the path will be stored here. <b>malloc</b> will be used otherwise.
  * @param size    The buffer size.
@@ -33,7 +33,7 @@ int dmlite_chdir(dmlite_context* context, const char* path);
 char* dmlite_getcwd(dmlite_context* context, char* buffer, size_t size);
 
 /**
- * Set the file mode creation mask.
+ * @brief         Sets the file mode creation mask.
  * @param context The DM context.
  * @param mask    The new mask.
  * @return        The previous mask.
@@ -41,7 +41,7 @@ char* dmlite_getcwd(dmlite_context* context, char* buffer, size_t size);
 mode_t dmlite_umask(dmlite_context* context, mode_t mask);
 
 /**
- * Do a stat of a file or directory.
+ * @brief         Does a stat of a file or directory.
  * @param context The DM context.
  * @param path    The path.
  * @param buf     Where to put the retrieved information.
@@ -50,7 +50,7 @@ mode_t dmlite_umask(dmlite_context* context, mode_t mask);
 int dmlite_stat(dmlite_context* context, const char* path, struct stat* buf);
 
 /**
- * Do a stat of a file, directory, or symbolic link (does not follow).
+ * @brief         Does a stat of a file, directory, or symbolic link (does not follow).
  * @param context The DM context.
  * @param path    The path.
  * @param buf     Where to put the retrieved information.
@@ -59,7 +59,7 @@ int dmlite_stat(dmlite_context* context, const char* path, struct stat* buf);
 int dmlite_statl(dmlite_context* context, const char* path, struct stat* buf);
 
 /**
- * Do an extended stat of a file, directory or symbolic link.
+ * @brief         Does an extended stat of a file, directory or symbolic link.
  * @param context The DM context.
  * @param path    The path.
  * @param buf     Where to put the retrieved information.
@@ -68,15 +68,15 @@ int dmlite_statl(dmlite_context* context, const char* path, struct stat* buf);
 int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf);
 
 /**
- * Add a new replica to an entry.
+ * @brief            Adds a new replica to an entry.
  * @param context    The DM context.
  * @param replica    The replica to add.
- * @return        0 on success, error code otherwise.
+ * @return           0 on success, error code otherwise.
  */
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica);
 
 /**
- * Delete a replica.
+ * @brief         Deletes a replica.
  * @param context The DM context.
  * @param replica The replica to delete.
  * @return        0 on success, error code otherwise.
@@ -84,7 +84,7 @@ int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica);
 int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica);
 
 /**
- * Get the replicas of a file.
+ * @brief              Gets the replicas of a file.
  * @param context      The DM context.
  * @param path         The logical file name.
  * @param nReplicas    The number of entries will be put here.
@@ -95,7 +95,7 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
                        dmlite_replica** fileReplicas);
 
 /**
- * Free a replica list.
+ * @brief              Frees a replica list.
  * @param context      The DM context.
  * @param nReplicas    The number of replicas contained in the array.
  * @param fileReplicas The array to free.
@@ -105,7 +105,7 @@ int dmlite_replicas_free(dmlite_context* context,
                          unsigned nReplicas, dmlite_replica* fileReplicas);
 
 /**
- * Creates a symlink.
+ * @brief         Creates a symlink
  * @param context The DM context.
  * @param oldPath The old path.
  * @param newPath The new path.
@@ -115,7 +115,7 @@ int dmlite_symlink(dmlite_context* context,
                    const char* oldPath, const char* newPath);
 
 /**
- * Remove a file.
+ * @brief         Removes a file.
  * @param context The DM context.
  * @param path    The logical file name.
  * @return        0 on success, error code otherwise.
@@ -124,7 +124,7 @@ int dmlite_unlink(dmlite_context* context, const char* path);
 
 
 /**
- * Create a file in the catalog (no replicas).
+ * @brief         Creates a file in the catalog (no replicas).
  * @param context The DM context.
  * @param path    The logical file name.
  * @param mode    The creation mode.
@@ -133,7 +133,7 @@ int dmlite_unlink(dmlite_context* context, const char* path);
 int dmlite_create(dmlite_context* context, const char* path, mode_t mode);
 
 /**
- * Change the mode of a file or directory.
+ * @brief         Changes the mode of a file or directory.
  * @param context The DM context.
  * @param path    The logical path.
  * @param mode    The new mode.
@@ -142,7 +142,7 @@ int dmlite_create(dmlite_context* context, const char* path, mode_t mode);
 int dmlite_chmod(dmlite_context* context, const char* path, mode_t mode);
 
 /**
- * Change the owner of a file or directory.
+ * @brief         Changes the owner of a file or directory.
  * @param context The DM context.
  * @param path    The logical path.
  * @param newUid  The new owner.
@@ -152,7 +152,7 @@ int dmlite_chmod(dmlite_context* context, const char* path, mode_t mode);
 int dmlite_chown(dmlite_context* context, const char* path, uid_t newUid, gid_t newGid);
 
 /**
- * Change the owner of a file, directory or symlink (does not follow).
+ * @brief         Changes the owner of a file, directory or symlink (does not follow).
  * @param context The DM context.
  * @param path    The logical path.
  * @param newUid  The new owner.
@@ -162,7 +162,7 @@ int dmlite_chown(dmlite_context* context, const char* path, uid_t newUid, gid_t 
 int dmlite_lchown(dmlite_context* context, const char* path, uid_t newUid, gid_t newGid);
 
 /**
- * Change the size of a file in the catalog.
+ * @brief          Changes the size of a file in the catalog.
  * @param context  The DM context.
  * @param path     The logical path.
  * @param filesize The new file size.
@@ -171,7 +171,7 @@ int dmlite_lchown(dmlite_context* context, const char* path, uid_t newUid, gid_t
 int dmlite_setfsize(dmlite_context* context, const char* path, uint64_t filesize);
 
 /**
- * Change the size and checksum of a file in the catalog.
+ * @brief           Changes the size and checksum of a file in the catalog.
  * @param context   The DM context.
  * @param path      The logical path.
  * @param filesize  The new file size.
@@ -183,7 +183,7 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
                  const char* csumtype, const char* csumvalue);
 
 /**
- * Change the ACL of a file.
+ * @brief          Changes the ACL of a file.
  * @param context  The DM context.
  * @param path     The logical path.
  * @param nEntries The number of entries in the acl array.
@@ -193,7 +193,7 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
 int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries, dmlite_aclentry* acl);
 
 /**
- * Change access and/or modification time
+ * @brief         Changes access and/or modification time
  * @param context The DM context.
  * @param path    The file path.
  * @param buf     A struct holding the new times.
@@ -202,7 +202,7 @@ int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries, 
 int dmlite_utime(dmlite_context* context, const char* path, const struct utimbuf* buf);
 
 /**
- * Get the comment associated with a file.
+ * @brief         Gets the comment associated with a file.
  * @param context The DM context.
  * @param path    The logical path.
  * @param comment Where to put the retrieved comment. It must be at least of size COMMENT_MAX.
@@ -213,7 +213,7 @@ int dmlite_getcomment(dmlite_context* context, const char* path,
                       char* comment, size_t bufsize);
 
 /**
- * Set the comment associated with a file.
+ * @brief         Sets the comment associated with a file.
  * @param context The DM context.
  * @param path    The logical path.
  * @param comment The comment to associate. '\\0' terminated string.
@@ -222,7 +222,7 @@ int dmlite_getcomment(dmlite_context* context, const char* path,
 int dmlite_setcomment(dmlite_context* context, const char* path, const char* comment);
 
 /**
- * Get the id of a group.
+ * @brief           Gets the id of a group.
  * @param context   The DM context.
  * @param groupName The group name.
  * @param gid       Where to put the group ID.
@@ -231,7 +231,7 @@ int dmlite_setcomment(dmlite_context* context, const char* path, const char* com
 int dmlite_getgrpbynam(dmlite_context* context, const char* groupName, gid_t* gid);
 
 /**
- * Get the user id.
+ * @brief          Get the user id.
  * @param context  The DM context.
  * @param userName The user name.
  * @param uid      Where to put the user ID.
@@ -240,7 +240,7 @@ int dmlite_getgrpbynam(dmlite_context* context, const char* groupName, gid_t* gi
 int dmlite_getusrbynam(dmlite_context* context, const char* userName, uid_t* uid);
 
 /**
- * Open a directory to read it later.
+ * @brief         Opens a directory to read it later.
  * @param context The DM context.
  * @param path    The directory to open.
  * @return        A pointer to an internal structure, or NULL on failure.
@@ -248,7 +248,7 @@ int dmlite_getusrbynam(dmlite_context* context, const char* userName, uid_t* uid
 dmlite_dir* dmlite_opendir(dmlite_context* context, const char* path);
 
 /**
- * Close a directory and free the internal structures.
+ * @brief         Closes a directory and free the internal structures.
  * @param context The DM context.
  * @param dir     The pointer returned by dmlite_opendir.
  * @return        0 on success, error code otherwise.
@@ -256,7 +256,7 @@ dmlite_dir* dmlite_opendir(dmlite_context* context, const char* path);
 int dmlite_closedir(dmlite_context* context, dmlite_dir* dir);
 
 /**
- * Read an entry from a directory.
+ * @brief         Reads an entry from a directory.
  * @param context The DM context.
  * @param dir     The pointer returned by dmlite_opendir.
  * @return        A pointer to a struct with the recovered data, or NULL on failure or end of directory. Do NOT free it.
@@ -264,7 +264,7 @@ int dmlite_closedir(dmlite_context* context, dmlite_dir* dir);
 struct dirent *dmlite_readdir(dmlite_context* context, dmlite_dir* dir);
 
 /**
- * Read an entry from a directory (extended data).
+ * @brief         Reads an entry from a directory (extended data).
  * @param context The DM context.
  * @param dir     The pointer returned by dmlite_opendir.
  * @return        A pointer to a struct with the recovered data, or NULL on failure or end of directory. Do NOT free it.
@@ -272,7 +272,7 @@ struct dirent *dmlite_readdir(dmlite_context* context, dmlite_dir* dir);
 dmlite_xstat *dmlite_readdirx(dmlite_context* context, dmlite_dir* dir);
 
 /**
- * Create a new directory.
+ * @brief         Creates a new directory.
  * @param context The DM context.
  * @param path    The directory for the new path. All the precedent folders must exist.
  * @param mode    Permissions to use for the creation.
@@ -281,7 +281,7 @@ dmlite_xstat *dmlite_readdirx(dmlite_context* context, dmlite_dir* dir);
 int dmlite_mkdir(dmlite_context* context, const char* path, mode_t mode);
 
 /**
- * Rename a file, directory or symlink.
+ * @brief         Renames a file, directory or symlink.
  * @param context The DM context.
  * @param oldPath The old name.
  * @param newPath The new name.
@@ -290,7 +290,7 @@ int dmlite_mkdir(dmlite_context* context, const char* path, mode_t mode);
 int dmlite_rename(dmlite_context* context, const char* oldPath, const char* newPath);
 
 /**
- * Delete a directory. It must be empty.
+ * @brief         Deletes a directory. It must be empty.
  * @param context The DM context.
  * @param path    The directory to remove.
  * @return        0 on success, error code otherwise.
@@ -298,7 +298,7 @@ int dmlite_rename(dmlite_context* context, const char* oldPath, const char* newP
 int dmlite_rmdir(dmlite_context* context, const char* path);
 
 /**
- * Get a specific replica.
+ * @brief         Gets a specific replica.
  * @param context The DM context.
  * @param rfn     The replica file name.
  * @param replica A buffer where the retrieved data will be put.
@@ -307,7 +307,7 @@ int dmlite_rmdir(dmlite_context* context, const char* path);
 int dmlite_getreplica(dmlite_context* context, const char* rfn, dmlite_replica* replica);
 
 /**
- * Update a replica.
+ * @brief         Updates a replica.
  * @param context The DM context.
  * @param replica The replica to modify.
  * @return        0 on success, error code otherwise.
