@@ -44,5 +44,10 @@
 		;
 		
 	class_<AuthnFactoryWrapper, boost::noncopyable>("AuthnFactory", no_init)
-		.def("createAuthn", pure_virtual(&AuthnFactoryWrapper::createAuthn), return_internal_reference<>())
+		.def("createAuthn", pure_virtual(&AuthnFactoryWrapper::createAuthn), return_value_policy<manage_new_object>())
+		;
+	
+	
+	class_< std::vector< GroupInfo > >("vector_GroupInfo")
+		.def(vector_indexing_suite< std::vector< GroupInfo > >()) // only works with operator== and != in GroupInfo
 		;

@@ -64,4 +64,30 @@
 	void anySetString(boost::any &self, const std::string value)
 	{
 		self = value;
-	} 
+	}
+	
+	void ExtensibleSetBool(Extensible &self, const std::string key, const bool value)
+	{
+		self[key] = value;
+	}
+
+	void ExtensibleSetLong(Extensible &self, const std::string key, const long value)
+	{
+		self[key] = value;
+	}
+
+	void ExtensibleSetUnsigned(Extensible &self, const std::string key, const unsigned value)
+	{
+		self[key] = value;
+	}
+
+	void ExtensibleSetDouble(Extensible &self, const std::string key, const double value)
+	{
+		self[key] = value;
+	}
+
+	void ExtensibleSetString(Extensible &self, const std::string key, const std::string value)
+	{
+		self[key] = value;
+	}
+

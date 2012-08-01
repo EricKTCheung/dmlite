@@ -17,8 +17,9 @@
 	scope().attr("DM_NO_POOL_MANAGER") = DM_NO_POOL_MANAGER;
 	scope().attr("DM_NO_CATALOG") = DM_NO_CATALOG;
 	scope().attr("DM_NO_INODE") = DM_NO_INODE;
-	scope().attr("DM_NO_USERGROUPDB") = DM_NO_USERGROUPDB;
+	scope().attr("DM_NO_AUTHN") = DM_NO_AUTHN;
 	scope().attr("DM_NO_SECURITY_CONTEXT") = DM_NO_SECURITY_CONTEXT;
+	scope().attr("DM_EMPTY_SECURITY_CONTEXT") = DM_EMPTY_SECURITY_CONTEXT;
 	scope().attr("DM_NO_IO") = DM_NO_IO;
 
 	scope().attr("DM_MALFORMED_CONF") = DM_MALFORMED_CONF;

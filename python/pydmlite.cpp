@@ -18,16 +18,21 @@
 #include "io.h"
 #include "pooldriver.h"
 #include "poolmanager.h"
+#include "utils/urls.h"
 
 using namespace dmlite;
 using namespace boost::python;
 
 
-// include wrapper classes
 #include "helpers.cpp"
+// include wrapper classes
 #include "authnwrapper.cpp"
 #include "basewrapper.cpp"
 #include "catalogwrapper.cpp"
+#include "inodewrapper.cpp"
+#include "iowrapper.cpp"
+#include "pooldriverwrapper.cpp"
+#include "poolmanagerwrapper.cpp"
 
 
 BOOST_PYTHON_MODULE(pydmlite)
@@ -81,21 +86,18 @@ BOOST_PYTHON_MODULE(pydmlite)
 
 
 #include "extensible.cpp"
+#include "errno.cpp"
+#include "types.cpp"
 
 #include "authn.cpp"
 #include "base.cpp"
 #include "catalog.cpp"
 #include "exceptions.cpp"
 #include "inode.cpp"
-
-/*
 #include "io.cpp"
-#include "pool.cpp"
 #include "pooldriver.cpp"
+#include "poolmanager.cpp"
 
-#include "errno.cpp"
-#include "types.cpp"
-*/
 
 }
 
