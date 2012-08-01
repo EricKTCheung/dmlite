@@ -80,7 +80,16 @@ target_link_libraries (test-stat test-base dmlite cppunit dl)
 add_executable        (test-utime test-utime.cpp)
 target_link_libraries (test-utime test-base dmlite cppunit dl)
 
-
+# Install
+install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
+         DESTINATION /usr/share/tests/dmlite/cpp
+         FILES_MATCHING PATTERN test-*
+                        PATTERN *.o   EXCLUDE
+                        PATTERN *.cpp EXCLUDE
+                        PATTERN *.h   EXCLUDE
+                        PATTERN *.dir EXCLUDE
+                        PATTERN .svn  EXCLUDE
+                        PATTERN CMakeFiles EXCLUDE)
 
 # Configure CTest testing
 ENABLE_TESTING()

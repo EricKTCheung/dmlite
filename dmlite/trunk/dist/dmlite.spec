@@ -54,6 +54,13 @@ Group:		Applications/Internet
 %description docs
 Man pages and HTML documentation for dmlite.
 
+%package tests
+Summary:	Tests for dmlite
+Group:		Applications/Internet
+
+%description tests
+Tests for dmlite and plug-ins.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -90,6 +97,10 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_mandir}/man3/*
 %{_defaultdocdir}/%{name}-%{version}
+
+%files tests
+%defattr(-,root,root,-)
+%{_datadir}/tests/*
 
 %changelog
 * Fri Jul 13 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1

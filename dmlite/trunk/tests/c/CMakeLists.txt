@@ -25,6 +25,16 @@ target_link_libraries (test-manager-c dmlite utils)
 add_executable        (test-pool-c test-pool.c)
 target_link_libraries (test-pool-c dmlite utils)
 
+# Install
+install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
+         DESTINATION /usr/share/tests/dmlite/c
+         FILES_MATCHING PATTERN test-*-c
+                        PATTERN plugin_mock.so
+                        PATTERN *.o   EXCLUDE
+                        PATTERN *.dir EXCLUDE
+                        PATTERN .svn  EXCLUDE
+                        PATTERN CMakeFiles EXCLUDE)
+
 # Add CTest tests
 ENABLE_TESTING()
 
