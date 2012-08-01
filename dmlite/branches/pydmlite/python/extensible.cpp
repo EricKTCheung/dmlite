@@ -26,6 +26,12 @@
 		.def("getString", &Extensible::getString)
 		//.def("getExtensible", &Extensible::getExtensible)
 		//.def("getVector", &Extensible::getVector)
+
+		.def("setBool", &ExtensibleSetBool)
+		.def("setLong", &ExtensibleSetLong)
+		.def("setUnsigned", &ExtensibleSetUnsigned)
+		.def("setDouble", &ExtensibleSetDouble)
+		.def("setString", &ExtensibleSetString)
 		;
 	
 

@@ -6,14 +6,30 @@
  * This file is included by pydmlite.cpp.
  */
 
-	class_<PoolHandler, boost::noncopyable>("PoolHandler", no_init)
-		// pure virtual class still to be implemented
+	class_<Chunk, bases< Extensible > >("Chunk", init<>())
+		.def_readwrite("host", &Chunk::host)
+		.def_readwrite("path", &Chunk::path)
+		.def_readwrite("offset", &Chunk::offset)
+		.def_readwrite("size", &Chunk::size)
 		;
 
-	class_<PoolDriver, boost::noncopyable>("PoolDriver", no_init)
-		// pure virtual class still to be implemented
+	class_<PoolHandlerWrapper, boost::noncopyable>("PoolHandler", no_init)
+		.def("getPoolType", boost::python::pure_virtual(&PoolHandler::getPoolType))
+		.def("getPoolName", boost::python::pure_virtual(&PoolHandler::getPoolName))
+		.def("getTotalSpace", boost::python::pure_virtual(&PoolHandler::getTotalSpace))
+		.def("getFreeSpace", boost::python::pure_virtual(&PoolHandler::getFreeSpace))
+		.def("poolIsAvailable", boost::python::pure_virtual(&PoolHandler::poolIsAvailable))
+		.def("replicaIsAvailable", boost::python::pure_virtual(&PoolHandler::replicaIsAvailable))
+		.def("whereToRead", boost::python::pure_virtual(&PoolHandler::whereToRead))
+		.def("removeReplica", boost::python::pure_virtual(&PoolHandler::removeReplica))
+		.def("whereToWrite", boost::python::pure_virtual(&PoolHandler::whereToWrite))
 		;
 
-	class_<PoolDriverFactory, boost::noncopyable>("PoolDriverFactory", no_init)
-		// pure virtual class still to be implemented
+	class_<PoolDriverWrapper, boost::noncopyable>("PoolDriver", no_init)
+		.def("createPoolHandler", boost::python::pure_virtual(&PoolDriver::createPoolHandler), return_value_policy<manage_new_object>())
+		;
+
+	class_<PoolDriverFactoryWrapper, boost::noncopyable>("PoolDriverFactory", no_init)
+		.def("implementedPool", boost::python::pure_virtual(&PoolDriverFactory::implementedPool))
+		.def("createPoolDriver", boost::python::pure_virtual(&PoolDriverFactoryWrapper::createPoolDriver), return_value_policy<manage_new_object>())
 		;
