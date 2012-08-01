@@ -101,7 +101,18 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
  * @param fileReplicas The array to free.
  * @return             0 on success, error code otherwise.
  */
-int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas, dmlite_replica* fileReplicas);
+int dmlite_replicas_free(dmlite_context* context,
+                         unsigned nReplicas, dmlite_replica* fileReplicas);
+
+/**
+ * Creates a symlink.
+ * @param context The DM context.
+ * @param oldPath The old path.
+ * @param newPath The new path.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_symlink(dmlite_context* context,
+                   const char* oldPath, const char* newPath);
 
 /**
  * Remove a file.
