@@ -53,14 +53,18 @@ public:
     // Initialize
     dmlite::SecurityCredentials hostCreds;
     
-    X509* hostX509;
     BIO*  in = BIO_new(BIO_s_file());
-    CPPUNIT_ASSERT(BIO_read_filename(in, HOST_CERTIFICATE) > 0);
-    hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
-    BIO_free_all(in);
-    CPPUNIT_ASSERT(hostX509 != NULL);
-    
-    hostCreds.clientName = hostX509->name;
+    X509* hostX509 = NULL;
+    if (BIO_read_filename(in, HOST_CERTIFICATE) > 0) {
+      hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
+      BIO_free_all(in);
+      CPPUNIT_ASSERT(hostX509 != NULL);
+      hostCreds.clientName = hostX509->name;
+    }
+    else {
+      // Obviously is going to fail, but still, need to call
+      hostCreds.clientName = "/DC=ch/DC=cern/OU=computers/CN=host.cern.ch";
+    }
     
     // Check
     const dmlite::SecurityContext* ctx;
@@ -70,7 +74,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(0u, boost::any_cast<uid_t>(ctx->user["uid"]));
     
     // Free
-    X509_free(hostX509);
+    if (hostX509) X509_free(hostX509);
   }
 
   CPPUNIT_TEST_SUITE(TestSecurity);
