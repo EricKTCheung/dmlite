@@ -310,6 +310,13 @@ Location MockPoolManager::whereToRead(const std::string& path) throw (DmExceptio
 
 
 
+Location MockPoolManager::whereToRead(ino_t) throw (DmException)
+{
+  return this->whereToRead("/");
+}
+
+
+
 Location MockPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   Chunk chunk;

@@ -66,6 +66,7 @@ namespace dmlite {
      std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
      
      Location whereToRead (const std::string& path) throw (DmException);
+     Location whereToRead (ino_t)                   throw (DmException);
      Location whereToWrite(const std::string& path) throw (DmException);
   };
   

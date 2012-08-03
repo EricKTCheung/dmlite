@@ -40,6 +40,10 @@ namespace dmlite {
     /// Get a location for a logical name.
     /// @param path     The path to get.
     virtual Location whereToRead(const std::string& path) throw (DmException) = 0;
+    
+    /// Get a location for an inode
+    /// @param inode The file inode.
+    virtual Location whereToRead(ino_t inode) throw (DmException) = 0;
 
     /// Start the PUT of a file.
     /// @param path  The path of the file to create.
