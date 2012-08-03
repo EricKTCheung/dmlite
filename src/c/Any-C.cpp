@@ -151,8 +151,13 @@ dmlite_any_dict* dmlite_any_dict_from_json(const char* json)
 {
   dmlite_any_dict* dict;
   dict = new dmlite_any_dict();
-  dict->extensible.deserialize(json);
-  return dict;
+  try {
+    dict->extensible.deserialize(json);
+    return dict;
+  }
+  catch (...) {
+    return NULL;
+  }
 }
 
 

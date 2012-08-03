@@ -1,6 +1,7 @@
 /// @file    utils/Extensible.cpp
 /// @brief   Extensible types (hold metadata).
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/version.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <ctype.h>
@@ -315,14 +316,17 @@ void Extensible::copy(const Extensible& s)
 std::string Extensible::serialize() const
 {
   std::ostringstream str;
-  DictType_::const_iterator i, lastOne;
   
   str << "{";
-  lastOne = --dictionary_.end();
-  for (i = dictionary_.begin(); i != lastOne; ++i) {
-    str << '"' << i->first << "\": " << serializeAny(i->second) << ", ";
+  if (dictionary_.size() > 0) {
+    DictType_::const_iterator i, lastOne;
+    lastOne = --dictionary_.end();
+    for (i = dictionary_.begin(); i != lastOne; ++i) {
+      str << '"' << i->first << "\": " << serializeAny(i->second) << ", ";
+    }
+    str << '"' << i->first << "\": " << serializeAny(i->second);
   }
-  str << '"' << i->first << "\": " << serializeAny(i->second) << "}";
+  str << "}";
   
   return str.str();
 }
@@ -363,12 +367,34 @@ void Extensible::populate(const boost::property_tree::ptree& root)
 
 
 
-void Extensible::deserialize(const std::string& serial)
+void Extensible::deserialize(const std::string& serial) throw (DmException)
 {
   if (serial.empty())
     return;
   
+  // Old Boost versions have a bug related with escaped '/'
+  // https://svn.boost.org/trac/boost/ticket/4326
+#if BOOST_VERSION < 104400
+  std::ostringstream patchedSerial;
+  
+  unsigned i;
+  for (i = 0; i < serial.size() - 1; ++i) {
+    if (serial[i] == '\\' && serial[i + 1] == '/') {
+      patchedSerial << '/';
+      ++i;
+    }
+    else {
+      patchedSerial << serial[i];
+    }
+  }
+  if (i < serial.size())
+    patchedSerial << serial[i];
+  
+  std::istringstream stream(patchedSerial.str());
+#else
   std::istringstream stream(serial);
+#endif
+  
   boost::property_tree::ptree tree;
   
   try {
@@ -376,7 +402,7 @@ void Extensible::deserialize(const std::string& serial)
   }
   catch (boost::property_tree::json_parser::json_parser_error e) {
     throw DmException(DM_INTERNAL_ERROR,
-                      "Probably malformed JSON data(%s)", e.what());
+                      "Probably malformed JSON data (%s)", e.what());
   }
   
   this->populate(tree);
