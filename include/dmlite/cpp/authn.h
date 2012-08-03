@@ -24,6 +24,11 @@ namespace dmlite {
     std::string sessionId;
     
     std::vector<std::string> fqans;
+    
+    bool operator == (const SecurityCredentials&) const;
+    bool operator != (const SecurityCredentials&) const;
+    bool operator <  (const SecurityCredentials&) const;
+    bool operator >  (const SecurityCredentials&) const;
   };
   
   /// User information.
@@ -34,12 +39,22 @@ namespace dmlite {
   ///            put in charge of security.
   struct UserInfo: public Extensible {
     std::string name;
+    
+    bool operator == (const UserInfo&) const;
+    bool operator != (const UserInfo&) const;
+    bool operator <  (const UserInfo&) const;
+    bool operator >  (const UserInfo&) const;
   };
   
   /// Group information
   /// See UserInfo
   struct GroupInfo: public Extensible {
     std::string name;
+    
+    bool operator == (const GroupInfo&) const;
+    bool operator != (const GroupInfo&) const;
+    bool operator <  (const GroupInfo&) const;
+    bool operator >  (const GroupInfo&) const;
   };
   
 
@@ -56,6 +71,11 @@ namespace dmlite {
     
     UserInfo               user;
     std::vector<GroupInfo> groups;
+    
+    bool operator == (const SecurityContext&) const;
+    bool operator != (const SecurityContext&) const;
+    bool operator <  (const SecurityContext&) const;
+    bool operator >  (const SecurityContext&) const;
   };
   
   

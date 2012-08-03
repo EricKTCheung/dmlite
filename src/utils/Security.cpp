@@ -27,6 +27,37 @@ struct MapFileEntry {
 
 
 
+bool AclEntry::operator == (const AclEntry& e) const
+{
+  return this->id   == e.id &&
+         this->perm == e.perm &&
+         this->type == e.type;
+}
+
+
+
+bool AclEntry::operator != (const AclEntry& e) const
+{
+  return !(*this == e);
+}
+
+
+
+bool AclEntry::operator < (const AclEntry& e) const
+{
+  return ((this->type < e.type) ||
+          (this->type == e.type && this->id < e.id));
+}
+
+
+
+bool AclEntry::operator > (const AclEntry& e) const
+{
+  return *this < e;
+}
+
+
+
 Acl::Acl() throw ()
 {
   

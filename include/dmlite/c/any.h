@@ -127,7 +127,7 @@ dmlite_any_dict* dmlite_any_dict_from_json(const char* json);
  *              keys in d.
  * @details     Use dmlite_any_dict_keys_free to free.
  * @param d     The Dictionary.
- * @param nKeys Will be set to the number of stored keys.
+ * @param nkeys Will be set to the number of stored keys.
  */
 void dmlite_any_dict_keys(const dmlite_any_dict* d, unsigned* nkeys, char*** keys);
 

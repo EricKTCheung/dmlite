@@ -22,6 +22,11 @@ namespace dmlite {
     std::string path;
     off_t       offset;
     size_t      size;
+    
+    bool operator == (const Chunk&) const;
+    bool operator != (const Chunk&) const;
+    bool operator <  (const Chunk&) const;
+    bool operator >  (const Chunk&) const;
   };
   
   /// Represent the complete location of a file.
