@@ -94,6 +94,18 @@ dmlite_location* dmlite_get(dmlite_context* context, const char* path)
 
 
 
+dmlite_location* dmlite_iget(dmlite_context* context, ino_t inode)
+{
+  TRY(context, get)
+  dmlite::Location loc = context->stack->getPoolManager()->whereToRead(inode);
+  
+  dmlite_location *locp = new dmlite_location();
+  return dmlite_cpplocation_to_clocation(loc, locp);
+  CATCH_POINTER(context, get)
+}
+
+
+
 dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, getlocation)

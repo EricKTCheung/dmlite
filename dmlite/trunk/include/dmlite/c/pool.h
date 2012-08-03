@@ -71,6 +71,14 @@ int dmlite_pools_free(dmlite_context* context, unsigned nPools, dmlite_pool* poo
 dmlite_location* dmlite_get(dmlite_context* context, const char* path);
 
 /**
+ * @brief         Gets a single replica (synchronous).
+ * @param context The DM context.
+ * @param inode   The file inode.
+ * @return        A pointer to a dmlite_location struct, or NULL on error.
+ */
+dmlite_location* dmlite_iget(dmlite_context* context, ino_t inode);
+
+/**
  * @brief         Gets the location of a replica.
  * @param context The DM context.
  * @param replica The replica to translate.
