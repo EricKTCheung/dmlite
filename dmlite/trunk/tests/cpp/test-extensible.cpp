@@ -48,7 +48,7 @@ class TestExtensible: public CppUnit::TestFixture {
       dmlite::Extensible ext;
       const char* cvar = "old-style";
       
-      ext["string"]   = std::string("careful-with-\\scape\"seque\nnces\x04");
+      ext["string"]   = std::string("careful-with-\\scape\"seque/nces\x04");
       ext["c-string"] = cvar;
       ext["int"]      = 42;
       ext["unsigned"] = 7u;
@@ -60,7 +60,7 @@ class TestExtensible: public CppUnit::TestFixture {
 \"c-string\": \"old-style\",\
 \"float\": 5.2,\
 \"int\": 42,\
-\"string\": \"careful-with-\\\\scape\\\"seque\\nnces\\u0004\",\
+\"string\": \"careful-with-\\\\scape\\\"seque\\/nces\\u0004\",\
 \"unsigned\": 7\
 }");
       
@@ -77,7 +77,7 @@ class TestExtensible: public CppUnit::TestFixture {
       dmlite::Extensible ext;
       
       std::string json("{\
-\"string\": \"none-\\\"quote\",\
+\"string\": \"none-\\\"quote-\\/\",\
 \"int\": 42,\
 \"unsigned\": 7,\
 \"float\": 5.2,\
@@ -86,7 +86,7 @@ class TestExtensible: public CppUnit::TestFixture {
       
       ext.deserialize(json);
       
-      CPPUNIT_ASSERT_EQUAL(std::string("none-\"quote"), ext.getString("string"));
+      CPPUNIT_ASSERT_EQUAL(std::string("none-\"quote-/"), ext.getString("string"));
       CPPUNIT_ASSERT_EQUAL(42l,   ext.getLong("int"));
       CPPUNIT_ASSERT_EQUAL(7lu,   ext.getUnsigned("unsigned"));
       CPPUNIT_ASSERT_EQUAL(5.2,   ext.getDouble("float"));

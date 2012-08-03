@@ -65,7 +65,7 @@ namespace dmlite {
      std::string serialize(void) const;
      
      /// Deserializes from a JSON string.
-     void deserialize(const std::string& serial);
+     void deserialize(const std::string& serial) throw (DmException);
      
      /// Get all the keys available
      std::vector<std::string> getKeys(void) const throw (DmException);
