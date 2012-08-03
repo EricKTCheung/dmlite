@@ -34,12 +34,22 @@ namespace dmlite {
     std::string csumtype;
     std::string csumvalue;
     Acl         acl;
+    
+    bool operator == (const ExtendedStat&) const;
+    bool operator != (const ExtendedStat&) const;
+    bool operator <  (const ExtendedStat&) const;
+    bool operator >  (const ExtendedStat&) const;
   };
   
   /// Symbolic link
   struct SymLink: public Extensible {
     ino_t       inode;
     std::string link;
+    
+    bool operator == (const SymLink&) const;
+    bool operator != (const SymLink&) const;
+    bool operator <  (const SymLink&) const;
+    bool operator >  (const SymLink&) const;
   };
   
   /// File replica metadata
@@ -65,6 +75,11 @@ namespace dmlite {
     
     std::string server;
     std::string rfn;
+    
+    bool operator == (const Replica&) const;
+    bool operator != (const Replica&) const;
+    bool operator <  (const Replica&) const;
+    bool operator >  (const Replica&) const;
   };
 
   /// Low-level interface. Based on i-nodes.

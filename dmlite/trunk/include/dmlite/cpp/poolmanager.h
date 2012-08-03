@@ -20,6 +20,11 @@ namespace dmlite {
   struct Pool: public Extensible {
     std::string name;
     std::string type;
+    
+    bool operator == (const Pool&) const;
+    bool operator != (const Pool&) const;
+    bool operator <  (const Pool&) const;
+    bool operator >  (const Pool&) const;
   };
 
   /// Interface for pool types.

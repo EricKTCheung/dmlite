@@ -18,6 +18,12 @@ namespace dmlite {
     
     explicit Url(const std::string& url) throw ();
     
+    // Operators
+    bool operator == (const Url&) const;
+    bool operator != (const Url&) const;
+    bool operator <  (const Url&) const;
+    bool operator >  (const Url&) const;
+    
     /// Split a path into a list of components.
     /// @param path The path to split.
     /// @return     A list with the extracted components.

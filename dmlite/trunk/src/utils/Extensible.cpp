@@ -263,6 +263,34 @@ boost::any& Extensible::operator [] (const std::string& key)
 
 
 
+bool Extensible::operator == (const Extensible& e) const
+{
+  return !(*this < e) && !(e < *this);
+}
+
+
+
+bool Extensible::operator != (const Extensible& e) const
+{
+  return !(*this == e);
+}
+
+
+
+bool Extensible::operator < (const Extensible& e) const
+{
+  return this->serialize() < e.serialize();
+}
+
+
+
+bool Extensible::operator >(const Extensible& e) const
+{
+  return *this < e;
+}
+
+
+
 unsigned long Extensible::size() const
 {
   return dictionary_.size();

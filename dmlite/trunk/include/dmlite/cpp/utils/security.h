@@ -35,6 +35,12 @@ namespace dmlite {
     AclType  type;
     uint8_t  perm;
     uint32_t id;
+    
+    // Operators
+    bool operator == (const AclEntry&) const;
+    bool operator != (const AclEntry&) const;
+    bool operator <  (const AclEntry&) const;
+    bool operator >  (const AclEntry&) const;
   };
   
   struct Acl: public std::vector<AclEntry> {

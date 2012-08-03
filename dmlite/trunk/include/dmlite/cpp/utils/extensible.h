@@ -46,6 +46,12 @@ namespace dmlite {
      /// Will create the entry if it does not exist.
      boost::any& operator [] (const std::string& key);
      
+     // Comparison operators. Containers may need them.
+     bool operator == (const Extensible&) const;
+     bool operator != (const Extensible&) const;
+     bool operator >  (const Extensible&) const;
+     bool operator <  (const Extensible&) const;
+     
      /// Number of elements inside this Extensible.
      unsigned long size() const;
      
