@@ -14,6 +14,7 @@
 namespace dmlite {
   
   // Forward declarations.
+  class Pool;
   class StackInstance;
   
   /// Represents a chunk of a file.
@@ -74,6 +75,21 @@ namespace dmlite {
 
     /// Create a handler.
     virtual PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException) = 0;
+    
+    /// Called just before adding the pool to the database.
+    /// To be used by a plugin, in case it needs to do some previous preparations.
+    /// (i.e. legacy filesystem will actually create the pool here)
+    virtual void toBeCreated(const Pool& pool) throw (DmException) = 0;
+    
+    /// Called just after a pool is added to the database.
+    virtual void justCreated(const Pool& pool) throw (DmException) = 0;
+    
+    /// Called when updating a pool.
+    virtual void update(const Pool& pool) throw (DmException) = 0;
+    
+    /// Called just before a pool of this type is removed.
+    /// @note The driver may remove the pool itself (i.e. filesystem)
+    virtual void toBeDeleted(const Pool& pool) throw (DmException) = 0;
   };
 
   /// PoolDriver factory
