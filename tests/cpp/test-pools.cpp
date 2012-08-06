@@ -15,7 +15,9 @@ static void printPools(dmlite::StackInstance* stack, const std::vector<dmlite::P
       std::cout << "Pool type:   " << handler->getPoolType()   << std::endl
                 << "Pool name:   " << handler->getPoolName()   << std::endl
                 << "Capacity:    " << handler->getTotalSpace() / GB << " GB" << std::endl
-                << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl;
+                << "Free:        " << handler->getFreeSpace() / GB  << " GB" << std::endl
+                << "Metadata:" << std::endl
+                << pools[i].serialize() << std::endl;
 
       delete handler;
     }
