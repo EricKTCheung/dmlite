@@ -23,6 +23,9 @@ add_library           (test-base STATIC test-base.cpp)
 add_executable        (test-acls test-acls.cpp)
 target_link_libraries (test-acls test-base dmlite cppunit dl)
 
+add_executable        (test-authn test-authn.cpp)
+target_link_libraries (test-authn test-base dmlite cppunit dl)
+
 add_executable        (test-chdir test-chdir.cpp)
 target_link_libraries (test-chdir test-base dmlite cppunit dl)
 
@@ -101,6 +104,7 @@ set (FSCONFIG DpmMySql.conf)
 
 # Add CTest tests
 ADD_TEST(test-acls          ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
+ADD_TEST(test-authn         ${CMAKE_CURRENT_BINARY_DIR}/test-authn ${CONFIG})
 ADD_TEST(test-chdir         ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})
 ADD_TEST(test-checkperm     ${CMAKE_CURRENT_BINARY_DIR}/test-checkperm ${CONFIG})
 ADD_TEST(test-checksum      ${CMAKE_CURRENT_BINARY_DIR}/test-checksum ${CONFIG})

@@ -121,9 +121,16 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName) throw (DmException)
 
 
 
-GroupInfo BuiltInAuthn::newGroup(const std::string& gname) throw (DmException)
+GroupInfo BuiltInAuthn::newGroup(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "newGroup not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::updateGroup(const GroupInfo&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "updateGroup not supported in BuiltInAuthn");
 }
 
 
@@ -131,6 +138,27 @@ GroupInfo BuiltInAuthn::newGroup(const std::string& gname) throw (DmException)
 UserInfo BuiltInAuthn::newUser(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "newUser not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::updateUser(const UserInfo&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "updateUser not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::deleteGroup(const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "deleteGroup not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::deleteUser(const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "deleteUser not supported in BuiltInAuthn");
 }
 
 

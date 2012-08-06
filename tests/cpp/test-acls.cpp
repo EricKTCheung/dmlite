@@ -1,9 +1,9 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
+#include <dmlite/cpp/utils/security.h>
 #include <sstream>
 #include <vector>
 #include "test-base.h"
-#include "dmlite/cpp/utils/security.h"
 
 
 static bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)

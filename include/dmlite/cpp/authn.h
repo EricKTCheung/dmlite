@@ -104,6 +104,13 @@ namespace dmlite {
     /// @param groupName The group name.
     /// @return          The group.
     virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
+    
+    /// Update group info. 'name' identify uniquely the group.
+    /// @param group The group metadata to update.
+    virtual void updateGroup(const GroupInfo& group) throw (DmException) = 0;
+    
+    /// Delete a group.
+    virtual void deleteGroup(const std::string& groupName) throw (DmException) = 0;
 
     /// Create a new user.
     /// @param userName The user name.
@@ -114,6 +121,13 @@ namespace dmlite {
     /// @param userName The user name.
     /// @return         The user.
     virtual UserInfo getUser(const std::string& userName) throw (DmException) = 0;
+    
+    /// Update user info. 'name' identify uniquely the user.
+    /// @param user The user metadata to update.
+    virtual void updateUser(const UserInfo& user) throw (DmException) = 0;
+    
+    /// Delete a user.
+    virtual void deleteUser(const std::string& userName) throw (DmException) = 0;
 
     /// Get the mapping of a user/group. Additionaly, new users and groups MAY
     /// be created by the implementation.

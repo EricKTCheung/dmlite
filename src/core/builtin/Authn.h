@@ -19,13 +19,17 @@ namespace dmlite {
 
     SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
 
-    GroupInfo newGroup(const std::string& gname) throw (DmException);
-    GroupInfo getGroup(gid_t gid) throw (DmException);
-    GroupInfo getGroup(const std::string& groupName) throw (DmException);
+    GroupInfo newGroup   (const std::string& gname) throw (DmException);
+    GroupInfo getGroup   (gid_t gid) throw (DmException);
+    GroupInfo getGroup   (const std::string& groupName) throw (DmException);
+    void      updateGroup(const GroupInfo& group) throw (DmException);
+    void      deleteGroup(const std::string& groupName) throw (DmException);
 
-    UserInfo newUser(const std::string& uname)    throw (DmException);
-    UserInfo getUser(const std::string& userName) throw (DmException);
-    UserInfo getUser(const std::string& userName, gid_t* group) throw (DmException);
+    UserInfo newUser   (const std::string& uname)    throw (DmException);
+    UserInfo getUser   (const std::string& userName) throw (DmException);
+    UserInfo getUser   (const std::string& userName, gid_t* group) throw (DmException);
+    void     updateUser(const UserInfo& user) throw (DmException);
+    void     deleteUser(const std::string& userName) throw (DmException);
 
     void getIdMap(const std::string& userName,
                   const std::vector<std::string>& groupNames,
