@@ -199,6 +199,9 @@ int dmlite_isetmode(dmlite_context* context, ino_t inode, uid_t uid, gid_t gid,
   TRY(context, isetmode)
   dmlite::Acl aclpp;
   
+  if (nentries > 0)
+    NOT_NULL(acl);
+  
   for (unsigned i = 0; i < nentries; ++i) {
     dmlite::AclEntry e;
     e.id   = acl[i].id;

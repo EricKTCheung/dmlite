@@ -230,7 +230,8 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
 
 
 
-int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries, dmlite_aclentry* acl)
+int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries,
+                  dmlite_aclentry* acl)
 {
   TRY(context, setacl)
   NOT_NULL(path);

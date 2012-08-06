@@ -285,6 +285,29 @@ std::vector<Pool> MockPoolManager::getPools(PoolAvailability availability) throw
 
 
 
+void MockPoolManager::newPool(const Pool&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED,
+                    "MockPoolManager::addPool not implemented");
+}
+
+
+
+void MockPoolManager::updatePool(const Pool&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "MockPoolManager::updatePool not implemented");
+}
+
+
+
+void MockPoolManager::deletePool(const Pool&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED,
+                    "MockPoolManager::deletePool not implemented");
+}
+
+
+
 Location MockPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
   Location loc;

@@ -60,7 +60,7 @@ add_executable        (test-poolcontainer test-poolcontainer.cpp)
 target_link_libraries (test-poolcontainer dmlite cppunit pthread)
 
 add_executable        (test-pools test-pools.cpp)
-target_link_libraries (test-pools dmlite dl)
+target_link_libraries (test-pools test-base dmlite cppunit dl dpm)
 
 add_executable        (test-rename test-rename.cpp)
 target_link_libraries (test-rename test-base dmlite cppunit dl)

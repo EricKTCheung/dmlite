@@ -64,6 +64,9 @@ namespace dmlite {
      std::string getImplId() const throw();
      
      std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
+     void newPool(const Pool&) throw (DmException);
+     void updatePool(const Pool&) throw (DmException);
+     void deletePool(const Pool&) throw (DmException);
      
      Location whereToRead (const std::string& path) throw (DmException);
      Location whereToRead (ino_t)                   throw (DmException);

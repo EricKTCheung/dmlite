@@ -41,6 +41,15 @@ namespace dmlite {
 
     /// Get a specific pool.
     virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
+    
+    /// Create a new pool.
+    virtual void newPool(const Pool& pool) throw (DmException) = 0;
+    
+    /// Update pool metadata.
+    virtual void updatePool(const Pool& pool) throw (DmException) = 0;
+    
+    /// Remove a pool.
+    virtual void deletePool(const Pool& pool) throw (DmException) = 0;
 
     /// Get a location for a logical name.
     /// @param path     The path to get.
