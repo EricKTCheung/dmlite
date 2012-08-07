@@ -243,7 +243,7 @@ int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries,
     
     e.id   = acl[i].id;
     e.perm = acl[i].perm;
-    e.type = static_cast<dmlite::AclEntry::AclType>(acl[i].type);
+    e.type = acl[i].type;
     
     acl.push_back(e);
   }

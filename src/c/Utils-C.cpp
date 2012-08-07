@@ -31,7 +31,7 @@ void dmlite_serialize_acls(unsigned nEntries, dmlite_aclentry* acl,
     
     e.id   = acl[i].id;
     e.perm = acl[i].perm;
-    e.type = static_cast<dmlite::AclEntry::AclType>(acl[i].type);
+    e.type = acl[i].type;
     
     aclpp.push_back(e);
   }
