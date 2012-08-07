@@ -18,6 +18,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmAdapter.conf
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/DpmMySql.conf
                 ${CMAKE_CURRENT_BINARY_DIR}/DpmMySql.conf)
 
+add_executable        (init-backend init-backend.cpp)
+target_link_libraries (init-backend dmlite dl)
+
 add_library           (test-base STATIC test-base.cpp)
 
 add_executable        (test-acls test-acls.cpp)
@@ -87,6 +90,7 @@ target_link_libraries (test-utime test-base dmlite cppunit dl)
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
          DESTINATION /usr/share/tests/dmlite/cpp
          FILES_MATCHING PATTERN test-*
+                        PATTERN init-*
                         PATTERN *.o   EXCLUDE
                         PATTERN *.cpp EXCLUDE
                         PATTERN *.h   EXCLUDE

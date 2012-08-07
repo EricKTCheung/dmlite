@@ -234,27 +234,27 @@ public:
     
     CPPUNIT_ASSERT_EQUAL((size_t)6, acl.size());
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUserObj, acl[0].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kUserObj), acl[0].type);
     CPPUNIT_ASSERT_EQUAL(101u, acl[0].id);
     CPPUNIT_ASSERT_EQUAL(6,    (int)acl[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUser, acl[1].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kUser), acl[1].type);
     CPPUNIT_ASSERT_EQUAL(101u, acl[1].id);
     CPPUNIT_ASSERT_EQUAL(6,    (int)acl[1].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroupObj, acl[2].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kGroupObj), acl[2].type);
     CPPUNIT_ASSERT_EQUAL(101u, acl[2].id);
     CPPUNIT_ASSERT_EQUAL(4,    (int)acl[2].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroup, acl[3].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kGroup), acl[3].type);
     CPPUNIT_ASSERT_EQUAL(101u, acl[3].id);
     CPPUNIT_ASSERT_EQUAL(7,    (int)acl[3].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kMask, acl[4].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kMask), acl[4].type);
     CPPUNIT_ASSERT_EQUAL(0u, acl[4].id);
     CPPUNIT_ASSERT_EQUAL(7,  (int)acl[4].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kOther, acl[5].type);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kOther), acl[5].type);
     CPPUNIT_ASSERT_EQUAL(0u,        acl[5].id);
     CPPUNIT_ASSERT_EQUAL(4,         (int)acl[5].perm);
 

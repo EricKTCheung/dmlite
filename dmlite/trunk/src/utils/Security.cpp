@@ -71,7 +71,7 @@ Acl::Acl(const std::string& aclStr) throw ()
 
   size_t i = 0;
   while (i < aclStr.length()) {
-    acl.type = static_cast<AclEntry::AclType>(aclStr[i++] - '@');
+    acl.type = aclStr[i++] - '@';
     acl.perm = aclStr[i++] - '0';
     acl.id   = atoi(aclStr.c_str() + i);
     this->push_back(acl);
@@ -84,7 +84,7 @@ Acl::Acl(const std::string& aclStr) throw ()
 
 Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) throw ()
 {
-  bool thereIsMask = parent.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kMask));
+  bool thereIsMask = parent.has(AclEntry::kDefault | AclEntry::kMask);
   Acl::const_iterator i;
 
   // If directory, or default mask
@@ -94,7 +94,7 @@ Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) t
     for (i = parent.begin(); i != parent.end(); ++i) {
       if (i->type & AclEntry::kDefault) {
         entry.id   = i->id;
-        entry.type = static_cast<AclEntry::AclType>(i->type & ~AclEntry::kDefault);
+        entry.type = i->type & ~AclEntry::kDefault;
 
         switch (i->type) {
           case AclEntry::kDefault | AclEntry::kUserObj:
@@ -142,7 +142,7 @@ Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) t
 
 
 
-int Acl::has(AclEntry::AclType type) const throw ()
+int Acl::has(uint8_t type) const throw ()
 {
   for (unsigned i = 0; i < this->size(); ++i) {
     if ((*this)[i].type == type)

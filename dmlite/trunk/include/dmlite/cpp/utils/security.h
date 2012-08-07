@@ -27,12 +27,15 @@ namespace dmlite {
   /// ACL Entry
   struct AclEntry {
     /// ACL Type possible values
-    enum AclType { kUserObj  = 1, kUser  = 2,
-                   kGroupObj = 3, kGroup = 4,
-                   kMask     = 5, kOther = 6,
-                   kDefault  = 0x20 };
+    static const uint8_t kUserObj  = 1;
+    static const uint8_t kUser     = 2;
+    static const uint8_t kGroupObj = 3;
+    static const uint8_t kGroup    = 4;
+    static const uint8_t kMask     = 5;
+    static const uint8_t kOther    = 6;
+    static const uint8_t kDefault  = 0x20;
                  
-    AclType  type;
+    uint8_t  type;
     uint8_t  perm;
     uint32_t id;
     
@@ -60,7 +63,7 @@ namespace dmlite {
      
      /// Returns the position if there is an ACL entry with the type 'type'
      /// -1 otherwise.
-     int has(AclEntry::AclType type) const throw ();
+     int has(uint8_t type) const throw ();
      
      std::string serialize(void) const throw ();
      void        validate (void) const throw (DmException);

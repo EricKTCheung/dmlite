@@ -206,7 +206,7 @@ int dmlite_isetmode(dmlite_context* context, ino_t inode, uid_t uid, gid_t gid,
     dmlite::AclEntry e;
     e.id   = acl[i].id;
     e.perm = acl[i].perm;
-    e.type = static_cast<dmlite::AclEntry::AclType>(acl[i].type);
+    e.type = acl[i].type;
     aclpp.push_back(e);
   }
   

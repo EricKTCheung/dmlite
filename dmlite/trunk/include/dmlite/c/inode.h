@@ -123,10 +123,11 @@ int dmlite_icreate(dmlite_context* context, const dmlite_xstat* f);
 int dmlite_isymlink(dmlite_context* context, ino_t inode, const char* link);
 
 /**
- * @brief         Removes a file from the database.
+ * @brief         Removes a file or directory from the database.
  * @param context The DM context.
  * @param inode   The id of the entry to remove.
  * @return        0 on success, error code otherwise.
+ * @note          Not empty directories, or files will replicas may fail.
  */
 int dmlite_iunlink(dmlite_context* context, ino_t inode);
 

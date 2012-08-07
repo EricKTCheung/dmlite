@@ -16,7 +16,8 @@ public:
 
   void tearDown()
   {
-    this->catalog->unlink(FILE);
+    if (this->catalog)
+      this->catalog->unlink(FILE);
     TestBase::tearDown();
   }
 

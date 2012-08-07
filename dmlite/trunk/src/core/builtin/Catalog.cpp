@@ -435,7 +435,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     newFile.status       = ExtendedStat::kOnline;
 
     // Generate inherited ACL's if there are defaults
-    if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)))
+    if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj))
       newFile.acl = Acl(parent.acl, getUid(this->secCtx_), egid,
                         mode, &newFile.stat.st_mode);
 
@@ -487,7 +487,7 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   newFolder.stat.st_gid = egid;
 
   // Generate inherited ACL's if there are defaults
-  if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)) > -1)
+  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
     newFolder.acl = Acl(parent.acl, getUid(this->secCtx_), egid,
                         mode, &newFolder.stat.st_mode);
 
