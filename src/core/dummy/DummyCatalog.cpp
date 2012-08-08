@@ -23,9 +23,9 @@ return this->decorated_->method(__VA_ARGS__);
 
 
 
-DummyCatalog::DummyCatalog(Catalog* decorates) throw (DmException)
+DummyCatalog::DummyCatalog(Catalog* decorated) throw (DmException)
 {
-  this->decorated_ = decorates;
+  this->decorated_ = decorated;
 }
 
 
@@ -186,14 +186,14 @@ void DummyCatalog::setGuid(const std::string& path, const std::string& guid) thr
 
 
 
-void* DummyCatalog::openDir(const std::string& path) throw (DmException)
+Directory* DummyCatalog::openDir(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(openDir, path);
 }
 
 
 
-void DummyCatalog::closeDir(void* dir) throw (DmException)
+void DummyCatalog::closeDir(Directory* dir) throw (DmException)
 {
   DELEGATE(closeDir, dir);
 }

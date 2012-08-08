@@ -20,6 +20,11 @@ namespace dmlite {
   struct Pool: public Extensible {
     std::string name;
     std::string type;
+    
+    bool operator == (const Pool&) const;
+    bool operator != (const Pool&) const;
+    bool operator <  (const Pool&) const;
+    bool operator >  (const Pool&) const;
   };
 
   /// Interface for pool types.
@@ -36,22 +41,28 @@ namespace dmlite {
 
     /// Get a specific pool.
     virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
+    
+    /// Create a new pool.
+    virtual void newPool(const Pool& pool) throw (DmException) = 0;
+    
+    /// Update pool metadata.
+    virtual void updatePool(const Pool& pool) throw (DmException) = 0;
+    
+    /// Remove a pool.
+    virtual void deletePool(const Pool& pool) throw (DmException) = 0;
 
     /// Get a location for a logical name.
     /// @param path     The path to get.
     virtual Location whereToRead(const std::string& path) throw (DmException) = 0;
+    
+    /// Get a location for an inode
+    /// @param inode The file inode.
+    virtual Location whereToRead(ino_t inode) throw (DmException) = 0;
 
     /// Start the PUT of a file.
     /// @param path  The path of the file to create.
     /// @return      The physical location where to write.
     virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
-
-    /// Finish a PUT
-    /// @param host   The host where the replica is hosted.
-    /// @param rfn    The replica file name.
-    /// @param params The extra parameters as was returned by whereToWrite
-    virtual void doneWriting(const std::string& host, const std::string& rfn,
-                             const Extensible& params) throw (DmException) = 0;
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

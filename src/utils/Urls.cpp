@@ -1,4 +1,4 @@
-/// @file   utils/Uris.cpp
+/// @file   utils/Urls.cpp
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <boost/regex.hpp>
@@ -29,6 +29,68 @@ Url::Url(const std::string& url) throw (): port(0)
     if (!this->query.empty())
       this->query = this->query.substr(1);
   }
+}
+
+
+
+bool Url::operator == (const Url& u) const
+{
+  return this->domain == u.domain &&
+         this->path   == u.path &&
+         this->port   == u.port &&
+         this->query  == u.query &&
+         this->scheme == u.scheme;
+}
+
+
+
+bool Url::operator != (const Url& u) const
+{
+  return !(*this == u);
+}
+
+
+
+bool Url::operator <  (const Url& u) const
+{
+  if (this->scheme < u.scheme)
+    return true;
+  else if (this->scheme > u.scheme)
+    return false;
+  else {
+    if (this->domain < u.domain)
+      return true;
+    else if (this->domain > u.domain)
+      return false;
+    else {
+      if (this->port < u.port)
+        return true;
+      else if (this->port > u.port)
+        return false;
+      else {
+        if (this->path < u.path)
+          return true;
+        else if (this->path > u.path)
+          return false;
+        else {
+          if (this->query < u.query)
+            return true;
+          else if (this->query > u.query)
+            return false;
+          else {
+            return this->scheme < u.scheme;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+bool Url::operator >  (const Url& u) const
+{
+  return (*this < u);
 }
 
 

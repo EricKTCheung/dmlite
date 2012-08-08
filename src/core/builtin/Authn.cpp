@@ -1,8 +1,8 @@
-/// @file     core/builtin/Authn.cpp
-/// @brief    User and group mapping using the system's ones.
-/// @detailed This will be used by default when no other Authn
-///           implementeation is loaded.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Authn.cpp
+/// @brief   User and group mapping using the system's ones.
+/// @details This will be used by default when no other Authn
+///          implementeation is loaded.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
 #include <dmlite/cpp/utils/security.h>
 #include <grp.h>
@@ -13,7 +13,7 @@ using namespace dmlite;
 
 
 
-BuiltInAuthn::BuiltInAuthn()
+BuiltInAuthn::BuiltInAuthn(const std::string& nb): nobody_(nb)
 {
   // Nothing
 }
@@ -98,7 +98,7 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName, gid_t* group) throw 
   getpwnam_r(userName.c_str(), &pwd, buffer, sizeof(buffer), &result);
   
   if (result == NULL)
-    throw DmException(DM_NO_SUCH_GROUP, "User %s not found", userName.c_str());
+    throw DmException(DM_NO_SUCH_USER, "User %s not found", userName.c_str());
   
   UserInfo ui;
   
@@ -121,9 +121,16 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName) throw (DmException)
 
 
 
-GroupInfo BuiltInAuthn::newGroup(const std::string& gname) throw (DmException)
+GroupInfo BuiltInAuthn::newGroup(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "newGroup not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::updateGroup(const GroupInfo&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "updateGroup not supported in BuiltInAuthn");
 }
 
 
@@ -131,6 +138,27 @@ GroupInfo BuiltInAuthn::newGroup(const std::string& gname) throw (DmException)
 UserInfo BuiltInAuthn::newUser(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "newUser not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::updateUser(const UserInfo&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "updateUser not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::deleteGroup(const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "deleteGroup not supported in BuiltInAuthn");
+}
+
+
+
+void BuiltInAuthn::deleteUser(const std::string&) throw (DmException)
+{
+  throw DmException(DM_NOT_IMPLEMENTED, "deleteUser not supported in BuiltInAuthn");
 }
 
 
@@ -146,7 +174,15 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
 
   groups->clear();
 
-  *user = this->getUser(userName, &gid);
+  try {
+    *user = this->getUser(userName, &gid);
+  }
+  catch (DmException &e) {
+    if (e.code() != DM_NO_SUCH_USER)
+      throw;
+    // Try again with nobody
+    *user = this->getUser(nobody_, &gid);
+  }
   
   // No VO information, so use the default from passwd
   if (groupNames.empty()) {
@@ -166,7 +202,7 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
 
 
 
-BuiltInAuthnFactory::BuiltInAuthnFactory()
+BuiltInAuthnFactory::BuiltInAuthnFactory(): nobody_("nobody")
 {
   // Nothing
 }
@@ -181,8 +217,10 @@ BuiltInAuthnFactory::~BuiltInAuthnFactory()
 
 
 void BuiltInAuthnFactory::configure(const std::string& key,
-                                          const std::string& value) throw (DmException)
+                                    const std::string& value) throw (DmException)
 {
+  if (key == "AnonymousUser")
+    this->nobody_ = value;
   throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
 }
 
@@ -190,5 +228,5 @@ void BuiltInAuthnFactory::configure(const std::string& key,
 
 Authn* BuiltInAuthnFactory::createAuthn(PluginManager* pm) throw (DmException)
 {
-  return new BuiltInAuthn();
+  return new BuiltInAuthn(this->nobody_);
 }

@@ -27,14 +27,23 @@ namespace dmlite {
   /// ACL Entry
   struct AclEntry {
     /// ACL Type possible values
-    enum AclType { kUserObj  = 1, kUser  = 2,
-                   kGroupObj = 3, kGroup = 4,
-                   kMask     = 5, kOther = 6,
-                   kDefault  = 0x20 };
+    static const uint8_t kUserObj  = 1;
+    static const uint8_t kUser     = 2;
+    static const uint8_t kGroupObj = 3;
+    static const uint8_t kGroup    = 4;
+    static const uint8_t kMask     = 5;
+    static const uint8_t kOther    = 6;
+    static const uint8_t kDefault  = 0x20;
                  
-    AclType  type;
+    uint8_t  type;
     uint8_t  perm;
     uint32_t id;
+    
+    // Operators
+    bool operator == (const AclEntry&) const;
+    bool operator != (const AclEntry&) const;
+    bool operator <  (const AclEntry&) const;
+    bool operator >  (const AclEntry&) const;
   };
   
   struct Acl: public std::vector<AclEntry> {
@@ -54,7 +63,7 @@ namespace dmlite {
      
      /// Returns the position if there is an ACL entry with the type 'type'
      /// -1 otherwise.
-     int has(AclEntry::AclType type) const throw ();
+     int has(uint8_t type) const throw ();
      
      std::string serialize(void) const throw ();
      void        validate (void) const throw (DmException);
@@ -69,7 +78,7 @@ namespace dmlite {
   /// @param stat    A struct stat which mode will be checked.
   /// @param mode    The mode to be checked.
   /// @return        0 if the mode is allowed, 1 if not.
-  int checkPermissions(const SecurityContext* contex,
+  int checkPermissions(const SecurityContext* context,
                        const Acl& acl, const struct stat& stat,
                        mode_t mode);
 

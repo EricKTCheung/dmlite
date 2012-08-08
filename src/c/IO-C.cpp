@@ -1,48 +1,34 @@
 /// @file   core/IO-C.cpp
 /// @brief  C wrapper for dmlite::IOFactory.
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+#include <dmlite/c/io.h>
 #include <dmlite/c/dmlite.h>
-#include <dmlite/c/dm_io.h>
 #include <dmlite/cpp/io.h>
 #include <fcntl.h>
-#include <map>
 #include "Private.h"
 
-struct dm_fd {
-  dm_context*        context;
+struct dmlite_fd {
+  dmlite_context*        context;
   dmlite::IOHandler* stream;
 };
 
 
 
-int dm_pstat(dm_context* context, const char* rfn, struct stat* st)
-{
-  TRY(context, pstat)
-  NOT_NULL(rfn);
-  NOT_NULL(st);
-  
-  *st = context->stack->getIODriver()->pStat(rfn);
-  
-  CATCH(context, pstat)
-}
-
-
-
-dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
-                unsigned nextras, struct keyvalue* extrasp)
+dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
+                        const dmlite_any_dict* extra)
 {
   TRY(context, fopen)
   NOT_NULL(path);
-   
-  std::map<std::string, std::string> extras;
   
-  for (unsigned i = 0; i < nextras; ++i)
-    extras.insert(std::pair<std::string, std::string>(extrasp[i].key, extrasp[i].value));
+  dmlite::IOHandler* stream;
+  if (extra != NULL)
+    stream = context->stack->getIODriver()->
+                              createIOHandler(path, flags, extra->extensible);
+  else
+    stream = context->stack->getIODriver()->
+                              createIOHandler(path, flags, dmlite::Extensible());
   
-  dmlite::IOHandler* stream = context->stack->
-                                 getIODriver()->
-                                 createIOHandler(path, flags, extras);
-  dm_fd* iofd = new dm_fd();
+  dmlite_fd* iofd = new dmlite_fd();
   iofd->context = context;
   iofd->stream  = stream;
   return iofd;
@@ -51,8 +37,10 @@ dm_fd* dm_fopen(dm_context* context, const char* path, int flags,
 
 
 
-int dm_fclose(dm_fd* fd)
+int dmlite_fclose(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fclose)
   NOT_NULL(fd);
   fd->stream->close();
@@ -63,18 +51,22 @@ int dm_fclose(dm_fd* fd)
 
 
 
-int dm_fseek(dm_fd* fd, long offset, int whence)
+int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fseek)
   NOT_NULL(fd);
-  fd->stream->seek(offset, whence);
+  fd->stream->seek(offset, static_cast<dmlite::IOHandler::Whence>(whence));
   CATCH(fd->context, fseek)
 }
 
 
 
-long dm_ftell(dm_fd* fd)
+long dmlite_ftell(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, ftell)
   NOT_NULL(fd);
   return fd->stream->tell();
@@ -83,8 +75,10 @@ long dm_ftell(dm_fd* fd)
 
 
 
-size_t dm_fread(dm_fd* fd, void* buffer, size_t count)
+size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fread)
   NOT_NULL(fd);
   NOT_NULL(buffer);
@@ -94,8 +88,10 @@ size_t dm_fread(dm_fd* fd, void* buffer, size_t count)
 
 
 
-size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count)
+size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, fwrite)
   NOT_NULL(fd);
   NOT_NULL(buffer);
@@ -105,10 +101,27 @@ size_t dm_fwrite(dm_fd* fd, const void* buffer, size_t count)
 
 
 
-int dm_feof(dm_fd* fd)
+int dmlite_feof(dmlite_fd* fd)
 {
+  if (!fd)
+    return DM_NULL_POINTER;
   TRY(fd->context, feof)
   NOT_NULL(fd);
   return fd->stream->eof();
   CATCH(fd->context, feof)
+}
+
+
+
+int dmlite_donewriting(dmlite_context* context,
+                       const char* pfn,
+                       const dmlite_any_dict* extra)
+{
+  TRY(context, donewriting)
+  NOT_NULL(pfn);  
+  if (extra != NULL)
+    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
+  else
+    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
+  CATCH(context, donewriting)
 }

@@ -11,6 +11,7 @@
 #include <dmlite/cpp/pooldriver.h>
 #include <dmlite/cpp/poolmanager.h>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <set>
 #include "builtin/Catalog.h"
@@ -186,11 +187,9 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
             this->configure(parameter, value);
           }
           catch (DmException& e) {
-            // Error code is good, but error message can be better here.
-            std::ostringstream out;
-            out << "Invalid configuration parameter " << parameter <<
-                   " at line " << line;
-            throw DmException(e.code(), out.str());
+            std::cerr << "Warning: Invalid configuration parameter '"
+                      << parameter
+                      << "' at " << file << ':' << line << std::endl;
           }
         }
       }

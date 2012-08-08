@@ -1,4 +1,4 @@
-/// @file    core/dummy/DummyCatalog.cpp
+/// @file    core/dummy/DummyPool.cpp
 /// @brief   DummyPoolManager implementation.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
@@ -20,6 +20,20 @@ this->decorated_->method(__VA_ARGS__);
 if (this->decorated_ == NULL)\
   throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 return this->decorated_->method(__VA_ARGS__);
+
+
+
+DummyPoolManager::DummyPoolManager(PoolManager* decorated) throw (DmException)
+{
+  this->decorated_ = decorated;
+}
+
+
+
+DummyPoolManager::~DummyPoolManager()
+{
+  delete this->decorated_;
+}
 
 
 
@@ -61,13 +75,4 @@ Location DummyPoolManager::whereToRead(const std::string& path) throw (DmExcepti
 Location DummyPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(whereToWrite, path);
-}
-
-
-
-void DummyPoolManager::doneWriting(const std::string& host,
-                                   const std::string& rfn,
-                                   const Extensible& params) throw (DmException)
-{
-  DELEGATE(doneWriting, host, rfn, params);
 }

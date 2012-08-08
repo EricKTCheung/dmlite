@@ -24,6 +24,11 @@ namespace dmlite {
     std::string sessionId;
     
     std::vector<std::string> fqans;
+    
+    bool operator == (const SecurityCredentials&) const;
+    bool operator != (const SecurityCredentials&) const;
+    bool operator <  (const SecurityCredentials&) const;
+    bool operator >  (const SecurityCredentials&) const;
   };
   
   /// User information.
@@ -34,12 +39,22 @@ namespace dmlite {
   ///            put in charge of security.
   struct UserInfo: public Extensible {
     std::string name;
+    
+    bool operator == (const UserInfo&) const;
+    bool operator != (const UserInfo&) const;
+    bool operator <  (const UserInfo&) const;
+    bool operator >  (const UserInfo&) const;
   };
   
   /// Group information
   /// See UserInfo
   struct GroupInfo: public Extensible {
     std::string name;
+    
+    bool operator == (const GroupInfo&) const;
+    bool operator != (const GroupInfo&) const;
+    bool operator <  (const GroupInfo&) const;
+    bool operator >  (const GroupInfo&) const;
   };
   
 
@@ -56,6 +71,11 @@ namespace dmlite {
     
     UserInfo               user;
     std::vector<GroupInfo> groups;
+    
+    bool operator == (const SecurityContext&) const;
+    bool operator != (const SecurityContext&) const;
+    bool operator <  (const SecurityContext&) const;
+    bool operator >  (const SecurityContext&) const;
   };
   
   
@@ -84,6 +104,13 @@ namespace dmlite {
     /// @param groupName The group name.
     /// @return          The group.
     virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
+    
+    /// Update group info. 'name' identify uniquely the group.
+    /// @param group The group metadata to update.
+    virtual void updateGroup(const GroupInfo& group) throw (DmException) = 0;
+    
+    /// Delete a group.
+    virtual void deleteGroup(const std::string& groupName) throw (DmException) = 0;
 
     /// Create a new user.
     /// @param userName The user name.
@@ -94,6 +121,13 @@ namespace dmlite {
     /// @param userName The user name.
     /// @return         The user.
     virtual UserInfo getUser(const std::string& userName) throw (DmException) = 0;
+    
+    /// Update user info. 'name' identify uniquely the user.
+    /// @param user The user metadata to update.
+    virtual void updateUser(const UserInfo& user) throw (DmException) = 0;
+    
+    /// Delete a user.
+    virtual void deleteUser(const std::string& userName) throw (DmException) = 0;
 
     /// Get the mapping of a user/group. Additionaly, new users and groups MAY
     /// be created by the implementation.

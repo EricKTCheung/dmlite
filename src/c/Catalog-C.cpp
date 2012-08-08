@@ -3,10 +3,10 @@
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
 #include <dmlite/c/dmlite.h>
-#include <dmlite/c/dm_catalog.h>
+#include <dmlite/c/catalog.h>
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/exceptions.h>
-#include <dmlite/cpp/utils/authz.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <set>
 #include <vector>
@@ -15,17 +15,7 @@
 
 
 
-int dm_set(dm_context *context, const char *k, union value v)
-{
-  TRY(context, set)
-  NOT_NULL(k);
-  context->stack->set(k, v);
-  CATCH(context, set)
-}
-
-
-
-int dm_chdir(dm_context* context, const char* path)
+int dmlite_chdir(dmlite_context* context, const char* path)
 {
   TRY(context, chdir)
   NOT_NULL(path);
@@ -35,7 +25,7 @@ int dm_chdir(dm_context* context, const char* path)
 
 
 
-char* dm_getcwd(dm_context* context, char* buffer, size_t size)
+char* dmlite_getcwd(dmlite_context* context, char* buffer, size_t size)
 {
   TRY(context, getcwd)
   std::string wd = context->stack->getCatalog()->getWorkingDir();
@@ -48,7 +38,19 @@ char* dm_getcwd(dm_context* context, char* buffer, size_t size)
 
 
 
-int dm_stat(dm_context *context, const char* path, struct stat* buf)
+mode_t dmlite_umask(dmlite_context* context, mode_t mask)
+{
+  TRY(context, umask)
+  return context->stack->getCatalog()->umask(mask);
+  }
+  catch(...) {
+    return 0;
+  }
+}
+
+
+
+int dmlite_stat(dmlite_context *context, const char* path, struct stat* buf)
 {
   TRY(context, stat)
   NOT_NULL(path);
@@ -58,7 +60,7 @@ int dm_stat(dm_context *context, const char* path, struct stat* buf)
 
 
 
-int dm_lstat(dm_context* context, const char* path, struct stat* buf)
+int dmlite_statl(dmlite_context* context, const char* path, struct stat* buf)
 {
   TRY(context, lstat)
   NOT_NULL(path);
@@ -69,107 +71,92 @@ int dm_lstat(dm_context* context, const char* path, struct stat* buf)
 
 
 
-int dm_xstat(dm_context* context, const char* path, struct xstat* buf)
+int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf)
 {
   TRY(context, lstat)
   NOT_NULL(path);
   NOT_NULL(buf);
-  *buf = context->stack->getCatalog()->extendedStat(path);
+  dmlite::ExtendedStat ex = context->stack->getCatalog()->extendedStat(path);
+  dmlite_cppxstat_to_cxstat(ex, buf);
   CATCH(context, lstat);
 }
 
 
 
-int dm_istat(dm_context* context, ino_t inode, struct stat* buf)
-{
-  TRY(context, lstat)
-  NOT_NULL(buf);
-  *buf = context->stack->getINode()->extendedStat(inode).stat;
-  CATCH(context, lstat);
-}
-
-
-
-int dm_ixstat(dm_context* context, ino_t inode, struct xstat* buf)
-{
-  TRY(context, ixstat)
-  NOT_NULL(buf);
-  *buf = context->stack->getINode()->extendedStat(inode);
-  CATCH(context, ixstat);
-}
-
-
-
-int dm_addreplica(dm_context* context, const char* guid, int64_t id,
-                  const char* server, const char* surl, const char status,
-                  const char fileType, const char* poolName,
-                  const char* fileSystem)
+int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addReplica)
-  NOT_NULL(surl);
-  
-  if (guid != NULL)
-    id = context->stack->getINode()->extendedStat(guid).stat.st_ino;
-  
-  FileReplica replica;
-  memset(&replica, 0, sizeof(FileReplica));
-  
-  replica.fileid = id;
-  replica.status = status;
-  replica.type   = fileType;
-  strncpy(replica.server,     server,     sizeof(replica.server));
-  strncpy(replica.rfn,        surl,       sizeof(replica.rfn));
-  strncpy(replica.pool,       poolName,   sizeof(replica.pool));
-  strncpy(replica.filesystem, fileSystem, sizeof(replica.filesystem));
-  
-  context->stack->getCatalog()->addReplica(replica);
-  
+  NOT_NULL(replica);  
+  dmlite::Replica replicapp;
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
+  context->stack->getCatalog()->addReplica(replicapp);
   CATCH(context, addReplica)
 }
 
 
 
-int dm_delreplica(dm_context* context, const char* guid, int64_t id,
-                  const char* surl)
+int dmlite_delreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, delreplica)
-  NOT_NULL(surl);
-  FileReplica replica = context->stack->getCatalog()->getReplica(surl);
-  context->stack->getCatalog()->deleteReplica(replica);
+  NOT_NULL(replica);
+  dmlite::Replica replicapp;
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
+  context->stack->getCatalog()->deleteReplica(replicapp);
   CATCH(context, delreplica)
 }
 
 
 
-int dm_getreplicas(dm_context* context, const char* path, int *nReplicas,
-                  struct filereplica** fileReplicas)
+int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nReplicas,
+                       dmlite_replica** fileReplicas)
 {
   TRY(context, getreplicas)
   NOT_NULL(path);
   NOT_NULL(nReplicas);
   NOT_NULL(fileReplicas);
 
-  std::vector<filereplica> replicaSet = context->stack->getCatalog()->getReplicas(path);
+  std::vector<dmlite::Replica> replicaSet = context->stack->getCatalog()->getReplicas(path);
 
-  *fileReplicas = new filereplica[replicaSet.size()];
   *nReplicas = replicaSet.size();
+  if (*nReplicas > 0)
+    *fileReplicas = new dmlite_replica[replicaSet.size()];
+  else
+    *fileReplicas = NULL;
 
-  std::copy(replicaSet.begin(), replicaSet.end(), *fileReplicas);
+  for (unsigned i = 0; i < *nReplicas; ++i) {
+    (*fileReplicas)[i].extra = new dmlite_any_dict();
+    dmlite_cppreplica_to_creplica(replicaSet[i], &((*fileReplicas)[i]));
+  }  
 
   CATCH(context, getreplicas)
 }
 
 
 
-int dm_freereplicas(dm_context* context, int nReplicas, struct filereplica* fileReplicas)
+int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas,
+                         dmlite_replica* fileReplicas)
 {
+  for (unsigned i = 0; i < nReplicas; ++i) {
+    if (fileReplicas[i].extra != NULL)
+      delete fileReplicas[i].extra;
+  }
   delete [] fileReplicas;
   return 0;
 }
 
 
 
-int dm_create(dm_context* context, const char* path, mode_t mode)
+int dmlite_symlink(dmlite_context* context,
+                   const char* oldPath, const char* newPath)
+{
+  TRY(context, symlink)
+  context->stack->getCatalog()->symlink(oldPath, newPath);
+  CATCH(context, symlink)
+}  
+
+
+
+int dmlite_create(dmlite_context* context, const char* path, mode_t mode)
 {
   TRY(context, create)
   NOT_NULL(path);
@@ -179,7 +166,7 @@ int dm_create(dm_context* context, const char* path, mode_t mode)
 
 
 
-int dm_unlink(dm_context* context, const char* path)
+int dmlite_unlink(dmlite_context* context, const char* path)
 {
   TRY(context, unlink)
   NOT_NULL(path);
@@ -189,7 +176,7 @@ int dm_unlink(dm_context* context, const char* path)
 
 
 
-int dm_chmod(dm_context* context, const char* path, mode_t mode)
+int dmlite_chmod(dmlite_context* context, const char* path, mode_t mode)
 {
   TRY(context, chmod)
   NOT_NULL(path);
@@ -199,7 +186,7 @@ int dm_chmod(dm_context* context, const char* path, mode_t mode)
 
 
 
-int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
+int dmlite_chown(dmlite_context* context, const char* path, uid_t newUid, gid_t newGid)
 {
   TRY(context, chown)
   NOT_NULL(path);
@@ -209,7 +196,7 @@ int dm_chown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 
 
 
-int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
+int dmlite_lchown(dmlite_context* context, const char* path, uid_t newUid, gid_t newGid)
 {
   TRY(context, lchown)
   NOT_NULL(path);
@@ -219,7 +206,7 @@ int dm_lchown(dm_context* context, const char* path, uid_t newUid, gid_t newGid)
 
 
 
-int dm_setfsize(dm_context* context, const char* path, uint64_t filesize)
+int dmlite_setfsize(dmlite_context* context, const char* path, uint64_t filesize)
 {
   TRY(context, setfsize)
   NOT_NULL(path);
@@ -229,7 +216,7 @@ int dm_setfsize(dm_context* context, const char* path, uint64_t filesize)
 
 
 
-int dm_setfsizec(dm_context* context, const char* path, uint64_t filesize,
+int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesize,
                  const char* csumtype, const char* csumvalue)
 {
   TRY(context, setfsizec)
@@ -243,24 +230,32 @@ int dm_setfsizec(dm_context* context, const char* path, uint64_t filesize,
 
 
 
-int dm_setacl(dm_context* context, const char* path, int nEntries, struct dm_acl* acl)
+int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries,
+                  dmlite_aclentry* acl)
 {
   TRY(context, setacl)
   NOT_NULL(path);
   NOT_NULL(acl);
 
-  std::vector<Acl> aclV(nEntries);
-  for (int i = 0; i < nEntries; ++i)
-    aclV.push_back(acl[i]);
+  dmlite::Acl acl;
+  for (unsigned i = 0; i < nEntries; ++i) {
+    dmlite::AclEntry e;
+    
+    e.id   = acl[i].id;
+    e.perm = acl[i].perm;
+    e.type = acl[i].type;
+    
+    acl.push_back(e);
+  }
 
-  context->stack->getCatalog()->setAcl(path, aclV);
+  context->stack->getCatalog()->setAcl(path, acl);
 
   CATCH(context, setacl)
 }
 
 
 
-int dm_utime(dm_context* context, const char* path, const struct utimbuf* buf)
+int dmlite_utime(dmlite_context* context, const char* path, const struct utimbuf* buf)
 {
   TRY(context, utime)
   NOT_NULL(path);
@@ -270,19 +265,20 @@ int dm_utime(dm_context* context, const char* path, const struct utimbuf* buf)
 
 
 
-int dm_getcomment(dm_context* context, const char* path, char* comment)
+int dmlite_getcomment(dmlite_context* context, const char* path,
+                      char* comment, size_t bufsize)
 {
   TRY(context, getcomment)
   NOT_NULL(path);
   NOT_NULL(comment);
   std::string c = context->stack->getCatalog()->getComment(path);
-  strcpy(comment, c.c_str());
+  strncpy(comment, c.c_str(), bufsize);
   CATCH(context, getcomment)
 }
 
 
 
-int dm_setcomment(dm_context* context, const char* path, const char* comment)
+int dmlite_setcomment(dmlite_context* context, const char* path, const char* comment)
 {
   TRY(context, setcomment)
   NOT_NULL(path);
@@ -293,70 +289,84 @@ int dm_setcomment(dm_context* context, const char* path, const char* comment)
 
 
 
-int dm_getgrpbynam(dm_context* context, const char* groupName, gid_t* gid)
+int dmlite_getgrpbynam(dmlite_context* context, const char* groupName, gid_t* gid)
 {
   TRY(context, getgrpbynam)
   NOT_NULL(groupName);
   NOT_NULL(gid);
-  groupinfo group = context->stack->getUserGroupDb()->getGroup(groupName);
-  *gid = group.gid;
+  dmlite::GroupInfo group = context->stack->getAuthn()->getGroup(groupName);
+  *gid = group.getUnsigned("gid");
   CATCH(context, getgrpbynam)
 }
 
 
 
-int dm_getusrbynam(dm_context* context, const char* userName, uid_t* uid)
+int dmlite_getusrbynam(dmlite_context* context, const char* userName, uid_t* uid)
 {
   TRY(context, getusrbyuid)
   NOT_NULL(userName);
-  userinfo user = context->stack->getUserGroupDb()->getUser(userName);
-  *uid = user.uid;
+  dmlite::UserInfo user = context->stack->getAuthn()->getUser(userName);
+  *uid = user.getUnsigned("uid");
   CATCH(context, getusrbyuid)
 }
 
 
 
-void* dm_opendir(dm_context* context, const char* path)
+dmlite_dir* dmlite_opendir(dmlite_context* context, const char* path)
 {
   TRY(context, opendir)
   NOT_NULL(path);
-  return context->stack->getCatalog()->openDir(path);
+  dmlite::Directory* d = context->stack->getCatalog()->openDir(path);
+  
+  dmlite_dir* dirp = new dmlite_dir();
+  dirp->dir = d;
+  memset(&dirp->xstat, 0, sizeof(dirp->xstat));
+  dirp->xstat.extra = dmlite_any_dict_new();
+  
+  return dirp;  
   CATCH_POINTER(context, opendir)
 }
 
 
 
-int dm_closedir(dm_context* context, void* dir)
+int dmlite_closedir(dmlite_context* context, dmlite_dir* dir)
 {
   TRY(context, closedir)
   NOT_NULL(dir);
-  context->stack->getCatalog()->closeDir(dir);
+  context->stack->getCatalog()->closeDir(dir->dir);
+  delete dir->xstat.extra;
+  delete dir;
   CATCH(context, closedir)
 }
 
 
 
-struct dirent* dm_readdir(dm_context* context, void* dir)
+struct dirent* dmlite_readdir(dmlite_context* context, dmlite_dir* dir)
 {
   TRY(context, readdir)
   NOT_NULL(dir);
-  return context->stack->getCatalog()->readDir(dir);
+  return context->stack->getCatalog()->readDir(dir->dir);
   CATCH_POINTER(context, readdir)
 }
 
 
 
-struct xstat* dm_readdirx(dm_context* context, void* dir)
+struct dmlite_xstat* dmlite_readdirx(dmlite_context* context, dmlite_dir* dir)
 {
   TRY(context, readdirx)
   NOT_NULL(dir);
-  return context->stack->getCatalog()->readDirx(dir);
+  dmlite::ExtendedStat* ex = context->stack->getCatalog()->readDirx(dir->dir);
+  if (ex == NULL)
+    return NULL;
+  
+  dmlite_cppxstat_to_cxstat(*ex, &dir->xstat);
+  return &dir->xstat;
   CATCH_POINTER(context, readdirx)
 }
 
 
 
-int dm_mkdir(dm_context* context, const char* path, mode_t mode)
+int dmlite_mkdir(dmlite_context* context, const char* path, mode_t mode)
 {
   TRY(context, mkdir)
   NOT_NULL(path);
@@ -366,7 +376,7 @@ int dm_mkdir(dm_context* context, const char* path, mode_t mode)
 
 
 
-int dm_rename(dm_context* context, const char* oldPath, const char* newPath)
+int dmlite_rename(dmlite_context* context, const char* oldPath, const char* newPath)
 {
   TRY(context, rename)
   NOT_NULL(oldPath);
@@ -377,7 +387,7 @@ int dm_rename(dm_context* context, const char* oldPath, const char* newPath)
 
 
 
-int dm_rmdir(dm_context* context, const char* path)
+int dmlite_rmdir(dmlite_context* context, const char* path)
 {
   TRY(context, rmdir)
   NOT_NULL(path);
@@ -387,40 +397,24 @@ int dm_rmdir(dm_context* context, const char* path)
 
 
 
-int dm_getreplica(dm_context* context, const char* rfn, struct filereplica* replica)
+int dmlite_getreplica(dmlite_context* context, const char* rfn, dmlite_replica* replica)
 {
   TRY(context, getreplica)
   NOT_NULL(rfn);
   NOT_NULL(replica);
-  *replica = context->stack->getCatalog()->getReplica(rfn);
+  dmlite::Replica replicapp = context->stack->getCatalog()->getReplica(rfn);
+  dmlite_cppreplica_to_creplica(replicapp, replica);
   CATCH(context, getreplica)
 }
 
 
 
-int dm_updatereplica(dm_context* context, const struct filereplica* replica)
+int dmlite_updatereplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, updatereplica)
   NOT_NULL(replica);
-  context->stack->getCatalog()->updateReplica(*replica);
+  dmlite::Replica replicapp;
+  dmlite_creplica_to_cppreplica(replica, &replicapp);
+  context->stack->getCatalog()->updateReplica(replicapp);
   CATCH(context, updatereplica)
-}
-
-
-
-int dm_errno(dm_context* context)
-{
-  if (context == NULL)
-    return DM_NULL_POINTER;
-  else
-    return context->errorCode;
-}
-
-
-
-const char* dm_error(dm_context* context)
-{
-  if (context == NULL)
-    return "The context is a NULL pointer";
-  return context->errorString.c_str();
 }

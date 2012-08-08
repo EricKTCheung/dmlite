@@ -1,6 +1,7 @@
 /// @file    utils/Extensible.cpp
 /// @brief   Extensible types (hold metadata).
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/version.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <ctype.h>
@@ -56,12 +57,14 @@ static void jsonifyString(const std::string& str, std::ostream& out)
 
 
 
-static std::string toString(const boost::any& value)
+static std::string serializeAny(const boost::any& value)
 {
+  unsigned    i;
   long        intValue;
   double      doubleValue;
   std::string strValue;
-  enum {kLong, kDouble, kString, kUnknown} whatIs = kUnknown;
+  std::vector<boost::any> vValue;
+  enum {kLong, kDouble, kString, kUnknown, kObj, kVector} whatIs = kUnknown;
   
   // String types are easy
   if (value.type() == typeid(std::string)) {
@@ -110,6 +113,16 @@ static std::string toString(const boost::any& value)
     doubleValue = boost::any_cast<double>(value);
     whatIs = kDouble;
   }
+  // Nested types
+  else if (value.type() == typeid(Extensible)) {
+    Extensible e = boost::any_cast<Extensible>(value);
+    strValue = e.serialize();
+    whatIs = kObj;
+  }
+  else if (value.type() == typeid(std::vector<boost::any>)) {
+    vValue = boost::any_cast<std::vector<boost::any> >(value);
+    whatIs = kVector;
+  }
   
   // To string
   std::ostringstream final;
@@ -123,11 +136,104 @@ static std::string toString(const boost::any& value)
     case kString:
       jsonifyString(strValue, final);
       break;
+    case kObj:
+      final << strValue;
+      break;
+    case kVector:
+      final << '[';
+      for (i = 0; i < vValue.size() - 1; ++i)
+        final << serializeAny(vValue[i]) << ", ";
+      if (i < vValue.size())
+        final << serializeAny(vValue[i]);
+      final << ']';
+      break;
     default:
       final << "\"Unknown:" << value.type().name() << '"';
   }
   
   return final.str();
+}
+
+
+
+bool Extensible::anyToBoolean(const boost::any& any)
+{
+  if (any.type() == typeid(bool))
+    return boost::any_cast<bool>(any);
+  else
+    return (anyToDouble(any) != 0.0);
+}
+
+
+
+double Extensible::anyToDouble(const boost::any& any)
+{
+  if (any.type() == typeid(double))
+    return boost::any_cast<double>(any);
+  else if (any.type() == typeid(float))
+    return boost::any_cast<float>(any);
+  else if (any.type() == typeid(long))
+    return boost::any_cast<long>(any);
+  else if (any.type() == typeid(int))
+    return boost::any_cast<int>(any);
+  else if (any.type() == typeid(short))
+    return boost::any_cast<short>(any);
+  else if (any.type() == typeid(char))
+    return boost::any_cast<char>(any);
+  else if (any.type() == typeid(unsigned))
+    return boost::any_cast<unsigned>(any);
+  // As a string, or maybe an integer?
+  else {
+    std::istringstream str(anyToString(any));
+    double any;
+    str >> any;
+    return any;
+  }  
+}
+
+
+
+long Extensible::anyToLong(const boost::any& any)
+{
+  if (any.type() == typeid(long))
+    return boost::any_cast<long>(any);
+  else if (any.type() == typeid(int))
+    return boost::any_cast<int>(any);
+  else if (any.type() == typeid(short))
+    return boost::any_cast<short>(any);
+  else if (any.type() == typeid(char))
+    return boost::any_cast<char>(any);
+  else if (any.type() == typeid(unsigned))
+    return boost::any_cast<unsigned>(any);
+  // Try as a string, and parse
+  else {
+    std::istringstream str(anyToString(any));
+    long any;
+    str >> any;
+    return any;
+  }
+}
+
+
+
+unsigned Extensible::anyToUnsigned(const boost::any& any)
+{
+  if (any.type() == typeid(unsigned))
+    return boost::any_cast<unsigned>(any);
+  else
+    return anyToLong(any);
+}
+
+
+
+std::string Extensible::anyToString(const boost::any& value)
+{
+  if (value.type() == typeid(const char*))
+    return std::string(boost::any_cast<const char*>(value));
+  else if (value.type() == typeid(char*))
+    return std::string(boost::any_cast<char*>(value));
+  else
+    return boost::any_cast<std::string>(value);
 }
 
 
@@ -157,6 +263,42 @@ boost::any& Extensible::operator [] (const std::string& key)
 }
 
 
+
+bool Extensible::operator == (const Extensible& e) const
+{
+  return !(*this < e) && !(e < *this);
+}
+
+
+
+bool Extensible::operator != (const Extensible& e) const
+{
+  return !(*this == e);
+}
+
+
+
+bool Extensible::operator < (const Extensible& e) const
+{
+  return this->serialize() < e.serialize();
+}
+
+
+
+bool Extensible::operator >(const Extensible& e) const
+{
+  return *this < e;
+}
+
+
+
+unsigned long Extensible::size() const
+{
+  return dictionary_.size();
+}
+
+
+
 void Extensible::clear()
 {
   dictionary_.clear();
@@ -164,29 +306,95 @@ void Extensible::clear()
 
 
 
+void Extensible::copy(const Extensible& s)
+{
+  dictionary_.insert(s.dictionary_.begin(), s.dictionary_.end());
+}
+
+
+
 std::string Extensible::serialize() const
 {
   std::ostringstream str;
-  DictType_::const_iterator i, lastOne;
   
   str << "{";
-  lastOne = --dictionary_.end();
-  for (i = dictionary_.begin(); i != lastOne; ++i) {
-    str << '"' << i->first << "\": " << toString(i->second) << ", ";
+  if (dictionary_.size() > 0) {
+    DictType_::const_iterator i, lastOne;
+    lastOne = --dictionary_.end();
+    for (i = dictionary_.begin(); i != lastOne; ++i) {
+      str << '"' << i->first << "\": " << serializeAny(i->second) << ", ";
+    }
+    str << '"' << i->first << "\": " << serializeAny(i->second);
   }
-  str << '"' << i->first << "\": " << toString(i->second) << "}";
+  str << "}";
   
   return str.str();
 }
 
 
 
-void Extensible::deserialize(const std::string& serial)
+void Extensible::populate(const boost::property_tree::ptree& root)
+{
+  boost::property_tree::ptree::const_iterator i;
+  std::vector<boost::any> auxV;
+  boost::any v;
+  
+  for (i = root.begin(); i != root.end(); ++i) {
+    // Process value
+    if (i->second.empty()) {
+      v = i->second.data();
+    }
+    else {
+      Extensible nested;
+      nested.populate(i->second.get_child(""));
+      // Now, if there is a pair with no key, it is an array
+      if (nested.hasField(""))
+        v = nested.getVector("");
+      else
+        v = nested;
+    }
+    // Array elements are key->value with no key!
+    if (i->first.empty())
+      auxV.push_back(v);
+    else
+      this->dictionary_.insert(std::make_pair(i->first, v));
+  }
+  
+  // If auxV is not empty, push it with no key
+  if (!auxV.empty())
+    this->dictionary_.insert(std::make_pair("", auxV));
+}
+
+
+
+void Extensible::deserialize(const std::string& serial) throw (DmException)
 {
   if (serial.empty())
     return;
   
+  // Old Boost versions have a bug related with escaped '/'
+  // https://svn.boost.org/trac/boost/ticket/4326
+#if BOOST_VERSION < 104400
+  std::ostringstream patchedSerial;
+  
+  unsigned i;
+  for (i = 0; i < serial.size() - 1; ++i) {
+    if (serial[i] == '\\' && serial[i + 1] == '/') {
+      patchedSerial << '/';
+      ++i;
+    }
+    else {
+      patchedSerial << serial[i];
+    }
+  }
+  if (i < serial.size())
+    patchedSerial << serial[i];
+  
+  std::istringstream stream(patchedSerial.str());
+#else
   std::istringstream stream(serial);
+#endif
+  
   boost::property_tree::ptree tree;
   
   try {
@@ -194,12 +402,24 @@ void Extensible::deserialize(const std::string& serial)
   }
   catch (boost::property_tree::json_parser::json_parser_error e) {
     throw DmException(DM_INTERNAL_ERROR,
-                      "Probably malformed JSON data(%s)", e.what());
+                      "Probably malformed JSON data (%s)", e.what());
   }
   
-  boost::property_tree::ptree::const_iterator i;
-  for (i = tree.begin(); i != tree.end(); ++i)
-    dictionary_.insert(std::make_pair(i->first, i->second.data()));
+  this->populate(tree);
+}
+
+
+
+std::vector<std::string> Extensible::getKeys(void) const throw (DmException)
+{
+  std::vector<std::string> keys;
+  
+  for (DictType_::const_iterator i = dictionary_.begin();
+       i != dictionary_.end(); ++i) {
+    keys.push_back(i->first);
+  }
+  
+  return keys;
 }
 
 
@@ -211,16 +431,9 @@ bool Extensible::getBool(const std::string& key) const throw (DmException)
   boost::any value = (*this)[key];
   
   try {
-    if (value.type() == typeid(bool))
-      return boost::any_cast<bool>(value);
-    else
-      return (getLong(key) != 0);
+    return anyToBoolean(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to bool (it is %s)",
-                      key.c_str(), value.type().name());
-  }
-  catch (DmException) {
     throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to bool (it is %s)",
                       key.c_str(), value.type().name());
   }
@@ -235,23 +448,7 @@ long Extensible::getLong(const std::string& key) const throw (DmException)
   boost::any value = (*this)[key];
 
   try {
-    if (value.type() == typeid(long))
-      return boost::any_cast<long>(value);
-    else if (value.type() == typeid(int))
-      return boost::any_cast<int>(value);
-    else if (value.type() == typeid(short))
-      return boost::any_cast<short>(value);
-    else if (value.type() == typeid(char))
-      return boost::any_cast<char>(value);
-    else if (value.type() == typeid(unsigned))
-      return boost::any_cast<unsigned>(value);
-    // Try as a string, and parse
-    else {
-      std::istringstream str(getString(key));
-      long value;
-      str >> value;
-      return value;
-    }
+    return anyToLong(value);
   }
   catch (boost::bad_any_cast) {
     throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to long (it is %s)",
@@ -268,16 +465,9 @@ unsigned long Extensible::getUnsigned(const std::string& key) const throw (DmExc
   boost::any value = (*this)[key];
   
   try {
-    if (value.type() == typeid(unsigned))
-      return boost::any_cast<unsigned>(value);
-    else
-      return static_cast<unsigned long>(getLong(key));
+    return anyToUnsigned(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to unsigned (it is %s)",
-                      key.c_str(), value.type().name());
-  }
-  catch (DmException) {
     throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to unsigned (it is %s)",
                       key.c_str(), value.type().name());
   }
@@ -292,28 +482,9 @@ double Extensible::getDouble(const std::string& key) const throw (DmException)
   boost::any value = (*this)[key];
   
   try {
-    if (value.type() == typeid(double))
-      return boost::any_cast<double>(value);
-    else if (value.type() == typeid(float))
-      return boost::any_cast<float>(value);
-    // As a string, or maybe an integer?
-    else {
-      try {
-        std::istringstream str(getString(key));
-        double value;
-        str >> value;
-        return value;
-      }
-      catch (boost::bad_any_cast) {
-        return getLong(key);
-      }
-    }  
+    return anyToDouble(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to double (it is %s)",
-                      key.c_str(), value.type().name());
-  }
-  catch (DmException) {
     throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to double (it is %s)",
                       key.c_str(), value.type().name());
   }
@@ -328,15 +499,44 @@ std::string Extensible::getString(const std::string& key) const throw (DmExcepti
   boost::any value = (*this)[key];
 
   try {
-    if (value.type() == typeid(const char*))
-      return std::string(boost::any_cast<const char*>(value));
-    else if (value.type() == typeid(char*))
-      return std::string(boost::any_cast<char*>(value));
-    else
-      return boost::any_cast<std::string>(value);
+    return anyToString(value);
   }
   catch (boost::bad_any_cast) {
     throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to string (it is %s)",
+                      key.c_str(), value.type().name());
+  }
+}
+
+
+
+Extensible Extensible::getExtensible(const std::string& key) const throw (DmException)
+{
+  if (!hasField(key)) return Extensible();
+  
+  boost::any value = (*this)[key];
+  
+  try {
+    return boost::any_cast<Extensible>(value);
+  }
+  catch (boost::bad_any_cast) {
+    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to dmlite::Extensible (it is %s)",
+                      key.c_str(), value.type().name());
+  }
+}
+
+
+
+std::vector<boost::any> Extensible::getVector(const std::string& key) const throw (DmException)
+{
+  if (!hasField(key)) return std::vector<boost::any>();
+  
+  boost::any value = (*this)[key];
+  
+  try {
+    return boost::any_cast<std::vector<boost::any> >(value);
+  }
+  catch (boost::bad_any_cast) {
+    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to std::vector<boost:any> (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
