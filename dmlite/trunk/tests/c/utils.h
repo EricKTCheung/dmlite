@@ -85,9 +85,15 @@ else {\
 }
 
 /* Extern methods */
+#ifdef __cplusplus
+extern "C" {
+#endif
 void log_section(const char*);
 void log_failure(const char* fmt, ...);
 void log_success(const char* fmt, ...);
 void log_dump(const char* fmt, ...);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTILS_H */
