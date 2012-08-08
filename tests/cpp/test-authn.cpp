@@ -22,12 +22,19 @@ public:
   
   void tearDown()
   {
-    try {
-      if (this->authn)
+    if (this->authn) {
+      try {
         this->authn->deleteUser(USER);
-    }
-    catch (const dmlite::DmException& e) {
-      if (e.code() != DM_NO_SUCH_USER) throw;
+      }
+      catch (const dmlite::DmException& e) {
+        if (e.code() != DM_NO_SUCH_USER) throw;
+      }
+      try {
+        this->authn->deleteGroup(GROUP);
+      }
+      catch (const dmlite::DmException& e) {
+        if (e.code() != DM_NO_SUCH_USER) throw;
+      }
     }
     TestBase::tearDown();
   }
