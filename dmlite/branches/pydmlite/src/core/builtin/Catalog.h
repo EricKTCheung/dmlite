@@ -1,7 +1,7 @@
-/// @file     core/builtin/Catalog.h
-/// @brief    Implementation of a Catalog using other plugins, as INode.
-/// @detailed Intended to ease the development of database backends.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Catalog.h
+/// @brief   Implementation of a Catalog using other plugins, as INode.
+/// @details Intended to ease the development of database backends.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #ifndef BUILTIN_CATALOG_H
 #define	BUILTIN_CATALOG_H
 
@@ -12,7 +12,8 @@
 
 namespace dmlite {
   
-  struct BuiltInDir {
+  struct BuiltInDir: public Directory {
+    virtual ~BuiltInDir() {};
     IDirectory*  idir;
     ExtendedStat dir;
   };
@@ -30,7 +31,6 @@ namespace dmlite {
 
     void        changeDir     (const std::string&) throw (DmException);
     std::string getWorkingDir (void) throw (DmException);
-    ino_t       getWorkingDirI(void) throw (DmException);
 
     ExtendedStat extendedStat(const std::string& path,
                               bool followSym = true) throw (DmException);
@@ -56,7 +56,7 @@ namespace dmlite {
     void removeDir(const std::string& path) throw (DmException);
 
     void rename(const std::string& oldPath,
-               const std::string& newPath) throw (DmException);
+                const std::string& newPath) throw (DmException);
 
     mode_t umask(mode_t mask) throw ();
 
@@ -101,7 +101,7 @@ namespace dmlite {
     void updateAccessTime(const ExtendedStat& meta) throw (DmException);
 
     /// Traverse backwards to check permissions.
-    /// @param file The file at the end
+    /// @param meta The file at the end
     /// @note       Throws an exception if it is not possible.
     void traverseBackwards(const ExtendedStat& meta) throw (DmException);
 

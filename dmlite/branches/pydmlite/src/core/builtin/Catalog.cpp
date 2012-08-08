@@ -1,7 +1,7 @@
-/// @file     core/builtin/Catalog.cpp
-/// @brief    Implementation of a Catalog using other plugins, as INode.
-/// @detailed Intended to ease the development of database backends.
-/// @author   Alejandro Álvarez Ayllon <aalvarez@cern.ch>
+/// @file    core/builtin/Catalog.cpp
+/// @brief   Implementation of a Catalog using other plugins, as INode.
+/// @details Intended to ease the development of database backends.
+/// @author  Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -139,13 +139,6 @@ std::string BuiltInCatalog::getWorkingDir (void) throw (DmException)
 
 
 
-ino_t BuiltInCatalog::getWorkingDirI(void) throw (DmException)
-{
-  return this->cwd_;
-}
-
-
-
 ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
  // Split the path always assuming absolute
@@ -160,6 +153,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   // If path is absolute OR cwd is empty, start in root
   if (path[0] == '/' || this->cwdPath_.empty()) {
     // Root parent "is" a dir and world-readable :)
+    memset(&meta.stat, 0, sizeof(meta.stat));
     meta.stat.st_mode = S_IFDIR | 0555 ;
   }
   // Relative, and cwd set, so start there
@@ -302,13 +296,18 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
   
   try {
     // Create file
+    ExtendedStat newLink;
+    
+    newLink.parent = parent.stat.st_ino;
+    newLink.name   = symName;
+    newLink.stat.st_mode = mode | S_IFLNK;
+    newLink.stat.st_size = 0;
+    newLink.status       = ExtendedStat::kOnline;
+    newLink.stat.st_uid  = getUid(this->secCtx_);
+    newLink.stat.st_gid  = egid;
+    
     ExtendedStat linkMeta = this->si_->getINode()->
-                              create(parent.stat.st_ino, symName,
-                                     getUid(this->secCtx_), egid,
-                                     mode | S_IFLNK,
-                                     0, ExtendedStat::kOnline,
-                                     "", "",
-                                     Acl());
+                              create(newLink);
     // Create symlink
     this->si_->getINode()->symlink(linkMeta.stat.st_ino, oldPath);
   }
@@ -426,18 +425,21 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 
   // Create new
   if (code == DM_NO_SUCH_FILE) {
-    mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFREG;
+    ExtendedStat newFile;
+    newFile.parent       = parent.stat.st_ino;
+    newFile.name         = name;
+    newFile.stat.st_mode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFREG;
+    newFile.stat.st_size = 0;
+    newFile.stat.st_uid  = getUid(this->secCtx_);
+    newFile.stat.st_gid  = egid;
+    newFile.status       = ExtendedStat::kOnline;
 
     // Generate inherited ACL's if there are defaults
-    Acl inheritedAcl;
-    if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)))
-      inheritedAcl = Acl(parent.acl, getUid(this->secCtx_), egid, mode, &newMode);
+    if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj))
+      newFile.acl = Acl(parent.acl, getUid(this->secCtx_), egid,
+                        mode, &newFile.stat.st_mode);
 
-    this->si_->getINode()->create(parent.stat.st_ino, name,
-                                  getUid(this->secCtx_) ,egid, newMode,
-                                  0, ExtendedStat::kOnline,
-                                  "", "",
-                                  inheritedAcl);
+    this->si_->getINode()->create(newFile);
   }
   
   // Truncate
@@ -461,31 +463,36 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   // Check we have write access for the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
-
+  
+  // Create the folder
+  ExtendedStat newFolder;
+  
+  newFolder.parent      = parent.stat.st_ino;
+  newFolder.name        = name;
+  newFolder.stat.st_uid = getUid(this->secCtx_);
+  newFolder.status      = ExtendedStat::kOnline;
+  
   // Mode
-  mode_t newMode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFDIR;
+  newFolder.stat.st_mode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFDIR;
   
   // Effective gid
   gid_t egid;
   if (parent.stat.st_mode & S_ISGID) {
     egid = parent.stat.st_gid;
-    newMode |= S_ISGID;
+    newFolder.stat.st_mode |= S_ISGID;
   }
   else {
     egid = getGid(this->secCtx_, 0);
   }
+  newFolder.stat.st_gid = egid;
 
   // Generate inherited ACL's if there are defaults
-  Acl inheritedAcl;
-  if (parent.acl.has(static_cast<AclEntry::AclType>(AclEntry::kDefault | AclEntry::kUserObj)) > -1)
-    inheritedAcl = Acl(parent.acl, getUid(this->secCtx_), egid, mode, &newMode);
+  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
+    newFolder.acl = Acl(parent.acl, getUid(this->secCtx_), egid,
+                        mode, &newFolder.stat.st_mode);
 
-  // Create the file entry
-  this->si_->getINode()->create(parent.stat.st_ino, name,
-                                getUid(this->secCtx_), egid, newMode,
-                                0, ExtendedStat::kOnline,
-                                "", "",
-                                inheritedAcl);
+  // Register
+  this->si_->getINode()->create(newFolder);
 }
 
 
@@ -936,7 +943,7 @@ void BuiltInCatalog::closeDir(Directory* dir) throw (DmException)
 
 
 
-struct dirent* BuiltInCatalog::readDir (Directory* dir) throw (DmException)
+struct dirent* BuiltInCatalog::readDir(Directory* dir) throw (DmException)
 {
   BuiltInDir* dirp = (BuiltInDir*)dir;
   struct dirent* d = this->si_->getINode()->readDir(dirp->idir);

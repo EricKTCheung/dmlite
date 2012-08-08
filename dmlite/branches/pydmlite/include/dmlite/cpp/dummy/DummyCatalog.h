@@ -1,4 +1,4 @@
-/// @file    include/dmlite/dummy/DummyCatalog.h
+/// @file    include/dmlite/cpp/dummy/DummyCatalog.h
 /// @brief   A dummy plugin that just delegates calls to a decorated one.
 /// @details It makes sense as a base for other decorator plug-ins.
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
@@ -15,8 +15,8 @@ namespace dmlite {
    public:
 
     /// Constructor
-    /// @param decorates The underlying decorated catalog.
-    DummyCatalog(Catalog* decorates) throw (DmException);
+    /// @param decorated The underlying decorated catalog.
+    DummyCatalog(Catalog* decorated) throw (DmException);
 
     /// Destructor
     virtual ~DummyCatalog();
@@ -39,7 +39,7 @@ namespace dmlite {
 
     virtual void create(const std::string&, mode_t) throw (DmException);
 
-    virtual mode_t umask          (mode_t)                           throw ();
+    virtual mode_t umask       (mode_t)                           throw ();
     virtual void   setMode     (const std::string&, mode_t)       throw (DmException);
     virtual void   setOwner    (const std::string&, uid_t, gid_t, bool) throw (DmException);
 

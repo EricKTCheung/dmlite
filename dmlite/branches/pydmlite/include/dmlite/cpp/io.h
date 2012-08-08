@@ -14,6 +14,7 @@
 namespace dmlite {
   
   // Forward declarations.
+  class PluginManager;
   class StackInstance;
   
   /// IO interface
@@ -59,12 +60,7 @@ namespace dmlite {
 
   /// IO Driver
   class IODriver: public virtual BaseInterface {
-   public:
-    enum OpenMode { kReadOnly     = O_RDONLY,
-                    kWriteOnly    = O_WRONLY | O_CREAT,
-                    kReadAndWrite = O_RDWR | O_CREAT,
-                  };
-     
+   public:    
     /// Virtual destructor
     virtual ~IODriver();
 
@@ -73,11 +69,14 @@ namespace dmlite {
     /// @param flags  The open mode.
     /// @param extras As was given by the PoolHandler.
     virtual IOHandler* createIOHandler(const std::string& pfn,
-                                       OpenMode flags,
+                                       int flags,
                                        const Extensible& extras) throw (DmException) = 0;
-
-    /// Perform a stat over pfn.
-    virtual struct stat pStat(const std::string& pfn) throw (DmException) = 0;
+    
+    /// Must be called when the front-end is done writing.
+    /// @param pfn    The file name.
+    /// @param params The extra parameters as was returned by whereToWrite
+    virtual void doneWriting(const std::string& pfn,
+                             const Extensible& params) throw (DmException) = 0;
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

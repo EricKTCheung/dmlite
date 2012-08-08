@@ -21,7 +21,7 @@ namespace dmlite {
   class PluginManager;
   
   /// Typedef for directories.
-  typedef void Directory;
+  struct Directory { virtual ~Directory() = 0; };
   
   /// Interface for Catalog (Namespaces).
   class Catalog: public virtual BaseInterface {
@@ -32,7 +32,7 @@ namespace dmlite {
     /// Change the working dir. Future not-absolute paths will use this as root.
     /// @param path The new working dir.
     virtual void changeDir(const std::string& path) throw (DmException) = 0;
-
+    
     /// Get the current working dir.
     /// @return The current working dir.
     virtual std::string getWorkingDir(void) throw (DmException) = 0;
@@ -88,6 +88,7 @@ namespace dmlite {
     /// @param path   The file to modify.
     /// @param newUid The uid of the new owneer.
     /// @param newGid The gid of the new group.
+    /// @param followSymLink If set to true, symbolic links will be followed.
     virtual void setOwner(const std::string& path, uid_t newUid, gid_t newGid,
                           bool followSymLink = true) throw (DmException) = 0;
 

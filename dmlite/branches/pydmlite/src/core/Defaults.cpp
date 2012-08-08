@@ -1,4 +1,4 @@
-/// @file   core/Catalog.cpp
+/// @file   core/Defaults.cpp
 /// @brief  Implementation of non abstract dm::Catalog methods.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <dmlite/cpp/base.h>
@@ -90,7 +90,21 @@ Authn::~Authn()
 
 
 
+IDirectory::~IDirectory()
+{
+  // Nothing
+}
+
+
+
 INode::~INode()
+{
+  // Nothing
+}
+
+
+
+Directory::~Directory()
 {
   // Nothing
 }
@@ -126,14 +140,14 @@ IODriver::~IODriver()
 /* Common and default methods */
 void BaseInterface::setStackInstance(BaseInterface* i, StackInstance* si) throw (DmException)
 {
-  i->setStackInstance(si);
+  if (i != NULL) i->setStackInstance(si);
 }
 
 
 
 void BaseInterface::setSecurityContext(BaseInterface* i, const SecurityContext* ctx) throw (DmException)
 {
-  i->setSecurityContext(ctx);
+  if (i != NULL) i->setSecurityContext(ctx);
 }
 
 
