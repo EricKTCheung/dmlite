@@ -59,22 +59,24 @@ public:
   {
     dmlite::Pool pool;
     
-    try {
-      pool.name = "test_hadoop";
-      pool.type = "hadoop";
-      poolManager->deletePool(pool);
-    }
-    catch (dmlite::DmException& e) {
-      if (e.code() != DM_NO_SUCH_POOL) throw;
-    }
-    
-    try {
-      pool.name = "test_fs";
-      pool.type = "filesystem";
-      poolManager->deletePool(pool);
-    }
-    catch (dmlite::DmException& e) {
-      if (e.code() != DM_NO_SUCH_POOL) throw;
+    if (poolManager) {
+      try {
+        pool.name = "test_hadoop";
+        pool.type = "hadoop";
+        poolManager->deletePool(pool);
+      }
+      catch (dmlite::DmException& e) {
+        if (e.code() != DM_NO_SUCH_POOL) throw;
+      }
+
+      try {
+        pool.name = "test_fs";
+        pool.type = "filesystem";
+        poolManager->deletePool(pool);
+      }
+      catch (dmlite::DmException& e) {
+        if (e.code() != DM_NO_SUCH_POOL) throw;
+      }
     }
     
     TestBase::tearDown();
