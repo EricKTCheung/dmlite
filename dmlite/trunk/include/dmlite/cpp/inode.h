@@ -181,10 +181,11 @@ namespace dmlite {
 
     /// Set the mode of a file.
     /// @param inode The inode of the file.
-    /// @param uid   The owner.
-    /// @param gid   The group.
-    /// @param mode  The new mode.
-    /// @param acl   The new ACL.
+    /// @param uid   The owner. If -1, not changed.
+    /// @param gid   The group. If -1, not changed.
+    /// @param mode  The new mode. S_IFMT bits are cleared, and kept as they
+    ///              are in the DB.
+    /// @param acl   The new ACL. If empty, not changed.
     virtual void setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode,
                          const Acl& acl) throw (DmException) = 0;
 
