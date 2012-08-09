@@ -232,6 +232,32 @@ public:
     CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kVolatile,  replica.type);
   }
 
+  void testDuplicated()
+  {
+    struct stat s;
+
+    s = this->catalog->extendedStat(FILE).stat;
+    
+    dmlite::Replica replica;
+    
+    replica.fileid = s.st_ino;
+    replica.server = "a.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    // Add once
+    this->catalog->addReplica(replica);
+    
+    // Add twice
+    try {
+      this->catalog->addReplica(replica);
+      CPPUNIT_FAIL("Added twice the same rfn");
+    }
+    catch (dmlite::DmException& e) {
+      CPPUNIT_ASSERT_EQUAL(DM_EXISTS, e.code());
+    }
+  }
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
@@ -239,6 +265,7 @@ public:
   CPPUNIT_TEST(testModify);
   CPPUNIT_TEST(testCachedEntries);
   CPPUNIT_TEST(testCachedModify);
+  CPPUNIT_TEST(testDuplicated);
   CPPUNIT_TEST_SUITE_END();
 };
 
