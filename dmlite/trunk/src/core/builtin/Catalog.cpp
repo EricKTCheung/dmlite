@@ -209,11 +209,12 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         
         components.swap(symPath);
         i = 0;
-        continue; // Jump directly to the beginning of the loop
         
         // If absolute, need to reset parent
         if (link.link[0] == '/')
           parent = 0;
+        
+        continue; // Jump directly to the beginning of the loop
       }
       // Next one!
       else {
