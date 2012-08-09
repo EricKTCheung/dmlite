@@ -88,6 +88,10 @@ public:
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(2, (int)s.st_nlink);
     
+    // Check it
+    std::string target = this->catalog->readLink(SYMLINK);
+    CPPUNIT_ASSERT_EQUAL(std::string(FOLDER), target);
+    
     // Add a file
     this->catalog->create(FILE, MODE);
     s = this->catalog->extendedStat(FOLDER).stat;

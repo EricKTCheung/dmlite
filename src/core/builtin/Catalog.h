@@ -47,6 +47,7 @@ namespace dmlite {
 
     void symlink(const std::string& oldpath,
                  const std::string& newpath) throw (DmException);
+    std::string readLink(const std::string& path) throw (DmException);
 
     void unlink(const std::string& path) throw (DmException);
 

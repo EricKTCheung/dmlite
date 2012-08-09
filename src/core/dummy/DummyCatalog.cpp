@@ -100,6 +100,13 @@ void DummyCatalog::symlink(const std::string& oldpath, const std::string& newpat
 
 
 
+std::string DummyCatalog::readLink(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(readLink, path);
+}
+
+
+
 void DummyCatalog::unlink(const std::string& path) throw (DmException)
 {
   DELEGATE(unlink, path);

@@ -14,7 +14,7 @@
 namespace dmlite {
 
   /// API Version.
-  const unsigned API_VERSION = 20120806;
+  const unsigned API_VERSION = 20120809;
 
   // Forward declarations.
   class Authn;

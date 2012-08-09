@@ -322,6 +322,17 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
 
 
 
+std::string BuiltInCatalog::readLink(const std::string& path) throw (DmException)
+{
+  ExtendedStat xs = this->extendedStat(path, false);
+  if (!S_ISLNK(xs.stat.st_mode))
+    throw DmException(DM_INVALID_VALUE,
+                      "%s is not a symbolic link", path.c_str());
+  return this->si_->getINode()->readLink(xs.stat.st_ino).link;
+}
+
+
+
 void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
 {
   std::string  parentPath, name;
