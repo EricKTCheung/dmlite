@@ -62,35 +62,35 @@ int dmlite_stat(dmlite_context *context, const char* path, struct stat* buf)
 
 int dmlite_statl(dmlite_context* context, const char* path, struct stat* buf)
 {
-  TRY(context, lstat)
+  TRY(context, statl)
   NOT_NULL(path);
   NOT_NULL(buf);
   *buf = context->stack->getCatalog()->extendedStat(path, false).stat;
-  CATCH(context, lstat);
+  CATCH(context, statl);
 }
 
 
 
 int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf)
 {
-  TRY(context, lstat)
+  TRY(context, statx)
   NOT_NULL(path);
   NOT_NULL(buf);
   dmlite::ExtendedStat ex = context->stack->getCatalog()->extendedStat(path);
   dmlite_cppxstat_to_cxstat(ex, buf);
-  CATCH(context, lstat);
+  CATCH(context, statx);
 }
 
 
 
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
-  TRY(context, addReplica)
+  TRY(context, addreplica)
   NOT_NULL(replica);  
   dmlite::Replica replicapp;
   dmlite_creplica_to_cppreplica(replica, &replicapp);
   context->stack->getCatalog()->addReplica(replicapp);
-  CATCH(context, addReplica)
+  CATCH(context, addreplica)
 }
 
 
@@ -153,6 +153,19 @@ int dmlite_symlink(dmlite_context* context,
   context->stack->getCatalog()->symlink(oldPath, newPath);
   CATCH(context, symlink)
 }  
+
+
+
+int dmlite_readlink(dmlite_context* context, const char* path,
+                    char* buf, size_t bufsize)
+{
+  TRY(context, readlink)
+  NOT_NULL(path);
+  NOT_NULL(buf);
+  std::string target = context->stack->getCatalog()->readLink(path);
+  std::strncpy(buf, target.c_str(), bufsize);
+  CATCH(context, readlink)
+}
 
 
 

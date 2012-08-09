@@ -115,6 +115,17 @@ int dmlite_symlink(dmlite_context* context,
                    const char* oldPath, const char* newPath);
 
 /**
+ * @brief         Reads a symlink.
+ * @param context The DM context.
+ * @param path    The symlink file.
+ * @param buf     Where to put the symlink target.
+ * @param bufsize The size of the memory pointed by buf.
+  * @return       0 on success, error code otherwise.
+ */
+int dmlite_readlink(dmlite_context* context, const char* path,
+                    char* buf, size_t bufsize);
+
+/**
  * @brief         Removes a file.
  * @param context The DM context.
  * @param path    The logical file name.

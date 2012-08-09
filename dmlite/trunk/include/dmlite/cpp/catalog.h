@@ -62,6 +62,11 @@ namespace dmlite {
     /// @param symlink The new access path.
     virtual void symlink(const std::string& path,
                          const std::string& symlink) throw (DmException) = 0;
+    
+    /// Returns the path pointed by the symlink path
+    /// @param path The symlink file.
+    /// @return     The symlink target.
+    virtual std::string readLink(const std::string& path) throw (DmException) = 0;
 
     /// Remove a file.
     /// @param path The path to remove.
