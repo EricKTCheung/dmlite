@@ -233,6 +233,25 @@ int dmlite_getcomment(dmlite_context* context, const char* path,
 int dmlite_setcomment(dmlite_context* context, const char* path, const char* comment);
 
 /**
+ * @brief         Sets the file Grid Unique Identifier.
+ * @param context The DM context.
+ * @param path    The logical path.
+ * @param guid    The new GUID.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_setguid(dmlite_context* context, const char* path, const char* guid);
+
+/**
+ * @brief         Updates the file extended attributes.
+ * @param context The DM context.
+ * @param path    The logical path.
+ * @param xattr   The new set of extended attributes.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_update_xattr(dmlite_context* context, const char* path,
+                        const dmlite_any_dict* xattr);
+
+/**
  * @brief           Gets the id of a group.
  * @param context   The DM context.
  * @param groupName The group name.

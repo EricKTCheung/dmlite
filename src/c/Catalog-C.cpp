@@ -302,6 +302,29 @@ int dmlite_setcomment(dmlite_context* context, const char* path, const char* com
 
 
 
+int dmlite_setguid(dmlite_context* context, const char* path, const char* guid)
+{
+  TRY(context, setguid)
+  NOT_NULL(path);
+  NOT_NULL(guid);
+  context->stack->getCatalog()->setGuid(path, guid);
+  CATCH(context, seguid)
+}
+
+
+
+int dmlite_update_xattr(dmlite_context* context, const char* path,
+                        const dmlite_any_dict* xattr)
+{
+  TRY(context, update_xattr)
+  NOT_NULL(path);
+  NOT_NULL(xattr);
+  context->stack->getCatalog()->updateExtendedAttributes(path, xattr->extensible);
+  CATCH(context, update_xattr)
+}
+
+
+
 int dmlite_getgrpbynam(dmlite_context* context, const char* groupName, gid_t* gid)
 {
   TRY(context, getgrpbynam)

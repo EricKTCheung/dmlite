@@ -286,6 +286,16 @@ dmlite_idir* dmlite_iopendir(dmlite_context* context, ino_t inode)
 
 
 
+int dmlite_iupdate_xattr(dmlite_context* context, ino_t inode,
+                         const dmlite_any_dict* xattr)
+{
+  TRY(context, iupdate_xattr)
+  context->stack->getINode()->updateExtendedAttributes(inode, xattr->extensible);
+  CATCH(context, iupdate_xattr)
+}
+
+
+
 int dmlite_iclosedir(dmlite_context* context, dmlite_idir* dir)
 {
   TRY(context, iclosedir)
