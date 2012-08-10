@@ -98,6 +98,16 @@ dmlite_any_dict* dmlite_any_dict_new()
 }
 
 
+
+dmlite_any_dict* dmlite_any_dict_copy(const dmlite_any_dict* dict)
+{
+  dmlite_any_dict* copy = new dmlite_any_dict();
+  copy->extensible.copy(dict->extensible);
+  return copy;
+}
+
+
+
 void dmlite_any_dict_free(dmlite_any_dict* d)
 {
   delete d;
@@ -135,6 +145,13 @@ dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k)
   any = new dmlite_any();
   any->value = d->extensible[k];
   return any;
+}
+
+
+
+void dmlite_any_dict_erase(dmlite_any_dict* d, const char* k)
+{
+  d->extensible.erase(k);
 }
 
 

@@ -82,6 +82,13 @@ long dmlite_any_to_long(const dmlite_any* any);
 dmlite_any_dict* dmlite_any_dict_new();
 
 /**
+ * @brief      Make a copy of the dictionary.
+ * @param dict The original
+ * @return A newly allocated copy of dict.
+ */
+dmlite_any_dict* dmlite_any_dict_copy(const dmlite_any_dict* dict);
+
+/**
  * @brief Frees a dmlite_any_dict
  */
 void dmlite_any_dict_free(dmlite_any_dict* d);
@@ -110,6 +117,13 @@ unsigned long dmlite_any_dict_count(const dmlite_any_dict* d);
  * @return NULL if not found.
  */
 dmlite_any* dmlite_any_dict_get(const dmlite_any_dict* d, const char* k);
+
+/**
+ * @brief   Removes a key-value from the dictionary.
+ * @param d The dictionary.
+ * @param k The key to be removed.
+ */
+void dmlite_any_dict_erase(dmlite_any_dict* d, const char* k);
 
 /**
  * @brief  Generates a JSON serialization of the dictionary.
