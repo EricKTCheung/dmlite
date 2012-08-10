@@ -58,8 +58,11 @@ namespace dmlite {
      /// Removes all the content.
      void clear();
      
-     /// Copy the content from another Extensible
+     /// Copies the content from another Extensible
      void copy(const Extensible& s);
+     
+     /// Removes an entry.
+     void erase(const std::string&);
      
      /// Serializes to JSON. In principle, it only supports POD.
      std::string serialize(void) const;
