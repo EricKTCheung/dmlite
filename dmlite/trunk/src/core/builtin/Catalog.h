@@ -80,6 +80,8 @@ namespace dmlite {
     void setGuid(const std::string& path,
                  const std::string &guid) throw (DmException);
 
+    void updateExtendedAttributes(const std::string& path,
+                                  const Extensible& attr) throw (DmException);
 
     Directory*     openDir (const std::string& path) throw (DmException);
     void           closeDir(Directory* dir) throw (DmException);

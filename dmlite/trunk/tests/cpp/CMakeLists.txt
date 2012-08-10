@@ -86,6 +86,9 @@ target_link_libraries (test-stat test-base dmlite cppunit dl)
 add_executable        (test-utime test-utime.cpp)
 target_link_libraries (test-utime test-base dmlite cppunit dl)
 
+add_executable        (test-xattr test-xattr.cpp)
+target_link_libraries (test-xattr test-base dmlite cppunit dl)
+
 # Install
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
          DESTINATION /usr/share/tests/dmlite/cpp
@@ -128,3 +131,4 @@ ADD_TEST(test-split_path    ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG
 ADD_TEST(test-split_url     ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
 ADD_TEST(test-stat          ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
 ADD_TEST(test-utime         ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})
+ADD_TEST(test-xattr         ${CMAKE_CURRENT_BINARY_DIR}/test-xattr ${CONFIG})
