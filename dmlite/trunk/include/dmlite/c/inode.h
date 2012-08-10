@@ -316,6 +316,16 @@ int dmlite_ideletecomment(dmlite_context* context, ino_t inode);
 int dmlite_isetguid(dmlite_context* context, ino_t inode, const char* guid);
 
 /**
+ * @brief         Updates the file extended attributes.
+ * @param context The DM context.
+ * @param inode   The entry id.
+ * @param xattr   The new set of extended attributes.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_iupdate_xattr(dmlite_context* context, ino_t inode,
+                         const dmlite_any_dict* xattr);
+
+/**
  * @brief         Opens a directory.
  * @param context The DM context.
  * @param inode   The directory ID.
