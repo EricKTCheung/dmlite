@@ -139,6 +139,12 @@ namespace dmlite {
     /// @param guid The new GUID.
     virtual void setGuid(const std::string& path,
                          const std::string &guid) throw (DmException) = 0;
+    
+    /// Update extended metadata on the catalog.
+    /// @param path The file to update.
+    /// @param attr The extended attributes struct.
+    virtual void updateExtendedAttributes(const std::string& path,
+                                          const Extensible& attr) throw (DmException) = 0;
 
     /// Open a directory for reading.
     /// @param path The directory to open.
@@ -174,7 +180,7 @@ namespace dmlite {
     /// Remove a directory.
     /// @param path The path of the directory to remove.
     virtual void removeDir(const std::string& path) throw (DmException) = 0;
-
+    
     /// Get a replica.
     /// @param rfn The replica file name.
     virtual Replica getReplica(const std::string& rfn) throw (DmException) = 0;

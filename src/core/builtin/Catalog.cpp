@@ -922,6 +922,19 @@ void BuiltInCatalog::setGuid(const std::string& path, const std::string &guid) t
 
 
 
+void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
+                                              const Extensible& attr) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path);
+  
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+  
+  this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
+}
+
+
+
 Directory* BuiltInCatalog::openDir (const std::string& path) throw (DmException)
 {
   BuiltInDir* dirp;

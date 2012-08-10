@@ -221,6 +221,11 @@ namespace dmlite {
     /// @param guid  The new GUID.
     virtual void setGuid(ino_t inode,
                          const std::string& guid) throw (DmException) = 0;
+    
+    /// Update extended metadata on the catalog.
+    /// @param attr The extended attributes struct.
+    virtual void updateExtendedAttributes(ino_t inode,
+                                          const Extensible& attr) throw (DmException) = 0;
 
     /// Open a directory.
     /// @param inode The inode of the directory.

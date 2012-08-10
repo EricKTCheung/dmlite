@@ -193,6 +193,14 @@ void DummyCatalog::setGuid(const std::string& path, const std::string& guid) thr
 
 
 
+void DummyCatalog::updateExtendedAttributes(const std::string& path,
+                                            const Extensible& attr) throw (DmException)
+{
+  DELEGATE(updateExtendedAttributes, path, attr);
+}
+
+
+
 Directory* DummyCatalog::openDir(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(openDir, path);
