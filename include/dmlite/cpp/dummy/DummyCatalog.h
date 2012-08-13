@@ -34,8 +34,10 @@ namespace dmlite {
     virtual void deleteReplica(const Replica&) throw (DmException);
     virtual std::vector<Replica> getReplicas(const std::string&) throw (DmException);
 
-    virtual void symlink(const std::string&, const std::string&) throw (DmException);
-    virtual void unlink (const std::string&)                     throw (DmException);
+    virtual void symlink (const std::string&, const std::string&) throw (DmException);
+    std::string  readLink(const std::string& path) throw (DmException);
+    
+    virtual void unlink(const std::string&)                     throw (DmException);
 
     virtual void create(const std::string&, mode_t) throw (DmException);
 
@@ -51,9 +53,15 @@ namespace dmlite {
     virtual void utime(const std::string&, const struct utimbuf*) throw (DmException);
 
     virtual std::string getComment(const std::string&)                     throw (DmException);
-    virtual void        setComment(const std::string&, const std::string&) throw (DmException);
+    virtual void        setComment(const std::string&,
+                                   const std::string&) throw (DmException);
 
-    virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException);
+    virtual void setGuid(const std::string&,
+                         const std::string&) throw (DmException);
+    
+    virtual void updateExtendedAttributes(const std::string&,
+                                          const Extensible&) throw (DmException);
+
 
     virtual Directory* openDir (const std::string&) throw (DmException);
     virtual void       closeDir(Directory*)         throw (DmException);

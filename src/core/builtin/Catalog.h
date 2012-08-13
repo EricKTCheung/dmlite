@@ -47,6 +47,7 @@ namespace dmlite {
 
     void symlink(const std::string& oldpath,
                  const std::string& newpath) throw (DmException);
+    std::string readLink(const std::string& path) throw (DmException);
 
     void unlink(const std::string& path) throw (DmException);
 
@@ -79,6 +80,8 @@ namespace dmlite {
     void setGuid(const std::string& path,
                  const std::string &guid) throw (DmException);
 
+    void updateExtendedAttributes(const std::string& path,
+                                  const Extensible& attr) throw (DmException);
 
     Directory*     openDir (const std::string& path) throw (DmException);
     void           closeDir(Directory* dir) throw (DmException);

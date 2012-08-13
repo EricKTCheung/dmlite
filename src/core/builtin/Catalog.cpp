@@ -209,11 +209,12 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         
         components.swap(symPath);
         i = 0;
-        continue; // Jump directly to the beginning of the loop
         
         // If absolute, need to reset parent
         if (link.link[0] == '/')
           parent = 0;
+        
+        continue; // Jump directly to the beginning of the loop
       }
       // Next one!
       else {
@@ -317,6 +318,17 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
   }
   
   this->si_->getINode()->commit();
+}
+
+
+
+std::string BuiltInCatalog::readLink(const std::string& path) throw (DmException)
+{
+  ExtendedStat xs = this->extendedStat(path, false);
+  if (!S_ISLNK(xs.stat.st_mode))
+    throw DmException(DM_INVALID_VALUE,
+                      "%s is not a symbolic link", path.c_str());
+  return this->si_->getINode()->readLink(xs.stat.st_ino).link;
 }
 
 
@@ -906,6 +918,19 @@ void BuiltInCatalog::setGuid(const std::string& path, const std::string &guid) t
     throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
 
   this->si_->getINode()->setGuid(meta.stat.st_ino, guid);
+}
+
+
+
+void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
+                                              const Extensible& attr) throw (DmException)
+{
+  ExtendedStat meta = this->extendedStat(path);
+  
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
+    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+  
+  this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
 }
 
 

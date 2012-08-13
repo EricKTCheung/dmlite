@@ -1,9 +1,9 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
+#include <dmlite/cpp/utils/security.h>
 #include <sstream>
 #include <vector>
 #include "test-base.h"
-#include "dmlite/cpp/utils/security.h"
 
 
 static bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)
@@ -74,13 +74,13 @@ public:
 
     CPPUNIT_ASSERT_EQUAL((size_t)4, stat.acl.size());
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUserObj, stat.acl[0].type);
-    CPPUNIT_ASSERT_EQUAL(getUid(ctx),                stat.acl[0].id);
-    CPPUNIT_ASSERT_EQUAL(7u,               (unsigned)stat.acl[0].perm);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kUserObj), stat.acl[0].type);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx),  stat.acl[0].id);
+    CPPUNIT_ASSERT_EQUAL(7u, (unsigned)stat.acl[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroupObj, stat.acl[1].type);
-    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 1),              stat.acl[1].id);
-    CPPUNIT_ASSERT_EQUAL(0u,                (unsigned)stat.acl[1].perm);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kGroupObj), stat.acl[1].type);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 1), stat.acl[1].id);
+    CPPUNIT_ASSERT_EQUAL(0u, (unsigned)stat.acl[1].perm);
   }
 
   void testChmod()
@@ -90,16 +90,16 @@ public:
 
     CPPUNIT_ASSERT_EQUAL((size_t)4, stat.acl.size());
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kUserObj, stat.acl[0].type);
-    CPPUNIT_ASSERT_EQUAL(getUid(ctx),                stat.acl[0].id);
-    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[0].perm);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kUserObj), stat.acl[0].type);
+    CPPUNIT_ASSERT_EQUAL(getUid(ctx),  stat.acl[0].id);
+    CPPUNIT_ASSERT_EQUAL(5u, (unsigned)stat.acl[0].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kGroupObj, stat.acl[1].type);
-    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 0),             stat.acl[1].id);
-    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[1].perm);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kGroupObj), stat.acl[1].type);
+    CPPUNIT_ASSERT_EQUAL(getGid(ctx, 0), stat.acl[1].id);
+    CPPUNIT_ASSERT_EQUAL(5u,   (unsigned)stat.acl[1].perm);
 
-    CPPUNIT_ASSERT_EQUAL(dmlite::AclEntry::kOther, stat.acl[3].type);
-    CPPUNIT_ASSERT_EQUAL(5u,               (unsigned)stat.acl[3].perm);
+    CPPUNIT_ASSERT_EQUAL(uint8_t(dmlite::AclEntry::kOther), stat.acl[3].type);
+    CPPUNIT_ASSERT_EQUAL(5u, (unsigned)stat.acl[3].perm);
   }
 
   void testInherit()
