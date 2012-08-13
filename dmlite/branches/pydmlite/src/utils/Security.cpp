@@ -20,6 +20,14 @@
 
 using namespace dmlite;
 
+const uint8_t AclEntry::kUserObj;
+const uint8_t AclEntry::kUser;
+const uint8_t AclEntry::kGroupObj;
+const uint8_t AclEntry::kGroup;
+const uint8_t AclEntry::kMask;
+const uint8_t AclEntry::kOther;
+const uint8_t AclEntry::kDefault;
+
 struct MapFileEntry {
   time_t      lastModified;
   std::map<std::string, std::string> voForDn;
