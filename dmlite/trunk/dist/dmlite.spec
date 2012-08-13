@@ -20,7 +20,6 @@ BuildRequires:	boost141-devel
 BuildRequires:	cmake
 BuildRequires:	cppunit-devel
 BuildRequires:	doxygen
-BuildRequires:	dpm-devel
 BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 
