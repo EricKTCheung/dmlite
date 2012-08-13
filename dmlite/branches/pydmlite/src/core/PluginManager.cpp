@@ -110,10 +110,12 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
     throw DmException(DM_NO_SUCH_SYMBOL, std::string(dlerror()));
 
   if (idCard->ApiVersion < API_VERSION)
-    throw DmException(DM_API_VERSION_MISMATCH, "Plugin version (%d) < API version (%d) - Consider upgrading the plug-in %s",
+    throw DmException(DM_API_VERSION_MISMATCH,
+                      "Plugin version (%d) < API version (%d) - Consider upgrading the plug-in %s",
                       idCard->ApiVersion, API_VERSION, lib.c_str());
   else if (idCard->ApiVersion > API_VERSION)
-    throw DmException(DM_API_VERSION_MISMATCH, "Plugin version (%d) > API version (%d) - Consider upgrading dmlite or downgrading the plugin %s",
+    throw DmException(DM_API_VERSION_MISMATCH,
+                      "Plugin version (%d) > API version (%d) - Consider upgrading dmlite or downgrading the plugin %s",
                       idCard->ApiVersion, API_VERSION, lib.c_str());
 
   // Call the registerer
@@ -307,5 +309,6 @@ PoolDriverFactory* PluginManager::getPoolDriverFactory(const std::string& poolty
     }
   }
 
-  throw DmException(DM_UNKNOWN_POOL_TYPE, "No plugin recognises the pool type " + pooltype);
+  throw DmException(DM_UNKNOWN_POOL_TYPE,
+                    "No plugin recognises the pool type '%s'", pooltype.c_str());
 }

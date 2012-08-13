@@ -107,7 +107,7 @@ PluginManager* StackInstance::getPluginManager() throw (DmException)
 Authn* StackInstance::getAuthn() throw (DmException)
 {
   if (this->authn_ == 0)
-    throw DmException(DM_NO_AUTHN, "No plugin provides UserGroupDb");
+    throw DmException(DM_NO_AUTHN, "No plugin provides Authn");
   return this->authn_;
 }
 
@@ -230,6 +230,7 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
 const SecurityContext* StackInstance::getSecurityContext() const throw ()
 {
   if (this->secCtx_ == 0)
-    throw DmException(DM_NO_SECURITY_CONTEXT, "The security context has not been initialized");
+    throw DmException(DM_NO_SECURITY_CONTEXT,
+                      "The security context has not been initialized");
   return this->secCtx_;
 }

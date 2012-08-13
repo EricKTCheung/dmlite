@@ -22,7 +22,7 @@ public:
   {
     if (this->catalog != 0x00) {
       try {
-        struct stat s = this->catalog->extendedStat(FILE).stat;
+        this->catalog->extendedStat(FILE).stat;
         std::vector<dmlite::Replica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); ++i) {
           this->catalog->deleteReplica(replicas[i]);
@@ -59,9 +59,11 @@ public:
     
     replica["pool"]       = std::string("the-pool");
     replica["filesystem"] = std::string("the-fs");
-
+    replica["additional"] = std::string("metadata");
+    
     this->catalog->addReplica(replica);
 
+    replica.clear();
     replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL((unsigned)s.st_ino, (unsigned)replica.fileid);
@@ -71,6 +73,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("the-fs"),     replica.getString("filesystem"));
     CPPUNIT_ASSERT_EQUAL(std::string("the-pool"),   replica.getString("pool"));
     CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
+    CPPUNIT_ASSERT_EQUAL(std::string("metadata"),   replica.getString("additional"));
 
     replica = this->catalog->getReplica("http://a.host.com/replica");
     
@@ -123,6 +126,7 @@ public:
     
     replica["pool"]       = std::string("the-pool");
     replica["filesystem"] = std::string("the-fs");
+    replica["additional"] = std::string("metadata");
 
     this->catalog->addReplica(replica);
 
@@ -131,14 +135,17 @@ public:
     replica.ltime  = 12348;
     replica.status = dmlite::Replica::kToBeDeleted;
     replica.type   = dmlite::Replica::kVolatile;
+    replica["additional"] = std::string("something else");
     
     this->catalog->updateReplica(replica);
     
+    replica.clear();
     replica = this->catalog->getReplicas(FILE)[0];
 
     CPPUNIT_ASSERT_EQUAL(12348, (int)replica.ltime);
     CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kToBeDeleted, replica.status);
     CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kVolatile,    replica.type);
+    CPPUNIT_ASSERT_EQUAL(std::string("something else"), replica.getString("additional"));
   }
 
   void testCachedEntries()
@@ -225,6 +232,32 @@ public:
     CPPUNIT_ASSERT_EQUAL(dmlite::Replica::kVolatile,  replica.type);
   }
 
+  void testDuplicated()
+  {
+    struct stat s;
+
+    s = this->catalog->extendedStat(FILE).stat;
+    
+    dmlite::Replica replica;
+    
+    replica.fileid = s.st_ino;
+    replica.server = "a.host.com";
+    replica.rfn    = "http://a.host.com/replica";
+    replica.status = dmlite::Replica::kAvailable;
+    replica.type   = dmlite::Replica::kPermanent;
+    
+    // Add once
+    this->catalog->addReplica(replica);
+    
+    // Add twice
+    try {
+      this->catalog->addReplica(replica);
+      CPPUNIT_FAIL("Added twice the same rfn");
+    }
+    catch (dmlite::DmException& e) {
+      CPPUNIT_ASSERT_EQUAL(DM_EXISTS, e.code());
+    }
+  }
 
   CPPUNIT_TEST_SUITE(TestReplicas);
   CPPUNIT_TEST(testAddAndRemove);
@@ -232,6 +265,7 @@ public:
   CPPUNIT_TEST(testModify);
   CPPUNIT_TEST(testCachedEntries);
   CPPUNIT_TEST(testCachedModify);
+  CPPUNIT_TEST(testDuplicated);
   CPPUNIT_TEST_SUITE_END();
 };
 

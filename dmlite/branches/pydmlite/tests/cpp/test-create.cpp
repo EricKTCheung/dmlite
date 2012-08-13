@@ -37,7 +37,7 @@ public:
       this->catalog->setMode(FOLDER, 0777);
       
       try {
-        struct stat s = this->catalog->extendedStat(FILE).stat;
+        this->catalog->extendedStat(FILE).stat;
         std::vector<dmlite::Replica> replicas = this->catalog->getReplicas(FILE);
         for (unsigned i = 0; i < replicas.size(); i++) {
           this->catalog->deleteReplica(replicas[i]);
@@ -47,7 +47,13 @@ public:
         // Ignore
       }
       
-      IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
+      try {
+        IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
+      }
+      catch (dmlite::DmException& e) {
+        if (e.code() != DM_IS_DIRECTORY) throw;
+        this->catalog->removeDir(FILE);
+      }
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
       IGNORE_NOT_EXIST(this->catalog->removeDir(NESTED));
 
@@ -81,6 +87,10 @@ public:
     this->catalog->symlink(FOLDER, SYMLINK);
     s = this->catalog->extendedStat(FOLDER).stat;
     CPPUNIT_ASSERT_EQUAL(2, (int)s.st_nlink);
+    
+    // Check it
+    std::string target = this->catalog->readLink(SYMLINK);
+    CPPUNIT_ASSERT_EQUAL(std::string(FOLDER), target);
     
     // Add a file
     this->catalog->create(FILE, MODE);
@@ -242,6 +252,30 @@ public:
     struct stat s = this->catalog->extendedStat(FILE).stat;
     CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
   }
+  
+  void testICreate()
+  {
+    dmlite::ExtendedStat parent = this->catalog->extendedStat(FOLDER);
+    
+    dmlite::ExtendedStat child;
+    
+    child.parent = parent.stat.st_ino;
+    child.name   = "test-file";
+    child.status = dmlite::ExtendedStat::kOnline;
+    child.stat.st_size = 0;
+    child.stat.st_uid  = 101;
+    child.stat.st_gid  = 102;
+    child.stat.st_mode = 0755 | S_IFDIR;
+    
+    this->stackInstance->getINode()->create(child);
+    
+    dmlite::ExtendedStat check = this->catalog->extendedStat(FILE);
+    
+    CPPUNIT_ASSERT_EQUAL((mode_t)(0755 | S_IFDIR), check.stat.st_mode);
+    CPPUNIT_ASSERT_EQUAL(101u, check.stat.st_uid);
+    CPPUNIT_ASSERT_EQUAL(102u, check.stat.st_gid);
+    CPPUNIT_ASSERT_EQUAL((off_t)0, check.stat.st_size);
+  }
 
   CPPUNIT_TEST_SUITE(TestCreate);
   CPPUNIT_TEST(testRegular);
@@ -252,6 +286,7 @@ public:
   CPPUNIT_TEST(testPathDoesNotExist);
   CPPUNIT_TEST(testPermissionDenied);
   CPPUNIT_TEST(testSetSize);
+  CPPUNIT_TEST(testICreate);
   CPPUNIT_TEST_SUITE_END();
 };
 

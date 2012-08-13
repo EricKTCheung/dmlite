@@ -232,8 +232,10 @@ std::string Extensible::anyToString(const boost::any& value)
     return std::string(boost::any_cast<const char*>(value));
   else if (value.type() == typeid(char*))
     return std::string(boost::any_cast<char*>(value));
-  else
+  else if (value.type() == typeid(std::string))
     return boost::any_cast<std::string>(value);
+  else
+    return serializeAny(value);
 }
 
 
@@ -309,6 +311,13 @@ void Extensible::clear()
 void Extensible::copy(const Extensible& s)
 {
   dictionary_.insert(s.dictionary_.begin(), s.dictionary_.end());
+}
+
+
+
+void Extensible::erase(const std::string& s)
+{
+  dictionary_.erase(s);
 }
 
 

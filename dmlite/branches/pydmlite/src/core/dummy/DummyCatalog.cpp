@@ -100,6 +100,13 @@ void DummyCatalog::symlink(const std::string& oldpath, const std::string& newpat
 
 
 
+std::string DummyCatalog::readLink(const std::string& path) throw (DmException)
+{
+  DELEGATE_RETURN(readLink, path);
+}
+
+
+
 void DummyCatalog::unlink(const std::string& path) throw (DmException)
 {
   DELEGATE(unlink, path);
@@ -182,6 +189,14 @@ void DummyCatalog::setComment(const std::string& path, const std::string& commen
 void DummyCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
   DELEGATE(setGuid, path, guid);
+}
+
+
+
+void DummyCatalog::updateExtendedAttributes(const std::string& path,
+                                            const Extensible& attr) throw (DmException)
+{
+  DELEGATE(updateExtendedAttributes, path, attr);
 }
 
 

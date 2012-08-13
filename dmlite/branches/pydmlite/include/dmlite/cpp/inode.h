@@ -181,10 +181,11 @@ namespace dmlite {
 
     /// Set the mode of a file.
     /// @param inode The inode of the file.
-    /// @param uid   The owner.
-    /// @param gid   The group.
-    /// @param mode  The new mode.
-    /// @param acl   The new ACL.
+    /// @param uid   The owner. If -1, not changed.
+    /// @param gid   The group. If -1, not changed.
+    /// @param mode  The new mode. S_IFMT bits are cleared, and kept as they
+    ///              are in the DB.
+    /// @param acl   The new ACL. If empty, not changed.
     virtual void setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode,
                          const Acl& acl) throw (DmException) = 0;
 
@@ -220,6 +221,11 @@ namespace dmlite {
     /// @param guid  The new GUID.
     virtual void setGuid(ino_t inode,
                          const std::string& guid) throw (DmException) = 0;
+    
+    /// Update extended metadata on the catalog.
+    /// @param attr The extended attributes struct.
+    virtual void updateExtendedAttributes(ino_t inode,
+                                          const Extensible& attr) throw (DmException) = 0;
 
     /// Open a directory.
     /// @param inode The inode of the directory.
