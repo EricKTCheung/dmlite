@@ -34,8 +34,13 @@ class DMLiteInterpreter:
 		"""Execute the given command.
 		Return value: (message, error, exit shell)
 		Last return value can be found in self.return"""
-				
-		cmdline = shlex.split(inputline, True)
+		
+		try:
+			cmdline = shlex.split(inputline, True)
+		except Exception, e:
+			self.result = ('ERROR: Parsing error.', True, False)
+			return self.result
+		
 		if not cmdline:
 			# empty command
 			self.result = ('', False, False)
@@ -107,7 +112,15 @@ class DMLiteInterpreter:
 					finfo['size'] = f.stat.st_size
 					finfo['isDir'] = False
 				finfo['name'] = f.name
-				
+				finfo['isLnk'] = f.stat.isLnk()
+				if finfo['isLnk']:
+					finfo['link'] = self.catalog.readLink(os.path.join(directory, f.name))
+				else:
+					finfo['link'] = ''
+				try:
+					finfo['comment'] = self.catalog.getComment(os.path.join(directory, f.name))
+				except Exception, e:
+					finfo['comment'] = ''
 				flist.append(finfo)
 			except:
 				break
@@ -159,7 +172,10 @@ class ShellCommand:
 			
 		elif start.startswith(self.name):
 			# complete parameters, analyse the already given parameters
-			given = shlex.split(start+'x', True)
+			try:
+				given = shlex.split(start+'x', True)
+			except Exception, e:
+				return [] # parsing failed
 
 			if len(given)-1 > len(self.parameters):
 				# too many parameters given already
@@ -198,9 +214,15 @@ class ShellCommand:
 			# no auto completions from this command
 			return []
 	
+	def shortDescription(self):	
+		if self.description.find('\n'):
+			return self.description[0:self.description.find('\n')]
+		else:
+			return self.description
+
 	def help(self):
 		"""Returns a little help text with the description of the command."""
-		return ' ' + self.name + (' ' * (14 - len(self.name))) + self.description
+		return ' ' + self.name + (' ' * (14 - len(self.name))) + self.shortDescription()
 	
 	def moreHelp(self):
 		"""Returns the syntax description of the command and a help text."""
@@ -218,6 +240,8 @@ class ShellCommand:
 		for i in range(len(self.parameters)):
 			if self.parameters[i].startswith('*'):
 				ptype = self.parameters[i][1:2]
+				if i > len(given)-1:
+					continue
 			elif i > len(given)-1:
 				return self.syntaxError()
 			else:
@@ -230,6 +254,13 @@ class ShellCommand:
 			elif ptype == 'F':
 				if not os.path.exists(given[i]):
 					return self.syntaxError('File "' + given[i] + '" does not exist.')
+			elif ptype == 'D':
+				# check if file exists in DMLite
+				try:
+					f = interpreter.catalog.extendedStat(given[i], True)
+				except Exception, e:
+					return self.syntaxError('File "' + given[i] + '" does not exist.')
+				
 		return self.ok()
 	
 	def execute(self, given, interpreter):
@@ -256,7 +287,7 @@ class ExitCommand(ShellCommand):
 	def execute(self, given, interpreter):
 		return self.exitShell()
 
-		
+
 class HelpCommand(ShellCommand):
 	"""Prints a help text or descriptions for single commands."""
 	def init(self):
@@ -369,7 +400,7 @@ class LsCommand(ShellCommand):
 			if len(f['name']) > fnamelen:
 				fnamelen = len(f['name'])
 		
-		flist = ( f['name'] + (' '*(fnamelen+2-len(f['name']))) + f['prettySize'] for f in flist)
+		flist = ( f['name'] + (' '*(fnamelen+2-len(f['name']))) + (f['prettySize'], '-> ' + f['link'])[f['isLnk']] + '\t' + f['comment'] for f in flist)
 
 		return self.ok('\n'.join(list(flist)))
 
@@ -390,7 +421,7 @@ class MkDirCommand(ShellCommand):
 class UnlinkCommand(ShellCommand):
 	"""Removes a file."""
 	def init(self):
-		self.parameters = ['dfile']
+		self.parameters = ['Dfile']
 		
 	def execute(self, given, interpreter):
 		try:
@@ -403,7 +434,7 @@ class UnlinkCommand(ShellCommand):
 class RmDirCommand(ShellCommand):
 	"""Removes a directory."""
 	def init(self):
-		self.parameters = ['ddirectory']
+		self.parameters = ['Ddirectory']
 		
 	def execute(self, given, interpreter):
 		try:
@@ -422,17 +453,20 @@ class MvCommand(ShellCommand):
 		try:
 			interpreter.catalog.rename(given[0], given[1])
 		except Exception, e:
-			return self.error(e.__str__() + given[1])
+			return self.error(e.__str__() + given[0] + ' / ' + given[1])
 		return self.ok()
 
 
 class DuCommand(ShellCommand):
 	"""Determines the disk usage of a file or a directory."""
 	def init(self):
-		self.parameters = ['Dfile']
+		self.parameters = ['*Dfile']
 		
 	def execute(self, given, interpreter):
-		f = interpreter.catalog.extendedStat(given[0], False)
+		# if no parameters given, list current directory
+		given.append(interpreter.catalog.getWorkingDir())
+		
+		f = interpreter.catalog.extendedStat(given[0], True)
 		if f.stat.isDir():
 			return self.ok(str(self.folderSize(given[0], interpreter)) + 'B')
 		else:
@@ -448,3 +482,35 @@ class DuCommand(ShellCommand):
 			else:
 				size += f['size']
 		return size
+
+
+class LnCommand(ShellCommand):
+	"""Creates a symlink."""
+	def init(self):
+		self.parameters = ['Dtarget-file', 'dsymlink-file']
+		
+	def execute(self, given, interpreter):
+		try:
+			interpreter.catalog.symlink(given[0], given[1])
+		except Exception, e:
+			return self.error(e.__str__() + given[0] + ' / ' + given[1])
+		return self.ok()
+
+
+class CommentCommand(ShellCommand):
+	"""Sets and reads file comments.\nPut comment in quotes. Reset file comment via comment <file> ""."""
+	def init(self):
+		self.parameters = ['Dfile', '*?comment']
+		
+	def execute(self, given, interpreter):
+		if len(given) == 2:
+			try:
+				interpreter.catalog.setComment(given[0], given[1])
+			except Exception, e:
+				return self.error(e.__str__() + given[0] + ' / ' + given[1])
+			return self.ok()
+		else:
+			try:
+				return self.ok(interpreter.catalog.getComment(given[0]))
+			except Exception, e:
+				return self.ok(' ') # no comment
