@@ -13,6 +13,10 @@
 		.def_readwrite("size", &Chunk::size)
 		;
 
+	class_< std::vector< Chunk > >("vector_Chunk")
+		.def(vector_indexing_suite< std::vector< Chunk > >()) // only works with operator== and != in Chunk
+		;
+
 	class_<PoolHandlerWrapper, boost::noncopyable>("PoolHandler", no_init)
 		.def("getPoolType", boost::python::pure_virtual(&PoolHandler::getPoolType))
 		.def("getPoolName", boost::python::pure_virtual(&PoolHandler::getPoolName))

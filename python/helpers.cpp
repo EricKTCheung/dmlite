@@ -90,4 +90,34 @@
 	{
 		self[key] = value;
 	}
+	
+	
+	bool StatIsDir(struct stat &self)
+	{
+		return S_ISDIR(self.st_mode);
+	}
 
+	bool StatIsReg(struct stat &self)
+	{
+		return S_ISREG(self.st_mode);
+	}
+
+	bool StatIsLnk(struct stat &self)
+	{
+		return S_ISLNK(self.st_mode);
+	}
+
+	time_t StatGetATime(struct stat &self)
+	{
+		return self.st_atime;
+	}
+
+	time_t StatGetCTime(struct stat &self)
+	{
+		return self.st_ctime;
+	}
+
+	time_t StatGetMTime(struct stat &self)
+	{
+		return self.st_mtime;
+	}

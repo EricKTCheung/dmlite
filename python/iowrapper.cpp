@@ -26,7 +26,7 @@
 	class IODriverWrapper: public IODriver, public wrapper<IODriver> {
 		public:
 		virtual IOHandler* createIOHandler(const std::string& pfn, int flags, const Extensible& extras) throw (DmException) { return this->get_override("createIOHandler")(pfn, flags, extras); }
-		virtual void doneWriting(const std::string& pfn, const Extensible& params) { this->get_override("doneWriting")(pfn, params); }
+		virtual void doneWriting(const std::string& pfn, const Extensible& params) throw (DmException) { this->get_override("doneWriting")(pfn, params); }
 	};
 
 	// The class IOFactory has pure virtual methods: Create a wrapper class!

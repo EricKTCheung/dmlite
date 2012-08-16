@@ -20,6 +20,7 @@
 		virtual std::vector<Replica> getReplicas(const std::string& path) throw (DmException) { this->get_override("getReplicas")(path); } 
 
 		virtual void symlink(const std::string& oldpath, const std::string& newpath) throw (DmException) { this->get_override("symlink")(oldpath, newpath); } 
+		virtual std::string readLink(const std::string& path) throw (DmException) { this->get_override("readLink")(path); } 
 		virtual void unlink(const std::string& path) throw (DmException) { this->get_override("unlink")(path); } 
 		virtual void create(const std::string& path, mode_t mode) throw (DmException) { this->get_override("create")(path, mode); } 
 
@@ -35,10 +36,10 @@
 		virtual void setComment(const std::string& path, const std::string& comment) throw (DmException) { this->get_override("setComment")(path, comment); } 
 		virtual void setGuid(const std::string& path, const std::string &guid) throw (DmException) { this->get_override("setGuid")(path, guid); } 
 
-		//virtual int openDir(const std::string& path) throw (DmException) { return (int)(this->get_override("openDir")(path)); } 
-		//virtual void closeDir(int dir) throw (DmException) { this->get_override("closeDir")(dir); } 
-		//virtual struct dirent* readDirInt(int dir) throw (DmException) { return this->get_override("readDir")(dir); } 
-		//virtual ExtendedStat* readDirxInt(int dir) throw (DmException) { return this->get_override("readDirx")(dir); } 
+		virtual Directory* openDir(const std::string& path) throw (DmException) { return (this->get_override("openDir")(path)); } 
+		virtual void closeDir(Directory* dir) throw (DmException) { this->get_override("closeDir")(dir); } 
+		virtual struct dirent* readDir(Directory* dir) throw (DmException) { return this->get_override("readDir")(dir); } 
+		virtual ExtendedStat* readDirx(Directory* dir) throw (DmException) { return this->get_override("readDirx")(dir); } 
 		
 
 		virtual void makeDir(const std::string& path, mode_t mode) throw (DmException) { this->get_override("makeDir")(path, mode); } 
@@ -53,4 +54,9 @@
 	class CatalogFactoryWrapper: public CatalogFactory, public wrapper<CatalogFactory> {
 		public:
 		virtual Catalog* createCatalog(PluginManager* pm) throw (DmException) { return this->get_override("createCatalog")(pm); } 
+	};
+
+	
+	// The class Directory has pure virtual methods: Create a wrapper class!
+	class DirectoryWrapper: public Directory, public wrapper<Directory> {
 	};
