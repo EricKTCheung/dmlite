@@ -22,9 +22,8 @@ def main():
 	init_history()
 	
 	# init interpreter
-	interpreter = dmliteinterpreter.DMLiteInterpreter('/etc/dmlite.conf')
-	print interpreter.result[0]
-	if interpreter.result[1]: # initialisation failed
+	interpreter = dmliteinterpreter.DMLiteInterpreter(sys.stdout.write, '/etc/dmlite.conf')
+	if interpreter.failed: # initialisation failed
 		return
 
 	# init the shell auto completion functionality
@@ -33,7 +32,7 @@ def main():
 	readline.parse_and_bind('tab: complete')
 	
 	# dmlite shell loop
-	while not interpreter.result[2]:
+	while not interpreter.exit:
 		
 		# get next command
 		try:
@@ -56,11 +55,9 @@ def main():
 		
 		# execute next command, result = (message, error, exit shell)
 		interpreter.execute(cmdline)
-		if interpreter.result[0] != '':	
-			print interpreter.result[0]
 		
 		# in non-interactive mode an error stops execution
-		if (not sys.__stdin__.isatty()) and interpreter.result[1]:
+		if (not sys.__stdin__.isatty()) and interpreter.failed:
 			break
 	
 	# exit... clear line
@@ -68,8 +65,8 @@ def main():
 
 
 def init_history():
-		# init the shell history functionality
-		# the history is saved in ~/.dmlite_history
+	# init the shell history functionality
+	# the history is saved in ~/.dmlite_history
 	history_file = os.path.join(os.path.expanduser('~'), '.dmlite_history')
 	try:
 	    readline.read_history_file(history_file)
