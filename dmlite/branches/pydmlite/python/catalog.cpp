@@ -16,6 +16,7 @@
 		.def("getReplicas", boost::python::pure_virtual(&Catalog::getReplicas))
 
 		.def("symlink", boost::python::pure_virtual(&Catalog::symlink))
+		.def("readLink", boost::python::pure_virtual(&Catalog::readLink))
 		.def("unlink", boost::python::pure_virtual(&Catalog::unlink))
 		.def("create", boost::python::pure_virtual(&Catalog::create))
 
@@ -34,10 +35,10 @@
 		////////////////////////
 		// there are problems with the void*-parameters / return values of the
 		// "Dir"-methods: write a Directory wrapper class for that!
-		//.def("openDir", &CatalogWrapper::openDir)
-		//.def("closeDir", &CatalogWrapper::closeDir)
-		//.def("readDir", &CatalogWrapper::readDir, return_internal_reference<>())
-		//.def("readDirx", &CatalogWrapper::readDirx, return_internal_reference<>())
+		.def("openDir", &Catalog::openDir, return_internal_reference<>())
+		.def("closeDir", &Catalog::closeDir)
+		.def("readDir", &Catalog::readDir, return_internal_reference<>())
+		.def("readDirx", &Catalog::readDirx, return_internal_reference<>())
 
 		.def("makeDir", &Catalog::makeDir)
 		.def("rename", &Catalog::rename)
@@ -52,3 +53,5 @@
 		.def("createCatalog", static_cast< Catalog*(CatalogFactory::*)(PluginManager*) > (&CatalogFactory::createCatalog), return_value_policy<manage_new_object>())
 		;
 	
+	class_<DirectoryWrapper, boost::noncopyable >("Directory", no_init)
+		;

@@ -11,10 +11,10 @@
 		.def("hasField", &Extensible::hasField)
 		.def("getElement", static_cast< boost::any&(Extensible::*)(const std::string&) > (&Extensible::operator[]), return_value_policy<reference_existing_object>())
 		.def("getElementConst", static_cast< const boost::any&(Extensible::*)(const std::string&) const > (&Extensible::operator[]), return_value_policy<reference_existing_object>())
-		//.def("size", &Extensible::size)
+		.def("size", &Extensible::size)
 		.def("clear", &Extensible::clear)
 
-		//.def("copy", &Extensible::copy, return_value_policy<manage_new_object>())
+		.def("copy", &Extensible::copy, return_value_policy<manage_new_object>())
 		
 		.def("serialize", &Extensible::serialize)
 		.def("deserialize", &Extensible::deserialize)
@@ -45,3 +45,8 @@
 		.def("empty", &boost::any::empty) 
 		.def("extract", anyExtract) 
 		; 
+
+
+	//class_< std::vector< boost::any > >("vector_Any")
+	//	.def(vector_indexing_suite< std::vector< boost::any > >()) // only works with operator== and != in boost::any
+	//	;

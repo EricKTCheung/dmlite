@@ -10,11 +10,15 @@
 		.def_readwrite("name", &Pool::name)
 		.def_readwrite("type", &Pool::type)
 		;
+
+	class_< std::vector< Pool > >("vector_Pool")
+		.def(vector_indexing_suite< std::vector< Pool > >()) // only works with operator== and != in Pool
+		;
 	
 	class_<PoolManagerWrapper, bases< BaseInterface >, boost::noncopyable>("PoolManager", no_init)
 		.def("getPools", boost::python::pure_virtual(&PoolManager::getPools))
 		.def("getPool", boost::python::pure_virtual(&PoolManager::getPool))
-		.def("whereToRead", boost::python::pure_virtual(&PoolManager::whereToRead))
+		.def("whereToRead", boost::python::pure_virtual( static_cast< Location(PoolManager::*)(const std::string&) >  (&PoolManager::whereToRead) ))
 		.def("whereToWrite", boost::python::pure_virtual(&PoolManager::whereToWrite))
 		;
 

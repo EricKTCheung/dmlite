@@ -25,6 +25,30 @@
         .value("kMigrated", ExtendedStat::kMigrated)
         ;
 
+	class_<struct stat>("stat", init<>())
+		.def_readwrite("st_dev", &stat::st_dev)
+		.def_readwrite("st_ino", &stat::st_ino)
+		.def_readwrite("st_mode", &stat::st_mode)
+		.def_readwrite("st_nlink", &stat::st_nlink)
+		.def_readwrite("st_uid", &stat::st_uid)
+		.def_readwrite("st_gid", &stat::st_gid)
+		.def_readwrite("st_rdev", &stat::st_rdev)
+		.def_readwrite("st_size", &stat::st_size)
+		.def_readwrite("st_blksize", &stat::st_blksize)
+		.def_readwrite("st_blocks", &stat::st_blocks)
+		// The following lines produce a weird error Google doesn't know.
+		// Thus, getters have been created instead. 
+		//.def_readonly("st_atime", &stat::st_atime)
+		//.def_readwrite("st_mtime", &stat::st_mtime)
+		//.def_readwrite("st_ctime", &stat::st_ctime)
+		.def("isDir", &StatIsDir)
+		.def("isReg", &StatIsReg)
+		.def("isLnk", &StatIsLnk)
+		.def("getATime", &StatGetATime)
+		.def("getMTime", &StatGetMTime)
+		.def("getCTime", &StatGetCTime)
+		;
+	
 	class_<SymLink, bases< Extensible > >("SymLink", init<>())
 		.def_readwrite("inode", &SymLink::inode)
 		.def_readwrite("link", &SymLink::link)
@@ -46,6 +70,10 @@
 		.def_readwrite("rfn", &Replica::rfn)
 		;
 	
+	class_< std::vector< Replica > >("vector_Replica")
+		.def(vector_indexing_suite< std::vector< Replica > >()) // only works with operator== and != in Replica
+		;
+
     enum_<Replica::ReplicaStatus>("ReplicaStatus")
         .value("kOnline", Replica::kAvailable)
         .value("kBeingPopulated", Replica::kBeingPopulated)
@@ -88,7 +116,7 @@
 		.def("setComment", boost::python::pure_virtual(&INode::setComment))
 		.def("deleteComment", boost::python::pure_virtual(&INode::deleteComment))
 		.def("setGuid", boost::python::pure_virtual(&INode::setGuid))
-		//.def("openDir", boost::python::pure_virtual(&INode::openDir), return_value_policy<manage_new_object>())
+		.def("openDir", boost::python::pure_virtual(&INode::openDir), return_value_policy<manage_new_object>())
 		.def("closeDir", boost::python::pure_virtual(&INode::closeDir))
 		.def("readDirx", boost::python::pure_virtual(&INode::readDirx), return_value_policy<reference_existing_object>())
 		.def("readDir", boost::python::pure_virtual(&INode::readDir), return_value_policy<reference_existing_object>())
