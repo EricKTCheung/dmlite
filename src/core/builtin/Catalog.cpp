@@ -182,8 +182,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     }
     // Up one level
     else if (c == "..") {
-      meta   = this->si_->getINode()->extendedStat(parent);
       parent = meta.parent;
+      meta   = this->si_->getINode()->extendedStat(parent);
     }
     // Regular entry
     else {
