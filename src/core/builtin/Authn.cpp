@@ -89,6 +89,20 @@ GroupInfo BuiltInAuthn::getGroup(const std::string& groupName) throw (DmExceptio
 
 
 
+GroupInfo BuiltInAuthn::getGroup(const std::string& key,
+                                 const boost::any& value) throw (DmException)
+{
+  if (key != "gid")
+    throw DmException(DM_NOT_A_KEY,
+                      "BuiltInAuthn does not support querying by %s",
+                      key.c_str());
+  
+  gid_t gid = Extensible::anyToUnsigned(value);
+  return this->getGroup(gid);
+}
+
+
+
 UserInfo BuiltInAuthn::getUser(const std::string& userName, gid_t* group) throw (DmException)
 {
   struct passwd  pwd;
@@ -117,6 +131,30 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName) throw (DmException)
 {
   gid_t ignore;
   return this->getUser(userName, &ignore);
+}
+
+
+
+UserInfo BuiltInAuthn::getUser(const std::string& key,
+                               const boost::any& value) throw (DmException)
+{
+  if (key != "uid")
+    throw DmException(DM_NOT_A_KEY,
+                      "BuiltInAuthn does not support querying by %s",
+                      key.c_str());
+  
+  uid_t         uid = Extensible::anyToUnsigned(value);
+  struct passwd pwdbuf, *upwd;
+  char          buffer[512];
+  
+  getpwuid_r(uid, &pwdbuf, buffer, sizeof(buffer), &upwd);
+  if (upwd == NULL)
+    throw DmException(DM_NO_SUCH_USER, "User %u not found", uid);
+  
+  UserInfo u;
+  u.name   = upwd->pw_name;
+  u["uid"] = upwd->pw_uid;
+  return u;
 }
 
 
@@ -159,6 +197,41 @@ void BuiltInAuthn::deleteGroup(const std::string&) throw (DmException)
 void BuiltInAuthn::deleteUser(const std::string&) throw (DmException)
 {
   throw DmException(DM_NOT_IMPLEMENTED, "deleteUser not supported in BuiltInAuthn");
+}
+
+
+
+std::vector<GroupInfo> BuiltInAuthn::getGroups(void) throw (DmException)
+{
+  std::vector<GroupInfo> groups;
+  GroupInfo group;
+  struct group* ent;
+  
+  while ((ent = getgrent()) != NULL) {
+    group.clear();
+    group.name   = ent->gr_name;
+    group["gid"] = ent->gr_gid;
+  }
+  
+  return groups;
+}
+
+
+
+std::vector<UserInfo> BuiltInAuthn::getUsers(void) throw (DmException)
+{
+  std::vector<UserInfo> users;
+  UserInfo user;
+  struct passwd* ent;
+  
+  while ((ent = getpwent()) != NULL) {
+    user.clear();
+    user.name = ent->pw_name;
+    user["uid"] = ent->pw_uid;
+    users.push_back(user);
+  }
+  
+  return users;
 }
 
 
