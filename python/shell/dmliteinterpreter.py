@@ -17,9 +17,10 @@ class DMLiteInterpreter:
 	A class taking commands as strings and passing them to DMLite via pydmlite.
 	"""
 	
-	def __init__(self, outputFunction, ConfigFile):
+	def __init__(self, outputFunction, ConfigFile, quietMode = False):
 		self.defaultConfigurationFile = ConfigFile
 		self.write = outputFunction
+		self.quietMode = quietMode
 		
 		self.lastCompleted = 0
 		self.lastCompletedState = 0
@@ -237,7 +238,7 @@ class ShellCommand:
 			elif ptype == 'D':
 				# check if file exists in DMLite
 				try:
-					f = self.interpreter.catalog.extendedStat(given[i], True)
+					f = self.interpreter.catalog.extendedStat(given[i], False)
 				except Exception, e:
 					return self.syntaxError('File "' + given[i] + '" does not exist.')
 				
@@ -322,7 +323,7 @@ class ShellCommand:
 	def syntaxError(self, msg = 'Bad syntax.' ):
 		"""Writes a syntax error message to the output. Returns False."""
 		return self.error(msg + '\nExpected syntax is: ' + self.syntax())
-		
+
 
 class ExitCommand(ShellCommand):
 	"""Exits the DMLite shell."""
@@ -372,7 +373,8 @@ class InitCommand(ShellCommand):
 		# check the existance of the pydmlite library
 		try:
 			self.interpreter.API_VERSION = pydmlite.API_VERSION
-			self.ok('DMLite shell v0.1 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+			if not self.interpreter.quietMode:
+				self.ok('DMLite shell v0.1 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
 		except Exception, e:
 			return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 		
@@ -404,7 +406,10 @@ class InitCommand(ShellCommand):
 		except Exception, e:
 			return self.error('Could not initialise a the file catalog.\n' + e.__str__())
 
-		return self.ok('Using configuration "' + self.interpreter.configurationFile + '" as root.')
+		if not self.interpreter.quietMode:
+			self.ok('Using configuration "' + self.interpreter.configurationFile + '" as root.')
+		else:
+			return self.ok()
 		
 
 class PwdCommand(ShellCommand):
@@ -412,7 +417,7 @@ class PwdCommand(ShellCommand):
 	def _execute(self, given):
 		return self.ok(self.interpreter.catalog.getWorkingDir())
 
-		
+
 class CdCommand(ShellCommand):
 	"""Changes the current directory."""
 	def _init(self):
@@ -544,6 +549,18 @@ class LnCommand(ShellCommand):
 		return self.ok()
 
 
+class ReadLinkCommand(ShellCommand):
+	"""Shows the target of a symlink."""
+	def _init(self):
+		self.parameters = ['Dsymlink']
+		
+	def _execute(self, given):
+		try:
+			return self.ok(self.interpreter.catalog.readLink(given[0]))
+		except Exception, e:
+			return self.error(e.__str__() + given[0])
+
+
 class CommentCommand(ShellCommand):
 	"""Sets and reads file comments.
 	Put comment in quotes. Reset file comment via comment <file> ""."""
@@ -583,6 +600,7 @@ class InfoCommand(ShellCommand):
 				self.ok('File type:  Regular file')
 			elif f.stat.isLnk():
 				self.ok('File type:  Symlink')
+				self.ok('            -> ' + self.interpreter.catalog.readLink(filename))
 			else:
 				self.ok('File type:  Unknown')
 			
@@ -608,7 +626,7 @@ class InfoCommand(ShellCommand):
 			self.ok('Group ID:   ' + str(f.stat.st_gid))
 			self.ok('CSumType:   ' + str(f.csumtype))
 			self.ok('CSumValue:  ' + str(f.csumvalue))
-			self.ok('ATime:      ' + time.ctime(f.stat.getATime()) )
+			self.ok('ATime:      ' + time.ctime(f.stat.getATime()))
 			self.ok('MTime:      ' + time.ctime(f.stat.getMTime()))
 			self.ok('CTime:      ' + time.ctime(f.stat.getCTime()))
 			
@@ -620,7 +638,6 @@ class InfoCommand(ShellCommand):
 			if not replicas:
 				self.ok('Replicas:   None') 
 			else:
-				nr = 0
 				for r in replicas:
 					self.ok('Replica:    ID:     ' + str(r.replicaid) )
 					self.ok('            Server: ' + r.server)
