@@ -72,10 +72,12 @@ int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* poo
 
 int dmlite_location_free(dmlite_context* context, dmlite_location* loc)
 {
-  for (unsigned i = 0; i < loc->nchunks; ++i)
-    delete loc->chunks[i].extra;
-  delete [] loc->chunks;
-  delete    loc;
+  if (loc) {
+    for (unsigned i = 0; i < loc->nchunks; ++i)
+      delete loc->chunks[i].extra;
+    delete [] loc->chunks;
+    delete    loc;
+  }
   return 0;
 }
 
