@@ -10,9 +10,9 @@
 LoadPlugin plugin_fs_io       /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
 LoadPlugin plugin_adapter_dpm /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
 
-# This parameter is used by both plugin_adapter to know
+# This parameter is used by plugin_adapter to know
 # to which host it must connect.
-Host localhost
+DpmHost localhost
 
 # Token generation for Filesystem (and Hadoop)
 TokenPassword change-this
