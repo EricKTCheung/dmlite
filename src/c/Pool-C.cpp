@@ -72,10 +72,12 @@ int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* poo
 
 int dmlite_location_free(dmlite_context* context, dmlite_location* loc)
 {
-  for (unsigned i = 0; i < loc->nchunks; ++i)
-    delete loc->chunks[i].extra;
-  delete [] loc->chunks;
-  delete    loc;
+  if (loc) {
+    for (unsigned i = 0; i < loc->nchunks; ++i)
+      delete loc->chunks[i].extra;
+    delete [] loc->chunks;
+    delete    loc;
+  }
   return 0;
 }
 
@@ -112,20 +114,8 @@ dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replic
   NOT_NULL(replica);
   
   dmlite::Replica replicapp;
-  
-  replicapp.atime      = replica->atime;
-  replicapp.fileid     = replica->fileid;
-  replicapp.ltime      = replica->ltime;
-  replicapp.nbaccesses = replica->nbaccesses;
-  replicapp.ptime      = replica->ptime;
-  replicapp.replicaid  = replica->replicaid;
-  replicapp.rfn        = replica->rfn;
-  replicapp.server     = replica->server;
-  replicapp.status     = static_cast<dmlite::Replica::ReplicaStatus>(replica->status);
-  replicapp.type       = static_cast<dmlite::Replica::ReplicaType>(replica->type);
-  
-  if (replica->extra != NULL)
-    replicapp.copy(replica->extra->extensible);
+  dmlite_creplica_to_cppreplica(replica,
+                                &replicapp);
   
   dmlite::Pool pool = context->stack->getPoolManager()->getPool(replicapp.getString("pool"));
   dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.type);

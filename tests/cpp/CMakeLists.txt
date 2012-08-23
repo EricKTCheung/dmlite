@@ -83,6 +83,9 @@ target_link_libraries (test-split_url dmlite dl)
 add_executable        (test-stat test-stat.cpp)
 target_link_libraries (test-stat test-base dmlite cppunit dl)
 
+add_executable        (test-symlink test-symlink.cpp)
+target_link_libraries (test-symlink test-base dmlite cppunit dl)
+
 add_executable        (test-utime test-utime.cpp)
 target_link_libraries (test-utime test-base dmlite cppunit dl)
 
@@ -130,5 +133,6 @@ ADD_TEST(test-security      ${CMAKE_CURRENT_BINARY_DIR}/test-security ${CONFIG})
 ADD_TEST(test-split_path    ${CMAKE_CURRENT_BINARY_DIR}/test-split_path ${CONFIG})
 ADD_TEST(test-split_url     ${CMAKE_CURRENT_BINARY_DIR}/test-split_url ${CONFIG})
 ADD_TEST(test-stat          ${CMAKE_CURRENT_BINARY_DIR}/test-stat ${CONFIG})
+ADD_TEST(test-symlink       ${CMAKE_CURRENT_BINARY_DIR}/test-symlink ${CONFIG})
 ADD_TEST(test-utime         ${CMAKE_CURRENT_BINARY_DIR}/test-utime ${CONFIG})
 ADD_TEST(test-xattr         ${CMAKE_CURRENT_BINARY_DIR}/test-xattr ${CONFIG})

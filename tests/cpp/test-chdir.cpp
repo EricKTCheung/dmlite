@@ -8,6 +8,7 @@ class TestChDir: public TestBase
 protected:
   struct stat statBuf;
   const static char *FOLDER;
+  const static char *FILE;
 
 public:
 
@@ -21,6 +22,7 @@ public:
     if (this->catalog != 0x00) {
       this->catalog->changeDir(BASE_DIR);
       IGNORE_NOT_EXIST(this->catalog->removeDir(FOLDER));
+      IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
     }
     TestBase::tearDown();
   }
@@ -54,14 +56,34 @@ public:
         throw;
     }
   }
+  
+  void testRemoveRelative()
+  {
+    this->catalog->makeDir(FOLDER, 0755);
+    this->catalog->changeDir(BASE_DIR);
+    this->catalog->removeDir(FOLDER);
+    
+    this->catalog->create(FILE, 0755);
+    this->catalog->unlink(FILE);
+    
+    this->catalog->create(FILE, 0755);
+    this->catalog->unlink(std::string("./") + FILE);
+    
+    this->catalog->create(FILE, 0755);
+    this->catalog->makeDir(FOLDER, 0755);
+    this->catalog->changeDir(FOLDER);
+    this->catalog->unlink(std::string("../") + FILE);
+  }
 
   CPPUNIT_TEST_SUITE(TestChDir);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testRemoveCwd);
+  CPPUNIT_TEST(testRemoveRelative);
   CPPUNIT_TEST_SUITE_END();
 };
 
-const char* TestChDir::FOLDER  = "test-chdir";
+const char* TestChDir::FOLDER = "test-chdir";
+const char* TestChDir::FILE   = "test-chdir.file";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestChDir);
 

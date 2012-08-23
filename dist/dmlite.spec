@@ -16,7 +16,7 @@
 %endif
 
 Name:		dmlite
-Version:	0.4.0
+Version:	0.5.0
 Release:	1%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
@@ -24,8 +24,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_4_0 dmlite-0.4.0
-# tar -czvf dmlite-0.4.0.tar.gz dmlite-0.4.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_5_0 dmlite-0.5.0
+# tar -czvf dmlite-0.5.0.tar.gz dmlite-0.5.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -92,6 +92,13 @@ Requires:       python(abi) = 2.6
 This package provides a python26 wrapper for dmlite.
 %endif #end of python2.6
 
+%package tests
+Summary:	Tests for dmlite
+Group:		Applications/Internet
+
+%description tests
+Tests for dmlite and plug-ins.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -141,6 +148,10 @@ rm -rf %{buildroot}
 %files -n python26-dmlite
 %{python26_sitearch}/pydmlite.so
 %endif
+
+%files tests
+%defattr(-,root,root,-)
+%{_datadir}/tests/*
 
 %changelog
 * Fri Jul 13 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1

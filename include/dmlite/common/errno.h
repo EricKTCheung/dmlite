@@ -56,6 +56,7 @@
 #define DM_NO_USER_MAPPING      0x1101
 #define DM_NO_SUCH_USER         0x1102
 #define DM_NO_SUCH_GROUP        0x1103
+#define DM_NOT_A_KEY            0x1104
 
 #define DM_INVALID_ACL          0x1201
 
