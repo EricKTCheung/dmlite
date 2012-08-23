@@ -124,7 +124,7 @@ int dmlite_errno(dmlite_context* context);
 const char* dmlite_error(dmlite_context* context);
 
 /**
- * @brief         Sets the user ID
+ * @brief         Sets the user security credentials.
  * @param context The DM context.
  * @param cred    The security credentials.
  * @return        0 on success, error code otherwise.

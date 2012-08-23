@@ -33,7 +33,7 @@ public:
         this->authn->deleteGroup(GROUP);
       }
       catch (const dmlite::DmException& e) {
-        if (e.code() != DM_NO_SUCH_USER) throw;
+        if (e.code() != DM_NO_SUCH_GROUP) throw;
       }
     }
     TestBase::tearDown();
@@ -89,11 +89,38 @@ public:
     CPPUNIT_ASSERT_EQUAL(42lu, g.getUnsigned("additional"));
   }
   
+  void testList()
+  {
+    std::vector<dmlite::GroupInfo> groups = this->authn->getGroups();
+    std::vector<dmlite::UserInfo>  users  = this->authn->getUsers();
+    
+    CPPUNIT_ASSERT(groups.size() > 1);
+    CPPUNIT_ASSERT(users.size() > 1);
+  }
+  
+  void testById()
+  {
+    uid_t uid;
+    gid_t gid;
+    
+    dmlite::UserInfo u     = this->authn->newUser(USER);
+    uid = u.getUnsigned("uid");
+    dmlite::UserInfo utest = this->authn->getUser("uid", uid);
+    CPPUNIT_ASSERT_EQUAL(u.name, utest.name);
+    
+    dmlite::GroupInfo g     = this->authn->newGroup(GROUP);
+    gid = g.getUnsigned("gid");
+    dmlite::GroupInfo gtest = this->authn->getGroup("gid", gid);
+    CPPUNIT_ASSERT_EQUAL(g.name, gtest.name);
+  }
+  
   CPPUNIT_TEST_SUITE(TestAuthn);
   CPPUNIT_TEST(testUserAddAndRemove);
   CPPUNIT_TEST(testUserMetadata);
   CPPUNIT_TEST(testGroupAddAndRemove);
   CPPUNIT_TEST(testGroupMetadata);
+  CPPUNIT_TEST(testList);
+  CPPUNIT_TEST(testById);
   CPPUNIT_TEST_SUITE_END();
 };
 

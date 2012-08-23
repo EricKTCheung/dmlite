@@ -100,10 +100,22 @@ namespace dmlite {
     /// @return          The new group.
     virtual GroupInfo newGroup(const std::string& groupName) throw (DmException) = 0;
 
-    /// Get the group id of a specific group name.
+    /// Get a specific group.
     /// @param groupName The group name.
     /// @return          The group.
     virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
+    
+    /// Get a specific group using an alternative key.
+    /// @param key   The key name.
+    /// @param value They value to search for.
+    /// @return      The group.
+    /// @note        The implementation will throw an exception if the field
+    ///              can not be used as key.
+    virtual GroupInfo getGroup(const std::string& key,
+                               const boost::any& value) throw (DmException) = 0;
+    
+    /// Get the group list.
+    virtual std::vector<GroupInfo> getGroups(void) throw (DmException) = 0;
     
     /// Update group info. 'name' identify uniquely the group.
     /// @param group The group metadata to update.
@@ -117,10 +129,22 @@ namespace dmlite {
     /// @return         The new user.
     virtual UserInfo newUser(const std::string& userName) throw (DmException) = 0;
 
-    /// Get the user id of a specific user name.
+    /// Get a specific user.
     /// @param userName The user name.
     /// @return         The user.
     virtual UserInfo getUser(const std::string& userName) throw (DmException) = 0;
+    
+    /// Get a specific user using an alternative key.
+    /// @param key   The key name.
+    /// @param value They value to search for.
+    /// @return      The user.
+    /// @note        The implementation will throw an exception if the field
+    ///              can not be used as key.
+    virtual UserInfo getUser(const std::string& key,
+                             const boost::any& value) throw (DmException) = 0;
+    
+    /// Get the user list.
+    virtual std::vector<UserInfo> getUsers(void) throw (DmException) = 0;
     
     /// Update user info. 'name' identify uniquely the user.
     /// @param user The user metadata to update.

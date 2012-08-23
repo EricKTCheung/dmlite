@@ -77,8 +77,20 @@ public:
 
   void testRelative()
   {
+    struct stat test;
+    
     statBuf = this->catalog->extendedStat(RELATIVE).stat;
     CPPUNIT_ASSERT_EQUAL(MODE, (int)statBuf.st_mode & MODE);
+    
+    // Ending with .
+    statBuf = this->catalog->extendedStat(NESTED).stat;
+    test    = this->catalog->extendedStat(std::string(NESTED) + "/.").stat;
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, test.st_ino);
+    
+    // Ending with ..
+    statBuf = this->catalog->extendedStat(FOLDER).stat;
+    test    = this->catalog->extendedStat(std::string(NESTED) + "/..").stat;
+    CPPUNIT_ASSERT_EQUAL(statBuf.st_ino, test.st_ino);
   }
 
   /// @note Adapter will not pass this since it does not implement inode access
@@ -126,7 +138,7 @@ public:
     CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(NESTED), dmlite::DmException);
   }
 
-
+  
   CPPUNIT_TEST_SUITE(TestStat);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testDifferentUser);
@@ -142,7 +154,7 @@ const int   TestStat::MODE        = 0700;
 const char* TestStat::FOLDER      = "test-stat";
 const char* TestStat::NESTED      = "test-stat/nested";
 const char* TestStat::SYMLINK     = "test-link";
-const char* TestStat::RELATIVE    = "test-stat/../test-stat/nested";
+const char* TestStat::RELATIVE    = "test-stat/../test-stat/./nested";
 const char* TestStat::SYMREL      = "test-link-rel";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestStat);
