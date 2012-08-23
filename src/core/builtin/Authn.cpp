@@ -237,9 +237,9 @@ std::vector<UserInfo> BuiltInAuthn::getUsers(void) throw (DmException)
 
 
 void BuiltInAuthn::getIdMap(const std::string& userName,
-                                  const std::vector<std::string>& groupNames,
-                                  UserInfo* user,
-                                  std::vector<GroupInfo>* groups) throw (DmException)
+                            const std::vector<std::string>& groupNames,
+                            UserInfo* user,
+                            std::vector<GroupInfo>* groups) throw (DmException)
 {
   std::string vo;
   GroupInfo   group;
