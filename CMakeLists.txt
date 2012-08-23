@@ -5,7 +5,7 @@ project (dmlite)
 # Version
 set(dmlite_MAJOR 0)
 set(dmlite_MINOR 4)
-set(dmlite_PATCH 0)
+set(dmlite_PATCH 1)
 
 # Host certificate location
 set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")

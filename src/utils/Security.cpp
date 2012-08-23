@@ -524,8 +524,8 @@ std::string dmlite::voFromRole(const std::string& role)
 // This hack allows to parse only once the file
 static std::string initHostDN(void)
 {
-  X509*       hostX509; 
- BIO*        in = BIO_new(BIO_s_file());
+  X509*       hostX509;
+  BIO*        in = BIO_new(BIO_s_file());
 
   if (BIO_read_filename(in, HOST_CERTIFICATE) < 0) {
     BIO_free_all(in);
@@ -575,7 +575,7 @@ static unsigned base64_encode(const char *input, unsigned length, char* output)
   output[written] = 0;
   
   BIO_free_all(b64);
-  
+   
   return written;
 }
 

@@ -1,5 +1,5 @@
 Name:		dmlite
-Version:	0.4.0
+Version:	0.4.1
 Release:	1%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
