@@ -11,6 +11,8 @@ import inspect
 import sys
 import re
 import time
+import dateutil.parser
+
 
 class DMLiteInterpreter:
 	"""
@@ -94,7 +96,7 @@ class DMLiteInterpreter:
 					coptions = c.completer(text)
 					self.completionOptions.extend(coptions)
 				except Exception, e: # look out for errors!
-					print e
+					print e.__str__()
 
 		# return the correct option
 		try:
@@ -191,6 +193,7 @@ class ShellCommand:
 		#	f local file/directory
 		#	d DMLite file/directory
 		#   c DMLite shell command
+		#   o one of the options in the format ofieldname:option1:option2:option3
 		#	? other, no checks done
 		# Note: use uppercase letter for a check if file/command/.. exists
 		self.parameters = []
@@ -213,6 +216,8 @@ class ShellCommand:
 		"""Return the human readable format of a parameter"""
 		if parameter.startswith('*'):
 			return '[ ' + self.prettyParameter(parameter[1:]) + ' ]'
+		if parameter.lower().startswith('o'):
+			parameter = parameter.split(':')[0]
 		return '<' + parameter[1:] + '>'
 	
 	def checkSyntax(self, given):
@@ -241,6 +246,35 @@ class ShellCommand:
 					f = self.interpreter.catalog.extendedStat(given[i], False)
 				except Exception, e:
 					return self.syntaxError('File "' + given[i] + '" does not exist.')
+			elif ptype == 't' or ptype == 'T':
+				# check if a valid date/time is given
+				try:
+					if given[i].lower() == 'now':
+						given[i] = time.localtime()
+					else:
+						given[i] = dateutil.parser.parse(given[i]).timetuple()
+					time.mktime(given[i])
+				except Exception, e:
+					return self.syntaxError('Date/time expression expected.')
+			elif ptype == 'G':
+				# check if a valid group is given
+				try:
+					if given[i] not in (g.name for g in self.interpreter.authn.getGroups()):
+						return self.syntaxError('Group name expected.')
+				except Exception, e:
+					pass
+			elif ptype == 'U':
+				# check if a valid user name is given
+				try:
+					if given[i] not in (g.name for g in self.interpreter.authn.getUsers()):
+						return self.syntaxError('User name expected.')
+				except Exception, e:
+					pass
+			elif ptype == 'O':
+				# list of possible options
+				pOptions = self.parameters[i].split(':')[1:]
+				if given[i] not in pOptions:
+					return self.syntaxError('Expected one of the following options: ' + ', '.join(pOptions))
 				
 		return self.ok()
 	
@@ -259,7 +293,11 @@ class ShellCommand:
 		
 	def completer(self, start):
 		"""Return a list of possible tab-completions for the string start."""
-
+		
+		# This has known issues. In complicated scenarios with " and spaces in
+		# the commandline, this might fail, due to the complicated readline
+		# behaviour. Also, it does only support completion at the end.
+		
 		if self.name.startswith(start):
 			# complete the command
 			if len(self.parameters) == 0:
@@ -270,31 +308,60 @@ class ShellCommand:
 		elif start.startswith(self.name):
 			# complete parameters, analyse the already given parameters
 			try:
-				given = shlex.split(start+'x', True)
-			except Exception, e:
-				return [] # parsing failed
-
+				given = shlex.split(start + 'x', True) # add an x...
+				quoted = False
+			except Exception, e: # parsing failed
+				# maybe because the user used an opening ' or " for the
+				# current parameter?
+				try:
+					given = shlex.split(start+'"', True)
+					quoted = '"'
+				except Exception, e:
+					try:
+						given = shlex.split(start+"'", True)
+						quoted = "'"
+					except Exception, e:
+						return [] # all parsing attempts failed
+			
 			if len(given)-1 > len(self.parameters):
 				# too many parameters given already
 				return []
 			else:
 				# extract current parameter type
 				ptype = self.parameters[len(given)-2]
-				lastgiven = given[len(given)-1][:-1]
-				if ptype.startswith('*'):
+				if ptype.startswith('*'): # only plain parameter type in lower-case
 					ptype = ptype[1:2].lower()
 				else:
 					ptype = ptype[0:1].lower()
 				
+				# and the currently given parameter
+				if not quoted:
+					lastgiven = given[len(given)-1][:-1] # remove 'x' at the end
+				else:
+					lastgiven = given[len(given)-1]
+				
+				# if the parameter contained slashes, we only need to return
+				# the part after the last slash, because it is recognized as
+				# a delimiter
+				lastslashcut = lastgiven.rfind('/') + 1
+				
+				# workaround for readline bug: escaped whitespaces are also
+				# recognized used as delimiters. Best we can do is display
+				# only the part after the escaped whitespace...
+				lastspacecut = lastgiven.rfind(' ') + 1
+				if lastspacecut > lastslashcut:
+					lastslashcut = lastspacecut
+				
+				
 				if ptype == 'c': # command
-					return list(c.name for c in self.interpreter.commands if c.name.startswith(lastgiven))
+					l = list(c.name for c in self.interpreter.commands if c.name.startswith(lastgiven))
 				elif ptype == 'f': # file or folder
-					if lastgiven == '':
-						lastgiven = './'
+					if not lastgiven.startswith('/'):
+						lastgiven = './' + lastgiven
 					gfolder, gfilestart = os.path.split(lastgiven)
 					groot, gdirs, gfiles = os.walk(gfolder).next()
 					gfiles = gfiles + list((d + '/') for d in gdirs)
-					return list(f for f in gfiles if f.startswith(gfilestart))
+					l = list(f for f in gfiles if f.startswith(gfilestart))
 				elif ptype == 'd': # dmlite file or folder
 					gfolder, lastgiven = os.path.split(lastgiven)
 					if gfolder == '':
@@ -303,10 +370,29 @@ class ShellCommand:
 						gfiles = self.interpreter.listDirectory(gfolder)
 					if gfiles == -1: # listing failed
 						return []
-					l = list(f['name'] + ('','/')[f['isDir']] for f in gfiles if f['name'].startswith(lastgiven))
-					return l
+					l = list( (os.path.join(gfolder, f['name']) + ('','/')[f['isDir']])[lastslashcut:] for f in gfiles if f['name'].startswith(lastgiven))
+				elif ptype == 'g': # dmlite group
+					l = list(g.name[lastslashcut:] for g in self.interpreter.authn.getGroups() if g.name.startswith(lastgiven))
+				elif ptype == 'u': # dmlite user
+					l = list(u.name[lastslashcut:] for u in self.interpreter.authn.getUsers() if u.name.startswith(lastgiven))
+				elif ptype == 'o': # one of the given options
+					pOptions = self.parameters[len(given)-2].split(':')[1:]
+					l = list(option for option in pOptions if option.startswith(lastgiven))
 				else:
 					return []
+				
+				if not quoted:
+					exp = re.compile('([\\"\' ])') # we still have to escape the characters \,",' and space
+				else:
+					exp = re.compile('([\\"\'])') # do not escape space in a quoted string
+				l = list(exp.sub(r'\\\1', option) for option in l)
+				
+				if quoted and len(l) == 1:
+					if lastslashcut > 0:
+						return [l[0] + quoted] # close a quotation if no other possibility
+					else:
+						return [quoted + l[0] + quoted] # remeber to open and close quote
+				return l
 		else:
 			# no auto completions from this command
 			return []
@@ -405,6 +491,11 @@ class InitCommand(ShellCommand):
 			self.interpreter.catalog.changeDir('/')
 		except Exception, e:
 			return self.error('Could not initialise a the file catalog.\n' + e.__str__())
+
+		try:
+			self.interpreter.authn = self.interpreter.stackInstance.getAuthn()
+		except Exception, e:
+			return self.error('Could not initialise the authentication interface.\n' + e.__str__())
 
 		if not self.interpreter.quietMode:
 			self.ok('Using configuration "' + self.interpreter.configurationFile + '" as root.')
@@ -562,7 +653,7 @@ class ReadLinkCommand(ShellCommand):
 
 
 class CommentCommand(ShellCommand):
-	"""Sets and reads file comments.
+	"""Sets or reads file comments.
 	Put comment in quotes. Reset file comment via comment <file> ""."""
 	def _init(self):
 		self.parameters = ['Dfile', '*?comment']
@@ -645,6 +736,11 @@ class InfoCommand(ShellCommand):
 					self.ok('            Status: ' + str(r.status))
 					self.ok('            Type:   ' + str(r.type))
 			
+			if not f.acl:
+				self.ok('ACL:        Empty')
+			else:
+				self.ok('ACL:        ' + f.acl.serialize())
+			
 			return self.ok(' ')
 			
 		except Exception, e:
@@ -686,3 +782,284 @@ class ChModCommand(ShellCommand):
 		except Exception, e:
 			return self.error(e.__str__() + given[0])
 		return self.ok()
+
+
+class VersionCommand(ShellCommand):
+	"""Prints the DMLite API Version."""
+	def _execute(self, given):
+		return self.ok(str(self.interpreter.API_VERSION))
+
+
+class ChecksumCommand(ShellCommand):
+	"""Sets or reads file checksums."""
+	def _init(self):
+		self.parameters = ['Dfile', '*?checksum', '*?checksumtype']
+		
+	def _execute(self, given):
+		if len(given) == 1:
+			try:
+				f = self.interpreter.catalog.extendedStat(given[0], False)
+				return self.ok(str(f.csumtype) + ': ' + str(f.csumvalue))
+			except Exception, e:
+				return self.error(e.__str__() + given[0])
+		else:
+			given.append('')
+			try:
+				self.interpreter.catalog.setChecksum(given[0], given[1], given[2])
+				return self.ok()
+			except Exception, e:
+				return self.error(e.__str__() + given[0] + ' / ' + given[1] + ' / ' + given[2])
+
+
+class UtimeCommand(ShellCommand):
+	"""Sets the access and modification time of a file.
+	If no modification time is given, the access time will be used."""
+	def _init(self):
+		self.parameters = ['Dfile', 'taccess-time', '*tmodification-time']
+		
+	def _execute(self, given):
+		given.append(given[1]) # if mod time not given, use access time
+		tb = pydmlite.utimbuf()
+		tb.actime = int(time.mktime(given[1]))
+		tb.modtime = int(time.mktime(given[2]))
+		try:
+			self.interpreter.catalog.utime(given[0], tb)
+			return self.ok()
+		except Exception, e:
+			return self.error(e.__str__() + given[0] + ' / ' + given[1] + ' / ' + given[2])
+
+
+class ACLCommand(ShellCommand):
+	"""Sets or reads the ACL of a file."""
+	def _init(self):
+		self.parameters = ['Dfile', '*?ACL']
+		
+	def _execute(self, given):
+		if len(given) == 1:
+			try:
+				f = self.interpreter.catalog.extendedStat(given[0], False)
+				return self.ok(f.acl.serialize())
+			except Exception, e:
+				return self.error(e.__str__() + given[0])
+		else:
+			try:
+				myacl = pydmlite.Acl(given[1])
+				self.interpreter.catalog.setAcl(given[0], myacl)
+				return self.ok()
+			except Exception, e:
+				return self.error(e.__str__() + given[0] + ' / ' + given[1])
+
+
+class AddReplicaCommand(ShellCommand):
+	"""Adds a new replica for a file."""
+	def _init(self):
+		self.parameters = ['Dfile', 'Ostatus:available:beingPopulated:toBeDeleted', 'otype:volatile:permanent', '?rfn', '*?server']
+		
+	def _execute(self, given):
+		if given[1].lower() in ('a', 'available', '-'):
+			rstatus = pydmlite.ReplicaStatus.kAvailable
+		elif given[1].lower() in ('p', 'beingpopulated'):
+			rstatus = pydmlite.ReplicaStatus.kBeingPopulated
+		elif given[1].lower() in ('d', 'tobedeleted'):
+			rstatus = pydmlite.ReplicaStatus.kToBeDeleted
+		else:
+			return self.syntaxError('This is not a valid replica status.')
+		
+		if given[2].lower() in ('v', 'volatile'):
+			rtype = pydmlite.ReplicaType.kVolatile
+		elif given[2].lower() in ('p', 'permanent'):
+			rtype = pydmlite.ReplicaType.kPermanent
+		else:
+			return self.syntaxError('This is not a valid replica type.')
+
+		try:
+			f = self.interpreter.catalog.extendedStat(given[0], False)
+		except Exception, e:
+			return self.error(e.__str__() + given[0])
+		
+		myreplica = pydmlite.Replica()
+		myreplica.fileid = f.stat.st_ino
+		myreplica.status = rstatus
+		myreplica.type = rtype
+		myreplica.rfn = given[3]
+		if len(given) == 5:
+			myreplica.server = given[4]
+		elif given[3].find(':/') != -1:
+			myreplica.server = given[3].split(':/')[0]
+		else:
+			return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
+		
+		try:
+			self.interpreter.catalog.addReplica(myreplica)
+			return self.ok()
+		except Exception, e:
+			return self.error(e.__str__() + given[0])
+
+
+class RmReplicaCommand(ShellCommand):
+	"""Deletes a replica for a file."""
+	def _init(self):
+		self.parameters = ['Dfile', '?replica-id | rfn']
+		
+	def _execute(self, given):
+		try:
+			self.interpreter.catalog.getReplica
+			replicas = self.interpreter.catalog.getReplicas(given[0])
+
+			for r in replicas:
+				if given[1] in (str(r.replicaid), r.rfn):
+					# found specified replica. delete it!
+					self.interpreter.catalog.deleteReplica(r)
+					break
+			else:
+				return self.error('The specified replica was not found.')
+			return self.ok()
+
+		except Exception, e:
+			return self.error(e.__str__() + given[0])
+
+
+class ChReplicaCommand(ShellCommand):
+	"""Updates the replica of a file."""
+	def _init(self):
+		self.parameters = ['Dfile', '?replica-id | rfn', 'Onew-status:available:beingPopulated:toBeDeleted', 'onew-type:volatile:permanent', '?new-rfn', '*?new-server']
+		
+	def _execute(self, given):
+		try:
+			self.interpreter.catalog.getReplica
+			replicas = self.interpreter.catalog.getReplicas(given[0])
+
+			for r in replicas:
+				if given[1] in (str(r.replicaid), r.rfn):
+					# found specified replica. update it!
+					
+					if given[2].lower() in ('a', 'available', '-'):
+						rstatus = pydmlite.ReplicaStatus.kAvailable
+					elif given[2].lower() in ('p', 'beingpopulated'):
+						rstatus = pydmlite.ReplicaStatus.kBeingPopulated
+					elif given[2].lower() in ('d', 'tobedeleted'):
+						rstatus = pydmlite.ReplicaStatus.kToBeDeleted
+					else:
+						return self.syntaxError('This is not a valid replica status.')
+					
+					if given[3].lower() in ('v', 'volatile'):
+						rtype = pydmlite.ReplicaType.kVolatile
+					elif given[3].lower() in ('p', 'permanent'):
+						rtype = pydmlite.ReplicaType.kPermanent
+					else:
+						return self.syntaxError('This is not a valid replica type.')
+
+					r.status = rstatus
+					r.type = rtype
+					r.rfn = given[4]
+					if len(given) == 6:
+						r.server = given[5]
+					elif given[4].find(':/') != -1:
+						r.server = given[4].split(':/')[0]
+					else:
+						return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
+					
+					self.interpreter.catalog.updateReplica(r)
+					break
+			else:
+				return self.error('The specified replica was not found.')
+			return self.ok()
+
+		except Exception, e:
+			return self.error(e.__str__() + ' ' + given[0])
+
+
+class SetGuidCommand(ShellCommand):
+	"""Sets the GUID of a file."""
+	def _init(self):
+		self.parameters = ['Dfile', '?GUID']
+		
+	def _execute(self, given):
+		try:
+			self.interpreter.catalog.setGuid(given[0], given[1])
+			return self.ok()
+		except Exception, e:
+			return self.error(e.__str__())
+
+
+class GroupInfoCommand(ShellCommand):
+	"""Lists all groups or information about one group."""
+	def _init(self):
+		self.parameters = ['*Ggroup']
+	
+	def _execute(self, given):
+		if given:
+			try:
+				g = self.interpreter.authn.getGroup(given[0])
+				self.ok('Group: ' + g.name)
+				self.ok(g.serialize())
+			except Exception, e:
+				return self.error(e.__str__() + ' ' + given[0])
+		else:
+			try:
+				groups = self.interpreter.authn.getGroups()
+				for g in groups:
+					gid = '-'
+					info = ''
+					try:
+						gid = g.getString('gid')
+					except Exception, e:
+						pass
+
+					try:
+						if g.getBool('banned'):
+							info = ' (BANNED)'
+					except Exception, e:
+						pass
+					
+					self.ok( ' '*(8-len(gid)) + gid + '  ' + str(g.name) + info)
+					
+				self.ok(' ')
+				
+			except Exception, e:
+				return self.error(e.__str__())
+
+
+class UserInfoCommand(ShellCommand):
+	"""Lists all users or information about one user."""
+	def _init(self):
+		self.parameters = ['*Uuser']
+	
+	def _execute(self, given):
+		if given:
+			try:
+				u = self.interpreter.authn.getUser(given[0])
+				self.ok('User: ' + u.name)
+				self.ok(u.serialize())
+			except Exception, e:
+				return self.error(e.__str__() + ' ' + given[0])
+		else:
+			try:
+				users = self.interpreter.authn.getUsers()
+				for u in users:
+					uid = '-'
+					info = ''
+					try:
+						uid = u.getString('uid')
+					except Exception, e:
+						pass
+
+					try:
+						if u.getString('ca'):
+							info = ' (' + u.getString('ca') + ')'
+					except Exception, e:
+						pass
+
+					try:
+						if u.getBool('banned'):
+							info = info + ' (BANNED)'
+					except Exception, e:
+						pass
+					
+					self.ok( ' '*(8-len(uid)) + uid + '  ' + str(u.name) + info)
+					
+				self.ok(' ')
+				
+			except Exception, e:
+				return self.error(e.__str__())
+

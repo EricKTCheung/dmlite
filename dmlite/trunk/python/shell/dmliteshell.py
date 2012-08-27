@@ -39,7 +39,20 @@ def main():
 		interpreter.execute(options.command)
 
 	elif options.scriptfile:
-		print 'executing script: ' + options.scriptfile
+		try:
+			for line in open(options.scriptfile, 'r'):
+				line = line.strip()
+				interpreter.execute(line)
+				
+				# in non-interactive mode an error stops execution
+				if interpreter.failed:
+					break
+			
+		except Exception, e:
+			interpreter.error('Error while trying to execute file "' + options.scriptfile + '":\n' + e.args[1])
+		
+		# exit... clear line
+		print
 	
 	else:
 		# init dmlite shell
@@ -72,15 +85,15 @@ def main():
 					print
 					continue
 			
-			# execute next command, result = (message, error, exit shell)
+			# execute next command
 			interpreter.execute(cmdline)
 			
 			# in non-interactive mode an error stops execution
 			if (not sys.__stdin__.isatty()) and interpreter.failed:
 				break
 	
-	# exit... clear line
-	print
+		# exit... clear line
+		print
 
 
 def init_history():

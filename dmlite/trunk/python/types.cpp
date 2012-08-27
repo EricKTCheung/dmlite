@@ -62,6 +62,11 @@
 		.def("validate", &Acl::validate)
 		;
 
+	class_<utimbuf>("utimbuf", init<>())
+		.def_readwrite("actime", &utimbuf::actime)
+		.def_readwrite("modtime", &utimbuf::modtime)
+		;
+	
 	class_< std::vector< std::string > >("vector_String")
 		.def(vector_indexing_suite< std::vector< std::string > >()) // only works with operator== and != in String
 		;

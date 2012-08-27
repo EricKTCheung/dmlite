@@ -12,10 +12,14 @@
 			return boost::python::object(); // None 
 		else if (self.type() == typeid(int)) 
 			return boost::python::object(boost::any_cast<int>(self)); 
+		else if (self.type() == typeid(unsigned int)) 
+			return boost::python::object(boost::any_cast<unsigned int>(self)); 
 		else if (self.type() == typeid(bool)) 
 			return boost::python::object(boost::any_cast<bool>(self)); 
 		else if (self.type() == typeid(long)) 
 			return boost::python::object(boost::any_cast<long>(self)); 
+		else if (self.type() == typeid(unsigned long)) 
+			return boost::python::object(boost::any_cast<unsigned long>(self)); 
 		else if (self.type() == typeid(float))
 			return boost::python::object(boost::any_cast<float>(self)); 
 		else if (self.type() == typeid(double))
@@ -121,3 +125,4 @@
 	{
 		return self.st_mtime;
 	}
+	
