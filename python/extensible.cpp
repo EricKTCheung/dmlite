@@ -43,7 +43,7 @@
 		.def("setDouble", &anySetDouble)
 		.def("setString", &anySetString)
 		.def("empty", &boost::any::empty) 
-		.def("extract", anyExtract) 
+		.def("extract", &anyExtract) 
 		; 
 
 

@@ -75,7 +75,7 @@
 		;
 
     enum_<Replica::ReplicaStatus>("ReplicaStatus")
-        .value("kOnline", Replica::kAvailable)
+        .value("kAvailable", Replica::kAvailable)
         .value("kBeingPopulated", Replica::kBeingPopulated)
         .value("kToBeDeleted", Replica::kToBeDeleted)
         ;
