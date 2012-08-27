@@ -1,0 +1,53 @@
+/*
+ * authn.cpp
+ *
+ * Python bindings for authn.h from the c++ dmlite library
+ * via Boost:Python.
+ * This file is included by pydmlite.cpp.
+ */
+
+	class_<SecurityCredentials, bases< Extensible > >("SecurityCredentials", init<>())
+		.def_readwrite("mech", &SecurityCredentials::mech)
+		.def_readwrite("clientName", &SecurityCredentials::clientName)
+		.def_readwrite("remoteAddress", &SecurityCredentials::remoteAddress)
+		.def_readwrite("sessionId", &SecurityCredentials::sessionId)
+		.def_readwrite("fqans", &SecurityCredentials::fqans)
+		;
+
+	class_<UserInfo, bases< Extensible > >("UserInfo", init<>())
+		.def_readwrite("name", &UserInfo::name)
+		;
+
+	class_<GroupInfo, bases< Extensible > >("GroupInfo", init<>())
+		.def_readwrite("name", &GroupInfo::name)
+		;
+
+	class_<SecurityContext>("SecurityContext", init<>())
+		.def(init<const SecurityCredentials&, const UserInfo&, std::vector<GroupInfo>& >())
+		.def_readwrite("credentials", &SecurityContext::credentials)
+		.def_readwrite("user", &SecurityContext::user)
+		.def_readwrite("groups", &SecurityContext::groups)
+		;
+
+	class_<AuthnWrapper, boost::noncopyable>("Authn", no_init)
+		.def("getImplId", pure_virtual(&Authn::getImplId))
+
+		.def("createSecurityContext", pure_virtual(&Authn::createSecurityContext), return_internal_reference<>())
+
+		.def("newGroup", pure_virtual(&Authn::newGroup))
+		.def("getGroup", pure_virtual(&Authn::getGroup))
+
+		.def("newUser", pure_virtual(&Authn::newUser))
+		.def("getUser", pure_virtual(&Authn::getUser))
+		
+		.def("getIdMap", pure_virtual(&Authn::getIdMap))
+		;
+		
+	class_<AuthnFactoryWrapper, boost::noncopyable>("AuthnFactory", no_init)
+		.def("createAuthn", pure_virtual(&AuthnFactoryWrapper::createAuthn), return_value_policy<manage_new_object>())
+		;
+	
+	
+	class_< std::vector< GroupInfo > >("vector_GroupInfo")
+		.def(vector_indexing_suite< std::vector< GroupInfo > >()) // only works with operator== and != in GroupInfo
+		;
