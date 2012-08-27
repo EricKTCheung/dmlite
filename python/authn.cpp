@@ -35,12 +35,17 @@
 		.def("createSecurityContext", pure_virtual(&Authn::createSecurityContext), return_internal_reference<>())
 
 		.def("newGroup", pure_virtual(&Authn::newGroup))
-		.def("getGroup", pure_virtual(&Authn::getGroup))
+		.def("getGroup", pure_virtual( static_cast< GroupInfo(Authn::*)(const std::string&) >  (&Authn::getGroup) ))
+		.def("getGroup", pure_virtual( static_cast< GroupInfo(Authn::*)(const std::string&, const boost::any&) >  (&Authn::getGroup) ))
 
 		.def("newUser", pure_virtual(&Authn::newUser))
-		.def("getUser", pure_virtual(&Authn::getUser))
+		.def("getUser", pure_virtual( static_cast< UserInfo(Authn::*)(const std::string&) >  (&Authn::getUser) ))
+		.def("getUser", pure_virtual( static_cast< UserInfo(Authn::*)(const std::string&, const boost::any&) >  (&Authn::getUser) ))
 		
 		.def("getIdMap", pure_virtual(&Authn::getIdMap))
+
+		.def("getGroups", pure_virtual(&Authn::getGroups))
+		.def("getUsers", pure_virtual(&Authn::getUsers))
 		;
 		
 	class_<AuthnFactoryWrapper, boost::noncopyable>("AuthnFactory", no_init)
@@ -50,4 +55,8 @@
 	
 	class_< std::vector< GroupInfo > >("vector_GroupInfo")
 		.def(vector_indexing_suite< std::vector< GroupInfo > >()) // only works with operator== and != in GroupInfo
+		;
+	
+	class_< std::vector< UserInfo > >("vector_UserInfo")
+		.def(vector_indexing_suite< std::vector< UserInfo > >()) // only works with operator== and != in UserInfo
 		;

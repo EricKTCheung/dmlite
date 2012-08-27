@@ -16,10 +16,15 @@
 
 		virtual GroupInfo newGroup(const std::string& groupName) throw (DmException) { return this->get_override("newGroup")(groupName); } 
 		virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) { return this->get_override("getGroup")(groupName); } 
+		virtual GroupInfo getGroup(const std::string& key, const boost::any& value) throw (DmException) { return this->get_override("getGroup")(key, value); } 
 
 		virtual UserInfo newUser(const std::string& userName) throw (DmException) { return this->get_override("newUser")(userName); } 
 		virtual UserInfo getUser(const std::string& userName) throw (DmException) { return this->get_override("getUser")(userName); } 
-
+		virtual UserInfo getUser(const std::string& key, const boost::any& value) throw (DmException) { return this->get_override("getUser")(key, value); } 
+		
+		virtual std::vector<GroupInfo> getGroups(void) throw (DmException) { return this->get_override("getGroups")(); }
+		virtual std::vector<UserInfo>  getUsers (void) throw (DmException) { return this->get_override("getUsers")(); }
+		
 		virtual void getIdMap(const std::string& userName,
 	                          const std::vector<std::string>& groupNames,
 	                          UserInfo* user,
