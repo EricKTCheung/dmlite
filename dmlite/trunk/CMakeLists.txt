@@ -51,7 +51,7 @@ add_definitions (-D_REENTRANT)
 
 # Subdirectories
 add_subdirectory (etc)
-add_subdirectory (python)
+#add_subdirectory (python)
 add_subdirectory (src)
 add_subdirectory (tests)
 
