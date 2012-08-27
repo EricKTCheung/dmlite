@@ -713,8 +713,24 @@ class InfoCommand(ShellCommand):
 			self.ok('Ino:        ' + str(f.stat.st_ino))
 			self.ok('Mode:       ' + oct(f.stat.st_mode))
 			self.ok('# of Links: ' + str(f.stat.st_nlink))
-			self.ok('User ID:    ' + str(f.stat.st_uid))
-			self.ok('Group ID:   ' + str(f.stat.st_gid))
+			
+			try:
+				uid = pydmlite.boost_any()
+				uid.setUnsigned(f.stat.st_uid)
+				u = self.interpreter.authn.getUser('uid', uid)
+				uname = u.name
+			except Exception, e:
+				uname = '???'
+			self.ok('User ID:    ' + str(f.stat.st_uid) + ' (' + uname + ')')
+
+			try:
+				gid = pydmlite.boost_any()
+				gid.setUnsigned(f.stat.st_gid)
+				g = self.interpreter.authn.getGroup('gid', gid)
+				gname = g.name
+			except Exception, e:
+				gname = '???'
+			self.ok('Group ID:   ' + str(f.stat.st_gid) + ' (' + gname + ')')
 			self.ok('CSumType:   ' + str(f.csumtype))
 			self.ok('CSumValue:  ' + str(f.csumvalue))
 			self.ok('ATime:      ' + time.ctime(f.stat.getATime()))
@@ -1063,3 +1079,32 @@ class UserInfoCommand(ShellCommand):
 			except Exception, e:
 				return self.error(e.__str__())
 
+
+class ChOwnCommand(ShellCommand):
+	"""Changes the owner of a file."""
+	def _init(self):
+		self.parameters = ['Dfile', 'Uuser']
+	
+	def _execute(self, given):
+		try:
+			f = self.interpreter.catalog.extendedStat(given[0], False)
+			gid = f.stat.st_gid
+			uid = self.interpreter.authn.getUser(given[1]).getUnsigned('uid')
+			self.interpreter.catalog.setOwner(given[0], uid, gid, False)
+		except Exception, e:
+			return self.error(e.__str__())
+
+
+class ChGrpCommand(ShellCommand):
+	"""Changes the group of a file."""
+	def _init(self):
+		self.parameters = ['Dfile', 'Ggroup']
+	
+	def _execute(self, given):
+		try:
+			f = self.interpreter.catalog.extendedStat(given[0], False)
+			uid = f.stat.st_uid
+			gid = self.interpreter.authn.getGroup(given[1]).getUnsigned('gid')
+			self.interpreter.catalog.setOwner(given[0], uid, gid, False)
+		except Exception, e:
+			return self.error(e.__str__())

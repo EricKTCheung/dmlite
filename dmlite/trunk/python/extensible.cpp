@@ -30,6 +30,7 @@
 		.def("setBool", &ExtensibleSetBool)
 		.def("setLong", &ExtensibleSetLong)
 		.def("setUnsigned", &ExtensibleSetUnsigned)
+		.def("setInt", &ExtensibleSetInt)
 		.def("setDouble", &ExtensibleSetDouble)
 		.def("setString", &ExtensibleSetString)
 		;
@@ -38,6 +39,7 @@
 	class_<boost::any>("boost_any", init<>()) 
 		.def("setBool", &anySetBool)
 		.def("setLong", &anySetLong)
+		.def("setUnsigned", &anySetUnsigned)
 		.def("setInt", &anySetInt)
 		.def("setFloat", &anySetFloat)
 		.def("setDouble", &anySetDouble)

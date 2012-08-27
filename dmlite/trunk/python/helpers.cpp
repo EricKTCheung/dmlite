@@ -50,6 +50,11 @@
 		self = value;
 	}
 
+	void anySetUnsigned(boost::any &self, const unsigned value)
+	{
+		self = value;
+	}
+
 	void anySetInt(boost::any &self, const int value)
 	{
 		self = value;
@@ -81,6 +86,11 @@
 	}
 
 	void ExtensibleSetUnsigned(Extensible &self, const std::string key, const unsigned value)
+	{
+		self[key] = value;
+	}
+
+	void ExtensibleSetInt(Extensible &self, const std::string key, const int value)
 	{
 		self[key] = value;
 	}
