@@ -38,7 +38,7 @@
 		virtual void setSize(ino_t inode, size_t size) throw(DmException) { this->get_override("setSize")(inode, size); } 
 
 		virtual void setChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw(DmException) { this->get_override("setChecksum")(inode, csumtype, csumvalue); } 
-		virtual std::string getComment(ino_t inode) throw(DmException) { this->get_override("getComment")(inode); } 
+		virtual std::string getComment(ino_t inode) throw(DmException) { return this->get_override("getComment")(inode); } 
 		virtual void setComment(ino_t inode, const std::string& comment) throw(DmException) { this->get_override("setComment")(inode, comment); } 
 		virtual void deleteComment(ino_t inode) throw(DmException) { this->get_override("deleteComment")(inode); }
  

@@ -17,10 +17,10 @@
 		virtual ExtendedStat extendedStat(const std::string& path, bool followSym = true) throw (DmException) { return this->get_override("extendedStat")(path, followSym); } 
 		virtual void addReplica(const Replica& replica) throw (DmException) { this->get_override("addReplica")(replica); } 
 		virtual void deleteReplica(const Replica& replica) throw (DmException) { this->get_override("deleteReplica")(replica); } 
-		virtual std::vector<Replica> getReplicas(const std::string& path) throw (DmException) { this->get_override("getReplicas")(path); } 
+		virtual std::vector<Replica> getReplicas(const std::string& path) throw (DmException) { return this->get_override("getReplicas")(path); } 
 
 		virtual void symlink(const std::string& oldpath, const std::string& newpath) throw (DmException) { this->get_override("symlink")(oldpath, newpath); } 
-		virtual std::string readLink(const std::string& path) throw (DmException) { this->get_override("readLink")(path); } 
+		virtual std::string readLink(const std::string& path) throw (DmException) { return this->get_override("readLink")(path); } 
 		virtual void unlink(const std::string& path) throw (DmException) { this->get_override("unlink")(path); } 
 		virtual void create(const std::string& path, mode_t mode) throw (DmException) { this->get_override("create")(path, mode); } 
 
