@@ -6,7 +6,8 @@
  * This file is included by pydmlite.cpp.
  */
 
-	class_<DmException>("DmException", init<>())
+	class_<DmException> DmExceptionClass("DmException", init<>());
+	DmExceptionClass
 		.def(init<int>())
 		.def(init<int, const std::string&>())
 		//.def(init<int, const char*, va_list>())
