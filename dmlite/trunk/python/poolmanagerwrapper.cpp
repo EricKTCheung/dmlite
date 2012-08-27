@@ -11,8 +11,8 @@
 		public:
 		virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException) { return this->get_override("getPools")(availability); } 
 		virtual Pool getPool(const std::string& poolname) throw (DmException) { return this->get_override("getPool")(poolname); } 
-		virtual Location whereToRead(const std::string& path) throw (DmException) { this->get_override("whereToRead")(path); } 
-		virtual Location whereToWrite(const std::string& path) throw (DmException) { this->get_override("whereToWrite")(path); } 
+		virtual Location whereToRead(const std::string& path) throw (DmException) { return this->get_override("whereToRead")(path); } 
+		virtual Location whereToWrite(const std::string& path) throw (DmException) { return this->get_override("whereToWrite")(path); } 
 	};
 	
 	// The class PoolManagerFactory has pure virtual methods: Create a wrapper class!
