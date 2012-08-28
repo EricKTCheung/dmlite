@@ -41,18 +41,18 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS})
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp)
 
 # Link path
-link_directories (${Boost_LIBRARY_DIRS})
+link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 # Definitions
 add_definitions (-D_REENTRANT)
 
 # Subdirectories
 add_subdirectory (etc)
-#add_subdirectory (python)
 add_subdirectory (src)
+add_subdirectory (python)
 add_subdirectory (tests)
 
 # Config header

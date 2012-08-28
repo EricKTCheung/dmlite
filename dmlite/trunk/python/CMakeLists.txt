@@ -7,11 +7,11 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 		 OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
 		 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ../include/dmlite/cpp ../include)
+include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH})
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_library(pydmlite SHARED pydmlite.cpp)
-target_link_libraries(pydmlite ${Boost_LIBRARIES} /usr/lib64/libdmlite.so.0)
+target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
 set_target_properties (pydmlite PROPERTIES PREFIX "")
 
 install(TARGETS       pydmlite
