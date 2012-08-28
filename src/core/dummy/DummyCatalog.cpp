@@ -11,14 +11,14 @@ using namespace dmlite;
 /// Little of help here to avoid redundancy
 #define DELEGATE(method, ...) \
 if (this->decorated_ == NULL)\
-  throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
+  throw DmException(DMLITE_SYSERR(ENOSYS), "There is no plugin in the stack that implements "#method);\
 this->decorated_->method(__VA_ARGS__);
 
 
 /// Little of help here to avoid redundancy
 #define DELEGATE_RETURN(method, ...) \
 if (this->decorated_ == NULL)\
-  throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
+  throw DmException(DMLITE_SYSERR(ENOSYS), "There is no plugin in the stack that implements "#method);\
 return this->decorated_->method(__VA_ARGS__);
 
 

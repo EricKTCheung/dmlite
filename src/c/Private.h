@@ -13,20 +13,21 @@
 /// Open the try statement.
 #define TRY(context, method)\
 try {\
-  context->errorCode = DM_NO_ERROR;\
-  context->errorString.clear();
+  context->errorCode = DMLITE_SUCCESS;\
+  context->errorString.clear();\
+  NOT_NULL(context);
 
 /// Catch block.
 #define CATCH(context, method)\
-  return 0;\
+  return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
   context->errorCode   = e.code();\
   context->errorString = e.what();\
-  return e.code();\
+  return context->errorCode;\
 } catch (...) {\
-  context->errorCode   = DM_UNEXPECTED_EXCEPTION;\
+  context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
   context->errorString = "An unexpected exception was thrown while executing "#method;\
-  return DM_UNEXPECTED_EXCEPTION;\
+  return context->errorCode;\
 }
 
 /// Catch block for functions that return a pointer.
@@ -36,7 +37,7 @@ try {\
   context->errorString = e.what();\
   return NULL;\
 } catch (...) {\
-  context->errorCode   = DM_UNEXPECTED_EXCEPTION;\
+  context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
   context->errorString = "An unexpected exception was thrown while executing "#method;\
   return NULL;\
 }
@@ -44,23 +45,26 @@ try {\
 /// Try-catch in one macro
 #define TRY_CATCH(handle, method, ...)\
 try {\
+  NOT_NULL(handle);\
   handle->manager->method(__VA_ARGS__);\
 }\
 catch (dmlite::DmException& e) {\
   handle->errorCode   = e.code();\
   handle->errorString = e.what();\
-  return e.code();\
+  return handle->errorCode;\
 }\
 catch (...) {\
-  return DM_UNEXPECTED_EXCEPTION;\
+  handle->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
+  handle->errorString = "An unexpected exception was thrown while executing "#method;\
+  return handle->errorCode;\
 }\
-return DM_NO_ERROR;
+return DMLITE_SUCCESS;
 
 /// Safe strings (empty instead of NULL)
 #define SAFE_STRING(s) s==NULL?"":s
 
 /// Throw an exception if the string is NULL
-#define NOT_NULL(s) if (s==NULL) throw dmlite::DmException(DM_NULL_POINTER, #s" is a NULL pointer")
+#define NOT_NULL(s) if (s==NULL) throw dmlite::DmException(DMLITE_SYSERR(EFAULT), #s" is a NULL pointer")
 
 /// Plugin manager handle for C API.
 struct dmlite_manager {

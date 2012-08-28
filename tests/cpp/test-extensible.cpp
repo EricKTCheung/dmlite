@@ -23,7 +23,7 @@ class TestExtensible: public CppUnit::TestFixture {
       ext["something"] = std::string("else");
       CPPUNIT_ASSERT_EQUAL(true, ext.hasField("something"));
       CPPUNIT_ASSERT_EQUAL(std::string("else"), ext.getString("something"));
-      CPPUNIT_ASSERT_EQUAL((size_t)1, ext.size());
+      CPPUNIT_ASSERT_EQUAL(1ul, ext.size());
     }
     
     void testStrings()

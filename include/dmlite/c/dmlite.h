@@ -83,9 +83,16 @@ int dmlite_manager_load_configuration(dmlite_manager* manager, const char* file)
 /**
  * @brief         Returns the last error code.
  * @param manager The plugin manager used in the failing function.
- * @return        The last error code.
+ * @return        The last error code, WITHOUT the error type byte.
  */
 int dmlite_manager_errno(dmlite_manager* manager);
+
+/**
+ * @brief         Returns the type of the last error.
+ * @param manager The plugin manager used in the failing function.
+ * @return        The last error type byte.
+ */
+int dmlite_manager_errtype(dmlite_manager* manager);
 
 /**
  * @brief         Returns the string that describes the last error.
@@ -115,6 +122,13 @@ int dmlite_context_free(dmlite_context* context);
  * @return        The error code.
  */
 int dmlite_errno(dmlite_context* context);
+
+/**
+ * @brief         Returns the type of the last error.
+ * @param context The context that was used in the failed function.
+ * @return        The error type.
+ */
+int dmlite_errtype(dmlite_context* context);
 
 /**
  * @brief         Error string from the last failed function.

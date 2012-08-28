@@ -254,7 +254,8 @@ const boost::any& Extensible::operator [] (const std::string& key) const throw (
   if (i != dictionary_.end())
     return (*i).second;
   else
-    throw DmException(DM_INVALID_VALUE, "Key %s not found", key.c_str());
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "Key " + key + " not found");
 }
 
 
@@ -410,7 +411,7 @@ void Extensible::deserialize(const std::string& serial) throw (DmException)
     boost::property_tree::read_json(stream, tree);
   }
   catch (boost::property_tree::json_parser::json_parser_error e) {
-    throw DmException(DM_INTERNAL_ERROR,
+    throw DmException(DMLITE_SYSERR(DMLITE_MALFORMED),
                       "Probably malformed JSON data (%s)", e.what());
   }
   
@@ -443,7 +444,8 @@ bool Extensible::getBool(const std::string& key) const throw (DmException)
     return anyToBoolean(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to bool (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to bool (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -460,7 +462,8 @@ long Extensible::getLong(const std::string& key) const throw (DmException)
     return anyToLong(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to long (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to long (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -477,7 +480,8 @@ unsigned long Extensible::getUnsigned(const std::string& key) const throw (DmExc
     return anyToUnsigned(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to unsigned (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to unsigned (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -494,7 +498,8 @@ double Extensible::getDouble(const std::string& key) const throw (DmException)
     return anyToDouble(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to double (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to double (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -511,7 +516,8 @@ std::string Extensible::getString(const std::string& key) const throw (DmExcepti
     return anyToString(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to string (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to string (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -528,7 +534,8 @@ Extensible Extensible::getExtensible(const std::string& key) const throw (DmExce
     return boost::any_cast<Extensible>(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to dmlite::Extensible (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to dmlite::Extensible (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
@@ -545,7 +552,8 @@ std::vector<boost::any> Extensible::getVector(const std::string& key) const thro
     return boost::any_cast<std::vector<boost::any> >(value);
   }
   catch (boost::bad_any_cast) {
-    throw DmException(DM_INVALID_VALUE, "'%s' can not be cast to std::vector<boost:any> (it is %s)",
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to std::vector<boost:any> (it is %s)",
                       key.c_str(), value.type().name());
   }
 }
