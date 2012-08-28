@@ -74,7 +74,8 @@ namespace dmlite {
         int v;
         sem_getvalue(&available_, &v);
         if (v <= 0)
-          throw DmException(DM_RESOURCE_UNAVAILABLE, std::string("No resources available"));
+          throw DmException(DMLITE_SYSERR(EBUSY),
+                            std::string("No resources available"));
       }
       sem_wait(&available_);
       // Critical section
@@ -109,7 +110,8 @@ namespace dmlite {
       // Make sure it is there
       typename std::map<E, unsigned>::const_iterator i = used_.find(e);
       if (i == used_.end())
-        throw DmException(DM_INVALID_VALUE, std::string("The resource has not been locked previously!"));
+        throw DmException(DMLITE_SYSERR(EINVAL),
+                          std::string("The resource has not been locked previously!"));
 
       // Increase
       used_[e]++;

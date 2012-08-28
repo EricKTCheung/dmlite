@@ -14,7 +14,7 @@
 namespace dmlite {
 
   /// API Version.
-  const unsigned API_VERSION = 20120817;
+  const unsigned API_VERSION = 20120828;
 
   // Forward declarations.
   class Authn;
@@ -94,7 +94,7 @@ namespace dmlite {
     /// @note  The same object can be passed to other register functions.
     ///        DMLite will take care of freeing it only once.
     void registerPoolDriverFactory(PoolDriverFactory* factory) throw (DmException);
-
+    
     /// Get the AuthnFactory implementation on top of the plugin stack.
     AuthnFactory* getAuthnFactory() throw (DmException);
 

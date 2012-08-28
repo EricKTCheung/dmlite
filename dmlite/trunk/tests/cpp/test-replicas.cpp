@@ -30,7 +30,7 @@ public:
       }
       catch (dmlite::DmException& e) {
         switch (e.code()) {
-          case DM_NO_SUCH_FILE: case DM_NO_REPLICAS:
+          case ENOENT: case DMLITE_NO_REPLICAS:
             break;
           default:
             throw;
@@ -255,7 +255,7 @@ public:
       CPPUNIT_FAIL("Added twice the same rfn");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(DM_EXISTS, e.code());
+      CPPUNIT_ASSERT_EQUAL(EEXIST, e.code());
     }
   }
 

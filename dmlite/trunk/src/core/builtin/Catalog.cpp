@@ -65,7 +65,8 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
     this->updateATime_ = (value == "yes");
   }
   else
-    throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
+    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+                      "Unknown option " + key);
 }
 
 
@@ -166,12 +167,12 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   for (unsigned i = 0; i < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      throw DmException(DM_NOT_DIRECTORY,
-                        "%s is not a directory", meta.name.c_str());
+      throw DmException(ENOTDIR,
+                        meta.name + " is not a directory");
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-      throw DmException(DM_FORBIDDEN,
-                        "Not enough permissions to list %s", meta.name.c_str());
+      throw DmException(EACCES,
+                        "Not enough permissions to list " + meta.name);
 
     // Pop next component
     c = components[i];
@@ -195,7 +196,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
-          throw DmException(DM_TOO_MANY_SYMLINKS,
+          throw DmException(DMLITE_SYSERR(ELOOP),
                            "Symbolic links limit exceeded: > %d",
                            this->symLinkLimit_);
         }
@@ -235,7 +236,8 @@ void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
    
   this->traverseBackwards(meta);
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not modify the file %d", replica.fileid);
+    throw DmException(EACCES,
+                      "Can not modify the file %d", replica.fileid);
   
   this->si_->getINode()->addReplica(replica);
 }
@@ -248,7 +250,8 @@ void BuiltInCatalog::deleteReplica(const Replica& replica) throw (DmException)
     
   this->traverseBackwards(meta);
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not modify the file %d", replica.fileid);
+    throw DmException(EACCES,
+                      "Can not modify the file %d", replica.fileid);
   
   this->si_->getINode()->deleteReplica(replica);
 }
@@ -261,8 +264,8 @@ std::vector<Replica> BuiltInCatalog::getReplicas(const std::string& path) throw 
   
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
-    throw DmException(DM_FORBIDDEN,
-                   "Not enough permissions to read " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to read " + path);
 
   this->updateAccessTime(meta);
   return this->si_->getINode()->getReplicas(meta.stat.st_ino);
@@ -279,7 +282,8 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
 
   // Check we have write access for the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE | S_IEXEC) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions on " + parentPath);
+    throw DmException(EACCES,
+                      "Not enough permissions on " + parentPath);
 
   // Effective gid
   gid_t  egid;
@@ -326,8 +330,8 @@ std::string BuiltInCatalog::readLink(const std::string& path) throw (DmException
 {
   ExtendedStat xs = this->extendedStat(path, false);
   if (!S_ISLNK(xs.stat.st_mode))
-    throw DmException(DM_INVALID_VALUE,
-                      "%s is not a symbolic link", path.c_str());
+    throw DmException(EINVAL,
+                      path + " is not a symbolic link");
   return this->si_->getINode()->readLink(xs.stat.st_ino).link;
 }
 
@@ -342,14 +346,16 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
 
   // Check we have exec access for the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IEXEC) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to list " + parentPath);
+    throw DmException(EACCES,
+                      "Not enough permissions to list "+ parentPath);
 
   // The file itself
   ExtendedStat file = this->si_->getINode()->extendedStat(parent.stat.st_ino, name);
 
   // Directories can not be removed with this method!
   if (S_ISDIR(file.stat.st_mode))
-    throw DmException(DM_IS_DIRECTORY, path + " is a directory, can not unlink");
+    throw DmException(EISDIR,
+                      path + " is a directory, can not unlink");
 
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
@@ -357,13 +363,15 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
     if (getUid(this->secCtx_) != file.stat.st_uid &&
         getUid(this->secCtx_) != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " +
-                                      path + "( sticky bit set)");
+      throw DmException(EACCES,
+                        "Not enough permissions to unlink " + path +
+                        " ( sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to unlink " + path);
+      throw DmException(EACCES,
+                        "Not enough permissions to unlink " + path);
   }
 
   // Check there are no replicas
@@ -372,7 +380,8 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
     
     // Pure catalogs must not remove files with replicas    
     if (!this->si_->isTherePoolManager() && replicas.size() != 0)
-      throw DmException(DM_EXISTS, path + " has replicas, can not remove");
+      throw DmException(EEXIST,
+                        path + " has replicas, can not remove");
     
     // Try to remove replicas first
     for (unsigned i = 0; i < replicas.size(); ++i) {
@@ -393,8 +402,7 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
     this->si_->getINode()->unlink(file.stat.st_ino);
   }
   catch (DmException& e) {
-    if (e.code() != DM_NO_SUCH_FILE)
-      throw;
+    if (DMLITE_ERRNO(e.code()) != ENOENT) throw;
     // If not found, that's good, as the pool driver probably
     // did it (i.e. legacy DPM)
   }
@@ -404,25 +412,26 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
 
 void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
-  int          code;
+  int          code = DMLITE_SUCCESS;
   std::string  parentPath, name;
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
   ExtendedStat file;
   
   // Need to be able to write to the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Need write access on %s", parentPath.c_str());
+    throw DmException(EACCES,
+                      "Need write access on " + parentPath);
 
   // Check that the file does not exist, or it has no replicas
   try {
     file = this->si_->getINode()->extendedStat(parent.stat.st_ino, name);
     if (this->si_->getINode()->getReplicas(file.stat.st_ino).size() > 0)
-      throw DmException(DM_EXISTS, path + " exists and has replicas. Can not truncate.");
+      throw DmException(EEXIST,
+                        path + " exists and has replicas. Can not truncate.");
   }
   catch (DmException& e) {
-    code = e.code();
-    if (code != DM_NO_SUCH_FILE)
-      throw;
+    code = DMLITE_ERRNO(e.code());
+    if (code != ENOENT) throw;
   }
   
   // Effective gid
@@ -436,7 +445,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
 
   // Create new
-  if (code == DM_NO_SUCH_FILE) {
+  if (code == ENOENT) {
     ExtendedStat newFile;
     newFile.parent       = parent.stat.st_ino;
     newFile.name         = name;
@@ -455,10 +464,11 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   }
   
   // Truncate
-  else if (code == DM_NO_REPLICAS) {
+  else {
     if (getUid(this->secCtx_) != file.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to truncate " + path);
+      throw DmException(EACCES,
+                        "Not enough permissions to truncate " + path);
     this->si_->getINode()->setSize(file.stat.st_ino, 0);
   }
 }
@@ -474,7 +484,8 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
 
   // Check we have write access for the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Need write access for " + parentPath);
+    throw DmException(EACCES,
+                      "Need write access for " + parentPath);
   
   // Create the folder
   ExtendedStat newFolder;
@@ -515,7 +526,7 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
 
   // Fail inmediately with '/'
   if (path == "/")
-    throw DmException(DM_INVALID_VALUE, "Can not remove '/'");
+    throw DmException(EINVAL, "Can not remove '/'");
 
   // Get the parent of the new folder
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
@@ -524,13 +535,16 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
   ExtendedStat entry = this->si_->getINode()->extendedStat(parent.stat.st_ino, name);
 
   if (!S_ISDIR(entry.stat.st_mode))
-    throw DmException(DM_NOT_DIRECTORY, path + " is not a directory. Can not remove.");
+    throw DmException(ENOTDIR,
+                      path + " is not a directory. Can not remove.");
 
   if (this->cwd_ == entry.stat.st_ino)
-    throw DmException(DM_IS_CWD, "Can not remove the current working dir");
+    throw DmException(EINVAL,
+                      "Can not remove the current working dir");
 
   if (entry.stat.st_nlink > 0)
-    throw DmException(DM_EXISTS, path + " is not empty. Can not remove.");
+    throw DmException(EEXIST,
+                      path + " is not empty. Can not remove.");
 
   // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
@@ -538,13 +552,15 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
     if (getUid(this->secCtx_) != entry.stat.st_uid &&
         getUid(this->secCtx_) != parent.stat.st_uid &&
         checkPermissions(this->secCtx_, entry.acl, entry.stat, S_IWRITE) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " +
-                                      path + "( sticky bit set)");
+      throw DmException(EACCES,
+                        "Not enough permissions to remove " + path +
+                        " (sticky bit set)");
   }
   else {
     // No sticky bit
     if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to remove " + path);
+      throw DmException(EACCES,
+                        "Not enough permissions to remove " + path);
   }
 
   // All preconditions are good!
@@ -566,14 +582,16 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
-void BuiltInCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
+void BuiltInCatalog::rename(const std::string& oldPath,
+                            const std::string& newPath) throw (DmException)
 {
 std::string oldParentPath, newParentPath;
   std::string oldName,       newName;
 
   // Do not even bother with '/'
   if (oldPath == "/" || newPath == "/")
-    throw DmException(DM_INVALID_VALUE, "Not the source, neither the destination, can be '/'");
+    throw DmException(EINVAL,
+                      "Not the source, neither the destination, can be '/'");
 
   // Get source and destination parent
   ExtendedStat oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
@@ -584,27 +602,32 @@ std::string oldParentPath, newParentPath;
 
   // Is the cwd?
   if (old.stat.st_ino == this->cwd_) {
-    throw DmException(DM_IS_CWD, "Can not rename the current working directory");
+    throw DmException(EINVAL,
+                      "Can not rename the current working directory");
   }
 
   // Need write permissions in both origin and destination
   if (checkPermissions(this->secCtx_, oldParent.acl, oldParent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions on origin " + oldParentPath);
+    throw DmException(EACCES,
+                      "Not enough permissions on origin " + oldParentPath);
 
   if (checkPermissions(this->secCtx_, newParent.acl, newParent.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions on destination " + newParentPath);
+    throw DmException(EACCES, 
+                      "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
   if (S_ISDIR(old.stat.st_mode)) {
     if (checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions on " + oldPath);
+    throw DmException(EACCES,
+                      "Not enough permissions on " + oldPath);
 
     // AND destination can not be a child
     ExtendedStat aux = newParent;
 
     while (aux.parent > 0) {
       if (aux.stat.st_ino == old.stat.st_ino)
-        throw DmException(DM_INVALID_VALUE, "Destination is descendant of source");
+        throw DmException(EINVAL,
+                          "Destination is descendant of source");
       aux = this->si_->getINode()->extendedStat(aux.parent);
     }
   }
@@ -614,7 +637,8 @@ std::string oldParentPath, newParentPath;
       getUid(this->secCtx_) != oldParent.stat.st_uid &&
       getUid(this->secCtx_) != old.stat.st_uid &&
       checkPermissions(this->secCtx_, old.acl, old.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Sticky bit set on the parent, and not enough permissions");
+    throw DmException(EACCES,
+                      "Sticky bit set on the parent, and not enough permissions");
 
   // If the destination exists...
   try {
@@ -627,9 +651,11 @@ std::string oldParentPath, newParentPath;
     // It does! It has to be the same type
     if ((newF.stat.st_mode & S_IFMT) != (old.stat.st_mode & S_IFMT)) {
       if (S_ISDIR(old.stat.st_mode))
-        throw DmException(DM_NOT_DIRECTORY, "Source is a directory and destination is not");
+        throw DmException(ENOTDIR,
+                          "Source is a directory and destination is not.");
       else
-        throw DmException(DM_IS_DIRECTORY, "Source is not directory and destination is");
+        throw DmException(EISDIR,
+                          "Source is not directory and destination is.");
     }
 
     // And it has to be empty. Just call remove or unlink
@@ -640,8 +666,7 @@ std::string oldParentPath, newParentPath;
       this->unlink(newPath);
   }
   catch (DmException& e) {
-    if (e.code() != DM_NO_SUCH_FILE)
-      throw;
+    if (DMLITE_ERRNO(e.code()) != ENOENT) throw;
   }
 
   // We are good, so we can move now
@@ -690,7 +715,8 @@ void BuiltInCatalog::setMode(const std::string& path, mode_t mode) throw (DmExce
   // User has to be the owner, or root
   if (getUid(this->secCtx_) != meta.stat.st_uid &&
       getUid(this->secCtx_) != 0)
-    throw DmException(DM_FORBIDDEN, "Only the owner can set the mode of " + path);
+    throw DmException(EACCES,
+                      "Only the owner or root can set the mode of " + path);
 
   // Clean up unwanted bits
   mode &= ~S_IFMT;
@@ -751,15 +777,18 @@ void BuiltInCatalog::setOwner(const std::string& path,
   if (getUid(this->secCtx_) != 0) {
     // Only root can change the owner
     if (meta.stat.st_uid != newUid)
-      throw DmException(DM_BAD_OPERATION, "Only root can set the owner");
+      throw DmException(EPERM,
+                        "Only root can set the owner");
     // If the group is changing...
     if (meta.stat.st_gid != newGid) {
       // The user has to be the owner
       if (meta.stat.st_uid != getUid(this->secCtx_))
-        throw DmException(DM_BAD_OPERATION, "Only root or the owner can set the group");
+        throw DmException(EPERM,
+                          "Only root or the owner can set the group");
       // AND it has to belong to that group
       if (!hasGroup(this->secCtx_, newGid))
-        throw DmException(DM_BAD_OPERATION, "The user does not belong to the group %d", newGid);
+        throw DmException(EPERM,
+                          "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
     }
   }
@@ -787,7 +816,8 @@ void BuiltInCatalog::setSize(const std::string& path, size_t newSize) throw (DmE
   ExtendedStat meta = this->extendedStat(path, false);
   if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not set the size of " + path);
+    throw DmException(EACCES,
+                      "Can not set the size of " + path);
   
   this->si_->getINode()->setSize(meta.stat.st_ino, newSize);
 }
@@ -801,11 +831,12 @@ void BuiltInCatalog::setChecksum(const std::string& path,
   ExtendedStat meta = this->extendedStat(path, false);
   if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not set the checksum of " + path);
+    throw DmException(EACCES,
+                      "Can not set the checksum of " + path);
   
   if (csumtype != "MD" && csumtype != "AD" && csumtype != "CS")
-    throw DmException(DM_INVALID_VALUE,
-                      "%s is an invalid checksum type", csumtype.c_str());
+    throw DmException(EINVAL,
+                      csumtype + " is an invalid checksum type");
   
   this->si_->getINode()->setChecksum(meta.stat.st_ino, csumtype, csumvalue);
 }
@@ -819,7 +850,8 @@ void BuiltInCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmEx
   // Check we can change it
   if (getUid(this->secCtx_) != meta.stat.st_uid &&
       getUid(this->secCtx_) != 0)
-    throw DmException(DM_FORBIDDEN, "Only the owner can set the ACL of " + path);
+    throw DmException(EACCES,
+                      "Only the owner or root can set the ACL of " + path);
 
   Acl aclCopy(acl);
 
@@ -830,7 +862,8 @@ void BuiltInCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmEx
     else if (aclCopy[i].type == AclEntry::kGroupObj)
       aclCopy[i].id = meta.stat.st_gid;
     else if (aclCopy[i].type & AclEntry::kDefault && !S_ISDIR(meta.stat.st_mode))
-      throw DmException(DM_INVALID_ACL, "Defaults can be only applied to directories");
+      throw DmException(EINVAL,
+                        "Defaults can be only applied to directories");
   }
 
   // Validate the ACL
@@ -876,7 +909,8 @@ void BuiltInCatalog::utime(const std::string& path, const struct utimbuf* buf) t
   // The user is the owner OR buf is NULL and has write permissions
   if (getUid(this->secCtx_) != meta.stat.st_uid &&
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to modify the time of " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to modify the time of " + path);
 
   // Touch
   this->si_->getINode()->utime(meta.stat.st_ino, buf);
@@ -890,7 +924,8 @@ std::string BuiltInCatalog::getComment(const std::string& path) throw (DmExcepti
   ExtendedStat meta = this->extendedStat(path);
   
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to read " + path);
 
   return this->si_->getINode()->getComment(meta.stat.st_ino);
 }
@@ -903,7 +938,8 @@ void BuiltInCatalog::setComment(const std::string& path, const std::string& comm
   ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to write " + path);
 
   this->si_->getINode()->setComment(meta.stat.st_ino, comment);
 }
@@ -915,7 +951,8 @@ void BuiltInCatalog::setGuid(const std::string& path, const std::string &guid) t
   ExtendedStat meta = this->extendedStat(path);
 
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to write " + path);
 
   this->si_->getINode()->setGuid(meta.stat.st_ino, guid);
 }
@@ -928,14 +965,15 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
   ExtendedStat meta = this->extendedStat(path);
   
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Not enough permissions to write " + path);
+    throw DmException(EACCES,
+                      "Not enough permissions to write " + path);
   
   this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
 }
 
 
 
-Directory* BuiltInCatalog::openDir (const std::string& path) throw (DmException)
+Directory* BuiltInCatalog::openDir(const std::string& path) throw (DmException)
 {
   BuiltInDir* dirp;
   
@@ -945,7 +983,8 @@ Directory* BuiltInCatalog::openDir (const std::string& path) throw (DmException)
     dirp->dir = this->extendedStat(path);
 
     if (checkPermissions(this->secCtx_, dirp->dir.acl, dirp->dir.stat, S_IREAD) != 0)
-      throw DmException(DM_FORBIDDEN, "Not enough permissions to read " + path);
+      throw DmException(EACCES,
+                        "Not enough permissions to read " + path);
 
     dirp->idir = this->si_->getINode()->openDir(dirp->dir.stat.st_ino);
     
@@ -1009,7 +1048,8 @@ void BuiltInCatalog::updateReplica(const Replica& replica) throw (DmException)
   this->traverseBackwards(meta);
   
   if (dmlite::checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(DM_FORBIDDEN, "Can not modify the replica");
+    throw DmException(EACCES,
+                      "Can not modify the replica");
   
   this->si_->getINode()->updateReplica(replica);
 }
@@ -1033,7 +1073,8 @@ ExtendedStat BuiltInCatalog::getParent(const std::string& path,
                                        std::string* name) throw (DmException)
 {
   if (path.empty())
-    throw DmException(DM_INVALID_VALUE, "Empty path");
+    throw DmException(EINVAL,
+                      "Empty path");
   
   std::vector<std::string> components = Url::splitPath(path);
 
@@ -1066,7 +1107,7 @@ void BuiltInCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcept
   while (current.parent != 0) {
     current = this->si_->getINode()->extendedStat(current.parent);
     if (checkPermissions(this->secCtx_, current.acl, current.stat, S_IEXEC))
-      throw DmException(DM_FORBIDDEN, "Can not access #%ld",
-                        current.stat.st_ino);
+      throw DmException(EACCES,
+                        "Can not access #%ld", current.stat.st_ino);
   }
 }

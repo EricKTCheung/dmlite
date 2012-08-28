@@ -41,7 +41,7 @@ int dmlite_manager_free(dmlite_manager* handle)
 int dmlite_manager_load_plugin(dmlite_manager* handle, const char* lib, const char* id)
 {
   if (handle == NULL)
-    return DM_NULL_POINTER;
+    return DMLITE_SYSERR(EFAULT);
 
   TRY_CATCH(handle, loadPlugin, lib, id);
 }
@@ -61,7 +61,7 @@ int dmlite_manager_set(dmlite_manager* handle, const char* key, const char* valu
 int dmlite_manager_load_configuration(dmlite_manager* handle, const char* file)
 {
   if (handle == NULL)
-    return DM_NULL_POINTER;
+    return DMLITE_SYSERR(EFAULT);
 
   TRY_CATCH(handle, loadConfiguration, file);
 }
@@ -71,9 +71,19 @@ int dmlite_manager_load_configuration(dmlite_manager* handle, const char* file)
 int dmlite_manager_errno(dmlite_manager* handle)
 {
   if (handle == NULL)
-    return DM_NULL_POINTER;
+    return DMLITE_SYSERR(EFAULT);
 
-  return handle->errorCode;
+  return DMLITE_ERRNO(handle->errorCode);
+}
+
+
+
+int dmlite_manager_errtype(dmlite_manager* handle)
+{
+  if (handle == NULL)
+    return DMLITE_SYSTEM_ERROR;
+  
+  return DMLITE_ETYPE(handle->errorCode);
 }
 
 
@@ -123,12 +133,24 @@ int dmlite_context_free(dmlite_context* context)
   return 0;
 }
 
+
+
 int dmlite_errno(dmlite_context* context)
 {
   if (context == NULL)
-    return DM_NULL_POINTER;
+    return EFAULT;
   else
-    return context->errorCode;
+    return DMLITE_ERRNO(context->errorCode);
+}
+
+
+
+int dmlite_errtype(dmlite_context* context)
+{
+  if (context == NULL)
+    return DMLITE_SYSTEM_ERROR;
+  else
+    return DMLITE_ETYPE(context->errorCode);
 }
 
 

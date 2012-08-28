@@ -25,7 +25,7 @@ static void printPools(dmlite::StackInstance* stack, const std::vector<dmlite::P
       delete handler;
     }
     catch (dmlite::DmException& e) {
-      if (e.code() != DM_UNKNOWN_POOL_TYPE)
+      if (e.code() != DMLITE_UNKNOWN_POOL_TYPE)
         throw;
       std::cout << "Pool type:   " << pools[i].type << std::endl
                 << "Pool name:   " << pools[i].name << std::endl
@@ -59,7 +59,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != DM_NO_SUCH_POOL) throw;
+        if (e.code() != DMLITE_NO_SUCH_POOL) throw;
       }
 
       try {
@@ -68,7 +68,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != DM_NO_SUCH_POOL) throw;
+        if (e.code() != DMLITE_NO_SUCH_POOL) throw;
       }
     }
     

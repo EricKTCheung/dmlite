@@ -17,16 +17,17 @@ int main(int argn, char** argv)
   TEST_ASSERT(manager != NULL);
   
   SECTION("Loading errors")
-  TEST_ASSERT_EQUAL(DM_NO_SUCH_FILE, 
+  TEST_ASSERT_EQUAL(DMLITE_CFGERR(ENOENT),
                     dmlite_manager_load_plugin(manager, "/does/not/exist", "plugin_something"));
-  TEST_ASSERT_EQUAL(DM_NO_SUCH_SYMBOL,
+  TEST_ASSERT_EQUAL(DMLITE_CFGERR(DMLITE_NO_SUCH_SYMBOL),
                     dmlite_manager_load_plugin(manager, "./plugin_mock.so", "plugin_fake"));
   
   /* Load the mock plug-in */  
   TEST_MANAGER_CALL(manager, dmlite_manager_load_plugin, "./plugin_mock.so", "plugin_mock");
   
   /* Set an unknown option */
-  TEST_ASSERT_EQUAL(DM_UNKNOWN_OPTION, dmlite_manager_set(manager, "Option", "Value"));
+  TEST_ASSERT_EQUAL(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+                    dmlite_manager_set(manager, "Option", "Value"));
   
   /* Instantiate */
   context = dmlite_context_new(manager);
@@ -38,7 +39,8 @@ int main(int argn, char** argv)
   
   /* Doing anything must fail because the credentials weren't set */
   struct stat s;
-  TEST_ASSERT_EQUAL(DM_NO_SECURITY_CONTEXT, dmlite_stat(context, "/", &s));
+  TEST_ASSERT_EQUAL(DMLITE_SYSERR(DMLITE_NO_SECURITY_CONTEXT),
+                    dmlite_stat(context, "/", &s));
 
   /* Clean-up */
   dmlite_context_free(context);

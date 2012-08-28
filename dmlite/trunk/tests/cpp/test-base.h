@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException& e) { if (e.code() != DM_NO_SUCH_FILE) throw; }
+#define IGNORE_NOT_EXIST(f) try { f; } catch (dmlite::DmException& e) { if (e.code() != ENOENT) throw; }
 
 
 inline uid_t getUid(const dmlite::SecurityContext* ctx)

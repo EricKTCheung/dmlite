@@ -54,7 +54,8 @@ GroupInfo BuiltInAuthn::getGroup(gid_t gid) throw (DmException)
   getgrgid_r(gid, &grp, buffer, sizeof(buffer), &result);
   
   if (result == NULL)
-    throw DmException(DM_NO_SUCH_GROUP, "Group %d not found", gid);
+    throw DmException(DMLITE_NO_SUCH_GROUP,
+                      "Group %d not found", gid);
   
   GroupInfo gi;
   
@@ -76,7 +77,8 @@ GroupInfo BuiltInAuthn::getGroup(const std::string& groupName) throw (DmExceptio
   getgrnam_r(groupName.c_str(), &grp, buffer, sizeof(buffer), &result);
   
   if (result == NULL)
-    throw DmException(DM_NO_SUCH_GROUP, "Group %s not found", groupName.c_str());
+    throw DmException(DMLITE_NO_SUCH_GROUP,
+                      "Group %s not found", groupName.c_str());
   
   GroupInfo gi;
   
@@ -93,7 +95,7 @@ GroupInfo BuiltInAuthn::getGroup(const std::string& key,
                                  const boost::any& value) throw (DmException)
 {
   if (key != "gid")
-    throw DmException(DM_NOT_A_KEY,
+    throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_KEY),
                       "BuiltInAuthn does not support querying by %s",
                       key.c_str());
   
@@ -112,7 +114,8 @@ UserInfo BuiltInAuthn::getUser(const std::string& userName, gid_t* group) throw 
   getpwnam_r(userName.c_str(), &pwd, buffer, sizeof(buffer), &result);
   
   if (result == NULL)
-    throw DmException(DM_NO_SUCH_USER, "User %s not found", userName.c_str());
+    throw DmException(DMLITE_NO_SUCH_USER,
+                      "User %s not found", userName.c_str());
   
   UserInfo ui;
   
@@ -139,7 +142,7 @@ UserInfo BuiltInAuthn::getUser(const std::string& key,
                                const boost::any& value) throw (DmException)
 {
   if (key != "uid")
-    throw DmException(DM_NOT_A_KEY,
+    throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_KEY),
                       "BuiltInAuthn does not support querying by %s",
                       key.c_str());
   
@@ -149,7 +152,8 @@ UserInfo BuiltInAuthn::getUser(const std::string& key,
   
   getpwuid_r(uid, &pwdbuf, buffer, sizeof(buffer), &upwd);
   if (upwd == NULL)
-    throw DmException(DM_NO_SUCH_USER, "User %u not found", uid);
+    throw DmException(DMLITE_NO_SUCH_USER,
+                      "User %u not found", uid);
   
   UserInfo u;
   u.name   = upwd->pw_name;
@@ -161,42 +165,42 @@ UserInfo BuiltInAuthn::getUser(const std::string& key,
 
 GroupInfo BuiltInAuthn::newGroup(const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "newGroup not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "newGroup not supported in BuiltInAuthn");
 }
 
 
 
 void BuiltInAuthn::updateGroup(const GroupInfo&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "updateGroup not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "updateGroup not supported in BuiltInAuthn");
 }
 
 
 
 UserInfo BuiltInAuthn::newUser(const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "newUser not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "newUser not supported in BuiltInAuthn");
 }
 
 
 
 void BuiltInAuthn::updateUser(const UserInfo&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "updateUser not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "updateUser not supported in BuiltInAuthn");
 }
 
 
 
 void BuiltInAuthn::deleteGroup(const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "deleteGroup not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "deleteGroup not supported in BuiltInAuthn");
 }
 
 
 
 void BuiltInAuthn::deleteUser(const std::string&) throw (DmException)
 {
-  throw DmException(DM_NOT_IMPLEMENTED, "deleteUser not supported in BuiltInAuthn");
+  throw DmException(DMLITE_SYSERR(ENOSYS), "deleteUser not supported in BuiltInAuthn");
 }
 
 
@@ -251,7 +255,7 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
     *user = this->getUser(userName, &gid);
   }
   catch (DmException &e) {
-    if (e.code() != DM_NO_SUCH_USER)
+    if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_USER)
       throw;
     // Try again with nobody
     *user = this->getUser(nobody_, &gid);
@@ -294,7 +298,8 @@ void BuiltInAuthnFactory::configure(const std::string& key,
 {
   if (key == "AnonymousUser")
     this->nobody_ = value;
-  throw DmException(DM_UNKNOWN_OPTION, std::string("Unknown option ") + key);
+  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+                    "Unknown option %s", key.c_str());
 }
 
 
