@@ -8,7 +8,7 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 		 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH})
-link_directories(${Boost_LIBRARY_DIRS})
+link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 add_library(pydmlite SHARED pydmlite.cpp)
 target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
