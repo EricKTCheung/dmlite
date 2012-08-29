@@ -3,9 +3,12 @@
  *
  * Python bindings for urls.h and security.h from the
  * c++ dmlite library via Boost:Python.
- * This file is included by pydmlite.cpp.
  */
 
+#include "pydmlite.h"
+
+void export_types()
+{
     class_<Url>("Url", init<const std::string&>())
         .def_readwrite("scheme", &Url::scheme)
         .def_readwrite("domain", &Url::domain)
@@ -60,5 +63,5 @@
     class_< std::vector< std::string > >("vector_String")
         .def(vector_indexing_suite< std::vector< std::string > >()) // only works with operator== and != in String
         ;
-
+}
 

@@ -3,17 +3,18 @@
  *
  * Python bindings for exceptions.h from the c++ dmlite library
  * via Boost:Python.
- * This file is included by pydmlite.cpp.
  */
 
-	class_<DmException> DmExceptionClass("DmException", init<>());
-	DmExceptionClass
-		.def(init<int>())
-		.def(init<int, const std::string&>())
-		//.def(init<int, const char*, va_list>())
+#include "pydmlite.h"
 
-		.def("code", &DmException::code)
-		.def("what", &DmException::what)
+void export_exceptions()
+{
+    class_<DmException> ("DmException", init<>())
+        .def(init<int>())
+        .def(init<int, const std::string&>())
+        //.def(init<int, const char*, va_list>())
 
-		//.def("setMessage", &DmException::setMessage)
-		;
+        .def("code", &DmException::code)
+        .def("what", &DmException::what)
+        ;
+}

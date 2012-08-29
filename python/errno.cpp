@@ -3,9 +3,12 @@
  *
  * Python bindings for errno.h from the c++ dmlite library
  * via Boost:Python.
- * This file is included by pydmlite.cpp.
  */
 
+#include "pydmlite.h"
+
+void export_errno()
+{
     scope().attr("DMLITE_SUCCESS") = DMLITE_SUCCESS;
     
     scope().attr("DMLITE_USER_ERROR") = DMLITE_USER_ERROR;
@@ -42,3 +45,4 @@
     
     scope().attr("DMLITE_UNKNOWN_POOL_TYPE") = DMLITE_UNKNOWN_POOL_TYPE;
     scope().attr("DMLITE_NO_SUCH_POOL") = DMLITE_NO_SUCH_POOL;
+}
