@@ -4,6 +4,7 @@
 #ifndef DMLITE_CPP_INODE_H
 #define DMLITE_CPP_INODE_H
 
+#include <dirent.h>
 #include <utime.h>
 #include <string>
 #include <vector>
