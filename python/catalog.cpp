@@ -50,7 +50,7 @@
 
 
 	class_<CatalogFactoryWrapper, bases< BaseFactory >, boost::noncopyable>("CatalogFactory", no_init)
-		.def("createCatalog", static_cast< Catalog*(CatalogFactory::*)(PluginManager*) > (&CatalogFactory::createCatalog), return_value_policy<manage_new_object>())
+		.def("createCatalog", static_cast< Catalog*(CatalogFactoryWrapper::*)(PluginManager*) > (&CatalogFactoryWrapper::createCatalog), return_value_policy<manage_new_object>())
 		;
 	
 	class_<DirectoryWrapper, boost::noncopyable >("Directory", no_init)
