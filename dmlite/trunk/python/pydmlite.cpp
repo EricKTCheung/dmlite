@@ -37,7 +37,6 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(pydmlite)
 {
-/**
 	// These python bindings are compliant with version 20120817.
 	scope().attr("API_VERSION") = API_VERSION; 
 	
@@ -86,7 +85,6 @@ BOOST_PYTHON_MODULE(pydmlite)
 	scope().attr("PLUGIN_ID_HEADER") = PLUGIN_ID_HEADER; 
 
 
-*/
 #include "extensible.cpp"
 #include "errno.cpp"
 #include "types.cpp"
