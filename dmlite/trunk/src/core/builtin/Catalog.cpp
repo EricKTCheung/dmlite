@@ -153,9 +153,24 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
   // If path is absolute OR cwd is empty, start in root
   if (path[0] == '/' || this->cwdPath_.empty()) {
-    // Root parent "is" a dir and world-readable :)
-    memset(&meta.stat, 0, sizeof(meta.stat));
-    meta.stat.st_mode = S_IFDIR | 0555 ;
+    // Stat '/', and, if it does not exist, create it
+    // (first go of the server, probably)
+    try {
+      meta = this->si_->getINode()->extendedStat(0, "/");
+    }
+    catch (DmException& e) {
+      if (e.code() != ENOENT) throw;
+  
+      meta.parent = 0;
+      meta.name   = "/";
+      meta.status = ExtendedStat::kOnline;
+      meta.stat.st_mode = S_IFDIR | 0755;
+      meta.stat.st_uid  = 0;
+      meta.stat.st_gid  = 0;
+      meta.stat.st_size = 0;
+      
+      meta = this->si_->getINode()->create(meta);
+    }
   }
   // Relative, and cwd set, so start there
   else {
