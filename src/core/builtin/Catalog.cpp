@@ -169,8 +169,10 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
       meta.stat.st_gid  = 0;
       meta.stat.st_size = 0;
       
-      meta = this->si_->getINode()->create(meta);
+      this->si_->getINode()->create(meta);
     }
+    // Before-root is a word-readable directory
+    meta.stat.st_mode = S_IFDIR | 0555;
   }
   // Relative, and cwd set, so start there
   else {
@@ -227,8 +229,15 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         i = 0;
         
         // If absolute, need to reset parent
-        if (link.link[0] == '/')
+        if (link.link[0] == '/') {
           parent = 0;
+          meta.stat.st_mode = S_IFDIR | 0555;
+        }
+        // If not, meta has the symlink data, which isn't nice.
+        // Stat the parent again!
+        else {
+          meta = this->si_->getINode()->extendedStat(meta.parent);
+        }
         
         continue; // Jump directly to the beginning of the loop
       }
