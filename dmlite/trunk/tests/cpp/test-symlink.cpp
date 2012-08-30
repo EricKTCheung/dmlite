@@ -12,6 +12,7 @@ protected:
   static const char* NESTED;
   static const char* NESTEDLNK;
   static const char* SYMLINK;
+  static const char* RELATIVE;
   
 public:
   
@@ -22,6 +23,7 @@ public:
   
   void tearDown()
   {
+    this->catalog->changeDir(BASE_DIR);
     if (this->catalog) {
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
       IGNORE_NOT_EXIST(this->catalog->unlink(NESTED));
@@ -77,9 +79,30 @@ public:
     this->catalog->extendedStat(NESTEDLNK);
   }
   
+  void testRelative()
+  {
+    const char* nestedname = strchr(NESTED, '/') + 1;
+    
+    this->catalog->makeDir(FOLDER, 0755);
+    this->catalog->create(NESTED, 0755);
+    this->catalog->symlink(nestedname, NESTEDLNK);
+    
+    // Make sure it is pointing as it should
+    std::string link = this->catalog->readLink(NESTEDLNK);
+    CPPUNIT_ASSERT_EQUAL(std::string(nestedname), link);
+    
+    // Is it able to stat it without following?
+    this->catalog->extendedStat(NESTEDLNK, false);
+
+    // Stat relative
+    this->catalog->changeDir(FOLDER);
+    this->catalog->extendedStat(RELATIVE);
+  }
+  
   CPPUNIT_TEST_SUITE(TestSymlink);
   CPPUNIT_TEST(testNoFollow);
   CPPUNIT_TEST(testCwd);
+  CPPUNIT_TEST(testRelative);
   CPPUNIT_TEST_SUITE_END();
 };
 
@@ -87,6 +110,7 @@ const char* TestSymlink::FOLDER     = "test-symlink.d";
 const char* TestSymlink::NESTED     = "test-symlink.d/test-nested";
 const char* TestSymlink::NESTEDLNK  = "test-symlink.d/test-symlink-nested";
 const char* TestSymlink::SYMLINK    = "test-symlink";
+const char* TestSymlink::RELATIVE   = "../test-symlink.d/test-nested";
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestSymlink);
 
