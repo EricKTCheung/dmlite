@@ -89,7 +89,7 @@ void DmException::setMessage(const char* fmt, va_list args)
   int  n;
   
   n = snprintf(buffer, sizeof(buffer),
-               "[#%02x.%06x] ", DMLITE_ETYPE(errorCode_) >> 24,
+               "[#%02d.%06d] ", DMLITE_ETYPE(errorCode_) >> 24,
                                 DMLITE_ERRNO(errorCode_));
           
   vsnprintf(buffer + n, sizeof(buffer) - n, fmt, args);

@@ -59,7 +59,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != DMLITE_NO_SUCH_POOL) throw;
+        if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_POOL) throw;
       }
 
       try {
@@ -68,7 +68,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != DMLITE_NO_SUCH_POOL) throw;
+        if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_POOL) throw;
       }
     }
     
