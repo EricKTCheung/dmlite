@@ -75,9 +75,10 @@ struct dmlite_manager {
 
 /// Context handle for C API.
 struct dmlite_context {
-  dmlite::StackInstance* stack;
-  int                    errorCode;
-  std::string            errorString;
+  dmlite::StackInstance*   stack;
+  dmlite_security_context* secCtx;
+  int                      errorCode;
+  std::string              errorString;
 };
 
 /// dmlite_any

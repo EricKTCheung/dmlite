@@ -41,6 +41,27 @@ int main(int argn, char** argv)
   struct stat s;
   TEST_ASSERT_EQUAL(DMLITE_SYSERR(DMLITE_NO_SECURITY_CONTEXT),
                     dmlite_stat(context, "/", &s));
+  
+  /* Set credentials */
+  SECTION("Security context");
+  dmlite_credentials creds;
+  memset(&creds, 0, sizeof(creds));
+  creds.client_name = "root";
+  TEST_CONTEXT_CALL(context, dmlite_setcredentials, &creds);
+  
+  /* Get context back and check */  
+  const dmlite_security_context* secCtx = dmlite_get_security_context(context);
+  TEST_ASSERT(secCtx != NULL);
+  
+  TEST_ASSERT_EQUAL(1, secCtx->ngroups);
+  TEST_ASSERT_STR_EQUAL("root", secCtx->user.name);
+  
+  dmlite_any* any = dmlite_any_dict_get(secCtx->user.extra, "uid");
+  TEST_ASSERT_EQUAL(0, dmlite_any_to_long(any));
+  dmlite_any_free(any);
+  
+  TEST_ASSERT_STR_EQUAL(creds.client_name, secCtx->credentials->client_name);
+  TEST_ASSERT_EQUAL(creds.nfqans, secCtx->credentials->nfqans)
 
   /* Clean-up */
   dmlite_context_free(context);

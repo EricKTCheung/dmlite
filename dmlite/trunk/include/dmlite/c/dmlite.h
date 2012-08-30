@@ -37,6 +37,23 @@ typedef struct dmlite_credentials {
   dmlite_any_dict* extra;
 } dmlite_credentials;
 
+/** @brief Used to handle user and group information
+ */
+typedef struct dmlite_security_ent {
+  const char*      name;
+  dmlite_any_dict* extra;
+} dmlite_security_ent;
+
+/** @brief Security context 
+ */
+typedef struct dmlite_security_context {
+  dmlite_credentials* credentials;
+  
+  unsigned ngroups;
+  dmlite_security_ent  user;  
+  dmlite_security_ent* groups;
+} dmlite_security_context;
+
 /**
  * @brief Gets the API version.
  */
@@ -144,6 +161,13 @@ const char* dmlite_error(dmlite_context* context);
  * @return        0 on success, error code otherwise.
  */
 int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred);
+
+/**
+ * @brief         Returns the security context. There is no need to free.
+ * @param context The DM context.
+ * @return        The security context.
+ */
+const dmlite_security_context* dmlite_get_security_context(dmlite_context* context);
 
 /**
  * @brief         Sets a configuration parameter tied to a context.

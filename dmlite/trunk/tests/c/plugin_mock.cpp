@@ -543,7 +543,7 @@ std::string MockFactory::implementedPool() throw ()
 
 void MockFactory::configure(const std::string& key, const std::string&) throw (DmException)
 {
-  throw DmException(DMLITE_CFGERR(EINVAL),
+  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
                     "Unknown parameter %s", key.c_str());
 }
 
