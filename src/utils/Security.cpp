@@ -590,7 +590,9 @@ static unsigned base64_encode(const char *input, unsigned length, char* output)
 
 
 
-std::string dmlite::generateToken(const std::string& id, const std::string& pfn, const std::string& passwd, time_t lifetime, bool write)
+std::string dmlite::generateToken(const std::string& id, const std::string& pfn,
+                                  const std::string& passwd, time_t lifetime,
+                                  bool write)
 {
   char     buffer1[1024];
   char     buffer2[1024];

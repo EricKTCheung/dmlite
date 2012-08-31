@@ -205,7 +205,20 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     }
     // Regular entry
     else {
-      meta = this->si_->getINode()->extendedStat(parent, c);
+      // Stat, but capture ENOENT to improve error code
+      try {
+        meta = this->si_->getINode()->extendedStat(parent, c);
+      }
+      catch (DmException& e) {
+        if (e.code() != ENOENT) throw;
+        
+        while (i < components.size()) {
+          components.pop_back();
+        }
+        
+        throw DmException(ENOENT, "Entry '%s' not found under '%s'",
+                          c.c_str(), Url::joinPath(components).c_str());
+      }
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
