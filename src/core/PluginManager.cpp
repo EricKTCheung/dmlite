@@ -47,8 +47,7 @@ static bool configureFactories(std::list<T*>& l,
       recognized = true;
     }
     catch (DmException& e) {
-      if (e.code() != DMLITE_CFGERR(DMLITE_UNKNOWN_KEY))
-        throw;
+      if (e.code() != DMLITE_CFGERR(DMLITE_UNKNOWN_KEY)) throw;
     }
     catch (...) {
       throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION),
@@ -80,6 +79,7 @@ PluginManager::~PluginManager()
   populateUnique(uniqueFactories, this->pool_plugins_);
   populateUnique(uniqueFactories, this->io_plugins_);
   populateUnique(uniqueFactories, this->pool_driver_plugins_);
+  populateUnique(uniqueFactories, this->configure_factory_);
 
   // Free
   for (std::set<BaseFactory*>::iterator i = uniqueFactories.begin();
@@ -135,6 +135,7 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
   recognized |= configureFactories(this->pool_plugins_, key, value);
   recognized |= configureFactories(this->pool_driver_plugins_, key, value);
   recognized |= configureFactories(this->io_plugins_, key, value);
+  recognized |= configureFactories(this->configure_factory_, key, value);
 
   if (!recognized)
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
@@ -145,6 +146,14 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
 
 void PluginManager::loadConfiguration(const std::string& file) throw(DmException)
 {
+  struct stat fstat;
+  
+  if (stat(file.c_str(), &fstat) != 0)
+    throw DmException(DMLITE_CFGERR(errno), "Could not stat %s", file.c_str());
+  
+  if (S_ISDIR(fstat.st_mode))
+    throw DmException(DMLITE_CFGERR(EISDIR), "%s is a directory", file.c_str());
+  
   std::ifstream in(file.c_str(), std::ios_base::in);
   std::string   buffer;
   int           line;
@@ -173,13 +182,13 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           // Get plugin
           if (stream.eof())
             throw DmException(DMLITE_CFGERR(DMLITE_MALFORMED),
-                              "Plugin field not specified at line %d",
+                              "Error: LoadPlugin needs two parameters at line %d",
                               line);
           stream >> plugin;
           // Get lib
           if (stream.eof())
             throw DmException(DMLITE_CFGERR(DMLITE_MALFORMED),
-                              "Library field not specified at line %d",
+                              "Error: LoadPlugin needs two parameters at line %d",
                               line);
           stream >> lib;
           this->loadPlugin(lib, plugin);
@@ -192,9 +201,13 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
             this->configure(parameter, value);
           }
           catch (DmException& e) {
-            std::cerr << "Warning: Invalid configuration parameter '"
-                      << parameter
-                      << "' at " << file << ':' << line << std::endl;
+            if (e.code() == DMLITE_CFGERR(DMLITE_UNKNOWN_KEY))
+              std::cerr << "Warning: Invalid configuration parameter '"
+                        << parameter
+                        << "' at " << file << ':' << line << std::endl;
+            else
+              throw DmException(e.code(),
+                                "'%s' (error at line %d)", e.what(), line);
           }
         }
       }
@@ -314,4 +327,11 @@ PoolDriverFactory* PluginManager::getPoolDriverFactory(const std::string& poolty
 
   throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_POOL_TYPE),
                     "No plugin recognises the pool type '%s'", pooltype.c_str());
+}
+
+
+
+void PluginManager::registerConfigureFactory(BaseFactory* factory) throw (DmException)
+{
+  this->configure_factory_.push_front(factory);
 }
