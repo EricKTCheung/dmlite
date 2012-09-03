@@ -14,11 +14,12 @@
 namespace dmlite {
 
   /// API Version.
-  const unsigned API_VERSION = 20120828;
+  const unsigned API_VERSION = 20120903;
 
   // Forward declarations.
   class Authn;
   class AuthnFactory;
+  class BaseFactory;
   class Catalog;
   class CatalogFactory;
   class INode;
@@ -95,6 +96,12 @@ namespace dmlite {
     ///        DMLite will take care of freeing it only once.
     void registerPoolDriverFactory(PoolDriverFactory* factory) throw (DmException);
     
+    /// Register a bare BaseFactory. Only the configure method will be called.
+    /// @param factory The BaseFactory.
+    /// @note  The same object can be passed to other register functions.
+    ///        DMLite will take care of freeing it only once.
+    void registerConfigureFactory(BaseFactory* factory) throw (DmException);
+    
     /// Get the AuthnFactory implementation on top of the plugin stack.
     AuthnFactory* getAuthnFactory() throw (DmException);
 
@@ -121,6 +128,7 @@ namespace dmlite {
     std::list<PoolManagerFactory*> pool_plugins_;
     std::list<IOFactory*>          io_plugins_;
     std::list<PoolDriverFactory*>  pool_driver_plugins_;
+    std::list<BaseFactory*>        configure_factory_;
 
     /// Keep pointers returned by dlopen at hand to free on destruction
     std::list<void*> dlHandles_;

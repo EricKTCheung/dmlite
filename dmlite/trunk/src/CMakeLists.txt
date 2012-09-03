@@ -16,3 +16,5 @@ set_target_properties(dmlite PROPERTIES
 
 install(TARGETS dmlite
         LIBRARY DESTINATION usr/lib${LIB_SUFFIX})
+
+add_subdirectory (plugins)

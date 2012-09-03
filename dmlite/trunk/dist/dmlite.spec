@@ -128,8 +128,10 @@ rm -rf %{buildroot}
 %files libs
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/dmlite.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/*
 %{_libdir}/libdmlite.so.*
 %doc README LICENSE
+%{_libdir}/dmlite/*.so
 
 %files devel
 %defattr(-,root,root,-)
