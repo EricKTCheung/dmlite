@@ -33,7 +33,7 @@ if(CPPUNIT_INCLUDE_DIR)
 endif()
 
 # -----------------------------------------------------
-# handle the QUIETLY and REQUIRED arguments and set DPPUNIT_FOUND to TRUE if
+# handle the QUIETLY and REQUIRED arguments and set CPPUNIT_FOUND to TRUE if
 # all listed variables are TRUE
 # -----------------------------------------------------
 include(FindPackageHandleStandardArgs)
