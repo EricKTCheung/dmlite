@@ -30,16 +30,6 @@ inline gid_t getGid(const SecurityContext* ctx, unsigned index)
 
 
 
-inline bool hasGroup(const SecurityContext* ctx, gid_t gid)
-{
-  for (unsigned i = 0; i < ctx->groups.size(); ++i)
-    if (getGid(ctx, i) == gid)
-      return true;
-  return false;
-}
-
-
-
 BuiltInCatalogFactory::BuiltInCatalogFactory():
   updateATime_(true), symLinkLimit_(3)
 {
@@ -760,7 +750,7 @@ void BuiltInCatalog::setMode(const std::string& path, mode_t mode) throw (DmExce
   if (!S_ISDIR(meta.stat.st_mode) && getUid(this->secCtx_) != 0)
     mode &= ~S_ISVTX;
   if (getUid(this->secCtx_) != 0 &&
-      !hasGroup(this->secCtx_, meta.stat.st_gid))
+      !hasGroup(this->secCtx_->groups, meta.stat.st_gid))
     mode &= ~S_ISGID;
 
   // Update, keeping type bits from db.
@@ -823,7 +813,7 @@ void BuiltInCatalog::setOwner(const std::string& path,
         throw DmException(EPERM,
                           "Only root or the owner can set the group");
       // AND it has to belong to that group
-      if (!hasGroup(this->secCtx_, newGid))
+      if (!hasGroup(this->secCtx_->groups, newGid))
         throw DmException(EPERM,
                           "The user does not belong to the group %d", newGid);
       // If it does, the group exists :)
