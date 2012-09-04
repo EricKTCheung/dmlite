@@ -69,6 +69,11 @@ namespace dmlite {
      void        validate (void) const throw (DmException);
   };
   
+  /// Check if the group vector contains the given gid.
+  /// @param groups The GroupInfo vector.
+  /// @param gid    The gid to look for.
+  /// @return       true if the vector contains the given gid. false otherwise.
+  bool hasGroup(const std::vector<GroupInfo>& groups, gid_t gid);
 
   /// Check if a specific user has the demanded rights.
   /// @note This works using uid and gid, so it will only work with plug-ins that

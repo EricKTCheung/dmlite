@@ -51,6 +51,7 @@ public:
   void tearDown()
   {
     dmlite::Pool pool;
+    this->stackInstance->setSecurityContext(this->root);
     
     if (poolManager) {
       try {
@@ -137,11 +138,35 @@ public:
     poolManager->deletePool(pool);
     CPPUNIT_ASSERT_THROW(poolManager->getPool("test_hadoop"), dmlite::DmException);
   }
+  
+  void testAddNormalUser()
+  {
+    dmlite::SecurityContext unpriv;
+    dmlite::GroupInfo group;
+    
+    group["gid"]        = 101;
+    unpriv.user["uid"] = 101;
+    unpriv.groups.push_back(group);
+    
+    this->stackInstance->setSecurityContext(unpriv);
+    
+    // Add it
+    dmlite::Pool pool;
+    pool.name = "test_hadoop";
+    pool.type = "hadoop";
+    pool["hostname"] = std::string("namenode.cern.ch");
+    pool["port"]     = 8020;
+    pool["username"] = std::string("test");
+    pool["mode"]     = std::string("r");
+    
+    CPPUNIT_ASSERT_THROW(poolManager->newPool(pool), dmlite::DmException);
+  }
    
   CPPUNIT_TEST_SUITE(TestPools);
   CPPUNIT_TEST(testBase);
   CPPUNIT_TEST(testUnknown);
   CPPUNIT_TEST(testAddHadoop);
+  CPPUNIT_TEST(testAddNormalUser);
   CPPUNIT_TEST_SUITE_END();
 };
 

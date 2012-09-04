@@ -297,7 +297,7 @@ void Acl::validate() const throw (DmException)
 
 
 
-static bool hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
+bool dmlite::hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
 {
   std::vector<GroupInfo>::const_iterator i;
   for (i = groups.begin(); i != groups.end(); ++i) {
