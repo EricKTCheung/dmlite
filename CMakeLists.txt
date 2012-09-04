@@ -52,8 +52,18 @@ add_definitions (-D_REENTRANT)
 # Subdirectories
 add_subdirectory (etc)
 add_subdirectory (src)
-add_subdirectory (python)
-add_subdirectory (tests)
+
+# Enable tests only if CPPUNIT is found
+find_package (CppUnit)
+if (CPPUNIT_FOUND)
+  add_subdirectory (tests)
+endif (CPPUNIT_FOUND)
+
+# Enable python only if pythonlib is found
+find_package(PythonLibs)
+if (Boost_FOUND)
+  add_subdirectory (python)
+endif (Boost_FOUND)
 
 # Config header
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
