@@ -7,4 +7,4 @@
 
 LoadPlugin plugin_config /usr/lib@LIB_SUFFIX@/dmlite/plugin_config.so
 
-Include /etc/dmlite.d/*.conf
+Include /etc/dmlite.conf.d/*.conf
