@@ -24,6 +24,10 @@ void export_poolmanager()
         .def("getPool", boost::python::pure_virtual(&PoolManager::getPool))
         .def("whereToRead", boost::python::pure_virtual( static_cast< Location(PoolManager::*)(const std::string&) >  (&PoolManager::whereToRead) ))
         .def("whereToWrite", boost::python::pure_virtual(&PoolManager::whereToWrite))
+    
+        .def("newPool", boost::python::pure_virtual(&PoolManager::newPool))
+        .def("updatePool", boost::python::pure_virtual(&PoolManager::updatePool))
+        .def("deletePool", boost::python::pure_virtual(&PoolManager::deletePool))
         ;
 
     enum_<PoolManager::PoolAvailability>("PoolAvailability")
