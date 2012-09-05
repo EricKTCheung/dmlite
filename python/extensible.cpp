@@ -36,6 +36,8 @@ void export_extensible()
         .def("setInt", &ExtensibleSetInt)
         .def("setDouble", &ExtensibleSetDouble)
         .def("setString", &ExtensibleSetString)
+    
+        .def("getKeys", &Extensible::getKeys)
         ;
     
 
