@@ -41,10 +41,14 @@ void export_authn()
         .def("newGroup", pure_virtual(&Authn::newGroup))
         .def("getGroup", pure_virtual( static_cast< GroupInfo(Authn::*)(const std::string&) >  (&Authn::getGroup) ))
         .def("getGroup", pure_virtual( static_cast< GroupInfo(Authn::*)(const std::string&, const boost::any&) >  (&Authn::getGroup) ))
+        .def("updateGroup", pure_virtual(&Authn::updateGroup))
+        .def("deleteGroup", pure_virtual(&Authn::deleteGroup))
 
         .def("newUser", pure_virtual(&Authn::newUser))
         .def("getUser", pure_virtual( static_cast< UserInfo(Authn::*)(const std::string&) >  (&Authn::getUser) ))
         .def("getUser", pure_virtual( static_cast< UserInfo(Authn::*)(const std::string&, const boost::any&) >  (&Authn::getUser) ))
+        .def("updateUser", pure_virtual(&Authn::updateUser))
+        .def("deleteUser", pure_virtual(&Authn::deleteUser))
         
         .def("getIdMap", pure_virtual(&Authn::getIdMap))
 
