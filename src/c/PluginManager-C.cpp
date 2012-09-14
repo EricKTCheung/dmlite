@@ -200,7 +200,7 @@ const char* dmlite_error(dmlite_context* context)
 
 
 
-int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred)
+int dmlite_setcredentials(dmlite_context* context, const dmlite_credentials* cred)
 {
   TRY(context, setcredentials)
   NOT_NULL(cred);
@@ -274,4 +274,14 @@ int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v)
   NOT_NULL(k);
   context->stack->set(k, v->value);
   CATCH(context, set)
+}
+
+
+
+int dmlite_unset(dmlite_context* context, const char* k)
+{
+  TRY(context, unset)  
+  NOT_NULL(k);
+  context->stack->erase(k);
+  CATCH(context, unset)
 }
