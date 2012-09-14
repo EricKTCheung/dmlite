@@ -160,7 +160,7 @@ const char* dmlite_error(dmlite_context* context);
  * @param cred    The security credentials.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred);
+int dmlite_setcredentials(dmlite_context* context, const dmlite_credentials* cred);
 
 /**
  * @brief         Returns the security context. There is no need to free.
@@ -178,6 +178,14 @@ const dmlite_security_context* dmlite_get_security_context(dmlite_context* conte
  * @return        0 on success, error code otherwise.
  */
 int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v);
+
+/**
+ * @brief         Removes a configuration parameter.
+ * @param context The DM context.
+ * @param k       The configuration key.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_unset(dmlite_context* context, const char* k);
 
 #ifdef	__cplusplus
 }
