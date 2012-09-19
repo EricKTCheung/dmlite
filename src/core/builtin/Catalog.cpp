@@ -447,14 +447,19 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   // Need to be able to write to the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
-                      "Need write access on " + parentPath);
+                      "Need write access on %s", parentPath.c_str());
 
   // Check that the file does not exist, or it has no replicas
   try {
     file = this->si_->getINode()->extendedStat(parent.stat.st_ino, name);
     if (this->si_->getINode()->getReplicas(file.stat.st_ino).size() > 0)
       throw DmException(EEXIST,
-                        path + " exists and has replicas. Can not truncate.");
+                        "%s exists and has replicas. Can not truncate.",
+                        path.c_str());
+    else if (S_ISDIR(file.stat.st_mode))
+      throw DmException(EISDIR,
+                        "%s is a directory. Can not truncate", path.c_str());
+    
   }
   catch (DmException& e) {
     code = DMLITE_ERRNO(e.code());
@@ -495,7 +500,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     if (getUid(this->secCtx_) != file.stat.st_uid &&
         checkPermissions(this->secCtx_, file.acl, file.stat, S_IWRITE) != 0)
       throw DmException(EACCES,
-                        "Not enough permissions to truncate " + path);
+                        "Not enough permissions to truncate %s", path.c_str());
     this->si_->getINode()->setSize(file.stat.st_ino, 0);
   }
 }
