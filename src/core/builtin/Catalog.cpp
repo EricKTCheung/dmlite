@@ -292,7 +292,11 @@ std::vector<Replica> BuiltInCatalog::getReplicas(const std::string& path) throw 
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(EACCES,
-                      "Not enough permissions to read " + path);
+                      "Not enough permissions to read %s", path.c_str());
+  
+  if (S_ISDIR(meta.stat.st_mode))
+    throw DmException(EISDIR,
+                      "Directories do not have replicas");
 
   this->updateAccessTime(meta);
   return this->si_->getINode()->getReplicas(meta.stat.st_ino);
