@@ -67,6 +67,34 @@ Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 
 
 
+void DummyPoolManager::newPool(const Pool& pool) throw (DmException)
+{
+  DELEGATE(newPool, pool);
+}
+
+
+
+void DummyPoolManager::updatePool(const Pool& pool) throw (DmException)
+{
+  DELEGATE(updatePool, pool);
+}
+
+
+
+void DummyPoolManager::deletePool(const Pool& pool) throw (DmException)
+{
+  DELEGATE(deletePool, pool);
+}
+
+
+
+Location DummyPoolManager::whereToRead(ino_t inode) throw (DmException)
+{
+  DELEGATE_RETURN(whereToRead, inode);
+}
+
+
+
 Location DummyPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
   DELEGATE_RETURN(whereToRead, path);
