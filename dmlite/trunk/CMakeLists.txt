@@ -106,6 +106,12 @@ if (DOXYGEN_FOUND)
 
 endif (DOXYGEN_FOUND)
 
+# Tutorial
+install (DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/tutorial/
+         DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/tutorial
+         COMPONENT   dmlite-devel
+         PATTERN ".svn" EXCLUDE)
+
 # Configure CTest testing
 ENABLE_TESTING()
 
