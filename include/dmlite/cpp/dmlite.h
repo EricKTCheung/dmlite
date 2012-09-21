@@ -227,7 +227,7 @@ namespace dmlite {
 
   /// Macro intended to allow future expansions of the PluginIdCard header
   /// easily.
-  #define PLUGIN_ID_HEADER API_VERSION
+  #define PLUGIN_ID_HEADER dmlite::API_VERSION
 
 };
 
