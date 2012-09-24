@@ -1,5 +1,5 @@
 Name:		dmlite
-Version:	0.4.1
+Version:	0.4.2
 Release:	1%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
@@ -7,8 +7,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_4_0 dmlite-0.4.0
-# tar -czvf dmlite-0.4.0.tar.gz dmlite-0.4.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_4_2 dmlite-0.4.2
+# tar -czvf dmlite-0.4.2.tar.gz dmlite-0.4.2
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -54,13 +54,6 @@ Group:		Applications/Internet
 %description docs
 Man pages and HTML documentation for dmlite.
 
-%package tests
-Summary:	Tests for dmlite
-Group:		Applications/Internet
-
-%description tests
-Tests for dmlite and plug-ins.
-
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -98,20 +91,23 @@ rm -rf %{buildroot}
 %{_mandir}/man3/*
 %{_defaultdocdir}/%{name}-%{version}
 
-%files tests
-%defattr(-,root,root,-)
-%{_datadir}/tests/*
-
 %changelog
-* Fri Jul 13 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
+* Mon Sep 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-1
+- update for new upstream release
+- dropped plugin packages (moved to separate individual packages)
+
+* Sat Sep 22 2012  Remi Collet <remi@fedoraproject.org> - 0.3.0-2
+- rebuild against libmemcached.so.11 without SASL
+
+* Thu Jul 19 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
 - Update for new upstream release
+
+* Wed Jul 18 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.2.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
 
 * Tue Jun 05 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-3
 - Removed subversion build dep
 - Added patches for proper tests compilation (missing include, wrong cmake dep)
-
-* Sun May 20 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
-- Update for new upstream release
 
 * Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
 - Split plugins into multiple packages, added dependencies
