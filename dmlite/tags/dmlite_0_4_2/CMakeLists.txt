@@ -5,7 +5,7 @@ project (dmlite)
 # Version
 set(dmlite_MAJOR 0)
 set(dmlite_MINOR 4)
-set(dmlite_PATCH 1)
+set(dmlite_PATCH 2)
 
 # Host certificate location
 set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")
@@ -52,7 +52,6 @@ add_definitions (-D_REENTRANT)
 # Subdirectories
 add_subdirectory (etc)
 add_subdirectory (src)
-add_subdirectory (tests)
 
 # Config header
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
@@ -94,6 +93,3 @@ if (DOXYGEN_FOUND)
            COMPONENT   dmlite-devel)
 
 endif (DOXYGEN_FOUND)
-
-# Configure CTest testing
-ENABLE_TESTING()
