@@ -20,12 +20,7 @@ namespace dmlite {
     virtual std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
 
     virtual Pool getPool(const std::string& poolname) throw (DmException);
-    
-    virtual void newPool(const Pool& pool) throw (DmException);
-    virtual void updatePool(const Pool& pool) throw (DmException);
-    virtual void deletePool(const Pool& pool) throw (DmException);
 
-    virtual Location whereToRead(ino_t inode) throw (DmException);
     virtual Location whereToRead(const std::string& path) throw (DmException);
 
     virtual Location whereToWrite(const std::string& path) throw (DmException);

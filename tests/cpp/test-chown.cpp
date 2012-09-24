@@ -60,7 +60,7 @@ public:
       this->catalog->setOwner(FILE, getUid(ctx), -1);
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EPERM, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     // It should BE able to change the group to one it belongs to
@@ -74,7 +74,7 @@ public:
       this->catalog->setOwner(FILE, -1, 0);
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EPERM, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
   }
 
@@ -89,14 +89,14 @@ public:
       this->catalog->setOwner(FILE, getUid(ctx), -1);
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EPERM, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
 
     try {
       this->catalog->setOwner(FILE, -1, getGid(ctx, 0));
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EPERM, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_BAD_OPERATION, e.code());
     }
   }
 

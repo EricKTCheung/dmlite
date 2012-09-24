@@ -51,7 +51,7 @@ public:
         IGNORE_NOT_EXIST(this->catalog->unlink(FILE));
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != EISDIR) throw;
+        if (e.code() != DM_IS_DIRECTORY) throw;
         this->catalog->removeDir(FILE);
       }
       IGNORE_NOT_EXIST(this->catalog->unlink(SYMLINK));
@@ -219,7 +219,7 @@ public:
       CPPUNIT_FAIL("Exception not thrown");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(ENOENT, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_NO_SUCH_FILE, e.code());
     }
   }
 
@@ -231,7 +231,7 @@ public:
       CPPUNIT_FAIL("Exception not thrown");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EACCES, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
 
     this->catalog->setMode(FOLDER, 0600);
@@ -241,7 +241,7 @@ public:
     }
     catch (dmlite::DmException& e) {
       // The problem should have been the S_IEXEC!!
-      CPPUNIT_ASSERT_EQUAL(EACCES, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
   }
   

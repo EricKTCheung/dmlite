@@ -258,46 +258,43 @@ void Acl::validate() const throw (DmException)
         ndo++;
         break;
       default:
-        throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
-                          "Invalid ACL type: %c", i->type);
+        throw DmException(DM_INVALID_ACL, "Invalid ACL type: %c", i->type);
     }
     // Check perm
     if (i->perm > 7)
-      throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
-                        "Invalid permission: %d", i->perm);
+      throw DmException(DM_INVALID_ACL, "Invalid permission: %d", i->perm);
 
     // Check it isn't duplicated
     if (i != this->begin()) {
       if (i->type == (i - 1)->type && i->id == (i - 1)->id)
-        throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
-                          "Duplicated USER or GROUP entry: %c%d", i->type, i->id);
+        throw DmException(DM_INVALID_ACL, "Duplicated USER or GROUP entry: %c%d", i->type, i->id);
     }
   }
 
   // There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER
   if (nuo != 1 || ngo != 1 || no != 1)
-    throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
+    throw DmException(DM_INVALID_ACL,
                       "There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER");
   
   // If there is any USER or GROUP entry, there must be a MASK entry
   if ((nu || ng) && nm != 1)
-    throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
+    throw DmException(DM_INVALID_ACL,
                       "If there is any USER or GROUP entry, there must be a MASK entry");
 
   // If there are any default ACL entries, there must be one and only one
   // entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER
   if (ndefs && (nduo != 1 || ndgo != 1 || ndo != 1))
-    throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
+    throw DmException(DM_INVALID_ACL,
                       "If there are any default ACL entries, there must be one and only one entry of each type DEF_USER_OBJ, DEF_GROUP_OBJ, DEF_OTHER");
 
   if ((ndu || ndg) && ndm != 1)
-    throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
+    throw DmException(DM_INVALID_ACL,
                       "If there is any default USER or default GROUP entry, there must be a default MASK entry");
 }
 
 
 
-bool dmlite::hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
+static bool hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
 {
   std::vector<GroupInfo>::const_iterator i;
   for (i = groups.begin(); i != groups.end(); ++i) {
@@ -327,10 +324,9 @@ int dmlite::checkPermissions(const SecurityContext* context,
   int      accPerm;
   int      nGroups = 0;
   
-  // If Context is NULL, abort
+  // If Context is NULL, die badly
   if (context == 0)
-    throw DmException(DMLITE_SYSERR(EINVAL),
-                      "Security context not initialized!!");
+    throw DmException(DM_INVALID_VALUE, "Security context not initialized!!");
   
   // Extract used metadata
   uid_t uid = context->user.getUnsigned("uid");
@@ -431,8 +427,7 @@ std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
   // Check the last modified time
   struct stat mfStat;
   if (stat(mapfile.c_str(), &mfStat) == -1)
-    throw DmException(DMLITE_SYSERR(errno),
-                      "Can not stat " + mapfile);
+    throw DmException(DM_NO_SUCH_FILE, "Can not stat " + mapfile);
 
   if (mfStat.st_mtime > mfe->lastModified) {
     // Need to update the mapping!
@@ -446,8 +441,7 @@ std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
       FILE *mf;
 
       if ((mf = fopen(mapfile.c_str(), "r")) == NULL)
-        throw DmException(DMLITE_SYSERR(errno),
-                          "Can not open " + mapfile);
+        throw DmException(DM_NO_SUCH_FILE, "Can not open " + mapfile);
 
       while (fgets(buf, sizeof(buf), mf)) {
         buf[strlen (buf) - 1] = '\0';
@@ -502,8 +496,7 @@ std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
 
   // Done here
   if (mfe->voForDn.count(dn) == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_USER_MAPPING),
-                      "Could not map " + dn);
+    throw DmException(DM_NO_USER_MAPPING, "Could not map " + dn);
 
   return mfe->voForDn[dn];
 }
@@ -531,22 +524,20 @@ std::string dmlite::voFromRole(const std::string& role)
 // This hack allows to parse only once the file
 static std::string initHostDN(void)
 {
-  X509*       hostX509; 
- BIO*        in = BIO_new(BIO_s_file());
+  X509*       hostX509;
+  BIO*        in = BIO_new(BIO_s_file());
 
   if (BIO_read_filename(in, HOST_CERTIFICATE) < 0) {
     BIO_free_all(in);
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not read the host certificate (BIO: %s)",
-                      HOST_CERTIFICATE);
+    throw DmException(DM_INTERNAL_ERROR,
+                      "Could not read the host certificate (BIO: %s)", HOST_CERTIFICATE);
   }
 
   hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
   BIO_free_all(in);
   if (hostX509 == NULL) {
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not read the host certificate (X509: %s)",
-                      HOST_CERTIFICATE);
+    throw DmException(DM_INTERNAL_ERROR,
+                      "Could not read the host certificate (X509: %s)", HOST_CERTIFICATE);
   }
 
   std::string hostDN = hostX509->name;
@@ -584,15 +575,13 @@ static unsigned base64_encode(const char *input, unsigned length, char* output)
   output[written] = 0;
   
   BIO_free_all(b64);
-  
+   
   return written;
 }
 
 
 
-std::string dmlite::generateToken(const std::string& id, const std::string& pfn,
-                                  const std::string& passwd, time_t lifetime,
-                                  bool write)
+std::string dmlite::generateToken(const std::string& id, const std::string& pfn, const std::string& passwd, time_t lifetime, bool write)
 {
   char     buffer1[1024];
   char     buffer2[1024];

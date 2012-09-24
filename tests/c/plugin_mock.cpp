@@ -194,8 +194,7 @@ void MockCatalog::deleteReplica(const Replica& replica) throw (DmException)
   else {
     RfnReplicaType::iterator j = i->second.find(replica.rfn);
     if (j == i->second.end())
-      throw DmException(DMLITE_NO_SUCH_REPLICA,
-                        "Could not find %s", replica.rfn.c_str());
+      throw DmException(DM_NO_SUCH_REPLICA, "Could not find %s", replica.rfn.c_str());
     i->second.erase(j);
   }
 }
@@ -230,8 +229,7 @@ Replica MockCatalog::getReplica(const std::string& rfn) throw (DmException)
       return j->second;
   }
   
-  throw DmException(DMLITE_NO_SUCH_REPLICA,
-                    "Not found %s", rfn.c_str());
+  throw DmException(DM_NO_SUCH_REPLICA, "Not found %s", rfn.c_str());
 }
 
 
@@ -245,8 +243,7 @@ void MockCatalog::updateReplica(const Replica& replica) throw (DmException)
   else {
     RfnReplicaType::iterator j = i->second.find(replica.rfn);
     if (j == i->second.end())
-      throw DmException(DMLITE_NO_SUCH_REPLICA,
-                        "Could not find %s", replica.rfn.c_str());
+      throw DmException(DM_NO_SUCH_REPLICA, "Could not find %s", replica.rfn.c_str());
     j->second = replica;
   }
 }
@@ -290,7 +287,7 @@ std::vector<Pool> MockPoolManager::getPools(PoolAvailability availability) throw
 
 void MockPoolManager::newPool(const Pool&) throw (DmException)
 {
-  throw DmException(DMLITE_SYSERR(ENOSYS),
+  throw DmException(DM_NOT_IMPLEMENTED,
                     "MockPoolManager::addPool not implemented");
 }
 
@@ -298,15 +295,14 @@ void MockPoolManager::newPool(const Pool&) throw (DmException)
 
 void MockPoolManager::updatePool(const Pool&) throw (DmException)
 {
-  throw DmException(DMLITE_SYSERR(ENOSYS),
-                    "MockPoolManager::updatePool not implemented");
+  throw DmException(DM_NOT_IMPLEMENTED, "MockPoolManager::updatePool not implemented");
 }
 
 
 
 void MockPoolManager::deletePool(const Pool&) throw (DmException)
 {
-  throw DmException(DMLITE_SYSERR(ENOSYS),
+  throw DmException(DM_NOT_IMPLEMENTED,
                     "MockPoolManager::deletePool not implemented");
 }
 
@@ -386,8 +382,7 @@ void MockIOHandler::close(void) throw (DmException)
 
 size_t MockIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
-  if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                                "Can not read after closing");
+  if (closed) throw DmException(DM_INTERNAL_ERROR, "Can not read after closing");
   
   size_t i;
   for (i = 0; i < count && p < (off_t)sizeof(content); ++i, ++p) {
@@ -401,8 +396,7 @@ size_t MockIOHandler::read(char* buffer, size_t count) throw (DmException)
 
 size_t MockIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
-  if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                                "Can not write after closing");
+  if (closed) throw DmException(DM_INTERNAL_ERROR, "Can not write after closing");
   
   size_t i;
   for (i = 0; i < count && p < (off_t)sizeof(content); ++i, ++p) {
@@ -416,8 +410,7 @@ size_t MockIOHandler::write(const char* buffer, size_t count) throw (DmException
 
 void MockIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
-  if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                                "Can not seek after closing");
+  if (closed) throw DmException(DM_INTERNAL_ERROR, "Can not seek after closing");
   switch (whence) {
     case kSet:
       p = offset;
@@ -436,8 +429,7 @@ void MockIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 
 off_t MockIOHandler::tell (void) throw (DmException)
 {
-  if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                                "Can not tell after closing");
+  if (closed) throw DmException(DM_INTERNAL_ERROR, "Can not tell after closing");
   return p;
 }
 
@@ -445,8 +437,7 @@ off_t MockIOHandler::tell (void) throw (DmException)
 
 void MockIOHandler::flush(void) throw (DmException)
 {
-  if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                                "Can not flush after closing");
+  if (closed) throw DmException(DM_INTERNAL_ERROR, "Can not flush after closing");
 }
 
 
@@ -491,23 +482,20 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
 {
   // Only one recognised
   if (pfn != "/file")
-    throw DmException(ENOENT, "File  %s not found", pfn.c_str());
+    throw DmException(DM_NO_SUCH_FILE, "File  %s not found", pfn.c_str());
   
   // Check token
   switch (flags & ~O_CREAT) {
     case O_RDONLY:
       if (extras.getString("token") != "123456789")
-        throw DmException(EACCES,
-                          "Invalid token for reading");
+        throw DmException(DM_FORBIDDEN, "Invalid token for reading");
       break;
     case O_WRONLY: case O_RDWR:
       if (extras.getString("token") != "987654321")
-        throw DmException(EACCES,
-                          "Invalid token for writing");
+        throw DmException(DM_FORBIDDEN, "Invalid token for writing");
       break;
     default:
-      throw DmException(EINVAL,
-                        "Invalid value for the flags");
+      throw DmException(DM_INVALID_VALUE, "Invalid value for the flags");
   }
   
   return new MockIOHandler();
@@ -518,11 +506,9 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
 void MockIODriver::doneWriting(const std::string& pfn, const Extensible& params) throw (DmException)
 {
   if (params.getString("token") != "987654321")
-    throw DmException(EACCES,
-                      "Invalid token");
+    throw DmException(DM_FORBIDDEN, "Invalid token");
   if (pfn != "/storage/chunk01")
-    throw DmException(EINVAL,
-                      "Invalid rfn");  
+    throw DmException(DM_INVALID_VALUE, "Invalid rfn");  
 }
 
 
@@ -543,8 +529,7 @@ std::string MockFactory::implementedPool() throw ()
 
 void MockFactory::configure(const std::string& key, const std::string&) throw (DmException)
 {
-  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                    "Unknown parameter %s", key.c_str());
+  throw DmException(DM_UNKNOWN_OPTION, "Unknown parameter %s", key.c_str());
 }
 
 

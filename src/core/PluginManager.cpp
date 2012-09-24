@@ -47,11 +47,11 @@ static bool configureFactories(std::list<T*>& l,
       recognized = true;
     }
     catch (DmException& e) {
-      if (e.code() != DMLITE_CFGERR(DMLITE_UNKNOWN_KEY)) throw;
+      if (e.code() != DM_UNKNOWN_OPTION)
+        throw;
     }
     catch (...) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION),
-                        "Unexpected exception catched");
+      throw DmException(DM_UNEXPECTED_EXCEPTION, "Unexpected exception catched");
     }
   }
   
@@ -79,7 +79,6 @@ PluginManager::~PluginManager()
   populateUnique(uniqueFactories, this->pool_plugins_);
   populateUnique(uniqueFactories, this->io_plugins_);
   populateUnique(uniqueFactories, this->pool_driver_plugins_);
-  populateUnique(uniqueFactories, this->configure_factory_);
 
   // Free
   for (std::set<BaseFactory*>::iterator i = uniqueFactories.begin();
@@ -103,19 +102,19 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
 
   dl = dlopen(lib.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (dl == NULL)
-    throw DmException(DMLITE_CFGERR(ENOENT), std::string(dlerror()));
+    throw DmException(DM_NO_SUCH_FILE, std::string(dlerror()));
   this->dlHandles_.push_back(dl);
 
   idCard = static_cast<PluginIdCard*>(dlsym(dl, id.c_str()));
   if (idCard == NULL)
-    throw DmException(DMLITE_CFGERR(DMLITE_NO_SUCH_SYMBOL), std::string(dlerror()));
+    throw DmException(DM_NO_SUCH_SYMBOL, std::string(dlerror()));
 
   if (idCard->ApiVersion < API_VERSION)
-    throw DmException(DMLITE_CFGERR(DMLITE_API_VERSION_MISMATCH),
+    throw DmException(DM_API_VERSION_MISMATCH,
                       "Plugin version (%d) < API version (%d) - Consider upgrading the plug-in %s",
                       idCard->ApiVersion, API_VERSION, lib.c_str());
   else if (idCard->ApiVersion > API_VERSION)
-    throw DmException(DMLITE_CFGERR(DMLITE_API_VERSION_MISMATCH),
+    throw DmException(DM_API_VERSION_MISMATCH,
                       "Plugin version (%d) > API version (%d) - Consider upgrading dmlite or downgrading the plugin %s",
                       idCard->ApiVersion, API_VERSION, lib.c_str());
 
@@ -135,32 +134,21 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
   recognized |= configureFactories(this->pool_plugins_, key, value);
   recognized |= configureFactories(this->pool_driver_plugins_, key, value);
   recognized |= configureFactories(this->io_plugins_, key, value);
-  recognized |= configureFactories(this->configure_factory_, key, value);
 
   if (!recognized)
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      "Unknown option %s", key.c_str());
+    throw DmException(DM_UNKNOWN_OPTION, "Unknown option " + key);
 }
 
 
 
 void PluginManager::loadConfiguration(const std::string& file) throw(DmException)
 {
-  struct stat fstat;
-  
-  if (stat(file.c_str(), &fstat) != 0)
-    throw DmException(DMLITE_CFGERR(errno), "Could not stat %s", file.c_str());
-  
-  if (S_ISDIR(fstat.st_mode))
-    throw DmException(DMLITE_CFGERR(EISDIR), "%s is a directory", file.c_str());
-  
   std::ifstream in(file.c_str(), std::ios_base::in);
   std::string   buffer;
   int           line;
 
   if (in.fail())
-    throw DmException(DMLITE_CFGERR(ENOENT),
-                      "Could not open %s", file.c_str());
+    throw DmException(DM_NO_SUCH_FILE, std::string("Could not open ") + file);
 
   line  = 1;
 
@@ -181,14 +169,14 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
           std::string plugin, lib;
           // Get plugin
           if (stream.eof())
-            throw DmException(DMLITE_CFGERR(DMLITE_MALFORMED),
-                              "Error: LoadPlugin needs two parameters at line %d",
+            throw DmException(DM_MALFORMED_CONF,
+                              "Plugin field not specified at line %d",
                               line);
           stream >> plugin;
           // Get lib
           if (stream.eof())
-            throw DmException(DMLITE_CFGERR(DMLITE_MALFORMED),
-                              "Error: LoadPlugin needs two parameters at line %d",
+            throw DmException(DM_MALFORMED_CONF,
+                              "Library field not specified at line %d",
                               line);
           stream >> lib;
           this->loadPlugin(lib, plugin);
@@ -201,13 +189,9 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
             this->configure(parameter, value);
           }
           catch (DmException& e) {
-            if (e.code() == DMLITE_CFGERR(DMLITE_UNKNOWN_KEY))
-              std::cerr << "Warning: Invalid configuration parameter '"
-                        << parameter
-                        << "' at " << file << ':' << line << std::endl;
-            else
-              throw DmException(e.code(),
-                                "'%s' (error at line %d)", e.what(), line);
+            std::cerr << "Warning: Invalid configuration parameter '"
+                      << parameter
+                      << "' at " << file << ':' << line << std::endl;
           }
         }
       }
@@ -230,7 +214,7 @@ void PluginManager::registerAuthnFactory(AuthnFactory* factory) throw (DmExcepti
 AuthnFactory* PluginManager::getAuthnFactory() throw (DmException)
 {
   if (this->authn_plugins_.empty())
-    return NULL;
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->authn_plugins_.front();
 }
@@ -247,7 +231,7 @@ void PluginManager::registerINodeFactory(INodeFactory* factory) throw (DmExcepti
 INodeFactory* PluginManager::getINodeFactory() throw (DmException)
 {
   if (this->inode_plugins_.empty())
-    return NULL;
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->inode_plugins_.front();
 }
@@ -264,7 +248,7 @@ void PluginManager::registerCatalogFactory(CatalogFactory* factory) throw(DmExce
 CatalogFactory* PluginManager::getCatalogFactory() throw(DmException)
 {
   if (this->catalog_plugins_.empty())
-    return NULL;
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->catalog_plugins_.front();
 }
@@ -281,7 +265,7 @@ void PluginManager::registerPoolManagerFactory(PoolManagerFactory* factory) thro
 PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
 {
   if (this->pool_plugins_.empty())
-    return NULL;
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->pool_plugins_.front();
 }
@@ -298,7 +282,7 @@ void PluginManager::registerIOFactory(IOFactory* factory) throw (DmException)
 IOFactory* PluginManager::getIOFactory() throw (DmException)
 {
   if (this->io_plugins_.empty())
-    return NULL;
+    throw DmException(DM_NO_FACTORY, "There is no plugin at the top of the stack");
   else
     return this->io_plugins_.front();
 }
@@ -325,13 +309,6 @@ PoolDriverFactory* PluginManager::getPoolDriverFactory(const std::string& poolty
     }
   }
 
-  throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_POOL_TYPE),
+  throw DmException(DM_UNKNOWN_POOL_TYPE,
                     "No plugin recognises the pool type '%s'", pooltype.c_str());
-}
-
-
-
-void PluginManager::registerConfigureFactory(BaseFactory* factory) throw (DmException)
-{
-  this->configure_factory_.push_front(factory);
 }

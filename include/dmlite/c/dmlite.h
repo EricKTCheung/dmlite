@@ -37,23 +37,6 @@ typedef struct dmlite_credentials {
   dmlite_any_dict* extra;
 } dmlite_credentials;
 
-/** @brief Used to handle user and group information
- */
-typedef struct dmlite_security_ent {
-  const char*      name;
-  dmlite_any_dict* extra;
-} dmlite_security_ent;
-
-/** @brief Security context 
- */
-typedef struct dmlite_security_context {
-  dmlite_credentials* credentials;
-  
-  unsigned ngroups;
-  dmlite_security_ent  user;  
-  dmlite_security_ent* groups;
-} dmlite_security_context;
-
 /**
  * @brief Gets the API version.
  */
@@ -100,16 +83,9 @@ int dmlite_manager_load_configuration(dmlite_manager* manager, const char* file)
 /**
  * @brief         Returns the last error code.
  * @param manager The plugin manager used in the failing function.
- * @return        The last error code, WITHOUT the error type byte.
+ * @return        The last error code.
  */
 int dmlite_manager_errno(dmlite_manager* manager);
-
-/**
- * @brief         Returns the type of the last error.
- * @param manager The plugin manager used in the failing function.
- * @return        The last error type byte.
- */
-int dmlite_manager_errtype(dmlite_manager* manager);
 
 /**
  * @brief         Returns the string that describes the last error.
@@ -141,13 +117,6 @@ int dmlite_context_free(dmlite_context* context);
 int dmlite_errno(dmlite_context* context);
 
 /**
- * @brief         Returns the type of the last error.
- * @param context The context that was used in the failed function.
- * @return        The error type.
- */
-int dmlite_errtype(dmlite_context* context);
-
-/**
  * @brief         Error string from the last failed function.
  * @param context The context that was used in the failed function.
  * @return        A string with the error description. Do NOT free it.
@@ -160,14 +129,7 @@ const char* dmlite_error(dmlite_context* context);
  * @param cred    The security credentials.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_setcredentials(dmlite_context* context, const dmlite_credentials* cred);
-
-/**
- * @brief         Returns the security context. There is no need to free.
- * @param context The DM context.
- * @return        The security context.
- */
-const dmlite_security_context* dmlite_get_security_context(dmlite_context* context);
+int dmlite_setcredentials(dmlite_context* context, dmlite_credentials* cred);
 
 /**
  * @brief         Sets a configuration parameter tied to a context.
@@ -178,14 +140,6 @@ const dmlite_security_context* dmlite_get_security_context(dmlite_context* conte
  * @return        0 on success, error code otherwise.
  */
 int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v);
-
-/**
- * @brief         Removes a configuration parameter.
- * @param context The DM context.
- * @param k       The configuration key.
- * @return        0 on success, error code otherwise.
- */
-int dmlite_unset(dmlite_context* context, const char* k);
 
 #ifdef	__cplusplus
 }

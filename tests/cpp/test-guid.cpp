@@ -29,7 +29,8 @@ public:
         this->catalog->unlink(FILE);
       }
       catch (dmlite::DmException& e) {
-        if (e.code() != ENOENT) throw;
+        if (e.code() != DM_NO_SUCH_FILE)
+          throw;
       }
     }
     TestBase::tearDown();

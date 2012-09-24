@@ -3,7 +3,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = dmlite
-PROJECT_NUMBER         = 0.5
+PROJECT_NUMBER         = 0.4
 OUTPUT_DIRECTORY       = doc
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -22,8 +22,8 @@ ABBREVIATE_BRIEF       = "The $name class" \
                          the
 ALWAYS_DETAILED_SEC    = NO
 INLINE_INHERITED_MEMB  = NO
-FULL_PATH_NAMES        = YES 
-STRIP_FROM_PATH        = @CMAKE_CURRENT_SOURCE_DIR@
+FULL_PATH_NAMES        = NO
+STRIP_FROM_PATH        =
 STRIP_FROM_INC_PATH    =
 SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = NO
@@ -102,7 +102,16 @@ INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include \
                          @CMAKE_CURRENT_SOURCE_DIR@/src/core    \
                          @CMAKE_CURRENT_SOURCE_DIR@/src/utils
 INPUT_ENCODING         = UTF-8
-FILE_PATTERNS          = *.h
+FILE_PATTERNS          = *.c \
+                         *.cc \
+                         *.cxx \
+                         *.cpp \
+                         *.c++ \
+                         *.h \
+                         *.hh \
+                         *.hxx \
+                         *.hpp \
+                         *.h++
 RECURSIVE              = YES
 EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO

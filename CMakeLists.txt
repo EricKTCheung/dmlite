@@ -4,8 +4,8 @@ project (dmlite)
 
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 5)
-set(dmlite_PATCH 0)
+set(dmlite_MINOR 4)
+set(dmlite_PATCH 1)
 
 # Host certificate location
 set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")
@@ -41,10 +41,10 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS})
 
 # Link path
-link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
+link_directories (${Boost_LIBRARY_DIRS})
 
 # Definitions
 add_definitions (-D_REENTRANT)
@@ -52,18 +52,7 @@ add_definitions (-D_REENTRANT)
 # Subdirectories
 add_subdirectory (etc)
 add_subdirectory (src)
-
-# Enable tests only if CPPUNIT is found
-find_package (CppUnit)
-if (CPPUNIT_FOUND)
-  add_subdirectory (tests)
-endif (CPPUNIT_FOUND)
-
-# Enable python only if pythonlib is found
-find_package(PythonLibs)
-if (Boost_FOUND)
-  add_subdirectory (python)
-endif (Boost_FOUND)
+add_subdirectory (tests)
 
 # Config header
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
@@ -106,28 +95,5 @@ if (DOXYGEN_FOUND)
 
 endif (DOXYGEN_FOUND)
 
-# Tutorial
-install (DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/doc/tutorial/
-         DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/tutorial
-         COMPONENT   dmlite-devel
-         PATTERN ".svn" EXCLUDE)
-
 # Configure CTest testing
 ENABLE_TESTING()
-
-
-
-
-
-
-
-#######################################################
-# Configure an 'uninstall' target
-CONFIGURE_FILE(
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-  IMMEDIATE @ONLY)
-
-ADD_CUSTOM_TARGET(uninstall
-  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
-

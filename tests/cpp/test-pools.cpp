@@ -25,7 +25,7 @@ static void printPools(dmlite::StackInstance* stack, const std::vector<dmlite::P
       delete handler;
     }
     catch (dmlite::DmException& e) {
-      if (e.code() != DMLITE_UNKNOWN_POOL_TYPE)
+      if (e.code() != DM_UNKNOWN_POOL_TYPE)
         throw;
       std::cout << "Pool type:   " << pools[i].type << std::endl
                 << "Pool name:   " << pools[i].name << std::endl
@@ -51,7 +51,6 @@ public:
   void tearDown()
   {
     dmlite::Pool pool;
-    this->stackInstance->setSecurityContext(this->root);
     
     if (poolManager) {
       try {
@@ -60,7 +59,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_POOL) throw;
+        if (e.code() != DM_NO_SUCH_POOL) throw;
       }
 
       try {
@@ -69,7 +68,7 @@ public:
         poolManager->deletePool(pool);
       }
       catch (dmlite::DmException& e) {
-        if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_POOL) throw;
+        if (e.code() != DM_NO_SUCH_POOL) throw;
       }
     }
     
@@ -138,35 +137,11 @@ public:
     poolManager->deletePool(pool);
     CPPUNIT_ASSERT_THROW(poolManager->getPool("test_hadoop"), dmlite::DmException);
   }
-  
-  void testAddNormalUser()
-  {
-    dmlite::SecurityContext unpriv;
-    dmlite::GroupInfo group;
-    
-    group["gid"]        = 101;
-    unpriv.user["uid"] = 101;
-    unpriv.groups.push_back(group);
-    
-    this->stackInstance->setSecurityContext(unpriv);
-    
-    // Add it
-    dmlite::Pool pool;
-    pool.name = "test_hadoop";
-    pool.type = "hadoop";
-    pool["hostname"] = std::string("namenode.cern.ch");
-    pool["port"]     = 8020;
-    pool["username"] = std::string("test");
-    pool["mode"]     = std::string("r");
-    
-    CPPUNIT_ASSERT_THROW(poolManager->newPool(pool), dmlite::DmException);
-  }
    
   CPPUNIT_TEST_SUITE(TestPools);
   CPPUNIT_TEST(testBase);
   CPPUNIT_TEST(testUnknown);
   CPPUNIT_TEST(testAddHadoop);
-  CPPUNIT_TEST(testAddNormalUser);
   CPPUNIT_TEST_SUITE_END();
 };
 

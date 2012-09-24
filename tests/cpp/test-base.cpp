@@ -26,7 +26,7 @@ TestBase::TestBase(): pluginManager(0x00), catalog(0x00),
   else if ((testHome = getenv("LFC_HOME")) != NULL)
     BASE_DIR = std::string(testHome);
   else
-    throw dmlite::DmException(EINVAL,
+    throw dmlite::DmException(DM_INVALID_VALUE,
                               "Could not guess the test directory. Try setting DPNS_HOME or LFC_HOME");
 
   dmlite::GroupInfo group;

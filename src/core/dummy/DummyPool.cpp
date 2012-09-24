@@ -11,16 +11,14 @@ using namespace dmlite;
 /// Little of help here to avoid redundancy
 #define DELEGATE(method, ...) \
 if (this->decorated_ == NULL)\
-  throw DmException(DMLITE_SYSERR(ENOSYS),\
-                    "There is no plugin in the stack that implements "#method);\
+  throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 this->decorated_->method(__VA_ARGS__);
 
 
 /// Little of help here to avoid redundancy
 #define DELEGATE_RETURN(method, ...) \
 if (this->decorated_ == NULL)\
-  throw DmException(DMLITE_SYSERR(ENOSYS),\
-                    "There is no plugin in the stack that implements "#method);\
+  throw DmException(DM_NOT_IMPLEMENTED, "There is no plugin in the stack that implements "#method);\
 return this->decorated_->method(__VA_ARGS__);
 
 
@@ -63,34 +61,6 @@ std::vector<Pool> DummyPoolManager::getPools(PoolAvailability availability) thro
 Pool DummyPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
   DELEGATE_RETURN(getPool, poolname);
-}
-
-
-
-void DummyPoolManager::newPool(const Pool& pool) throw (DmException)
-{
-  DELEGATE(newPool, pool);
-}
-
-
-
-void DummyPoolManager::updatePool(const Pool& pool) throw (DmException)
-{
-  DELEGATE(updatePool, pool);
-}
-
-
-
-void DummyPoolManager::deletePool(const Pool& pool) throw (DmException)
-{
-  DELEGATE(deletePool, pool);
-}
-
-
-
-Location DummyPoolManager::whereToRead(ino_t inode) throw (DmException)
-{
-  DELEGATE_RETURN(whereToRead, inode);
 }
 
 

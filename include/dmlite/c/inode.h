@@ -346,10 +346,7 @@ int dmlite_iclosedir(dmlite_context* context, dmlite_idir* dir);
  * @brief         Reads a directory. Extended data.
  * @param context The DM context.
  * @param dir     The directory to read, as returned by dmlite_opendir.
- * @return        A pointer to a struct with the recovered data.
- *                NULL on failure, or end of dir. If an error occurred,
- *                dm_errno(context) will be different than 0.
- * @note          The pointer is internally allocated. Do not free it.
+ * @return        NULL on failure, or end of dir.
  */
 dmlite_xstat* dmlite_ireaddirx(dmlite_context* context, dmlite_idir* dir);
 
@@ -357,10 +354,7 @@ dmlite_xstat* dmlite_ireaddirx(dmlite_context* context, dmlite_idir* dir);
  * @brief         Reads a directory.
  * @param context The DM context.
  * @param dir     The directory to read, as returned by dmlite_opendir.
- * @return        A pointer to a struct with the recovered data.
- *                NULL on failure, or end of dir. If an error occurred,
- *                dm_errno(context) will be different than 0.
- * @note          The pointer is internally allocated. Do not free it.
+ * @return        NULL on failure, or end of dir.
  */
 struct dirent* dmlite_ireaddir(dmlite_context* context, dmlite_idir* dir);
 

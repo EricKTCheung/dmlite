@@ -5,8 +5,6 @@
 #include <cstdio>
 #include <cstring>
 #include <dmlite/cpp/exceptions.h>
-#include <iomanip>
-#include <sstream>
 
 using namespace dmlite;
 
@@ -24,14 +22,9 @@ DmException::DmException(int code): errorCode_(code), errorMsg_()
 
 
 
-DmException::DmException(int code, const std::string& string): errorCode_(code)
+DmException::DmException(int code, const std::string& string): errorCode_(code), errorMsg_(string)
 {
-  std::ostringstream os;
-  os << "[#"
-     << std::setfill('0') << std::setw(2) << (DMLITE_ETYPE(code) >> 24) << '.'
-     << std::setfill('0') << std::setw(6) << (DMLITE_ERRNO(code))
-     << "] " << string;
-  errorMsg_ = os.str();
+  // Nothing
 }
 
 
@@ -86,12 +79,6 @@ const char* DmException::what() const throw()
 void DmException::setMessage(const char* fmt, va_list args)
 {
   char buffer[512];
-  int  n;
-  
-  n = snprintf(buffer, sizeof(buffer),
-               "[#%02d.%06d] ", DMLITE_ETYPE(errorCode_) >> 24,
-                                DMLITE_ERRNO(errorCode_));
-          
-  vsnprintf(buffer + n, sizeof(buffer) - n, fmt, args);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
   this->errorMsg_ = std::string(buffer);
 }

@@ -1,22 +1,5 @@
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
-
-%if 0%{?rhel} == 5
-%global with_python26 1
-%endif
-
-%if 0%{?with_python26}
-%global __python26 %{_bindir}/python2.6
-%global py26dir %{_builddir}/python26-%{name}-%{version}-%{release}
-%{!?python26_sitelib: %global python26_sitelib %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
-%{!?python26_sitearch: %global python26_sitearch %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
-# Update rpm byte compilation script so that we get the modules compiled by the
-# correct inerpreter
-%global __os_install_post %__multiple_python_os_install_post
-%endif
-
 Name:		dmlite
-Version:	0.5.0
+Version:	0.4.1
 Release:	1%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
@@ -24,8 +7,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_5_0 dmlite-0.5.0
-# tar -czvf dmlite-0.5.0.tar.gz dmlite-0.5.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_4_0 dmlite-0.4.0
+# tar -czvf dmlite-0.4.0.tar.gz dmlite-0.4.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -39,10 +22,6 @@ BuildRequires:	cppunit-devel
 BuildRequires:	doxygen
 BuildRequires:	graphviz
 BuildRequires:	openssl-devel
-BuildRequires:	python-devel
-%if 0%{?with_python26}
-BuildRequires:  python26-devel
-%endif
 
 %description
 This package provides a set of common libraries and plugins that implement
@@ -75,23 +54,6 @@ Group:		Applications/Internet
 %description docs
 Man pages and HTML documentation for dmlite.
 
-%package -n python-dmlite
-Summary:	Python wrapper for dmlite
-Group:		Development/Libraries
-
-%description -n python-dmlite
-This package provides a python wrapper for dmlite.
-
-%if 0%{?with_python26}
-%package -n python26-dmlite
-Summary:        Python 2.6 wrapper for dmlite
-Group:          Development/Libraries
-Requires:       python(abi) = 2.6
-
-%description -n python26-dmlite
-This package provides a python26 wrapper for dmlite.
-%endif #end of python2.6
-
 %package tests
 Summary:	Tests for dmlite
 Group:		Applications/Internet
@@ -113,11 +75,6 @@ mkdir -p %{buildroot}
 
 make install DESTDIR=%{buildroot}
 
-%if 0%{?with_python26}
-mkdir -p %{buildroot}%{python26_sitearch}
-install -m 755 -p %{buildroot}%{python_sitearch}/pydmlite.so %{buildroot}%{python26_sitearch}/pydmlite.so
-%endif
-
 %clean
 rm -rf %{buildroot}
 
@@ -128,10 +85,8 @@ rm -rf %{buildroot}
 %files libs
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/dmlite.conf
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/*
 %{_libdir}/libdmlite.so.*
 %doc README LICENSE
-%{_libdir}/dmlite/*.so
 
 %files devel
 %defattr(-,root,root,-)
@@ -142,14 +97,6 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_mandir}/man3/*
 %{_defaultdocdir}/%{name}-%{version}
-
-%files -n python-dmlite
-%{python_sitearch}/pydmlite.so
-
-%if 0%{?with_python26}
-%files -n python26-dmlite
-%{python26_sitearch}/pydmlite.so
-%endif
 
 %files tests
 %defattr(-,root,root,-)

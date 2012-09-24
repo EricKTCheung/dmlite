@@ -27,13 +27,13 @@ public:
         this->authn->deleteUser(USER);
       }
       catch (const dmlite::DmException& e) {
-        if (e.code() != DMLITE_NO_SUCH_USER) throw;
+        if (e.code() != DM_NO_SUCH_USER) throw;
       }
       try {
         this->authn->deleteGroup(GROUP);
       }
       catch (const dmlite::DmException& e) {
-        if (e.code() != DMLITE_NO_SUCH_GROUP) throw;
+        if (e.code() != DM_NO_SUCH_GROUP) throw;
       }
     }
     TestBase::tearDown();

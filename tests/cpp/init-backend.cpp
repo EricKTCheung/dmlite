@@ -62,7 +62,7 @@ int main(int argn, char** argv)
     std::cout << "Group dteam exists" << std::endl;
   }
   catch (dmlite::DmException &e) {
-    if (e.code() != DMLITE_NO_SUCH_GROUP);
+    if (e.code() != DM_NO_SUCH_GROUP);
     stack.getAuthn()->newGroup("dteam");
     std::cout << "Group dteam created" << std::endl;
   }
@@ -73,7 +73,7 @@ int main(int argn, char** argv)
     stat = catalog->extendedStat("/");
   }
   catch (dmlite::DmException& e) {
-    if (e.code() != ENOENT) throw;
+    if (e.code() != DM_NO_SUCH_FILE) throw;
     std::cout << "Root path does not exist" << std::endl;
     
     stat.name   = "/";
@@ -93,7 +93,7 @@ int main(int argn, char** argv)
       std::cout << components[i] << " exists" << std::endl;
     }
     catch (dmlite::DmException& e) {
-      if (e.code() != ENOENT) throw;
+      if (e.code() != DM_NO_SUCH_FILE) throw;
       std::cout << components[i] << " does not exist" << std::endl;
       catalog->makeDir(components[i], 0755);
       std::cout << components[i] << " created" << std::endl;

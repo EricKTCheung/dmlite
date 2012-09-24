@@ -92,8 +92,8 @@ void testPut(dmlite_context* context)
   
   /* A donewriting without token will fail */
   dmlite_any_dict* dict = dmlite_any_dict_new();
-  TEST_ASSERT_EQUAL(EACCES, dmlite_donewriting(context,
-                                               "/storage/chunk01", dict));
+  TEST_ASSERT_EQUAL(DM_FORBIDDEN, dmlite_donewriting(context,
+                                                     "/storage/chunk01", dict));
   
   /* With token */
   dmlite_any* token = dmlite_any_new_string("987654321");

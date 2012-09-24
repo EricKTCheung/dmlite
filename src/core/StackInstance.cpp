@@ -12,13 +12,20 @@ using namespace dmlite;
 
 
 
-#define INSTANTIATE(var, pm, factory, creator)\
-var = factory?factory->creator(pm):NULL;
+#define INSTANTIATE(var, createFunc)\
+try {\
+  var = createFunc;\
+}\
+catch (DmException& e) {\
+  if (e.code() != DM_NO_FACTORY)\
+    throw;\
+  var = 0;\
+}
 
 
 #define VALIDATE_SECURITY_CONTEXT \
   if (this->secCtx_ == 0)\
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_SECURITY_CONTEXT),\
+    throw DmException(DM_NO_SECURITY_CONTEXT,\
       "setSecurityContext or setSecurityCredentials must be called before accessing the instances");
 
 
@@ -26,11 +33,11 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm), secCtx_(0)
 {
   // Instantiate each interface
-  INSTANTIATE(this->authn_,       pm, pm->getAuthnFactory(),       createAuthn);
-  INSTANTIATE(this->inode_,       pm, pm->getINodeFactory(),       createINode);
-  INSTANTIATE(this->catalog_,     pm, pm->getCatalogFactory(),     createCatalog);
-  INSTANTIATE(this->poolManager_, pm, pm->getPoolManagerFactory(), createPoolManager);
-  INSTANTIATE(this->ioDriver_,    pm, pm->getIOFactory(),          createIODriver);
+  INSTANTIATE(this->authn_,       pm->getAuthnFactory()->createAuthn(pm));
+  INSTANTIATE(this->inode_,       pm->getINodeFactory()->createINode(pm));
+  INSTANTIATE(this->catalog_,     pm->getCatalogFactory()->createCatalog(pm));
+  INSTANTIATE(this->poolManager_, pm->getPoolManagerFactory()->createPoolManager(pm));
+  INSTANTIATE(this->ioDriver_,    pm->getIOFactory()->createIODriver(pm));
   
   
   // Everything is up, so pass this to the stacks
@@ -77,9 +84,7 @@ boost::any StackInstance::get(const std::string& key) const throw (DmException)
   std::map<std::string, boost::any>::const_iterator i;
   i = this->stackMsg_.find(key);
   if (i == this->stackMsg_.end())
-    throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_KEY),
-                      "Key %s not found in the Stack configuration",
-                      key.c_str());
+    throw DmException(DM_UNKNOWN_KEY, "Key " + key + " not found in the Stack configuration");
   return i->second;
 }
 
@@ -102,8 +107,7 @@ PluginManager* StackInstance::getPluginManager() throw (DmException)
 Authn* StackInstance::getAuthn() throw (DmException)
 {
   if (this->authn_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_AUTHN),
-                      "No plugin provides Authn");
+    throw DmException(DM_NO_AUTHN, "No plugin provides Authn");
   return this->authn_;
 }
 
@@ -114,8 +118,7 @@ INode* StackInstance::getINode() throw (DmException)
   VALIDATE_SECURITY_CONTEXT;
   
   if (this->inode_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_INODE),
-                      "No plugin provides INode");
+    throw DmException(DM_NO_INODE, "No plugin provides INode");
   return this->inode_;
 }
 
@@ -126,8 +129,7 @@ Catalog* StackInstance::getCatalog() throw (DmException)
   VALIDATE_SECURITY_CONTEXT;
   
   if (this->catalog_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_CATALOG),
-                      "No plugin provides Catalog");
+    throw DmException(DM_NO_CATALOG, "No plugin provides Catalog");
   return this->catalog_;
 }
 
@@ -145,8 +147,7 @@ PoolManager* StackInstance::getPoolManager() throw (DmException)
   VALIDATE_SECURITY_CONTEXT;
   
   if (this->poolManager_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_POOL_MANAGER),
-                      "No plugin provides PoolManager");
+    throw DmException(DM_NO_POOL_MANAGER, "No plugin provides PoolManager");
   return this->poolManager_;
 }
 
@@ -180,8 +181,7 @@ IODriver* StackInstance::getIODriver() throw (DmException)
   VALIDATE_SECURITY_CONTEXT;
   
   if (this->ioDriver_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_IO),
-                      "No plugin provides the IO interface");
+    throw DmException(DM_NO_IO, "No plugin provides the IO interface");
   return this->ioDriver_;
 }
 
@@ -190,8 +190,7 @@ IODriver* StackInstance::getIODriver() throw (DmException)
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
   if (this->authn_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_AUTHN),
-                      "There is no plugin that provides createSecurityContext");
+    throw DmException(DM_NO_AUTHN, "There is no plugin that provides createSecurityContext");
   
   if (this->secCtx_) {
     delete this->secCtx_;
@@ -231,7 +230,7 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
 const SecurityContext* StackInstance::getSecurityContext() const throw ()
 {
   if (this->secCtx_ == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_NO_SECURITY_CONTEXT),
+    throw DmException(DM_NO_SECURITY_CONTEXT,
                       "The security context has not been initialized");
   return this->secCtx_;
 }

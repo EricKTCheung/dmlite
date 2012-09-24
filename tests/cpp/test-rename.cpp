@@ -38,7 +38,7 @@ public:
       CPPUNIT_FAIL("Should have failed");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(ENOENT, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_NO_SUCH_FILE, e.code());
     }
 
     this->catalog->create(SOURCE_FILE, 0755);
@@ -65,7 +65,7 @@ public:
       CPPUNIT_FAIL("Should have failed");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EINVAL, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_INVALID_VALUE, e.code());
     }
   }
 
@@ -88,7 +88,7 @@ public:
       CPPUNIT_FAIL("Should have failed");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EEXIST, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_EXISTS, e.code());
     }
 
     // This must pass
@@ -111,7 +111,7 @@ public:
       CPPUNIT_FAIL("Should have failed");
     }
     catch (dmlite::DmException& e) {
-      CPPUNIT_ASSERT_EQUAL(EACCES, e.code());
+      CPPUNIT_ASSERT_EQUAL(DM_FORBIDDEN, e.code());
     }
 
     // Must succeed

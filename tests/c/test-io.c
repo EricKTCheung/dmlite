@@ -17,12 +17,12 @@ void testRead(dmlite_context* context)
   /* Bad token */
   file = dmlite_fopen(context, "/file", O_RDONLY, dict);
   TEST_ASSERT_EQUAL(NULL, file);
-  TEST_ASSERT_EQUAL(EACCES, dmlite_errno(context));
+  TEST_ASSERT_EQUAL(DM_FORBIDDEN, dmlite_errno(context));
           
   /* Open non-existing */
   file = dmlite_fopen(context, "/does-not-exist", O_RDONLY, dict);
   TEST_ASSERT_EQUAL(NULL, file);
-  TEST_ASSERT_EQUAL(ENOENT, dmlite_errno(context));
+  TEST_ASSERT_EQUAL(DM_NO_SUCH_FILE, dmlite_errno(context));
   
   /* Good to open */
   dmlite_any* token = dmlite_any_new_string("123456789");

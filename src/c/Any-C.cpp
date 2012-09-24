@@ -101,7 +101,6 @@ dmlite_any_dict* dmlite_any_dict_new()
 
 dmlite_any_dict* dmlite_any_dict_copy(const dmlite_any_dict* dict)
 {
-  if (!dict) return NULL;
   dmlite_any_dict* copy = new dmlite_any_dict();
   copy->extensible.copy(dict->extensible);
   return copy;
