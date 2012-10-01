@@ -156,15 +156,22 @@ rm -rf %{buildroot}
 %{_datadir}/tests/*
 
 %changelog
-* Fri Jul 13 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
+* Mon Sep 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-1
+- update for new upstream release
+- dropped plugin packages (moved to separate individual packages)
+
+* Sat Sep 22 2012  Remi Collet <remi@fedoraproject.org> - 0.3.0-2
+- rebuild against libmemcached.so.11 without SASL
+
+* Thu Jul 19 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
 - Update for new upstream release
+
+* Wed Jul 18 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.2.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
 
 * Tue Jun 05 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-3
 - Removed subversion build dep
 - Added patches for proper tests compilation (missing include, wrong cmake dep)
-
-* Sun May 20 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.3.0-1
-- Update for new upstream release
 
 * Tue Feb 28 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.2.0-2
 - Split plugins into multiple packages, added dependencies
