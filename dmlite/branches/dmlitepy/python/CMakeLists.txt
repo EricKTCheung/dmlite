@@ -21,3 +21,5 @@ install(TARGETS       pydmlite
                       GROUP_EXECUTE GROUP_READ
                       WORLD_EXECUTE WORLD_READ
 )
+
+add_subdirectory(embedding)
