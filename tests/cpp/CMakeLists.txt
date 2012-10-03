@@ -98,7 +98,7 @@ target_link_libraries (test-xattr test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
 # Install
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
-         DESTINATION /usr/share/tests/dmlite/cpp
+         DESTINATION usr/share/tests/dmlite/cpp
          FILES_MATCHING PATTERN test-*
                         PATTERN init-*
                         PATTERN *.o   EXCLUDE

@@ -16,9 +16,9 @@ add_library(dmlitepy SHARED PythonINode.cpp
            )
 
 target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
-set_target_properties (dmlitepy PROPERTIES PREFIX "plugin_")
+set_target_properties (dmlitepy PROPERTIES
+                                VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
+                                SOVERSION ${dmlite_MAJOR})
 
 install(TARGETS        dmlitepy
-        LIBRARY        DESTINATION usr/lib${LIB_SUFFIX}/dmlite/
-        COMPONENT      dmlite-plugins
-       )
+        LIBRARY        DESTINATION usr/lib${LIB_SUFFIX})
