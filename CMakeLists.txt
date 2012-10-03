@@ -41,7 +41,13 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/
+                     ${Boost_INCLUDE_DIRS}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/dmlite
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/dmlite/python)
 
 # Link path
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
@@ -71,6 +77,7 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
 
 # Install headers
 install (DIRECTORY   include/
+                     python/embedding/include/
          DESTINATION usr/include
          COMPONENT   dmlite-devel
          PATTERN     ".svn" EXCLUDE

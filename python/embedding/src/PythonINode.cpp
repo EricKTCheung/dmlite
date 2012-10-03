@@ -1,5 +1,5 @@
-#include "PythonINode.h"
-#include "PythonINodeFactories.h"
+#include <dmlite/python/PythonINode.h>
+#include <dmlite/python/PythonINodeFactories.h>
 
 using namespace dmlite;
 using namespace boost::python;
