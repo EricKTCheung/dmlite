@@ -4,14 +4,14 @@
 using namespace dmlite;
 using namespace boost::python;
 
-PythonINodeFactory::PythonINodeFactory() throw(DmException)
+PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
 {
   Py_Initialize();
 
   object inodeFac;
   object pyinodeFac;
   try {
-    inodeFac = import("dmlite.PythonINode.inodeFactories");
+    inodeFac = import(pymodule.c_str());
     pyinodeFac = inodeFac.attr("pyINodeFactory")("f");
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -42,15 +42,3 @@ INode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmException)
 
   return new PythonINode(inode);
 }
-
-static void registerPluginNs(PluginManager* pm) throw(DmException)
-{
-  PythonINodeFactory* nsFactory = new PythonINodeFactory();
-  pm->registerINodeFactory(nsFactory);
-}
-
-/// This is what the PluginManager looks for
-PluginIdCard plugin_python_ns = {
-  PLUGIN_ID_HEADER,
-  registerPluginNs
-};
