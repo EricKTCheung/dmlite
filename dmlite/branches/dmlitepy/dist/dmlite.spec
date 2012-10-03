@@ -145,11 +145,12 @@ rm -rf %{buildroot}
 
 %files -n python-dmlite
 %{python_sitearch}/pydmlite.so
-%{_libdir}/dmlite/*.so
+%{_libdir}/libdmlitepy.so.*
 
 %if 0%{?with_python26}
 %files -n python26-dmlite
 %{python26_sitearch}/pydmlite.so
+%{_libdir}/libdmlitepy.so.*
 %endif
 
 %files tests
