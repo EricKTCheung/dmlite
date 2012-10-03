@@ -137,6 +137,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_includedir}/dmlite
 %{_libdir}/libdmlite.so
+%{_libdir}/libdmlitepy.so
 
 %files docs
 %defattr(-,root,root,-)
