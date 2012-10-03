@@ -15,7 +15,7 @@ class PythonMain: public Extensible {
 
 class PythonINodeFactory: public INodeFactory {
 public:
-  PythonINodeFactory() throw(DmException);
+  PythonINodeFactory(std::string pymodule) throw(DmException);
 
   INode* createINode(PluginManager* pm) throw (DmException);
   void configure(const std::string& key, const std::string& value) throw(DmException);
