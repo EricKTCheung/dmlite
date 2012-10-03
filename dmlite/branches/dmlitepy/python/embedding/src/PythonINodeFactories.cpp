@@ -1,11 +1,16 @@
-#include "PythonINodeFactories.h"
-#include "PythonINode.h"
+#include <dlfcn.h>
+
+#include <dmlite/python/PythonINodeFactories.h>
+#include <dmlite/python/PythonINode.h>
 
 using namespace dmlite;
 using namespace boost::python;
 
 PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
 {
+  // refer tothis bug, please: http://bugs.python.org/issue4434
+  dlopen("libpython2.6.so", RTLD_LAZY | RTLD_GLOBAL);
+
   Py_Initialize();
 
   object inodeFac;
