@@ -16,6 +16,13 @@ PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
 
   Py_Initialize();
 
+  try {
+    object o = import("time");
+  } catch (error_already_set const &) {
+    PyErr_Print();
+  }
+
+
   object inodeFac;
   object pyinodeFac;
   try {
