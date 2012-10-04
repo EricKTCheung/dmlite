@@ -8,8 +8,11 @@ using namespace boost::python;
 
 PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
 {
-  // refer tothis bug, please: http://bugs.python.org/issue4434
-  dlopen("libpython2.6.so", RTLD_LAZY | RTLD_GLOBAL);
+  // refer to this bug, please: http://bugs.python.org/issue4434
+  void *handle = dlopen("libpython2.6.so", RTLD_LAZY | RTLD_GLOBAL);
+  if (handle == NULL) {
+    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR), "dlopen of libpython2.6.so failed");
+  }
 
   Py_Initialize();
 
