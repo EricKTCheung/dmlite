@@ -31,6 +31,7 @@ target_link_libraries (test-pool-c dmlite utils)
 # Install
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
          DESTINATION /usr/share/tests/dmlite/c
+         USE_SOURCE_PERMISSIONS
          FILES_MATCHING PATTERN test-*-c
                         PATTERN plugin_mock.so
                         PATTERN *.o   EXCLUDE
