@@ -137,6 +137,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_includedir}/dmlite
 %{_libdir}/libdmlite.so
+%{_libdir}/libdmlitepy.so
 
 %files docs
 %defattr(-,root,root,-)
@@ -145,10 +146,12 @@ rm -rf %{buildroot}
 
 %files -n python-dmlite
 %{python_sitearch}/pydmlite.so
+%{_libdir}/libdmlitepy.so
 
 %if 0%{?with_python26}
 %files -n python26-dmlite
 %{python26_sitearch}/pydmlite.so
+%{_libdir}/libdmlitepy.so
 %endif
 
 %files tests
