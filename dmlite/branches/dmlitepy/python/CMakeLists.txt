@@ -11,8 +11,9 @@ include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH})
 link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 add_library(pydmlite SHARED pydmlite.cpp authn.cpp base.cpp catalog.cpp errno.cpp exceptions.cpp extensible.cpp inode.cpp 
-io.cpp pooldriver.cpp poolmanager.cpp types.cpp)
-target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
+io.cpp pooldriver.cpp poolmanager.cpp types.cpp embedding/src/PythonINode.cpp
+embedding/src/PythonINodeFactories.cpp)
+target_link_libraries(pydmlite ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
 set_target_properties (pydmlite PROPERTIES PREFIX "")
 
 install(TARGETS       pydmlite
@@ -22,4 +23,4 @@ install(TARGETS       pydmlite
                       WORLD_EXECUTE WORLD_READ
 )
 
-add_subdirectory(embedding)
+#add_subdirectory(embedding)
