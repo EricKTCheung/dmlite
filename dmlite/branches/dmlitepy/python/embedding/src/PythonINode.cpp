@@ -111,7 +111,7 @@ ExtendedStat PythonINode::extendedStat(ino_t inode) throw (DmException)
 
   try {
     object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat")(inode);
+    object result = inode_mod.attr("extendedStat_inode")(inode);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -128,7 +128,7 @@ ExtendedStat PythonINode::extendedStat(ino_t parent, const std::string& name) th
 
   try {
     object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat")(parent, name);
+    object result = inode_mod.attr("extendedStat_parent_name")(parent, name);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -145,7 +145,7 @@ ExtendedStat PythonINode::extendedStat(const std::string& guid) throw (DmExcepti
  
   try {
     object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat")(guid);
+    object result = inode_mod.attr("extendedStat_guid")(guid);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
