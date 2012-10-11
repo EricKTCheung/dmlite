@@ -24,10 +24,13 @@ void export_inode()
         .def_readwrite("acl", &ExtendedStat::acl)
         ;
 
+
     enum_<ExtendedStat::FileStatus>("FileStatus")
         .value("kOnline", ExtendedStat::kOnline)
         .value("kMigrated", ExtendedStat::kMigrated)
+        .export_values()
         ;
+
 
     class_<struct stat>("stat", init<>())
         .def_readwrite("st_dev", &stat::st_dev)

@@ -22,11 +22,17 @@ void export_io();
 void export_pooldriver();
 void export_poolmanager();
 
+ExtendedStat::FileStatus identity_(ExtendedStat::FileStatus x)
+{ 
+  return x;
+}
 
 BOOST_PYTHON_MODULE(pydmlite)
 {
     // These python bindings are compliant with version 20120817.
     scope().attr("API_VERSION") = API_VERSION; 
+
+    def("identity", identity_);
     
     class_<PluginManager, boost::noncopyable>("PluginManager")
         .def("loadPlugin", &PluginManager::loadPlugin)
