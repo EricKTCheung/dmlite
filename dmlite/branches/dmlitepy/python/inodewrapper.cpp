@@ -36,6 +36,21 @@
     {
         return self.st_mtime;
     }
+
+    void StatSetATime(struct stat &self, time_t atime)
+    {
+        self.st_atime = atime;
+    }
+
+    void StatSetCTime(struct stat &self, time_t ctime)
+    {
+        self.st_ctime = ctime;
+    }
+
+    void StatSetMTime(struct stat &self, time_t mtime)
+    {
+        self.st_mtime = mtime;
+    }
     
 
     // The class INode has pure virtual methods: Create a wrapper class!
