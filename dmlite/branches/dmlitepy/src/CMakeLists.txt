@@ -11,6 +11,7 @@ add_library(dmlite SHARED ${DMLITE_CAPI_SOURCES}
 target_link_libraries (dmlite boost_regex crypto dl pthread ssl)
 
 set_target_properties(dmlite PROPERTIES
+                             LINK_FLAGS "-rdynamic"
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
                              SOVERSION ${dmlite_MAJOR})
 

@@ -15,8 +15,9 @@ add_library(dmlitepy SHARED PythonINode.cpp
                             PythonINodeFactories.cpp
            )
 
-target_link_libraries (dmlitepy ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} dmlite)
+target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
 set_target_properties (dmlitepy PROPERTIES
+                                LINK_FLAGS "-rdynamic"
                                 VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
                                 SOVERSION ${dmlite_MAJOR})
 
