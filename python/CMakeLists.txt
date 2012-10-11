@@ -13,7 +13,8 @@ link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 add_library(pydmlite SHARED pydmlite.cpp authn.cpp base.cpp catalog.cpp errno.cpp exceptions.cpp extensible.cpp inode.cpp 
 io.cpp pooldriver.cpp poolmanager.cpp types.cpp)
 target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
-set_target_properties (pydmlite PROPERTIES PREFIX "")
+set_target_properties (pydmlite PROPERTIES PREFIX ""
+                                           LINK_FLAGS "-rdynamic")
 
 install(TARGETS       pydmlite
         LIBRARY       DESTINATION ${PYTHON_SITE_PACKAGES}
