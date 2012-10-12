@@ -45,12 +45,21 @@ PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_E
 
 PyObject* dmExceptionTypeObj = 0;
 
+void translator(const DmException &x) {
+    object exc(x); // wrap the C++ exception
+
+    object exc_t(handle<>(borrowed(dmExceptionTypeObj)));
+    exc_t.attr("cause") = exc; // add the wrapped exception to the Python exception
+
+    PyErr_SetString(dmExceptionTypeObj, x.what());
+}
+
 BOOST_PYTHON_MODULE(pydmlite)
 {
     // These python bindings are compliant with version 20120817.
     scope().attr("API_VERSION") = API_VERSION; 
 
-    dmExceptionTypeObj = createExceptionClass("MyException");
+    dmExceptionTypeObj = createExceptionClass("PyDmException");
 
     def("identity", identity_);
     
