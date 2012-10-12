@@ -50,7 +50,7 @@ BOOST_PYTHON_MODULE(pydmlite)
     // These python bindings are compliant with version 20120817.
     scope().attr("API_VERSION") = API_VERSION; 
 
-    dmExceptionTypeObj = createExceptionClass("DmException");
+    dmExceptionTypeObj = createExceptionClass("MyException");
 
     def("identity", identity_);
     
