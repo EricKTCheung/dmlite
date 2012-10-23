@@ -74,25 +74,27 @@ namespace dmlite {
      std::vector<std::string> getKeys(void) const throw (DmException);
      
      /// Gets a boolean. May be able to perform some conversions.
-     bool getBool(const std::string& key) const throw (DmException);
+     bool getBool(const std::string& key, bool defaultValue = false) const throw (DmException);
      
      /// Gets an integer. May be able to perform some conversions.
-     long getLong(const std::string& key) const throw (DmException);
+     long getLong(const std::string& key, long defaultValue = 0) const throw (DmException);
      
      /// Gets an unsigned integer. May be able to perform some conversions.
-     unsigned long getUnsigned(const std::string& key) const throw (DmException);
+     unsigned long getUnsigned(const std::string& key, unsigned long defaultValue = 0) const throw (DmException);
      
      /// Gets a float. May be able to perform some conversions.
-     double getDouble(const std::string& key)  const throw (DmException);
+     double getDouble(const std::string& key, double defaultValue = 0)  const throw (DmException);
      
      /// Gets a string. May perform some conversions.
-     std::string getString(const std::string& key) const throw (DmException);
+     std::string getString(const std::string& key, const std::string& defaultValue = "") const throw (DmException);
      
      /// Gets a nested dictionary.
-     Extensible getExtensible(const std::string& key) const throw (DmException);
+     Extensible getExtensible(const std::string& key,
+                              const Extensible& defaultValue = Extensible()) const throw (DmException);
      
      /// Gets an array.
-     std::vector<boost::any> getVector(const std::string& key) const throw (DmException);
+     std::vector<boost::any> getVector(const std::string& key,
+                                       const std::vector<boost::any>& defaultValue = std::vector<boost::any>()) const throw (DmException);
   };
 
 };
