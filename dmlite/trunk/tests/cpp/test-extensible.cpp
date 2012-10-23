@@ -25,6 +25,18 @@ class TestExtensible: public CppUnit::TestFixture {
       CPPUNIT_ASSERT_EQUAL(std::string("else"), ext.getString("something"));
       CPPUNIT_ASSERT_EQUAL(1ul, ext.size());
     }
+
+    void testDefaults()
+    {
+        dmlite::Extensible ext;
+
+        CPPUNIT_ASSERT_EQUAL(std::string(), ext.getString("do-not-exist"));
+        CPPUNIT_ASSERT_EQUAL(std::string("default"), ext.getString("do-not-exist", "default"));
+
+        CPPUNIT_ASSERT_EQUAL(143l, ext.getLong("do-not-exist-long", 143));
+        CPPUNIT_ASSERT_EQUAL(true, ext.getBool("do-not-exist-bool", true));
+        CPPUNIT_ASSERT_EQUAL(5.36, ext.getDouble("do-not-exist-double", 5.36));
+    }
     
     void testStrings()
     {
@@ -199,6 +211,7 @@ class TestExtensible: public CppUnit::TestFixture {
    
     CPPUNIT_TEST_SUITE(TestExtensible);
     CPPUNIT_TEST(testRegular);
+    CPPUNIT_TEST(testDefaults);
     CPPUNIT_TEST(testStrings);
     CPPUNIT_TEST(testSerialize);
     CPPUNIT_TEST(testDeserialize);

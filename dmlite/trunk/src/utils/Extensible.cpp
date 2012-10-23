@@ -434,9 +434,9 @@ std::vector<std::string> Extensible::getKeys(void) const throw (DmException)
 
 
 
-bool Extensible::getBool(const std::string& key) const throw (DmException)
+bool Extensible::getBool(const std::string& key, bool defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return 0;
+  if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
   
@@ -452,9 +452,9 @@ bool Extensible::getBool(const std::string& key) const throw (DmException)
 
 
 
-long Extensible::getLong(const std::string& key) const throw (DmException)
+long Extensible::getLong(const std::string& key, long defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return 0;
+  if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
 
@@ -470,9 +470,9 @@ long Extensible::getLong(const std::string& key) const throw (DmException)
 
 
 
-unsigned long Extensible::getUnsigned(const std::string& key) const throw (DmException)
+unsigned long Extensible::getUnsigned(const std::string& key, unsigned long defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return 0;
+  if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
   
@@ -488,9 +488,9 @@ unsigned long Extensible::getUnsigned(const std::string& key) const throw (DmExc
 
 
 
-double Extensible::getDouble(const std::string& key) const throw (DmException)
+double Extensible::getDouble(const std::string& key, double defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return 0;
+  if (!hasField(key)) return defaultValue;
   
   boost::any value = (*this)[key];
   
@@ -506,9 +506,9 @@ double Extensible::getDouble(const std::string& key) const throw (DmException)
 
 
 
-std::string Extensible::getString(const std::string& key) const throw (DmException)
+std::string Extensible::getString(const std::string& key, const std::string& defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return std::string();
+  if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
 
@@ -524,9 +524,9 @@ std::string Extensible::getString(const std::string& key) const throw (DmExcepti
 
 
 
-Extensible Extensible::getExtensible(const std::string& key) const throw (DmException)
+Extensible Extensible::getExtensible(const std::string& key, const Extensible& defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return Extensible();
+  if (!hasField(key)) return defaultValue;
   
   boost::any value = (*this)[key];
   
@@ -542,9 +542,9 @@ Extensible Extensible::getExtensible(const std::string& key) const throw (DmExce
 
 
 
-std::vector<boost::any> Extensible::getVector(const std::string& key) const throw (DmException)
+std::vector<boost::any> Extensible::getVector(const std::string& key, const std::vector<boost::any>& defaultValue) const throw (DmException)
 {
-  if (!hasField(key)) return std::vector<boost::any>();
+  if (!hasField(key)) return defaultValue;
   
   boost::any value = (*this)[key];
   
