@@ -128,10 +128,11 @@ rm -rf %{buildroot}
 %files libs
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/dmlite.conf
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/*
+%dir %{_sysconfdir}/dmlite.conf.d
 %{_libdir}/libdmlite.so.*
+%dir %{_libdir}/dmlite
+%{_libdir}/dmlite/plugin_config.so
 %doc README LICENSE
-%{_libdir}/dmlite/*.so
 
 %files devel
 %defattr(-,root,root,-)
@@ -156,6 +157,9 @@ rm -rf %{buildroot}
 %{_datadir}/tests/*
 
 %changelog
+* Wed Oct 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-2
+- Fedora #869568 - dmlite-libs should own /usr/lib(64)/dmlite
+
 * Mon Sep 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-1
 - update for new upstream release
 - dropped plugin packages (moved to separate individual packages)

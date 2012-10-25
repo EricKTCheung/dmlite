@@ -8,8 +8,7 @@ install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf
          DESTINATION etc)
 
 # Create empty directories
-file (MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d/disabled)
-
+file (MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d)
 
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d
          DESTINATION etc)
