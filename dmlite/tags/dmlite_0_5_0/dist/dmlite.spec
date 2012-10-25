@@ -159,6 +159,9 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/test
 
 %changelog
+* Thu Oct 25 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.5.0-1
+- Update to new upstream release
+
 * Wed Oct 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-2
 - Fedora #869568 - dmlite-libs should own /usr/lib(64)/dmlite
 
