@@ -132,7 +132,7 @@ rm -rf %{buildroot}
 %{_libdir}/libdmlite.so.*
 %dir %{_libdir}/dmlite
 %{_libdir}/dmlite/plugin_config.so
-%doc README LICENSE
+%doc README LICENSE RELEASE-NOTES
 
 %files devel
 %defattr(-,root,root,-)
