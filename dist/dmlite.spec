@@ -41,7 +41,7 @@ BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 BuildRequires:	python-devel
 %if 0%{?with_python26}
-BuildRequires:  python26-devel
+BuildRequires:	python26-devel
 %endif
 
 %description
@@ -84,20 +84,20 @@ This package provides a python wrapper for dmlite.
 
 %if 0%{?with_python26}
 %package -n python26-dmlite
-Summary:        Python 2.6 wrapper for dmlite
-Group:          Development/Libraries
-Requires:       python(abi) = 2.6
+Summary:	Python 2.6 wrapper for dmlite
+Group:		Development/Libraries
+Requires:	python(abi) = 2.6
 
 %description -n python26-dmlite
 This package provides a python26 wrapper for dmlite.
 %endif #end of python2.6
 
-%package tests
-Summary:	Tests for dmlite
+%package test
+Summary:	All sorts of tests for dmlite interfaces
 Group:		Applications/Internet
 
-%description tests
-Tests for dmlite and plug-ins.
+%description test
+Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -145,16 +145,18 @@ rm -rf %{buildroot}
 %{_defaultdocdir}/%{name}-%{version}
 
 %files -n python-dmlite
+%defattr(-,root,root,-)
 %{python_sitearch}/pydmlite.so
 
 %if 0%{?with_python26}
 %files -n python26-dmlite
+%defattr(-,root,root,-)
 %{python26_sitearch}/pydmlite.so
 %endif
 
-%files tests
+%files test
 %defattr(-,root,root,-)
-%{_datadir}/tests/*
+%{_libdir}/dmlite/test
 
 %changelog
 * Wed Oct 24 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.2-2
