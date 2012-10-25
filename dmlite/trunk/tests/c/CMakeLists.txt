@@ -29,9 +29,11 @@ add_executable        (test-pool-c test-pool.c)
 target_link_libraries (test-pool-c dmlite utils)
 
 # Install
-install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
-         DESTINATION /usr/share/tests/dmlite/c
-         USE_SOURCE_PERMISSIONS
+install (DIRECTORY 		${CMAKE_CURRENT_BINARY_DIR}/
+         DESTINATION		usr/lib${LIB_SUFFIX}/dmlite/test/c
+         FILE_PERMISSIONS	OWNER_EXECUTE OWNER_WRITE OWNER_READ
+                      		GROUP_EXECUTE GROUP_READ
+                      		WORLD_EXECUTE WORLD_READ
          FILES_MATCHING PATTERN test-*-c
                         PATTERN plugin_mock.so
                         PATTERN *.o   EXCLUDE
