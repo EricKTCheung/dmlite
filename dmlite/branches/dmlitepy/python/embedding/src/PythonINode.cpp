@@ -1,4 +1,4 @@
-#include <dmlite/python/PythonINode.h>
+#include <dmlite/python/python_inode.h>
 
 using namespace dmlite;
 using namespace boost::python;
@@ -408,7 +408,7 @@ void PythonINodeFactory::configure(const std::string& key, const std::string& va
   }
 }
 
-INode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmException)
+PythonINode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmException)
 {
   object inode;
   try {
