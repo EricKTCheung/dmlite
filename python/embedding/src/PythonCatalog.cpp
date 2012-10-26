@@ -17,7 +17,7 @@ try { \
   object mod = boost::any_cast<object>(this->py["module"]); \
   object result = mod.attr("#funcname")(__VA_ARGS__); \
 } catch (error_already_set const &) { \
-  PyErr_Print(); \
+  extractException(); \
 }
 
 
@@ -31,7 +31,7 @@ PythonCatalogFactory::PythonCatalogFactory(std::string pymodule)
     moduleFac = import(pymodule.c_str());
     pymoduleFac = moduleFac.attr("pyCatalogFactory")("f");
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
  
   this->py["pymoduleFac"] = pymoduleFac;
@@ -52,7 +52,7 @@ void PythonCatalogFactory::configure(const std::string& key, const std::string& 
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     pymoduleFac.attr("configure")(key, value);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -65,7 +65,7 @@ PythonCatalog* PythonCatalogFactory::createCatalog(PluginManager*) throw (DmExce
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     module = pymoduleFac.attr("createINode")("ba");
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return new PythonCatalog(module);
@@ -124,7 +124,7 @@ std::string PythonCatalog::getWorkingDir (void) throw (DmException)
     object result = mod.attr("getWorkingDir")();
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -141,7 +141,7 @@ ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym
     object result = mod.attr("extendedStat")(path, followSym);
     return extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -172,7 +172,7 @@ std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (
     object result = mod.attr("getReplicas")(path);
     return extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -196,7 +196,7 @@ std::string PythonCatalog::readLink(const std::string& path) throw (DmException)
     object result = mod.attr("readLink")(path);
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -249,7 +249,7 @@ mode_t PythonCatalog::umask(mode_t mask) throw ()
     object result = mod.attr("umask")(mask);
     return extract<mode_t>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -312,7 +312,7 @@ std::string PythonCatalog::getComment(const std::string& path) throw (DmExceptio
     object result = mod.attr("getComment")(path);
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -351,7 +351,7 @@ Directory* PythonCatalog::openDir(const std::string& path) throw (DmException)
     object result = mod.attr("openDir")(path);
     return extract<Directory*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -375,7 +375,7 @@ struct dirent* PythonCatalog::readDir(Directory* dir) throw (DmException)
     object result = mod.attr("readDir")(dir);
     return extract<struct dirent*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -392,7 +392,7 @@ ExtendedStat* PythonCatalog::readDirx(Directory* dir) throw (DmException)
     object result = mod.attr("readDirx")(dir);
     return extract<ExtendedStat*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
@@ -409,7 +409,7 @@ Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
     object result = mod.attr("getReplica")(rfn);
     return extract<Replica>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return cpp_result;
