@@ -12,6 +12,7 @@ include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ${DMLITE_INCLU
 link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 add_library(dmlitepy SHARED PythonINode.cpp
+                            PythonCatalog.cpp
            )
 
 target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
