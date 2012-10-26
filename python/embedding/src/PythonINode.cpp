@@ -390,7 +390,7 @@ PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
   object pyinodeFac;
   try {
     inodeFac = import(pymodule.c_str());
-    pyinodeFac = inodeFac.attr("pyINodeFactory")("f");
+    pyinodeFac = inodeFac.attr("pyINodeFactory")();
   } catch (error_already_set const &) {
     extractException();
   }
@@ -413,7 +413,7 @@ PythonINode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmExceptio
   object inode;
   try {
     object pyinodeFac = boost::any_cast<object>(this->py["pyinodeFac"]);
-    inode = pyinodeFac.attr("createINode")("ba");
+    inode = pyinodeFac.attr("createINode")();
   } catch (error_already_set const &) {
     extractException();
   }
