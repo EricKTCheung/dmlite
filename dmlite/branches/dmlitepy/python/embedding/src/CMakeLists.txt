@@ -11,9 +11,9 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ${DMLITE_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
-add_library(dmlitepy SHARED PythonINode.cpp
+add_library(dmlitepy SHARED PythonCommon.cpp
+                            PythonINode.cpp
                             PythonCatalog.cpp
-                            PythonCommon.cpp
            )
 
 target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)

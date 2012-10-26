@@ -6,6 +6,8 @@ namespace dmlite {
   // Forward declarations.
   class PythonINodeFactories;
   class PythonINode;
+  class PythonCatalogFactories;
+  class PythonCatalog;
 };
 
 #endif
