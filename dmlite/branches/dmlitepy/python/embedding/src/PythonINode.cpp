@@ -25,14 +25,14 @@ std::string PythonINode::getImplId() const throw ()
 
 void PythonINode::setStackInstance(StackInstance* si) throw (DmException)
 {
-  // Nothing
+  CALL_PYTHON(setStackInstance, si);
 }
 
 
 
 void PythonINode::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  // Nothing
+  CALL_PYTHON(setSecurityContext, ctx);
 }
 
 

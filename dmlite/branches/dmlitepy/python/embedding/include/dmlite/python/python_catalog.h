@@ -6,6 +6,7 @@
 
 #include <boost/python.hpp>
 
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/python/python_common.h>
 
 #include <dirent.h>
@@ -24,15 +25,15 @@ namespace dmlite {
   class StackInstance;
   class PluginManager;
   
-  /// Typedef for directories.
-  struct Directory { ~Directory(); };
-  
   /// Interface for Catalog (Namespaces).
   class PythonCatalog: public Catalog {
    public:    
-    PythonCatalog(boost::python::object catalog_obj);
+    PythonCatalog(boost::python::object module_obj) throw (DmException);
     /// Destructor.
     ~PythonCatalog();
+
+    /// String ID of the implementation.
+    std::string getImplId(void) const throw();
 
     /// Change the working dir. Future not-absolute paths will use this as root.
     /// @param path The new working dir.
@@ -195,6 +196,10 @@ namespace dmlite {
     /// @return        0 on success, error code otherwise.
     void updateReplica(const Replica& replica) throw (DmException);
 
+  protected:
+    void setStackInstance(StackInstance* si) throw (DmException);
+    void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+
   private:
     PythonMain py;
   };
@@ -216,6 +221,11 @@ namespace dmlite {
 
     /// Instantiate a implementation of Catalog
     PythonCatalog* createCatalog(PluginManager* pm) throw (DmException);
+
+    /// Set a configuration parameter
+    /// @param key   The configuration parameter
+    /// @param value The value for the configuration parameter
+    void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
 
   private:
     PythonMain py;
