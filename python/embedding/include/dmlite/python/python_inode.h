@@ -1,3 +1,6 @@
+/// @file   python/embedding/include/dmlite/python/python_inode.h
+/// @brief  Python INode API.
+/// @author Martin Philipp Hellmich <martin.hellmich@cern.ch>
 #ifndef DMLITE_PYTHON_PYTHONINODE_H
 #define DMLITE_PYTHON_PYTHONINODE_H
 
@@ -7,15 +10,9 @@
 #include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/inode.h>
 #include <dmlite/cpp/poolmanager.h>
-#include <dmlite/cpp/utils/extensible.h>
-
-//#include "PythonINodeFactories.h"
+#include <dmlite/python/python_common.h>
 
 namespace dmlite {
-
-class PythonMain: public Extensible {
-
-};
 
 class PythonINode : public INode {
 public:
@@ -85,7 +82,7 @@ class PythonINodeFactory: public INodeFactory {
 public:
   PythonINodeFactory(std::string pymodule) throw(DmException);
 
-  INode* createINode(PluginManager* pm) throw (DmException);
+  PythonINode* createINode(PluginManager* pm) throw (DmException);
   void configure(const std::string& key, const std::string& value) throw(DmException);
 
 private:
