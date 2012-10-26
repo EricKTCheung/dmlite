@@ -3,11 +3,19 @@
 
 #include <boost/python.hpp>
 
+#include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/poolmanager.h>
+#include <dmlite/cpp/utils/extensible.h>
 
-#include "PythonINodeFactories.h"
+//#include "PythonINodeFactories.h"
 
 namespace dmlite {
+
+class PythonMain: public Extensible {
+
+};
 
 class PythonINode : public INode {
 public:
@@ -71,6 +79,18 @@ public:
 
 private:
   PythonMain py;
+};
+
+class PythonINodeFactory: public INodeFactory {
+public:
+  PythonINodeFactory(std::string pymodule) throw(DmException);
+
+  INode* createINode(PluginManager* pm) throw (DmException);
+  void configure(const std::string& key, const std::string& value) throw(DmException);
+
+private:
+  PythonMain py;
+
 };
 
 };
