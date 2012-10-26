@@ -29,7 +29,7 @@ PythonCatalogFactory::PythonCatalogFactory(std::string pymodule)
   object pymoduleFac;
   try {
     moduleFac = import(pymodule.c_str());
-    pymoduleFac = moduleFac.attr("pyCatalogFactory")("f");
+    pymoduleFac = moduleFac.attr("pyCatalogFactory")();
   } catch (error_already_set const &) {
     extractException();
   }
@@ -63,7 +63,7 @@ PythonCatalog* PythonCatalogFactory::createCatalog(PluginManager*) throw (DmExce
   object module;
   try {
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
-    module = pymoduleFac.attr("createINode")("ba");
+    module = pymoduleFac.attr("createINode")();
   } catch (error_already_set const &) {
     extractException();
   }
