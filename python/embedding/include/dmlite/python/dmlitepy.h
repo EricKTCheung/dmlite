@@ -1,5 +1,5 @@
-#ifndef DMLITE_CPP_DMLITE_H
-#define DMLITE_CPP_DMLITE_H
+#ifndef DMLITE_CPP_DMLITEPY_H
+#define DMLITE_CPP_DMLITEPY_H
 
 namespace dmlite {
   
