@@ -103,6 +103,9 @@ ExtendedStat PythonINode::extendedStat(ino_t inode) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat_inode")(inode);
+    if (result.ptr() == Py_None) {
+      throw DmException(ENOENT, "Inode %ld not found", inode);
+    }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -120,6 +123,9 @@ ExtendedStat PythonINode::extendedStat(ino_t parent, const std::string& name) th
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat_parent_name")(parent, name);
+    if (result.ptr() == Py_None) {
+      throw DmException(ENOENT, name + " not found");
+    }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
