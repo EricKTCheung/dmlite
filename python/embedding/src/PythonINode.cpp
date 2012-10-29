@@ -3,9 +3,9 @@
 using namespace dmlite;
 using namespace boost::python;
 
-PythonINode::PythonINode(object inode_obj) throw (DmException)
+PythonINode::PythonINode(object module_obj) throw (DmException)
 {
-  this->py["inode"] = inode_obj;
+  this->py["module"] = module_obj;
 }
 
 std::string PythonINode::getImplId() const throw ()
@@ -17,14 +17,14 @@ std::string PythonINode::getImplId() const throw ()
 
 void PythonINode::setStackInstance(StackInstance* si) throw (DmException)
 {
-  CALL_PYTHON(setStackInstance, si);
+  CALL_PYTHON(setStackInstance, ptr(si));
 }
 
 
 
 void PythonINode::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  CALL_PYTHON(setSecurityContext, ctx);
+  CALL_PYTHON(setSecurityContext, ptr(ctx));
 }
 
 
@@ -56,8 +56,8 @@ ExtendedStat PythonINode::create(const ExtendedStat& nf) throw (DmException)
   ExtendedStat meta;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("create")(nf);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("create")(nf);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -101,8 +101,8 @@ ExtendedStat PythonINode::extendedStat(ino_t inode) throw (DmException)
   ExtendedStat meta;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat_inode")(inode);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("extendedStat_inode")(inode);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -118,8 +118,8 @@ ExtendedStat PythonINode::extendedStat(ino_t parent, const std::string& name) th
   ExtendedStat meta;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat_parent_name")(parent, name);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("extendedStat_parent_name")(parent, name);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -135,8 +135,8 @@ ExtendedStat PythonINode::extendedStat(const std::string& guid) throw (DmExcepti
  ExtendedStat meta;
  
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("extendedStat_guid")(guid);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("extendedStat_guid")(guid);
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -152,8 +152,8 @@ SymLink PythonINode::readLink(ino_t inode) throw (DmException)
   SymLink link;
  
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("symlink")(inode);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("symlink")(inode);
     link = extract<SymLink>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -183,8 +183,8 @@ std::vector<Replica> PythonINode::getReplicas(ino_t inode) throw (DmException)
   std::vector<Replica> replicas;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("getReplicas")(inode);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("getReplicas")(inode);
     replicas = extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -200,8 +200,8 @@ Replica PythonINode::getReplica(int64_t rid) throw (DmException)
   Replica r;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("getReplica")(rid);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("getReplica")(rid);
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -217,8 +217,8 @@ Replica PythonINode::getReplica(const std::string& rfn) throw (DmException)
   Replica r;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("getReplica")(rfn);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("getReplica")(rfn);
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -271,8 +271,8 @@ std::string PythonINode::getComment(ino_t inode) throw (DmException)
   std::string comment;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("getComment")(inode);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("getComment")(inode);
     comment = extract<std::string>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -318,8 +318,8 @@ IDirectory* PythonINode::openDir(ino_t inode) throw (DmException)
   IDirectory *dirp;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("openDir")(inode);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("openDir")(inode);
     dirp = extract<IDirectory *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -341,8 +341,8 @@ ExtendedStat* PythonINode::readDirx(IDirectory* dir) throw (DmException)
   ExtendedStat *metap;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("readDirx")(dir);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("readDirx")(dir);
     metap = extract<ExtendedStat *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -357,8 +357,8 @@ struct dirent* PythonINode::readDir (IDirectory* dir) throw (DmException)
   dirent *dirp;
 
   try {
-    object inode_mod = boost::any_cast<object>(this->py["inode"]);
-    object result = inode_mod.attr("readDir")(dir);
+    object mod = boost::any_cast<object>(this->py["module"]);
+    object result = mod.attr("readDir")(dir);
     dirp = extract<dirent *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -371,23 +371,23 @@ PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
   
   Py_Initialize();
 
-  object inodeFac;
-  object pyinodeFac;
+  object moduleFac;
+  object pymoduleFac;
   try {
-    inodeFac = import(pymodule.c_str());
-    pyinodeFac = inodeFac.attr("pyINodeFactory")();
+    moduleFac = import(pymodule.c_str());
+    pymoduleFac = moduleFac.attr("pyINodeFactory")();
   } catch (error_already_set const &) {
     PyErr_Print();
   }
  
-  this->py["pyinodeFac"] = pyinodeFac;
+  this->py["pymoduleFac"] = pymoduleFac;
 }
 
 void PythonINodeFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   try {
-    object pyinodeFac = boost::any_cast<object>(this->py["pyinodeFac"]);
-    pyinodeFac.attr("configure")(key, value);
+    object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
+    pymoduleFac.attr("configure")(key, value);
   } catch (error_already_set const &) {
     PyErr_Print();
   }
@@ -395,13 +395,13 @@ void PythonINodeFactory::configure(const std::string& key, const std::string& va
 
 PythonINode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmException)
 {
-  object inode;
+  object module;
   try {
-    object pyinodeFac = boost::any_cast<object>(this->py["pyinodeFac"]);
-    inode = pyinodeFac.attr("createINode")(ptr(pm));
+    object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
+    module = pymoduleFac.attr("createINode")(ptr(pm));
   } catch (error_already_set const &) {
     PyErr_Print();
   }
 
-  return new PythonINode(inode);
+  return new PythonINode(module);
 }
