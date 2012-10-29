@@ -114,6 +114,9 @@ std::string PythonCatalog::getWorkingDir (void) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getWorkingDir")();
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -131,6 +134,9 @@ ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat")(path, followSym);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -162,6 +168,9 @@ std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplicas")(path);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -186,6 +195,10 @@ std::string PythonCatalog::readLink(const std::string& path) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readLink")(path);
+    if (result.ptr() == Py_None) {
+      throw DmException(EINVAL,
+                      path + " is not a symbolic link");
+    }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -239,6 +252,9 @@ mode_t PythonCatalog::umask(mode_t mask) throw ()
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("umask")(mask);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<mode_t>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -302,6 +318,9 @@ std::string PythonCatalog::getComment(const std::string& path) throw (DmExceptio
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getComment")(path);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -341,6 +360,10 @@ Directory* PythonCatalog::openDir(const std::string& path) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("openDir")(path);
+    if (result.ptr() == Py_None) {
+      throw DmException(EACCES,
+                        "Not enough permissions to read " + path);
+    }
     return extract<Directory*>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -365,6 +388,9 @@ struct dirent* PythonCatalog::readDir(Directory* dir) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDir")(dir);
+    if (result.ptr() == Py_None) {
+      return NULL;
+    }
     return extract<struct dirent*>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -382,6 +408,9 @@ ExtendedStat* PythonCatalog::readDirx(Directory* dir) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDirx")(dir);
+    if (result.ptr() == Py_None) {
+      return NULL;
+    }
     return extract<ExtendedStat*>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -399,6 +428,9 @@ Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplica")(rfn);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+    }
     return extract<Replica>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
