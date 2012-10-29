@@ -12,6 +12,11 @@
 extern "C" {
 #endif
 
+/** Use this flag in addition to the standard ones to skip any
+ *  security check (i.e. token validation)
+ */
+#define O_INSECURE 010
+
 /** Handle for a file descriptor. */
 typedef struct dmlite_fd dmlite_fd;
 

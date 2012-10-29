@@ -90,7 +90,7 @@ public:
 
     // Open to write
     dmlite::IOHandler* os = io->createIOHandler("/tmp/test-io-wr",
-                                                O_WRONLY,
+                                                O_WRONLY | O_CREAT,
                                                 extras);
     os->write(ostring, strlen(ostring));
     delete os;
@@ -108,11 +108,36 @@ public:
     delete is;
   }
 
+  void testInsecure(void)
+  {
+      const char ostring[] = "test-insecure";
+
+      dmlite::IOHandler* os = io->createIOHandler("/tmp/test-insecure",
+                                                  O_WRONLY | O_CREAT | dmlite::IODriver::kInsecure,
+                                                  dmlite::Extensible());
+
+      os->write(ostring, strlen(ostring));
+      delete os;
+
+      char buffer[512];
+      dmlite::IOHandler* is = io->createIOHandler("/tmp/test-insecure",
+                                                  O_RDONLY | dmlite::IODriver::kInsecure,
+                                                  dmlite::Extensible());
+
+      size_t nb = is->read(buffer, sizeof(buffer));
+
+      CPPUNIT_ASSERT_EQUAL(strlen(ostring), nb);
+      CPPUNIT_ASSERT_EQUAL(std::string(ostring), std::string(buffer));
+
+      delete is;
+  }
+
   
   CPPUNIT_TEST_SUITE(TestIO);
   CPPUNIT_TEST(testOpen);
   CPPUNIT_TEST(testNotExist);
   CPPUNIT_TEST(testWriteAndRead);
+  CPPUNIT_TEST(testInsecure);
   CPPUNIT_TEST_SUITE_END();
 };
 

@@ -60,13 +60,18 @@ namespace dmlite {
 
   /// IO Driver
   class IODriver: public virtual BaseInterface {
-   public:    
+   public:
+    /// Use this flag in addition to the standard ones to skip any
+    /// security check (i.e. token validation)
+    /// Example: createIOHandler("/file.txt", O_RDONLY | IODriver::kInsecure, extras);
+    enum { kInsecure = 010 };
+
     /// Virtual destructor
     virtual ~IODriver();
 
     /// Instantiate a implementation of IOHandler
     /// @param pfn    The file name.
-    /// @param flags  The open mode.
+    /// @param flags  The open mode. See man 2 open.
     /// @param extras As was given by the PoolHandler.
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        int flags,
