@@ -58,6 +58,9 @@ ExtendedStat PythonINode::create(const ExtendedStat& nf) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("create")(nf);
+    if (result.ptr() == Py_None) {
+      throw DmException(EEXIST, "%s already exists", nf.name.c_str());
+    }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -143,6 +146,9 @@ ExtendedStat PythonINode::extendedStat(const std::string& guid) throw (DmExcepti
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat_guid")(guid);
+    if (result.ptr() == Py_None) {
+      throw DmException(ENOENT, "File with guid " + guid + " not found");
+    }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -160,6 +166,9 @@ SymLink PythonINode::readLink(ino_t inode) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("symlink")(inode);
+    if (result.ptr() == Py_None) {
+      throw DmException(ENOENT, "Link %ld not found", inode);
+    }
     link = extract<SymLink>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -191,6 +200,9 @@ std::vector<Replica> PythonINode::getReplicas(ino_t inode) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplicas")(inode);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %d not found", inode);
+    }
     replicas = extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -208,6 +220,9 @@ Replica PythonINode::getReplica(int64_t rid) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplica")(rid);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %d not found", rid);
+    }
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -225,6 +240,9 @@ Replica PythonINode::getReplica(const std::string& rfn) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplica")(rfn);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
+    }
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -259,7 +277,7 @@ void PythonINode::setMode(ino_t inode, uid_t uid, gid_t gid,
 
 void PythonINode::setSize(ino_t inode, size_t size) throw (DmException)
 {
-  CALL_PYTHON(inode, size);
+  CALL_PYTHON(setSize, inode, size);
 }
 
 
@@ -289,7 +307,6 @@ std::string PythonINode::getComment(ino_t inode) throw (DmException)
   
   return comment;
 }
-
 
 
 
@@ -329,6 +346,9 @@ IDirectory* PythonINode::openDir(ino_t inode) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("openDir")(inode);
+    if (result.ptr() == Py_None) {
+      throw DmException(ENOTDIR, "Inode %ld is not a directory", inode);
+    }
     dirp = extract<IDirectory *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -352,6 +372,9 @@ ExtendedStat* PythonINode::readDirx(IDirectory* dir) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDirx")(dir);
+    if (result.ptr() == Py_None) {
+      return NULL;
+    }
     metap = extract<ExtendedStat *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
@@ -368,6 +391,9 @@ struct dirent* PythonINode::readDir (IDirectory* dir) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDir")(dir);
+    if (result.ptr() == Py_None) {
+      return NULL;
+    }
     dirp = extract<dirent *>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
