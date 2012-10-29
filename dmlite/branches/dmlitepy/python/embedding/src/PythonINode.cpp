@@ -59,7 +59,7 @@ ExtendedStat PythonINode::create(const ExtendedStat& nf) throw (DmException)
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("create")(nf);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonINode::create");
     }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {

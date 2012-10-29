@@ -115,7 +115,7 @@ std::string PythonCatalog::getWorkingDir (void) throw (DmException)
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getWorkingDir")();
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "Pythoncatalog::getWorkingDir");
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
@@ -135,7 +135,7 @@ ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat")(path, followSym);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonCatalog::extendedStat");
     }
     return extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
@@ -169,7 +169,7 @@ std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplicas")(path);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonCatalog::getReplicas");
     }
     return extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
@@ -253,7 +253,7 @@ mode_t PythonCatalog::umask(mode_t mask) throw ()
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("umask")(mask);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonCatalog::umask");
     }
     return extract<mode_t>(result);
   } catch (error_already_set const &) {
@@ -319,7 +319,7 @@ std::string PythonCatalog::getComment(const std::string& path) throw (DmExceptio
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getComment")(path);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonCatalog::getComment");
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
@@ -429,7 +429,7 @@ Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplica")(rfn);
     if (result.ptr() == Py_None) {
-      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "You shouldn't return None here");
+      throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonCatalog::getReplica");
     }
     return extract<Replica>(result);
   } catch (error_already_set const &) {
