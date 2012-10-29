@@ -273,6 +273,9 @@ std::string PythonINode::getComment(ino_t inode) throw (DmException)
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getComment")(inode);
+    if (result.ptr() == Py_None) {
+      throw DmException(DMLITE_NO_COMMENT, "There is no comment for inode %ld", inode);
+    }
     comment = extract<std::string>(result);
   } catch (error_already_set const &) {
     PyErr_Print();
