@@ -168,6 +168,10 @@ namespace dmlite {
     /// @param key The key of the pair to be erased.
     void erase(const std::string& key) throw (DmException);
 
+    /// Checks if the stack instance contains a value associated with
+    /// the given key.
+    bool contains(const std::string& key) throw ();
+
     /// Get the plugin manager.
     PluginManager* getPluginManager() throw (DmException);
 

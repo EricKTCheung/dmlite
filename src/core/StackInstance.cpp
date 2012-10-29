@@ -92,6 +92,13 @@ void StackInstance::erase(const std::string& key) throw (DmException)
 
 
 
+bool StackInstance::contains(const std::string& key) throw ()
+{
+    return this->stackMsg_.find(key) != this->stackMsg_.end();
+}
+
+
+
 PluginManager* StackInstance::getPluginManager() throw (DmException)
 {
   return this->pluginManager_;
