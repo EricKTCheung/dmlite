@@ -2,6 +2,7 @@
 /// @brief  Python Common Parts.
 /// @author Martin Philipp Hellmich <martin.hellmich@cern.ch>
 
+#include "../../../pydmlite.h"
 #include <dmlite/python/python_common.h>
 
 using namespace dmlite;
