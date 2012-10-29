@@ -12,14 +12,6 @@ using namespace dmlite;
 using namespace boost::python;
 
 
-#define CALL_PYTHON(funcname, ...) \
-try { \
-  object mod = boost::any_cast<object>(this->py["module"]); \
-  object result = mod.attr("#funcname")(__VA_ARGS__); \
-} catch (error_already_set const &) { \
-  PyErr_Print(); \
-}
-
 
 PythonCatalogFactory::PythonCatalogFactory(std::string pymodule)
 {
@@ -63,7 +55,7 @@ PythonCatalog* PythonCatalogFactory::createCatalog(PluginManager* pm) throw (DmE
   object module;
   try {
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
-    module = pymoduleFac.attr("createCatalog")(pm);
+    module = pymoduleFac.attr("createCatalog")(ptr(pm));
   } catch (error_already_set const &) {
     PyErr_Print();
   }
