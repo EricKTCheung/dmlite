@@ -16,7 +16,8 @@ add_library(dmlitepy SHARED PythonCommon.cpp
                             PythonCatalog.cpp
            )
 
-target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
+target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
+                                pydmlite dmlite)
 set_target_properties (dmlitepy PROPERTIES
                                 LINK_FLAGS "-rdynamic"
                                 VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
