@@ -376,14 +376,7 @@ struct dirent* PythonINode::readDir (IDirectory* dir) throw (DmException)
 
 PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
 {
-  /*
-  // refer to this bug, please: http://bugs.python.org/issue4434
-  void *handle = dlopen("libpython2.6.so", RTLD_LAZY | RTLD_GLOBAL);
-  if (handle == NULL) {
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR), "dlopen of libpython2.6.so failed");
-  }
-  */
-
+  
   Py_Initialize();
 
   object inodeFac;
@@ -413,7 +406,7 @@ PythonINode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmExceptio
   object inode;
   try {
     object pyinodeFac = boost::any_cast<object>(this->py["pyinodeFac"]);
-    inode = pyinodeFac.attr("createINode")(pm);
+    inode = pyinodeFac.attr("createINode")(ptr(pm));
   } catch (error_already_set const &) {
     PyErr_Print();
   }
