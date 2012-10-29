@@ -88,14 +88,14 @@ std::string PythonCatalog::getImplId(void) const throw()
 
 void PythonCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  CALL_PYTHON(setStackInstance, si);
+  CALL_PYTHON(setStackInstance, ptr(si));
 }
 
 
 
 void PythonCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  CALL_PYTHON(setSecurityContext, ctx);
+  CALL_PYTHON(setSecurityContext, ptr(ctx));
 }
 
 
