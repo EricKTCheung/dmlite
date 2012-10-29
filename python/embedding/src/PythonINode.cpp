@@ -3,14 +3,6 @@
 using namespace dmlite;
 using namespace boost::python;
 
-#define CALL_PYTHON(funcname, ...) \
-try { \
-  object inode_mod = boost::any_cast<object>(this->py["inode"]); \
-  object result = inode_mod.attr("#funcname")(__VA_ARGS__); \
-} catch (error_already_set const &) { \
-  PyErr_Print(); \
-}
-
 PythonINode::PythonINode(object inode_obj) throw (DmException)
 {
   this->py["inode"] = inode_obj;
