@@ -8,7 +8,7 @@
 
 #include <dmlite/cpp/catalog.h>
 #include <dmlite/python/python_common.h>
-
+/*
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string>
@@ -18,7 +18,7 @@
 #include "exceptions.h"
 #include "inode.h"
 #include "utils/extensible.h"
-
+*/
 namespace dmlite {
 
   // Forward declarations.
@@ -225,7 +225,7 @@ namespace dmlite {
     /// Set a configuration parameter
     /// @param key   The configuration parameter
     /// @param value The value for the configuration parameter
-    void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
+    void configure(const std::string& key, const std::string& value) throw (DmException);
 
   private:
     PythonMain py;

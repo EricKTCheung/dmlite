@@ -1,4 +1,4 @@
-/// @file   python/embedding/src/python_catalog.h
+/// @file   python/embedding/src/python_catalog.cpp
 /// @brief  Python Catalog API.
 /// @author Martin Philipp Hellmich <martin.hellmich@cern.ch>
 #include <dmlite/cpp/dmlite.h>
@@ -85,7 +85,6 @@ std::string PythonCatalog::getImplId(void) const throw()
 }
 
 
-
 void PythonCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
   CALL_PYTHON(setStackInstance, ptr(si));
@@ -109,8 +108,6 @@ void PythonCatalog::changeDir(const std::string& path) throw (DmException)
 
 std::string PythonCatalog::getWorkingDir (void) throw (DmException)
 {
-  std::string cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getWorkingDir")();
@@ -121,16 +118,12 @@ std::string PythonCatalog::getWorkingDir (void) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
 
 ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
-  ExtendedStat cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("extendedStat")(path, followSym);
@@ -141,8 +134,6 @@ ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -163,8 +154,6 @@ void PythonCatalog::deleteReplica(const Replica& replica) throw (DmException)
 
 std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (DmException)
 {
-  std::vector<Replica> cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplicas")(path);
@@ -175,8 +164,6 @@ std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -190,8 +177,6 @@ void PythonCatalog::symlink(const std::string& oldPath, const std::string& newPa
 
 std::string PythonCatalog::readLink(const std::string& path) throw (DmException)
 {
-  std::string cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readLink")(path);
@@ -203,8 +188,6 @@ std::string PythonCatalog::readLink(const std::string& path) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -247,8 +230,6 @@ void PythonCatalog::rename(const std::string& oldPath,
 
 mode_t PythonCatalog::umask(mode_t mask) throw ()
 {
-  mode_t cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("umask")(mask);
@@ -259,8 +240,6 @@ mode_t PythonCatalog::umask(mode_t mask) throw ()
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -313,8 +292,6 @@ void PythonCatalog::utime(const std::string& path, const struct utimbuf* buf) th
 
 std::string PythonCatalog::getComment(const std::string& path) throw (DmException)
 {
-  std::string cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getComment")(path);
@@ -325,8 +302,6 @@ std::string PythonCatalog::getComment(const std::string& path) throw (DmExceptio
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -355,8 +330,6 @@ void PythonCatalog::updateExtendedAttributes(const std::string& path,
 
 Directory* PythonCatalog::openDir(const std::string& path) throw (DmException)
 {
-  Directory* cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("openDir")(path);
@@ -368,8 +341,6 @@ Directory* PythonCatalog::openDir(const std::string& path) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
@@ -383,8 +354,6 @@ void PythonCatalog::closeDir(Directory* dir) throw (DmException)
 
 struct dirent* PythonCatalog::readDir(Directory* dir) throw (DmException)
 {
-  struct dirent* cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDir")(dir);
@@ -395,16 +364,12 @@ struct dirent* PythonCatalog::readDir(Directory* dir) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
 
 ExtendedStat* PythonCatalog::readDirx(Directory* dir) throw (DmException)
 {
-  ExtendedStat* cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("readDirx")(dir);
@@ -415,16 +380,12 @@ ExtendedStat* PythonCatalog::readDirx(Directory* dir) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 
 
 Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
 {
-  Replica cpp_result;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplica")(rfn);
@@ -435,8 +396,6 @@ Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
   } catch (error_already_set const &) {
     PyErr_Print();
   }
-
-  return cpp_result;
 }
 
 

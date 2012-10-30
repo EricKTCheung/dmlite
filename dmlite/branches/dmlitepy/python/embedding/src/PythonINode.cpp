@@ -1,3 +1,7 @@
+/// @file   python/embedding/src/PythonINode.cpp
+/// @brief  Python PythonINode API.
+/// @author Martin Philipp Hellmich <martin.hellmich@cern.ch>
+
 #include <dmlite/python/python_inode.h>
 
 using namespace dmlite;
