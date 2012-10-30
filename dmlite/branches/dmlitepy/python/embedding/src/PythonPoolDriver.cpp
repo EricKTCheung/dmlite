@@ -78,11 +78,11 @@ uint64_t PythonPoolHandler::getFreeSpace(void) throw (DmException)
 }
 
 
-bool PythonPoolHandler::poolIsAvailable(bool) throw (DmException)
+bool PythonPoolHandler::poolIsAvailable(bool write) throw (DmException)
 {
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("poolIsAvailable")();
+    object result = mod.attr("poolIsAvailable")(write);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonPoolHandler::poolIsAvailable");
     }
@@ -97,7 +97,7 @@ bool PythonPoolHandler::replicaIsAvailable(const Replica& replica) throw (DmExce
 {
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("replicaIsAvailable")();
+    object result = mod.attr("replicaIsAvailable")(replica);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonPoolHandler::replicaIsAvailable");
     }
@@ -112,7 +112,7 @@ Location PythonPoolHandler::whereToRead(const Replica& replica) throw (DmExcepti
 {
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("whereToRead")();
+    object result = mod.attr("whereToRead")(replica);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonPoolHandler::whereToRead");
     }
@@ -133,7 +133,7 @@ Location PythonPoolHandler::whereToWrite(const std::string& path) throw (DmExcep
 {
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("whereToWrite")();
+    object result = mod.attr("whereToWrite")(path);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION), "%s: You shouldn't return None here", "PythonPoolHandler::whereToWrite");
     }
@@ -178,7 +178,7 @@ PythonPoolHandler* PythonPoolDriver::createPoolHandler(const std::string& poolNa
   object module;
   try {
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
-    module = pymoduleFac.attr("createPoolHandler")();
+    module = pymoduleFac.attr("createPoolHandler")(poolName);
   } catch (error_already_set const &) {
     PyErr_Print();
   }
