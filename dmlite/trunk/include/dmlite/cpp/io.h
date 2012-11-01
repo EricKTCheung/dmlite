@@ -43,6 +43,22 @@ namespace dmlite {
     /// @return       Number of bytes actually written.
     virtual size_t write(const char* buffer, size_t count) throw (DmException) = 0;
 
+    /// Read into multiple buffers.
+    /// @param vector An array with 'count' iovec structs.
+    /// @param count  Number of elements in vector.
+    /// @return       The total size read.
+    /// @note         See man readv.
+    /// @note         A default implementation using read is provided.
+    virtual size_t readv(const struct iovec* vector, size_t count) throw (DmException);
+
+    /// Write from multiple buffers.
+    /// @param vector An array with 'count' iovec structs.
+    /// @param count  Number of elements in vector.
+    /// @return       The total size written.
+    /// @note         See man write.v
+    /// @note         A default implementation using write is provided.
+    virtual size_t writev(const struct iovec* vector, size_t count) throw (DmException);
+
     /// Move the cursor.
     /// @param offset The offset.
     /// @param whence Reference.
