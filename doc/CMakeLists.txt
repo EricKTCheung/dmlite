@@ -24,7 +24,7 @@ if (DOXYGEN_FOUND)
            DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
            COMPONENT   dmlite-devel)
   install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/man
-           DESTINATION usr/share/man
+           DESTINATION usr/share
            COMPONENT   dmlite-devel)
 
 endif (DOXYGEN_FOUND)
