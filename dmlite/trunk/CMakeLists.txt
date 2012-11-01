@@ -32,7 +32,7 @@ find_package (Boost 1.41 REQUIRED)
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
   if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost141")
-    message ("WARNING: Overriding Boost library location")
+    message ("INFO: Overriding Boost library location")
     set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost141/")
   endif ()
 
@@ -41,7 +41,10 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ ${Boost_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ 
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${Boost_INCLUDE_DIRS})
 
 # Link path
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
@@ -50,76 +53,12 @@ link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 add_definitions (-D_REENTRANT)
 
 # Subdirectories
+add_subdirectory (doc)
 add_subdirectory (etc)
+add_subdirectory (include)
+add_subdirectory (python)
 add_subdirectory (src)
-
-# Enable tests only if CPPUNIT is found
-find_package (CppUnit)
-if (CPPUNIT_FOUND)
-  add_subdirectory (tests)
-endif (CPPUNIT_FOUND)
-
-# Enable python only if pythonlib is found
-find_package(PythonLibs)
-if (Boost_FOUND)
-  add_subdirectory (python)
-endif (Boost_FOUND)
-
-# Config header
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
-                ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h)
-
-# Install headers
-install (DIRECTORY   include/
-         DESTINATION usr/include
-         COMPONENT   dmlite-devel
-         PATTERN     ".svn" EXCLUDE
-         PATTERN     "*.cmake" EXCLUDE)
-
-# Generate documentation
-find_package (Doxygen)
-
-if (DOXYGEN_FOUND)
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile-man.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man @ONLY)
-
-  add_custom_target(doc ALL
-                   DEPENDS doc/html doc/man)
-
-  add_custom_command(OUTPUT doc/html
-                    COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                     COMMENT "Generating API documentation with Doxygen" VERBATIM)
-
-  add_custom_command(OUTPUT doc/man
-                     COMMAND ${DOXYGEN_EXECUTABLE} ARGS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                     COMMENT "Generating man documentation with Doxygen" VERBATIM)
-
-
-  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/html/
-           DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
-           COMPONENT   dmlite-devel)
-  install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/doc/man/
-           DESTINATION usr/share/man
-           COMPONENT   dmlite-devel)
-
-endif (DOXYGEN_FOUND)
-
-# Tutorial
-install (DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/doc/tutorial/
-         DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/tutorial
-         COMPONENT   dmlite-devel
-         PATTERN ".svn" EXCLUDE)
-
-# Configure CTest testing
-ENABLE_TESTING()
-
-
-
-
-
-
+add_subdirectory (tests)
 
 #######################################################
 # Configure an 'uninstall' target
