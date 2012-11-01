@@ -1,6 +1,7 @@
 /// @file    utils/Extensible.cpp
 /// @brief   Extensible types (hold metadata).
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/any.hpp>
 #include <boost/version.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -9,6 +10,15 @@
 #include <sstream>
 
 using namespace dmlite;
+
+static inline bool compare_types(const std::type_info& a, const std::type_info& b)
+{
+#ifdef BOOST_AUX_ANY_TYPE_ID_NAME
+  return (::strcmp(a.name(), b.name()) == 0);
+#else
+  return a == b;
+#endif
+}
 
 
 // Check json.org to see the diagram
@@ -67,59 +77,59 @@ static std::string serializeAny(const boost::any& value)
   enum {kLong, kDouble, kString, kUnknown, kObj, kVector} whatIs = kUnknown;
   
   // String types are easy
-  if (value.type() == typeid(std::string)) {
+  if (compare_types(value.type(), typeid(std::string))) {
     strValue = boost::any_cast<std::string>(value);
     whatIs = kString;
   }
-  else if (value.type() == typeid(const char*)) {
+  else if (compare_types(value.type(), typeid(const char*))) {
     strValue = boost::any_cast<const char*>(value);
     whatIs = kString;
   }
-  else if (value.type() == typeid(char*)) {
+  else if (compare_types(value.type(), typeid(char*))) {
     strValue = boost::any_cast<char*>(value);
     whatIs = kString;
   }
   // Treat all integers as long
-  else if (value.type() == typeid(bool)) {
+  else if (compare_types(value.type(), typeid(bool))) {
     bool b = boost::any_cast<bool>(value);
     return b ? "true" : "false";
   }
-  else if (value.type() == typeid(char)) {
+  else if (compare_types(value.type(), typeid(char))) {
     intValue = boost::any_cast<char>(value);
     whatIs = kLong;
   }
-  else if (value.type() == typeid(short)) {
+  else if (compare_types(value.type(), typeid(short))) {
     intValue = boost::any_cast<short>(value);
     whatIs = kLong;
   }
-  else if (value.type() == typeid(int)) {
+  else if (compare_types(value.type(), typeid(int))) {
     intValue = boost::any_cast<int>(value);
     whatIs = kLong;
   }
-  else if (value.type() == typeid(long)) {
+  else if (compare_types(value.type(), typeid(long))) {
     intValue = boost::any_cast<long>(value);
     whatIs = kLong;
   }
-  else if (value.type() == typeid(unsigned)) {
+  else if (compare_types(value.type(), typeid(unsigned))) {
     intValue = boost::any_cast<unsigned>(value);
     whatIs = kLong;
   }
   // Treat all float as double
-  else if (value.type() == typeid(float)) {
+  else if (compare_types(value.type(), typeid(float))) {
     doubleValue = boost::any_cast<float>(value);
     whatIs = kDouble;
   }
-  else if (value.type() == typeid(double)) {
+  else if (compare_types(value.type(), typeid(double))) {
     doubleValue = boost::any_cast<double>(value);
     whatIs = kDouble;
   }
   // Nested types
-  else if (value.type() == typeid(Extensible)) {
+  else if (compare_types(value.type(), typeid(Extensible))) {
     Extensible e = boost::any_cast<Extensible>(value);
     strValue = e.serialize();
     whatIs = kObj;
   }
-  else if (value.type() == typeid(std::vector<boost::any>)) {
+  else if (compare_types(value.type(), typeid(std::vector<boost::any>))) {
     vValue = boost::any_cast<std::vector<boost::any> >(value);
     whatIs = kVector;
   }
@@ -158,7 +168,7 @@ static std::string serializeAny(const boost::any& value)
 
 bool Extensible::anyToBoolean(const boost::any& any)
 {
-  if (any.type() == typeid(bool))
+  if (compare_types(any.type(), typeid(bool)))
     return boost::any_cast<bool>(any);
   else
     return (anyToDouble(any) != 0.0);
@@ -168,19 +178,19 @@ bool Extensible::anyToBoolean(const boost::any& any)
 
 double Extensible::anyToDouble(const boost::any& any)
 {
-  if (any.type() == typeid(double))
+  if (compare_types(any.type(), typeid(double)))
     return boost::any_cast<double>(any);
-  else if (any.type() == typeid(float))
+  else if (compare_types(any.type(), typeid(float)))
     return boost::any_cast<float>(any);
-  else if (any.type() == typeid(long))
+  else if (compare_types(any.type(), typeid(long)))
     return boost::any_cast<long>(any);
-  else if (any.type() == typeid(int))
+  else if (compare_types(any.type(), typeid(int)))
     return boost::any_cast<int>(any);
-  else if (any.type() == typeid(short))
+  else if (compare_types(any.type(), typeid(short)))
     return boost::any_cast<short>(any);
-  else if (any.type() == typeid(char))
+  else if (compare_types(any.type(), typeid(char)))
     return boost::any_cast<char>(any);
-  else if (any.type() == typeid(unsigned))
+  else if (compare_types(any.type(), typeid(unsigned)))
     return boost::any_cast<unsigned>(any);
   // As a string, or maybe an integer?
   else {
@@ -195,15 +205,15 @@ double Extensible::anyToDouble(const boost::any& any)
 
 long Extensible::anyToLong(const boost::any& any)
 {
-  if (any.type() == typeid(long))
+  if (compare_types(any.type(), typeid(long)))
     return boost::any_cast<long>(any);
-  else if (any.type() == typeid(int))
+  else if (compare_types(any.type(), typeid(int)))
     return boost::any_cast<int>(any);
-  else if (any.type() == typeid(short))
+  else if (compare_types(any.type(), typeid(short)))
     return boost::any_cast<short>(any);
-  else if (any.type() == typeid(char))
+  else if (compare_types(any.type(), typeid(char)))
     return boost::any_cast<char>(any);
-  else if (any.type() == typeid(unsigned))
+  else if (compare_types(any.type(), typeid(unsigned)))
     return boost::any_cast<unsigned>(any);
   // Try as a string, and parse
   else {
@@ -218,7 +228,7 @@ long Extensible::anyToLong(const boost::any& any)
 
 unsigned Extensible::anyToUnsigned(const boost::any& any)
 {
-  if (any.type() == typeid(unsigned))
+  if (compare_types(any.type(), typeid(unsigned)))
     return boost::any_cast<unsigned>(any);
   else
     return anyToLong(any);
@@ -228,11 +238,11 @@ unsigned Extensible::anyToUnsigned(const boost::any& any)
 
 std::string Extensible::anyToString(const boost::any& value)
 {
-  if (value.type() == typeid(const char*))
+  if (compare_types(value.type(), typeid(const char*)))
     return std::string(boost::any_cast<const char*>(value));
-  else if (value.type() == typeid(char*))
+  else if (compare_types(value.type(), typeid(char*)))
     return std::string(boost::any_cast<char*>(value));
-  else if (value.type() == typeid(std::string))
+  else if (compare_types(value.type(), typeid(std::string)))
     return boost::any_cast<std::string>(value);
   else
     return serializeAny(value);
