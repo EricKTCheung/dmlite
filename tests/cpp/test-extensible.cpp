@@ -24,6 +24,11 @@ class TestExtensible: public CppUnit::TestFixture {
       CPPUNIT_ASSERT_EQUAL(true, ext.hasField("something"));
       CPPUNIT_ASSERT_EQUAL(std::string("else"), ext.getString("something"));
       CPPUNIT_ASSERT_EQUAL(1ul, ext.size());
+
+      // Check chars
+      ext["char"] = 'P';
+      CPPUNIT_ASSERT_EQUAL(std::string("P"), ext.getString("char"));
+      CPPUNIT_ASSERT_EQUAL(static_cast<long>('P'), ext.getLong("char"));
     }
 
     void testDefaults()

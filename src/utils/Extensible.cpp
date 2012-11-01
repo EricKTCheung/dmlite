@@ -244,6 +244,8 @@ std::string Extensible::anyToString(const boost::any& value)
     return std::string(boost::any_cast<char*>(value));
   else if (compare_types(value.type(), typeid(std::string)))
     return boost::any_cast<std::string>(value);
+  else if (compare_types(value.type(), typeid(char)))
+    return std::string(1, boost::any_cast<char>(value));
   else
     return serializeAny(value);
 }
