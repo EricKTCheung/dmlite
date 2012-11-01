@@ -5,6 +5,6 @@ configure_file (config.h.cmake
                 ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 # Install headers
-install (FILES		config.h config.h.cmake errno.h
+install (FILES		${CMAKE_CURRENT_BINARY_DIR}/config.h errno.h
          DESTINATION	usr/include/dmlite/common
 )
