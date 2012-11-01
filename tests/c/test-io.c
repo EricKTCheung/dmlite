@@ -85,6 +85,55 @@ void testWrite(dmlite_context* context)
 
 
 
+void testInsecure(dmlite_context* context)
+{
+  dmlite_fd* file;
+
+  SECTION("Insecure");
+
+  /* Opening without token should be good */
+  TEST_CONTEXT_CALL_PTR(file, context, dmlite_fopen, "/file", O_RDONLY | O_INSECURE, NULL);
+  TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
+}
+
+
+
+void testVector(dmlite_context* context)
+{
+  dmlite_fd* file;
+  const char *strings[] = {"this-", "is-a-", "nice-string"};
+  char buffer[128];
+  struct iovec vector[3];
+  size_t i, expected;
+
+  SECTION("Vector write");
+
+  TEST_CONTEXT_CALL_PTR(file, context, dmlite_fopen, "/file", O_RDONLY | O_INSECURE, NULL);
+
+  for (i = 0, expected = 0; i < 3; ++i) {
+    vector[i].iov_base = (void*)strings[i];
+    vector[i].iov_len  = strlen(strings[i]);
+    expected += vector[i].iov_len;
+  }
+  TEST_ASSERT_EQUAL(expected, dmlite_fwritev(file, vector, 3));
+
+  SECTION("Vector read");
+
+  TEST_ASSERT_EQUAL(0, dmlite_fseek(file, 0, SEEK_SET));
+
+  memset(buffer, 0, sizeof(buffer));
+  vector[0].iov_base = buffer;
+  for (i = 1; i < 3; ++i) {
+    vector[i].iov_base = vector[i - 1].iov_base + vector[i - 1].iov_len;
+  }
+
+  TEST_ASSERT_EQUAL(expected, dmlite_freadv(file, vector, 3));
+  TEST_ASSERT_STR_EQUAL("this-is-a-nice-string", buffer);
+
+  TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
+}
+
+
 int main(int argn, char** argv)
 {
   dmlite_manager* manager;
@@ -108,6 +157,8 @@ int main(int argn, char** argv)
   /* Do tests */
   testRead(context);
   testWrite(context);
+  testInsecure(context);
+  testVector(context);
   
   /* Clean-up */
   dmlite_context_free(context);

@@ -494,20 +494,22 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
     throw DmException(ENOENT, "File  %s not found", pfn.c_str());
   
   // Check token
-  switch (flags & ~O_CREAT) {
-    case O_RDONLY:
-      if (extras.getString("token") != "123456789")
-        throw DmException(EACCES,
-                          "Invalid token for reading");
-      break;
-    case O_WRONLY: case O_RDWR:
-      if (extras.getString("token") != "987654321")
-        throw DmException(EACCES,
-                          "Invalid token for writing");
-      break;
-    default:
-      throw DmException(EINVAL,
-                        "Invalid value for the flags");
+  if (!(flags & kInsecure)) {
+    switch (flags & 07) {
+      case O_RDONLY:
+        if (extras.getString("token") != "123456789")
+          throw DmException(EACCES,
+                            "Invalid token for reading");
+        break;
+      case O_WRONLY: case O_RDWR:
+        if (extras.getString("token") != "987654321")
+          throw DmException(EACCES,
+                            "Invalid token for writing");
+        break;
+      default:
+        throw DmException(EINVAL,
+                          "Invalid value for the flags");
+    }
   }
   
   return new MockIOHandler();

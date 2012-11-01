@@ -101,6 +101,32 @@ size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 
 
 
+size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count)
+{
+  if (!fd)
+    return DMLITE_SYSERR(EFAULT);
+  TRY(fd->context, freadv)
+  NOT_NULL(fd);
+  NOT_NULL(vector);
+  return fd->stream->readv(vector, count);
+  CATCH(fd->context, freadv)
+}
+
+
+
+size_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count)
+{
+  if (!fd)
+    return DMLITE_SYSERR(EFAULT);
+  TRY(fd->context, fwritev)
+  NOT_NULL(fd);
+  NOT_NULL(vector);
+  return fd->stream->writev(vector, count);
+  CATCH(fd->context, fwritev)
+}
+
+
+
 int dmlite_feof(dmlite_fd* fd)
 {
   if (!fd)

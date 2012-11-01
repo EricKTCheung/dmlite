@@ -5,6 +5,7 @@
 #ifndef DMLITE_IO_H
 #define DMLITE_IO_H
 
+#include <sys/uio.h>
 #include "any.h"
 #include "dmlite.h"
 
@@ -71,6 +72,25 @@ size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
  * @return       Number of bytes actually written. -1 on failure.
  */
 size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
+
+/**
+ * @brief        Reads from a file into multiple buffers.
+ * @param fd     The file descriptor.
+ * @param vector Array of buffers.
+ * @param count  Number of elements in the array of buffers.
+ * @return       Number of bytes actually read on success. -1 on failure.
+ */
+size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count);
+
+/**
+* @brief        Reads from a file into multiple buffers.
+* @param fd     The file descriptor.
+* @param vector Array of buffers.
+* @param count  Number of elements in the array of buffers.
+* @return       Number of bytes actually read on success. -1 on failure.
+*/
+size_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count);
+
 
 /**
  * @brief    Returns 1 if EOF.

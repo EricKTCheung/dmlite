@@ -132,12 +132,81 @@ public:
       delete is;
   }
 
+  void testWritev(void)
+  {
+    // Write
+    char *ostrings[] = {"string-01", "string-02", "string-03"};
+
+    dmlite::IOHandler* os = io->createIOHandler("/tmp/writev",
+                                                O_WRONLY | O_CREAT | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+
+    struct iovec iovector[3];
+    size_t expected = 0;
+    for (size_t i = 0; i < 3; ++i) {
+      iovector[i].iov_base = static_cast<void*>(ostrings[i]);
+      iovector[i].iov_len = strlen(ostrings[i]);
+      expected += strlen(ostrings[i]);
+    }
+
+    size_t nb = os->writev(iovector, 3);
+    CPPUNIT_ASSERT_EQUAL(expected, nb);
+
+    delete os;
+
+    // Read it back
+    char buffer[512];
+    memset(buffer, 0, sizeof(buffer));
+    dmlite::IOHandler* is = io->createIOHandler("/tmp/writev",
+                                                O_RDONLY | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+    nb = is->read(buffer, sizeof(buffer));
+    delete is;
+
+    CPPUNIT_ASSERT_EQUAL(expected, nb);
+    CPPUNIT_ASSERT_EQUAL(std::string("string-01string-02string-03"), std::string(buffer));
+  }
+
+  void testReadv(void)
+  {
+    // Write
+    char ostring[] = "string-01string-02string-03";
+
+    dmlite::IOHandler* os = io->createIOHandler("/tmp/readv",
+                                                O_WRONLY | O_CREAT | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+    CPPUNIT_ASSERT_EQUAL(sizeof(ostring), os->write(ostring, sizeof(ostring)));
+    delete os;
+
+    // Read it back using readv
+    char buffer[512];
+    memset(buffer, 0, sizeof(buffer));
+    struct iovec iovector[3];
+    iovector[0].iov_base = buffer;
+    iovector[0].iov_len  = 9;
+    iovector[1].iov_base = buffer + 9;
+    iovector[1].iov_len  = 9;
+    iovector[2].iov_base = buffer + 18;
+    iovector[3].iov_len  = 9;
+
+    dmlite::IOHandler* is = io->createIOHandler("/tmp/writev",
+                                                O_RDONLY | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+    size_t nb = is->readv(iovector, 3);
+    delete is;
+
+    CPPUNIT_ASSERT_EQUAL(strlen(ostring), nb);
+    CPPUNIT_ASSERT_EQUAL(std::string(ostring), std::string(buffer));
+  }
+
   
   CPPUNIT_TEST_SUITE(TestIO);
   CPPUNIT_TEST(testOpen);
   CPPUNIT_TEST(testNotExist);
   CPPUNIT_TEST(testWriteAndRead);
   CPPUNIT_TEST(testInsecure);
+  CPPUNIT_TEST(testWritev);
+  CPPUNIT_TEST(testReadv);
   CPPUNIT_TEST_SUITE_END();
 };
 
