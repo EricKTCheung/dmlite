@@ -35,16 +35,26 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
 /**
  * @brief    Closes a file.
  * @param fd The file descriptor as returned by dmlite_open.
- * @return   0 on sucess,  error code otherwise.
+ * @return   0 on success, error code otherwise.
  */
 int dmlite_fclose(dmlite_fd* fd);
+
+/**
+ * @brief     Gets information about a file descriptor.
+ * @param fd  The file descriptor.
+ * @param buf Where to put the information.
+ * @return    0 on success, error code otherwise.
+ * @note      Not all plug-ins will fill all the fields, but st_size is
+ *            a reasonable expectation.
+ */
+int dmlite_fstat(dmlite_fd* fd, struct stat* buf);
 
 /**
  * @brief        Sets the file position.
  * @param fd     The file descriptor.
  * @param offset The offset.
  * @param whence See fseek()
- * @return       0 on sucess,  error code otherwise.
+ * @return       0 on success, error code otherwise.
  */
 int dmlite_fseek(dmlite_fd* fd, long offset, int whence);
 

@@ -125,6 +125,18 @@ IOHandler::~IOHandler()
 
 
 
+struct stat IOHandler::fstat() throw (DmException)
+{
+  struct stat st;
+  off_t where = this->tell();
+  this->seek(0, kEnd);
+  st.st_size = this->tell();
+  this->seek(where, kSet);
+  return st;
+}
+
+
+
 size_t IOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
   size_t total = 0;

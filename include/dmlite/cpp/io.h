@@ -31,6 +31,12 @@ namespace dmlite {
     /// Close
     virtual void close(void) throw (DmException) = 0;
 
+    /// Gets information about a file descriptor.
+    /// @note Not all plug-ins will fill all the fields, but st_size is
+    ///       a reasonable expectation.
+    /// @note Default implementation combining seek/tell is provided.
+    virtual struct stat fstat(void) throw (DmException);
+
     /// Read.
     /// @param buffer Where to store the data.
     /// @param count  Number of bytes to read.

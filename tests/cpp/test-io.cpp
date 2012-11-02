@@ -11,7 +11,7 @@
 #include <iostream>
 #include <ios>
 #include <iosfwd>
-
+#include <sys/stat.h>
 
 
 class TestIO: public CppUnit::TestFixture
@@ -199,6 +199,22 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string(ostring), std::string(buffer));
   }
 
+  void testFStat(void)
+  {
+    // Get real file size
+    struct stat fstat;
+    ::stat("/etc/group", &fstat);
+
+    // Open with a handler and get the stat
+    dmlite::IOHandler* os = io->createIOHandler("/etc/group",
+                                                O_RDONLY | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+    struct stat pstat = os->fstat();
+    delete os;
+
+    CPPUNIT_ASSERT_EQUAL(fstat.st_size, pstat.st_size);
+  }
+
   
   CPPUNIT_TEST_SUITE(TestIO);
   CPPUNIT_TEST(testOpen);
@@ -207,6 +223,7 @@ public:
   CPPUNIT_TEST(testInsecure);
   CPPUNIT_TEST(testWritev);
   CPPUNIT_TEST(testReadv);
+  CPPUNIT_TEST(testFStat);
   CPPUNIT_TEST_SUITE_END();
 };
 

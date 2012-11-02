@@ -423,7 +423,7 @@ void MockIOHandler::seek(off_t offset, Whence whence) throw (DmException)
       p = offset;
       break;
     case kEnd:
-      p = p  + offset;
+      p = sizeof(content) + offset;
       break;
     default:
       p += offset;
