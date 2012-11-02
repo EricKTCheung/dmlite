@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <dmlite/common/config.h>
 #include <dmlite/common/errno.h>
 #include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/exceptions.h>
@@ -528,39 +527,31 @@ std::string dmlite::voFromRole(const std::string& role)
 
 
 
-// This hack allows to parse only once the file
-static std::string initHostDN(void)
+std::string dmlite::getCertificateSubject(const std::string& path)
 {
-  X509*       hostX509; 
- BIO*        in = BIO_new(BIO_s_file());
+  X509*       certificate;
+  BIO*        in = BIO_new(BIO_s_file());
+  const char *cpath = path.c_str();
 
-  if (BIO_read_filename(in, HOST_CERTIFICATE) < 0) {
+  if (BIO_read_filename(in, cpath) < 0) {
     BIO_free_all(in);
     throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not read the host certificate (BIO: %s)",
-                      HOST_CERTIFICATE);
+                      "Could not read the certificate (BIO: %s)",
+                      cpath);
   }
 
-  hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
+  certificate = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
   BIO_free_all(in);
-  if (hostX509 == NULL) {
+  if (certificate == NULL) {
     throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not read the host certificate (X509: %s)",
-                      HOST_CERTIFICATE);
+                      "Could not read the certificate (X509: %s)",
+                      cpath);
   }
 
-  std::string hostDN = hostX509->name;
-  X509_free(hostX509);
+  std::string subject = certificate->name;
+  X509_free(certificate);
   
-  return hostDN;
-}
-
-
-
-std::string dmlite::getHostDN(void)
-{
-  static const std::string hostDN = initHostDN();
-  return hostDN;
+  return subject;
 }
 
 

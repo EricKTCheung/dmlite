@@ -2,7 +2,7 @@
 #include <cppunit/TestAssert.h>
 #include <cstring>
 #include <dmlite/cpp/dmlite.h>
-#include <dmlite/common/config.h>
+#include <dmlite/cpp/utils/security.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
@@ -11,6 +11,9 @@
 
 class TestSecurity: public TestBase
 {
+private:
+  static const std::string HOST_CERTIFICATE;
+
 public:
 
   void setUp()
@@ -52,19 +55,7 @@ public:
   {
     // Initialize
     dmlite::SecurityCredentials hostCreds;
-    
-    BIO*  in = BIO_new(BIO_s_file());
-    X509* hostX509 = NULL;
-    if (BIO_read_filename(in, HOST_CERTIFICATE) > 0) {
-      hostX509 = PEM_read_bio_X509_AUX(in, NULL, NULL, NULL);
-      BIO_free_all(in);
-      CPPUNIT_ASSERT(hostX509 != NULL);
-      hostCreds.clientName = hostX509->name;
-    }
-    else {
-      // Obviously is going to fail, but still, need to call
-      hostCreds.clientName = "/DC=ch/DC=cern/OU=computers/CN=host.cern.ch";
-    }
+    hostCreds.clientName = dmlite::getCertificateSubject(HOST_CERTIFICATE);
     
     // Check
     const dmlite::SecurityContext* ctx;
@@ -72,9 +63,6 @@ public:
     ctx = this->stackInstance->getSecurityContext();
     
     CPPUNIT_ASSERT_EQUAL(0u, boost::any_cast<uid_t>(ctx->user["uid"]));
-    
-    // Free
-    if (hostX509) X509_free(hostX509);
   }
 
   CPPUNIT_TEST_SUITE(TestSecurity);
@@ -83,6 +71,9 @@ public:
   CPPUNIT_TEST(testHostCert);
   CPPUNIT_TEST_SUITE_END();
 };
+
+const std::string TestSecurity::HOST_CERTIFICATE = "/etc/grid-security/hostcert.pem";
+
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestSecurity);
 

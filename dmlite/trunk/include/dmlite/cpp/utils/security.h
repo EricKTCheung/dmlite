@@ -98,8 +98,8 @@ namespace dmlite {
   /// @return     The VO.
   std::string voFromRole(const std::string& role);
 
-  /// Get the host DN from the host certificate
-  std::string getHostDN(void);
+  /// Get the subject from the certificate.
+  std::string getCertificateSubject(const std::string& path);
 
   /// Generate a token.
   /// @param id       A unique ID of the user. May be the DN, the IP...

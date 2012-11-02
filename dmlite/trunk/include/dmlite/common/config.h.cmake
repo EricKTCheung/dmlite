@@ -10,7 +10,5 @@
 #define DMLITE_MINOR @dmlite_MINOR@
 #define DMLITE_PATCH @dmlite_PATCH@
 
-/* Host certificate */
-#define HOST_CERTIFICATE "@HOST_CERTIFICATE@"
-
 #endif /* DMLITE_COMMON_CONFIG_H */
+
