@@ -7,9 +7,6 @@ set(dmlite_MAJOR 0)
 set(dmlite_MINOR 6)
 set(dmlite_PATCH 0)
 
-# Host certificate location
-set (HOST_CERTIFICATE "/etc/grid-security/hostcert.pem" CACHE STRING "Location of the host certificate")
-
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX ""
@@ -44,6 +41,7 @@ endif (Boost_FOUND)
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${Boost_INCLUDE_DIRS})
 
 # Link path
