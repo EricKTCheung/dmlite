@@ -103,7 +103,8 @@ namespace dmlite {
      
      IOHandler* createIOHandler(const std::string& pfn,
                                 int flags,
-                                const Extensible& extras) throw (DmException);
+                                const Extensible& extras,
+                                mode_t mode) throw (DmException);
      
      void doneWriting(const std::string& pfn,
                       const Extensible& params) throw (DmException);

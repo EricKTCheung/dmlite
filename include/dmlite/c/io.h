@@ -27,10 +27,11 @@ typedef struct dmlite_fd dmlite_fd;
  * @param path    The path to open.
  * @param flags   See open()
  * @param extra   The key-value pairs.
+ * @param ...     Should be mode_t when called with O_CREAT.
  * @return        An opaque handler for the file, NULL on failure.
  */
 dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
-                        const dmlite_any_dict* extra);
+                        const dmlite_any_dict* extra, ...);
 
 /**
  * @brief    Closes a file.
