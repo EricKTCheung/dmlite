@@ -5,6 +5,7 @@
 #include <dmlite/c/dmlite.h>
 #include <dmlite/cpp/io.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include "Private.h"
 
 struct dmlite_fd {
@@ -15,19 +16,35 @@ struct dmlite_fd {
 
 
 dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
-                        const dmlite_any_dict* extra)
+                        const dmlite_any_dict* extra, ...)
 {
   TRY(context, fopen)
   NOT_NULL(path);
   
   dmlite::IOHandler* stream;
-  if (extra != NULL)
-    stream = context->stack->getIODriver()->
-                              createIOHandler(path, flags, extra->extensible);
-  else
-    stream = context->stack->getIODriver()->
-                              createIOHandler(path, flags, dmlite::Extensible());
   
+  if (flags & O_CREAT) {
+    va_list args;
+    va_start(args, extra);
+    mode_t mode = va_arg(args, mode_t);
+    va_end(args);
+
+    if (extra != NULL)
+      stream = context->stack->getIODriver()->
+                                createIOHandler(path, flags, extra->extensible, mode);
+    else
+      stream = context->stack->getIODriver()->
+                                createIOHandler(path, flags, dmlite::Extensible(), mode);
+  }
+  else {
+    if (extra != NULL)
+      stream = context->stack->getIODriver()->
+                                createIOHandler(path, flags, extra->extensible);
+    else
+      stream = context->stack->getIODriver()->
+                                createIOHandler(path, flags, dmlite::Extensible());
+  }
+
   dmlite_fd* iofd = new dmlite_fd();
   iofd->context = context;
   iofd->stream  = stream;

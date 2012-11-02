@@ -95,9 +95,11 @@ namespace dmlite {
     /// @param pfn    The file name.
     /// @param flags  The open mode. See man 2 open.
     /// @param extras As was given by the PoolHandler.
+    /// @param mode   When called with O_CREAT, it will be used to create the file.
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        int flags,
-                                       const Extensible& extras) throw (DmException) = 0;
+                                       const Extensible& extras,
+                                       mode_t mode = 0660) throw (DmException) = 0;
     
     /// Must be called when the front-end is done writing.
     /// @param pfn    The file name.

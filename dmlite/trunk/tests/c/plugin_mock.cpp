@@ -487,7 +487,7 @@ void MockIODriver::setSecurityContext(const SecurityContext*) throw (DmException
 
 
 IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
-                                         const Extensible& extras) throw (DmException)
+                                         const Extensible& extras, mode_t mode) throw (DmException)
 {
   // Only one recognised
   if (pfn != "/file")
