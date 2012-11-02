@@ -134,6 +134,23 @@ void testVector(dmlite_context* context)
 }
 
 
+
+void testStat(dmlite_context* context)
+{
+  dmlite_fd* file;
+  struct stat fstat;
+  SECTION("Test fstat");
+
+  TEST_CONTEXT_CALL_PTR(file, context, dmlite_fopen, "/file", O_RDONLY | O_INSECURE, NULL);
+
+  TEST_ASSERT_EQUAL(0, dmlite_fstat(file, &fstat));
+  TEST_ASSERT_EQUAL(1024, fstat.st_size);
+
+  TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
+}
+
+
+
 int main(int argn, char** argv)
 {
   dmlite_manager* manager;
@@ -159,6 +176,7 @@ int main(int argn, char** argv)
   testWrite(context);
   testInsecure(context);
   testVector(context);
+  testStat(context);
   
   /* Clean-up */
   dmlite_context_free(context);

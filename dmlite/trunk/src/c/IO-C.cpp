@@ -51,6 +51,19 @@ int dmlite_fclose(dmlite_fd* fd)
 
 
 
+int dmlite_fstat(dmlite_fd* fd, struct stat* buf)
+{
+  if (!fd)
+    return DMLITE_SYSERR(EFAULT);
+  TRY(fd->context, fstat)
+  NOT_NULL(fd);
+  NOT_NULL(buf);
+  *buf = fd->stream->fstat();
+  CATCH(fd->context, fclose)
+}
+
+
+
 int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
 {
   if (!fd)
