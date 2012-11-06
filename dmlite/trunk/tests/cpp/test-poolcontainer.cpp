@@ -199,6 +199,20 @@ public:
     CPPUNIT_ASSERT_THROW(pool->acquire(&external), dmlite::DmException);
   }
 
+
+
+  void testPotentialDeadlock(void)
+  {
+    testIncreaseRef();
+    // Now, if the exception didn't clear the mutex,
+    // this will deadlock
+    Dummy* d = pool->acquire(true);
+
+    pool->release(d);
+  }
+
+
+
   CPPUNIT_TEST_SUITE(PoolContainerTest);
   CPPUNIT_TEST(testOne);
   CPPUNIT_TEST(testTwo);
@@ -206,6 +220,7 @@ public:
   CPPUNIT_TEST(testResize);
   CPPUNIT_TEST(testNoMore);
   CPPUNIT_TEST(testIncreaseRef);
+  CPPUNIT_TEST(testPotentialDeadlock);
   CPPUNIT_TEST_SUITE_END();
 };
 
