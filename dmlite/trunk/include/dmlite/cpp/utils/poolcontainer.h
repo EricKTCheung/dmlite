@@ -4,10 +4,9 @@
 #ifndef DMLITE_CPP_UTILS_POOLCONTAINER_H
 #define DMLITE_CPP_UTILS_POOLCONTAINER_H
 
-#include <errno.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 #include <map>
-#include <pthread.h>
-#include <semaphore.h>
 #include <syslog.h>
 #include <queue>
 #include "../exceptions.h"
@@ -40,10 +39,8 @@ namespace dmlite {
     /// Constructor
     /// @param factory The factory to use when spawning a new resource.
     /// @param n       The number of resources to keep.
-    PoolContainer(PoolElementFactory<E>* factory, int n): max_(n), factory_(factory)
+    PoolContainer(PoolElementFactory<E>* factory, int n): max_(n), factory_(factory), freeSlots_(n)
     {
-      pthread_mutex_init(&mutex_, NULL);
-      sem_init(&available_, 0, n);
     }
 
     /// Destructor
@@ -60,9 +57,6 @@ namespace dmlite {
       if (used_.size() > 0) {
         syslog(LOG_USER | LOG_WARNING, "%ld used elements from a pool not released on destruction!", (long)used_.size());
       }
-      // Destroy locks
-      pthread_mutex_destroy(&mutex_);
-      sem_destroy(&available_);
     }
 
     /// Acquires a free resource.
@@ -70,16 +64,15 @@ namespace dmlite {
     {
       E e;
       // Wait for one free
-      if (!block) {
-        int v;
-        sem_getvalue(&available_, &v);
-        if (v <= 0)
-          throw DmException(DMLITE_SYSERR(EBUSY),
-                            std::string("No resources available"));
+      if (!block && freeSlots_ == 0) {
+        throw DmException(DMLITE_SYSERR(EBUSY),
+                          std::string("No resources available"));
       }
-      sem_wait(&available_);
-      // Critical section
-      pthread_mutex_lock(&mutex_);
+
+      boost::mutex::scoped_lock lock(mutex_);
+      while (freeSlots_ < 1)
+        available_.wait(lock);
+
       // If there is any in the queue, give one from there
       if (free_.size() > 0) {
         e = free_.front();
@@ -96,16 +89,15 @@ namespace dmlite {
       }
       // Keep track of used
       used_.insert(std::pair<E, unsigned>(e, 1));
-      // End of critical section
-      pthread_mutex_unlock(&mutex_);
+      --freeSlots_;
+
       return e;
     }
 
     /// Increases the reference count of a resource.
     E acquire(E e)
     {
-      // Critical section
-      pthread_mutex_lock(&mutex_);
+      boost::mutex::scoped_lock lock(mutex_);
 
       // Make sure it is there
       typename std::map<E, unsigned>::const_iterator i = used_.find(e);
@@ -117,7 +109,6 @@ namespace dmlite {
       used_[e]++;
 
       // End
-      pthread_mutex_unlock(&mutex_);
       return e;
     }
 
@@ -126,8 +117,7 @@ namespace dmlite {
     /// @return  The reference count after releasing.
     unsigned release(E e)
     {
-      // Critical section
-      pthread_mutex_lock(&mutex_);
+      boost::mutex::scoped_lock lock(mutex_);
       // Decrease reference count
       unsigned remaining = --used_[e];
       // No one else using it (hopefully...)
@@ -137,15 +127,14 @@ namespace dmlite {
         // If the free size is less than the maximum, push to free and notify
         if ((long)free_.size() < max_) {
           free_.push(e);
-          sem_post(&available_);
+          available_.notify_one();
         }
         else {
           // If we are fine, destroy
           factory_->destroy(e);
         }
       }
-      // End of critical section
-      pthread_mutex_unlock(&mutex_);
+      ++freeSlots_;
 
       return remaining;
     }
@@ -165,24 +154,13 @@ namespace dmlite {
     {
       int total, sv;
       // The resizing will be done as we get requests
-      pthread_mutex_lock(&mutex_);
+      boost::mutex::scoped_lock lock(mutex_);
       max_ = ns;
-      // Reduce the semaphore size if needed
-      // Do NOT take into account used, as it will auto-regulate as they free
-      sem_getvalue(&available_, &sv);
-      while (sv > max_) {
-        sem_wait(&available_);
-        --sv;
-      }
+      freeSlots_ = max_ - used_.size();
       // Increment the semaphore size if needed
       // Take into account the used
-      total = sv + used_.size();
-      while (total < max_) {
-        sem_post(&available_);
-        ++total;
-      }
-      // End of critical
-      pthread_mutex_unlock(&mutex_);
+      if (freeSlots_ > 0)
+        available_.notify_all();
     }
 
    private:
@@ -192,9 +170,10 @@ namespace dmlite {
 
     std::queue<E>         free_;
     std::map<E, unsigned> used_;
+    unsigned freeSlots_;
 
-    pthread_mutex_t mutex_;
-    sem_t           available_;
+    boost::mutex              mutex_;
+    boost::condition_variable available_;
   };
 
 };
