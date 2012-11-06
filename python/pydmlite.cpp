@@ -28,7 +28,7 @@ ExtendedStat::FileStatus identity_(ExtendedStat::FileStatus x)
 }
 
 // taken from http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
-//*
+/*
 PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
 {
     using std::string;
@@ -59,10 +59,10 @@ BOOST_PYTHON_MODULE(pydmlite)
 {
     // These python bindings are compliant with version 20120817.
     scope().attr("API_VERSION") = API_VERSION; 
-//*
+/*
     register_exception_translator<DmException>(&translator);
 
-    dmExceptionTypeObj = createExceptionClass("PyDmException");
+    dmExceptionTypeObj = createExceptionClass("DmException");
 //*/
     def("identity", identity_);
   
