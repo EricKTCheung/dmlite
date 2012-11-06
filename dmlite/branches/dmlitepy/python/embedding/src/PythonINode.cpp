@@ -96,7 +96,7 @@ ExtendedStat PythonINode::create(const ExtendedStat& nf) throw (DmException)
 
 void PythonINode::symlink(ino_t inode, const std::string &link) throw (DmException)
 {
-  CALL_PYTHON(symlink, inode);
+  CALL_PYTHON(symlink, inode, link);
 }
 
 
@@ -208,7 +208,7 @@ SymLink PythonINode::readLink(ino_t inode) throw (DmException)
  
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("symlink")(inode);
+    object result = mod.attr("readLink")(inode);
     if (result.ptr() == Py_None) {
       throw DmException(ENOENT, "Link %ld not found", inode);
     }
