@@ -155,7 +155,7 @@ ExtendedStat PythonINode::extendedStat(ino_t inode) throw (DmException)
   throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
                     excString);
   }
-  }
+  
 
   return meta;
 }
