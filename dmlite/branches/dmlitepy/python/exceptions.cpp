@@ -109,6 +109,7 @@ namespace wrap
 
 void export_exceptions()
 {
+    /*
     class_<DmException> ("RawDmException", init<>())
         .def(init<int>())
         .def(init<int, const std::string&>())
@@ -117,7 +118,7 @@ void export_exceptions()
         .def("code", &DmException::code)
         .def("what", &DmException::what)
         ;
-
+//*/
     wrap::exception<DmException>("DmException", init<>())
         .def(init<int>())
         .def(init<int, const std::string&>())
