@@ -62,7 +62,7 @@ BOOST_PYTHON_MODULE(pydmlite)
 //*
     register_exception_translator<DmException>(&translator);
 
-    dmExceptionTypeObj = createExceptionClass("DmException");
+    dmExceptionTypeObj = createExceptionClass("PyDmException");
 //*/
     def("identity", identity_);
   
