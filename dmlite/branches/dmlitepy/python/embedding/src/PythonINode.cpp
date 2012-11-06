@@ -67,7 +67,7 @@ ExtendedStat PythonINode::create(const ExtendedStat& nf) throw (DmException)
     }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return meta;
@@ -306,7 +306,7 @@ std::string PythonINode::getComment(ino_t inode) throw (DmException)
     }
     comment = extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   
   return comment;
