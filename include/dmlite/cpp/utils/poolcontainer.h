@@ -176,6 +176,28 @@ namespace dmlite {
     boost::condition_variable available_;
   };
 
+  /// Convenience class that releases a resource on destruction
+  template <class E>
+  class PoolGrabber {
+   public:
+    PoolGrabber(PoolContainer<E>& pool, bool block = true): pool_(pool)
+    {
+      element_ = pool_.acquire(block);
+    }
+
+    ~PoolGrabber() {
+      pool_.release(element_);
+    }
+
+    operator E ()
+    {
+      return element_;
+    }
+
+   private:
+    PoolContainer<E>& pool_;
+    E element_;
+  };
 };
 
 #endif // DMLITE_CPP_UTILS_POOLCONTAINER_H
