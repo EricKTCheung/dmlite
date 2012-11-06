@@ -47,15 +47,12 @@ PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_E
 PyObject* dmExceptionTypeObj = 0;
 
 void translator(const DmException &x) {
-    PyErr_SetObject(dmExceptionTypeObj, object(x).ptr());
-    /*
     object exc(x); // wrap the C++ exception
 
     object exc_t(handle<>(borrowed(dmExceptionTypeObj)));
     exc_t.attr("cause") = exc; // add the wrapped exception to the Python exception
 
     PyErr_SetString(dmExceptionTypeObj, x.what());
-    */
 }
 //*/
 BOOST_PYTHON_MODULE(pydmlite)
@@ -65,7 +62,7 @@ BOOST_PYTHON_MODULE(pydmlite)
 //*
     register_exception_translator<DmException>(&translator);
 
-    dmExceptionTypeObj = createExceptionClass("PyDmException");
+    dmExceptionTypeObj = createExceptionClass("DmException");
 //*/
     def("identity", identity_);
   
