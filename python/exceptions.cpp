@@ -6,15 +6,7 @@
  */
 
 #include "pydmlite.h"
-//#include "exceptionswrapper.h"
-
-namespace {
-  template<typename T>
-  std::string wrap_output(T const& exn)
-  {
-    return exn.what();
-  }
-}
+//#include "exceptionswrapper.cpp"
 
 void export_exceptions()
 {
