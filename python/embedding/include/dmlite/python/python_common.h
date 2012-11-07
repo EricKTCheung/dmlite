@@ -27,7 +27,10 @@ class PythonMain: public Extensible {
 
 };
 
-void extractException() throw (DmException);
+class PythonExceptionHandler {
+public:
+  static void extractException() throw (DmException);
+};
 
 /*
 class PythonCommon {

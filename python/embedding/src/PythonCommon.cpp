@@ -7,11 +7,12 @@
 using namespace dmlite;
 using namespace boost::python;
 
+
 /*
  * this definition comes mainly from 
  * http://wiki.python.org/moin/boost.python/EmbeddingPython#CA-818d2ac860917b563514f26addeb4719b72aac95_22
  */
-inline void extractException() throw (DmException)
+inline void PythonExceptionHandler::extractException() throw (DmException)
 {
   std::string excString;
 
@@ -34,3 +35,4 @@ inline void extractException() throw (DmException)
   throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
                     excString);
 }
+
