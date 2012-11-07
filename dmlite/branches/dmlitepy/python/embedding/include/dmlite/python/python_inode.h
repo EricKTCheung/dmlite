@@ -14,7 +14,7 @@
 
 namespace dmlite {
 
-class PythonINode : public INode {
+class PythonINode : public INode, public PythonExceptionHandler {
 public:
     PythonINode(boost::python::object inode_obj) throw (DmException);
 

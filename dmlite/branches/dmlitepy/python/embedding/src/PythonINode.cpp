@@ -174,7 +174,8 @@ ExtendedStat PythonINode::extendedStat(ino_t parent, const std::string& name) th
     }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+//    PyErr_Print();
+    extractException();
   }
 
   return meta;
