@@ -28,7 +28,7 @@ std::string PythonPoolHandler::getPoolType(void) throw (DmException)
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -43,7 +43,7 @@ std::string PythonPoolHandler::getPoolName(void) throw (DmException)
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -58,7 +58,7 @@ uint64_t PythonPoolHandler::getTotalSpace(void) throw (DmException)
     }
     return extract<uint64_t>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -73,7 +73,7 @@ uint64_t PythonPoolHandler::getFreeSpace(void) throw (DmException)
     }
     return extract<uint64_t>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -88,7 +88,7 @@ bool PythonPoolHandler::poolIsAvailable(bool write) throw (DmException)
     }
     return extract<bool>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -103,7 +103,7 @@ bool PythonPoolHandler::replicaIsAvailable(const Replica& replica) throw (DmExce
     }
     return extract<bool>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -118,7 +118,7 @@ Location PythonPoolHandler::whereToRead(const Replica& replica) throw (DmExcepti
     }
     return extract<Location>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -139,7 +139,7 @@ Location PythonPoolHandler::whereToWrite(const std::string& path) throw (DmExcep
     }
     return extract<Location>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -180,7 +180,7 @@ PythonPoolHandler* PythonPoolDriver::createPoolHandler(const std::string& poolNa
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     module = pymoduleFac.attr("createPoolHandler")(poolName);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return new PythonPoolHandler(module);
@@ -220,7 +220,7 @@ PythonPoolDriverFactory::PythonPoolDriverFactory(std::string pymodule)
     moduleFac = import(pymodule.c_str());
     pymoduleFac = moduleFac.attr("pyPoolDriverFactory")();
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
  
   this->py["pymoduleFac"] = pymoduleFac;
@@ -237,7 +237,7 @@ void PythonPoolDriverFactory::configure(const std::string& key, const std::strin
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     pymoduleFac.attr("configure")(key, value);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -251,7 +251,7 @@ std::string PythonPoolDriverFactory::implementedPool() throw ()
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -263,7 +263,7 @@ PythonPoolDriver* PythonPoolDriverFactory::createPoolDriver(void) throw (DmExcep
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     module = pymoduleFac.attr("createPoolDriver")();
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return new PythonPoolDriver(module);

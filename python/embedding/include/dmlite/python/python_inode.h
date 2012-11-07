@@ -78,7 +78,7 @@ private:
   PythonMain py;
 };
 
-class PythonINodeFactory: public INodeFactory {
+class PythonINodeFactory: public INodeFactory, public PythonExceptionHandler {
 public:
   PythonINodeFactory(std::string pymodule) throw(DmException);
 

@@ -26,7 +26,7 @@ namespace dmlite {
   class PluginManager;
   
   /// Interface for Catalog (Namespaces).
-  class PythonCatalog: public Catalog {
+  class PythonCatalog: public Catalog, public PythonExceptionHandler {
    public:    
     PythonCatalog(boost::python::object module_obj) throw (DmException);
     /// Destructor.
@@ -205,7 +205,7 @@ namespace dmlite {
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.
-  class PythonCatalogFactory: public CatalogFactory {
+  class PythonCatalogFactory: public CatalogFactory, public PythonExceptionHandler {
    public:
     PythonCatalogFactory(std::string pymodule);
     /// Virtual destructor
