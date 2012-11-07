@@ -21,6 +21,17 @@ void PythonExceptionHandler::extractException() throw (DmException)
   PyErr_NormalizeException(&exc,&val,&tb);
   handle<> hexc(exc),hval(allow_null(val)),htb(allow_null(tb));
 
+  int code = -1;
+  /*
+  if (PyObject_HasAttrString(hval, "code")) {
+    code = extract<int>(hval.code());
+    throw DmException(code, "testestest");
+  }
+  */
+  object oval(hval);
+  code = extract<int>(oval.attr("code")());
+  throw DmException(code, "testestest");
+
   if(!hval) {
     excString = extract<std::string>(str(hexc));
   }
