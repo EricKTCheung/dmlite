@@ -62,6 +62,7 @@ int dmlite_fclose(dmlite_fd* fd)
   NOT_NULL(fd);
   fd->stream->close();
   delete fd->stream;
+  ::memset(fd, 0, sizeof(dmlite_fd));
   delete fd;
   CATCH(fd->context, fclose)
 }

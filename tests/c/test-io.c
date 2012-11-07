@@ -51,6 +51,11 @@ void testRead(dmlite_context* context)
   /* Free */
   TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
   dmlite_any_dict_free(dict);
+
+  /* EFAULT after fclose */
+  TEST_ASSERT_EQUAL(EFAULT, dmlite_feof(file));
+  TEST_ASSERT_EQUAL(EFAULT, dmlite_fseek(file, 0, SEEK_SET));
+  TEST_ASSERT_EQUAL(EFAULT, dmlite_fread(file, buffer, 10));
 }
 
 
