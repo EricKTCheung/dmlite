@@ -23,7 +23,7 @@ PythonCatalogFactory::PythonCatalogFactory(std::string pymodule)
     moduleFac = import(pymodule.c_str());
     pymoduleFac = moduleFac.attr("pyCatalogFactory")();
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
  
   this->py["pymoduleFac"] = pymoduleFac;
@@ -44,7 +44,7 @@ void PythonCatalogFactory::configure(const std::string& key, const std::string& 
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     pymoduleFac.attr("configure")(key, value);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -57,7 +57,7 @@ PythonCatalog* PythonCatalogFactory::createCatalog(PluginManager* pm) throw (DmE
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     module = pymoduleFac.attr("createCatalog")(ptr(pm));
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return new PythonCatalog(module);
@@ -116,7 +116,7 @@ std::string PythonCatalog::getWorkingDir (void) throw (DmException)
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -132,7 +132,7 @@ ExtendedStat PythonCatalog::extendedStat(const std::string& path, bool followSym
     }
     return extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -162,7 +162,7 @@ std::vector<Replica> PythonCatalog::getReplicas(const std::string& path) throw (
     }
     return extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -186,7 +186,7 @@ std::string PythonCatalog::readLink(const std::string& path) throw (DmException)
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -238,7 +238,7 @@ mode_t PythonCatalog::umask(mode_t mask) throw ()
     }
     return extract<mode_t>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -300,7 +300,7 @@ std::string PythonCatalog::getComment(const std::string& path) throw (DmExceptio
     }
     return extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -339,7 +339,7 @@ Directory* PythonCatalog::openDir(const std::string& path) throw (DmException)
     }
     return extract<Directory*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -362,7 +362,7 @@ struct dirent* PythonCatalog::readDir(Directory* dir) throw (DmException)
     }
     return extract<struct dirent*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -378,7 +378,7 @@ ExtendedStat* PythonCatalog::readDirx(Directory* dir) throw (DmException)
     }
     return extract<ExtendedStat*>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -394,7 +394,7 @@ Replica PythonCatalog::getReplica(const std::string& rfn) throw (DmException)
     }
     return extract<Replica>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 

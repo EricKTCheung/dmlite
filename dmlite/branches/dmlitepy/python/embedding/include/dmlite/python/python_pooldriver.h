@@ -19,7 +19,7 @@ namespace dmlite {
   
 
   /// Handler for a pool. Works similary to a file handler.
-  class PythonPoolHandler : public virtual PoolHandler {
+  class PythonPoolHandler : public virtual PoolHandler, public PythonExceptionHandler {
    public:
     PythonPoolHandler(boost::python::object module_obj);
     /// Destructor
@@ -56,7 +56,7 @@ namespace dmlite {
   };
 
   /// Interface for a pool driver
-  class PythonPoolDriver: public virtual PoolDriver {
+  class PythonPoolDriver: public virtual PoolDriver, public PythonExceptionHandler {
    public:
     PythonPoolDriver(boost::python::object module_obj);
     /// Destructor
@@ -89,7 +89,7 @@ namespace dmlite {
   };
 
   /// PythonPoolDriver factory
-  class PythonPoolDriverFactory: public virtual PoolDriverFactory {
+  class PythonPoolDriverFactory: public virtual PoolDriverFactory, public PythonExceptionHandler {
    public:
     PythonPoolDriverFactory(std::string pymodule);
     /// Destructor.

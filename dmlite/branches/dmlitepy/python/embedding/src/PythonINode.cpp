@@ -174,7 +174,6 @@ ExtendedStat PythonINode::extendedStat(ino_t parent, const std::string& name) th
     }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-//    PyErr_Print();
     extractException();
   }
 
@@ -195,7 +194,7 @@ ExtendedStat PythonINode::extendedStat(const std::string& guid) throw (DmExcepti
     }
     meta = extract<ExtendedStat>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   
   return meta;
@@ -215,7 +214,7 @@ SymLink PythonINode::readLink(ino_t inode) throw (DmException)
     }
     link = extract<SymLink>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return link;
@@ -249,7 +248,7 @@ std::vector<Replica> PythonINode::getReplicas(ino_t inode) throw (DmException)
     }
     replicas = extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return replicas;
@@ -269,7 +268,7 @@ Replica PythonINode::getReplica(int64_t rid) throw (DmException)
     }
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return r;
@@ -289,7 +288,7 @@ Replica PythonINode::getReplica(const std::string& rfn) throw (DmException)
     }
     r = extract<Replica>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return r;
@@ -346,7 +345,7 @@ std::string PythonINode::getComment(ino_t inode) throw (DmException)
     }
     comment = extract<std::string>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   
   return comment;
@@ -395,7 +394,7 @@ IDirectory* PythonINode::openDir(ino_t inode) throw (DmException)
     }
     dirp = extract<IDirectory *>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   return dirp;
 }
@@ -421,7 +420,7 @@ ExtendedStat* PythonINode::readDirx(IDirectory* dir) throw (DmException)
     }
     metap = extract<ExtendedStat *>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   return metap;
 }
@@ -440,7 +439,7 @@ struct dirent* PythonINode::readDir (IDirectory* dir) throw (DmException)
     }
     dirp = extract<dirent *>(result);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
   return dirp;
 }
@@ -456,7 +455,7 @@ PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
     moduleFac = import(pymodule.c_str());
     pymoduleFac = moduleFac.attr("pyINodeFactory")();
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
  
   this->py["pymoduleFac"] = pymoduleFac;
@@ -468,7 +467,7 @@ void PythonINodeFactory::configure(const std::string& key, const std::string& va
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     pymoduleFac.attr("configure")(key, value);
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 }
 
@@ -479,7 +478,7 @@ PythonINode* PythonINodeFactory::createINode(PluginManager* pm) throw(DmExceptio
     object pymoduleFac = boost::any_cast<object>(this->py["pymoduleFac"]);
     module = pymoduleFac.attr("createINode")(ptr(pm));
   } catch (error_already_set const &) {
-    PyErr_Print();
+    extractException();
   }
 
   return new PythonINode(module);

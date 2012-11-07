@@ -32,6 +32,14 @@ void PythonExceptionHandler::extractException() throw (DmException)
     excString = extract<std::string>(formatted);
   }
 
+  std::string p;
+  p = extract<std::string>(str(hexc));
+  printf("hexc = %s", p.c_str());
+  p = extract<std::string>(str(hval));
+  printf("hval = %s", p.c_str());
+  p = extract<std::string>(str(htb));
+  printf("htb = %s", p.c_str());
+
   throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
                     excString);
 }
