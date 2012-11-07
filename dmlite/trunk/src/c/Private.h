@@ -13,18 +13,20 @@
 /// Open the try statement.
 #define TRY(context, method)\
 try {\
+  NOT_NULL(context);\
   context->errorCode = DMLITE_SUCCESS;\
-  context->errorString.clear();\
-  NOT_NULL(context);
+  context->errorString.clear();
 
 /// Catch block.
 #define CATCH(context, method)\
   return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
+  if (!context) return EFAULT;\
   context->errorCode   = e.code();\
   context->errorString = e.what();\
   return context->errorCode;\
 } catch (...) {\
+  if (!context) return EFAULT;\
   context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
   context->errorString = "An unexpected exception was thrown while executing "#method;\
   return context->errorCode;\
@@ -64,7 +66,7 @@ return DMLITE_SUCCESS;
 #define SAFE_STRING(s) s==NULL?"":s
 
 /// Throw an exception if the string is NULL
-#define NOT_NULL(s) if (s==NULL) throw dmlite::DmException(DMLITE_SYSERR(EFAULT), #s" is a NULL pointer")
+#define NOT_NULL(s) if (s==NULL) throw dmlite::DmException(EFAULT, #s" is a NULL pointer")
 
 /// Plugin manager handle for C API.
 struct dmlite_manager {
