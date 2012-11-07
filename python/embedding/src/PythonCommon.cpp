@@ -21,21 +21,28 @@ void PythonExceptionHandler::extractException() throw (DmException)
   PyErr_NormalizeException(&exc,&val,&tb);
   handle<> hexc(exc),hval(allow_null(val)),htb(allow_null(tb));
 
-  int code = -1;
+  int code = 0;
+  std::string what = "";
   /*
   if (PyObject_HasAttrString(hval, "code")) {
     code = extract<int>(hval.code());
     throw DmException(code, "testestest");
   }
   */
-  object oval(hval);
-  code = extract<int>(oval.attr("code")());
-  throw DmException(code, "testestest");
 
   if(!hval) {
     excString = extract<std::string>(str(hexc));
   }
     else {
+    object oval(hval);
+    extract<int> get_code(oval.attr("code")());
+    extract<std::string> get_what(oval.attr("what")());
+    if (get_code.check() && get_what.check()) {
+      code = get_code();
+      what = get_what();
+      throw DmException(code, what);
+    }
+
     object traceback(import("traceback"));
     object format_exception(traceback.attr("format_exception"));
     object formatted_list(format_exception(hexc,hval,htb));
