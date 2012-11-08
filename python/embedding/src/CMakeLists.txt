@@ -11,10 +11,10 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ${DMLITE_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
-add_library(dmlitepy SHARED PythonCommon.cpp
-                            PythonINode.cpp
-                            PythonCatalog.cpp
-                            PythonPoolDriver.cpp
+add_library(dmlitepy SHARED cpp/PythonCommon.cpp
+                            cpp/PythonINode.cpp
+                            cpp/PythonCatalog.cpp
+                            cpp/PythonPoolDriver.cpp
            )
 
 target_link_libraries (dmlitepy ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
@@ -26,3 +26,17 @@ set_target_properties (dmlitepy PROPERTIES
 
 install(TARGETS        dmlitepy
         LIBRARY        DESTINATION usr/lib${LIB_SUFFIX})
+
+
+install(FILES          python/exceptions.py
+        DESTINATION    ${PYTHON_SITE_PACKAGES}/dmlite
+        PERMISSIONS    OWNER_EXECUTE OWNER_WRITE OWNER_READ
+                       GROUP_EXECUTE GROUP_READ
+                       WORLD_EXECUTE WORLD_READ)
+
+install(FILES          python/__init__.py
+        DESTINATION    ${PYTHON_SITE_PACKAGES}/dmlite
+        PERMISSIONS    OWNER_EXECUTE OWNER_WRITE OWNER_READ 
+                       GROUP_EXECUTE GROUP_READ
+                       WORLD_EXECUTE
+                       WORLD_READ)
