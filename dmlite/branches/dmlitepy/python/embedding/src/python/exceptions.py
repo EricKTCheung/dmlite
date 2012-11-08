@@ -1,3 +1,5 @@
+from pydmlite import DmException
+
 class PyDmException(Exception):
   def __init__(self, *args):
     self.e = DmException(*args)
