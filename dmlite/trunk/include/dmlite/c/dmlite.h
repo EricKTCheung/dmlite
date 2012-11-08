@@ -98,6 +98,15 @@ int dmlite_manager_set(dmlite_manager* manager, const char* key, const char* val
 int dmlite_manager_load_configuration(dmlite_manager* manager, const char* file);
 
 /**
+ * @brief         Returns the associated value with the given key.
+ * @param manager The plugin manager.
+ * @param key     The configuration parameter.
+ * @param buffer  Where to leave the string.
+ * @param bufsize The buffer size.
+ */
+int dmlite_manager_get(dmlite_manager* handle, const char* key, char* buffer, size_t bufsize);
+
+/**
  * @brief         Returns the last error code.
  * @param manager The plugin manager used in the failing function.
  * @return        The last error code, WITHOUT the error type byte.

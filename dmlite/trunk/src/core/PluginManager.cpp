@@ -140,6 +140,8 @@ void PluginManager::configure(const std::string& key, const std::string& value) 
   if (!recognized)
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
                       "Unknown option %s", key.c_str());
+
+  this->confValues_[key] = value;
 }
 
 
@@ -216,6 +218,18 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
   }
 
   in.close();
+}
+
+
+
+std::string PluginManager::getConfiguration(const std::string& key) throw (DmException)
+{
+  try {
+    return this->confValues_.at(key);
+  }
+  catch (std::out_of_range&) {
+    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY), "Unknown key %s", key.c_str());
+  }
 }
 
 

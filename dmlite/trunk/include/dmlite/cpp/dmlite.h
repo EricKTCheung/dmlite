@@ -60,6 +60,10 @@ namespace dmlite {
     /// @param file The configuration file.
     void loadConfiguration(const std::string& file) throw (DmException);
 
+    /// Return an entry from the loaded configuration.
+    /// @param key The configuration parameter.
+    std::string getConfiguration(const std::string& key) throw (DmException);
+
     /// Register a Authn factory. To be used by concrete implementations
     /// @param factory The UserDbGroup concrete factory.
     /// @note  The same object can be passed to other register functions.
@@ -121,6 +125,9 @@ namespace dmlite {
     IOFactory* getIOFactory() throw (DmException);
 
    private:
+    /// Configuration key/value
+    std::map<std::string, std::string> confValues_;
+
     /// Internal list of loaded plug-ins.
     std::list<AuthnFactory*>       authn_plugins_;
     std::list<INodeFactory*>       inode_plugins_;

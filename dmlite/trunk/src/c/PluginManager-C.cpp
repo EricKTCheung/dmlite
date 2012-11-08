@@ -85,7 +85,7 @@ int dmlite_manager_load_plugin(dmlite_manager* handle, const char* lib, const ch
 int dmlite_manager_set(dmlite_manager* handle, const char* key, const char* value)
 {
   if (handle == NULL)
-    return -1;
+    return DMLITE_SYSERR(EFAULT);
 
   TRY_CATCH(handle, configure, key, value);
 }
@@ -98,6 +98,26 @@ int dmlite_manager_load_configuration(dmlite_manager* handle, const char* file)
     return DMLITE_SYSERR(EFAULT);
 
   TRY_CATCH(handle, loadConfiguration, file);
+}
+
+
+
+int dmlite_manager_get(dmlite_manager* handle, const char* key, char* buffer, size_t bufsize)
+{
+  if (handle == NULL)
+    return DMLITE_SYSERR(EFAULT);
+
+  try {
+    std::string value = handle->manager->getConfiguration(key);
+    strncpy(buffer, value.c_str(), bufsize);
+    return 0;
+  }
+  catch (dmlite::DmException& e) {
+    if (bufsize > 0) buffer[0] = '\0';
+    handle->errorCode   = e.code();
+    handle->errorString = e.what();
+    return handle->errorCode;
+  }
 }
 
 
