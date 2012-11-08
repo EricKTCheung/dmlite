@@ -8,6 +8,7 @@ int main(int argn, char** argv)
 {
   dmlite_manager* manager;
   dmlite_context* context;
+  char buffer[512];
   
   printf("DMLite API Version: %d\n", dmlite_api_version());
   
@@ -29,6 +30,11 @@ int main(int argn, char** argv)
   TEST_ASSERT_EQUAL(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
                     dmlite_manager_set(manager, "Option", "Value"));
   
+  /* Set a known option, and get it back */
+  TEST_MANAGER_CALL(manager, dmlite_manager_set, "TestParam", "something");
+  TEST_MANAGER_CALL(manager, dmlite_manager_get, "TestParam", buffer, sizeof(buffer));
+  TEST_ASSERT_STR_EQUAL("something", buffer);
+
   /* Instantiate */
   context = dmlite_context_new(manager);
   TEST_ASSERT(context != NULL);

@@ -48,6 +48,9 @@ target_link_libraries (test-chown test-base dmlite ${CPPUNIT_LIBRARY} dl)
 add_executable        (test-comment test-comment.cpp)
 target_link_libraries (test-comment test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
+add_executable        (test-configuration test-configuration.cpp)
+target_link_libraries (test-configuration test-base dmlite ${CPPUNIT_LIBRARY} dl)
+
 add_executable        (test-create test-create.cpp)
 target_link_libraries (test-create test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
@@ -130,6 +133,7 @@ ADD_TEST(test-checkperm     ${CMAKE_CURRENT_BINARY_DIR}/test-checkperm ${CONFIG}
 ADD_TEST(test-checksum      ${CMAKE_CURRENT_BINARY_DIR}/test-checksum ${CONFIG})
 ADD_TEST(test-chown         ${CMAKE_CURRENT_BINARY_DIR}/test-chown ${CONFIG})
 ADD_TEST(test-comment       ${CMAKE_CURRENT_BINARY_DIR}/test-comment ${CONFIG})
+ADD_TEST(test-configuration ${CMAKE_CURRENT_BINARY_DIR}/test-configuration ${CONFIG})
 ADD_TEST(test-create        ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
 ADD_TEST(test-extensible    ${CMAKE_CURRENT_BINARY_DIR}/test-extensible ${CONFIG})
 ADD_TEST(test-guid          ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
