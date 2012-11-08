@@ -457,6 +457,8 @@ PythonINodeFactory::PythonINodeFactory(std::string pymodule) throw(DmException)
   } catch (error_already_set const &) {
     extractException();
   }
+
+  stl_vector_replica_from_python_list();
  
   this->py["pymoduleFac"] = pymoduleFac;
 }
