@@ -29,7 +29,7 @@ void PythonExceptionHandler::extractException() throw (DmException)
   }
     else {
     object oval(hval);
-    try {
+    if (PyObject_HasAttrString(oval.ptr(), "code") && PyObject_HasAttrString(oval.ptr(), "what")) {
       extract<int> get_code(oval.attr("code")());
       extract<std::string> get_what(oval.attr("what")());
 //      if (get_code.check() && get_what.check()) {
@@ -37,7 +37,7 @@ void PythonExceptionHandler::extractException() throw (DmException)
         what = get_what();
         throw DmException(code, what);
 //      }
-    } catch (...) { /* pass */ };  
+    }  
 
     object traceback(import("traceback"));
     object format_exception(traceback.attr("format_exception"));
