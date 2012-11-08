@@ -29,13 +29,15 @@ void PythonExceptionHandler::extractException() throw (DmException)
   }
     else {
     object oval(hval);
-    extract<int> get_code(oval.attr("code")());
-    extract<std::string> get_what(oval.attr("what")());
-    if (get_code.check() && get_what.check()) {
-      code = get_code();
-      what = get_what();
-      throw DmException(code, what);
-    }
+    try {
+      extract<int> get_code(oval.attr("code")());
+      extract<std::string> get_what(oval.attr("what")());
+//      if (get_code.check() && get_what.check()) {
+        code = get_code();
+        what = get_what();
+        throw DmException(code, what);
+//      }
+    } catch (...) { /* pass */ };  
 
     object traceback(import("traceback"));
     object format_exception(traceback.attr("format_exception"));
