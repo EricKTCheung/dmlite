@@ -52,6 +52,10 @@ public:
   
   void testUserMetadata()
   {
+    // Skip test on adapter (does not support this, and it will not)
+    if (this->authn->getImplId() == "NsAdapterCatalog" ||
+        this->authn->getImplId() =="DpmAdapterCatalog") return;
+
     dmlite::UserInfo u = this->authn->newUser(USER);
     CPPUNIT_ASSERT_EQUAL(std::string(USER), u.name);
     
@@ -77,6 +81,10 @@ public:
   
   void testGroupMetadata()
   {
+    // Skip test on adapter (does not support this, and it will not)
+    if (this->authn->getImplId() == "NsAdapterCatalog" ||
+        this->authn->getImplId() =="DpmAdapterCatalog") return;
+
     dmlite::GroupInfo g = this->authn->newGroup(GROUP);
     CPPUNIT_ASSERT_EQUAL(std::string(GROUP), g.name);
     
