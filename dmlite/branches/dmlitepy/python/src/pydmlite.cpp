@@ -7,7 +7,7 @@
  * the available functionality from dmlite.
  */
 
-#include "pydmlite.h"
+#include <dmlite/python/pydmlite.h>
 
 void export_extensible();
 void export_errno();
@@ -26,34 +26,6 @@ ExtendedStat::FileStatus identity_(ExtendedStat::FileStatus x)
 { 
     return x;
 }
-
-struct stl_vector_replica_from_python_list {
-  static void* convertible(PyObject* obj_ptr)
-  {
-    if (!PyList_Check(obj_ptr)) return 0;
-    PyObject *wantedItem = boost::python::object(Replica()).ptr();
-    for (int i = 0; i < PyList_Size(obj_ptr); i++) {
-      if (!PyObject_TypeCheck(PyList_GetItem(obj_ptr, i), wantedItem->ob_type)) return 0;
-    }
-    return obj_ptr;
-  }
-
-  static void construct(
-  PyObject* obj_ptr,
-  boost::python::converter::rvalue_from_python_stage1_data* data)
-  {
-    void* storage=((boost::python::converter::rvalue_from_python_storage<std::vector<Replica> >*)(data))->storage.bytes;
-    new (storage) std::vector<Replica>();
-    std::vector<Replica>* v=(std::vector<Replica>*)(storage);
-    int l=PySequence_Size(obj_ptr); 
-    if(l<0) abort();
-    v->reserve(l);
-    for(int i=0; i<l; i++) {
-      v->push_back(boost::python::extract<Replica>(PySequence_GetItem(obj_ptr,i)));
-    }
-    data->convertible=storage;
-  }
-};
 
 // taken from http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
 /*

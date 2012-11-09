@@ -5,7 +5,7 @@
  * via Boost:Python.
  */
 
-#include "pydmlite.h"
+#include <dmlite/python/pydmlite.h>
 #include "iowrapper.cpp"
 
 void export_io()
