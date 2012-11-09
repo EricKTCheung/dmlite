@@ -22,6 +22,14 @@ using namespace dmlite;
 using namespace boost::python;
 
 struct stl_vector_replica_from_python_list {
+  stl_vector_replica_from_python_list() 
+  {
+    boost::python::converter::registry::push_back(
+      &convertible,
+      &construct,
+      boost::python::type_id<std::vector<Replica> >());
+  }
+
   static void* convertible(PyObject* obj_ptr)
   {
     if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__")) return 0;
