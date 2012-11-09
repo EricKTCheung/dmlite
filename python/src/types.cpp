@@ -5,7 +5,7 @@
  * c++ dmlite library via Boost:Python.
  */
 
-#include "pydmlite.h"
+#include <dmlite/python/pydmlite.h>
 
 void export_types()
 {

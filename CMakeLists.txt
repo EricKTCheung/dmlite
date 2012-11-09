@@ -45,6 +45,9 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/
                      ${Boost_INCLUDE_DIRS}
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/include/
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/include/dmlite
+                     ${CMAKE_CURRENT_SOURCE_DIR}/python/include/dmlite/python
                      ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/
                      ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/dmlite
                      ${CMAKE_CURRENT_SOURCE_DIR}/python/embedding/include/dmlite/python)
@@ -77,6 +80,7 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/common/config.h.cmake
 
 # Install headers
 install (DIRECTORY   include/
+                     python/include/
                      python/embedding/include/
          DESTINATION usr/include
          COMPONENT   dmlite-devel

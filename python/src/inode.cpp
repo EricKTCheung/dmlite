@@ -5,7 +5,7 @@
  * via Boost:Python.
  */
 
-#include "pydmlite.h"
+#include <dmlite/python/pydmlite.h>
 #include "inodewrapper.cpp"
 
 void export_inode()
