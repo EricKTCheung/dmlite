@@ -96,8 +96,18 @@ public:
   /// @note Adapter will not pass this since it does not implement inode access
   void testIStat()
   {
+    dmlite::INode* inode;
+    try {
+      inode = this->stackInstance->getINode();
+    }
+    catch (dmlite::DmException& e) {
+      // If not implemented, it is not implemented (some plugins can not)
+      if (e.code() == DMLITE_SYSERR(DMLITE_NO_INODE)) return;
+      throw;
+    }
+
     statBuf = this->catalog->extendedStat(FOLDER).stat;
-    iStat   = this->stackInstance->getINode()->extendedStat(statBuf.st_ino).stat;;
+    iStat   = inode->extendedStat(statBuf.st_ino).stat;;
 
     // Check some only, if they are fine, the rest should be fine.
     CPPUNIT_ASSERT_EQUAL(statBuf.st_ino,  iStat.st_ino);

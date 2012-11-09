@@ -73,13 +73,17 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("the-fs"),     replica.getString("filesystem"));
     CPPUNIT_ASSERT_EQUAL(std::string("the-pool"),   replica.getString("pool"));
     CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
-    CPPUNIT_ASSERT_EQUAL(std::string("metadata"),   replica.getString("additional"));
 
-    replica = this->catalog->getReplica("http://a.host.com/replica");
-    
-    this->catalog->deleteReplica(replica);
+    // Operations not implemented by adapter
+    if (this->catalog->getImplId() != "NsAdapterCatalog" &&
+        this->catalog->getImplId() != "DpmAdapterCatalog") {
+      CPPUNIT_ASSERT_EQUAL(std::string("metadata"),   replica.getString("additional"));
 
-    CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)this->catalog->getReplicas(FILE).size());
+      replica = this->catalog->getReplica("http://a.host.com/replica");
+      this->catalog->deleteReplica(replica);
+
+      CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)this->catalog->getReplicas(FILE).size());
+    }
   }
 
   void testAddNoHost()
@@ -112,6 +116,10 @@ public:
 
   void testModify()
   {
+    // Adapter does not support get replica by RFN
+    if (this->catalog->getImplId() == "NsAdapterCatalog" ||
+        this->catalog->getImplId() =="DpmAdapterCatalog") return;
+
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;
@@ -199,6 +207,10 @@ public:
 
   void testCachedModify()
   {
+    // Adapter does not support get replica by RFN
+    if (this->catalog->getImplId() == "NsAdapterCatalog" ||
+        this->catalog->getImplId() =="DpmAdapterCatalog") return;
+
     struct stat s;
 
     s = this->catalog->extendedStat(FILE).stat;

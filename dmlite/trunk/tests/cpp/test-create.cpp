@@ -191,6 +191,10 @@ public:
 
   void testExistsWithReplicas()
   {
+    // Adapter does not support get replica by RFN
+    if (this->catalog->getImplId() == "NsAdapterCatalog" ||
+        this->catalog->getImplId() =="DpmAdapterCatalog") return;
+
     struct stat s;
 
     this->catalog->create(FILE, MODE);
@@ -267,7 +271,15 @@ public:
     child.stat.st_gid  = 102;
     child.stat.st_mode = 0755 | S_IFDIR;
     
-    this->stackInstance->getINode()->create(child);
+    try {
+      this->stackInstance->getINode()->create(child);
+    }
+    catch (dmlite::DmException& e) {
+      // We are good. Some plugins may not implement this.
+      if (e.code() == DMLITE_SYSERR(DMLITE_NO_INODE)) return;
+      // Nope, something else.
+      throw;
+    }
     
     dmlite::ExtendedStat check = this->catalog->extendedStat(FILE);
     
