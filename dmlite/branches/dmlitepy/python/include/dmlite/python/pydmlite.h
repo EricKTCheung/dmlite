@@ -24,11 +24,14 @@ using namespace boost::python;
 struct stl_vector_replica_from_python_list {
   static void* convertible(PyObject* obj_ptr)
   {
+    if(!PySequence_Check(obj_ptr) || !PyObject_HasAttrString(obj_ptr,"__len__")) return 0;
+    /*
     if (!PyList_Check(obj_ptr)) return 0;
     PyObject *wantedItem = boost::python::object(Replica()).ptr();
     for (int i = 0; i < PyList_Size(obj_ptr); i++) {
       if (!PyObject_TypeCheck(PyList_GetItem(obj_ptr, i), wantedItem->ob_type)) return 0;
     }
+    */
     return obj_ptr;
   }
 
