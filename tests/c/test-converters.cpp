@@ -7,6 +7,7 @@ int main(int, char**)
 {
   dmlite::ExtendedStat cppX;
   dmlite_xstat         cX;
+  memset(&cX, 0, sizeof(cX));
   
   ////
   SECTION("Test dmlite::ExtendedStat => dmlite_xstat");
