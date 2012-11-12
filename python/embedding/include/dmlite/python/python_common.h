@@ -20,7 +20,7 @@ try { \
   object mod = boost::any_cast<object>(this->py["module"]); \
   object result = mod.attr(#funcname)(__VA_ARGS__); \
 } catch (error_already_set const &) { \
-  PyErr_Print(); \
+  extractException(); \
 }
 
 
