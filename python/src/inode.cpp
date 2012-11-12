@@ -80,7 +80,9 @@ void export_inode()
         .def_readwrite("rfn", &Replica::rfn)
 
         .def(self < other<Replica>())
-        .def(self == Replica());
+        .def(self > other<Replica>())
+        .def(self != other<Replica>())
+        .def(self == other<Replica>())
         ;
     
     class_< std::vector< Replica > >("vector_Replica")
