@@ -79,8 +79,8 @@ void export_inode()
         .def_readwrite("server", &Replica::server)
         .def_readwrite("rfn", &Replica::rfn)
 
-        .def(self < self)
-        .def(self == self);
+        .def(self < other<Replica>())
+        .def(self == Replica());
         ;
     
     class_< std::vector< Replica > >("vector_Replica")
