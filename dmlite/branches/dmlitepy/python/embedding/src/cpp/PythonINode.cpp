@@ -238,20 +238,16 @@ void PythonINode::deleteReplica(const Replica& replica) throw (DmException)
 
 std::vector<Replica> PythonINode::getReplicas(ino_t inode) throw (DmException)
 {
-  std::vector<Replica> replicas;
-
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
     object result = mod.attr("getReplicas")(inode);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %d not found", inode);
     }
-    replicas = extract<std::vector<Replica> >(result);
+    return extract<std::vector<Replica> >(result);
   } catch (error_already_set const &) {
     extractException();
   }
-
-  return replicas;
 }
 
 
@@ -262,7 +258,7 @@ Replica PythonINode::getReplica(int64_t rid) throw (DmException)
 
   try {
     object mod = boost::any_cast<object>(this->py["module"]);
-    object result = mod.attr("getReplica")(rid);
+    object result = mod.attr("getReplica_rid")(rid);
     if (result.ptr() == Py_None) {
       throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %d not found", rid);
     }
