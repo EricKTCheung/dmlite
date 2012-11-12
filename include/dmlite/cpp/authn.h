@@ -93,17 +93,17 @@ namespace dmlite {
     /// Create a security context from the credentials.
     /// @param cred The security credentials.
     /// @return     A newly created SecurityContext.
-    virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException) = 0;
+    virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
 
     /// Create a new group.
     /// @param groupName The group name.
     /// @return          The new group.
-    virtual GroupInfo newGroup(const std::string& groupName) throw (DmException) = 0;
+    virtual GroupInfo newGroup(const std::string& groupName) throw (DmException);
 
     /// Get a specific group.
     /// @param groupName The group name.
     /// @return          The group.
-    virtual GroupInfo getGroup(const std::string& groupName) throw (DmException) = 0;
+    virtual GroupInfo getGroup(const std::string& groupName) throw (DmException);
     
     /// Get a specific group using an alternative key.
     /// @param key   The key name.
@@ -112,27 +112,27 @@ namespace dmlite {
     /// @note        The implementation will throw an exception if the field
     ///              can not be used as key.
     virtual GroupInfo getGroup(const std::string& key,
-                               const boost::any& value) throw (DmException) = 0;
+                               const boost::any& value) throw (DmException);
     
     /// Get the group list.
-    virtual std::vector<GroupInfo> getGroups(void) throw (DmException) = 0;
+    virtual std::vector<GroupInfo> getGroups(void) throw (DmException);
     
     /// Update group info. 'name' identify uniquely the group.
     /// @param group The group metadata to update.
-    virtual void updateGroup(const GroupInfo& group) throw (DmException) = 0;
+    virtual void updateGroup(const GroupInfo& group) throw (DmException);
     
     /// Delete a group.
-    virtual void deleteGroup(const std::string& groupName) throw (DmException) = 0;
+    virtual void deleteGroup(const std::string& groupName) throw (DmException);
 
     /// Create a new user.
     /// @param userName The user name.
     /// @return         The new user.
-    virtual UserInfo newUser(const std::string& userName) throw (DmException) = 0;
+    virtual UserInfo newUser(const std::string& userName) throw (DmException);
 
     /// Get a specific user.
     /// @param userName The user name.
     /// @return         The user.
-    virtual UserInfo getUser(const std::string& userName) throw (DmException) = 0;
+    virtual UserInfo getUser(const std::string& userName) throw (DmException);
     
     /// Get a specific user using an alternative key.
     /// @param key   The key name.
@@ -141,17 +141,17 @@ namespace dmlite {
     /// @note        The implementation will throw an exception if the field
     ///              can not be used as key.
     virtual UserInfo getUser(const std::string& key,
-                             const boost::any& value) throw (DmException) = 0;
+                             const boost::any& value) throw (DmException);
     
     /// Get the user list.
-    virtual std::vector<UserInfo> getUsers(void) throw (DmException) = 0;
+    virtual std::vector<UserInfo> getUsers(void) throw (DmException);
     
     /// Update user info. 'name' identify uniquely the user.
     /// @param user The user metadata to update.
-    virtual void updateUser(const UserInfo& user) throw (DmException) = 0;
+    virtual void updateUser(const UserInfo& user) throw (DmException);
     
     /// Delete a user.
-    virtual void deleteUser(const std::string& userName) throw (DmException) = 0;
+    virtual void deleteUser(const std::string& userName) throw (DmException);
 
     /// Get the mapping of a user/group. Additionaly, new users and groups MAY
     /// be created by the implementation.
@@ -163,7 +163,7 @@ namespace dmlite {
     virtual void getIdMap(const std::string& userName,
                           const std::vector<std::string>& groupNames,
                           UserInfo* user,
-                          std::vector<GroupInfo>* groups) throw (DmException) = 0;
+                          std::vector<GroupInfo>* groups) throw (DmException);
   };
 
 
@@ -182,7 +182,7 @@ namespace dmlite {
                               PluginManager* pm) throw (DmException);
 
     /// Instantiate a implementation of Authn
-    virtual Authn* createAuthn(PluginManager* pm) throw (DmException) = 0;
+    virtual Authn* createAuthn(PluginManager* pm) throw (DmException);
   };
 
 };

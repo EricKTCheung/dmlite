@@ -29,7 +29,7 @@ namespace dmlite {
     virtual ~IOHandler();
 
     /// Close
-    virtual void close(void) throw (DmException) = 0;
+    virtual void close(void) throw (DmException);
 
     /// Gets information about a file descriptor.
     /// @note Not all plug-ins will fill all the fields, but st_size is
@@ -41,13 +41,13 @@ namespace dmlite {
     /// @param buffer Where to store the data.
     /// @param count  Number of bytes to read.
     /// @return       Number of bytes actually read.
-    virtual size_t read(char* buffer, size_t count) throw (DmException) = 0;
+    virtual size_t read(char* buffer, size_t count) throw (DmException);
 
     /// Write.
     /// @param buffer Data to write.
     /// @param count  Number of bytes to write.
     /// @return       Number of bytes actually written.
-    virtual size_t write(const char* buffer, size_t count) throw (DmException) = 0;
+    virtual size_t write(const char* buffer, size_t count) throw (DmException);
 
     /// Read into multiple buffers.
     /// @param vector An array with 'count' iovec structs.
@@ -68,16 +68,16 @@ namespace dmlite {
     /// Move the cursor.
     /// @param offset The offset.
     /// @param whence Reference.
-    virtual void seek(off64_t offset, Whence whence) throw (DmException) = 0;
+    virtual void seek(off64_t offset, Whence whence) throw (DmException);
 
     /// Return the cursor position.
-    virtual off64_t tell(void) throw (DmException) = 0;
+    virtual off64_t tell(void) throw (DmException);
 
     /// Flush the buffer.
-    virtual void flush(void) throw (DmException) = 0;
+    virtual void flush(void) throw (DmException);
 
     /// Return true if end of file.
-    virtual bool eof(void) throw (DmException) = 0;
+    virtual bool eof(void) throw (DmException);
   };
 
   /// IO Driver
@@ -99,13 +99,13 @@ namespace dmlite {
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        int flags,
                                        const Extensible& extras,
-                                       mode_t mode = 0660) throw (DmException) = 0;
+                                       mode_t mode = 0660) throw (DmException);
     
     /// Must be called when the front-end is done writing.
     /// @param pfn    The file name.
     /// @param params The extra parameters as was returned by whereToWrite
     virtual void doneWriting(const std::string& pfn,
-                             const Extensible& params) throw (DmException) = 0;
+                             const Extensible& params) throw (DmException);
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.
@@ -118,7 +118,7 @@ namespace dmlite {
     friend class StackInstance;
 
     /// Create a IODriver
-    virtual IODriver* createIODriver(PluginManager* pm) throw (DmException) = 0;  
+    virtual IODriver* createIODriver(PluginManager* pm) throw (DmException);
   };
 
 };

@@ -37,32 +37,32 @@ namespace dmlite {
 
     /// Get the list of pools.
     /// @param availability Filter by availability.
-    virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException) = 0;
+    virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException);
 
     /// Get a specific pool.
-    virtual Pool getPool(const std::string& poolname) throw (DmException) = 0;
+    virtual Pool getPool(const std::string& poolname) throw (DmException);
     
     /// Create a new pool.
-    virtual void newPool(const Pool& pool) throw (DmException) = 0;
+    virtual void newPool(const Pool& pool) throw (DmException);
     
     /// Update pool metadata.
-    virtual void updatePool(const Pool& pool) throw (DmException) = 0;
+    virtual void updatePool(const Pool& pool) throw (DmException);
     
     /// Remove a pool.
-    virtual void deletePool(const Pool& pool) throw (DmException) = 0;
+    virtual void deletePool(const Pool& pool) throw (DmException);
 
     /// Get a location for a logical name.
     /// @param path     The path to get.
-    virtual Location whereToRead(const std::string& path) throw (DmException) = 0;
+    virtual Location whereToRead(const std::string& path) throw (DmException);
     
     /// Get a location for an inode
     /// @param inode The file inode.
-    virtual Location whereToRead(ino_t inode) throw (DmException) = 0;
+    virtual Location whereToRead(ino_t inode) throw (DmException);
 
     /// Start the PUT of a file.
     /// @param path  The path of the file to create.
     /// @return      The physical location where to write.
-    virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
+    virtual Location whereToWrite(const std::string& path) throw (DmException);
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.
@@ -80,7 +80,7 @@ namespace dmlite {
                                           PluginManager* pm) throw (DmException);
 
     /// Instantiate a implementation of Pool
-    virtual PoolManager* createPoolManager(PluginManager* pm) throw (DmException) = 0;
+    virtual PoolManager* createPoolManager(PluginManager* pm) throw (DmException);
   };
 
 };
