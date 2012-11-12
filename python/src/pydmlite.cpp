@@ -66,7 +66,7 @@ BOOST_PYTHON_MODULE(pydmlite)
 //*/
     def("identity", identity_);
 
-//    stl_vector_replica_from_python_list();
+    stl_vector_replica_from_python_list();
   
     class_<PluginManager, boost::noncopyable>("PluginManager")
         .def("loadPlugin", &PluginManager::loadPlugin)
