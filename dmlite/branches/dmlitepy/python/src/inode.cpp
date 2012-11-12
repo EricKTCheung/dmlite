@@ -19,9 +19,15 @@ void export_inode()
         .def_readwrite("status", &ExtendedStat::status)
         .def_readwrite("name", &ExtendedStat::name)
         .def_readwrite("guid", &ExtendedStat::guid)
+
         .def_readwrite("csumtype", &ExtendedStat::csumtype)
         .def_readwrite("csumvalue", &ExtendedStat::csumvalue)
         .def_readwrite("acl", &ExtendedStat::acl)
+
+        .def(self < other<ExtendedStat>())
+        .def(self > other<ExtendedStat>())
+        .def(self != other<ExtendedStat>())
+        .def(self == other<ExtendedStat>())
         ;
 
 
@@ -62,6 +68,11 @@ void export_inode()
     class_<SymLink, bases< Extensible > >("SymLink", init<>())
         .def_readwrite("inode", &SymLink::inode)
         .def_readwrite("link", &SymLink::link)
+
+        .def(self < other<SymLink>())
+        .def(self > other<SymLink>())
+        .def(self != other<SymLink>())
+        .def(self == other<SymLink>())
         ;
 
     class_<Replica, bases< Extensible > >("Replica", init<>())

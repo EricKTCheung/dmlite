@@ -16,14 +16,29 @@ void export_authn()
         .def_readwrite("remoteAddress", &SecurityCredentials::remoteAddress)
         .def_readwrite("sessionId", &SecurityCredentials::sessionId)
         .def_readwrite("fqans", &SecurityCredentials::fqans)
+
+        .def(self < other<SecurityCredentials>())
+        .def(self > other<SecurityCredentials>())
+        .def(self != other<SecurityCredentials>())
+        .def(self == other<SecurityCredentials>())
         ;
 
     class_<UserInfo, bases< Extensible > >("UserInfo", init<>())
         .def_readwrite("name", &UserInfo::name)
+
+        .def(self < other<UserInfo>())
+        .def(self > other<UserInfo>())
+        .def(self != other<UserInfo>())
+        .def(self == other<UserInfo>())
         ;
 
     class_<GroupInfo, bases< Extensible > >("GroupInfo", init<>())
         .def_readwrite("name", &GroupInfo::name)
+
+        .def(self < other<GroupInfo>())
+        .def(self > other<GroupInfo>())
+        .def(self != other<GroupInfo>())
+        .def(self == other<GroupInfo>())
         ;
 
     class_<SecurityContext>("SecurityContext", init<>())
@@ -31,6 +46,11 @@ void export_authn()
         .def_readwrite("credentials", &SecurityContext::credentials)
         .def_readwrite("user", &SecurityContext::user)
         .def_readwrite("groups", &SecurityContext::groups)
+
+        .def(self < other<SecurityContext>())
+        .def(self > other<SecurityContext>())
+        .def(self != other<SecurityContext>())
+        .def(self == other<SecurityContext>())
         ;
 
     class_<AuthnWrapper, boost::noncopyable>("Authn", no_init)
