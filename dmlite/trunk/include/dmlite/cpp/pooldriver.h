@@ -40,31 +40,31 @@ namespace dmlite {
     virtual ~PoolHandler();
 
     /// Get the pool type of this pool.
-    virtual std::string getPoolType(void) throw (DmException) = 0;
+    virtual std::string getPoolType(void) throw (DmException);
 
     /// Get the pool name of this pool.
-    virtual std::string getPoolName(void) throw (DmException) = 0;
+    virtual std::string getPoolName(void) throw (DmException);
 
     /// Get the total space of this pool.
-    virtual uint64_t getTotalSpace(void) throw (DmException) = 0;
+    virtual uint64_t getTotalSpace(void) throw (DmException);
 
     /// Get the free space of this pool.
-    virtual uint64_t getFreeSpace(void) throw (DmException) = 0;
+    virtual uint64_t getFreeSpace(void) throw (DmException);
 
     /// Check if the pool is actually available
-    virtual bool poolIsAvailable(bool write = true) throw (DmException) = 0;
+    virtual bool poolIsAvailable(bool write = true) throw (DmException);
     
     /// Check if a replica is available
-    virtual bool replicaIsAvailable(const Replica& replica) throw (DmException) = 0;
+    virtual bool replicaIsAvailable(const Replica& replica) throw (DmException);
 
     /// Get the actual location of the file replica. This is pool-specific.
-    virtual Location whereToRead(const Replica& replica) throw (DmException) = 0;
+    virtual Location whereToRead(const Replica& replica) throw (DmException);
 
     /// Remove a replica from the pool.
-    virtual void removeReplica(const Replica& replica) throw (DmException) = 0;
+    virtual void removeReplica(const Replica& replica) throw (DmException);
 
     /// Get where to put a file
-    virtual Location whereToWrite(const std::string& path) throw (DmException) = 0;
+    virtual Location whereToWrite(const std::string& path) throw (DmException);
   };
 
   /// Interface for a pool driver
@@ -74,22 +74,22 @@ namespace dmlite {
     virtual ~PoolDriver();
 
     /// Create a handler.
-    virtual PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException) = 0;
+    virtual PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
     
     /// Called just before adding the pool to the database.
     /// To be used by a plugin, in case it needs to do some previous preparations.
     /// (i.e. legacy filesystem will actually create the pool here)
-    virtual void toBeCreated(const Pool& pool) throw (DmException) = 0;
+    virtual void toBeCreated(const Pool& pool) throw (DmException);
     
     /// Called just after a pool is added to the database.
-    virtual void justCreated(const Pool& pool) throw (DmException) = 0;
+    virtual void justCreated(const Pool& pool) throw (DmException);
     
     /// Called when updating a pool.
-    virtual void update(const Pool& pool) throw (DmException) = 0;
+    virtual void update(const Pool& pool) throw (DmException);
     
     /// Called just before a pool of this type is removed.
     /// @note The driver may remove the pool itself (i.e. filesystem)
-    virtual void toBeDeleted(const Pool& pool) throw (DmException) = 0;
+    virtual void toBeDeleted(const Pool& pool) throw (DmException);
   };
 
   /// PoolDriver factory
@@ -99,13 +99,13 @@ namespace dmlite {
     virtual ~PoolDriverFactory();
 
     /// Supported pool type
-    virtual std::string implementedPool() throw () = 0;
+    virtual std::string implementedPool() throw ();
 
    protected:
     friend class StackInstance;
 
     /// Instantiate the implemented pool driver.
-    virtual PoolDriver* createPoolDriver(void) throw (DmException) = 0;
+    virtual PoolDriver* createPoolDriver(void) throw (DmException);
   };
 
 };

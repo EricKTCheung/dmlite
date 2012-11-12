@@ -29,10 +29,10 @@ namespace dmlite {
     /// Some plugins may need to access other stacks (i.e. the pool may need the catalog)
     /// However, at construction time not all the stacks have been populated, so this will
     /// be called once all are instantiated.
-    virtual void setStackInstance(StackInstance* si) throw (DmException) = 0;
+    virtual void setStackInstance(StackInstance* si) throw (DmException);
 
     /// Set the security context.
-    virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException) = 0;
+    virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException);
 
     /// These method allows plugins to call other plugins setStackInstance and setSecurityContext
     static void setStackInstance(BaseInterface* i,
@@ -52,7 +52,7 @@ namespace dmlite {
     /// Set a configuration parameter
     /// @param key   The configuration parameter
     /// @param value The value for the configuration parameter
-    virtual void configure(const std::string& key, const std::string& value) throw (DmException) = 0;
+    virtual void configure(const std::string& key, const std::string& value) throw (DmException);
   };
 
 };
