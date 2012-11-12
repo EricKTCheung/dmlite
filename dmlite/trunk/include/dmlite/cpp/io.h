@@ -68,10 +68,10 @@ namespace dmlite {
     /// Move the cursor.
     /// @param offset The offset.
     /// @param whence Reference.
-    virtual void seek(off_t offset, Whence whence) throw (DmException) = 0;
+    virtual void seek(off64_t offset, Whence whence) throw (DmException) = 0;
 
     /// Return the cursor position.
-    virtual off_t tell(void) throw (DmException) = 0;
+    virtual off64_t tell(void) throw (DmException) = 0;
 
     /// Flush the buffer.
     virtual void flush(void) throw (DmException) = 0;
