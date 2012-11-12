@@ -15,6 +15,11 @@ void export_pooldriver()
         .def_readwrite("path", &Chunk::path)
         .def_readwrite("offset", &Chunk::offset)
         .def_readwrite("size", &Chunk::size)
+
+        .def(self < other<Chunk>())
+        .def(self > other<Chunk>())
+        .def(self != other<Chunk>())
+        .def(self == other<Chunk>())
         ;
 
     class_< std::vector< Chunk > >("vector_Chunk")

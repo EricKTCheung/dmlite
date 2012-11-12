@@ -13,6 +13,11 @@ void export_poolmanager()
     class_<Pool, bases< Extensible > >("Pool", init<>())
         .def_readwrite("name", &Pool::name)
         .def_readwrite("type", &Pool::type)
+
+        .def(self < other<Pool>())
+        .def(self > other<Pool>())
+        .def(self != other<Pool>())
+        .def(self == other<Pool>())
         ;
 
     class_< std::vector< Pool > >("vector_Pool")
