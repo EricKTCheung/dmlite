@@ -224,14 +224,14 @@ SymLink PythonINode::readLink(ino_t inode) throw (DmException)
 
 void PythonINode::addReplica(const Replica& replica) throw (DmException)
 {
-  CALL_PYTHON(replica);
+  CALL_PYTHON(addReplica, replica);
 }
 
 
 
 void PythonINode::deleteReplica(const Replica& replica) throw (DmException)
 {
-  CALL_PYTHON(replica);
+  CALL_PYTHON(deleteReplica, replica);
 }
 
 
