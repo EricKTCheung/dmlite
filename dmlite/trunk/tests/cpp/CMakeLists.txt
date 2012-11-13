@@ -122,7 +122,7 @@ ENABLE_TESTING()
 
 # Set Test Parameters
 #set (CONFIG MemcacheNsMySql.conf)
-set (CONFIG   NsMySql.conf)
+set (CONFIG   NsAdapter.conf)
 set (FSCONFIG DpmMySql.conf)
 
 # Add CTest tests

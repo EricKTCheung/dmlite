@@ -4,15 +4,17 @@
 #ifndef DMLITE_CPP_CATALOG_H
 #define DMLITE_CPP_CATALOG_H
 
+#include "../common/config.h"
+#include "base.h"
+#include "exceptions.h"
+#include "inode.h"
+#include "utils/extensible.h"
+
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string>
 #include <vector>
 #include <utime.h>
-#include "base.h"
-#include "exceptions.h"
-#include "inode.h"
-#include "utils/extensible.h"
 
 namespace dmlite {
 

@@ -4,14 +4,16 @@
 #ifndef DMLITE_CPP_INODE_H
 #define DMLITE_CPP_INODE_H
 
-#include <dirent.h>
-#include <utime.h>
-#include <string>
-#include <vector>
+#include "../common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "utils/extensible.h"
 #include "utils/security.h"
+
+#include <dirent.h>
+#include <utime.h>
+#include <string>
+#include <vector>
 
 namespace dmlite {
   

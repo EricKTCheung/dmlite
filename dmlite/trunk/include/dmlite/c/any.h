@@ -6,6 +6,7 @@
 #ifndef DMLITE_ANY_H
 #define DMLITE_ANY_H
 
+#include "../common/config.h"
 #include <stddef.h>
 
 #ifdef	__cplusplus

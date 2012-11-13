@@ -5,11 +5,13 @@
 #ifndef DMLITE_DMLITE_H
 #define DMLITE_DMLITE_H
 
+#include "../common/config.h"
+#include "../common/errno.h"
+#include "any.h"
+
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <utime.h>
-#include "any.h"
-#include "../common/errno.h"
 
 #ifdef	__cplusplus
 extern "C" {
