@@ -10,5 +10,15 @@
 #define DMLITE_MINOR @dmlite_MINOR@
 #define DMLITE_PATCH @dmlite_PATCH@
 
-#endif /* DMLITE_COMMON_CONFIG_H */
+/* Use 64 bits types */
+#ifndef __USE_LARGEFILE64
+#  define __USE_LARGEFILE64
+#endif
+#ifndef _FILE_OFFSET_BITS
+#  define _FILE_OFFSET_BITS 64
+#endif
+#ifndef __USE_FILE_OFFSET64
+#  define __USE_FILE_OFFSET64
+#endif
 
+#endif /* DMLITE_COMMON_CONFIG_H */

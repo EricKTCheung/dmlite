@@ -6,10 +6,10 @@
 #ifndef DMLITE_INODE_H
 #define DMLITE_INODE_H
 
-#include <stdint.h>
-#include "any.h"
 #include "dmlite.h"
+#include "any.h"
 #include "utils.h"
+#include <stdint.h>
 
 #ifdef	__cplusplus
 extern "C" {

@@ -4,11 +4,13 @@
 #ifndef DMLITE_CPP_DMLITE_H
 #define DMLITE_CPP_DMLITE_H
 
+#include "../common/config.h"
+#include "exceptions.h"
+
 #include <boost/any.hpp>
 #include <list>
 #include <map>
 #include <string>
-#include "exceptions.h"
 
 /// Namespace for the libdm C++ API
 namespace dmlite {

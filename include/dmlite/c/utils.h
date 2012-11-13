@@ -5,6 +5,8 @@
 #ifndef DMLITE_UTILS_H
 #define DMLITE_UTILS_H
 
+#include "../common/config.h"
+
 #include <limits.h>
 #include <stdint.h>
 

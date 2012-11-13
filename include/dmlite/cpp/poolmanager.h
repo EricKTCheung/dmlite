@@ -4,12 +4,14 @@
 #ifndef DMLITE_CPP_POOLMANAGER_H
 #define DMLITE_CPP_POOLMANAGER_H
 
-#include <string>
-#include <vector>
+#include "../common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "pooldriver.h"
 #include "utils/extensible.h"
+
+#include <string>
+#include <vector>
 
 namespace dmlite {
   

@@ -4,10 +4,12 @@
 #ifndef DMLITE_CPP_EXCEPTIONS_H
 #define DMLITE_CPP_EXCEPTIONS_H
 
+#include "../common/config.h"
+#include "../common/errno.h"
+
 #include <cstdarg>
 #include <exception>
 #include <string>
-#include "../common/errno.h"
 
 namespace dmlite {
 

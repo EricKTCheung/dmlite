@@ -5,9 +5,9 @@
 #ifndef DMLITE_POOL_H
 #define DMLITE_POOL_H
 
+#include "dmlite.h"
 #include "any.h"
 #include "inode.h"
-#include "dmlite.h"
 #include "utils.h"
 
 #define POOL_TYPE_MAX 16

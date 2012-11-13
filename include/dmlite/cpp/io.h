@@ -5,11 +5,13 @@
 #ifndef DMLITE_CPP_IO_H
 #define DMLITE_CPP_IO_H
 
-#include <fcntl.h>
-#include <map>
+#include "../common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "utils/extensible.h"
+
+#include <fcntl.h>
+#include <map>
 
 namespace dmlite {
   
@@ -68,10 +70,10 @@ namespace dmlite {
     /// Move the cursor.
     /// @param offset The offset.
     /// @param whence Reference.
-    virtual void seek(off64_t offset, Whence whence) throw (DmException);
+    virtual void seek(off_t offset, Whence whence) throw (DmException);
 
     /// Return the cursor position.
-    virtual off64_t tell(void) throw (DmException);
+    virtual off_t tell(void) throw (DmException);
 
     /// Flush the buffer.
     virtual void flush(void) throw (DmException);

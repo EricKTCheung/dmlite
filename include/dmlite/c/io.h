@@ -5,9 +5,10 @@
 #ifndef DMLITE_IO_H
 #define DMLITE_IO_H
 
-#include <sys/uio.h>
-#include "any.h"
 #include "dmlite.h"
+#include "any.h"
+#include <sys/uio.h>
+
 
 #ifdef	__cplusplus
 extern "C" {

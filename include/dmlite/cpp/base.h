@@ -4,8 +4,9 @@
 #ifndef DMLITE_CPP_BASE_H
 #define DMLITE_CPP_BASE_H
 
-#include <string>
+#include "../common/config.h"
 #include "exceptions.h"
+#include <string>
 
 namespace dmlite {
 
