@@ -59,7 +59,7 @@ NOT_IMPLEMENTED_WITHOUT_ID(size_t IOHandler::write(const char*, size_t) throw (D
 
 size_t IOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
-  size_t total;
+  size_t total = 0;
   for (size_t i; i < count; ++i) {
     total += this->read(static_cast<char*>(vector[i].iov_base), vector[i].iov_len);
   }
@@ -70,7 +70,7 @@ size_t IOHandler::readv(const struct iovec* vector, size_t count) throw (DmExcep
 
 size_t IOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
 {
-  size_t total;
+  size_t total = 0;
   for (size_t i; i < count; ++i) {
     total += this->write(static_cast<char*>(vector[i].iov_base), vector[i].iov_len);
   }
