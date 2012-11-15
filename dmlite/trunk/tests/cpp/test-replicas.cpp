@@ -79,7 +79,7 @@ public:
         this->catalog->getImplId() != "DpmAdapterCatalog") {
       CPPUNIT_ASSERT_EQUAL(std::string("metadata"),   replica.getString("additional"));
 
-      replica = this->catalog->getReplica("http://a.host.com/replica");
+      replica = this->catalog->getReplicaByRFN("http://a.host.com/replica");
       this->catalog->deleteReplica(replica);
 
       CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)this->catalog->getReplicas(FILE).size());
@@ -138,7 +138,7 @@ public:
 
     this->catalog->addReplica(replica);
 
-    replica = this->catalog->getReplica("http://a.host.com/replica");
+    replica = this->catalog->getReplicaByRFN("http://a.host.com/replica");
     
     replica.ltime  = 12348;
     replica.status = dmlite::Replica::kToBeDeleted;

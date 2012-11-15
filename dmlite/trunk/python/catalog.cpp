@@ -45,7 +45,7 @@ void export_catalog()
         .def("rename", &Catalog::rename)
         .def("removeDir", &Catalog::removeDir)
 
-        .def("getReplica", &Catalog::getReplica)
+        .def("getReplicaByRFN", &Catalog::getReplicaByRFN)
         .def("updateReplica", &Catalog::updateReplica)
         ;
 

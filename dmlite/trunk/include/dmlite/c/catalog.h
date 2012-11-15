@@ -340,7 +340,7 @@ int dmlite_rmdir(dmlite_context* context, const char* path);
  * @param replica A buffer where the retrieved data will be put.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_getreplica(dmlite_context* context, const char* rfn, dmlite_replica* replica);
+int dmlite_getreplica_by_rfn(dmlite_context* context, const char* rfn, dmlite_replica* replica);
 
 /**
  * @brief         Updates a replica.

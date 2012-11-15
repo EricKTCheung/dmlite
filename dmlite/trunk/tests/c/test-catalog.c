@@ -175,7 +175,7 @@ void testReplicas(dmlite_context* context)
   /* Modify */
   SECTION("Modify replica");
   
-  TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
+  TEST_CONTEXT_CALL(context, dmlite_getreplica_by_rfn, "/storage/replica.01", &replica);
   TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
   TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
   TEST_ASSERT_EQUAL(kAvailable,    replica.status);
@@ -201,7 +201,7 @@ void testReplicas(dmlite_context* context)
   replica.ltime = 0;
   dmlite_any_dict_clear(replica.extra);
   
-  TEST_CONTEXT_CALL(context, dmlite_getreplica, "/storage/replica.01", &replica);
+  TEST_CONTEXT_CALL(context, dmlite_getreplica_by_rfn, "/storage/replica.01", &replica);
   TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replica.server);
   TEST_ASSERT_STR_EQUAL("/storage/replica.01", replica.rfn);
   TEST_ASSERT_EQUAL(kAvailable, replica.status);
