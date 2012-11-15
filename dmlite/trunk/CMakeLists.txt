@@ -48,7 +48,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 # Definitions
-add_definitions (-D_REENTRANT)
+add_definitions (-D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64)
 
 # Subdirectories
 add_subdirectory (doc)
