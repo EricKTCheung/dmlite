@@ -212,7 +212,7 @@ public:
 
     CPPUNIT_ASSERT_THROW(this->catalog->create(FILE, MODE), dmlite::DmException);
     
-    replica = this->catalog->getReplica("sfn://something");
+    replica = this->catalog->getReplicaByRFN("sfn://something");
     this->catalog->deleteReplica(replica);
   }
 

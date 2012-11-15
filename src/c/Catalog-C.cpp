@@ -433,12 +433,12 @@ int dmlite_rmdir(dmlite_context* context, const char* path)
 
 
 
-int dmlite_getreplica(dmlite_context* context, const char* rfn, dmlite_replica* replica)
+int dmlite_getreplica_by_rfn(dmlite_context* context, const char* rfn, dmlite_replica* replica)
 {
   TRY(context, getreplica)
   NOT_NULL(rfn);
   NOT_NULL(replica);
-  dmlite::Replica replicapp = context->stack->getCatalog()->getReplica(rfn);
+  dmlite::Replica replicapp = context->stack->getCatalog()->getReplicaByRFN(rfn);
   dmlite_cppreplica_to_creplica(replicapp, replica);
   CATCH(context, getreplica)
 }

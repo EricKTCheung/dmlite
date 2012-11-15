@@ -51,7 +51,7 @@ namespace dmlite {
     void deleteReplica(const Replica&) throw (DmException);
     std::vector<Replica> getReplicas(const std::string&) throw (DmException);
     
-    Replica getReplica   (const std::string& rfn) throw (DmException);
+    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
     void    updateReplica(const Replica& replica) throw (DmException);
   };
 

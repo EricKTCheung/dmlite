@@ -185,7 +185,7 @@ namespace dmlite {
     
     /// Get a replica.
     /// @param rfn The replica file name.
-    virtual Replica getReplica(const std::string& rfn) throw (DmException);
+    virtual Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
 
     /// Update a replica.
     /// @param replica The replica to modify.

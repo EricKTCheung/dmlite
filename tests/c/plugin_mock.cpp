@@ -220,7 +220,7 @@ std::vector<Replica> MockCatalog::getReplicas(const std::string& path) throw (Dm
 
 
 
-Replica MockCatalog::getReplica(const std::string& rfn) throw (DmException)
+Replica MockCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 {
   InoReplicasType::iterator i;
   

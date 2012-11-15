@@ -74,7 +74,7 @@ namespace dmlite {
     virtual void rename     (const std::string&, const std::string&) throw (DmException);
     virtual void removeDir  (const std::string&)                     throw (DmException);
 
-    virtual Replica getReplica   (const std::string& rfn) throw (DmException);
+    virtual Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
     virtual void    updateReplica(const Replica& replica) throw (DmException);
 
    protected:

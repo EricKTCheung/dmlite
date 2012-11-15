@@ -250,9 +250,9 @@ void DummyCatalog::removeDir(const std::string& path) throw (DmException)
 
 
 
-Replica DummyCatalog::getReplica(const std::string& rfn) throw (DmException)
+Replica DummyCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 {
-  DELEGATE_RETURN(getReplica, rfn);
+  DELEGATE_RETURN(getReplicaByRFN, rfn);
 }
 
 

@@ -70,5 +70,5 @@ NOT_IMPLEMENTED(ExtendedStat* Catalog::readDirx(Directory*) throw (DmException))
 NOT_IMPLEMENTED(void Catalog::makeDir(const std::string&, mode_t) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::rename(const std::string&, const std::string&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::removeDir(const std::string&) throw (DmException));
-NOT_IMPLEMENTED(Replica Catalog::getReplica(const std::string&) throw (DmException));
+NOT_IMPLEMENTED(Replica Catalog::getReplicaByRFN(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::updateReplica(const Replica&) throw (DmException));
