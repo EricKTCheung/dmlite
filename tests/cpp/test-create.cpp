@@ -254,7 +254,7 @@ public:
     this->catalog->create(FILE, MODE);
     this->catalog->setSize(FILE, 555);
     struct stat s = this->catalog->extendedStat(FILE).stat;
-    CPPUNIT_ASSERT_EQUAL((__off_t)555, s.st_size);
+    CPPUNIT_ASSERT_EQUAL((off_t)555, s.st_size);
   }
   
   void testICreate()

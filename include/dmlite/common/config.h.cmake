@@ -10,15 +10,9 @@
 #define DMLITE_MINOR @dmlite_MINOR@
 #define DMLITE_PATCH @dmlite_PATCH@
 
-/* Use 64 bits types */
-#ifndef __USE_LARGEFILE64
-#  define __USE_LARGEFILE64
-#endif
-#ifndef _FILE_OFFSET_BITS
-#  define _FILE_OFFSET_BITS 64
-#endif
-#ifndef __USE_FILE_OFFSET64
-#  define __USE_FILE_OFFSET64
+/* 64 bits types must be used */
+#if !defined(__x86_64__) && (_FILE_OFFSET_BITS != 64 || !defined(_LARGEFILE64_SOURCE))
+#  error "You need to compile with -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE"
 #endif
 
 #endif /* DMLITE_COMMON_CONFIG_H */
