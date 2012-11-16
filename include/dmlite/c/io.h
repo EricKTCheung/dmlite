@@ -8,6 +8,7 @@
 #include "dmlite.h"
 #include "any.h"
 #include <sys/uio.h>
+#include <unistd.h>
 
 
 #ifdef	__cplusplus
@@ -58,14 +59,14 @@ int dmlite_fstat(dmlite_fd* fd, struct stat* buf);
  * @param whence See fseek()
  * @return       0 on success, error code otherwise.
  */
-int dmlite_fseek(dmlite_fd* fd, long offset, int whence);
+int dmlite_fseek(dmlite_fd* fd, off_t offset, int whence);
 
 /**
  * @brief    Returns the cursor position.
  * @param fd The file descriptor.
  * @return   The cursor position, or -1 on error.
  */
-long dmlite_ftell(dmlite_fd* fd);
+off_t dmlite_ftell(dmlite_fd* fd);
 
 /**
  * @brief        Reads from a file.
@@ -74,7 +75,7 @@ long dmlite_ftell(dmlite_fd* fd);
  * @param count  Number of bytes to read.
  * @return       Number of bytes actually read on success. -1 on failure.
  */
-size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
+ssize_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
 
 /**
  * @brief        Writes to a file.
@@ -83,7 +84,7 @@ size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count);
  * @param count  Number of bytes to write.
  * @return       Number of bytes actually written. -1 on failure.
  */
-size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
+ssize_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
 
 /**
  * @brief        Reads from a file into multiple buffers.
@@ -92,7 +93,7 @@ size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count);
  * @param count  Number of elements in the array of buffers.
  * @return       Number of bytes actually read on success. -1 on failure.
  */
-size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count);
+ssize_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count);
 
 /**
 * @brief        Reads from a file into multiple buffers.
@@ -101,8 +102,29 @@ size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count);
 * @param count  Number of elements in the array of buffers.
 * @return       Number of bytes actually read on success. -1 on failure.
 */
-size_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count);
+ssize_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count);
 
+/**
+ * @brief        Reads up to count bytes starting at the given offset.
+ *               Does not change internal offset.
+ * @param fd     File descriptor.
+ * @param buffer Buffer where to put the data.
+ * @param count  Number of bytes to read.
+ * @param offset Read offset.
+ * @return       Number of bytes actually read on success. -1 on failure.
+ */
+ssize_t dmlite_fpread(dmlite_fd* fd, void* buffer, size_t count, off_t offset);
+
+/**
+ * @brief        Writes count bytes starting at the given offset.
+ *               Does not change internal offset.
+ * @param fd     File descriptor.
+ * @param buffer Data to write.
+ * @param count  Number of bytes to read.
+ * @param offset Write offset.
+ * @return       Number of bytes actually write on success. -1 on failure.
+ */
+ssize_t dmlite_fpwrite(dmlite_fd* fd, const void* buffer, size_t count, off_t offset);
 
 /**
  * @brief    Returns 1 if EOF.

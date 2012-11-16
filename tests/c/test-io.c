@@ -48,6 +48,14 @@ void testRead(dmlite_context* context)
   
   TEST_ASSERT_EQUAL(0, dmlite_feof(file));
   
+  /* pread */
+  TEST_ASSERT_EQUAL(0, dmlite_fseek(file, 0, SEEK_SET));
+  TEST_ASSERT_EQUAL(4, dmlite_fpread(file, buffer, 4, 10));
+  buffer[5] = '\0';
+  TEST_ASSERT_STR_EQUAL("klmn", buffer);
+
+  TEST_ASSERT_EQUAL(0, dmlite_ftell(file));
+
   /* Free */
   TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
   dmlite_any_dict_free(dict);
@@ -82,6 +90,15 @@ void testWrite(dmlite_context* context)
   TEST_ASSERT_EQUAL(10, dmlite_fread(file, buffer, 10));
   TEST_ASSERT_STR_EQUAL("123456789", buffer);
   
+  /* pwrite */
+  TEST_ASSERT_EQUAL(0, dmlite_fseek(file, 0, SEEK_SET));
+  TEST_ASSERT_EQUAL(10, dmlite_fpwrite(file, "123456789", 10, 20));
+  TEST_ASSERT_EQUAL(0, dmlite_ftell(file));
+
+  /* Read it back */
+  TEST_ASSERT_EQUAL(0, dmlite_fseek(file, 20, SEEK_SET));
+  TEST_ASSERT_EQUAL(10, dmlite_fread(file, buffer, 10));
+  TEST_ASSERT_STR_EQUAL("123456789", buffer);
   
   /* Free */
   TEST_ASSERT_EQUAL(0, dmlite_fclose(file));
