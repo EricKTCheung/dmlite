@@ -122,6 +122,49 @@ public:
     CPPUNIT_ASSERT_EQUAL(g.name, gtest.name);
   }
   
+  void testBuiltIn()
+  {
+    dmlite::PluginManager pm;
+
+    pm.configure("AnonymousUser", "nobody");
+    pm.configure("AnonymousGroup", "users");
+
+    dmlite::StackInstance stack(&pm);
+
+    // Generate a security context with a user that does not exist
+    dmlite::SecurityCredentials creds;
+    creds.clientName = "/DC=org/DC=example/OU=hsimpson";
+    creds.fqans.push_back("does/not-exist");
+
+    stack.setSecurityCredentials(creds);
+    const dmlite::SecurityContext* secctx = stack.getSecurityContext();
+
+    CPPUNIT_ASSERT_EQUAL(std::string("nobody"), secctx->user.name);
+    CPPUNIT_ASSERT_EQUAL((size_t)1, secctx->groups.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("users"), secctx->groups[0].name);
+
+    // Unknown user without group must be nobody with default group (nobody)
+    creds.fqans.clear();
+
+    stack.setSecurityCredentials(creds);
+    secctx = stack.getSecurityContext();
+
+    CPPUNIT_ASSERT_EQUAL(std::string("nobody"), secctx->user.name);
+    CPPUNIT_ASSERT_EQUAL((size_t)1, secctx->groups.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("nobody"), secctx->groups[0].name);
+
+    // Knwon user, unknown group
+    creds.clientName = "root";
+    creds.fqans.push_back("does/not-exist");
+
+    stack.setSecurityCredentials(creds);
+    secctx = stack.getSecurityContext();
+
+    CPPUNIT_ASSERT_EQUAL(std::string("root"), secctx->user.name);
+    CPPUNIT_ASSERT_EQUAL((size_t)1, secctx->groups.size());
+    CPPUNIT_ASSERT_EQUAL(std::string("users"), secctx->groups[0].name);
+  }
+
   CPPUNIT_TEST_SUITE(TestAuthn);
   CPPUNIT_TEST(testUserAddAndRemove);
   CPPUNIT_TEST(testUserMetadata);
@@ -129,6 +172,7 @@ public:
   CPPUNIT_TEST(testGroupMetadata);
   CPPUNIT_TEST(testList);
   CPPUNIT_TEST(testById);
+  CPPUNIT_TEST(testBuiltIn);
   CPPUNIT_TEST_SUITE_END();
 };
 

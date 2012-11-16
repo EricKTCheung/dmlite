@@ -12,7 +12,7 @@ namespace dmlite {
   
   class BuiltInAuthn: public Authn {
    public:
-    BuiltInAuthn(const std::string&);
+    BuiltInAuthn(const std::string&, const std::string&);
     ~BuiltInAuthn();
 
     std::string getImplId(void) const throw();
@@ -45,6 +45,7 @@ namespace dmlite {
                   std::vector<GroupInfo>* groups) throw (DmException);
    private:
     std::string nobody_;
+    std::string nogroup_;
   };
 
   class BuiltInAuthnFactory: public AuthnFactory {
@@ -58,6 +59,7 @@ namespace dmlite {
     
    private:
     std::string nobody_;
+    std::string nogroup_;
   };
   
 };
