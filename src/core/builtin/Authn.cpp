@@ -13,7 +13,8 @@ using namespace dmlite;
 
 
 
-BuiltInAuthn::BuiltInAuthn(const std::string& nb): nobody_(nb)
+BuiltInAuthn::BuiltInAuthn(const std::string& nb, const std::string& ng):
+    nobody_(nb), nogroup_(ng)
 {
   // Nothing
 }
@@ -268,10 +269,18 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
   }
   else {
     // Get group info
-    std::vector<std::string>::const_iterator i;
-    for (i = groupNames.begin(); i != groupNames.end(); ++i) {
-      vo = voFromRole(*i);
-      group = this->getGroup(vo);
+    try {
+      std::vector<std::string>::const_iterator i;
+      for (i = groupNames.begin(); i != groupNames.end(); ++i) {
+        vo = voFromRole(*i);
+        group = this->getGroup(vo);
+        groups->push_back(group);
+      }
+    }
+    catch (DmException& e) {
+      if (DMLITE_ERRNO(e.code()) != DMLITE_NO_SUCH_GROUP)
+        throw;
+      group = this->getGroup(nogroup_);
       groups->push_back(group);
     }
   }
@@ -279,7 +288,7 @@ void BuiltInAuthn::getIdMap(const std::string& userName,
 
 
 
-BuiltInAuthnFactory::BuiltInAuthnFactory(): nobody_("nobody")
+BuiltInAuthnFactory::BuiltInAuthnFactory(): nobody_("nobody"), nogroup_("nobody")
 {
   // Nothing
 }
@@ -298,13 +307,16 @@ void BuiltInAuthnFactory::configure(const std::string& key,
 {
   if (key == "AnonymousUser")
     this->nobody_ = value;
-  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                    "Unknown option %s", key.c_str());
+  else if (key == "AnonymousGroup")
+    this->nogroup_ = value;
+  else
+    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+                      "Unknown option %s", key.c_str());
 }
 
 
 
 Authn* BuiltInAuthnFactory::createAuthn(PluginManager* pm) throw (DmException)
 {
-  return new BuiltInAuthn(this->nobody_);
+  return new BuiltInAuthn(this->nobody_, this->nogroup_);
 }
