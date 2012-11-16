@@ -52,7 +52,6 @@ public:
 
     CPPUNIT_ASSERT(before.st_atime < after.st_atime);
   }
-  
 
   void testOpenAndReadNoUpdate()
   {

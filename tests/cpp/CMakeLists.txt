@@ -66,6 +66,9 @@ target_link_libraries (test-io dmlite ${CPPUNIT_LIBRARY} dl)
 add_executable        (test-opendir test-opendir.cpp)
 target_link_libraries (test-opendir test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
+add_executable        (test-overwrite test-overwrite.cpp)
+target_link_libraries (test-overwrite test-base dmlite ${CPPUNIT_LIBRARY} dl)
+
 add_executable        (test-poolcontainer test-poolcontainer.cpp)
 target_link_libraries (test-poolcontainer dmlite ${CPPUNIT_LIBRARY} pthread boost_thread-mt)
 
@@ -139,6 +142,7 @@ ADD_TEST(test-extensible    ${CMAKE_CURRENT_BINARY_DIR}/test-extensible ${CONFIG
 ADD_TEST(test-guid          ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
 ADD_TEST(test-io            ${CMAKE_CURRENT_BINARY_DIR}/test-io ${FSCONFIG})
 ADD_TEST(test-opendir       ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
+ADD_TEST(test-overwrite     ${CMAKE_CURRENT_BINARY_DIR}/test-overwrite ${FSCONFIG})
 ADD_TEST(test-pools         ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${FSCONFIG})
 ADD_TEST(test-poolcontainer ${CMAKE_CURRENT_BINARY_DIR}/test-poolcontainer)
 ADD_TEST(test-rename        ${CMAKE_CURRENT_BINARY_DIR}/test-rename ${CONFIG})
