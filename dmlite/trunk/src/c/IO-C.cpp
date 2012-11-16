@@ -82,7 +82,7 @@ int dmlite_fstat(dmlite_fd* fd, struct stat* buf)
 
 
 
-int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
+int dmlite_fseek(dmlite_fd* fd, off_t offset, int whence)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -94,7 +94,7 @@ int dmlite_fseek(dmlite_fd* fd, long offset, int whence)
 
 
 
-long dmlite_ftell(dmlite_fd* fd)
+off_t dmlite_ftell(dmlite_fd* fd)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -106,7 +106,7 @@ long dmlite_ftell(dmlite_fd* fd)
 
 
 
-size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
+ssize_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -114,12 +114,12 @@ size_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
   NOT_NULL(fd);
   NOT_NULL(buffer);
   return fd->stream->read((char*)buffer, count);
-  CATCH(fd->context, fread)
+  CATCH_NEGATIVE(fd->context, fread)
 }
 
 
 
-size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
+ssize_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -127,12 +127,12 @@ size_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
   NOT_NULL(fd);
   NOT_NULL(buffer);
   return fd->stream->write((char*)buffer, count);
-  CATCH(fd->context, fwrite)
+  CATCH_NEGATIVE(fd->context, fwrite)
 }
 
 
 
-size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count)
+ssize_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -140,12 +140,12 @@ size_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count)
   NOT_NULL(fd);
   NOT_NULL(vector);
   return fd->stream->readv(vector, count);
-  CATCH(fd->context, freadv)
+  CATCH_NEGATIVE(fd->context, freadv)
 }
 
 
 
-size_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count)
+ssize_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count)
 {
   if (!fd)
     return DMLITE_SYSERR(EFAULT);
@@ -153,7 +153,33 @@ size_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count)
   NOT_NULL(fd);
   NOT_NULL(vector);
   return fd->stream->writev(vector, count);
-  CATCH(fd->context, fwritev)
+  CATCH_NEGATIVE(fd->context, fwritev)
+}
+
+
+
+ssize_t dmlite_fpread(dmlite_fd* fd, void* buffer, size_t count, off_t offset)
+{
+  if (!fd)
+    return DMLITE_SYSERR(EFAULT);
+  TRY(fd->context, fpread)
+  NOT_NULL(fd);
+  NOT_NULL(buffer);
+  return fd->stream->pread(buffer, count, offset);
+  CATCH_NEGATIVE(fd->context, fpread)
+}
+
+
+
+ssize_t dmlite_fpwrite(dmlite_fd* fd, const void* buffer, size_t count, off_t offset)
+{
+  if (!fd)
+    return DMLITE_SYSERR(EFAULT);
+  TRY(fd->context, fpwrite)
+  NOT_NULL(fd);
+  NOT_NULL(buffer);
+  return fd->stream->pwrite(buffer, count, offset);
+  CATCH_NEGATIVE(fd->context, fwritev)
 }
 
 

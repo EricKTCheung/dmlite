@@ -199,6 +199,30 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string(ostring), std::string(buffer));
   }
 
+  void testPReadWrite(void)
+  {
+    char buffer[1024];
+
+    dmlite::IOHandler* os = io->createIOHandler("/tmp/preadwrite",
+                                                O_RDWR | O_CREAT | dmlite::IODriver::kInsecure,
+                                                dmlite::Extensible());
+
+    CPPUNIT_ASSERT_EQUAL(sizeof(buffer), os->write(buffer, sizeof(buffer)));
+    os->seek(0, dmlite::IOHandler::kSet);
+
+    CPPUNIT_ASSERT_EQUAL((size_t)7, os->pwrite("123456", 7, 500));
+    CPPUNIT_ASSERT_EQUAL((off_t)0, os->tell());
+
+    os->seek(150, dmlite::IOHandler::kSet);
+
+    CPPUNIT_ASSERT_EQUAL((size_t)7, os->pread(buffer, 7, 500));
+    CPPUNIT_ASSERT_EQUAL((off_t)150, os->tell());
+
+    CPPUNIT_ASSERT_EQUAL(std::string("123456"), std::string(buffer));
+
+    delete os;
+  }
+
   void testFStat(void)
   {
     // Get real file size
@@ -223,6 +247,7 @@ public:
   CPPUNIT_TEST(testInsecure);
   CPPUNIT_TEST(testWritev);
   CPPUNIT_TEST(testReadv);
+  CPPUNIT_TEST(testPReadWrite);
   CPPUNIT_TEST(testFStat);
   CPPUNIT_TEST_SUITE_END();
 };

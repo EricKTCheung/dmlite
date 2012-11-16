@@ -44,6 +44,21 @@ try {\
   return NULL;\
 }
 
+/// Catch block that returns -1.
+#define CATCH_NEGATIVE(context, method)\
+  return DMLITE_SUCCESS;\
+} catch (dmlite::DmException& e) {\
+  if (!context) return EFAULT;\
+  context->errorCode   = e.code();\
+  context->errorString = e.what();\
+  return -1;\
+} catch (...) {\
+  if (!context) return EFAULT;\
+  context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
+  context->errorString = "An unexpected exception was thrown while executing "#method;\
+  return -1;\
+}
+
 /// Try-catch in one macro
 #define TRY_CATCH(handle, method, ...)\
 try {\

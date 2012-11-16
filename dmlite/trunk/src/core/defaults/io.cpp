@@ -79,6 +79,28 @@ size_t IOHandler::writev(const struct iovec* vector, size_t count) throw (DmExce
 
 
 
+size_t IOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
+{
+  off_t prev = this->tell();
+  this->seek(offset, IOHandler::kSet);
+  size_t nread = this->read((char*)buffer, count);
+  this->seek(prev, IOHandler::kSet);
+  return nread;
+}
+
+
+
+size_t IOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
+{
+  off_t prev = this->tell();
+  this->seek(offset, IOHandler::kSet);
+  size_t nwrite = this->write((const char*)buffer, count);
+  this->seek(prev, IOHandler::kSet);
+  return nwrite;
+}
+
+
+
 NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::seek(off64_t, Whence) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(off64_t IOHandler::tell(void) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::flush(void) throw (DmException));

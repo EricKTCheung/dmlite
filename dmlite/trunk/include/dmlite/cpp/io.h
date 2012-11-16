@@ -63,9 +63,23 @@ namespace dmlite {
     /// @param vector An array with 'count' iovec structs.
     /// @param count  Number of elements in vector.
     /// @return       The total size written.
-    /// @note         See man write.v
+    /// @note         See man writev.
     /// @note         A default implementation using write is provided.
     virtual size_t writev(const struct iovec* vector, size_t count) throw (DmException);
+
+    /// Read from the given offset without changing the file offset.
+    /// @param buffer Where to put the data.
+    /// @param count  Number of bytes to read.
+    /// @param offset The operation offset.
+    /// @note         A default implementation using read/seek/tell is provided.
+    virtual size_t pread(void* buffer, size_t count, off_t offset) throw (DmException);
+
+    /// Write from the given offset without changing the file offset.
+    /// @param buffer Data to write.
+    /// @param count  Number of bytes to read.
+    /// @param offset The operation offset.
+    /// @note         A default implementation using read/seek/tell is provided.
+    virtual size_t pwrite(const void* buffer, size_t count, off_t offset) throw (DmException);
 
     /// Move the cursor.
     /// @param offset The offset.
