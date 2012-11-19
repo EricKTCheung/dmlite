@@ -83,6 +83,18 @@ int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf)
 
 
 
+int dmlite_rstatx(dmlite_context* context, const char* rfn, dmlite_xstat* buf)
+{
+  TRY(context, statx)
+  NOT_NULL(rfn);
+  NOT_NULL(buf);
+  dmlite::ExtendedStat ex = context->stack->getCatalog()->extendedStatByRFN(rfn);
+  dmlite_cppxstat_to_cxstat(ex, buf);
+  CATCH(context, statx);
+}
+
+
+
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addreplica)

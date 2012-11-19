@@ -74,6 +74,10 @@ public:
     CPPUNIT_ASSERT_EQUAL(std::string("the-pool"),   replica.getString("pool"));
     CPPUNIT_ASSERT_EQUAL(std::string("b.host.com"), std::string(replica.server));
 
+    // File from RFN
+    struct stat s2 = this->catalog->extendedStatByRFN("http://a.host.com/replica").stat;
+    CPPUNIT_ASSERT_EQUAL(s.st_ino, s2.st_ino);
+
     // Operations not implemented by adapter
     if (this->catalog->getImplId() != "NsAdapterCatalog" &&
         this->catalog->getImplId() != "DpmAdapterCatalog") {

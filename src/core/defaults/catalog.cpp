@@ -41,6 +41,7 @@ Catalog::~Catalog()
 NOT_IMPLEMENTED(void Catalog::changeDir(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(std::string Catalog::getWorkingDir(void) throw (DmException));
 NOT_IMPLEMENTED(ExtendedStat Catalog::extendedStat(const std::string&, bool) throw (DmException));
+NOT_IMPLEMENTED(ExtendedStat Catalog::extendedStatByRFN(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::addReplica(const Replica&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::deleteReplica(const Replica&) throw (DmException));
 NOT_IMPLEMENTED(std::vector<Replica> Catalog::getReplicas(const std::string&) throw (DmException));
