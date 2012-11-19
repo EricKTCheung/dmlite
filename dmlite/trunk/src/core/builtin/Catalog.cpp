@@ -259,7 +259,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
 ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
-  Replica replica = this->si_->getINode()->getReplica(rfn);
+  Replica replica = this->getReplicaByRFN(rfn);
   return this->si_->getINode()->extendedStat(replica.fileid);
 }
 
