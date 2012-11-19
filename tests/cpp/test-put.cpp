@@ -21,7 +21,7 @@ static std::ostringstream& operator << (std::ostringstream& of, const dmlite::Ac
 
 
 
-class TestOverwrite: public TestBase
+class TestPut: public TestBase
 {
 protected:
   static const char* FILE;
@@ -86,14 +86,71 @@ public:
     CPPUNIT_ASSERT_EQUAL(ACL, xstat.acl);
   }
 
-  CPPUNIT_TEST_SUITE(TestOverwrite);
+  void testOverwriteNoAcl()
+  {
+    dmlite::PoolManager* poolManager = stackInstance->getPoolManager();
+    dmlite::Catalog*     catalog     = stackInstance->getCatalog();
+
+    // Put the file first
+    dmlite::Location loc = poolManager->whereToWrite(PATH);
+
+    dmlite::IOHandler* fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    fd->write("abc", 3);
+    fd->close();
+    delete fd;
+
+    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+
+    // Change the mode
+    catalog->setMode(PATH, 0700);
+
+    // Overwrite
+    stackInstance->set("overwrite", true);
+    loc = poolManager->whereToWrite(PATH);
+
+    fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    fd->write("abc", 3);
+    fd->close();
+    delete fd;
+
+    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+
+    // Mode must be the same
+    dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
+    CPPUNIT_ASSERT_EQUAL((mode_t)0700, xstat.stat.st_mode & 0777);
+  }
+
+  void testCancel()
+  {
+    dmlite::PoolManager* poolManager = stackInstance->getPoolManager();
+    dmlite::Catalog*     catalog     = stackInstance->getCatalog();
+
+    // Put the file first
+    dmlite::Location loc = poolManager->whereToWrite(PATH);
+
+    // Cancel
+    poolManager->cancelWrite(FILE, loc);
+
+    // Now, the file must not exist in the catalog
+    try {
+      catalog->extendedStat(PATH);
+      CPPUNIT_FAIL("The file must not exist");
+    }
+    catch (dmlite::DmException& e) {
+      CPPUNIT_ASSERT_EQUAL(ENOENT, e.code());
+    }
+  }
+
+  CPPUNIT_TEST_SUITE(TestPut);
   CPPUNIT_TEST(testOverwrite);
+  CPPUNIT_TEST(testOverwriteNoAcl);
+  CPPUNIT_TEST(testCancel);
   CPPUNIT_TEST_SUITE_END();
 };
 
-const char* TestOverwrite::FILE = "test-overwrite";
+const char* TestPut::FILE = "test-put";
 
-CPPUNIT_TEST_SUITE_REGISTRATION(TestOverwrite);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestPut);
 
 int main(int argn, char **argv)
 {

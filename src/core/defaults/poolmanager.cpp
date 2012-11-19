@@ -39,3 +39,4 @@ NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::deletePool(const Pool& pool) throw 
 NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToRead(const std::string& path) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToRead(ino_t inode) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToWrite(const std::string& path) throw (DmException));
+NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::cancelWrite(const std::string& path, const Location& loc) throw (DmException))

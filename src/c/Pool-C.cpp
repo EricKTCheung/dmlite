@@ -30,8 +30,31 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
     locp->chunks = NULL;
   }
   
+  locp->extra = new dmlite_any_dict();
+  locp->extra->extensible.copy(loc.xattr);
+
   return locp;
 }
+
+
+
+static void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
+                                            dmlite::Location& loc)
+{
+  if (locp->extra)
+    loc.xattr.copy(locp->extra->extensible);
+
+  for (int i = 0; i < locp->nchunks; ++i) {
+    dmlite::Chunk chunk;
+    chunk.host   = locp->chunks[i].host;
+    chunk.offset = locp->chunks[i].offset;
+    chunk.path   = locp->chunks[i].path;
+    chunk.size   = locp->chunks[i].size;
+    if (locp->chunks[i].extra)
+      chunk.copy(locp->chunks[i].extra->extensible);
+  }
+}
+
 
 
 int dmlite_getpools(dmlite_context* context, unsigned* nbpools, dmlite_pool** pools)
@@ -147,4 +170,16 @@ dmlite_location* dmlite_put(dmlite_context* context, const char* path)
   dmlite_location* locp = new dmlite_location();  
   return dmlite_cpplocation_to_clocation(loc, locp);
   CATCH_POINTER(context, put)
+}
+
+
+
+int dmlite_put_abort(dmlite_context* context, const char* path, const dmlite_location* loc)
+{
+  TRY(context, put_abort)
+  NOT_NULL(path);
+  dmlite::Location location;
+  dmlite_clocation_to_cpplocation(loc, location);
+  context->stack->getPoolManager()->cancelWrite(path, location);
+  CATCH(context, put_abort)
 }
