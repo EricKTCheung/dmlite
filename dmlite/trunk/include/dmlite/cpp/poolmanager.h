@@ -65,6 +65,11 @@ namespace dmlite {
     /// @param path  The path of the file to create.
     /// @return      The physical location where to write.
     virtual Location whereToWrite(const std::string& path) throw (DmException);
+
+    /// Cancel a write.
+    /// @param path The logical file name.
+    /// @param loc  As returned by whereToWrite
+    virtual void cancelWrite(const std::string& path, const Location& loc) throw (DmException);
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

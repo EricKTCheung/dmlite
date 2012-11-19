@@ -8,7 +8,7 @@ std::string                    TestBase::config("");
 
 
 
-TestBase::TestBase(): pluginManager(0x00), catalog(0x00),
+TestBase::TestBase(): pluginManager(NULL), stackInstance(NULL), catalog(NULL),
   TEST_USER("/C=CH/O=CERN/OU=GD/CN=Test user 0"),
   TEST_USER_2("/C=CH/O=CERN/OU=GD/CN=Test user 1")
 {

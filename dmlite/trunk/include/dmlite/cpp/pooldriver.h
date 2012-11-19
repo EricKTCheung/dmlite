@@ -25,7 +25,7 @@ namespace dmlite {
     std::string path;
     off_t       offset;
     size_t      size;
-    
+
     bool operator == (const Chunk&) const;
     bool operator != (const Chunk&) const;
     bool operator <  (const Chunk&) const;
@@ -33,7 +33,14 @@ namespace dmlite {
   };
   
   /// Represent the complete location of a file.
-  typedef std::vector<Chunk> Location;
+  struct Location: public std::vector<Chunk> {
+    Extensible xattr;
+
+    Location() {}
+    Location(int nitems, const Chunk& proto): std::vector<Chunk>(nitems, proto) {}
+
+    Location(const Location& l): std::vector<Chunk>(l), xattr(l.xattr) {}
+  };
 
   /// Handler for a pool. Works similary to a file handler.
   class PoolHandler {
@@ -53,10 +60,10 @@ namespace dmlite {
     /// Get the free space of this pool.
     virtual uint64_t getFreeSpace(void) throw (DmException);
 
-    /// Check if the pool is actually available
+    /// Check if the pool is actually available.
     virtual bool poolIsAvailable(bool write = true) throw (DmException);
     
-    /// Check if a replica is available
+    /// Check if a replica is available.
     virtual bool replicaIsAvailable(const Replica& replica) throw (DmException);
 
     /// Get the actual location of the file replica. This is pool-specific.
@@ -65,8 +72,11 @@ namespace dmlite {
     /// Remove a replica from the pool.
     virtual void removeReplica(const Replica& replica) throw (DmException);
 
-    /// Get where to put a file
+    /// Get where to put a file.
     virtual Location whereToWrite(const std::string& path) throw (DmException);
+
+    /// Cancel a write.
+    virtual void cancelWrite(const std::string& path, const Location& loc) throw (DmException);
   };
 
   /// Interface for a pool driver

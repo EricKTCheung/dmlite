@@ -40,8 +40,9 @@ typedef struct dmlite_chunk {
  * @details There may be duplicated chunks.
  */
 typedef struct dmlite_location {
-  dmlite_chunk* chunks;
-  unsigned      nchunks;
+  dmlite_chunk*    chunks;
+  unsigned         nchunks;
+  dmlite_any_dict* extra;
 } dmlite_location;
 
 /**
@@ -49,7 +50,7 @@ typedef struct dmlite_location {
  * @param context The DM context.
  * @param nPools  The number of pools.
  * @param pools   An array with the pools. <b>Use dmlite_freepools to free</b>.
- * @return        0 on succes, -1 on failure.
+ * @return        0 on success, error code otherwise.
  */
 int dmlite_getpools(dmlite_context* context, unsigned* nPools, dmlite_pool** pools);
 
@@ -58,7 +59,7 @@ int dmlite_getpools(dmlite_context* context, unsigned* nPools, dmlite_pool** poo
  * @param context The DM context.
  * @param nPools  The number of pools in the array.
  * @param pools   The array to free.
- * @return        0 on succes, -1 on failure.
+ * @return        0 on success, error code otherwise.
  */
 int dmlite_pools_free(dmlite_context* context, unsigned nPools, dmlite_pool* pools);
 
@@ -93,6 +94,15 @@ dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replic
  * @return        A pointer to a dmlite_location struct, or NULL on error.
  */
 dmlite_location* dmlite_put(dmlite_context* context, const char* path);
+
+/**
+ * @brief         Aborts a put request.
+ * @param context The DM context.
+ * @param path    The logical file name that was put.
+ * @param loc     As returned by dmlite_put.
+ * @return       0 on success, error code otherwise.
+ */
+int dmlite_put_abort(dmlite_context* context, const char* path, const dmlite_location* loc);
 
 /**
  * @brief         Frees a location struct.

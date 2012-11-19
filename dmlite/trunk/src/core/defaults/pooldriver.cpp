@@ -55,3 +55,4 @@ NOT_IMPLEMENTED_WITHOUT_ID(bool PoolHandler::replicaIsAvailable(const Replica&) 
 NOT_IMPLEMENTED_WITHOUT_ID(Location PoolHandler::whereToRead(const Replica&) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(void PoolHandler::removeReplica(const Replica&) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(Location PoolHandler::whereToWrite(const std::string&) throw (DmException));
+NOT_IMPLEMENTED_WITHOUT_ID(void PoolHandler::cancelWrite(const std::string& path, const Location& loc) throw (DmException));
