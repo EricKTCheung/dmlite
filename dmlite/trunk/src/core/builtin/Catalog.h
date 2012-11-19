@@ -34,6 +34,7 @@ namespace dmlite {
 
     ExtendedStat extendedStat(const std::string& path,
                               bool followSym = true) throw (DmException);
+    ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
     void addReplica   (const Replica& replica) throw (DmException);
     void deleteReplica(const Replica& replica) throw (DmException);
@@ -88,7 +89,7 @@ namespace dmlite {
     struct dirent* readDir (Directory* dir) throw (DmException);
     ExtendedStat*  readDirx(Directory* dir) throw (DmException);
 
-    Replica getReplica(const std::string& rfn)        throw (DmException);
+    Replica getReplicaByRFN(const std::string& rfn)        throw (DmException);
     void    updateReplica(const Replica& replica) throw (DmException);
 
    protected:

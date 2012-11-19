@@ -257,6 +257,14 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
 
 
 
+ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
+{
+  Replica replica = this->si_->getINode()->getReplica(rfn);
+  return this->si_->getINode()->extendedStat(replica.fileid);
+}
+
+
+
 void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
@@ -1063,7 +1071,7 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
 
 
 
-Replica BuiltInCatalog::getReplica(const std::string& rfn) throw (DmException)
+Replica BuiltInCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 {
   Replica      rdata = this->si_->getINode()->getReplica(rfn);
   ExtendedStat meta  = this->si_->getINode()->extendedStat(rdata.fileid);

@@ -68,6 +68,15 @@ int dmlite_statl(dmlite_context* context, const char* path, struct stat* buf);
 int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf);
 
 /**
+ * @brief         Does an extended stat of a logical file using an associated replica filename.
+ * @param context The DM context.
+ * @param rfn     Replica filename.
+ * @param buf     Where to put the retrieved information.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_rstatx(dmlite_context* context, const char* rfn, dmlite_xstat* buf);
+
+/**
  * @brief            Adds a new replica to an entry.
  * @param context    The DM context.
  * @param replica    The replica to add.

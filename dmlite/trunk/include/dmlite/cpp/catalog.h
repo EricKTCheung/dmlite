@@ -46,6 +46,11 @@ namespace dmlite {
     virtual ExtendedStat extendedStat(const std::string& path,
                                       bool followSym = true) throw (DmException);
 
+    /// Do an extended stat of a logical file using an associated replica file name.
+    /// @param rfn The replica.
+    /// @return    The extended status of the file.
+    virtual ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
+
     /// Add a new replica for a file.
     /// @param replica Stores the data that is going to be added. fileid must
     ///                point to the id of the logical file in the catalog.
