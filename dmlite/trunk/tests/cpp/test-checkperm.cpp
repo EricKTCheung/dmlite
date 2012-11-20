@@ -307,7 +307,7 @@ public:
   
   void testAclInheritance()
   {
-    mode_t      newMode;
+    mode_t      newMode = S_IFDIR;
     dmlite::Acl parent("A70,C00,E70,F50,a60,c50,f00");
     dmlite::Acl inherited(parent, 3u, 1u, 0700, &newMode);
     
