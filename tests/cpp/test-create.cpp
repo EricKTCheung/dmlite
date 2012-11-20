@@ -289,6 +289,48 @@ public:
     CPPUNIT_ASSERT_EQUAL((off_t)0, check.stat.st_size);
   }
 
+  void testCreateWithDefaultAcl()
+  {
+    dmlite::ExtendedStat parent = this->catalog->extendedStat(FOLDER);
+
+    // Add defaults
+    dmlite::AclEntry usrDefault;
+    dmlite::AclEntry grpDefault;
+    dmlite::AclEntry othDefault;
+
+    usrDefault.type = dmlite::AclEntry::kDefault | dmlite::AclEntry::kUserObj;
+    usrDefault.perm = 07;
+    usrDefault.id   = 0;
+
+    grpDefault.type = dmlite::AclEntry::kDefault | dmlite::AclEntry::kGroupObj;
+    grpDefault.perm = 05;
+    grpDefault.id   = 0;
+
+    othDefault.type = dmlite::AclEntry::kDefault | dmlite::AclEntry::kOther;
+    othDefault.perm = 00;
+    othDefault.id   = 0;
+
+    parent.acl.push_back(usrDefault);
+    parent.acl.push_back(grpDefault);
+    parent.acl.push_back(othDefault);
+
+    this->catalog->setAcl(FOLDER, parent.acl);
+
+    // Create
+    this->catalog->create(FILE, MODE);
+
+    // Must NOT have defaults
+    dmlite::ExtendedStat child = this->catalog->extendedStat(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(-1, child.acl.has(dmlite::AclEntry::kDefault | dmlite::AclEntry::kUserObj));
+
+    // But nested directory must
+    this->catalog->makeDir(NESTED, MODE);
+    child = this->catalog->extendedStat(NESTED);
+
+    CPPUNIT_ASSERT(child.acl.has(dmlite::AclEntry::kDefault | dmlite::AclEntry::kUserObj) > -1);
+  }
+
   CPPUNIT_TEST_SUITE(TestCreate);
   CPPUNIT_TEST(testRegular);
   CPPUNIT_TEST(testSetGid);
@@ -299,6 +341,7 @@ public:
   CPPUNIT_TEST(testPermissionDenied);
   CPPUNIT_TEST(testSetSize);
   CPPUNIT_TEST(testICreate);
+  CPPUNIT_TEST(testCreateWithDefaultAcl);
   CPPUNIT_TEST_SUITE_END();
 };
 

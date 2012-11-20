@@ -123,7 +123,9 @@ Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) t
         }
 
         this->push_back(entry);
-        this->push_back(*i); // Need to copy defaults
+        // Need to copy defaults for directories
+        if (S_ISDIR(*fmode))
+          this->push_back(*i);
       }
     }
   }
