@@ -101,7 +101,7 @@ void PluginManager::loadPlugin(const std::string& lib, const std::string& id) th
   void         *dl;
   PluginIdCard *idCard;
 
-  dl = dlopen(lib.c_str(), RTLD_NOW | RTLD_GLOBAL);
+  dl = dlopen(lib.c_str(), RTLD_NOW);
   if (dl == NULL)
     throw DmException(DMLITE_CFGERR(ENOENT), std::string(dlerror()));
   this->dlHandles_.push_back(dl);
