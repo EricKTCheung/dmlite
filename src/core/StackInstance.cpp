@@ -23,7 +23,7 @@ var = factory?factory->creator(pm):NULL;
 
 
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
-    pluginManager_(pm), secCtx_(0)
+    pluginManager_(pm)
 {
   // Instantiate each interface
   INSTANTIATE(this->authn_,       pm, pm->getAuthnFactory(),       createAuthn);
@@ -32,6 +32,15 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   INSTANTIATE(this->poolManager_, pm, pm->getPoolManagerFactory(), createPoolManager);
   INSTANTIATE(this->ioDriver_,    pm, pm->getIOFactory(),          createIODriver);
   
+  // Initiate default security context
+  try {
+    this->secCtx_ = this->authn_->createSecurityContext();
+  }
+  catch (DmException& e) {
+    // It may happen that not all plugins provide a default security
+    // environment, but we should not fail here because of this.
+    this->secCtx_ = 0x00;
+  }
   
   // Everything is up, so pass this to the stacks
   // Do it here since they may need other stacks to be already up

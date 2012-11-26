@@ -97,6 +97,10 @@ namespace dmlite {
     /// @return     A newly created SecurityContext.
     virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
 
+    /// Create a default security context.
+    /// @return     A newly created SecurityContext.
+    virtual SecurityContext* createSecurityContext(void) throw (DmException);
+
     /// Create a new group.
     /// @param groupName The group name.
     /// @return          The new group.
