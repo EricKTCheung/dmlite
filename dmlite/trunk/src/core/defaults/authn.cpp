@@ -31,6 +31,7 @@ Authn::~Authn()
 
 
 NOT_IMPLEMENTED(SecurityContext* Authn::createSecurityContext(const SecurityCredentials&) throw (DmException));
+NOT_IMPLEMENTED(SecurityContext* Authn::createSecurityContext(void) throw (DmException))
 NOT_IMPLEMENTED(GroupInfo Authn::newGroup(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(GroupInfo Authn::getGroup(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(GroupInfo Authn::getGroup(const std::string&, const boost::any&) throw (DmException));
