@@ -33,10 +33,17 @@ void export_authn()
         .def_readwrite("groups", &SecurityContext::groups)
         ;
 
+    SecurityContext* (Authn::*secCtxDefault)(void) throw (DmException);
+    SecurityContext* (Authn::*secCtxFromCreds)(void) throw (DmException);
+
+    secCtxDefault   = &Authn::createSecurityContext;
+    secCtxFromCreds = &Authn::createSecurityContext;
+
     class_<AuthnWrapper, boost::noncopyable>("Authn", no_init)
         .def("getImplId", pure_virtual(&Authn::getImplId))
 
-        .def("createSecurityContext", pure_virtual(&Authn::createSecurityContext), return_internal_reference<>())
+        .def("createSecurityContext", secCtxDefault, return_internal_reference<>())
+        .def("createSecurityContext", secCtxFromCreds, return_internal_reference<>())
 
         .def("newGroup", pure_virtual(&Authn::newGroup))
         .def("getGroup", pure_virtual( static_cast< GroupInfo(Authn::*)(const std::string&) >  (&Authn::getGroup) ))
