@@ -22,6 +22,19 @@ var = factory?factory->creator(pm):NULL;
       "setSecurityContext or setSecurityCredentials must be called before accessing the instances");
 
 
+void StackInstance::setSecurityContextImpl_(void)
+{
+  if (this->inode_ != 0)
+    this->inode_->setSecurityContext(this->secCtx_);
+  if (this->catalog_ != 0)
+    this->catalog_->setSecurityContext(this->secCtx_);
+  if (this->poolManager_ != 0)
+    this->poolManager_->setSecurityContext(this->secCtx_);
+  if (this->ioDriver_ != 0)
+    this->ioDriver_->setSecurityContext(this->secCtx_);
+}
+
+
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm)
 {
@@ -49,6 +62,9 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   if (this->catalog_)     this->catalog_->setStackInstance(this);
   if (this->poolManager_) this->poolManager_->setStackInstance(this);
   if (this->ioDriver_)    this->ioDriver_->setStackInstance(this);
+
+  // Set the context, if was created
+  if (this->secCtx_) setSecurityContextImpl_();
 }
 
 
@@ -215,14 +231,7 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
   }
   this->secCtx_ = this->authn_->createSecurityContext(cred);
   
-  if (this->inode_ != 0)
-    this->inode_->setSecurityContext(this->secCtx_);
-  if (this->catalog_ != 0)
-    this->catalog_->setSecurityContext(this->secCtx_);
-  if (this->poolManager_ != 0)
-    this->poolManager_->setSecurityContext(this->secCtx_);
-  if (this->ioDriver_ != 0)
-    this->ioDriver_->setSecurityContext(this->secCtx_);
+  setSecurityContextImpl_();
 }
 
 
@@ -232,14 +241,7 @@ void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmExce
   if (this->secCtx_) delete this->secCtx_;
   this->secCtx_ = new SecurityContext(ctx);
   
-  if (this->inode_ != 0)
-    this->inode_->setSecurityContext(this->secCtx_);
-  if (this->catalog_ != 0)
-    this->catalog_->setSecurityContext(this->secCtx_);
-  if (this->poolManager_ != 0)
-    this->poolManager_->setSecurityContext(this->secCtx_);
-  if (this->ioDriver_ != 0)
-    this->ioDriver_->setSecurityContext(this->secCtx_);
+  setSecurityContextImpl_();
 }
 
 
