@@ -228,6 +228,8 @@ namespace dmlite {
     std::map<std::string, PoolDriver*> poolDrivers_;
 
     std::map<std::string, boost::any> stackMsg_;
+
+    void setSecurityContextImpl_(void);
   };
 
   /// Joint between plugins and plugin-manager
