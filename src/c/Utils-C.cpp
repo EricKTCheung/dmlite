@@ -14,7 +14,7 @@ void dmlite_parse_url(const char* source, dmlite_url* dest)
   
   std::strncpy(dest->domain, url.domain.c_str(), sizeof(dest->domain));
   std::strncpy(dest->path,   url.path.c_str(),   sizeof(dest->path));
-  std::strncpy(dest->query,  url.query.c_str(),  sizeof(dest->query));
+  std::strncpy(dest->query,  url.queryToString().c_str(), sizeof(dest->query));
   std::strncpy(dest->scheme, url.scheme.c_str(), sizeof(dest->scheme));
   dest->port = url.port;
 }

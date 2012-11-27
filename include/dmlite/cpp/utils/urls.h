@@ -10,11 +10,25 @@
 namespace dmlite {
   
   struct Url {
+    struct QueryField {
+      std::string field;
+      std::string value;
+
+      explicit QueryField(const std::string& field);
+      QueryField(const std::string& field, const std::string& value);
+      QueryField(const QueryField&);
+
+      bool operator == (const QueryField& b) const;
+      bool operator != (const QueryField& b) const;
+      bool operator <  (const QueryField& b) const;
+      bool operator >  (const QueryField& b) const;
+    };
+
     std::string scheme;
     std::string domain;
     unsigned    port;
     std::string path;
-    std::string query;
+    std::vector<QueryField> query;
     
     explicit Url(const std::string& url) throw ();
     
@@ -24,6 +38,10 @@ namespace dmlite {
     bool operator <  (const Url&) const;
     bool operator >  (const Url&) const;
     
+    // To string
+    std::string queryToString(void) const;
+    std::string toString(void) const;
+
     /// Split a path into a list of components.
     /// @param path The path to split.
     /// @return     A list with the extracted components.
