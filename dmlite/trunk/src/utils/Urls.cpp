@@ -2,17 +2,66 @@
 /// @brief  Common methods and functions for URI's.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/cpp/utils/urls.h>
+#include <sstream>
 
 using namespace dmlite;
 
 
 
+Url::QueryField::QueryField(const std::string& field): field(field), value()
+{
+}
+
+
+
+Url::QueryField::QueryField(const std::string& field, const std::string& value):
+    field(field), value(value)
+{
+}
+
+
+
+Url::QueryField::QueryField(const QueryField& qf): field(qf.field), value(qf.value)
+{
+}
+
+
+
+bool Url::QueryField::operator == (const QueryField& b) const
+{
+  return this->field == b.field && this->value == b.value;
+}
+
+
+
+bool Url::QueryField::operator != (const QueryField& b) const
+{
+  return !(*this == b);
+}
+
+
+
+bool Url::QueryField::operator < (const QueryField& b) const
+{
+  return (this->field < b.field) || (this->field == b.field && this->value < b.value);
+}
+
+
+
+bool Url::QueryField::operator > (const QueryField& b) const
+{
+  return b < *this;
+}
+
+
+
 Url::Url(const std::string& url) throw (): port(0) 
 {
-  boost::regex regexp("(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?([^?]*)?(.*)",
+  boost::regex regexp("(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(:)?([^?]*)?(.*)",
                       boost::regex::extended | boost::regex::icase);
   boost::smatch what;
   
@@ -24,10 +73,25 @@ Url::Url(const std::string& url) throw (): port(0)
     if (portStr.length() > 1)
       this->port = std::atol(portStr.c_str() + 1);
     
-    this->path   = what[6];
-    this->query  = what[7];
-    if (!this->query.empty())
-      this->query = this->query.substr(1);
+    this->path   = what[7];
+
+    std::string queryStr = what[8];
+    if (!queryStr.empty())
+      queryStr = queryStr.substr(1);
+
+    typedef boost::split_iterator<std::string::iterator> string_split_iterator;
+
+    for(string_split_iterator i = boost::algorithm::make_split_iterator(queryStr, boost::algorithm::first_finder("&", boost::algorithm::is_iequal()));
+       i != string_split_iterator(); ++i) {
+      std::vector<std::string> pair;
+      boost::algorithm::split(pair, *i, boost::algorithm::is_any_of("="));
+
+      if (pair.size() == 1)
+        this->query.push_back(QueryField(pair[0]));
+      else
+        this->query.push_back(QueryField(pair[0], pair[1]));
+    }
+
   }
 }
 
@@ -57,33 +121,27 @@ bool Url::operator <  (const Url& u) const
     return true;
   else if (this->scheme > u.scheme)
     return false;
-  else {
-    if (this->domain < u.domain)
-      return true;
-    else if (this->domain > u.domain)
-      return false;
-    else {
-      if (this->port < u.port)
-        return true;
-      else if (this->port > u.port)
-        return false;
-      else {
-        if (this->path < u.path)
-          return true;
-        else if (this->path > u.path)
-          return false;
-        else {
-          if (this->query < u.query)
-            return true;
-          else if (this->query > u.query)
-            return false;
-          else {
-            return this->scheme < u.scheme;
-          }
-        }
-      }
-    }
-  }
+
+  if (this->domain < u.domain)
+    return true;
+  if (this->domain > u.domain)
+    return false;
+
+  if (this->port < u.port)
+    return true;
+  else if (this->port > u.port)
+    return false;
+
+  if (this->path < u.path)
+    return true;
+  else if (this->path > u.path)
+    return false;
+
+  if (this->query < u.query)
+    return true;
+
+
+  return false;
 }
 
 
@@ -91,6 +149,47 @@ bool Url::operator <  (const Url& u) const
 bool Url::operator >  (const Url& u) const
 {
   return (*this < u);
+}
+
+
+
+std::string Url::queryToString(void) const
+{
+  std::vector<QueryField>::const_iterator i;
+  std::ostringstream queryStr;
+
+  for (i = this->query.begin(); i != this->query.end(); ++i) {
+    queryStr << i->field;
+    if (!i->value.empty())
+      queryStr << "=" << i->value;
+    queryStr << "&";
+  }
+
+  std::string str = queryStr.str();
+  return str.substr(0, str.size() - 1);
+}
+
+
+
+std::string Url::toString(void) const
+{
+  std::ostringstream str;
+  if (!scheme.empty())
+    str << scheme << "://";
+  if (!domain.empty())
+    str << domain;
+  if (port > 0)
+    str << ":" << port;
+  if (scheme.empty() && !domain.empty())
+    str << ":";
+  str << path;
+
+  if (this->query.size() > 0) {
+    str << "?";
+    str << queryToString();
+  }
+
+  return str.str();
 }
 
 

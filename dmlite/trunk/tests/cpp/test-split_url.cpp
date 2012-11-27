@@ -7,7 +7,7 @@
 
 inline int Validate(const char* uri,
                     const char* scheme, const char* host, unsigned port,
-                    const char* path, const char* query = NULL)
+                    const char* path, const char* query = NULL, const char* reverse = NULL)
 {
   dmlite::Url parsed(uri);
   bool        failed = false;
@@ -40,10 +40,17 @@ inline int Validate(const char* uri,
               << "', got '" << parsed.path << "'";
     failed = true;
   }
-  if (query != NULL && parsed.query != query) {
+  if (query != NULL && parsed.queryToString().compare(query) != 0) {
     std::cout << std::endl
               << "\tExpected query '" << query
-              << "', got '" << parsed.query << "'";
+              << "', got '" << parsed.queryToString() << "'";
+    failed = true;
+  }
+
+  if (parsed.toString().compare(reverse?reverse:uri) != 0) {
+    std::cout << std::endl
+              << "\tExpected full URL '" << (reverse?reverse:uri)
+              << "', got '" << parsed.toString() << "'";
     failed = true;
   }
 
@@ -64,10 +71,11 @@ int main(int argc, char **argv)
   r += Validate("https://something.else.com:443/mypath?query",
                 "https", "something.else.com", 443, "/mypath", "query");
   r += Validate("http://something.else.com:/mypath",
-                "http", "something.else.com", 0, "/mypath");
+                "http", "something.else.com", 0, "/mypath", NULL,
+                "http://something.else.com/mypath");
   r += Validate("/path",
                 "", "", 0, "/path");
-  r += Validate("host:85/path",
+  r += Validate("host:85:/path",
                 "", "host", 85, "/path");
   r += Validate("host:/path",
                 "", "host", 0, "/path");
@@ -78,5 +86,12 @@ int main(int argc, char **argv)
   r += Validate("host-with-hyphen.cern.ch:/scratch/file",
                 "", "host-with-hyphen.cern.ch", 0, "/scratch/file");
   r += Validate("http://a.host.com/replica", "http", "a.host.com", 0, "/replica", "");
+
+  r += Validate("https://host.com/file?field=55&flag",
+                "https", "host.com", 0, "/file", "field=55&flag");
+
+  r += Validate("https://host.com/file?a=1&b&c=89",
+                  "https", "host.com", 0, "/file", "a=1&b&c=89");
+
   return r;
 }
