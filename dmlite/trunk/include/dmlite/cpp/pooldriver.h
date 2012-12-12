@@ -8,7 +8,7 @@
 #include "base.h"
 #include "exceptions.h"
 #include "inode.h"
-#include "utils/extensible.h"
+#include "utils/urls.h"
 
 #include <map>
 #include <vector>
@@ -20,11 +20,10 @@ namespace dmlite {
   class StackInstance;
   
   /// Represents a chunk of a file.
-  struct Chunk: public Extensible {
-    std::string host;
-    std::string path;
-    off_t       offset;
-    size_t      size;
+  struct Chunk {
+    off_t    offset;
+    size_t   size;
+    Url      url;
 
     bool operator == (const Chunk&) const;
     bool operator != (const Chunk&) const;

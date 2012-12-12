@@ -6,30 +6,18 @@
 
 #include <string>
 #include <vector>
+#include "extensible.h"
 
 namespace dmlite {
   
   struct Url {
-    struct QueryField {
-      std::string field;
-      std::string value;
-
-      explicit QueryField(const std::string& field);
-      QueryField(const std::string& field, const std::string& value);
-      QueryField(const QueryField&);
-
-      bool operator == (const QueryField& b) const;
-      bool operator != (const QueryField& b) const;
-      bool operator <  (const QueryField& b) const;
-      bool operator >  (const QueryField& b) const;
-    };
-
     std::string scheme;
     std::string domain;
     unsigned    port;
     std::string path;
-    std::vector<QueryField> query;
+    Extensible  query;
     
+    Url() throw();
     explicit Url(const std::string& url) throw ();
     
     // Operators
@@ -38,8 +26,10 @@ namespace dmlite {
     bool operator <  (const Url&) const;
     bool operator >  (const Url&) const;
     
-    // To string
     std::string queryToString(void) const;
+    void        queryFromString(const std::string& str);
+
+
     std::string toString(void) const;
 
     /// Split a path into a list of components.

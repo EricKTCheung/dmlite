@@ -317,18 +317,18 @@ Location MockPoolManager::whereToRead(const std::string& path) throw (DmExceptio
   Location loc;
   Chunk    chunk;
   
-  chunk.host   = "host1.cern.ch";
-  chunk.path   = "/storage/chunk01";
+  chunk.url.domain = "host1.cern.ch";
+  chunk.url.path   = "/storage/chunk01";
   chunk.offset = 0;
   chunk.size   = 100;
   
   loc.push_back(chunk);
   
-  chunk.host   = "host2.cern.ch";
-  chunk.path   = "/storage/chunk02";
+  chunk.url.domain = "host2.cern.ch";
+  chunk.url.path   = "/storage/chunk02";
+  chunk.url.query["token"] = std::string("123456789");
   chunk.offset = 101;
   chunk.size   =  50;
-  chunk["token"] = std::string("123456789");
   
   loc.push_back(chunk);
   
@@ -348,12 +348,12 @@ Location MockPoolManager::whereToWrite(const std::string& path) throw (DmExcepti
 {
   Chunk chunk;
   
-  chunk.host = "host1.cern.ch";
-  chunk.path   = "/storage/chunk01";
+  chunk.url.domain = "host1.cern.ch";
+  chunk.url.path   = "/storage/chunk01";
   chunk.offset = 0;
   chunk.size   = 0;
   
-  chunk["token"] = std::string("987654321");
+  chunk.url.query["token"] = std::string("987654321");
   
   return Location(1, chunk);
 }

@@ -233,13 +233,9 @@ bool Chunk::operator != (const Chunk& c) const
 
 bool Chunk::operator <  (const Chunk& c) const
 {
-  if (this->host < c.host)
+  if (this->url < c.url)
     return true;
-  else if (this->host > c.host)
-    return false;
-  else if (this->path < c.path)
-    return true;
-  else if (this->path > c.path)
+  else if (this->url > c.url)
     return false;
   else if (this->offset < c.offset)
     return true;

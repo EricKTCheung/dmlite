@@ -27,13 +27,9 @@ typedef struct dmlite_pool {
 
 /** @brief Chunk of data */
 typedef struct dmlite_chunk {
-  char host[HOST_NAME_MAX];
-  char path[PATH_MAX];
-  
-  off_t  offset;
-  size_t size;
-  
-  dmlite_any_dict* extra;
+  off_t     offset;
+  size_t    size;
+  dmlite_url url;
 } dmlite_chunk;
 
 /** @brief Collection of chunks that form a replica
