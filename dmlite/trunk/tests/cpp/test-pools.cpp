@@ -57,7 +57,7 @@ public:
       if (poolManager) {
         try {
           pool.name = "test_hadoop";
-          pool.type = "hadoop";
+          pool.type = "hdfs";
           poolManager->deletePool(pool);
         }
         catch (dmlite::DmException& e) {
@@ -116,7 +116,7 @@ public:
     
     // Add it
     pool.name = "test_hadoop";
-    pool.type = "hadoop";
+    pool.type = "hdfs";
     pool["hostname"] = std::string("namenode.cern.ch");
     pool["port"]     = 8020;
     pool["username"] = std::string("test");
@@ -131,7 +131,7 @@ public:
     pool = poolManager->getPool("test_hadoop");
     
     CPPUNIT_ASSERT_EQUAL(std::string("test_hadoop"),      pool.name);
-    CPPUNIT_ASSERT_EQUAL(std::string("hadoop"),           pool.type);
+    CPPUNIT_ASSERT_EQUAL(std::string("hdfs"),             pool.type);
     CPPUNIT_ASSERT_EQUAL(std::string("namenode.cern.ch"), pool.getString("hostname"));
     CPPUNIT_ASSERT_EQUAL(8020ul,                          pool.getUnsigned("port"));
     CPPUNIT_ASSERT_EQUAL(std::string("test"),             pool.getString("username"));
@@ -155,7 +155,7 @@ public:
     // Add it
     dmlite::Pool pool;
     pool.name = "test_hadoop";
-    pool.type = "hadoop";
+    pool.type = "hdfs";
     pool["hostname"] = std::string("namenode.cern.ch");
     pool["port"]     = 8020;
     pool["username"] = std::string("test");
