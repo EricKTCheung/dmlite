@@ -17,6 +17,7 @@
 #include "pooldriver.h"
 #include "poolmanager.h"
 #include "utils/urls.h"
+#include "utils/security.h"
 
 using namespace dmlite;
 using namespace boost::python;
