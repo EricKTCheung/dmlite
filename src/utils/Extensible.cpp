@@ -7,6 +7,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <ctype.h>
 #include <dmlite/cpp/utils/extensible.h>
+#include <iterator>
 #include <sstream>
 
 using namespace dmlite;
@@ -337,7 +338,8 @@ void Extensible::clear()
 
 void Extensible::copy(const Extensible& s)
 {
-  std::copy(s.dictionary_.begin(), s.dictionary_.end(), this->dictionary_.end());
+  std::copy(s.dictionary_.begin(), s.dictionary_.end(),
+            std::back_inserter(this->dictionary_));
 }
 
 
