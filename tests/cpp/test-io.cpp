@@ -26,6 +26,11 @@ private:
 public:
   static const char* config;
 
+  TestIO(): CppUnit::TestFixture(), manager(NULL), io(NULL), si(NULL)
+  {
+    // Nothing
+  }
+
   void setUp()
   {
     manager = new dmlite::PluginManager();
@@ -119,7 +124,7 @@ public:
       os->write(ostring, strlen(ostring));
       delete os;
 
-      char buffer[512];
+      char buffer[512] = {0};
       dmlite::IOHandler* is = io->createIOHandler("/tmp/test-insecure",
                                                   O_RDONLY | dmlite::IODriver::kInsecure,
                                                   dmlite::Extensible());
