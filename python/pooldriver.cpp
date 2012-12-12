@@ -10,9 +10,8 @@
 
 void export_pooldriver()
 {
-    class_<Chunk, bases< Extensible > >("Chunk", init<>())
-        .def_readwrite("host", &Chunk::host)
-        .def_readwrite("path", &Chunk::path)
+    class_<Chunk>("Chunk", init<>())
+        .def_readwrite("url", &Chunk::url)
         .def_readwrite("offset", &Chunk::offset)
         .def_readwrite("size", &Chunk::size)
         ;

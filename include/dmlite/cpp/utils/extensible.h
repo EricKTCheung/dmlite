@@ -18,7 +18,8 @@ namespace dmlite {
   /// Helpful typedef for KeyValue containers
   struct Extensible {
    private:
-     typedef std::map<std::string, boost::any> DictType_;
+     typedef std::pair<std::string, boost::any> EntryType_;
+     typedef std::vector<EntryType_> DictType_;
      DictType_ dictionary_;
      
      void populate(const boost::property_tree::ptree& root);
@@ -95,6 +96,12 @@ namespace dmlite {
      /// Gets an array.
      std::vector<boost::any> getVector(const std::string& key,
                                        const std::vector<boost::any>& defaultValue = std::vector<boost::any>()) const throw (DmException);
+
+     /// Iterators
+     typedef DictType_::const_iterator const_iterator;
+
+     const_iterator begin() const { return dictionary_.begin(); }
+     const_iterator end()   const { return dictionary_.end(); }
   };
 
 };

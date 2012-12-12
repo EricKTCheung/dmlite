@@ -12,49 +12,8 @@ using namespace dmlite;
 
 
 
-Url::QueryField::QueryField(const std::string& field): field(field), value()
+Url::Url() throw (): port(0)
 {
-}
-
-
-
-Url::QueryField::QueryField(const std::string& field, const std::string& value):
-    field(field), value(value)
-{
-}
-
-
-
-Url::QueryField::QueryField(const QueryField& qf): field(qf.field), value(qf.value)
-{
-}
-
-
-
-bool Url::QueryField::operator == (const QueryField& b) const
-{
-  return this->field == b.field && this->value == b.value;
-}
-
-
-
-bool Url::QueryField::operator != (const QueryField& b) const
-{
-  return !(*this == b);
-}
-
-
-
-bool Url::QueryField::operator < (const QueryField& b) const
-{
-  return (this->field < b.field) || (this->field == b.field && this->value < b.value);
-}
-
-
-
-bool Url::QueryField::operator > (const QueryField& b) const
-{
-  return b < *this;
 }
 
 
@@ -75,23 +34,7 @@ Url::Url(const std::string& url) throw (): port(0)
     
     this->path   = what[7];
 
-    std::string queryStr = what[8];
-    if (!queryStr.empty())
-      queryStr = queryStr.substr(1);
-
-    typedef boost::split_iterator<std::string::iterator> string_split_iterator;
-
-    for(string_split_iterator i = boost::algorithm::make_split_iterator(queryStr, boost::algorithm::first_finder("&", boost::algorithm::is_iequal()));
-       i != string_split_iterator(); ++i) {
-      std::vector<std::string> pair;
-      boost::algorithm::split(pair, *i, boost::algorithm::is_any_of("="));
-
-      if (pair.size() == 1)
-        this->query.push_back(QueryField(pair[0]));
-      else
-        this->query.push_back(QueryField(pair[0], pair[1]));
-    }
-
+    this->queryFromString(what[8]);
   }
 }
 
@@ -155,18 +98,45 @@ bool Url::operator >  (const Url& u) const
 
 std::string Url::queryToString(void) const
 {
-  std::vector<QueryField>::const_iterator i;
+  Extensible::const_iterator i;
   std::ostringstream queryStr;
 
-  for (i = this->query.begin(); i != this->query.end(); ++i) {
-    queryStr << i->field;
-    if (!i->value.empty())
-      queryStr << "=" << i->value;
+  for (i = query.begin(); i != query.end(); ++i) {
+    queryStr << i->first;
+    if (i->second.type() != typeid(bool) || Extensible::anyToBoolean(i->second) == false)
+      queryStr << "=" << Extensible::anyToString(i->second);
     queryStr << "&";
   }
 
   std::string str = queryStr.str();
   return str.substr(0, str.size() - 1);
+}
+
+
+
+void Url::queryFromString(const std::string& str)
+{
+  if (str.empty())
+    return;
+
+  std::string queryStr;
+  if (str[0] == '?')
+    queryStr = str.substr(1);
+  else
+    queryStr = str;
+
+  typedef boost::split_iterator<std::string::iterator> string_split_iterator;
+
+  for(string_split_iterator i = boost::algorithm::make_split_iterator(queryStr, boost::algorithm::first_finder("&", boost::algorithm::is_iequal()));
+     i != string_split_iterator(); ++i) {
+    std::vector<std::string> pair;
+    boost::algorithm::split(pair, *i, boost::algorithm::is_any_of("="));
+
+    if (pair.size() == 1)
+      this->query[pair[0]] = true;
+    else
+      this->query[pair[0]] = pair[1];
+  }
 }
 
 

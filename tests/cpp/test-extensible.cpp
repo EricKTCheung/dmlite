@@ -73,12 +73,12 @@ class TestExtensible: public CppUnit::TestFixture {
       ext["bool"]     = true;
       
       std::string expected("{\
-\"bool\": true,\
-\"c-string\": \"old-style\",\
-\"float\": 5.2,\
-\"int\": 42,\
 \"string\": \"careful-with-\\\\scape\\\"seque\\/nces\\u0004\",\
-\"unsigned\": 7\
+\"c-string\": \"old-style\",\
+\"int\": 42,\
+\"unsigned\": 7,\
+\"float\": 5.2,\
+\"bool\": true\
 }");
       
       std::string got = ext.serialize();
@@ -129,11 +129,11 @@ class TestExtensible: public CppUnit::TestFixture {
       
       // Try serialization
       std::string expected("{\
+\"string\": \"something\",\
 \"nested\": {\
     \"int\": 0,\
     \"string\": \"else\"\
-  },\
-\"string\": \"something\"\
+  }\
 }");
       std::string got = ext.serialize();
       

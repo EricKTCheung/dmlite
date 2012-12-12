@@ -17,13 +17,20 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
     for (unsigned i = 0; i < locp->nchunks; ++i) {
       locp->chunks[i].offset = loc[i].offset;
       locp->chunks[i].size   = loc[i].size;
-      strncpy(locp->chunks[i].host, loc[i].host.c_str(),
-              sizeof(locp->chunks[i].host));
-      strncpy(locp->chunks[i].path, loc[i].path.c_str(),
-              sizeof(locp->chunks[i].path));
+
+      strncpy(locp->chunks[i].url.scheme, loc[i].url.scheme.c_str(),
+              sizeof(locp->chunks[i].url.scheme));
+
+      strncpy(locp->chunks[i].url.domain, loc[i].url.domain.c_str(),
+              sizeof(locp->chunks[i].url.domain));
+
+      locp->chunks[i].url.port = loc[i].url.port;
+
+      strncpy(locp->chunks[i].url.path, loc[i].url.path.c_str(),
+              sizeof(locp->chunks[i].url.path));
       
-      locp->chunks[i].extra = new dmlite_any_dict();
-      locp->chunks[i].extra->extensible.copy(loc[i]);
+      strncpy(locp->chunks[i].url.query, loc[i].url.queryToString().c_str(),
+              sizeof(locp->chunks[i].url.query));
     }
   }
   else {
@@ -46,12 +53,14 @@ static void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
 
   for (int i = 0; i < locp->nchunks; ++i) {
     dmlite::Chunk chunk;
-    chunk.host   = locp->chunks[i].host;
+    chunk.url.scheme = locp->chunks[i].url.scheme;
+    chunk.url.domain = locp->chunks[i].url.domain;
+    chunk.url.port   = locp->chunks[i].url.port;
+    chunk.url.path   = locp->chunks[i].url.path;
+    chunk.url.queryFromString(locp->chunks[i].url.query);
+
     chunk.offset = locp->chunks[i].offset;
-    chunk.path   = locp->chunks[i].path;
     chunk.size   = locp->chunks[i].size;
-    if (locp->chunks[i].extra)
-      chunk.copy(locp->chunks[i].extra->extensible);
   }
 }
 
@@ -96,8 +105,6 @@ int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* poo
 int dmlite_location_free(dmlite_context* context, dmlite_location* loc)
 {
   if (loc) {
-    for (unsigned i = 0; i < loc->nchunks; ++i)
-      delete loc->chunks[i].extra;
     delete [] loc->chunks;
     delete    loc;
   }

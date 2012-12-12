@@ -58,12 +58,14 @@ public:
     // Put the file first
     dmlite::Location loc = poolManager->whereToWrite(PATH);
 
-    dmlite::IOHandler* fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    dmlite::IOHandler* fd = stackInstance->getIODriver()
+                               ->createIOHandler(loc[0].url.path, O_WRONLY | O_CREAT,
+                                                 loc[0].url.query);
     fd->write("abc", 3);
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+    stackInstance->getIODriver()->doneWriting(loc[0].url.path, loc[0].url.query);
 
     // Change the mode
     catalog->setAcl(PATH, ACL);
@@ -73,12 +75,13 @@ public:
     stackInstance->set("overwrite", true);
     loc = poolManager->whereToWrite(PATH);
 
-    fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    fd = stackInstance->getIODriver()->createIOHandler(loc[0].url.path, O_WRONLY | O_CREAT,
+                                                       loc[0].url.query);
     fd->write("abc", 3);
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+    stackInstance->getIODriver()->doneWriting(loc[0].url.path, loc[0].url.query);
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
@@ -94,12 +97,15 @@ public:
     // Put the file first
     dmlite::Location loc = poolManager->whereToWrite(PATH);
 
-    dmlite::IOHandler* fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    dmlite::IOHandler* fd = stackInstance->getIODriver()
+                              ->createIOHandler(loc[0].url.path, O_WRONLY | O_CREAT,
+                                                loc[0].url.query);
     fd->write("abc", 3);
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+    stackInstance->getIODriver()->doneWriting(loc[0].url.path,
+                                              loc[0].url.query);
 
     // Change the mode
     catalog->setMode(PATH, 0700);
@@ -108,12 +114,14 @@ public:
     stackInstance->set("overwrite", true);
     loc = poolManager->whereToWrite(PATH);
 
-    fd = stackInstance->getIODriver()->createIOHandler(loc[0].path, O_WRONLY | O_CREAT, loc[0]);
+    fd = stackInstance->getIODriver()->createIOHandler(loc[0].url.path, O_WRONLY | O_CREAT,
+                                                       loc[0].url.query);
     fd->write("abc", 3);
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].path, loc[0]);
+    stackInstance->getIODriver()->doneWriting(loc[0].url.path,
+                                              loc[0].url.query);
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);

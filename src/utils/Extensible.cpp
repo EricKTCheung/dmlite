@@ -254,7 +254,11 @@ std::string Extensible::anyToString(const boost::any& value)
 
 bool Extensible::hasField(const std::string& key) const
 {
-  return (dictionary_.find(key) != dictionary_.end());
+  for (DictType_::const_iterator i = dictionary_.begin();
+       i != dictionary_.end(); ++i) {
+    if (i->first == key) return true;
+  }
+  return false;
 }
 
 
@@ -262,19 +266,29 @@ bool Extensible::hasField(const std::string& key) const
 const boost::any& Extensible::operator [] (const std::string& key) const throw (DmException)
 {
   DictType_::const_iterator i;
-  i = dictionary_.find(key);
-  if (i != dictionary_.end())
-    return (*i).second;
-  else
-    throw DmException(DMLITE_SYSERR(EINVAL),
-                      "Key " + key + " not found");
+  for (i = dictionary_.begin(); i != dictionary_.end(); ++i) {
+    if (i->first == key) {
+      return i->second;
+    }
+  }
+  throw DmException(DMLITE_SYSERR(EINVAL),
+                    "Key '" + key + "' not found");
 }
 
 
 
 boost::any& Extensible::operator [] (const std::string& key)
 {
-  return dictionary_[key];
+  DictType_::iterator i;
+  for (i = dictionary_.begin(); i != dictionary_.end(); ++i) {
+    if (i->first == key) {
+      return i->second;
+    }
+  }
+
+  boost::any any;
+  dictionary_.push_back(std::make_pair(key, any));
+  return dictionary_.back().second;
 }
 
 
@@ -323,14 +337,20 @@ void Extensible::clear()
 
 void Extensible::copy(const Extensible& s)
 {
-  dictionary_.insert(s.dictionary_.begin(), s.dictionary_.end());
+  std::copy(s.dictionary_.begin(), s.dictionary_.end(), this->dictionary_.end());
 }
 
 
 
 void Extensible::erase(const std::string& s)
 {
-  dictionary_.erase(s);
+  DictType_::iterator i;
+  for (i = dictionary_.begin(); i != dictionary_.end(); ++i) {
+    if (i->first == s) {
+      dictionary_.erase(i);
+      return;
+    }
+  }
 }
 
 
@@ -379,12 +399,12 @@ void Extensible::populate(const boost::property_tree::ptree& root)
     if (i->first.empty())
       auxV.push_back(v);
     else
-      this->dictionary_.insert(std::make_pair(i->first, v));
+      this->dictionary_.push_back(std::make_pair(i->first, v));
   }
   
   // If auxV is not empty, push it with no key
   if (!auxV.empty())
-    this->dictionary_.insert(std::make_pair("", auxV));
+    this->dictionary_.push_back(std::make_pair("", auxV));
 }
 
 
