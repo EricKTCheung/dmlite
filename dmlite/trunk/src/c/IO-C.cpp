@@ -186,7 +186,7 @@ int dmlite_ferrno(dmlite_fd* fd)
 
 
 
-const char* dmlite_ferrror(dmlite_fd* fd)
+const char* dmlite_ferror(dmlite_fd* fd)
 {
   if (!fd)
     return "The passed file descriptor is a NULL pointer";
