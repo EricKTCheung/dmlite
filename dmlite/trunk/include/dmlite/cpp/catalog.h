@@ -51,6 +51,20 @@ namespace dmlite {
     /// @return    The extended status of the file.
     virtual ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
+    /// Checks wether the process would be allowed to read, write, or check existence.
+    /// @param lfn     Logical filename.
+    /// @param mode    A mask consisting of one or more of R_OK, W_OK, X_OK and F_OK.
+    /// @return        true if the file can be accessed.
+    /// @note          If the file does not exist, an exception will be thrown.
+    virtual bool access(const std::string& path, int mode) throw (DmException);
+
+    /// Checks wether the process would be allowed to read, write, or check existence.
+    /// @param rfn     Replica filename.
+    /// @param mode    A mask consisting of one or more of R_OK, W_OK, X_OK and F_OK.
+    /// @return        true if the file can be accessed.
+    /// @note          If the file does not exist, an exception will be thrown.
+    virtual bool accessReplica(const std::string& replica, int mode) throw (DmException);
+
     /// Add a new replica for a file.
     /// @param replica Stores the data that is going to be added. fileid must
     ///                point to the id of the logical file in the catalog.

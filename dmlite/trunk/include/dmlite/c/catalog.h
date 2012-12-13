@@ -77,6 +77,24 @@ int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf);
 int dmlite_rstatx(dmlite_context* context, const char* rfn, dmlite_xstat* buf);
 
 /**
+ * @brief         Checks wether the process would be allowed to read, write, or check existence.
+ * @param context The DM context.
+ * @param lfn     Logical filename.
+ * @param mode    A mask consisting of one or more of R_OK, W_OK, X_OK and F_OK.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_access(dmlite_context* context, const char* lfn, int mode);
+
+/**
+ * @brief         Checks wether the process would be allowed to read, write, or check existence.
+ * @param context The DM context.
+ * @param rfn     Replica filename.
+ * @param mode    A mask consisting of one or more of R_OK, W_OK, X_OK and F_OK.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_accessr(dmlite_context* context, const char* rfn, int mode);
+
+/**
  * @brief            Adds a new replica to an entry.
  * @param context    The DM context.
  * @param replica    The replica to add.

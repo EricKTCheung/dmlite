@@ -265,6 +265,58 @@ ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (Dm
 
 
 
+bool BuiltInCatalog::access(const std::string& path, int mode) throw (DmException)
+{
+  try {
+    ExtendedStat xstat = this->extendedStat(path);
+
+    mode_t perm = 0;
+    if (mode & R_OK) perm  = S_IREAD;
+    if (mode & W_OK) perm |= S_IWRITE;
+    if (mode & X_OK) perm |= S_IEXEC;
+
+    return checkPermissions(this->secCtx_, xstat.acl, xstat.stat, perm) == 0;
+  }
+  catch (DmException& e) {
+    if (e.code() != EACCES) throw;
+    return false;
+  }
+}
+
+
+
+bool BuiltInCatalog::accessReplica(const std::string& rfn, int mode) throw (DmException)
+{
+  try {
+    Replica      replica = this->getReplicaByRFN(rfn);
+    ExtendedStat xstat   = this->si_->getINode()->extendedStat(replica.fileid);
+
+    bool replicaAllowed = true;
+    mode_t perm = 0;
+
+    if (mode & R_OK)
+      perm  = S_IREAD;
+
+    if (mode & W_OK) {
+      perm |= S_IWRITE;
+      replicaAllowed = (replica.status == Replica::kBeingPopulated);
+    }
+
+    if (mode & X_OK)
+      perm |= S_IEXEC;
+
+    bool metaAllowed    = (checkPermissions(this->secCtx_, xstat.acl, xstat.stat, perm) == 0);
+
+    return metaAllowed && replicaAllowed;
+  }
+  catch (DmException& e) {
+    if (e.code() != EACCES) throw;
+    return false;
+  }
+}
+
+
+
 void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);

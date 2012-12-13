@@ -95,6 +95,38 @@ int dmlite_rstatx(dmlite_context* context, const char* rfn, dmlite_xstat* buf)
 
 
 
+int dmlite_access(dmlite_context* context, const char* lfn, int mode)
+{
+  TRY(context, access)
+  NOT_NULL(lfn);
+  if (context->stack->getCatalog()->access(lfn, mode)) {
+    return 0;
+  }
+  else {
+    context->errorCode = EACCES;
+    return -1;
+  }
+  CATCH(context, access);
+}
+
+
+
+int dmlite_accessr(dmlite_context* context, const char* rfn, int mode)
+{
+  TRY(context, access)
+  NOT_NULL(rfn);
+  if (context->stack->getCatalog()->accessReplica(rfn, mode)) {
+    return 0;
+  }
+  else {
+    context->errorCode = EACCES;
+    return -1;
+  }
+  CATCH(context, access);
+}
+
+
+
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addreplica)
