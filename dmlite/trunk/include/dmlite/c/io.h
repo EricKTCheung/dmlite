@@ -134,6 +134,21 @@ ssize_t dmlite_fpwrite(dmlite_fd* fd, const void* buffer, size_t count, off_t of
 int dmlite_feof(dmlite_fd* fd);
 
 /**
+ * @brief    Returns the last errror code.
+ * @param fd The file descriptor.
+ * @return   The last error code.
+ */
+int dmlite_ferrno(dmlite_fd* fd);
+
+/**
+ * @brief    Returns the last error message.
+ * @param fd The file descriptor.
+ * @return   A pointer to an internal buffer with the last error message.
+ * @note     This buffer is specific to each file descriptor.
+ */
+const char* dmlite_ferrror(dmlite_fd* fd);
+
+/**
  * @brief         Finishes a PUT.
  * @param context The DM context.
  * @param pfn     The replica file name.

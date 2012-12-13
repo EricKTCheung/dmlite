@@ -63,7 +63,8 @@ void testRead(dmlite_context* context)
   /* EFAULT after fclose */
   TEST_ASSERT_EQUAL(EFAULT, dmlite_feof(file));
   TEST_ASSERT_EQUAL(EFAULT, dmlite_fseek(file, 0, SEEK_SET));
-  TEST_ASSERT_EQUAL(EFAULT, dmlite_fread(file, buffer, 10));
+  TEST_ASSERT_EQUAL(-1, dmlite_fread(file, buffer, 10));
+  TEST_ASSERT_EQUAL(EFAULT, dmlite_ferrno(file));
 }
 
 
