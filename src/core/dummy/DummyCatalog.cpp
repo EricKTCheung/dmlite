@@ -72,6 +72,27 @@ ExtendedStat DummyCatalog::extendedStat(const std::string& path, bool follow) th
 
 
 
+ExtendedStat DummyCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
+{
+  DELEGATE_RETURN(extendedStatByRFN, rfn);
+}
+
+
+
+bool DummyCatalog::access(const std::string& path, int mode) throw (DmException)
+{
+  DELEGATE_RETURN(access, path, mode);
+}
+
+
+
+bool DummyCatalog::accessReplica(const std::string& replica, int mode) throw (DmException)
+{
+  DELEGATE_RETURN(accessReplica, replica, mode);
+}
+
+
+
 void DummyCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   DELEGATE(addReplica, replica);

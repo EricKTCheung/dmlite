@@ -27,6 +27,9 @@ target_link_libraries (init-backend dmlite dl)
 
 add_library           (test-base STATIC test-base.cpp)
 
+add_executable        (test-access test-access.cpp)
+target_link_libraries (test-access test-base dmlite ${CPPUNIT_LIBRARY} dl)
+
 add_executable        (test-acls test-acls.cpp)
 target_link_libraries (test-acls test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
@@ -129,6 +132,7 @@ set (CONFIG   NsMySql.conf)
 set (FSCONFIG DpmMySql.conf)
 
 # Add CTest tests
+ADD_TEST(test-access        ${CMAKE_CURRENT_BINARY_DIR}/test-access ${CONFIG})
 ADD_TEST(test-acls          ${CMAKE_CURRENT_BINARY_DIR}/test-acls ${CONFIG})
 ADD_TEST(test-authn         ${CMAKE_CURRENT_BINARY_DIR}/test-authn ${CONFIG})
 ADD_TEST(test-chdir         ${CMAKE_CURRENT_BINARY_DIR}/test-chdir ${CONFIG})

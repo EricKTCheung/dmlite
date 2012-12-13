@@ -36,6 +36,9 @@ namespace dmlite {
                               bool followSym = true) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
+    bool access(const std::string& path, int mode) throw (DmException);
+    bool accessReplica(const std::string& replica, int mode) throw (DmException);
+
     void addReplica   (const Replica& replica) throw (DmException);
     void deleteReplica(const Replica& replica) throw (DmException);
 
@@ -89,8 +92,8 @@ namespace dmlite {
     struct dirent* readDir (Directory* dir) throw (DmException);
     ExtendedStat*  readDirx(Directory* dir) throw (DmException);
 
-    Replica getReplicaByRFN(const std::string& rfn)        throw (DmException);
-    void    updateReplica(const Replica& replica) throw (DmException);
+    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
+    void    updateReplica(const Replica& replica)   throw (DmException);
 
    protected:
     /// Get the parent of a directory.
