@@ -472,13 +472,6 @@ std::string MockIODriver::getImplId() const throw()
 
 
 
-void MockIODriver::setStackInstance(StackInstance*) throw (DmException)
-{
-  // Ignore
-}
-
-
-
 void MockIODriver::setSecurityContext(const SecurityContext*) throw (DmException)
 {
   // Ignore

@@ -97,7 +97,7 @@ namespace dmlite {
   };
 
   /// IO Driver
-  class IODriver: public virtual BaseInterface {
+  class IODriver {
    public:
     /// Use this flag in addition to the standard ones to skip any
     /// security check (i.e. token validation)
@@ -106,6 +106,9 @@ namespace dmlite {
 
     /// Virtual destructor
     virtual ~IODriver();
+
+    /// String ID of the implementation.
+    virtual std::string getImplId(void) const throw() = 0;
 
     /// Instantiate a implementation of IOHandler
     /// @param pfn    The file name.
@@ -122,6 +125,13 @@ namespace dmlite {
     /// @param params The extra parameters as was returned by whereToWrite
     virtual void doneWriting(const std::string& pfn,
                              const Extensible& params) throw (DmException);
+
+   protected:
+    friend class StackInstance;
+
+    virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+    static void  setSecurityContext(IODriver* i,
+                                    const SecurityContext* ctx) throw (DmException);
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

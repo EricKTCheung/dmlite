@@ -61,7 +61,6 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   if (this->inode_)       this->inode_->setStackInstance(this);
   if (this->catalog_)     this->catalog_->setStackInstance(this);
   if (this->poolManager_) this->poolManager_->setStackInstance(this);
-  if (this->ioDriver_)    this->ioDriver_->setStackInstance(this);
 
   // Set the context, if was created
   if (this->secCtx_) setSecurityContextImpl_();

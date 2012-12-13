@@ -98,7 +98,6 @@ namespace dmlite {
      ~MockIODriver();
      
      std::string getImplId() const throw();
-     void setStackInstance(StackInstance*)     throw (DmException);
      void setSecurityContext(const SecurityContext*) throw (DmException);
      
      IOHandler* createIOHandler(const std::string& pfn,
