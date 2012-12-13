@@ -170,7 +170,7 @@ void testReplicas(dmlite_context* context)
     dmlite_any_free(any);
   }
   
-  TEST_CONTEXT_CALL(context, dmlite_replicas_free, nReplicas, replicas);
+  TEST_ASSERT_EQUAL(0, dmlite_replicas_free(nReplicas, replicas));
   
   /* Modify */
   SECTION("Modify replica");

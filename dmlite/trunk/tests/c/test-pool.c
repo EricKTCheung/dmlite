@@ -28,7 +28,7 @@ void testGetPools(dmlite_context* context)
   dmlite_any_free(extra);
   
   /* Free */
-  TEST_ASSERT_EQUAL(0, dmlite_pools_free(context, nPools, pools));
+  TEST_ASSERT_EQUAL(0, dmlite_pools_free(nPools, pools));
 }
 
 
@@ -56,7 +56,7 @@ void testGet(dmlite_context* context)
   /* Second has an extra */
   TEST_ASSERT_STR_EQUAL("token=123456789", loc->chunks[1].url.query);
   
-  dmlite_location_free(context, loc);
+  dmlite_location_free(loc);
 }
 
 
@@ -80,7 +80,7 @@ void testPut(dmlite_context* context)
   
   TEST_ASSERT_STR_EQUAL("token=987654321", loc->chunks[0].url.query);
   
-  dmlite_location_free(context, loc);
+  dmlite_location_free(loc);
   
   /* A donewriting without token will fail */
   dmlite_any_dict* dict = dmlite_any_dict_new();
