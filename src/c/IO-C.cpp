@@ -9,8 +9,9 @@
 #include "Private.h"
 
 struct dmlite_fd {
-  dmlite_context*        context;
   dmlite::IOHandler* stream;
+  int                errorCode;
+  std::string        errorString;
 };
 
 
@@ -46,7 +47,6 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
   }
 
   dmlite_fd* iofd = new dmlite_fd();
-  iofd->context = context;
   iofd->stream  = stream;
   return iofd;
   CATCH_POINTER(context, fopen)
@@ -56,142 +56,143 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
 
 int dmlite_fclose(dmlite_fd* fd)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fclose)
-  NOT_NULL(fd);
+  TRY(fd, fclose)
+  NOT_NULL(fd->stream);
+
   fd->stream->close();
   delete fd->stream;
-  ::memset(fd, 0, sizeof(dmlite_fd));
+  fd->stream    = NULL;
+  fd->errorCode = 0;
+  fd->errorString.clear();
   delete fd;
-  CATCH(fd->context, fclose)
+  CATCH(fd, fclose)
 }
 
 
 
 int dmlite_fstat(dmlite_fd* fd, struct stat* buf)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fstat)
-  NOT_NULL(fd);
+  TRY(fd, fstat)
+  NOT_NULL(fd->stream);
   NOT_NULL(buf);
   *buf = fd->stream->fstat();
-  CATCH(fd->context, fclose)
+  CATCH(fd, fclose)
 }
 
 
 
 int dmlite_fseek(dmlite_fd* fd, off_t offset, int whence)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fseek)
-  NOT_NULL(fd);
+  TRY(fd, fseek)
+  NOT_NULL(fd->stream);
   fd->stream->seek(offset, static_cast<dmlite::IOHandler::Whence>(whence));
-  CATCH(fd->context, fseek)
+  CATCH(fd, fseek)
 }
 
 
 
 off_t dmlite_ftell(dmlite_fd* fd)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, ftell)
-  NOT_NULL(fd);
+  TRY(fd, ftell)
+  NOT_NULL(fd->stream);
   return fd->stream->tell();
-  CATCH(fd->context, ftell)
+  CATCH(fd, ftell)
 }
 
 
 
 ssize_t dmlite_fread(dmlite_fd* fd, void* buffer, size_t count)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fread)
-  NOT_NULL(fd);
+  TRY(fd, fread)
+  NOT_NULL(fd->stream);
   NOT_NULL(buffer);
   return fd->stream->read((char*)buffer, count);
-  CATCH_NEGATIVE(fd->context, fread)
+  CATCH_NEGATIVE(fd, fread)
 }
 
 
 
 ssize_t dmlite_fwrite(dmlite_fd* fd, const void* buffer, size_t count)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fwrite)
-  NOT_NULL(fd);
+  TRY(fd, fwrite)
+  NOT_NULL(fd->stream);
   NOT_NULL(buffer);
   return fd->stream->write((char*)buffer, count);
-  CATCH_NEGATIVE(fd->context, fwrite)
+  CATCH_NEGATIVE(fd, fwrite)
 }
 
 
 
 ssize_t dmlite_freadv(dmlite_fd* fd, const struct iovec* vector, size_t count)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, freadv)
-  NOT_NULL(fd);
+  TRY(fd, freadv)
+  NOT_NULL(fd->stream);
   NOT_NULL(vector);
   return fd->stream->readv(vector, count);
-  CATCH_NEGATIVE(fd->context, freadv)
+  CATCH_NEGATIVE(fd, freadv)
 }
 
 
 
 ssize_t dmlite_fwritev(dmlite_fd* fd, const struct iovec* vector, size_t count)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fwritev)
-  NOT_NULL(fd);
+  TRY(fd, fwritev)
+  NOT_NULL(fd->stream);
   NOT_NULL(vector);
   return fd->stream->writev(vector, count);
-  CATCH_NEGATIVE(fd->context, fwritev)
+  CATCH_NEGATIVE(fd, fwritev)
 }
 
 
 
 ssize_t dmlite_fpread(dmlite_fd* fd, void* buffer, size_t count, off_t offset)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fpread)
-  NOT_NULL(fd);
+  TRY(fd, fpread)
+  NOT_NULL(fd->stream);
   NOT_NULL(buffer);
   return fd->stream->pread(buffer, count, offset);
-  CATCH_NEGATIVE(fd->context, fpread)
+  CATCH_NEGATIVE(fd, fpread)
 }
 
 
 
 ssize_t dmlite_fpwrite(dmlite_fd* fd, const void* buffer, size_t count, off_t offset)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, fpwrite)
-  NOT_NULL(fd);
+  TRY(fd, fpwrite)
+  NOT_NULL(fd->stream);
   NOT_NULL(buffer);
   return fd->stream->pwrite(buffer, count, offset);
-  CATCH_NEGATIVE(fd->context, fwritev)
+  CATCH_NEGATIVE(fd, fwritev)
 }
 
 
 
 int dmlite_feof(dmlite_fd* fd)
 {
-  if (!fd)
-    return DMLITE_SYSERR(EFAULT);
-  TRY(fd->context, feof)
-  NOT_NULL(fd);
+  TRY(fd, feof)
+  NOT_NULL(fd->stream);
   return fd->stream->eof();
-  CATCH(fd->context, feof)
+  CATCH(fd, feof)
+}
+
+
+
+int dmlite_ferrno(dmlite_fd* fd)
+{
+  if (!fd || !fd->stream)
+    return EFAULT;
+  return fd->errorCode;
+}
+
+
+
+const char* dmlite_ferrror(dmlite_fd* fd)
+{
+  if (!fd)
+    return "The passed file descriptor is a NULL pointer";
+  if (!fd->stream)
+    return "The passed file descriptor was already closed";
+  return fd->errorString.c_str();
 }
 
 
