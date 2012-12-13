@@ -177,8 +177,7 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
 
 
 
-int dmlite_replicas_free(dmlite_context* context, unsigned nReplicas,
-                         dmlite_replica* fileReplicas)
+int dmlite_replicas_free(unsigned nReplicas, dmlite_replica* fileReplicas)
 {
   for (unsigned i = 0; i < nReplicas; ++i) {
     if (fileReplicas[i].extra != NULL)

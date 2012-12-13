@@ -123,13 +123,11 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
 
 /**
  * @brief              Frees a replica list.
- * @param context      The DM context.
  * @param nReplicas    The number of replicas contained in the array.
  * @param fileReplicas The array to free.
  * @return             0 on success, error code otherwise.
  */
-int dmlite_replicas_free(dmlite_context* context,
-                         unsigned nReplicas, dmlite_replica* fileReplicas);
+int dmlite_replicas_free(unsigned nReplicas, dmlite_replica* fileReplicas);
 
 /**
  * @brief         Creates a symlink

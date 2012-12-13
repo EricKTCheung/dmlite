@@ -92,7 +92,7 @@ int dmlite_getpools(dmlite_context* context, unsigned* nbpools, dmlite_pool** po
 
 
 
-int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* pools)
+int dmlite_pools_free(unsigned npools, dmlite_pool* pools)
 {
   for (unsigned i = 0; i < npools; ++i)
     delete pools[i].extra;
@@ -102,7 +102,7 @@ int dmlite_pools_free(dmlite_context* context, unsigned npools, dmlite_pool* poo
 
 
 
-int dmlite_location_free(dmlite_context* context, dmlite_location* loc)
+int dmlite_location_free(dmlite_location* loc)
 {
   if (loc) {
     delete [] loc->chunks;

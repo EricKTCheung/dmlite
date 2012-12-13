@@ -52,12 +52,11 @@ int dmlite_getpools(dmlite_context* context, unsigned* nPools, dmlite_pool** poo
 
 /**
  * @brief         Frees an array of pools.
- * @param context The DM context.
  * @param nPools  The number of pools in the array.
  * @param pools   The array to free.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_pools_free(dmlite_context* context, unsigned nPools, dmlite_pool* pools);
+int dmlite_pools_free(unsigned nPools, dmlite_pool* pools);
 
 /**
  * @brief         Gets a single replica (synchronous).
@@ -102,11 +101,10 @@ int dmlite_put_abort(dmlite_context* context, const char* path, const dmlite_loc
 
 /**
  * @brief         Frees a location struct.
- * @param context The DM context.
  * @param loc     The struct to free.
  * @return        0 on success, error code otherwise.
  */
-int dmlite_location_free(dmlite_context* context, dmlite_location* loc);
+int dmlite_location_free(dmlite_location* loc);
 
 #ifdef	__cplusplus
 }
