@@ -159,6 +159,9 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/test
 
 %changelog
+* Wed Dec 19 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.6.0-1
+- Update for new upstream release
+
 * Thu Oct 25 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.5.0-1
 - Update for new upstream release
 
