@@ -33,12 +33,10 @@ namespace dmlite {
   
   /// Represent the complete location of a file.
   struct Location: public std::vector<Chunk> {
-    Extensible xattr;
-
     Location() {}
     Location(int nitems, const Chunk& proto): std::vector<Chunk>(nitems, proto) {}
 
-    Location(const Location& l): std::vector<Chunk>(l), xattr(l.xattr) {}
+    Location(const Location& l): std::vector<Chunk>(l) {}
   };
 
   /// Handler for a pool. Works similary to a file handler.
