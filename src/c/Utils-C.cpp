@@ -5,18 +5,59 @@
 #include <dmlite/c/utils.h>
 #include <dmlite/cpp/utils/security.h>
 #include <dmlite/cpp/utils/urls.h>
+#include "Private.h"
 
 
 
-void dmlite_parse_url(const char* source, dmlite_url* dest)
+dmlite_url* dmlite_url_new(void)
 {
+  dmlite_url* newUrl = new dmlite_url();
+  ::memset(newUrl, 0, sizeof(dmlite_url));
+  newUrl->query = dmlite_any_dict_new();
+  return newUrl;
+}
+
+
+
+dmlite_url* dmlite_parse_url(const char* source)
+{
+  dmlite_url* newUrl = dmlite_url_new();
+
   dmlite::Url url(source);
   
-  std::strncpy(dest->domain, url.domain.c_str(), sizeof(dest->domain));
-  std::strncpy(dest->path,   url.path.c_str(),   sizeof(dest->path));
-  std::strncpy(dest->query,  url.queryToString().c_str(), sizeof(dest->query));
-  std::strncpy(dest->scheme, url.scheme.c_str(), sizeof(dest->scheme));
-  dest->port = url.port;
+  std::strncpy(newUrl->domain, url.domain.c_str(), sizeof(newUrl->domain));
+  std::strncpy(newUrl->path,   url.path.c_str(),   sizeof(newUrl->path));
+  std::strncpy(newUrl->scheme, url.scheme.c_str(), sizeof(newUrl->scheme));
+  newUrl->port = url.port;
+  newUrl->query->extensible = url.query;
+
+  return newUrl;
+}
+
+
+
+void dmlite_url_free(dmlite_url* url)
+{
+  dmlite_any_dict_free(url->query);
+  delete url;
+}
+
+
+
+char* dmlite_url_serialize(dmlite_url* url, char* buffer, size_t bsize)
+{
+  if (!url || !buffer || bsize == 0) return NULL;
+
+  dmlite::Url urlpp;
+  urlpp.domain = url->domain;
+  urlpp.path   = url->path;
+  urlpp.port   = url->port;
+  urlpp.scheme = url->scheme;
+  if (url->query)
+    urlpp.query  = url->query->extensible;
+
+  strncpy(buffer, urlpp.toString().c_str(), bsize);
+  return buffer;
 }
 
 

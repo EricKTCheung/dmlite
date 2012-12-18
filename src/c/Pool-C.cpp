@@ -14,6 +14,8 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
   locp->nchunks = loc.size();
   if (locp->nchunks > 0) {
     locp->chunks = new dmlite_chunk[locp->nchunks];
+    ::memset(locp->chunks, 0, sizeof(dmlite_chunk) * locp->nchunks);
+
     for (unsigned i = 0; i < locp->nchunks; ++i) {
       locp->chunks[i].offset = loc[i].offset;
       locp->chunks[i].size   = loc[i].size;
@@ -29,38 +31,36 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
       strncpy(locp->chunks[i].url.path, loc[i].url.path.c_str(),
               sizeof(locp->chunks[i].url.path));
       
-      strncpy(locp->chunks[i].url.query, loc[i].url.queryToString().c_str(),
-              sizeof(locp->chunks[i].url.query));
+      if (locp->chunks[i].url.query == NULL)
+        locp->chunks[i].url.query = dmlite_any_dict_new();
+      locp->chunks[i].url.query->extensible = loc[i].url.query;
     }
   }
   else {
     locp->chunks = NULL;
   }
-  
-  locp->extra = new dmlite_any_dict();
-  locp->extra->extensible.copy(loc.xattr);
 
   return locp;
 }
 
 
 
-static void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
-                                            dmlite::Location& loc)
+void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
+                                     dmlite::Location& loc)
 {
-  if (locp->extra)
-    loc.xattr.copy(locp->extra->extensible);
-
   for (int i = 0; i < locp->nchunks; ++i) {
     dmlite::Chunk chunk;
     chunk.url.scheme = locp->chunks[i].url.scheme;
     chunk.url.domain = locp->chunks[i].url.domain;
     chunk.url.port   = locp->chunks[i].url.port;
     chunk.url.path   = locp->chunks[i].url.path;
-    chunk.url.queryFromString(locp->chunks[i].url.query);
+    if (locp->chunks[i].url.query)
+      chunk.url.query  = locp->chunks[i].url.query->extensible;
 
     chunk.offset = locp->chunks[i].offset;
     chunk.size   = locp->chunks[i].size;
+
+    loc.push_back(chunk);
   }
 }
 
@@ -105,6 +105,8 @@ int dmlite_pools_free(unsigned npools, dmlite_pool* pools)
 int dmlite_location_free(dmlite_location* loc)
 {
   if (loc) {
+    for (int i = 0; i < loc->nchunks; ++i)
+      dmlite_any_dict_free(loc->chunks[i].url.query);
     delete [] loc->chunks;
     delete    loc;
   }
@@ -120,6 +122,7 @@ dmlite_location* dmlite_get(dmlite_context* context, const char* path)
   dmlite::Location loc = context->stack->getPoolManager()->whereToRead(path);
   
   dmlite_location *locp = new dmlite_location();  
+  memset(locp, 0, sizeof(dmlite_location));
   return dmlite_cpplocation_to_clocation(loc, locp);
   CATCH_POINTER(context, get)
 }
@@ -132,6 +135,7 @@ dmlite_location* dmlite_iget(dmlite_context* context, ino_t inode)
   dmlite::Location loc = context->stack->getPoolManager()->whereToRead(inode);
   
   dmlite_location *locp = new dmlite_location();
+  memset(locp, 0, sizeof(dmlite_location));
   return dmlite_cpplocation_to_clocation(loc, locp);
   CATCH_POINTER(context, get)
 }
@@ -155,7 +159,8 @@ dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replic
     dmlite::Location loc = handler->whereToRead(replicapp);
     delete handler;
     
-    dmlite_location* locp = new dmlite_location();    
+    dmlite_location* locp = new dmlite_location();
+    memset(locp, 0, sizeof(dmlite_location));
     return dmlite_cpplocation_to_clocation(loc, locp);
   }
   catch (...) {
@@ -174,19 +179,20 @@ dmlite_location* dmlite_put(dmlite_context* context, const char* path)
   NOT_NULL(path);
   dmlite::Location loc = context->stack->getPoolManager()->whereToWrite(path);
   
-  dmlite_location* locp = new dmlite_location();  
+  dmlite_location* locp = new dmlite_location();
+  memset(locp, 0, sizeof(dmlite_location));
   return dmlite_cpplocation_to_clocation(loc, locp);
   CATCH_POINTER(context, put)
 }
 
 
 
-int dmlite_put_abort(dmlite_context* context, const char* path, const dmlite_location* loc)
+int dmlite_put_abort(dmlite_context* context, const dmlite_location* loc)
 {
   TRY(context, put_abort)
-  NOT_NULL(path);
+  NOT_NULL(loc);
   dmlite::Location location;
   dmlite_clocation_to_cpplocation(loc, location);
-  context->stack->getPoolManager()->cancelWrite(path, location);
+  context->stack->getPoolManager()->cancelWrite(location);
   CATCH(context, put_abort)
 }

@@ -32,13 +32,12 @@ typedef struct dmlite_chunk {
   dmlite_url url;
 } dmlite_chunk;
 
-/** @brief Collection of chunks that form a replica
- * @details There may be duplicated chunks.
+/** @brief   Collection of chunks that form a replica
+ *  @details On read, there may be duplicated chunks.
  */
 typedef struct dmlite_location {
-  dmlite_chunk*    chunks;
-  unsigned         nchunks;
-  dmlite_any_dict* extra;
+  dmlite_chunk* chunks;
+  unsigned      nchunks;
 } dmlite_location;
 
 /**
@@ -93,11 +92,10 @@ dmlite_location* dmlite_put(dmlite_context* context, const char* path);
 /**
  * @brief         Aborts a put request.
  * @param context The DM context.
- * @param path    The logical file name that was put.
  * @param loc     As returned by dmlite_put.
- * @return       0 on success, error code otherwise.
+ * @return        0 on success, error code otherwise.
  */
-int dmlite_put_abort(dmlite_context* context, const char* path, const dmlite_location* loc);
+int dmlite_put_abort(dmlite_context* context, const dmlite_location* loc);
 
 /**
  * @brief         Frees a location struct.

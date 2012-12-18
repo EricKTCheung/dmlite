@@ -54,7 +54,12 @@ void testGet(dmlite_context* context)
   TEST_ASSERT_EQUAL(50, loc->chunks[1].size);
   
   /* Second has an extra */
-  TEST_ASSERT_STR_EQUAL("token=123456789", loc->chunks[1].url.query);
+  char buffer[128];
+  dmlite_any* token = dmlite_any_dict_get(loc->chunks[1].url.query, "token");
+  dmlite_any_to_string(token, buffer, sizeof(buffer));
+  dmlite_any_dict_insert(loc->chunks[1].url.query, "token", token);
+  TEST_ASSERT_STR_EQUAL("123456789", buffer);
+  dmlite_any_free(token);
   
   dmlite_location_free(loc);
 }
@@ -77,25 +82,32 @@ void testPut(dmlite_context* context)
   TEST_ASSERT_STR_EQUAL("/storage/chunk01", loc->chunks[0].url.path);
   TEST_ASSERT_EQUAL(0, loc->chunks[0].offset);
   TEST_ASSERT_EQUAL(0, loc->chunks[0].size);
-  
-  TEST_ASSERT_STR_EQUAL("token=987654321", loc->chunks[0].url.query);
+
+  dmlite_any* token = dmlite_any_dict_get(loc->chunks[0].url.query, "token");
+  dmlite_any_to_string(token, buffer, sizeof(buffer));
+  dmlite_any_free(token);
+  TEST_ASSERT_STR_EQUAL("987654321", buffer);
   
   dmlite_location_free(loc);
   
   /* A donewriting without token will fail */
-  dmlite_any_dict* dict = dmlite_any_dict_new();
-  TEST_ASSERT_EQUAL(EACCES, dmlite_donewriting(context,
-                                               "/storage/chunk01", dict));
+  loc = calloc(1, sizeof(dmlite_location));
+  loc->nchunks = 1;
+  loc->chunks = calloc(1, sizeof(dmlite_chunk));
+  strncpy(loc->chunks[0].url.path, "/storage/chunk01", PATH_MAX);
+  loc->chunks[0].url.query = dmlite_any_dict_new();
+
+  TEST_ASSERT_EQUAL(EACCES, dmlite_donewriting(context, loc));
   
   /* With token */
-  dmlite_any* token = dmlite_any_new_string("987654321");
-  dmlite_any_dict_insert(dict, "token", token);
-  
-  TEST_CONTEXT_CALL(context, dmlite_donewriting,
-                    "/storage/chunk01", dict);
-  
+  token = dmlite_any_new_string("987654321");
+  dmlite_any_dict_insert(loc->chunks[0].url.query, "token", token);
   dmlite_any_free(token);
-  dmlite_any_dict_free(dict);
+  
+  TEST_CONTEXT_CALL(context, dmlite_donewriting, loc);
+
+  free(loc->chunks);
+  free(loc);
 }
 
 

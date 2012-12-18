@@ -105,8 +105,7 @@ namespace dmlite {
                                 const Extensible& extras,
                                 mode_t mode) throw (DmException);
      
-     void doneWriting(const std::string& pfn,
-                      const Extensible& params) throw (DmException);
+     void doneWriting(const Location& loc) throw (DmException);
   };
 
   /// Factory for mock implementation

@@ -4,9 +4,15 @@
 #include <dmlite/c/io.h>
 #include <dmlite/c/dmlite.h>
 #include <dmlite/cpp/io.h>
+#include <dmlite/cpp/pooldriver.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include "Private.h"
+
+
+extern void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
+                                            dmlite::Location& loc);
+
 
 struct dmlite_fd {
   dmlite::IOHandler* stream;
@@ -198,14 +204,12 @@ const char* dmlite_ferror(dmlite_fd* fd)
 
 
 int dmlite_donewriting(dmlite_context* context,
-                       const char* pfn,
-                       const dmlite_any_dict* extra)
+                       const dmlite_location* loc)
 {
   TRY(context, donewriting)
-  NOT_NULL(pfn);  
-  if (extra != NULL)
-    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
-  else
-    context->stack->getIODriver()->doneWriting(pfn, extra->extensible);
+  NOT_NULL(loc);
+  dmlite::Location location;
+  dmlite_clocation_to_cpplocation(loc, location);
+  context->stack->getIODriver()->doneWriting(location);
   CATCH(context, donewriting)
 }

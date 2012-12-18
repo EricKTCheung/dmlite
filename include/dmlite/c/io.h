@@ -7,6 +7,7 @@
 
 #include "dmlite.h"
 #include "any.h"
+#include "pool.h"
 #include <sys/uio.h>
 #include <unistd.h>
 
@@ -151,13 +152,11 @@ const char* dmlite_ferrror(dmlite_fd* fd);
 /**
  * @brief         Finishes a PUT.
  * @param context The DM context.
- * @param pfn     The replica file name.
- * @param extra   The extra parameters as returned by dmlite_put.
+ * @param loc     The location as returned by dmlite_put.
  * @return        0 on success, error code otherwise.
  */
 int dmlite_donewriting(dmlite_context* context,
-                       const char* pfn,
-                       const dmlite_any_dict* extra);
+                       const dmlite_location* loc);
 
 #ifdef	__cplusplus
 }
