@@ -75,7 +75,7 @@ namespace dmlite {
     virtual Location whereToWrite(const std::string& path) throw (DmException);
 
     /// Cancel a write.
-    virtual void cancelWrite(const std::string& path, const Location& loc) throw (DmException);
+    virtual void cancelWrite(const Location& loc) throw (DmException);
   };
 
   /// Interface for a pool driver

@@ -25,7 +25,7 @@ IODriver::~IODriver()
 
 
 NOT_IMPLEMENTED(IOHandler* IODriver::createIOHandler(const std::string&, int, const Extensible&, mode_t) throw (DmException));
-NOT_IMPLEMENTED(void IODriver::doneWriting(const std::string&, const Extensible&) throw (DmException));
+NOT_IMPLEMENTED(void IODriver::doneWriting(const Location&) throw (DmException));
 NOT_IMPLEMENTED(void IODriver::setSecurityContext(const SecurityContext*) throw (DmException));
 
 

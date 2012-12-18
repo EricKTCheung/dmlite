@@ -16,6 +16,7 @@
 namespace dmlite {
   
   // Forward declarations.
+  class Location;
   class PluginManager;
   class StackInstance;
   
@@ -121,10 +122,9 @@ namespace dmlite {
                                        mode_t mode = 0660) throw (DmException);
     
     /// Must be called when the front-end is done writing.
-    /// @param pfn    The file name.
-    /// @param params The extra parameters as was returned by whereToWrite
-    virtual void doneWriting(const std::string& pfn,
-                             const Extensible& params) throw (DmException);
+    /// @param pfn The file name.
+    /// @param loc The Location object as returned by whereToWrite
+    virtual void doneWriting(const Location& loc) throw (DmException);
 
    protected:
     friend class StackInstance;

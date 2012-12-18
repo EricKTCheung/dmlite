@@ -510,14 +510,16 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
 
 
 
-void MockIODriver::doneWriting(const std::string& pfn, const Extensible& params) throw (DmException)
+void MockIODriver::doneWriting(const Location& loc) throw (DmException)
 {
-  if (params.getString("token") != "987654321")
+  if (loc.empty())
+    throw DmException(EINVAL,"Empty location");
+  if (loc[0].url.query.getString("token") != "987654321")
     throw DmException(EACCES,
                       "Invalid token");
-  if (pfn != "/storage/chunk01")
+  if (loc[0].url.path != "/storage/chunk01")
     throw DmException(EINVAL,
-                      "Invalid rfn");  
+                      "Invalid rfn");
 }
 
 

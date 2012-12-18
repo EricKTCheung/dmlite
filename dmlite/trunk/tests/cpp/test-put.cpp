@@ -65,7 +65,7 @@ public:
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].url.path, loc[0].url.query);
+    stackInstance->getIODriver()->doneWriting(loc);
 
     // Change the mode
     catalog->setAcl(PATH, ACL);
@@ -81,7 +81,7 @@ public:
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].url.path, loc[0].url.query);
+    stackInstance->getIODriver()->doneWriting(loc);
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
@@ -104,8 +104,7 @@ public:
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].url.path,
-                                              loc[0].url.query);
+    stackInstance->getIODriver()->doneWriting(loc);
 
     // Change the mode
     catalog->setMode(PATH, 0700);
@@ -120,8 +119,7 @@ public:
     fd->close();
     delete fd;
 
-    stackInstance->getIODriver()->doneWriting(loc[0].url.path,
-                                              loc[0].url.query);
+    stackInstance->getIODriver()->doneWriting(loc);
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
@@ -137,7 +135,7 @@ public:
     dmlite::Location loc = poolManager->whereToWrite(PATH);
 
     // Cancel
-    poolManager->cancelWrite(FILE, loc);
+    poolManager->cancelWrite(loc);
 
     // Now, the file must not exist in the catalog
     try {

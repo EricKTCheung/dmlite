@@ -5,6 +5,7 @@
 #ifndef DMLITE_UTILS_H
 #define DMLITE_UTILS_H
 
+#include "any.h"
 #include "../common/config.h"
 
 #include <limits.h>
@@ -40,7 +41,7 @@ typedef struct dmlite_url {
   char     domain[HOST_NAME_MAX];
   unsigned port;
   char     path  [PATH_MAX];
-  char     query [QUERY_MAX];
+  dmlite_any_dict* query;
 } dmlite_url;
 
 /** @brief Handles ACL entries */
@@ -50,13 +51,34 @@ typedef struct dmlite_aclentry {
   uint32_t id;
 } dmlite_aclentry;
 
+/**
+ * @brief Creates a new dmlite_url.
+ */
+dmlite_url* dmlite_url_new(void);
 
 /**
  * @brief        Parses a URL.
  * @param source Original URL.
- * @param dest   Parsed URL.
+ * @return       Parsed URL.
+ * @note         dest->query must be NULL for the first call, so it
+ *               is internally allocated.
  */
-void dmlite_parse_url(const char* source, dmlite_url* dest);
+dmlite_url* dmlite_parse_url(const char* source);
+
+/**
+ * @brief     Frees the given url.
+ * @param url The url to free.
+ */
+void dmlite_url_free(dmlite_url* url);
+
+/**
+ * @brief        Serializes a URL.
+ * @param url    The url to serialize.
+ * @param buffer Where to put the serialized version.
+ * @param bsize  The buffer size.
+ * @return       Buffer, NULL on error.
+ */
+char* dmlite_url_serialize(dmlite_url* url, char* buffer, size_t bsize);
 
 /**
  * @brief          Serializes into a string a set of ACL entries
