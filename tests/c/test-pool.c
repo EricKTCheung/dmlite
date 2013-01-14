@@ -88,6 +88,8 @@ void testPut(dmlite_context* context)
   dmlite_any_free(token);
   TEST_ASSERT_STR_EQUAL("987654321", buffer);
   
+  TEST_CONTEXT_CALL(context, dmlite_donewriting, loc);
+
   dmlite_location_free(loc);
   
   /* A donewriting without token will fail */
