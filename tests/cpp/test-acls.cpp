@@ -6,20 +6,6 @@
 #include "test-base.h"
 
 
-static bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)
-{
-  return a.serialize() == b.serialize();
-}
-
-
-
-static std::ostringstream& operator << (std::ostringstream& of, const dmlite::Acl& acl)
-{
-  of << acl.serialize();
-  return of;
-}
-
-
 
 class TestAcls: public TestBase
 {

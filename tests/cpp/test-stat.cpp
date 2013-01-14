@@ -8,10 +8,13 @@ protected:
   struct stat statBuf, statBufCached, iStat;
   const static int   MODE;
   const static char *FOLDER;
+  const static char *FILE;
   const static char *NESTED;
   const static char *SYMLINK;
   const static char *RELATIVE;
   const static char *SYMREL;
+
+  dmlite::Acl ACL;
 
 public:
 
@@ -25,6 +28,12 @@ public:
 
     this->catalog->symlink(FOLDER, SYMLINK);
     this->catalog->symlink(RELATIVE, SYMREL);
+
+    std::stringstream ss;
+    const dmlite::SecurityContext* ctx = this->stackInstance->getSecurityContext();
+
+    ss << "A7" << getUid(ctx) << ",C0" << getGid(ctx) << ",E70,F50";
+    ACL = dmlite::Acl(ss.str());
   }
 
   void tearDown()
@@ -148,6 +157,17 @@ public:
     CPPUNIT_ASSERT_THROW(this->catalog->extendedStat(NESTED), dmlite::DmException);
   }
 
+  /// See LCGDM-818
+  void testAclNoFollow()
+  {
+    this->catalog->create(FILE, 0750);
+    this->catalog->setAcl(FILE, ACL);
+
+    dmlite::ExtendedStat xstat = this->catalog->extendedStat(FILE, false);
+
+    CPPUNIT_ASSERT_EQUAL(ACL, xstat.acl);
+  }
+
   
   CPPUNIT_TEST_SUITE(TestStat);
   CPPUNIT_TEST(testRegular);
@@ -157,11 +177,13 @@ public:
   CPPUNIT_TEST(testIStat);
   CPPUNIT_TEST(testCacheRegular);
   CPPUNIT_TEST(testCacheDifferentUser);
+  CPPUNIT_TEST(testAclNoFollow);
   CPPUNIT_TEST_SUITE_END();
 };
 
 const int   TestStat::MODE        = 0700;
 const char* TestStat::FOLDER      = "test-stat";
+const char* TestStat::FILE        = "test-stat.file";
 const char* TestStat::NESTED      = "test-stat/nested";
 const char* TestStat::SYMLINK     = "test-link";
 const char* TestStat::RELATIVE    = "test-stat/../test-stat/./nested";

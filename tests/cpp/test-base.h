@@ -26,6 +26,21 @@ inline gid_t getGid(const dmlite::SecurityContext* ctx, unsigned i = 0)
 
 
 
+inline bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)
+{
+  return a.serialize() == b.serialize();
+}
+
+
+
+inline std::ostringstream& operator << (std::ostringstream& of, const dmlite::Acl& acl)
+{
+  of << acl.serialize();
+  return of;
+}
+
+
+
 class TestBase: public CppUnit::TestFixture {
 public:
   TestBase();
