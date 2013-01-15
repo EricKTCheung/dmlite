@@ -152,7 +152,6 @@ namespace dmlite {
     /// @param ns The new size.
     void resize(int ns)
     {
-      int total, sv;
       // The resizing will be done as we get requests
       boost::mutex::scoped_lock lock(mutex_);
       max_ = ns;

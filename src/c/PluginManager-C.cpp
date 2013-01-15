@@ -298,6 +298,22 @@ int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v)
 
 
 
+int dmlite_set_array(dmlite_context* context, const char* k,
+                     unsigned n, dmlite_any* const* v)
+{
+  TRY(context, set_array)
+  NOT_NULL(v);
+  std::vector<boost::any> array;
+
+  for (unsigned i = 0; i < n; ++i)
+    array.push_back(v[i]->value);
+
+  context->stack->set(k, array);
+  CATCH(context, set_array);
+}
+
+
+
 int dmlite_unset(dmlite_context* context, const char* k)
 {
   TRY(context, unset)  

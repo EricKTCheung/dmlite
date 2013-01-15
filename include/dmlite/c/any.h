@@ -8,6 +8,7 @@
 
 #include "../common/config.h"
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef	__cplusplus
 extern "C" {
@@ -31,14 +32,6 @@ typedef struct dmlite_any_dict dmlite_any_dict;
 dmlite_any* dmlite_any_new_string(const char* str);
 
 /**
- * @brief       Creates a new dmlite_any.
- * @param  n    The number of elements.
- * @param  strv The strings that will be wrapped. It is safe to free afterwards.
- * @return      A newly allocated dmlite_any.
- */
-dmlite_any* dmlite_any_new_string_array(unsigned n, const char** strv);
-
-/**
  * @brief    Creates a new dmlite_any.
  * @param  l The long that will be wrapped.
  * @return   A newly allocated dmlite_any.
@@ -46,12 +39,18 @@ dmlite_any* dmlite_any_new_string_array(unsigned n, const char** strv);
 dmlite_any* dmlite_any_new_long(long l);
 
 /**
- * @brief     Creates a new dmlite_any.
- * @param  n  The number of elements.
- * @param  lv The longs that will be wrapped.
- * @return    A newly allocated dmlite_any.
+ * @brief   Creates a new dmlite_any from an int64_t type.
+ * @param i The int64_t value.
+ * @return  A newly allocated dmlite_any.
  */
-dmlite_any* dmlite_any_new_long_array(unsigned n, long* lv);
+dmlite_any* dmlite_any_new_s64(int64_t i);
+
+/**
+ * @brief   Creates a new dmlite_any from an uint64_t type.
+ * @param i The uint64_t value.
+ * @return  A newly allocated dmlite_any.
+ */
+dmlite_any* dmlite_any_new_u64(uint64_t i);
 
 /**
  * @brief     Frees a dmlite_any.
@@ -74,6 +73,20 @@ void dmlite_any_to_string(const dmlite_any* any, char* buffer, size_t bsize);
  * @param any The dmlite_any to convert.
  */
 long dmlite_any_to_long(const dmlite_any* any);
+
+/**
+ * @brief     Returns the int64_t interpretation of they dmlite_any.
+ * @details   Defaults to 0.
+ * @param any The dmlite_any to convert.
+ */
+int64_t dmlite_any_to_s64(const dmlite_any* any);
+
+/**
+ * @brief     Returns the uint64_t interpretation of they dmlite_any.
+ * @details   Defaults to 0.
+ * @param any The dmlite_any to convert.
+ */
+uint64_t dmlite_any_to_u64(const dmlite_any* any);
 
 
 /**

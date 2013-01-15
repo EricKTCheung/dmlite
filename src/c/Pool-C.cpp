@@ -48,7 +48,7 @@ static dmlite_location* dmlite_cpplocation_to_clocation(const dmlite::Location& 
 void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
                                      dmlite::Location& loc)
 {
-  for (int i = 0; i < locp->nchunks; ++i) {
+  for (unsigned i = 0; i < locp->nchunks; ++i) {
     dmlite::Chunk chunk;
     chunk.url.scheme = locp->chunks[i].url.scheme;
     chunk.url.domain = locp->chunks[i].url.domain;
@@ -105,7 +105,7 @@ int dmlite_pools_free(unsigned npools, dmlite_pool* pools)
 int dmlite_location_free(dmlite_location* loc)
 {
   if (loc) {
-    for (int i = 0; i < loc->nchunks; ++i)
+    for (unsigned i = 0; i < loc->nchunks; ++i)
       dmlite_any_dict_free(loc->chunks[i].url.query);
     delete [] loc->chunks;
     delete    loc;

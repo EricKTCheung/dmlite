@@ -35,10 +35,10 @@ if (a == b) {\
 #define TEST_ASSERT_EQUAL(a, b)\
 if (a != b) {\
   ++TEST_FAILURES;\
-  log_failure("Expected %s == %ld, got %ld (%s:%d)", #b, (long)a, (long)b,\
+  log_failure("Expected %s == %lld, got %lld (%s:%d)", #b, (long long)a, (long long)b,\
               FILE_NAME, __LINE__);\
 } else {\
-  log_success("%s == %ld", #b, (long)a);\
+  log_success("%s == %lld", #b, (long long)a);\
 }
 
 #define TEST_ASSERT_STR_EQUAL(a, b)\

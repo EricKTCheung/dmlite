@@ -213,6 +213,20 @@ class TestExtensible: public CppUnit::TestFixture {
                            dmlite::Extensible::anyToString(array[0]));
       CPPUNIT_ASSERT_EQUAL(465l, dmlite::Extensible::anyToLong(array[1]));
     }
+
+    void test64()
+    {
+      int64_t s64 = 0x0FFFFFFFFFFFFFFF;
+      CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(8), sizeof(s64));
+      boost::any any = s64;
+
+      int64_t check = dmlite::Extensible::anyToS64(any);
+      CPPUNIT_ASSERT_EQUAL(s64, check);
+
+      boost::any anyInt = static_cast<int>(42);
+      check = dmlite::Extensible::anyToS64(anyInt);
+      CPPUNIT_ASSERT_EQUAL(static_cast<int64_t>(42), check);
+    }
    
     CPPUNIT_TEST_SUITE(TestExtensible);
     CPPUNIT_TEST(testRegular);
@@ -222,6 +236,7 @@ class TestExtensible: public CppUnit::TestFixture {
     CPPUNIT_TEST(testDeserialize);
     CPPUNIT_TEST(testNested);
     CPPUNIT_TEST(testArray);
+    CPPUNIT_TEST(test64);
     CPPUNIT_TEST_SUITE_END();
 };
 
