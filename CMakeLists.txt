@@ -4,7 +4,7 @@ project (dmlite)
 
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 6)
+set(dmlite_MINOR 7)
 set(dmlite_PATCH 0)
 
 # Lib suffix
