@@ -22,6 +22,22 @@ int main(int argn, char** argv)
   TEST_ASSERT_STR_EQUAL("this is a string", buffer);
   dmlite_any_free(value);
 
+  /* Test offset */
+  SECTION("int64_t => Any => int64_t");
+  int64_t check64s, value64s = 0x0FFFFFFFFFFFFFFF;
+  TEST_ASSERT_EQUAL(8, sizeof(value64s));
+  value = dmlite_any_new_s64(value64s);
+  check64s = dmlite_any_to_s64(value);
+  TEST_ASSERT_EQUAL(value64s, check64s);
+  dmlite_any_free(value);
+
+  int64_t check64u, value64u = 0x0FFFFFFFFFFFFFFF;
+  TEST_ASSERT_EQUAL(8, sizeof(value64u));
+  value = dmlite_any_new_u64(value64u);
+  check64u = dmlite_any_to_u64(value);
+  TEST_ASSERT_EQUAL(value64u, check64u);
+  dmlite_any_free(value);
+
   /* Test dictionary */
   SECTION("Creating dictionary");
   dict = dmlite_any_dict_new();

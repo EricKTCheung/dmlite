@@ -34,74 +34,78 @@ namespace dmlite {
     /// Converts an any to a double, casting if needed.
     static double      anyToDouble  (const boost::any& any);
     /// Converts an any to a string, casting if needed.
-    static std::string anyToString  (const boost::any& any);    
+    static std::string anyToString  (const boost::any& any);
+    /// Converts an any to a int64_t
+    static int64_t      anyToS64    (const boost::any& any);
+    /// Converts an any to a uint64_t
+    static uint64_t     anyToU64    (const boost::any& any);
      
-     /// Returns true if there is a field name "key".
-     bool hasField(const std::string& key) const;
+    /// Returns true if there is a field name "key".
+    bool hasField(const std::string& key) const;
      
-     /// Returns a reference to the value associated with "key".
-     /// Will throw DmException(DM_INVALID_VALUE,...) when not found.
-     const boost::any& operator [] (const std::string& key) const throw (DmException);
+    /// Returns a reference to the value associated with "key".
+    /// Will throw DmException(DM_INVALID_VALUE,...) when not found.
+    const boost::any& operator [] (const std::string& key) const throw (DmException);
      
-     /// Returns a modifiable reference to the value associated with "key".
-     /// Will create the entry if it does not exist.
-     boost::any& operator [] (const std::string& key);
+    /// Returns a modifiable reference to the value associated with "key".
+    /// Will create the entry if it does not exist.
+    boost::any& operator [] (const std::string& key);
      
-     // Comparison operators. Containers may need them.
-     bool operator == (const Extensible&) const;
-     bool operator != (const Extensible&) const;
-     bool operator >  (const Extensible&) const;
-     bool operator <  (const Extensible&) const;
+    // Comparison operators. Containers may need them.
+    bool operator == (const Extensible&) const;
+    bool operator != (const Extensible&) const;
+    bool operator >  (const Extensible&) const;
+    bool operator <  (const Extensible&) const;
      
-     /// Number of elements inside this Extensible.
-     unsigned long size() const;
+    /// Number of elements inside this Extensible.
+    unsigned long size() const;
      
-     /// Removes all the content.
-     void clear();
+    /// Removes all the content.
+    void clear();
      
-     /// Copies the content from another Extensible
-     void copy(const Extensible& s);
+    /// Copies the content from another Extensible
+    void copy(const Extensible& s);
      
-     /// Removes an entry.
-     void erase(const std::string&);
+    /// Removes an entry.
+    void erase(const std::string&);
      
-     /// Serializes to JSON. In principle, it only supports POD.
-     std::string serialize(void) const;
+    /// Serializes to JSON. In principle, it only supports POD.
+    std::string serialize(void) const;
      
-     /// Deserializes from a JSON string.
-     void deserialize(const std::string& serial) throw (DmException);
+    /// Deserializes from a JSON string.
+    void deserialize(const std::string& serial) throw (DmException);
      
-     /// Get all the keys available
-     std::vector<std::string> getKeys(void) const throw (DmException);
+    /// Get all the keys available
+    std::vector<std::string> getKeys(void) const throw (DmException);
      
-     /// Gets a boolean. May be able to perform some conversions.
-     bool getBool(const std::string& key, bool defaultValue = false) const throw (DmException);
+    /// Gets a boolean. May be able to perform some conversions.
+    bool getBool(const std::string& key, bool defaultValue = false) const throw (DmException);
      
-     /// Gets an integer. May be able to perform some conversions.
-     long getLong(const std::string& key, long defaultValue = 0) const throw (DmException);
+    /// Gets an integer. May be able to perform some conversions.
+    long getLong(const std::string& key, long defaultValue = 0) const throw (DmException);
      
-     /// Gets an unsigned integer. May be able to perform some conversions.
-     unsigned long getUnsigned(const std::string& key, unsigned long defaultValue = 0) const throw (DmException);
+    /// Gets an unsigned integer. May be able to perform some conversions.
+    unsigned long getUnsigned(const std::string& key, unsigned long defaultValue = 0) const throw (DmException);
      
-     /// Gets a float. May be able to perform some conversions.
-     double getDouble(const std::string& key, double defaultValue = 0)  const throw (DmException);
+    /// Gets a float. May be able to perform some conversions.
+    double getDouble(const std::string& key, double defaultValue = 0)  const throw (DmException);
      
-     /// Gets a string. May perform some conversions.
-     std::string getString(const std::string& key, const std::string& defaultValue = "") const throw (DmException);
+    /// Gets a string. May perform some conversions.
+    std::string getString(const std::string& key, const std::string& defaultValue = "") const throw (DmException);
      
-     /// Gets a nested dictionary.
-     Extensible getExtensible(const std::string& key,
-                              const Extensible& defaultValue = Extensible()) const throw (DmException);
+    /// Gets a nested dictionary.
+    Extensible getExtensible(const std::string& key,
+                             const Extensible& defaultValue = Extensible()) const throw (DmException);
      
-     /// Gets an array.
-     std::vector<boost::any> getVector(const std::string& key,
-                                       const std::vector<boost::any>& defaultValue = std::vector<boost::any>()) const throw (DmException);
+    /// Gets an array.
+    std::vector<boost::any> getVector(const std::string& key,
+                                      const std::vector<boost::any>& defaultValue = std::vector<boost::any>()) const throw (DmException);
 
-     /// Iterators
-     typedef DictType_::const_iterator const_iterator;
+    /// Iterators
+    typedef DictType_::const_iterator const_iterator;
 
-     const_iterator begin() const { return dictionary_.begin(); }
-     const_iterator end()   const { return dictionary_.end(); }
+    const_iterator begin() const { return dictionary_.begin(); }
+    const_iterator end()   const { return dictionary_.end(); }
   };
 
 };

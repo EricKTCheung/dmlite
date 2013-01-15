@@ -253,6 +253,26 @@ std::string Extensible::anyToString(const boost::any& value)
 
 
 
+int64_t Extensible::anyToS64(const boost::any& value)
+{
+  if (compare_types(value.type(), typeid(int64_t)))
+    return boost::any_cast<int64_t>(value);
+  else
+    return anyToLong(value);
+}
+
+
+
+uint64_t Extensible::anyToU64(const boost::any& value)
+{
+  if (compare_types(value.type(), typeid(uint64_t)))
+    return boost::any_cast<uint64_t>(value);
+  else
+    return anyToLong(value);
+}
+
+
+
 bool Extensible::hasField(const std::string& key) const
 {
   for (DictType_::const_iterator i = dictionary_.begin();

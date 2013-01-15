@@ -21,20 +21,6 @@ dmlite_any* dmlite_any_new_string(const char* str)
 
 
 
-dmlite_any* dmlite_any_new_string_array(unsigned n, const char** strv)
-{
-  dmlite_any* any = new dmlite_any();
-  std::vector<boost::any> av;
-  
-  for (unsigned i = 0; i < n; ++i)
-    av.push_back(std::string(strv[i]));
-  
-  any->value = av;
-  return any;
-}
-
-
-
 dmlite_any* dmlite_any_new_long(long l)
 {
   dmlite_any* any = new dmlite_any();
@@ -44,15 +30,19 @@ dmlite_any* dmlite_any_new_long(long l)
 
 
 
-dmlite_any* dmlite_any_new_long_array(unsigned n, long* lv)
+dmlite_any* dmlite_any_new_s64(int64_t i)
 {
   dmlite_any* any = new dmlite_any();
-  std::vector<boost::any> av;
-  
-  for (unsigned i = 0; i < n; ++i)
-    av.push_back(lv[i]);
-  
-  any->value = av;
+  any->value = i;
+  return any;
+}
+
+
+
+dmlite_any* dmlite_any_new_u64(uint64_t i)
+{
+  dmlite_any* any = new dmlite_any();
+  any->value = i;
   return any;
 }
 
@@ -84,6 +74,29 @@ long dmlite_any_to_long(const dmlite_any* any)
 {
   try {
     return dmlite::Extensible::anyToLong(any->value);
+  }
+  catch (...) {
+    return 0;
+  }
+}
+
+
+
+int64_t dmlite_any_to_s64(const dmlite_any* any)
+{
+  try {
+    return dmlite::Extensible::anyToS64(any->value);
+  }
+  catch (...) {
+    return 0;
+  }
+}
+
+
+uint64_t dmlite_any_to_u64(const dmlite_any* any)
+{
+  try {
+    return dmlite::Extensible::anyToU64(any->value);
   }
   catch (...) {
     return 0;

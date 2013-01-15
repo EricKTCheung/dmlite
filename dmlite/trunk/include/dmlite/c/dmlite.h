@@ -191,6 +191,17 @@ const dmlite_security_context* dmlite_get_security_context(dmlite_context* conte
 int dmlite_set(dmlite_context* context, const char* k, const dmlite_any* v);
 
 /**
+ * @brief         Sets a configuration parameter tied to a context (array version).
+ * @param context The DM context.
+ * @param k       The configuration key.
+ * @param n       The configuration key.
+ * @param v       Array of values.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_set_array(dmlite_context* context, const char* k,
+                     unsigned n, dmlite_any* const* v);
+
+/**
  * @brief         Removes a configuration parameter.
  * @param context The DM context.
  * @param k       The configuration key.
