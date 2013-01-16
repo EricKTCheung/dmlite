@@ -9,6 +9,8 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 
 include_directories (${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH})
 link_directories(${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
+add_definitions( "-std=gnu++0x")
+
 
 add_library(pydmlite 
             SHARED pydmlite.cpp authn.cpp base.cpp catalog.cpp errno.cpp 
