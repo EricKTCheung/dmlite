@@ -5,8 +5,7 @@ cmake_minimum_required (VERSION 2.6)
 #       working as intended, so a mock plugin is used.
 
 add_library           (mock SHARED plugin_mock.cpp plugin_mock.h)
-set_target_properties (mock PROPERTIES PREFIX "plugin_" 
-				       COMPILE_FLAGS "-std=gnu++0x")
+set_target_properties (mock PROPERTIES PREFIX "plugin_")
 target_link_libraries (mock dmlite)
 
 add_library           (utils STATIC utils.c utils.h)
@@ -18,7 +17,6 @@ add_executable        (test-catalog-c test-catalog.c)
 target_link_libraries (test-catalog-c dmlite utils)
 
 add_executable        (test-converters test-converters.cpp)
-set_target_properties (test-converters PROPERTIES COMPILE_FLAGS "-std=gnu++0x")
 target_link_libraries (test-converters dmlite utils)
 
 add_executable        (test-io-c test-io.c)
