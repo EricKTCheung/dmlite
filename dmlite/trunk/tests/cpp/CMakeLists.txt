@@ -3,7 +3,6 @@ cmake_minimum_required (VERSION 2.6)
 find_package (CppUnit REQUIRED)
 
 include_directories (${CPPUNIT_INCLUDE_DIR})
-add_definitions( "-std=gnu++0x")
 
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/NsMySql.conf

@@ -4,7 +4,7 @@
 #ifndef DMLITE_CPP_UTILS_EXTENSIBLE_H
 #define DMLITE_CPP_UTILS_EXTENSIBLE_H
 
-#include <cstdint>
+#include <stdint.h>
 #include <boost/any.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <dmlite/common/errno.h>
