@@ -930,10 +930,6 @@ void BuiltInCatalog::setChecksum(const std::string& path,
     throw DmException(EACCES,
                       "Can not set the checksum of " + path);
   
-  if (csumtype != "MD" && csumtype != "AD" && csumtype != "CS")
-    throw DmException(EINVAL,
-                      csumtype + " is an invalid checksum type");
-  
   this->si_->getINode()->setChecksum(meta.stat.st_ino, csumtype, csumvalue);
 }
 

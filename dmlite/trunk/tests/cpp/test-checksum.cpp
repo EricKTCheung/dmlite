@@ -29,7 +29,7 @@ public:
 
   void testBasic()
   {
-    const std::string csumtype("MD");
+    const std::string csumtype("MD5");
     const std::string csumvalue("1a31009319c99ebdefd23055b20ff034");
     
     // Change checksum to something else
