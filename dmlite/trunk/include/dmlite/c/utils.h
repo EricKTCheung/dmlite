@@ -13,8 +13,8 @@
 
 #define ACL_ENTRIES_MAX 300
 #define ACL_SIZE         13
-#define CSUMTYPE_MAX      3
-#define CSUMVALUE_MAX    33
+#define CSUMTYPE_MAX      8
+#define CSUMVALUE_MAX    42
 #define GUID_MAX         36
 #ifndef HOST_NAME_MAX
 # define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
