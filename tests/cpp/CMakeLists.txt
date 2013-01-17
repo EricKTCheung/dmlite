@@ -67,6 +67,9 @@ target_link_libraries (test-guid test-base dmlite ${CPPUNIT_LIBRARY} dl)
 add_executable        (test-io test-io.cpp)
 target_link_libraries (test-io dmlite ${CPPUNIT_LIBRARY} dl)
 
+add_executable        (test-location test-location.cpp)
+target_link_libraries (test-location dmlite ${CPPUNIT_LIBRARY} dl)
+
 add_executable        (test-opendir test-opendir.cpp)
 target_link_libraries (test-opendir test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
@@ -146,6 +149,7 @@ ADD_TEST(test-create        ${CMAKE_CURRENT_BINARY_DIR}/test-create ${CONFIG})
 ADD_TEST(test-extensible    ${CMAKE_CURRENT_BINARY_DIR}/test-extensible ${CONFIG})
 ADD_TEST(test-guid          ${CMAKE_CURRENT_BINARY_DIR}/test-guid ${CONFIG})
 ADD_TEST(test-io            ${CMAKE_CURRENT_BINARY_DIR}/test-io ${FSCONFIG})
+ADD_TEST(test-location      ${CMAKE_CURRENT_BINARY_DIR}/test-location)
 ADD_TEST(test-opendir       ${CMAKE_CURRENT_BINARY_DIR}/test-opendir ${CONFIG})
 ADD_TEST(test-put           ${CMAKE_CURRENT_BINARY_DIR}/test-put ${FSCONFIG})
 ADD_TEST(test-pools         ${CMAKE_CURRENT_BINARY_DIR}/test-pools ${FSCONFIG})

@@ -90,6 +90,12 @@ namespace dmlite {
      
     /// Gets a float. May be able to perform some conversions.
     double getDouble(const std::string& key, double defaultValue = 0)  const throw (DmException);
+
+    /// Gets a signed 64 bits type
+    int64_t getS64(const std::string& key, int64_t defaultValue = 0) const throw (DmException);
+
+    /// Gets an unsigned 64 bits type
+    uint64_t getU64(const std::string& key, uint64_t defaultValue = 0) const throw (DmException);
      
     /// Gets a string. May perform some conversions.
     std::string getString(const std::string& key, const std::string& defaultValue = "") const throw (DmException);

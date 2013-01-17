@@ -1,11 +1,11 @@
 /// @file   core/Operators.cpp
 /// @brief  Implementation of the operators defined for the simple data structs.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/property_tree/json_parser.hpp>
 #include <dmlite/cpp/authn.h>
-
-#include "dmlite/cpp/inode.h"
-#include "dmlite/cpp/pooldriver.h"
-#include "dmlite/cpp/poolmanager.h"
+#include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/pooldriver.h>
+#include <dmlite/cpp/poolmanager.h>
 
 using namespace dmlite;
 
@@ -215,7 +215,30 @@ bool Replica::operator >  (const Replica& r) const
   return *this < r;
 }
 
-// Pooldriver
+// Chunk
+Chunk::Chunk(): offset(0), size(0), url()
+{
+}
+
+
+
+Chunk::Chunk(const std::string& url_, uint64_t offset_, uint64_t size_):
+    offset(offset_), size(size_), url(url_)
+{
+}
+
+
+
+Chunk::Chunk(const std::string& str)
+{
+  Extensible helper;
+  helper.deserialize(str);
+  this->offset = helper.getU64("offset");
+  this->size   = helper.getU64("size");
+  this->url    = Url(helper.getString("url"));
+}
+
+
 
 bool Chunk::operator == (const Chunk& c) const
 {
@@ -250,6 +273,50 @@ bool Chunk::operator <  (const Chunk& c) const
 bool Chunk::operator >  (const Chunk& c) const
 {
   return *this < c;
+}
+
+
+
+std::string Chunk::toString(void) const
+{
+  Extensible helper;
+  helper["url"]    = this->url.toString();
+  helper["offset"] = this->offset;
+  helper["size"]   = this->size;
+  return helper.serialize();
+}
+
+// Location
+Location::Location(const std::string& str)
+{
+  Extensible helper;
+  helper.deserialize(str);
+  std::vector<boost::any> v = helper.getVector("chunks");
+  std::vector<boost::any>::const_iterator i;
+  for (i = v.begin(); i != v.end(); ++i) {
+    try {
+      Extensible e = boost::any_cast<Extensible>(*i);
+      this->push_back(Chunk(e.getString("url"), e.getU64("offset"), e.getU64("size")));
+    }
+    catch (const boost::bad_any_cast& e) {
+      throw DmException(EINVAL, "Location can not deserialize the string");
+    }
+  }
+}
+
+
+
+std::string Location::toString(void) const
+{
+  std::ostringstream os;
+
+  os << "{\"chunks\": [";
+  unsigned i;
+  for (i = 0; i < this->size() - 1; ++i)
+    os << this->at(i).toString() << ",";
+  os << this->at(i).toString() << "]}";
+
+  return os.str();
 }
 
 // Pool Manager
