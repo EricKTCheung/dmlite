@@ -71,7 +71,7 @@ static void jsonifyString(const std::string& str, std::ostream& out)
 static std::string serializeAny(const boost::any& value)
 {
   unsigned    i;
-  long        intValue;
+  long long   intValue;
   double      doubleValue;
   std::string strValue;
   std::vector<boost::any> vValue;
@@ -107,12 +107,24 @@ static std::string serializeAny(const boost::any& value)
     intValue = boost::any_cast<int>(value);
     whatIs = kLong;
   }
+  else if (compare_types(value.type(), typeid(unsigned))) {
+    intValue = boost::any_cast<unsigned>(value);
+    whatIs = kLong;
+  }
   else if (compare_types(value.type(), typeid(long))) {
     intValue = boost::any_cast<long>(value);
     whatIs = kLong;
   }
-  else if (compare_types(value.type(), typeid(unsigned))) {
-    intValue = boost::any_cast<unsigned>(value);
+  else if (compare_types(value.type(), typeid(unsigned long))) {
+    intValue = boost::any_cast<unsigned long>(value);
+    whatIs = kLong;
+  }
+  else if (compare_types(value.type(), typeid(long long))) {
+    intValue = boost::any_cast<long long>(value);
+    whatIs = kLong;
+  }
+  else if (compare_types(value.type(), typeid(unsigned long long))) {
+    intValue = boost::any_cast<unsigned long long>(value);
     whatIs = kLong;
   }
   // Treat all float as double
@@ -554,6 +566,42 @@ double Extensible::getDouble(const std::string& key, double defaultValue) const 
   catch (boost::bad_any_cast) {
     throw DmException(DMLITE_SYSERR(EINVAL),
                       "'%s' can not be cast to double (it is %s)",
+                      key.c_str(), value.type().name());
+  }
+}
+
+
+
+int64_t Extensible::getS64(const std::string& key, int64_t defaultValue) const throw (DmException)
+{
+  if (!hasField(key)) return defaultValue;
+
+  boost::any value = (*this)[key];
+
+  try {
+    return anyToS64(value);
+  }
+  catch (boost::bad_any_cast) {
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to int64_t (it is %s)",
+                      key.c_str(), value.type().name());
+  }
+}
+
+
+
+uint64_t Extensible::getU64(const std::string& key, uint64_t defaultValue) const throw (DmException)
+{
+  if (!hasField(key)) return defaultValue;
+
+  boost::any value = (*this)[key];
+
+  try {
+    return anyToU64(value);
+  }
+  catch (boost::bad_any_cast) {
+    throw DmException(DMLITE_SYSERR(EINVAL),
+                      "'%s' can not be cast to uint64_t (it is %s)",
                       key.c_str(), value.type().name());
   }
 }

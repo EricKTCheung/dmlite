@@ -21,14 +21,21 @@ namespace dmlite {
   
   /// Represents a chunk of a file.
   struct Chunk {
-    off_t    offset;
-    size_t   size;
+    Chunk();
+    Chunk(const std::string& url, uint64_t offset, uint64_t size);
+    /// Chunk from a serialized string
+    explicit Chunk(const std::string& str);
+
+    uint64_t offset;
+    uint64_t size;
     Url      url;
 
     bool operator == (const Chunk&) const;
     bool operator != (const Chunk&) const;
     bool operator <  (const Chunk&) const;
     bool operator >  (const Chunk&) const;
+
+    std::string toString(void) const;
   };
   
   /// Represent the complete location of a file.
@@ -37,6 +44,11 @@ namespace dmlite {
     Location(int nitems, const Chunk& proto): std::vector<Chunk>(nitems, proto) {}
 
     Location(const Location& l): std::vector<Chunk>(l) {}
+
+    // Location from serialized string
+    explicit Location(const std::string& str);
+
+    std::string toString(void) const;
   };
 
   /// Handler for a pool. Works similary to a file handler.
