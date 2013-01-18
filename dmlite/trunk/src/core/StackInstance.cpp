@@ -32,6 +32,10 @@ void StackInstance::setSecurityContextImpl_(void)
     this->poolManager_->setSecurityContext(this->secCtx_);
   if (this->ioDriver_ != 0)
     this->ioDriver_->setSecurityContext(this->secCtx_);
+
+  std::map<std::string, PoolDriver*>::iterator i;
+  for (i = this->poolDrivers_.begin(); i != this->poolDrivers_.end(); ++i)
+    i->second->setSecurityContext(this->secCtx_);
 }
 
 
@@ -112,6 +116,13 @@ boost::any StackInstance::get(const std::string& key) const throw (DmException)
 void StackInstance::erase(const std::string& key) throw (DmException)
 {
   this->stackMsg_.erase(key);
+}
+
+
+
+void StackInstance::eraseAll(void) throw ()
+{
+  this->stackMsg_.clear();
 }
 
 

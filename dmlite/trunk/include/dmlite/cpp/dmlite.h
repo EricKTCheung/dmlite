@@ -177,6 +177,9 @@ namespace dmlite {
     /// @param key The key of the pair to be erased.
     void erase(const std::string& key) throw (DmException);
 
+    /// Erase all the values set previously.
+    void eraseAll(void) throw ();
+
     /// Checks if the stack instance contains a value associated with
     /// the given key.
     bool contains(const std::string& key) throw ();

@@ -209,6 +209,13 @@ int dmlite_set_array(dmlite_context* context, const char* k,
  */
 int dmlite_unset(dmlite_context* context, const char* k);
 
+/**
+ * @brief         Removes all configuration parameters previously set.
+ * @param context The DM context.
+ * @return        0 on success, error code otherwise.
+ */
+int dmlite_unset_all(dmlite_context* context);
+
 #ifdef	__cplusplus
 }
 #endif

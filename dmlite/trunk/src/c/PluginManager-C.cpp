@@ -321,3 +321,13 @@ int dmlite_unset(dmlite_context* context, const char* k)
   context->stack->erase(k);
   CATCH(context, unset)
 }
+
+
+
+int dmlite_unset_all(dmlite_context* context)
+{
+  TRY(context, unset_all)
+  context->stack->eraseAll();
+  CATCH(context, unset)
+}
+
