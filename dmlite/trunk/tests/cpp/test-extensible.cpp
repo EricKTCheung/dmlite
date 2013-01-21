@@ -216,7 +216,7 @@ class TestExtensible: public CppUnit::TestFixture {
 
     void test64()
     {
-      int64_t s64 = 0x0FFFFFFFFFFFFFFF;
+      int64_t s64 = 0x0FFFFFFFFFFFFFFFLL;
       CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(8), sizeof(s64));
       boost::any any = s64;
 
