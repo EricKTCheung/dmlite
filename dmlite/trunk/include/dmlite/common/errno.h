@@ -23,16 +23,16 @@
 #define DMLITE_DATABASE_ERROR      0x03000000
 
 /* Macros to extract error type and errno*/
-#define DMLITE_ETYPE(e) (e & 0xFF000000)
-#define DMLITE_ERRNO(e) (e & 0x00FFFFFF)
+#define DMLITE_ETYPE(e) ((e) & 0xFF000000)
+#define DMLITE_ERRNO(e) ((e) & 0x00FFFFFF)
 
 /* Macros to generate a dmlite-like error code from POSIX error code
  * Pass user errors directly as the POSIX value (or dmlite additional error codes)
  */
-#define DMLITE_SYSERR(e) (e | DMLITE_SYSTEM_ERROR)
-#define DMLITE_CFGERR(e) (e | DMLITE_CONFIGURATION_ERROR)
-#define DMLITE_FCTERR(e) (e | DMLITE_FACTORY_ERROR)
-#define DMLITE_DBERR(e)  (e | DMLITE_DATABASE_ERROR)
+#define DMLITE_SYSERR(e) ((e) | DMLITE_SYSTEM_ERROR)
+#define DMLITE_CFGERR(e) ((e) | DMLITE_CONFIGURATION_ERROR)
+#define DMLITE_FCTERR(e) ((e) | DMLITE_FACTORY_ERROR)
+#define DMLITE_DBERR(e)  ((e) | DMLITE_DATABASE_ERROR)
 
 /* Aditional error codes */
 
