@@ -93,5 +93,10 @@ int main(int argc, char **argv)
   r += Validate("https://host.com/file?a=1&b&c=89",
                   "https", "host.com", 0, "/file", "a=1&b&c=89");
 
+  r += Validate("https://dcache-door-atlas19.desy.de:2880/dq2/atlaslocalgroupdisk/user/cmeyer/AlpgenHerwigttbarlnqqNp3/user.cmeyer.AlpgenHerwigttbarlnqqNp3.Nominal.TruthAOD.MZ210312.V1/AlpgenHerwig_Nominal_lnqq_3_00_MZ210312_V1.root",
+                "https", "dcache-door-atlas19.desy.de", 2880,
+                "/dq2/atlaslocalgroupdisk/user/cmeyer/AlpgenHerwigttbarlnqqNp3/user.cmeyer.AlpgenHerwigttbarlnqqNp3.Nominal.TruthAOD.MZ210312.V1/AlpgenHerwig_Nominal_lnqq_3_00_MZ210312_V1.root",
+                "");
+
   return r;
 }

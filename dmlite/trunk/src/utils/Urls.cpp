@@ -21,10 +21,10 @@ Url::Url() throw (): port(0)
 Url::Url(const std::string& url) throw (): port(0) 
 {
   boost::regex regexp("(([[:alnum:]]+):/{2})?([[:alnum:]][-_[:alnum:]]*(\\.[-_[:alnum:]]+)*)?(:[[:digit:]]*)?(:)?([^?]*)?(.*)",
-                      boost::regex::extended | boost::regex::icase);
+                      boost::regex::extended);
   boost::smatch what;
   
-  if (boost::regex_match(url, what, regexp, boost::match_posix)) {
+  if (boost::regex_match(url, what, regexp, boost::match_perl)) {
     this->scheme = what[2];
     this->domain = what[3];
     
