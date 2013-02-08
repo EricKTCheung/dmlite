@@ -53,6 +53,24 @@ dmlite_any* dmlite_any_new_s64(int64_t i);
 dmlite_any* dmlite_any_new_u64(uint64_t i);
 
 /**
+ * @brief       Creates a new dmlite_any.
+ * @param  n    The number of elements.
+ * @param  strv The strings that will be wrapped. It is safe to free afterwards.
+ * @return      A newly allocated dmlite_any.
+ * @deprecated Use dmlite_set_array instead.
+ */
+dmlite_any* dmlite_any_new_string_array(unsigned n, const char** strv);
+
+/**
+ * @brief      Creates a new dmlite_any.
+ * @param  n   The number of elements.
+ * @param  lv  The longs that will be wrapped.
+ * @return     A newly allocated dmlite_any.
+ * @deprecated Use dmlite_set_array instead.
+ */
+dmlite_any* dmlite_any_new_long_array(unsigned n, long* lv);
+
+/**
  * @brief     Frees a dmlite_any.
  * @param any The dmlite_any to destroy.
  */

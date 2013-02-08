@@ -48,6 +48,34 @@ dmlite_any* dmlite_any_new_u64(uint64_t i)
 
 
 
+dmlite_any* dmlite_any_new_string_array(unsigned n, const char** strv)
+{
+  dmlite_any* any = new dmlite_any();
+  std::vector<boost::any> av;
+
+  for (unsigned i = 0; i < n; ++i)
+    av.push_back(std::string(strv[i]));
+
+    any->value = av;
+    return any;
+}
+
+
+
+dmlite_any* dmlite_any_new_long_array(unsigned n, long* lv)
+{
+  dmlite_any* any = new dmlite_any();
+  std::vector<boost::any> av;
+
+  for (unsigned i = 0; i < n; ++i)
+    av.push_back(lv[i]);
+
+  any->value = av;
+  return any;
+}
+
+
+
 void dmlite_any_free(dmlite_any* any)
 {
   delete any;
