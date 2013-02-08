@@ -4,8 +4,8 @@ project (dmlite)
 
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 7)
-set(dmlite_PATCH 0)
+set(dmlite_MINOR 6)
+set(dmlite_PATCH 1)
 
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
