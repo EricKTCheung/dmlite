@@ -237,30 +237,3 @@ std::string Url::normalizePath(const std::string& path) throw ()
   return result;
 }
 
-
-
-std::string dmlite::fullChecksumName(const std::string& cs)
-{
-  if (boost::iequals(cs, "AD"))
-    return "ADLER32";
-  else if (boost::iequals(cs, "CS"))
-    return "UNIXcksum";
-  else if (boost::iequals(cs, "MD"))
-    return "MD5";
-  else
-    return cs;
-}
-
-
-
-std::string dmlite::shortChecksumName(const std::string& cs)
-{
-  if (boost::iequals(cs, "ADLER32"))
-    return "AD";
-  else if (boost::iequals(cs, "UNIXcksum"))
-    return "CS";
-  else if (boost::iequals(cs, "MD5"))
-    return "MD";
-  else
-    return cs;
-}

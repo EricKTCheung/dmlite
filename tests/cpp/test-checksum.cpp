@@ -1,6 +1,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
 #include <cstring>
+#include <dmlite/cpp/utils/checksums.h>
 #include "test-base.h"
 
 class TestChecksum: public TestBase
@@ -42,8 +43,37 @@ public:
     CPPUNIT_ASSERT_EQUAL(csumvalue, meta.csumvalue);
   }
 
+  void testTranslationToLong()
+  {
+    CPPUNIT_ASSERT_EQUAL(std::string("MD5"), dmlite::checksums::fullChecksumName("md"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD5"), dmlite::checksums::fullChecksumName("MD"));
+
+    CPPUNIT_ASSERT_EQUAL(std::string("ADLER32"), dmlite::checksums::fullChecksumName("AD"));
+    CPPUNIT_ASSERT_EQUAL(std::string("ADLER32"), dmlite::checksums::fullChecksumName("ad"));
+
+    CPPUNIT_ASSERT_EQUAL(std::string("UNIXcksum"), dmlite::checksums::fullChecksumName("CS"));
+    CPPUNIT_ASSERT_EQUAL(std::string("UNIXcksum"), dmlite::checksums::fullChecksumName("cs"));
+  }
+
+  void testTranslationToShort()
+  {
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("MD5"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("md5"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("mD5"));
+
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("ADLER32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("adler32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("aDlEr32"));
+
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("UNIXcksum"));
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("unixcksum"));
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("unixCKSum"));
+  }
+
   CPPUNIT_TEST_SUITE(TestChecksum);
   CPPUNIT_TEST(testBasic);
+  CPPUNIT_TEST(testTranslationToLong);
+  CPPUNIT_TEST(testTranslationToShort);
   CPPUNIT_TEST_SUITE_END();
 };
 
