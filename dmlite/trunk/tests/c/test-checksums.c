@@ -1,0 +1,47 @@
+#include <dmlite/c/utils.h>
+#include "utils.h"
+
+void testShortToLong()
+{
+  char buffer[64];
+
+  SECTION("Checksums Short => Long");
+
+  TEST_ASSERT_STR_EQUAL("MD5", dmlite_checksum_full_name("md", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("MD5", dmlite_checksum_full_name("MD", buffer, sizeof(buffer)));
+
+  TEST_ASSERT_STR_EQUAL("ADLER32", dmlite_checksum_full_name("ad", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("ADLER32", dmlite_checksum_full_name("AD", buffer, sizeof(buffer)));
+
+  TEST_ASSERT_STR_EQUAL("UNIXcksum", dmlite_checksum_full_name("cs", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("UNIXcksum", dmlite_checksum_full_name("CS", buffer, sizeof(buffer)));
+}
+
+
+
+void testLongToShort()
+{
+  char buffer[64];
+
+  SECTION("Checksums Long => Short");
+
+  TEST_ASSERT_STR_EQUAL("MD", dmlite_checksum_short_name("MD5", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("MD", dmlite_checksum_short_name("md5", buffer, sizeof(buffer)));
+
+  TEST_ASSERT_STR_EQUAL("AD", dmlite_checksum_short_name("adler32", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("AD", dmlite_checksum_short_name("ADLER32", buffer, sizeof(buffer)));
+
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("UNIXcksum", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("unixcksum", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("UNIXCKSUM", buffer, sizeof(buffer)));
+}
+
+
+
+int main(int argc, char** argv)
+{
+  testShortToLong();
+  testLongToShort();
+
+  return TEST_FAILURES;
+}

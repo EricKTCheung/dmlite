@@ -16,6 +16,9 @@ target_link_libraries (test-any-c dmlite utils)
 add_executable        (test-catalog-c test-catalog.c)
 target_link_libraries (test-catalog-c dmlite utils)
 
+add_executable        (test-checksums test-checksums.c)
+target_link_libraries (test-checksums dmlite utils)
+
 add_executable        (test-converters test-converters.cpp)
 target_link_libraries (test-converters dmlite utils)
 
@@ -46,6 +49,7 @@ ENABLE_TESTING()
 
 ADD_TEST(test-any        ${CMAKE_CURRENT_BINARY_DIR}/test-any-c)
 ADD_TEST(test-catalog    ${CMAKE_CURRENT_BINARY_DIR}/test-catalog-c)
+ADD_TEST(test-catalog    ${CMAKE_CURRENT_BINARY_DIR}/test-checksums)
 ADD_TEST(test-converters ${CMAKE_CURRENT_BINARY_DIR}/test-converters)
 ADD_TEST(test-io         ${CMAKE_CURRENT_BINARY_DIR}/test-io-c)
 ADD_TEST(test-manager    ${CMAKE_CURRENT_BINARY_DIR}/test-manager-c)
