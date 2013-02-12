@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/utils/checksums.h>
 #include <dmlite/cpp/utils/security.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <vector>
@@ -26,6 +27,19 @@ inline uid_t getUid(const SecurityContext* ctx)
 inline gid_t getGid(const SecurityContext* ctx, unsigned index)
 {
   return ctx->groups[index].getUnsigned("gid");
+}
+
+
+
+inline ExtendedStat& fillChecksumInXattr(ExtendedStat& xstat)
+{
+  if (!xstat.csumtype.empty()) {
+    std::string csumXattr("checksum.");
+    csumXattr += checksums::fullChecksumName(xstat.csumtype);
+    if (!xstat.hasField(csumXattr))
+      xstat[csumXattr] = xstat.csumvalue;
+  }
+  return xstat;
 }
 
 
@@ -252,15 +266,16 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     ++i; // Next in array
   }
 
-  return meta;
+  return fillChecksumInXattr(meta);
 }
 
 
 
 ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
-  Replica replica = this->getReplicaByRFN(rfn);
-  return this->si_->getINode()->extendedStat(replica.fileid);
+  Replica replica   = this->getReplicaByRFN(rfn);
+  ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
+  return fillChecksumInXattr(meta);
 }
 
 
@@ -1060,7 +1075,36 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
     throw DmException(EACCES,
                       "Not enough permissions to write " + path);
   
-  this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
+  try {
+    this->si_->getINode()->begin();
+
+    // Update regular extended attributes
+    this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
+
+    // If there is a checksum xattr, and csumtype/value are empty,
+    // update them too
+    if (meta.csumtype.empty()) {
+      static const char* csumXattr[3] = {"checksum.adler32",
+                                         "checksum.crc32",
+                                         "checksum.md5"};
+
+      for (unsigned i = 0; i < 3; ++i) {
+        if (attr.hasField(csumXattr[i])) {
+          meta.csumtype  = checksums::shortChecksumName(csumXattr[i] + 9);
+          meta.csumvalue = attr.getString(csumXattr[i]);
+
+          this->si_->getINode()->setChecksum(meta.stat.st_ino,
+                                             meta.csumtype, meta.csumvalue);
+        }
+      }
+    }
+
+    this->si_->getINode()->commit();
+  }
+  catch (...) {
+    this->si_->getINode()->rollback();
+    throw;
+  }
 }
 
 
@@ -1113,6 +1157,7 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
 {
   BuiltInDir* dirp = (BuiltInDir*)dir;
   ExtendedStat* s = this->si_->getINode()->readDirx(dirp->idir);
+  fillChecksumInXattr(*s);
   this->updateAccessTime(dirp->dir);
   return s;
 }
@@ -1159,7 +1204,7 @@ void BuiltInCatalog::updateAccessTime(const ExtendedStat& meta) throw (DmExcepti
 }
 
 
-
+// This method is internal. No need for checksum translation.
 ExtendedStat BuiltInCatalog::getParent(const std::string& path,
                                        std::string* parentPath,
                                        std::string* name) throw (DmException)
