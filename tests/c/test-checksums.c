@@ -13,8 +13,8 @@ void testShortToLong()
   TEST_ASSERT_STR_EQUAL("ADLER32", dmlite_checksum_full_name("ad", buffer, sizeof(buffer)));
   TEST_ASSERT_STR_EQUAL("ADLER32", dmlite_checksum_full_name("AD", buffer, sizeof(buffer)));
 
-  TEST_ASSERT_STR_EQUAL("UNIXcksum", dmlite_checksum_full_name("cs", buffer, sizeof(buffer)));
-  TEST_ASSERT_STR_EQUAL("UNIXcksum", dmlite_checksum_full_name("CS", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CRC32", dmlite_checksum_full_name("cs", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CRC32", dmlite_checksum_full_name("CS", buffer, sizeof(buffer)));
 }
 
 
@@ -31,9 +31,9 @@ void testLongToShort()
   TEST_ASSERT_STR_EQUAL("AD", dmlite_checksum_short_name("adler32", buffer, sizeof(buffer)));
   TEST_ASSERT_STR_EQUAL("AD", dmlite_checksum_short_name("ADLER32", buffer, sizeof(buffer)));
 
-  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("UNIXcksum", buffer, sizeof(buffer)));
-  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("unixcksum", buffer, sizeof(buffer)));
-  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("UNIXCKSUM", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("CRC32", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("crc32", buffer, sizeof(buffer)));
+  TEST_ASSERT_STR_EQUAL("CS", dmlite_checksum_short_name("CrC32", buffer, sizeof(buffer)));
 }
 
 
