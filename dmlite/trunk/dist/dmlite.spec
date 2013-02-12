@@ -43,6 +43,7 @@ BuildRequires:	python-devel
 %if 0%{?with_python26}
 BuildRequires:	python26-devel
 %endif
+BuildRequires:	zlib-devel
 
 %description
 This package provides a set of common libraries and plugins that implement
