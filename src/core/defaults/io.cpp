@@ -109,7 +109,7 @@ size_t IOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (
 
 
 
-NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::seek(off64_t, Whence) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(off64_t IOHandler::tell(void) throw (DmException));
+NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::seek(off_t, Whence) throw (DmException));
+NOT_IMPLEMENTED_WITHOUT_ID(off_t IOHandler::tell(void) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::flush(void) throw (DmException));
 NOT_IMPLEMENTED_WITHOUT_ID(bool IOHandler::eof(void) throw (DmException));

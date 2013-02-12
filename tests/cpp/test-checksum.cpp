@@ -97,6 +97,28 @@ public:
     
     CPPUNIT_ASSERT_EQUAL(csumtype,  meta.csumtype);
     CPPUNIT_ASSERT_EQUAL(csumvalue, meta.csumvalue);
+
+    // For compatibility, the equivalent extended attribute must be set
+    CPPUNIT_ASSERT_EQUAL(csumvalue, meta.getString("checksum.md5"));
+  }
+
+  void testAsXAttr()
+  {
+    const std::string csumvalue("938f382cb011ef5e64cec5b748e39bf8");
+    dmlite::ExtendedStat xstat = this->catalog->extendedStat(FILE);
+
+    xstat["checksum.md5"] = csumvalue;
+
+    this->catalog->updateExtendedAttributes(FILE, xstat);
+
+    dmlite::ExtendedStat tstat = this->catalog->extendedStat(FILE);
+
+    CPPUNIT_ASSERT_EQUAL(csumvalue, tstat.getString("checksum.md5"));
+
+    // For compatibility, the equivalent legacy fields must be set
+    // (if they were empty already)
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), tstat.csumtype);
+    CPPUNIT_ASSERT_EQUAL(csumvalue,         tstat.csumvalue);
   }
 
   void testTranslationToLong()
@@ -186,6 +208,7 @@ public:
 
   CPPUNIT_TEST_SUITE(TestChecksum);
   CPPUNIT_TEST(testBasic);
+  CPPUNIT_TEST(testAsXAttr);
   CPPUNIT_TEST(testTranslationToLong);
   CPPUNIT_TEST(testTranslationToShort);
   CPPUNIT_TEST(testHexPrinter);
