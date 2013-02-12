@@ -14,13 +14,6 @@ extern void dmlite_clocation_to_cpplocation(const dmlite_location* locp,
                                             dmlite::Location& loc);
 
 
-struct dmlite_fd {
-  dmlite::IOHandler* stream;
-  int                errorCode;
-  std::string        errorString;
-};
-
-
 
 dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
                         const dmlite_any_dict* extra, ...)

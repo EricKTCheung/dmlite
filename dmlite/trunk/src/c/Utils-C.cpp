@@ -1,5 +1,5 @@
-/// @file   c/PluginManager-C.cpp
-/// @brief  C wrapper for dmlite::PluginManager.
+/// @file   c/Utils-C.cpp
+/// @brief  C wrapper for internal utilities
 /// @author Alejandro Álvarez Ayllon <aalvarez@cern.ch>
 #include <cstring>
 #include <dmlite/c/utils.h>
@@ -101,22 +101,4 @@ void dmlite_deserialize_acl(const char* buffer, unsigned* nEntries,
 void dmlite_acl_free(unsigned nEntries, struct dmlite_aclentry* acl)
 {
   delete [] acl;
-}
-
-
-
-char* dmlite_checksum_full_name(const char* shortName, char* output,
-                                size_t osize)
-{
-  std::string fullName = dmlite::checksums::fullChecksumName(shortName);
-  return ::strncpy(output, fullName.c_str(), osize);
-}
-
-
-
-char* dmlite_checksum_short_name(const char* longName, char* output,
-                                 size_t osize)
-{
-  std::string shortName = dmlite::checksums::shortChecksumName(longName);
-  return ::strncpy(output, shortName.c_str(), osize);
 }

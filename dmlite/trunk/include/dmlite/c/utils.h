@@ -106,27 +106,6 @@ void dmlite_deserialize_acl(const char* buffer, unsigned* nEntries,
  */
 void dmlite_acl_free(unsigned nEntries, dmlite_aclentry* acl);
 
-/**
- * @brief           Puts into output the full name of the checksum algorithm
- *                  specified with shortName.
- * @param shortName The checksum short name (CS, AD, MD)
- * @param output    The full name will be put here.
- * @param osize     The size of the buffer pointed by output.
- * @return          The same value as the pointer output
- */
-char* dmlite_checksum_full_name(const char* shortName, char* output,
-                                size_t osize);
-/**
- * @brief           Puts into output the short name of the checksum algorithm
- *                  specified with longName.
- * @param shortName The checksum long name (MD5, ADLER32, ...)
- * @param output    The short name will be put here.
- * @param osize     The size of the buffer pointed by output.
- * @return          The same value as the pointer output
- */
-char* dmlite_checksum_short_name(const char* longName, char* output,
-                                 size_t osize);
-
 #ifdef	__cplusplus
 }
 #endif
