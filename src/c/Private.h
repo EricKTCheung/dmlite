@@ -7,6 +7,7 @@
 #include <dmlite/c/inode.h>
 #include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/io.h>
 #include <dmlite/cpp/utils/extensible.h>
 #include <string>
 
@@ -117,6 +118,13 @@ struct dmlite_dir {
 struct dmlite_idir {
   dmlite::IDirectory* dir;
   dmlite_xstat        xstat;
+};
+
+/// IO Handler
+struct dmlite_fd {
+  dmlite::IOHandler* stream;
+  int                errorCode;
+  std::string        errorString;
 };
 
 /// Copies a ExtendedStat to a dmlite_xstat

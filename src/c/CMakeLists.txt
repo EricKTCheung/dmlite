@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 
 set(DMLITE_CAPI_SOURCES c/Any-C.cpp
                         c/Catalog-C.cpp
+                        c/Checksums-C.cpp
                         c/Inode-C.cpp
                         c/IO-C.cpp
                         c/PluginManager-C.cpp
