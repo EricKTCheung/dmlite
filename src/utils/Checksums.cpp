@@ -8,11 +8,11 @@
 std::string dmlite::checksums::fullChecksumName(const std::string& cs)
 {
   if (boost::iequals(cs, "AD"))
-    return "ADLER32";
+    return "adler32";
   else if (boost::iequals(cs, "CS"))
-    return "CRC32";
+    return "crc32";
   else if (boost::iequals(cs, "MD"))
-    return "MD5";
+    return "md5";
   else
     return cs;
 }

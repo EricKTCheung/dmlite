@@ -101,14 +101,14 @@ public:
 
   void testTranslationToLong()
   {
-    CPPUNIT_ASSERT_EQUAL(std::string("MD5"), dmlite::checksums::fullChecksumName("md"));
-    CPPUNIT_ASSERT_EQUAL(std::string("MD5"), dmlite::checksums::fullChecksumName("MD"));
+    CPPUNIT_ASSERT_EQUAL(std::string("md5"), dmlite::checksums::fullChecksumName("md"));
+    CPPUNIT_ASSERT_EQUAL(std::string("md5"), dmlite::checksums::fullChecksumName("MD"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("ADLER32"), dmlite::checksums::fullChecksumName("AD"));
-    CPPUNIT_ASSERT_EQUAL(std::string("ADLER32"), dmlite::checksums::fullChecksumName("ad"));
+    CPPUNIT_ASSERT_EQUAL(std::string("adler32"), dmlite::checksums::fullChecksumName("AD"));
+    CPPUNIT_ASSERT_EQUAL(std::string("adler32"), dmlite::checksums::fullChecksumName("ad"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("CRC32"), dmlite::checksums::fullChecksumName("CS"));
-    CPPUNIT_ASSERT_EQUAL(std::string("CRC32"), dmlite::checksums::fullChecksumName("cs"));
+    CPPUNIT_ASSERT_EQUAL(std::string("crc32"), dmlite::checksums::fullChecksumName("CS"));
+    CPPUNIT_ASSERT_EQUAL(std::string("crc32"), dmlite::checksums::fullChecksumName("cs"));
   }
 
   void testTranslationToShort()
