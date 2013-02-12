@@ -154,6 +154,10 @@ public:
     std::string fullMD5 = dmlite::checksums::md5(&mockIO, 0, 0);
     CPPUNIT_ASSERT_EQUAL(std::string("410443f5ffe2a1555be3e999274a6dc0"),
                          fullMD5);
+
+    std::string partialChecksum = dmlite::checksums::md5(&mockIO, 12, 6);
+    CPPUNIT_ASSERT_EQUAL(std::string("3fd6b6210e33bb046e69f256a138e28d"),
+                         partialChecksum);
   }
 
   void testCRC32()
@@ -162,6 +166,10 @@ public:
     std::string fullCKsum = dmlite::checksums::crc32(&mockIO, 0, 0);
     CPPUNIT_ASSERT_EQUAL(std::string("2931039948"),
                          fullCKsum);
+
+    std::string partialChecksum = dmlite::checksums::crc32(&mockIO, 12, 6);
+    CPPUNIT_ASSERT_EQUAL(std::string("243448890"),
+                         partialChecksum);
   }
 
   void testAdler32()
@@ -170,6 +178,10 @@ public:
     std::string fullAdler32 = dmlite::checksums::adler32(&mockIO, 0, 0);
     CPPUNIT_ASSERT_EQUAL(std::string("27b62f0e"),
                          fullAdler32);
+
+    std::string partialChecksum = dmlite::checksums::adler32(&mockIO, 12, 6);
+    CPPUNIT_ASSERT_EQUAL(std::string("08aa0288"),
+                         partialChecksum);
   }
 
   CPPUNIT_TEST_SUITE(TestChecksum);
