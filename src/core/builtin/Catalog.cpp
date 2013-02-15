@@ -1157,7 +1157,8 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
 {
   BuiltInDir* dirp = (BuiltInDir*)dir;
   ExtendedStat* s = this->si_->getINode()->readDirx(dirp->idir);
-  fillChecksumInXattr(*s);
+  if (s)
+    fillChecksumInXattr(*s);
   this->updateAccessTime(dirp->dir);
   return s;
 }
