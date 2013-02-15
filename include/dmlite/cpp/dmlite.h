@@ -12,7 +12,7 @@
 #include <map>
 #include <string>
 
-/// Namespace for the libdm C++ API
+/// Namespace for the dmlite C++ API
 namespace dmlite {
 
   /// API Version.
