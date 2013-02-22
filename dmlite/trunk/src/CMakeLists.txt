@@ -9,7 +9,7 @@ add_library(dmlite SHARED ${DMLITE_CAPI_SOURCES}
                           ${DMLITE_CORE_SOURCES}
                           ${DMLITE_UTILS_SOURCES})
 
-target_link_libraries (dmlite boost_regex boost_thread-mt crypto dl pthread ssl)
+target_link_libraries (dmlite boost_regex boost_thread-mt crypto dl pthread ssl z)
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
