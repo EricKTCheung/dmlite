@@ -82,9 +82,53 @@ class TestLocation: public CppUnit::TestFixture {
       CPPUNIT_ASSERT_EQUAL(location, deserialized);
     }
 
+    void testParameterEscaping()
+    {
+      dmlite::Url url;
+
+      url.domain = "example.com";
+      url.path   = "/path/file";
+      url.port   = 8443;
+      url.scheme = "https";
+      url.query["referrer"] = std::string("https://caller.com/path?param=value");
+
+      std::string serialized = url.toString();
+
+      std::string expected("https://example.com:8443/path/file?referrer=https%3A%2F%2Fcaller.com%2Fpath%3Fparam%3Dvalue");
+      CPPUNIT_ASSERT_EQUAL(expected, serialized);
+
+      dmlite::Url check(serialized);
+
+      CPPUNIT_ASSERT_EQUAL(url.query.getString("referrer"),
+                           check.query.getString("referrer"));
+    }
+
+    void testParameterEscapingUnicode()
+    {
+      dmlite::Url url;
+
+      url.domain = "example.com";
+      url.path   = "/path/file";
+      url.port   = 8443;
+      url.scheme = "https";
+      url.query["referrer"] = std::string("https://caller.com/path?param=ǘëñ");
+
+      std::string serialized = url.toString();
+
+      std::string expected("https://example.com:8443/path/file?referrer=https%3A%2F%2Fcaller.com%2Fpath%3Fparam%3D%C7%98%C3%AB%C3%B1");
+      CPPUNIT_ASSERT_EQUAL(expected, serialized);
+
+      dmlite::Url check(serialized);
+
+      CPPUNIT_ASSERT_EQUAL(url.query.getString("referrer"),
+                           check.query.getString("referrer"));
+    }
+
     CPPUNIT_TEST_SUITE(TestLocation);
     CPPUNIT_TEST(testChunk);
     CPPUNIT_TEST(testLocation);
+    CPPUNIT_TEST(testParameterEscaping);
+    CPPUNIT_TEST(testParameterEscapingUnicode);
     CPPUNIT_TEST_SUITE_END();
 };
 

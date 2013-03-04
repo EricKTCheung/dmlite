@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <dmlite/cpp/utils/urls.h>
+#include <iomanip>
 #include <sstream>
 
 using namespace dmlite;
@@ -96,6 +97,35 @@ bool Url::operator >  (const Url& u) const
 
 
 
+static std::string urlencode(const std::string& str)
+{
+  std::ostringstream stream;
+  std::string::const_iterator i;
+
+  for (i = str.begin(); i != str.end(); ++i) {
+    std::string::value_type c = *i;
+    if (isalnum(c)) {
+      stream << c;
+    }
+    else {
+      switch (c) {
+        case '.': case '-': case '~': case '_':
+          stream << c;
+          break;
+        default:
+          stream << '%' << std::setw(2) << std::setfill('0')
+                 << std::uppercase << std::hex
+                 << (int)static_cast<unsigned char>(c);
+      }
+    }
+  }
+
+
+  return stream.str();
+}
+
+
+
 std::string Url::queryToString(void) const
 {
   Extensible::const_iterator i;
@@ -104,12 +134,53 @@ std::string Url::queryToString(void) const
   for (i = query.begin(); i != query.end(); ++i) {
     queryStr << i->first;
     if (i->second.type() != typeid(bool) || Extensible::anyToBoolean(i->second) == false)
-      queryStr << "=" << Extensible::anyToString(i->second);
+      queryStr << "=" << urlencode(Extensible::anyToString(i->second));
     queryStr << "&";
   }
 
   std::string str = queryStr.str();
   return str.substr(0, str.size() - 1);
+}
+
+
+
+static unsigned int extractHex(std::istream& istream)
+{
+  std::string::value_type c[3];
+
+  istream.read(c, 2);
+  if (istream.fail() || istream.eof())
+    return '%';
+  c[2] = '\0';
+
+  return ::strtol(c, NULL, 16);
+}
+
+
+
+static std::string urldecode(const std::string& str)
+{
+  std::ostringstream ostream;
+  std::istringstream istream(str);
+  std::string::const_iterator i;
+  std::string::value_type c;
+
+  istream >> c;
+  while (!istream.fail() && !istream.eof()) {
+    switch (c) {
+      case '+':
+        ostream << ' ';
+        break;
+      case '%':
+        ostream << static_cast<unsigned char>(extractHex(istream));
+        break;
+      default:
+        ostream << c;
+    }
+    istream >> c;
+  }
+
+  return ostream.str();
 }
 
 
@@ -135,7 +206,7 @@ void Url::queryFromString(const std::string& str)
     if (pair.size() == 1)
       this->query[pair[0]] = true;
     else
-      this->query[pair[0]] = pair[1];
+      this->query[pair[0]] = urldecode(pair[1]);
   }
 }
 
