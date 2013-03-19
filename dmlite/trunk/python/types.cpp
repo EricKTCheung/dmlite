@@ -28,6 +28,7 @@ void export_types()
         .value("kTokenExpired", kTokenExpired)
         .value("kTokenInvalidMode", kTokenInvalidMode)
         .value("kTokenInternalError", kTokenInternalError)
+        .export_values()
         ;
 
     scope().attr("kUserObj") = int(AclEntry::kUserObj);
