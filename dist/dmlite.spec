@@ -114,10 +114,10 @@ mkdir -p %{buildroot}
 
 make install DESTDIR=%{buildroot}
 
-%if 0%{?with_python26}
-mkdir -p %{buildroot}%{python26_sitearch}
-install -m 755 -p %{buildroot}%{python_sitearch}/pydmlite.so %{buildroot}%{python26_sitearch}/pydmlite.so
-%endif
+#%if 0%{?with_python26}
+#mkdir -p %{buildroot}%{python26_sitearch}
+#install -m 755 -p %{buildroot}%{python_sitearch}/pydmlite.so %{buildroot}%{python26_sitearch}/pydmlite.so
+#%endif
 
 %clean
 rm -rf %{buildroot}
@@ -149,11 +149,11 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{python_sitearch}/pydmlite.so
 
-%if 0%{?with_python26}
-%files -n python26-dmlite
-%defattr(-,root,root,-)
-%{python26_sitearch}/pydmlite.so
-%endif
+#%if 0%{?with_python26}
+#%files -n python26-dmlite
+#%defattr(-,root,root,-)
+#%{python26_sitearch}/pydmlite.so
+#%endif
 
 %files test
 %defattr(-,root,root,-)
