@@ -1,19 +1,19 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
 
-%if 0%{?rhel} == 5
-%global with_python26 1
-%endif
-
-%if 0%{?with_python26}
-%global __python26 %{_bindir}/python2.6
-%global py26dir %{_builddir}/python26-%{name}-%{version}-%{release}
-%{!?python26_sitelib: %global python26_sitelib %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
-%{!?python26_sitearch: %global python26_sitearch %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
-# Update rpm byte compilation script so that we get the modules compiled by the
-# correct inerpreter
-%global __os_install_post %__multiple_python_os_install_post
-%endif
+#%if 0%{?rhel} == 5
+#%global with_python26 1
+#%endif
+#
+#%if 0%{?with_python26}
+#%global __python26 %{_bindir}/python2.6
+#%global py26dir %{_builddir}/python26-%{name}-%{version}-%{release}
+#%{!?python26_sitelib: %global python26_sitelib %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
+#%{!?python26_sitearch: %global python26_sitearch %(%{__python26} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
+## Update rpm byte compilation script so that we get the modules compiled by the
+## correct inerpreter
+#%global __os_install_post %__multiple_python_os_install_post
+#%endif
 
 Name:		dmlite
 Version:	0.6.1
@@ -40,9 +40,9 @@ BuildRequires:	doxygen
 BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 BuildRequires:	python-devel
-%if 0%{?with_python26}
-BuildRequires:	python26-devel
-%endif
+#%if 0%{?with_python26}
+#BuildRequires:	python26-devel
+#%endif
 BuildRequires:	zlib-devel
 
 %description
@@ -83,15 +83,15 @@ Group:		Development/Libraries
 %description -n python-dmlite
 This package provides a python wrapper for dmlite.
 
-%if 0%{?with_python26}
-%package -n python26-dmlite
-Summary:	Python 2.6 wrapper for dmlite
-Group:		Development/Libraries
-Requires:	python(abi) = 2.6
+#%if 0%{?with_python26}
+#%package -n python26-dmlite
+#Summary:	Python 2.6 wrapper for dmlite
+#Group:		Development/Libraries
+#Requires:	python(abi) = 2.6
 
-%description -n python26-dmlite
-This package provides a python26 wrapper for dmlite.
-%endif #end of python2.6
+#%description -n python26-dmlite
+#This package provides a python26 wrapper for dmlite.
+#%endif #end of python2.6
 
 %package test
 Summary:	All sorts of tests for dmlite interfaces
