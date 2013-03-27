@@ -21,16 +21,17 @@ public:
   // crate a url, convert to string, then back to url and compare with original
   void testUrlString(void)
   {
-    dmlite::Url myurl("root://myhost.example.com:1095//Apath1!@#%^_-+=:./file.dat");
-    std::string q1 = "a!b@c#d?e=f$g &h%i^j*k.-+";
+    std::string p = "/Apath1!@#%^_-+=:./file.dat";
+    dmlite::Url myurl("root://myhost.example.com:1095/" + p);
+    std::string q1 = "a!b@C1#d?e=f$g &h%i^j*k.-+";
     std::string q2 = "l(m*n^o%p?q$/r_&s#t@u!v=w";
     myurl.query["q.1"] = q1;
     myurl.query["q.2"] = q2;
     std::string s = myurl.toString();
     dmlite::Url url2(s);
-    CPPUNIT_ASSERT_EQUAL(myurl, url2);
-    CPPUNIT_ASSERT_EQUAL(url2.query["q.1"], q1);
-    CPPUNIT_ASSERT_EQUAL(url2.query["q.2"], q2);
+    CPPUNIT_ASSERT_EQUAL(url2.path, p);
+    CPPUNIT_ASSERT_EQUAL(url2.query.getString("q.1"), q1);
+    CPPUNIT_ASSERT_EQUAL(url2.query.getString("q.2"), q2);
   }
 
 
