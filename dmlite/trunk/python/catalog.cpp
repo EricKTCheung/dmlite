@@ -47,6 +47,7 @@ void export_catalog()
 
         .def("getReplicaByRFN", &Catalog::getReplicaByRFN)
         .def("updateReplica", &Catalog::updateReplica)
+        .def("getImplId", &Catalog::getImplId)
         ;
 
 
