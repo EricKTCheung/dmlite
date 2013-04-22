@@ -70,7 +70,8 @@ public:
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
-    CPPUNIT_ASSERT_EQUAL(expectedMode, xstat.stat.st_mode & 0777);
+    CPPUNIT_ASSERT_EQUAL(expectedMode,
+                         static_cast<mode_t>(xstat.stat.st_mode & 0777));
     CPPUNIT_ASSERT_EQUAL(ACL, xstat.acl);
   }
 
@@ -108,7 +109,8 @@ public:
 
     // Mode must be the same
     dmlite::ExtendedStat xstat = catalog->extendedStat(PATH);
-    CPPUNIT_ASSERT_EQUAL((mode_t)0700, xstat.stat.st_mode & 0777);
+    CPPUNIT_ASSERT_EQUAL(static_cast<mode_t>(0700),
+                         static_cast<mode_t>(xstat.stat.st_mode & 0777));
   }
 
   void testCancel()

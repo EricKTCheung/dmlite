@@ -26,7 +26,7 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
   if (flags & O_CREAT) {
     va_list args;
     va_start(args, extra);
-    mode_t mode = va_arg(args, mode_t);
+    mode_t mode = (mode_t)va_arg(args, int);
     va_end(args);
 
     if (extra != NULL)
