@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.6)
 #       These here are intended to check if the mapping between C and CPP is
 #       working as intended, so a mock plugin is used.
 
-add_library           (mock SHARED plugin_mock.cpp plugin_mock.h)
+add_library           (mock MODULE plugin_mock.cpp plugin_mock.h)
 set_target_properties (mock PROPERTIES PREFIX "plugin_")
 target_link_libraries (mock dmlite)
 

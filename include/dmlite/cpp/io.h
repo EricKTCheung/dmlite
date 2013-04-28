@@ -12,6 +12,8 @@
 
 #include <fcntl.h>
 #include <map>
+#include <sys/stat.h>
+#include <sys/uio.h>
 
 namespace dmlite {
   
@@ -38,7 +40,7 @@ namespace dmlite {
     /// @note Not all plug-ins will fill all the fields, but st_size is
     ///       a reasonable expectation.
     /// @note Default implementation combining seek/tell is provided.
-    virtual struct stat fstat(void) throw (DmException);
+    virtual struct ::stat fstat(void) throw (DmException);
 
     /// Read.
     /// @param buffer Where to store the data.
