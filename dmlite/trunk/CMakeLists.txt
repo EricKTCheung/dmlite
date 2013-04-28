@@ -7,6 +7,9 @@ set(dmlite_MAJOR 0)
 set(dmlite_MINOR 6)
 set(dmlite_PATCH 1)
 
+# Optional builds
+option (BUILD_PYTHON "Build Python bindings" ON)
+
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX ""
@@ -54,9 +57,12 @@ add_definitions (-D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOO
 add_subdirectory (doc)
 add_subdirectory (etc)
 add_subdirectory (include)
-add_subdirectory (python)
 add_subdirectory (src)
 add_subdirectory (tests)
+
+if (BUILD_PYTHON)
+  add_subdirectory (python)
+endif (BUILD_PYTHON)
 
 #######################################################
 # Configure an 'uninstall' target

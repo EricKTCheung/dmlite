@@ -414,7 +414,7 @@ size_t MockIOHandler::write(const char* buffer, size_t count) throw (DmException
 
 
 
-void MockIOHandler::seek(off64_t offset, Whence whence) throw (DmException)
+void MockIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
   if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                                 "Can not seek after closing");
@@ -434,7 +434,7 @@ void MockIOHandler::seek(off64_t offset, Whence whence) throw (DmException)
 
 
 
-off64_t MockIOHandler::tell (void) throw (DmException)
+off_t MockIOHandler::tell (void) throw (DmException)
 {
   if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                                 "Can not tell after closing");

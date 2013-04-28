@@ -29,14 +29,14 @@ namespace dmlite {
                       kMigrated = 'm'
                     };
     
-    ino_t       parent;
-    struct stat stat;
-    FileStatus  status;
-    std::string name;
-    std::string guid;
-    std::string csumtype;
-    std::string csumvalue;
-    Acl         acl;
+    ino_t         parent;
+    struct ::stat stat;
+    FileStatus    status;
+    std::string   name;
+    std::string   guid;
+    std::string   csumtype;
+    std::string   csumvalue;
+    Acl           acl;
     
     bool operator == (const ExtendedStat&) const;
     bool operator != (const ExtendedStat&) const;

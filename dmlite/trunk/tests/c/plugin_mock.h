@@ -77,7 +77,7 @@ namespace dmlite {
   class MockIOHandler: public IOHandler {
     private:
      char     content[1024];
-     off64_t  p;
+     off_t    p;
      bool     closed;
     public:
      MockIOHandler();
@@ -86,8 +86,8 @@ namespace dmlite {
      void    close(void) throw (DmException);
      size_t  read (char* buffer, size_t count) throw (DmException);
      size_t  write(const char* buffer, size_t count) throw (DmException);
-     void    seek (off64_t offset, Whence whence) throw (DmException);
-     off64_t tell (void) throw (DmException);
+     void    seek (off_t offset, Whence whence) throw (DmException);
+     off_t   tell (void) throw (DmException);
      void    flush(void) throw (DmException);
      bool    eof  (void) throw (DmException);
   };

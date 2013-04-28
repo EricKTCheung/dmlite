@@ -17,9 +17,13 @@ using namespace dmlite;
 static pthread_key_t  patternGlobalKey;
 static pthread_once_t patternGlobalOnce = PTHREAD_ONCE_INIT;
 
-
-
+// In Linux the prototype for filter in scandir pass a const struct dirent
+// while in MacOS, for instance, it is a struct dirent*
+#if defined(linux)
 static int configFilter(const struct dirent* entry)
+#else
+static int configFilter(struct dirent* entry)
+#endif
 {
   const char* pattern = static_cast<const char*>(pthread_getspecific(patternGlobalKey));
   return fnmatch(pattern, entry->d_name, 0) == 0;
