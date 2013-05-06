@@ -40,13 +40,16 @@ void IODriver::setSecurityContext(IODriver* i, const SecurityContext* ctx) throw
 
 IOHandler::IOHandler()
 {
-  seeklock = PTHREAD_MUTEX_INITIALIZER;
+  /* creates a mutex */
+  pthread_mutex_init(&seeklock, NULL);
+  
 }
 
 
 IOHandler::~IOHandler()
 {
-  // Nothing
+  pthread_mutex_destroy(&seeklock);
+  
 }
 
 
