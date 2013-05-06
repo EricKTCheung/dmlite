@@ -24,12 +24,21 @@ namespace dmlite {
   
   /// IO interface
   class IOHandler {
+   protected:
+    /// Locks this default simplified implementation
+    /// of primitives like pread and pwrite, that are not thread safe.
+    /// This is not too bad unless the application points
+    /// multiple threads to the same IOHandler instance
+    pthread_mutex_t seeklock;
    public:
     enum Whence { kSet = SEEK_SET, ///< Beginning of the file
                   kCur = SEEK_CUR, ///< Current position
                   kEnd = SEEK_END  ///< End of file
                 };
      
+    /// Ctor
+    IOHandler();
+                
     /// Virtual destructor
     virtual ~IOHandler();
 
