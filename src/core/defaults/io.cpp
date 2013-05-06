@@ -17,6 +17,7 @@ FACTORY_NOT_IMPLEMENTED(IODriver* IOFactory::createIODriver(PluginManager*) thro
 
 
 
+
 IODriver::~IODriver()
 {
   // Nothing
@@ -37,6 +38,12 @@ void IODriver::setSecurityContext(IODriver* i, const SecurityContext* ctx) throw
 
 
 
+IOHandler::IOHandler()
+{
+  seeklock = PTHREAD_MUTEX_INITIALIZER;
+}
+
+
 IOHandler::~IOHandler()
 {
   // Nothing
@@ -51,10 +58,23 @@ NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::close(void) throw (DmException));
 struct stat IOHandler::fstat() throw (DmException)
 {
   struct stat st;
-  off_t where = this->tell();
-  this->seek(0, kEnd);
-  st.st_size = this->tell();
-  this->seek(where, kSet);
+  
+  pthread_mutex_lock(&seeklock);
+  try {
+    off_t where = this->tell();
+    this->seek(0, kEnd);
+    st.st_size = this->tell();
+    this->seek(where, kSet);
+    pthread_mutex_unlock(&seeklock);
+  }
+  catch (std::exception& e) {
+      pthread_mutex_unlock(&seeklock);
+      throw;
+  }
+  
+  
+  
+  
   return st;
 }
 
@@ -89,10 +109,21 @@ size_t IOHandler::writev(const struct iovec* vector, size_t count) throw (DmExce
 
 size_t IOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  off_t prev = this->tell();
-  this->seek(offset, IOHandler::kSet);
-  size_t nread = this->read((char*)buffer, count);
-  this->seek(prev, IOHandler::kSet);
+  size_t nread;
+  
+  pthread_mutex_lock(&seeklock);
+  try {
+    off_t prev = this->tell();
+    this->seek(offset, IOHandler::kSet);
+    nread = this->read((char*)buffer, count);
+    this->seek(prev, IOHandler::kSet);
+    pthread_mutex_unlock(&seeklock);
+  }
+  catch (std::exception& e) {
+      pthread_mutex_unlock(&seeklock);
+      throw;
+  } 
+  
   return nread;
 }
 
@@ -100,10 +131,21 @@ size_t IOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmExcep
 
 size_t IOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  off_t prev = this->tell();
-  this->seek(offset, IOHandler::kSet);
-  size_t nwrite = this->write((const char*)buffer, count);
-  this->seek(prev, IOHandler::kSet);
+  size_t nwrite;
+  
+  pthread_mutex_lock(&seeklock);
+  try {
+    off_t prev = this->tell();
+    this->seek(offset, IOHandler::kSet);
+    nwrite = this->write((const char*)buffer, count);
+    this->seek(prev, IOHandler::kSet);
+    pthread_mutex_unlock(&seeklock);
+  }
+  catch (std::exception& e) {
+      pthread_mutex_unlock(&seeklock);
+      throw;
+  }
+  
   return nwrite;
 }
 
