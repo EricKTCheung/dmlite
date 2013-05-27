@@ -325,26 +325,27 @@ int dmlite::checkPermissions(const SecurityContext* context,
   unsigned iacl;
   uint8_t  aclMask = 0x7F;
   uid_t    aclId;
-  int      accPerm;
+  int      accPerm = 0;
   int      nGroups = 0;
   
   // If Context is NULL, abort
   if (context == 0)
     throw DmException(DMLITE_SYSERR(EINVAL),
                       "Security context not initialized!!");
-  
+
   // Extract used metadata
   uid_t uid = context->user.getUnsigned("uid");
-  long banned;
-  
-  if (context->user.hasField("banned"))
-    banned = context->user.getLong("banned");
-  else
-    banned = 0; // Assume not banned
 
   // Root can do anything
   if (uid == 0)
     return 0;
+
+  // Check if the user is banned
+  long banned = context->user.getLong("banned");
+
+  // If user's primary group is banned, the user is also banned
+  if (context->groups.size() && context->groups[0].getLong("banned"))
+    banned = 1;
 
   // Banned user, rejected
   if (banned)
