@@ -23,7 +23,7 @@ try {\
   return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
   if (!context) return EFAULT;\
-  context->errorCode   = e.code();\
+  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return context->errorCode;\
 } catch (...) {\
@@ -36,7 +36,7 @@ try {\
 /// Catch block for functions that return a pointer.
 #define CATCH_POINTER(context, method)\
 } catch (dmlite::DmException& e) {\
-  context->errorCode   = e.code();\
+  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return NULL;\
 } catch (...) {\
@@ -50,7 +50,7 @@ try {\
   return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
   if (!context) return EFAULT;\
-  context->errorCode   = e.code();\
+  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return -1;\
 } catch (...) {\
@@ -67,7 +67,7 @@ try {\
   handle->manager->method(__VA_ARGS__);\
 }\
 catch (dmlite::DmException& e) {\
-  handle->errorCode   = e.code();\
+  handle->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   handle->errorString = e.what();\
   return handle->errorCode;\
 }\
