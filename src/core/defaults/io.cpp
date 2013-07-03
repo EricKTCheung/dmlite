@@ -29,7 +29,6 @@ NOT_IMPLEMENTED(void IODriver::doneWriting(const Location&) throw (DmException))
 NOT_IMPLEMENTED(void IODriver::setSecurityContext(const SecurityContext*) throw (DmException));
 
 
-
 void IODriver::setSecurityContext(IODriver* i, const SecurityContext* ctx) throw (DmException)
 {
   if (i != NULL) i->setSecurityContext(ctx);
