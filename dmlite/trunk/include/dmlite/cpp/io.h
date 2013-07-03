@@ -100,7 +100,7 @@ namespace dmlite {
   };
 
   /// IO Driver
-  class IODriver {
+  class IODriver: public virtual BaseInterface {
    public:
     /// Use this flag in addition to the standard ones to skip any
     /// security check (i.e. token validation)
