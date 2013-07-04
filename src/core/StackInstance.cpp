@@ -249,8 +249,9 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
 
 void StackInstance::setSecurityContext(const SecurityContext& ctx) throw (DmException)
 {
-  if (this->secCtx_) delete this->secCtx_;
+  SecurityContext *tmp = this->secCtx_;
   this->secCtx_ = new SecurityContext(ctx);
+  delete tmp;
   
   setSecurityContextImpl_();
 }
