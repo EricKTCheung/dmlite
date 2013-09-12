@@ -18,14 +18,16 @@ void testGetPools(dmlite_context* context)
   TEST_CONTEXT_CALL(context, dmlite_getpools, &nPools, &pools);
   TEST_ASSERT_EQUAL(1, nPools);
   
-  TEST_ASSERT_STR_EQUAL("mock", pools[0].pool_type);
-  TEST_ASSERT_STR_EQUAL("hardcoded", pools[0].pool_name);
-  
-  /* There is one dummy extra */
-  dmlite_any* extra = dmlite_any_dict_get(pools[0].extra, "extra");
-  dmlite_any_to_string(extra, buffer, sizeof(buffer));
-  TEST_ASSERT_STR_EQUAL("something", buffer);
-  dmlite_any_free(extra);
+  if (nPools) {
+      TEST_ASSERT_STR_EQUAL("mock", pools[0].pool_type);
+      TEST_ASSERT_STR_EQUAL("hardcoded", pools[0].pool_name);
+
+      /* There is one dummy extra */
+      dmlite_any* extra = dmlite_any_dict_get(pools[0].extra, "extra");
+      dmlite_any_to_string(extra, buffer, sizeof(buffer));
+      TEST_ASSERT_STR_EQUAL("something", buffer);
+      dmlite_any_free(extra);
+  }
   
   /* Free */
   TEST_ASSERT_EQUAL(0, dmlite_pools_free(nPools, pools));
@@ -41,25 +43,29 @@ void testGet(dmlite_context* context)
   dmlite_location* loc;
   TEST_CONTEXT_CALL_PTR(loc, context, dmlite_get, "/file");
   
-  TEST_ASSERT_EQUAL(2, loc->nchunks);
+  if (loc) {
+      TEST_ASSERT_EQUAL(2, loc->nchunks);
+  }
   
-  TEST_ASSERT_STR_EQUAL("host1.cern.ch", loc->chunks[0].url.domain);
-  TEST_ASSERT_STR_EQUAL("/storage/chunk01", loc->chunks[0].url.path);
-  TEST_ASSERT_EQUAL(0, loc->chunks[0].offset);
-  TEST_ASSERT_EQUAL(100, loc->chunks[0].size);
-          
-  TEST_ASSERT_STR_EQUAL("host2.cern.ch", loc->chunks[1].url.domain);
-  TEST_ASSERT_STR_EQUAL("/storage/chunk02", loc->chunks[1].url.path);
-  TEST_ASSERT_EQUAL(101, loc->chunks[1].offset);
-  TEST_ASSERT_EQUAL(50, loc->chunks[1].size);
-  
-  /* Second has an extra */
-  char buffer[128];
-  dmlite_any* token = dmlite_any_dict_get(loc->chunks[1].url.query, "token");
-  dmlite_any_to_string(token, buffer, sizeof(buffer));
-  dmlite_any_dict_insert(loc->chunks[1].url.query, "token", token);
-  TEST_ASSERT_STR_EQUAL("123456789", buffer);
-  dmlite_any_free(token);
+  if (loc && loc->nchunks >= 2) {
+      TEST_ASSERT_STR_EQUAL("host1.cern.ch", loc->chunks[0].url.domain);
+      TEST_ASSERT_STR_EQUAL("/storage/chunk01", loc->chunks[0].url.path);
+      TEST_ASSERT_EQUAL(0, loc->chunks[0].offset);
+      TEST_ASSERT_EQUAL(100, loc->chunks[0].size);
+
+      TEST_ASSERT_STR_EQUAL("host2.cern.ch", loc->chunks[1].url.domain);
+      TEST_ASSERT_STR_EQUAL("/storage/chunk02", loc->chunks[1].url.path);
+      TEST_ASSERT_EQUAL(101, loc->chunks[1].offset);
+      TEST_ASSERT_EQUAL(50, loc->chunks[1].size);
+
+      /* Second has an extra */
+      char buffer[128];
+      dmlite_any* token = dmlite_any_dict_get(loc->chunks[1].url.query, "token");
+      dmlite_any_to_string(token, buffer, sizeof(buffer));
+      dmlite_any_dict_insert(loc->chunks[1].url.query, "token", token);
+      TEST_ASSERT_STR_EQUAL("123456789", buffer);
+      dmlite_any_free(token);
+  }
   
   dmlite_location_free(loc);
 }
@@ -76,6 +82,9 @@ void testPut(dmlite_context* context)
   dmlite_location* loc;
   TEST_CONTEXT_CALL_PTR(loc, context, dmlite_put, "/file");
   
+  if (!loc)
+      return;
+
   TEST_ASSERT_EQUAL(1, loc->nchunks);
   
   TEST_ASSERT_STR_EQUAL("host1.cern.ch", loc->chunks[0].url.domain);
@@ -87,7 +96,7 @@ void testPut(dmlite_context* context)
   dmlite_any_to_string(token, buffer, sizeof(buffer));
   dmlite_any_free(token);
   TEST_ASSERT_STR_EQUAL("987654321", buffer);
-  
+
   TEST_CONTEXT_CALL(context, dmlite_donewriting, loc);
 
   dmlite_location_free(loc);
