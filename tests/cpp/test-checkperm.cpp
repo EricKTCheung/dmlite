@@ -144,11 +144,12 @@ public:
     dmlite::Acl       acl;
     
     // Owner matches, group banned
+    // Note: Main group banned = user banned
     group["gid"]    = 200u;
     group["banned"] = 1;
     context->user["uid"] = 200u;
     context->groups.push_back(group);
-    CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
+    CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IWRITE | S_IEXEC));
     // Owner doesn't match. Group does, but banned.
@@ -181,9 +182,10 @@ public:
                                                      S_IREAD | S_IEXEC));
 
     // Owner doesn't match, main group neither and banned. Secondary OK.
+    // Note: Main group banned = user banned
     context->groups[0]["banned"] = 1;
     context->groups[1]["banned"] = 0;
-    CPPUNIT_ASSERT_EQUAL(0, dmlite::checkPermissions(context,
+    CPPUNIT_ASSERT_EQUAL(1, dmlite::checkPermissions(context,
                                                      acl, stat_,
                                                      S_IREAD | S_IEXEC));
   }
