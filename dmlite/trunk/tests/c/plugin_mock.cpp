@@ -479,6 +479,13 @@ void MockIODriver::setSecurityContext(const SecurityContext*) throw (DmException
 
 
 
+void MockIODriver::setStackInstance(StackInstance*) throw (DmException)
+{
+  // Ignore
+}
+
+
+
 IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
                                          const Extensible& extras, mode_t mode) throw (DmException)
 {
