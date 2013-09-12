@@ -129,7 +129,7 @@ void testCreateAndModify(dmlite_context* context)
 void testReplicas(dmlite_context* context)
 {
   struct stat    s;
-  dmlite_replica replica, *replicas;
+  dmlite_replica replica, *replicas = NULL;
   unsigned       nReplicas;
   
   /* Initialize */
@@ -156,18 +156,20 @@ void testReplicas(dmlite_context* context)
                     &nReplicas, &replicas);
   
   TEST_ASSERT_EQUAL(1, nReplicas);
-  TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replicas[0].server);
-  TEST_ASSERT_STR_EQUAL("/storage/replica.01", replicas[0].rfn);
-  TEST_ASSERT_EQUAL(kAvailable, replicas[0].status);
-  TEST_ASSERT_EQUAL(kPermanent, replicas[0].type);
-  
-  any = dmlite_any_dict_get(replicas[0].extra, "additional");
-  TEST_ASSERT_NOT_EQUAL(NULL, any);
-  if (any) {
-    char buffer[64];
-    dmlite_any_to_string(any, buffer, sizeof(buffer));
-    TEST_ASSERT_STR_EQUAL("value", buffer);
-    dmlite_any_free(any);
+  if (nReplicas) {
+      TEST_ASSERT_STR_EQUAL("disk.cern.ch",        replicas[0].server);
+      TEST_ASSERT_STR_EQUAL("/storage/replica.01", replicas[0].rfn);
+      TEST_ASSERT_EQUAL(kAvailable, replicas[0].status);
+      TEST_ASSERT_EQUAL(kPermanent, replicas[0].type);
+
+      any = dmlite_any_dict_get(replicas[0].extra, "additional");
+      TEST_ASSERT_NOT_EQUAL(NULL, any);
+      if (any) {
+        char buffer[64];
+        dmlite_any_to_string(any, buffer, sizeof(buffer));
+        TEST_ASSERT_STR_EQUAL("value", buffer);
+        dmlite_any_free(any);
+      }
   }
   
   TEST_ASSERT_EQUAL(0, dmlite_replicas_free(nReplicas, replicas));
