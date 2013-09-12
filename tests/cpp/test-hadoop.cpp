@@ -1,4 +1,4 @@
-#include <dmlite/dmlite++.h>
+#include <dmlite/cpp/dmlite.h>
 #include <plugins/hadoop/Hadoop.h>
 
 int main(int argn, char **argv)

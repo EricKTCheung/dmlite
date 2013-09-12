@@ -41,6 +41,15 @@ Url::Url(const std::string& url) throw (): port(0)
 
 
 
+Url::Url(const Url& _u):
+        scheme(_u.scheme), domain(_u.domain),
+        port(_u.port), path(_u.path)
+{
+    query.copy(_u.query);
+}
+
+
+
 bool Url::operator == (const Url& u) const
 {
   return this->domain == u.domain &&
@@ -93,6 +102,20 @@ bool Url::operator <  (const Url& u) const
 bool Url::operator >  (const Url& u) const
 {
   return (*this < u);
+}
+
+
+
+Url& Url::operator = (const Url& _u)
+{
+    if (&_u == this)
+        return *this;
+    scheme = _u.scheme;
+    domain = _u.domain;
+    port = _u.port;
+    path = _u.path;
+    query.copy(_u.query);
+    return *this;
 }
 
 

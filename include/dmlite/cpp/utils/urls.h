@@ -19,14 +19,7 @@ namespace dmlite {
     
     Url() throw();
     explicit Url(const std::string& url) throw ();
-    Url(const Url & _u) : 
-				scheme(_u.scheme),
-				domain(_u.domain),
-				port(_u.port),
-				path(_u.path)
-	{
-		query.copy(_u.query);			
-	}
+    Url(const Url & _u);
     
     // Operators
     bool operator == (const Url&) const;
@@ -34,17 +27,8 @@ namespace dmlite {
     bool operator <  (const Url&) const;
     bool operator >  (const Url&) const;
     
-	Url & operator=(const Url & _u){
-		if( &_u == this)
-			return *this;
-		scheme = _u.scheme;
-		domain = _u.domain;
-		port = _u.port;
-		path = _u.path;
-		query.copy(_u.query);
-		return *this;
-	}
-    
+	Url & operator = (const Url & _u);
+
     std::string queryToString(void) const;
     void        queryFromString(const std::string& str);
 
@@ -62,7 +46,6 @@ namespace dmlite {
     /// Remove multiple slashes.
     static std::string normalizePath(const std::string& path) throw ();
      
-
   };
 };
 

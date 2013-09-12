@@ -29,7 +29,9 @@ public:
     myurl.query["q.2"] = q2;
     std::string s = myurl.toString();
     dmlite::Url url2(s);
-    CPPUNIT_ASSERT_EQUAL(p, url2.path);
+    // Normalizing the path removing extra slashes may look like it makes sense,
+    // but for xrootd, for instance, root://host/path != root://host//path
+    CPPUNIT_ASSERT_EQUAL(std::string("/") + p, url2.path);
     CPPUNIT_ASSERT_EQUAL(q1, url2.query.getString("q.1"));
     CPPUNIT_ASSERT_EQUAL(q2, url2.query.getString("q.2"));
   }
