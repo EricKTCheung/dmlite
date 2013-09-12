@@ -49,10 +49,10 @@ install (DIRECTORY 		${CMAKE_CURRENT_BINARY_DIR}/
 # Add CTest tests
 ENABLE_TESTING()
 
-ADD_TEST(test-any        ${CMAKE_CURRENT_BINARY_DIR}/test-any-c)
-ADD_TEST(test-catalog    ${CMAKE_CURRENT_BINARY_DIR}/test-catalog-c)
-ADD_TEST(test-checksums  ${CMAKE_CURRENT_BINARY_DIR}/test-checksums)
-ADD_TEST(test-converters ${CMAKE_CURRENT_BINARY_DIR}/test-converters)
-ADD_TEST(test-io         ${CMAKE_CURRENT_BINARY_DIR}/test-io-c)
-ADD_TEST(test-manager    ${CMAKE_CURRENT_BINARY_DIR}/test-manager-c)
-ADD_TEST(test-pool       ${CMAKE_CURRENT_BINARY_DIR}/test-pool-c)
+ADD_TEST(test-any-c        ${CMAKE_CURRENT_BINARY_DIR}/test-any-c)
+ADD_TEST(test-catalog-c    ${CMAKE_CURRENT_BINARY_DIR}/test-catalog-c)
+ADD_TEST(test-checksums-c  ${CMAKE_CURRENT_BINARY_DIR}/test-checksums)
+ADD_TEST(test-converters-c ${CMAKE_CURRENT_BINARY_DIR}/test-converters)
+ADD_TEST(test-io-c         ${CMAKE_CURRENT_BINARY_DIR}/test-io-c)
+ADD_TEST(test-manager-c    ${CMAKE_CURRENT_BINARY_DIR}/test-manager-c)
+ADD_TEST(test-pool-c       ${CMAKE_CURRENT_BINARY_DIR}/test-pool-c)
