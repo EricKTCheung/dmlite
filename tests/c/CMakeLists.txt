@@ -3,6 +3,8 @@ cmake_minimum_required (VERSION 2.6)
 # NOTE: Functionality is actually tested by the CPP tests
 #       These here are intended to check if the mapping between C and CPP is
 #       working as intended, so a mock plugin is used.
+#       Since a mock plugin is used, all tests can be run when
+#       RUN_ONLY_STANDALONE_TESTS is used.
 
 add_library           (mock MODULE plugin_mock.cpp plugin_mock.h)
 set_target_properties (mock PROPERTIES PREFIX "plugin_")
