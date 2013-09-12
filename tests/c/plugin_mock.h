@@ -99,6 +99,7 @@ namespace dmlite {
      
      std::string getImplId() const throw();
      void setSecurityContext(const SecurityContext*) throw (DmException);
+     void setStackInstance(StackInstance* si) throw (DmException);
      
      IOHandler* createIOHandler(const std::string& pfn,
                                 int flags,
