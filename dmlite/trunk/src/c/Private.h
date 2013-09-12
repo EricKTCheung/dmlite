@@ -36,10 +36,12 @@ try {\
 /// Catch block for functions that return a pointer.
 #define CATCH_POINTER(context, method)\
 } catch (dmlite::DmException& e) {\
+  if (!context) return NULL;\
   context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return NULL;\
 } catch (...) {\
+  if (!context) return NULL;\
   context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
   context->errorString = "An unexpected exception was thrown while executing "#method;\
   return NULL;\
@@ -67,11 +69,13 @@ try {\
   handle->manager->method(__VA_ARGS__);\
 }\
 catch (dmlite::DmException& e) {\
+  if (!handle) return EFAULT;\
   handle->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
   handle->errorString = e.what();\
   return handle->errorCode;\
 }\
 catch (...) {\
+  if (!handle) return EFAULT;\
   handle->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);\
   handle->errorString = "An unexpected exception was thrown while executing "#method;\
   return handle->errorCode;\
