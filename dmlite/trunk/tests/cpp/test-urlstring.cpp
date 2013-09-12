@@ -1,24 +1,15 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestAssert.h>
+#include <cppunit/extensions/TestFactoryRegistry.h>
+#include <cppunit/ui/text/TestRunner.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <string>
-#include "test-base.h"
 
-class TestUrlString: public TestBase
+class TestUrlString: public CppUnit::TestFixture
 {
 public:
-  void setUp()
-  {
-    TestBase::setUp();
-  }
 
-  void tearDown()
-  {
-    TestBase::tearDown();
-  }
-
-
-  // crate a url, convert to string, then back to url and compare with original
+  // create a url, convert to string, then back to url and compare with original
   void testUrlString(void)
   {
     std::string p = "/Apath1!@#%^_-+=:./file.dat";
@@ -46,5 +37,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION(TestUrlString);
 
 int main(int argn, char **argv)
 {
-  return testBaseMain(argn, argv);
+    CppUnit::TextUi::TestRunner runner;
+    CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
+    runner.addTest( registry.makeTest() );
+    return runner.run()?0:1;
 }
