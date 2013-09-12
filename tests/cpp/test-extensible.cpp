@@ -227,6 +227,25 @@ class TestExtensible: public CppUnit::TestFixture {
       check = dmlite::Extensible::anyToS64(anyInt);
       CPPUNIT_ASSERT_EQUAL(static_cast<int64_t>(42), check);
     }
+
+    void testCopy()
+    {
+        dmlite::Extensible a;
+        a["value"] = 55;
+        a["string"] = std::string("hello there");
+        a["someother"] = std::string("first");
+
+        dmlite::Extensible b;
+        b["value"] = 88;
+        b["someother"] = std::string("second");
+        b["extra"] = std::string("not-there-before");
+
+        b.copy(a);
+        CPPUNIT_ASSERT_EQUAL(55l, b.getLong("value"));
+        CPPUNIT_ASSERT_EQUAL(std::string("hello there"), b.getString("string"));
+        CPPUNIT_ASSERT_EQUAL(std::string("first"), b.getString("someother"));
+        CPPUNIT_ASSERT_EQUAL(false, b.hasField("extra"));
+    }
    
     CPPUNIT_TEST_SUITE(TestExtensible);
     CPPUNIT_TEST(testRegular);
@@ -237,6 +256,7 @@ class TestExtensible: public CppUnit::TestFixture {
     CPPUNIT_TEST(testNested);
     CPPUNIT_TEST(testArray);
     CPPUNIT_TEST(test64);
+    CPPUNIT_TEST(testCopy);
     CPPUNIT_TEST_SUITE_END();
 };
 
