@@ -29,9 +29,9 @@ public:
     myurl.query["q.2"] = q2;
     std::string s = myurl.toString();
     dmlite::Url url2(s);
-    CPPUNIT_ASSERT_EQUAL(url2.path, p);
-    CPPUNIT_ASSERT_EQUAL(url2.query.getString("q.1"), q1);
-    CPPUNIT_ASSERT_EQUAL(url2.query.getString("q.2"), q2);
+    CPPUNIT_ASSERT_EQUAL(p, url2.path);
+    CPPUNIT_ASSERT_EQUAL(q1, url2.query.getString("q.1"));
+    CPPUNIT_ASSERT_EQUAL(q2, url2.query.getString("q.2"));
   }
 
 
