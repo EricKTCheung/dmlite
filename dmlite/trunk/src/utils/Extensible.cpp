@@ -1,6 +1,7 @@
 /// @file    utils/Extensible.cpp
 /// @brief   Extensible types (hold metadata).
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/algorithm/string.hpp>
 #include <boost/any.hpp>
 #include <boost/version.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -183,6 +184,12 @@ bool Extensible::anyToBoolean(const boost::any& any)
 {
   if (compare_types(any.type(), typeid(bool)))
     return boost::any_cast<bool>(any);
+  else if (compare_types(any.type(), typeid(std::string)))
+      return boost::iequals(boost::any_cast<std::string>(any), "true");
+  else if (compare_types(any.type(), typeid(char*)))
+        return strcasecmp(boost::any_cast<char*>(any), "true") == 0;
+  else if (compare_types(any.type(), typeid(const char*)))
+          return strcasecmp(boost::any_cast<const char*>(any), "true") == 0;
   else
     return (anyToDouble(any) != 0.0);
 }
@@ -370,6 +377,7 @@ void Extensible::clear()
 
 void Extensible::copy(const Extensible& s)
 {
+  clear();
   std::copy(s.dictionary_.begin(), s.dictionary_.end(),
             std::back_inserter(this->dictionary_));
 }

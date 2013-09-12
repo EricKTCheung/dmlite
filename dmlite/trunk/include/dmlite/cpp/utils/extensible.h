@@ -65,6 +65,7 @@ namespace dmlite {
     void clear();
      
     /// Copies the content from another Extensible
+    /// Note: This will call clear first!
     void copy(const Extensible& s);
      
     /// Removes an entry.
