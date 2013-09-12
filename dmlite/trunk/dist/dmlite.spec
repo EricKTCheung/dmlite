@@ -77,9 +77,17 @@ Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 %setup -q -n %{name}-%{version}
 
 %build
-%cmake . -DCMAKE_INSTALL_PREFIX=/
+%cmake . -DCMAKE_INSTALL_PREFIX=/ -DRUN_ONLY_STANDALONE_TESTS=ON
 
 make %{?_smp_mflags}
+
+%check
+pushd tests
+LD_LIBRARY_PATH=~+/../src/ ctest
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+popd
 
 %install
 rm -rf %{buildroot}
