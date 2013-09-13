@@ -3,6 +3,8 @@
 /// @details This is not a plugin!
 /// @author  Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <algorithm>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include <cctype>
 #include <cstring>
 #include <dmlite/common/errno.h>
@@ -30,8 +32,10 @@ const uint8_t AclEntry::kDefault;
 struct MapFileEntry {
   time_t      lastModified;
   std::map<std::string, std::string> voForDn;
+  boost::shared_mutex mutex;
 };
 
+typedef std::map<std::string, struct MapFileEntry*> MapFileCache;
 
 
 bool AclEntry::operator == (const AclEntry& e) const
@@ -418,91 +422,111 @@ int dmlite::checkPermissions(const SecurityContext* context,
 
 
 
+static void _fillVoMapping(MapFileEntry* mfe, FILE* mf)
+{
+  char  buf[1024];
+  char *p, *q;
+  char *user, *vo;
+
+  while (fgets(buf, sizeof(buf), mf)) {
+    buf[strlen (buf) - 1] = '\0';
+    p = buf;
+
+    // Skip leading blanks
+    while (isspace(*p))
+      p++;
+
+    if (*p == '\0') continue; // Empty line
+    if (*p == '#') continue;  // Comment
+
+    if (*p == '"') {
+      q = p + 1;
+      if ((p = strrchr (q, '"')) == NULL) continue;
+    }
+    else {
+      q = p;
+      while (!isspace(*p) && *p != '\0')
+        p++;
+      if (*p == '\0') continue; // No VO
+    }
+
+    *p = '\0';
+    user = q;
+    p++;
+
+    // Skip blanks between DN and VO
+    while (isspace(*p))
+      p++;
+    q = p;
+
+    while (!isspace(*p) && *p != '\0' && *p != ',')
+      p++;
+    *p = '\0';
+    vo = q;
+
+    // Insert
+    mfe->voForDn[user] = vo;
+  }
+}
+
+
+
 std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
 {
-  static std::map<std::string, struct MapFileEntry> cache;
+  static MapFileCache cache;
+  static boost::shared_mutex cacheMutex;
 
-  if (cache.find(mapfile) == cache.end()) {
-    struct MapFileEntry empty;
-    empty.lastModified = 0;
-    cache.insert(std::pair<std::string, struct MapFileEntry>(mapfile, empty));
+  // Scope so cacheCheckLock is automatically unlocked!
+  {
+    // If the mapfile is not in the cache, insert it
+    boost::upgrade_lock<boost::shared_mutex> cacheCheckLock(cacheMutex);
+    if (cache.find(mapfile) == cache.end()) {
+      boost::upgrade_to_unique_lock<boost::shared_mutex> cacheWriteLock(cacheCheckLock);
+      // Need to make sure again it is not there, maybe we locked waiting for another
+      // thread inserting the same!
+      if (cache.find(mapfile) == cache.end()) {
+        MapFileEntry* empty = new MapFileEntry();
+        empty->lastModified = 0;
+        cache.insert(std::pair<std::string, MapFileEntry*>(mapfile, empty));
+      }
+    }
   }
 
-  MapFileEntry* mfe = &cache[mapfile];
+  MapFileEntry* mfe = NULL;
+  {
+    boost::shared_lock<boost::shared_mutex> cacheReadLock(cacheMutex);
+    mfe = cache[mapfile];
+    // cacheReadLock released inmediately! We already got what we wanted
+  }
 
-  // Check the last modified time
+  // Check the last modification time
   struct stat mfStat;
   if (stat(mapfile.c_str(), &mfStat) == -1)
     throw DmException(DMLITE_SYSERR(errno),
                       "Can not stat " + mapfile);
 
   if (mfStat.st_mtime > mfe->lastModified) {
+    FILE *mf;
+
     // Need to update the mapping!
-    static pthread_mutex_t update = PTHREAD_MUTEX_INITIALIZER;
+    boost::unique_lock<boost::shared_mutex> writeLock(mfe->mutex, boost::try_to_lock);
 
-    // Do the update
-    if (pthread_mutex_trylock(&update) == 0) {
-      char  buf[1024];
-      char *p, *q;
-      char *user, *vo;
-      FILE *mf;
-
+    if (writeLock) {
       if ((mf = fopen(mapfile.c_str(), "r")) == NULL)
         throw DmException(DMLITE_SYSERR(errno),
                           "Can not open " + mapfile);
 
-      while (fgets(buf, sizeof(buf), mf)) {
-        buf[strlen (buf) - 1] = '\0';
-        p = buf;
-
-        // Skip leading blanks
-        while (isspace(*p))
-          p++;
-
-        if (*p == '\0') continue; // Empty line
-        if (*p == '#') continue;  // Comment
-
-        if (*p == '"') {
-          q = p + 1;
-          if ((p = strrchr (q, '"')) == NULL) continue;
-        }
-        else {
-          q = p;
-          while (!isspace(*p) && *p != '\0')
-            p++;
-          if (*p == '\0') continue;	// No VO
-        }
-
-        *p = '\0';
-        user = q;
-        p++;
-
-        // Skip blanks between DN and VO
-        while (isspace(*p))
-          p++;
-        q = p;
-
-        while (!isspace(*p) && *p != '\0' && *p != ',')
-          p++;
-        *p = '\0';
-        vo = q;
-
-        // Insert
-        mfe->voForDn[user] = vo;
-      }
+      _fillVoMapping(mfe, mf);
 
       fclose (mf);
       mfe->lastModified = mfStat.st_mtime;
-      pthread_mutex_unlock(&update);
     }
-    // Someone else is updating, so wait until they are done
-    else {
-      pthread_mutex_lock(&update);
-      pthread_mutex_unlock(&update);
-    }
+    // If didn't get the lock, will block later on until the thread who
+    // got it updates and releases
   }
 
-  // Done here
+  // Get the entry
+  boost::shared_lock<boost::shared_mutex> readLock(mfe->mutex);
   if (mfe->voForDn.count(dn) == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_NO_USER_MAPPING),
                       "Could not map " + dn);
