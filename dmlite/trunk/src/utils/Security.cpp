@@ -511,7 +511,7 @@ std::string dmlite::voFromDn(const std::string& mapfile, const std::string& dn)
     // Need to update the mapping!
     boost::unique_lock<boost::shared_mutex> writeLock(mfe->mutex, boost::try_to_lock);
 
-    if (writeLock) {
+    if (writeLock.owns_lock()) {
       if ((mf = fopen(mapfile.c_str(), "r")) == NULL)
         throw DmException(DMLITE_SYSERR(errno),
                           "Can not open " + mapfile);
