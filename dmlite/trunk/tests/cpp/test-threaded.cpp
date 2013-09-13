@@ -20,6 +20,25 @@ void* testStackInstance(void* udata)
 }
 
 
+
+void* appendMapfiles(void*)
+{
+    for (size_t i = 0; i < 100; ++i) {
+        std::ostringstream path;
+        path << "/tmp/mapfile-" << i;
+
+        try {
+            dmlite::voFromDn(path.str(), "/DC=does/DN=not/OU=really/CN=matters");
+        }
+        catch (...) {
+            // Ignore
+        }
+    }
+
+    return NULL;
+}
+
+
 class TestThreaded: public TestBase
 {
 public:
@@ -61,9 +80,28 @@ public:
     delete xstat;
   }
 
+  // This is a regression test for LCGDM-1167
+  // Basically, spawn a bunch of threads and start appending
+  // fake files, to see if eventually it gets corrupted
+  // Run with valgrind --tool=helgrind to see if it is clean!
+  void testMessWithVoFromDn(void)
+  {
+      static const size_t NBULLIES = 20;
+      pthread_t bullies[NBULLIES];
+
+      // Spawn the bullies
+      for (size_t i = 0; i < NBULLIES; ++i)
+          pthread_create(&bullies[i], NULL, appendMapfiles, (void*)i);
+
+      // Wait for them
+      for (size_t i = 0; i < NBULLIES; ++i)
+          pthread_join(bullies[i], NULL);
+  }
+
 
   CPPUNIT_TEST_SUITE(TestThreaded);
   CPPUNIT_TEST(testBetweenThreads);
+  CPPUNIT_TEST(testMessWithVoFromDn);
   CPPUNIT_TEST_SUITE_END();
 };
 
