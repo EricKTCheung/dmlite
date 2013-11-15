@@ -4,8 +4,8 @@
 #ifndef DMLITE_CPP_EXCEPTIONS_H
 #define DMLITE_CPP_EXCEPTIONS_H
 
-#include "../common/config.h"
-#include "../common/errno.h"
+#include "dmlite/common/config.h"
+#include "dmlite/common/errno.h"
 
 #include <cstdarg>
 #include <exception>

@@ -4,7 +4,7 @@
 #ifndef DMLITE_CPP_DMLITE_H
 #define DMLITE_CPP_DMLITE_H
 
-#include "../common/config.h"
+#include "dmlite/common/config.h"
 #include "exceptions.h"
 
 #include <boost/any.hpp>

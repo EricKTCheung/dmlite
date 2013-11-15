@@ -6,7 +6,7 @@
 #define DMLITE_UTILS_H
 
 #include "any.h"
-#include "../common/config.h"
+#include "dmlite/common/config.h"
 
 #include <limits.h>
 #include <stdint.h>

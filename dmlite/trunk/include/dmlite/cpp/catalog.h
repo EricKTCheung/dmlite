@@ -4,7 +4,7 @@
 #ifndef DMLITE_CPP_CATALOG_H
 #define DMLITE_CPP_CATALOG_H
 
-#include "../common/config.h"
+#include "dmlite/common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "inode.h"
