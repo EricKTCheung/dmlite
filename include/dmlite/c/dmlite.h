@@ -5,8 +5,8 @@
 #ifndef DMLITE_DMLITE_H
 #define DMLITE_DMLITE_H
 
-#include "../common/config.h"
-#include "../common/errno.h"
+#include "dmlite/common/config.h"
+#include "dmlite/common/errno.h"
 #include "any.h"
 
 #include <stdlib.h>

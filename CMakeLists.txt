@@ -47,6 +47,9 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/
                      ${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${Boost_INCLUDE_DIRS})
 
+# include the directory itself as a path to include directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 # Link path
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 

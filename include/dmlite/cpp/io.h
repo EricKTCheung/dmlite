@@ -5,7 +5,7 @@
 #ifndef DMLITE_CPP_IO_H
 #define DMLITE_CPP_IO_H
 
-#include "../common/config.h"
+#include "dmlite/common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "utils/extensible.h"

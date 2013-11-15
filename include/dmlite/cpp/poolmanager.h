@@ -4,7 +4,7 @@
 #ifndef DMLITE_CPP_POOLMANAGER_H
 #define DMLITE_CPP_POOLMANAGER_H
 
-#include "../common/config.h"
+#include "dmlite/common/config.h"
 #include "base.h"
 #include "exceptions.h"
 #include "pooldriver.h"
