@@ -1,6 +1,7 @@
 /// @file   core/PluginManager.cpp
 /// @brief  Implementation of dm::PluginManager
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <boost/algorithm/string.hpp>
 #include <dlfcn.h>
 #include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/base.h>
@@ -197,8 +198,8 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
         }
         // Something that must be passed to loaded plugins
         else {
-          std::string value;
-          stream >> value;
+          std::string value = stream.str();
+          boost::algorithm::trim(value);
           try {
             this->configure(parameter, value);
           }
