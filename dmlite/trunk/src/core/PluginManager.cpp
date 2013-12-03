@@ -198,7 +198,8 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
         }
         // Something that must be passed to loaded plugins
         else {
-          std::string value = stream.str();
+          std::string value;
+          getline(stream, value);
           boost::algorithm::trim(value);
           try {
             this->configure(parameter, value);
