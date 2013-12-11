@@ -3,7 +3,7 @@
 
 Name:		dmlite
 Version:	0.6.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Common libraries for grid data management and storage
 Group:		Applications/Internet
 License:	ASL 2.0
@@ -130,6 +130,12 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/test
 
 %changelog
+* Fri Nov 29 2013 Alejandro Alvarez <aalvarez@cern.ch> - 0.6.1-2
+- Enabled Python bindings
+
+* Wed Jul 10 2013 Alejandro Alvarez <aalvarez@cern.ch> - 0.6.1-1
+- Update for new upstream release
+
 * Wed Dec 19 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.6.0-1
 - Update for new upstream release
 
