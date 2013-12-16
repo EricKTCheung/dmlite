@@ -643,9 +643,12 @@ TokenResult dmlite::validateToken(const std::string& token, const std::string& i
 {
   char     buffer1[1024];
   char     buffer2[1024];
+  char     buffer1nouser[1024];
+  char     buffer2nouser[1024];
   long     expires;
   unsigned tokenForWrite;
   unsigned inl, outl;
+  unsigned inlnouser, outlnouser;
 
   // Search for '='
   size_t separator = token.find('@');
@@ -663,8 +666,17 @@ TokenResult dmlite::validateToken(const std::string& token, const std::string& i
        (unsigned char*)buffer2, &outl);
   outl = base64_encode(buffer2, outl, buffer1);
 
+  // Generate user-independent validation string
+  inlnouser = snprintf(buffer1nouser, sizeof(buffer1nouser),
+                 "%s\035%s\035%ld\035%d", pfn.c_str(), kGenericUser, expires, tokenForWrite);
+  HMAC(EVP_sha1(), passwd.c_str(), passwd.length(),
+       (unsigned char*)buffer1nouser, inlnouser,
+       (unsigned char*)buffer2nouser, &outlnouser);
+  outlnouser = base64_encode(buffer2nouser, outlnouser, buffer1nouser);
+
   // Compare validation strings
-  if (strncmp(buffer1, token.c_str(), outl) != 0)
+  if (strncmp(buffer1, token.c_str(), outl) != 0 &&
+      strncmp(buffer1nouser, token.c_str(), outlnouser != 0))
     return kTokenInvalid;
 
   // Expiration and mode

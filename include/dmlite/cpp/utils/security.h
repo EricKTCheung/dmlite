@@ -13,6 +13,8 @@
 #include "../exceptions.h"
 
 namespace dmlite {
+  /// Generic username for a name-independent token
+  kGenericUser = "nouser";
   
   /// Possible outputs for validateToken
   enum TokenResult {
