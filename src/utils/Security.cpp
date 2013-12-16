@@ -668,7 +668,7 @@ TokenResult dmlite::validateToken(const std::string& token, const std::string& i
 
   // Generate user-independent validation string
   inlnouser = snprintf(buffer1nouser, sizeof(buffer1nouser),
-                 "%s\035%s\035%ld\035%d", pfn.c_str(), kGenericUser, expires, tokenForWrite);
+                 "%s\035%s\035%ld\035%d", pfn.c_str(), kGenericUser.c_str(), expires, tokenForWrite);
   HMAC(EVP_sha1(), passwd.c_str(), passwd.length(),
        (unsigned char*)buffer1nouser, inlnouser,
        (unsigned char*)buffer2nouser, &outlnouser);
