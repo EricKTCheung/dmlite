@@ -32,13 +32,13 @@ inline bool operator == (const dmlite::Acl& a, const dmlite::Acl& b)
 }
 
 
-
-inline std::ostringstream& operator << (std::ostringstream& of, const dmlite::Acl& acl)
-{
-  of << acl.serialize();
-  return of;
+namespace dmlite {
+  inline std::ostringstream& operator << (std::ostringstream& of, const dmlite::Acl& acl)
+  {
+    of << acl.serialize();
+    return of;
+  }
 }
-
 
 
 class TestBase: public CppUnit::TestFixture {

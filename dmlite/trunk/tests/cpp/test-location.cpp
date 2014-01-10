@@ -8,17 +8,18 @@
 
 #define REMOVE_SPACES(str) str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
 
+namespace dmlite {
+  std::ostream& operator<< (std::ostream& os, const dmlite::Url& url)
+  {
+    return os << url.toString();
+  }
 
-std::ostream& operator<< (std::ostream& os, const dmlite::Url& url)
-{
-  return os << url.toString();
-}
 
 
-
-std::ostream& operator<< (std::ostream& os, const dmlite::Location& loc)
-{
-  return os << loc.toString();
+  std::ostream& operator<< (std::ostream& os, const dmlite::Location& loc)
+  {
+    return os << loc.toString();
+  }
 }
 
 

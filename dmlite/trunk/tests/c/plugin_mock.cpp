@@ -576,7 +576,7 @@ PoolManager* MockFactory::createPoolManager(PluginManager*) throw (DmException)
 
 
 
-void registerMock(PluginManager* pm)
+void registerMock(PluginManager* pm) throw (DmException)
 {
   MockFactory* factory = new MockFactory();
   pm->registerCatalogFactory(factory);
