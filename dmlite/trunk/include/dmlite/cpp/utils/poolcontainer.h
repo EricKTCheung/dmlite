@@ -6,6 +6,7 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <map>
 #include <syslog.h>
 #include <queue>
@@ -38,8 +39,8 @@ namespace dmlite {
    public:
     /// Constructor
     /// @param factory The factory to use when spawning a new resource.
-    /// @param n       The number of resources to keep.
-    PoolContainer(PoolElementFactory<E>* factory, int n): max_(n), factory_(factory), freeSlots_(n)
+    /// @param n       The number of resources to keep in the pool. Up to 2*n slots can be created without penalty (but only n will be pooled)
+    PoolContainer(PoolElementFactory<E>* factory, int n): max_(n), factory_(factory), freeSlots_(2*n)
     {
     }
 
@@ -49,7 +50,7 @@ namespace dmlite {
       // Free 'free'
       while (free_.size() > 0) {
         E e = free_.front();
-        free_.pop();
+        free_.pop_front();
         factory_->destroy(e);
       }
       // Freeing used is dangerous, as we might block if the client code
@@ -64,19 +65,26 @@ namespace dmlite {
     {
       E e;
       // Wait for one free
-      if (!block && freeSlots_ == 0) {
+      if (!block && (freeSlots_ == 0)) {
         throw DmException(DMLITE_SYSERR(EBUSY),
                           std::string("No resources available"));
       }
 
+
+      boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(60);
       boost::mutex::scoped_lock lock(mutex_);
-      while (freeSlots_ < 1)
-        available_.wait(lock);
+      while (freeSlots_ < 1) {
+        if (boost::get_system_time() >= timeout) {
+           syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds", 60);
+           break;
+        }
+        available_.timed_wait(lock, timeout);
+      }
 
       // If there is any in the queue, give one from there
       if (free_.size() > 0) {
         e = free_.front();
-        free_.pop();
+        free_.pop_front();
         // May have expired!
         if (!factory_->isValid(e)) {
           factory_->destroy(e);
@@ -89,6 +97,8 @@ namespace dmlite {
       }
       // Keep track of used
       used_.insert(std::pair<E, unsigned>(e, 1));
+
+      // Note that in case of timeout freeSlots_ can become negative
       --freeSlots_;
 
       return e;
@@ -126,14 +136,14 @@ namespace dmlite {
         used_.erase(e);
         // If the free size is less than the maximum, push to free and notify
         if ((long)free_.size() < max_) {
-          free_.push(e);
-          available_.notify_one();
+          free_.push_back(e);
         }
         else {
           // If we are fine, destroy
           factory_->destroy(e);
         }
       }
+      available_.notify_one();
       ++freeSlots_;
 
       return remaining;
@@ -155,7 +165,9 @@ namespace dmlite {
       // The resizing will be done as we get requests
       boost::mutex::scoped_lock lock(mutex_);
       max_ = ns;
-      freeSlots_ = max_ - used_.size();
+
+
+      freeSlots_ = 2*max_ - used_.size();
       // Increment the semaphore size if needed
       // Take into account the used
       if (freeSlots_ > 0)
@@ -163,11 +175,12 @@ namespace dmlite {
     }
 
    private:
+    // The max count of pooled instances
     int max_;
 
     PoolElementFactory<E> *factory_;
 
-    std::queue<E>         free_;
+    std::deque<E>         free_;
     std::map<E, unsigned> used_;
     unsigned freeSlots_;
 
