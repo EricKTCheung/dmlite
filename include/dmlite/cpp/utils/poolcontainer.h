@@ -111,9 +111,9 @@ namespace dmlite {
 
       // Make sure it is there
       typename std::map<E, unsigned>::const_iterator i = used_.find(e);
-      if (i == used_.end())
-        throw DmException(DMLITE_SYSERR(EINVAL),
-                          std::string("The resource has not been locked previously!"));
+      if (i == used_.end()) {
+        throw DmException(DMLITE_SYSERR(EINVAL), std::string("The resource has not been locked previously!"));
+      }
 
       // Increase
       used_[e]++;
