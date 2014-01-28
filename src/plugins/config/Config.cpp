@@ -19,7 +19,7 @@ static pthread_once_t patternGlobalOnce = PTHREAD_ONCE_INIT;
 
 // In Linux the prototype for filter in scandir pass a const struct dirent
 // while in MacOS, for instance, it is a struct dirent*
-#if defined(linux)
+#ifdef __linux__
 static int configFilter(const struct dirent* entry)
 #else
 static int configFilter(struct dirent* entry)
