@@ -11,6 +11,8 @@
 #include <dmlite/cpp/utils/urls.h>
 #include <vector>
 
+#include <string.h>
+
 #include "Catalog.h"
 
 using namespace dmlite;
@@ -600,6 +602,9 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   
   // Create the folder
   ExtendedStat newFolder;
+
+  // zero stat structure
+  memset(&newFolder.stat, 0, sizeof(newFolder.stat));
   
   newFolder.parent      = parent.stat.st_ino;
   newFolder.name        = name;
