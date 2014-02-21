@@ -83,7 +83,7 @@ make %{?_smp_mflags}
 
 %check
 pushd tests
-LD_LIBRARY_PATH=~+/../src/ ctest
+LD_LIBRARY_PATH=~+/../src/ ctest -V
 if [ $? -ne 0 ]; then
     exit 1
 fi
