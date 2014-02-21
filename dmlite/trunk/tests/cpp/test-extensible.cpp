@@ -54,7 +54,7 @@ class TestExtensible: public CppUnit::TestFixture {
       
       // Put a char*, get a string
       const char* cvar2 = "value";
-      char var[sizeof(cvar2)];
+      char var[strlen(cvar2)+1];
       std::strcpy(var, cvar2);
       ext["second"] = static_cast<char*>(var);
       CPPUNIT_ASSERT_EQUAL(std::string("value"), ext.getString("second"));
