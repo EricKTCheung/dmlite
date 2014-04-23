@@ -147,7 +147,7 @@ int dmlite_ferrno(dmlite_fd* fd);
  * @return   A pointer to an internal buffer with the last error message.
  * @note     This buffer is specific to each file descriptor.
  */
-const char* dmlite_ferrror(dmlite_fd* fd);
+const char* dmlite_ferror(dmlite_fd* fd);
 
 /**
  * @brief         Finishes a PUT.
