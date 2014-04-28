@@ -676,7 +676,7 @@ TokenResult dmlite::validateToken(const std::string& token, const std::string& i
 
   // Compare validation strings
   if (strncmp(buffer1, token.c_str(), outl) != 0 &&
-      strncmp(buffer1nouser, token.c_str(), outlnouser != 0))
+      strncmp(buffer1nouser, token.c_str(), outlnouser) != 0)
     return kTokenInvalid;
 
   // Expiration and mode
