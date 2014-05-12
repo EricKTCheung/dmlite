@@ -30,7 +30,7 @@ namespace dmlite {
                     };
     
     ino_t         parent;
-    struct ::stat stat;
+    struct stat stat;
     FileStatus    status;
     std::string   name;
     std::string   guid;
