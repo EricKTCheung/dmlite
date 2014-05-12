@@ -147,6 +147,7 @@ namespace dmlite {
 
     /// Create a IODriver
     virtual IODriver* createIODriver(PluginManager* pm) throw (DmException);
+    static IODriver* createIODriver(IOFactory* factory, PluginManager* pm) throw (DmException);
   };
 
 };
