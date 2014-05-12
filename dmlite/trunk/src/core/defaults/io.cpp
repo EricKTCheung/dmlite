@@ -17,6 +17,13 @@ FACTORY_NOT_IMPLEMENTED(IODriver* IOFactory::createIODriver(PluginManager*) thro
 
 
 
+IODriver* IOFactory::createIODriver(IOFactory* factory, PluginManager* pm) throw (DmException)
+{
+  return factory->createIODriver(pm);
+}
+
+
+
 IODriver::~IODriver()
 {
   // Nothing
