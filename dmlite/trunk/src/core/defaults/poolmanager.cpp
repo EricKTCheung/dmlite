@@ -31,12 +31,12 @@ PoolManager::~PoolManager()
 
 
 
-NOT_IMPLEMENTED_WITHOUT_ID(std::vector<Pool> PoolManager::getPools(PoolAvailability availability) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(Pool PoolManager::getPool(const std::string& poolname) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::newPool(const Pool& pool) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::updatePool(const Pool& pool) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::deletePool(const Pool& pool) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToRead(const std::string& path) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToRead(ino_t inode) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(Location PoolManager::whereToWrite(const std::string& path) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(void PoolManager::cancelWrite(const Location& loc) throw (DmException));
+NOT_IMPLEMENTED(std::vector<Pool> PoolManager::getPools(PoolAvailability availability) throw (DmException));
+NOT_IMPLEMENTED(Pool PoolManager::getPool(const std::string& poolname) throw (DmException));
+NOT_IMPLEMENTED(void PoolManager::newPool(const Pool& pool) throw (DmException));
+NOT_IMPLEMENTED(void PoolManager::updatePool(const Pool& pool) throw (DmException));
+NOT_IMPLEMENTED(void PoolManager::deletePool(const Pool& pool) throw (DmException));
+NOT_IMPLEMENTED(Location PoolManager::whereToRead(const std::string& path) throw (DmException));
+NOT_IMPLEMENTED(Location PoolManager::whereToRead(ino_t inode) throw (DmException));
+NOT_IMPLEMENTED(Location PoolManager::whereToWrite(const std::string& path) throw (DmException));
+NOT_IMPLEMENTED(void PoolManager::cancelWrite(const Location& loc) throw (DmException));

@@ -15,8 +15,8 @@
 #include <iostream>
 #include <sstream>
 #include <set>
-#include "builtin/Catalog.h"
 #include "builtin/Authn.h"
+#include "builtin/Catalog.h"
 
 using namespace dmlite;
 
