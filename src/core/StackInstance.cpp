@@ -208,6 +208,8 @@ PoolDriver* StackInstance::getPoolDriver(const std::string& poolType) throw (DmE
   // Instantiate
   PoolDriverFactory* phf = this->pluginManager_->getPoolDriverFactory(poolType);
   PoolDriver* ph = phf->createPoolDriver();
+  if (!ph)
+    throw DmException(DMLITE_SYSERR(EFAULT), "createPoolDriver for %s returned NULL", poolType.c_str());
   ph->setStackInstance(this);
   ph->setSecurityContext(this->secCtx_);
   
