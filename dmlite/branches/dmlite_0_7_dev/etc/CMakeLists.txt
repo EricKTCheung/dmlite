@@ -7,15 +7,15 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/dmlite.conf.in
 install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf
          DESTINATION etc)
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
-                @ONLY)
-
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/etc/zmemcache.conf
-         DESTINATION etc/dmlite.conf.d)
-
 # Create empty directories
 file (MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d)
 
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d
          DESTINATION etc)
+
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
+                ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
+                @ONLY)
+
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
+         DESTINATION etc/dmlite.conf.d)
