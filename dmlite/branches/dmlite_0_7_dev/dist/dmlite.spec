@@ -73,7 +73,7 @@ Group:		Applications/Internet
 %description test
 Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 
-%package dmlite-plugins-memcache
+%package -n dmlite-plugins-memcache
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
@@ -88,7 +88,7 @@ BuildRequires:	protobuf-devel
 
 Requires:	dmlite-libs >= 0.6.2
 
-%description dmlite-plugins-memcache
+%description -n dmlite-plugins-memcache
 This package provides the memcached plug-in for dmlite. It provides a
 memcached based implementation of the NS interface.
 
@@ -148,7 +148,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/test
 
-%files dmlite-plugins-memcache
+%files -n dmlite-plugins-memcache
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_memcache.so
 %doc LICENSE README RELEASE-NOTES
