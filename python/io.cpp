@@ -26,9 +26,9 @@ void export_io()
         .value("kEnd", IOHandler::kEnd)
         ;
 
-    class_<IODriverWrapper, bases< BaseInterface >, boost::noncopyable>("IODriver", no_init)
-        .def("createIOHandler", boost::python::pure_virtual(&IODriver::createIOHandler), return_value_policy<manage_new_object>())
-        .def("doneWriting", boost::python::pure_virtual(&IODriver::doneWriting))
+    class_<IODriverWrapper, bases< BaseInterface, BaseFactory >, boost::noncopyable>("IODriver", no_init)
+        .def("createIOHandler", boost::python::pure_virtual(&IODriverWrapper::createIOHandler), return_value_policy<manage_new_object>())
+        .def("doneWriting", boost::python::pure_virtual(&IODriverWrapper::doneWriting))
         ;
 
     class_<IOFactoryWrapper, bases< BaseFactory >, boost::noncopyable>("IOFactory", no_init)

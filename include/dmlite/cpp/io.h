@@ -33,6 +33,11 @@ namespace dmlite {
     /// Virtual destructor
     virtual ~IOHandler();
 
+    /// String ID of the implementation.
+    std::string getImplId(void) const throw() {
+      return std::string("IOHandler");
+    }
+
     /// Close
     virtual void close(void) throw (DmException);
 
@@ -100,7 +105,7 @@ namespace dmlite {
   };
 
   /// IO Driver
-  class IODriver: public virtual BaseInterface {
+  class IODriver: public virtual BaseInterface, public virtual BaseFactory {
    public:
     /// Use this flag in addition to the standard ones to skip any
     /// security check (i.e. token validation)
@@ -122,6 +127,11 @@ namespace dmlite {
                                        int flags,
                                        const Extensible& extras,
                                        mode_t mode = 0660) throw (DmException);
+    static IOHandler* createIOHandler(IODriver* factory,
+                                      const std::string& pfn,
+                                      int flags,
+                                      const Extensible& extras,
+                                      mode_t mode = 0660) throw (DmException);
     
     /// Must be called when the front-end is done writing.
     /// @param pfn The file name.

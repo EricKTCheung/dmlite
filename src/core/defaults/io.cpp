@@ -35,6 +35,14 @@ NOT_IMPLEMENTED(IOHandler* IODriver::createIOHandler(const std::string&, int, co
 NOT_IMPLEMENTED(void IODriver::doneWriting(const Location&) throw (DmException));
 NOT_IMPLEMENTED(void IODriver::setSecurityContext(const SecurityContext*) throw (DmException));
 
+IOHandler* IODriver::createIOHandler(IODriver* factory,
+                                      const std::string& pfn,
+                                      int flags,
+                                      const Extensible& extras,
+                                      mode_t mode) throw (DmException)
+{
+  return factory->createIOHandler(pfn, flags, extras, mode);
+}
 
 void IODriver::setSecurityContext(IODriver* i, const SecurityContext* ctx) throw (DmException)
 {
