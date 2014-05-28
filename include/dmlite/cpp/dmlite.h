@@ -27,7 +27,7 @@ namespace dmlite {
   class INode;
   class INodeFactory;
   class IODriver;
-  class IOFactory;
+  class IODriverFactory;
   class PoolDriver;
   class PoolDriverFactory;
   class PoolManager;
@@ -90,11 +90,11 @@ namespace dmlite {
     ///        DMLite will take care of freeing it only once.
     void registerPoolManagerFactory(PoolManagerFactory* factory) throw (DmException);
 
-    /// Register a IO factory.
+    /// Register a IODriver factory.
     /// @param factory The IO concrete factory.
     /// @note  The same object can be passed to other register functions.
     ///        DMLite will take care of freeing it only once.
-    void registerIOFactory(IOFactory* factory) throw (DmException);
+    void registerIODriverFactory(IODriverFactory* factory) throw (DmException);
 
     /// Register a PoolDriver factory.
     /// @param factory The PoolDriver factory.
@@ -124,7 +124,7 @@ namespace dmlite {
     PoolDriverFactory* getPoolDriverFactory(const std::string& pooltype) throw (DmException);
 
     /// Get the IOFactory implementation on top of the plugin stack.
-    IOFactory* getIOFactory() throw (DmException);
+    IODriverFactory* getIODriverFactory() throw (DmException);
 
    private:
     /// Configuration key/value
@@ -135,7 +135,7 @@ namespace dmlite {
     std::list<INodeFactory*>       inode_plugins_;
     std::list<CatalogFactory*>     catalog_plugins_;
     std::list<PoolManagerFactory*> pool_plugins_;
-    std::list<IOFactory*>          io_plugins_;
+    std::list<IODriverFactory*>    io_plugins_;
     std::list<PoolDriverFactory*>  pool_driver_plugins_;
     std::list<BaseFactory*>        configure_factory_;
 

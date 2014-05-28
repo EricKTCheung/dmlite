@@ -147,17 +147,17 @@ namespace dmlite {
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.
-  class IOFactory: public virtual BaseFactory {
+  class IODriverFactory: public virtual BaseFactory {
    public:
     /// Virtual destructor
-    virtual ~IOFactory();
+    virtual ~IODriverFactory();
 
    protected:
     friend class StackInstance;
 
     /// Create a IODriver
     virtual IODriver* createIODriver(PluginManager* pm) throw (DmException);
-    static IODriver* createIODriver(IOFactory* factory, PluginManager* pm) throw (DmException);
+    static IODriver* createIODriver(IODriverFactory* factory, PluginManager* pm) throw (DmException);
   };
 
 };

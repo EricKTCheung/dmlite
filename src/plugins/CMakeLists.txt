@@ -2,3 +2,4 @@ cmake_minimum_required (VERSION 2.6)
 
 add_subdirectory (config)
 add_subdirectory (memcache)
+add_subdirectory (profiler)

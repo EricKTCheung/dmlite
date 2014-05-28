@@ -6,18 +6,18 @@ using namespace dmlite;
 
 
 
-IOFactory::~IOFactory()
+IODriverFactory::~IODriverFactory()
 {
   // Nothing
 }
 
 
 
-FACTORY_NOT_IMPLEMENTED(IODriver* IOFactory::createIODriver(PluginManager*) throw (DmException));
+FACTORY_NOT_IMPLEMENTED(IODriver* IODriverFactory::createIODriver(PluginManager*) throw (DmException));
 
 
 
-IODriver* IOFactory::createIODriver(IOFactory* factory, PluginManager* pm) throw (DmException)
+IODriver* IODriverFactory::createIODriver(IODriverFactory* factory, PluginManager* pm) throw (DmException)
 {
   return factory->createIODriver(pm);
 }
