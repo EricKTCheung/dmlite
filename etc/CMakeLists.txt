@@ -24,5 +24,5 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/profiler.conf.in
                 ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
                 @ONLY)
 
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profile.conf
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
          DESTINATION etc/dmlite.conf.d)
