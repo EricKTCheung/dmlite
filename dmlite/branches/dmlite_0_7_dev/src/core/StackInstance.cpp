@@ -47,7 +47,7 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   INSTANTIATE(this->inode_,       pm, pm->getINodeFactory(),       createINode);
   INSTANTIATE(this->catalog_,     pm, pm->getCatalogFactory(),     createCatalog);
   INSTANTIATE(this->poolManager_, pm, pm->getPoolManagerFactory(), createPoolManager);
-  INSTANTIATE(this->ioDriver_,    pm, pm->getIOFactory(),          createIODriver);
+  INSTANTIATE(this->ioDriver_,    pm, pm->getIODriverFactory(),    createIODriver);
   
   // Initiate default security context
   try {

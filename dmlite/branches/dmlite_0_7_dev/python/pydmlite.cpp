@@ -37,7 +37,7 @@ BOOST_PYTHON_MODULE(pydmlite)
         .def("registerINodeFactory", &PluginManager::registerINodeFactory)
         .def("registerCatalogFactory", &PluginManager::registerCatalogFactory)
         .def("registerPoolManagerFactory", &PluginManager::registerPoolManagerFactory)
-        .def("registerIOFactory", &PluginManager::registerIOFactory)
+        .def("registerIODriverFactory", &PluginManager::registerIODriverFactory)
         .def("registerPoolDriverFactory", &PluginManager::registerPoolDriverFactory)
         
         .def("getAuthnFactory", &PluginManager::getAuthnFactory, return_internal_reference<>())
@@ -45,7 +45,7 @@ BOOST_PYTHON_MODULE(pydmlite)
         .def("getCatalogFactory", &PluginManager::getCatalogFactory, return_internal_reference<>())
         .def("getPoolManagerFactory", &PluginManager::getPoolManagerFactory, return_internal_reference<>())
         .def("getPoolDriverFactory", &PluginManager::getPoolDriverFactory, return_internal_reference<>())
-        .def("getIOFactory", &PluginManager::getIOFactory, return_internal_reference<>())
+        .def("getIODriverFactory", &PluginManager::getIODriverFactory, return_internal_reference<>())
         ;
     
     class_<StackInstance>("StackInstance", init<PluginManager*>())

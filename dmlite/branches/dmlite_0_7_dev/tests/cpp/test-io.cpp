@@ -140,7 +140,7 @@ public:
   void testWritev(void)
   {
     // Write
-    char *ostrings[] = {"string-01", "string-02", "string-03"};
+    char *ostrings[] = {(char *)"string-01", (char *)"string-02", (char *)"string-03"};
 
     dmlite::IOHandler* os = io->createIOHandler("/tmp/writev",
                                                 O_WRONLY | O_CREAT | dmlite::IODriver::kInsecure,

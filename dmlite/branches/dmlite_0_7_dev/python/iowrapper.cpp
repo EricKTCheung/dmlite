@@ -30,7 +30,7 @@
     };
 
     // The class IOFactory has pure virtual methods: Create a wrapper class!
-    class IOFactoryWrapper: public IOFactory, public wrapper<IOFactory> {
+    class IOFactoryWrapper: public IODriverFactory, public wrapper<IODriverFactory> {
         public:
         virtual IODriver* createIODriver(PluginManager* pm) throw (DmException) { return this->get_override("createIODriver")(pm); } 
     };

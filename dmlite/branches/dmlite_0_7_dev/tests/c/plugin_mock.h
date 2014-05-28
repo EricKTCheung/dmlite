@@ -111,7 +111,7 @@ namespace dmlite {
 
   /// Factory for mock implementation
   class MockFactory: public CatalogFactory,
-                     public IOFactory,
+                     public IODriverFactory,
                      public PoolManagerFactory {
    public:
     ~MockFactory();

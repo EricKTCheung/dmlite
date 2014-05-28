@@ -304,14 +304,14 @@ PoolManagerFactory* PluginManager::getPoolManagerFactory() throw (DmException)
 
 
 
-void PluginManager::registerIOFactory(IOFactory* factory) throw (DmException)
+void PluginManager::registerIODriverFactory(IODriverFactory* factory) throw (DmException)
 {
   this->io_plugins_.push_front(factory);
 }
 
 
 
-IOFactory* PluginManager::getIOFactory() throw (DmException)
+IODriverFactory* PluginManager::getIODriverFactory() throw (DmException)
 {
   if (this->io_plugins_.empty())
     return NULL;

@@ -580,7 +580,7 @@ void registerMock(PluginManager* pm) throw (DmException)
 {
   MockFactory* factory = new MockFactory();
   pm->registerCatalogFactory(factory);
-  pm->registerIOFactory(factory);
+  pm->registerIODriverFactory(factory);
   pm->registerPoolManagerFactory(factory);
 }
 
