@@ -1,0 +1,5 @@
+# Load the profiler plugin
+LoadPlugin plugin_profiler /usr/lib@LIB_SUFFIX@/dmlite/plugin_profiler.so
+
+# This plugin has no configuration parameters
+# Output is send to syslog LOG_USER | LOG_DEBUG
