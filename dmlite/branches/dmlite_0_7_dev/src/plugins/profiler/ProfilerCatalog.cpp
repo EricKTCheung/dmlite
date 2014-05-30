@@ -18,6 +18,10 @@ ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 
 ProfilerCatalog::~ProfilerCatalog()
 {
+  if (this->stack_->contains("dictid")) {
+    this->stack_->erase("dictid");
+  }
+
   delete this->decorated_;
   delete [] this->decoratedId_;
 }
@@ -26,7 +30,11 @@ ProfilerCatalog::~ProfilerCatalog()
 
 std::string ProfilerCatalog::getImplId() const throw ()
 {
-  return std::string("ProfilerCatalog");
+  std::string implId = "ProfilerCatalog";
+  implId += " over ";
+  implId += this->decoratedId_;
+
+  return implId;
 }
 
 

@@ -29,7 +29,11 @@ ProfilerPoolManager::~ProfilerPoolManager()
 
 std::string ProfilerPoolManager::getImplId() const throw ()
 {
-  return std::string("ProfilerPoolManager");
+  std::string implId = "ProfilerPoolManager";
+  implId += " over ";
+  implId += this->decoratedId_;
+
+  return implId;
 }
 
 

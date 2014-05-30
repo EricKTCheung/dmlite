@@ -175,6 +175,10 @@ int XrdMonitor::sendServerIdent()
       username_.c_str(), pid_, sid_, hostname_.c_str(), "dpm", "1.8.8");
 
   ret = sendMonMap('=', 0, info);
+  if (ret) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "failed sending ServerIdent msg");
+  }
   return ret;
 }
 
@@ -195,7 +199,11 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, 
            username_.c_str(), pid_, sid_, hostname_.c_str(),
            "null", userDN.c_str(), userHost.c_str(), "null", "null", "null", "null");
 
-  ret =sendMonMap('u', dictid, info);
+  ret = sendMonMap('u', dictid, info);
+  if (ret) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "failed sending UserIdent msg");
+  }
   return ret;
 }
 
@@ -327,21 +335,28 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
 {
   std::string full_path = getHostname() + ":" + path;
 
+  int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
+  int slots = msg_size / sizeof(XrdXrootdMonRedir);
+  if (msg_size % sizeof(XrdXrootdMonRedir)) {
+    ++slots;
+  }
+
+  XrdXrootdMonRedir *msg;
   {
     boost::mutex::scoped_lock(redir_mutex_);
-    int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
-    int slots = msg_size / sizeof(XrdXrootdMonRedir);
-    if (msg_size % sizeof(XrdXrootdMonRedir)) {
-      ++slots;
-    }
 
-    XrdXrootdMonRedir *msg = XrdMonitor::getRedirBufferNextEntry(slots);
+    msg = getRedirBufferNextEntry(slots);
 
     // the buffer could be full ..
     if (msg == 0x00) {
-      XrdMonitor::sendRedirBuffer();
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "sent XROOTD_MON_OPENDIR msg");
+      int ret = XrdMonitor::sendRedirBuffer();
+      if (ret) {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "failed sending REDIR msg");
+      } else {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "sent REDIR msg");
+      }
       msg = XrdMonitor::getRedirBufferNextEntry(slots);
     }
     // now it must be free, otherwise forget about it ..
@@ -354,13 +369,15 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
       char *dest = (char *) (msg + 1);
       strncpy(dest, full_path.c_str(), full_path.length() + 1);
 
-      XrdMonitor::advanceRedirBufferNextEntry(slots);
-
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "added new XROOTD_MON_OPENDIR msg");
-    } else {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "did not send/add new XROOTD_MON_OPENDIR msg");
+      advanceRedirBufferNextEntry(slots);
     }
+  }
+
+  if (msg != 0x00) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "added new REDIR msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "did not send/add new REDIR msg");
   }
 }
