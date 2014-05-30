@@ -33,9 +33,9 @@ ProfilerFactory::~ProfilerFactory()
 void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   if (key == "Collector") {
-    this->mon.collector_addr = value;
+    XrdMonitor::collector_addr = value;
   } else if (key == "MsgBufferSize") {
-    this->mon.redir_max_buffer_size = atoi(value.c_str());
+    XrdMonitor::redir_max_buffer_size = atoi(value.c_str());
   } else {
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
         std::string("Unknown option ") + key);
@@ -50,7 +50,7 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s %ld",
       "Profiler",
       "Creating ProfilerCatalog nesting", this->nestedCatalogFactory_);
-  return new ProfilerCatalog(CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm), &mon);
+  return new ProfilerCatalog(CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm));
 }
 
 
@@ -67,8 +67,8 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
 
 void ProfilerFactory::initMonitor() throw (DmException)
 {
-  if (!this->mon.isInitialized()) {
-    if(this->mon.init() != 0) {
+  if (!XrdMonitor::isInitialized()) {
+    if(XrdMonitor::init() != 0) {
     throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
         std::string("Could not connect to the monitoring collector"));
     }
@@ -77,7 +77,7 @@ void ProfilerFactory::initMonitor() throw (DmException)
     snprintf(info, 1024+256, "%s.%d:%d@%s\n&pgm=%s&ver=%s",
              "dpmmgr", 1, 16, "localhost", "dpm", "1.8.8");
 
-    this->mon.sendMonMap('=', 0, info);
+    XrdMonitor::sendMonMap('=', 0, info);
   }
 }
 

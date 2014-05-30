@@ -55,8 +55,6 @@ protected:
   /// The decorated IODriver factory
   IODriverFactory* nestedIODriverFactory_;
 
-  XrdMonitor mon;
-
 private:
 };
 
