@@ -211,36 +211,26 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, 
   return ret;
 }
 
-//int XrdMonitor::send_user_open_path(const std::string user, const std::string path)
-//{
-//  int ret;
-//
-//  kXR_char dictid = 0;
-//
-//  char info[1024+256];
-//
-//  snprintf(info, 1024+256, "%s.%d:%d@%s\n%s",
-//           user.c_str(), pid_, sid_, hostname_.c_str(), path.c_str());
-//
-//  sendMonMap('d', dictid, info);
-//
-//  return ret;
-//}
-
 char XrdMonitor::getPseqCounter()
 {
-  boost::mutex::scoped_lock(pseq_mutex_);
-  pseq_counter_ = (pseq_counter_ + 1) % 256;
-
+  char this_counter;
+  {
+    boost::mutex::scoped_lock(pseq_mutex_);
+    pseq_counter_ = (pseq_counter_ + 1) % 256;
+    this_counter = pseq_counter_;
+  }
   return pseq_counter_;
 }
 
 kXR_unt32 XrdMonitor::getDictId()
 {
-  boost::mutex::scoped_lock(dictid_mutex_);
-  dictid_ += 1;
-
-  return dictid_;
+  kXR_unt32 this_dictid;
+  {
+    boost::mutex::scoped_lock(dictid_mutex_);
+    dictid_ += 1;
+    this_dictid = dictid_;
+  }
+  return this_dictid;
 }
 
 int XrdMonitor::initRedirBuffer(int max_size)
@@ -264,7 +254,6 @@ XrdXrootdMonRedir* XrdMonitor::getRedirBufferNextEntry(int slots)
 {
   // space from the last msg + this msg + the ending window message
   if (redirBuffer.next_slot + slots + 1 < redirBuffer.max_slots) {
-    // advance the internal msg pointer so that someone else can write, too
     return &(redirBuffer.msg_buffer->info[redirBuffer.next_slot]);
   } else
     return 0x00;
@@ -324,8 +313,8 @@ int XrdMonitor::sendRedirBuffer()
 
   // Clean up the buffer:
   // Delete everything after the header + server identification
-  memset(redirBuffer.msg_buffer + 2 * sizeof(XrdXrootdMonHeader),
-         0, (redirBuffer.max_slots - 2) * sizeof(XrdXrootdMonRedir));
+  memset(redirBuffer.msg_buffer->info,
+         0, (redirBuffer.max_slots) * sizeof(XrdXrootdMonRedir));
   redirBuffer.next_slot = 0;
 
   // initialize the window start entry
