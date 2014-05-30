@@ -35,7 +35,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
   if (key == "Collector") {
     XrdMonitor::collector_addr = value;
   } else if (key == "MsgBufferSize") {
-    XrdMonitor::redir_max_buffer_size = atoi(value.c_str());
+    XrdMonitor::redir_max_buffer_size_ = atoi(value.c_str());
   } else {
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
         std::string("Unknown option ") + key);
@@ -46,7 +46,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
 Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 {
-  initMonitor();
+  initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s %ld",
       "Profiler",
       "Creating ProfilerCatalog nesting", this->nestedCatalogFactory_);
@@ -57,7 +57,7 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 
 PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmException)
 {
-  initMonitor();
+  initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s %ld",
       "Profiler",
       "Creating ProfilerPoolManager nesting", this->nestedPoolManagerFactory_);
@@ -65,7 +65,7 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
 }
 
 
-void ProfilerFactory::initMonitor() throw (DmException)
+void ProfilerFactory::initXrdMonitorIfNotInitialized() throw (DmException)
 {
   if (!XrdMonitor::isInitialized()) {
     if(XrdMonitor::init() != 0) {
@@ -86,7 +86,7 @@ void ProfilerFactory::initMonitor() throw (DmException)
 
 IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmException)
 {
-  initMonitor();
+  initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s %ld",
       "Profiler",
       "Creating ProfilerIODriver nesting", this->nestedIODriverFactory_);

@@ -78,15 +78,15 @@ namespace dmlite {
       static int initCollector();
       static int initServerIdentVars();
 
-      static int redir_max_buffer_size;
+      static int redir_max_buffer_size_;
+      static boost::mutex redir_mutex_;
+
       static int initRedirBuffer(int max_size);
       static int insertRedirBufferWindowEntry();
 
       static int sendRedirBuffer();
       static XrdXrootdMonRedir* getRedirBufferNextEntry(int msg_size);
       static int advanceRedirBufferNextEntry(int msg_size);
-
-      static boost::mutex redir_mutex_;
 
       static struct RedirBuffer
       {
