@@ -178,6 +178,10 @@ int XrdMonitor::sendServerIdent()
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&pgm=%s&ver=%s",
       username_.c_str(), pid_, sid_, hostname_.c_str(), "dpm", "1.8.8");
 
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
+        "send serverident",
+        info);
+
   ret = sendMonMap('=', 0, info);
   if (ret) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
@@ -202,6 +206,10 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, 
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
            username_.c_str(), pid_, sid_, hostname_.c_str(),
            "null", userDN.c_str(), userHost.c_str(), "null", "null", "null", "null");
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
+        "send userident",
+        info);
 
   ret = sendMonMap('u', dictid, info);
   if (ret) {
