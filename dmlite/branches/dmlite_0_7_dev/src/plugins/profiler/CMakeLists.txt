@@ -5,9 +5,13 @@ find_package (Boost 1.41 REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIR})
 
-add_library(profiler SHARED Monitor.cpp Profiler.cpp ProfilerCatalog.cpp ProfilerPoolManager.cpp ProfilerIO.cpp)
+add_library(profiler SHARED XrdMonitor.cpp Profiler.cpp ProfilerCatalog.cpp ProfilerPoolManager.cpp ProfilerIO.cpp)
 
-target_link_libraries (profiler dmlite rt)
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  target_link_libraries (profiler ${DMLITE_LIBRARIES} boost_system)
+ELSE()
+  target_link_libraries (profiler ${DMLITE_LIBRARIES} rt)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set_target_properties (profiler PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       profiler

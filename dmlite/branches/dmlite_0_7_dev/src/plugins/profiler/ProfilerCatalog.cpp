@@ -7,7 +7,7 @@
 using namespace dmlite;
 
 
-ProfilerCatalog::ProfilerCatalog(Catalog* decorates, Monitor *mon) throw(DmException): mon_(mon)
+ProfilerCatalog::ProfilerCatalog(Catalog* decorates, XrdMonitor *mon) throw(DmException): mon_(mon)
 {
   this->decorated_   = decorates;
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
@@ -33,6 +33,7 @@ std::string ProfilerCatalog::getImplId() const throw ()
 
 void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
+  this->stack_ = si;
   BaseInterface::setStackInstance(this->decorated_, si);
 }
 
@@ -41,7 +42,21 @@ void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
-  this->mon_->send_user_login(ctx->user.name);
+
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", this->mon_->getDictId());
+  }
+  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
+
+  this->mon_->sendUserIdent(dictid,
+      // protocol
+      ctx->user.name, // user DN
+      ctx->credentials.remoteAddress // user hostname
+      // org
+      // role
+      // grp
+      // info
+  );
 }
 
 
@@ -62,6 +77,7 @@ std::string ProfilerCatalog::getWorkingDir(void) throw(DmException)
 
 ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_STAT);
   PROFILE_RETURN(ExtendedStat, extendedStat, path, follow);
 }
 
@@ -69,6 +85,7 @@ ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow)
 
 ExtendedStat ProfilerCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
+  reportXrdRedirCmd(rfn, XROOTD_MON_STAT);
   PROFILE_RETURN(ExtendedStat, extendedStatByRFN, rfn);
 }
 
@@ -125,6 +142,7 @@ std::string ProfilerCatalog::readLink(const std::string& path) throw (DmExceptio
 
 void ProfilerCatalog::unlink(const std::string& path) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_RM);
   PROFILE(unlink, path);
 }
 
@@ -132,6 +150,7 @@ void ProfilerCatalog::unlink(const std::string& path) throw (DmException)
 
 void ProfilerCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_OPENC);
   PROFILE(create, path, mode);
 }
 
@@ -217,6 +236,7 @@ void ProfilerCatalog::updateExtendedAttributes(const std::string& path,
 
 Directory* ProfilerCatalog::openDir(const std::string& path) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_OPENDIR);
   PROFILE_RETURN(Directory*, openDir, path);
 }
 
@@ -245,6 +265,7 @@ ExtendedStat* ProfilerCatalog::readDirx(Directory* dir) throw (DmException)
 
 void ProfilerCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_MKDIR);
   PROFILE(makeDir, path, mode);
 }
 
@@ -252,6 +273,7 @@ void ProfilerCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
 
 void ProfilerCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
+  reportXrdRedirCmd(oldPath, XROOTD_MON_MV);
   PROFILE(rename, oldPath, newPath);
 }
 
@@ -259,6 +281,7 @@ void ProfilerCatalog::rename(const std::string& oldPath, const std::string& newP
 
 void ProfilerCatalog::removeDir(const std::string& path) throw (DmException)
 {
+  reportXrdRedirCmd(path, XROOTD_MON_RMDIR);
   PROFILE(removeDir, path);
 }
 
@@ -274,4 +297,51 @@ Replica ProfilerCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcept
 void ProfilerCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   PROFILE(updateReplica, replica);
+}
+
+
+void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_id)
+{
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", this->mon_->getDictId());
+  }
+  std::string full_path = this->mon_->getHostname() + ":" + path;
+
+  {
+    boost::mutex::scoped_lock(this->mon_->redir_mutex_);
+    int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
+    int slots = msg_size / sizeof(XrdXrootdMonRedir);
+    if (msg_size % sizeof(XrdXrootdMonRedir)) {
+      ++slots;
+    }
+
+    XrdXrootdMonRedir *msg = this->mon_->getRedirBufferNextEntry(slots);
+
+    // the buffer could be full ..
+    if (msg == 0x00) {
+      this->mon_->sendRedirBuffer();
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "sent XROOTD_MON_OPENDIR msg");
+      msg = this->mon_->getRedirBufferNextEntry(slots);
+    }
+    // now it must be free, otherwise forget about it ..
+    if (msg != 0x00) {
+      msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
+      msg->arg0.rdr.Dent = slots - 1;
+      msg->arg0.rdr.Port = 0; // ??
+      boost::any dictid_any = this->stack_->get("dictid");
+      msg->arg1.dictid = Extensible::anyToUnsigned(dictid_any);
+      // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
+      char *dest = (char *) (msg + 1);
+      strncpy(dest, full_path.c_str(), full_path.length() + 1);
+
+      this->mon_->advanceRedirBufferNextEntry(slots);
+
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "added new XROOTD_MON_OPENDIR msg");
+    } else {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "did not send/add new XROOTD_MON_OPENDIR msg");
+    }
+  }
 }
