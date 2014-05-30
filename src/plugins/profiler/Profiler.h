@@ -45,6 +45,8 @@ public:
   virtual PoolManager* createPoolManager(PluginManager*) throw (DmException);
   virtual IODriver*   createIODriver(PluginManager*)   throw (DmException);
 protected:
+  void initMonitor() throw (DmException);
+
   /// The decorated Catalog factory.
   CatalogFactory* nestedCatalogFactory_;
   /// The decorated PoolManager factory.
@@ -53,7 +55,7 @@ protected:
   /// The decorated IODriver factory
   IODriverFactory* nestedIODriverFactory_;
 
-  Monitor mon;
+  XrdMonitor mon;
 
 private:
 };
