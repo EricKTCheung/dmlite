@@ -139,10 +139,14 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
 {
   boost::mutex::scoped_lock(send_mutex_);
 
-  int ret;
+  ssize_t ret;
   ret = sendto(FD_, buf, buf_len, 0, &dest_addr_, dest_addr_len_);
 
-  return ret;
+  if (ret == buf_len) {
+    return 0;
+  } else {
+    return ret;
+  }
 }
 
 int XrdMonitor::sendMonMap(kXR_char code, kXR_unt32 dictid, char *info)
