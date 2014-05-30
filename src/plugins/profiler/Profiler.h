@@ -17,7 +17,7 @@
 
 #include <dmlite/cpp/dmlite.h>
 
-#include "Monitor.h"
+#include "XrdMonitor.h"
 #include "ProfilerCatalog.h"
 #include "ProfilerPoolManager.h"
 #include "dmlite/cpp/io.h"
