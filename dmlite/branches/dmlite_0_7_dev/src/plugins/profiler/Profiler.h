@@ -45,7 +45,7 @@ public:
   virtual PoolManager* createPoolManager(PluginManager*) throw (DmException);
   virtual IODriver*   createIODriver(PluginManager*)   throw (DmException);
 protected:
-  void initMonitor() throw (DmException);
+  void initXrdMonitorIfNotInitialized() throw (DmException);
 
   /// The decorated Catalog factory.
   CatalogFactory* nestedCatalogFactory_;

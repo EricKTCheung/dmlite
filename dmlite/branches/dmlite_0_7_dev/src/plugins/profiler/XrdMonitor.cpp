@@ -8,6 +8,8 @@ using namespace dmlite;
 time_t XrdMonitor::startup_time = 0;
 std::string XrdMonitor::collector_addr;
 
+bool XrdMonitor::is_initialized = false;
+
 boost::mutex XrdMonitor::send_mutex_;
 
 int XrdMonitor::FD_ = 0;
@@ -25,13 +27,12 @@ boost::mutex XrdMonitor::pseq_mutex_;
 boost::mutex XrdMonitor::dictid_mutex_;
 kXR_unt32 XrdMonitor::dictid_;
 
+int XrdMonitor::redir_max_buffer_size_ = 0;
 boost::mutex XrdMonitor::redir_mutex_;
 
 XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
 XrdMonitor::XrdMonitor()
-//  collector_addr(""), redir_max_buffer_size(10),
-//  is_initialized(false), pseq_counter_(0)
 {
   // Nothing
 }
@@ -47,7 +48,7 @@ int XrdMonitor::init()
   time(&startup_time);
 
   // initialize the message buffers
-  ret = initRedirBuffer(redir_max_buffer_size);
+  ret = initRedirBuffer(redir_max_buffer_size_);
   ret = insertRedirBufferWindowEntry();
 
   ret = initCollector();
