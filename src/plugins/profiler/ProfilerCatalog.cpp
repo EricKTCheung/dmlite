@@ -7,7 +7,7 @@
 using namespace dmlite;
 
 
-ProfilerCatalog::ProfilerCatalog(Catalog* decorates, XrdMonitor *mon) throw(DmException): mon_(mon)
+ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 {
   this->decorated_   = decorates;
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
@@ -44,11 +44,11 @@ void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmEx
   BaseInterface::setSecurityContext(this->decorated_, ctx);
 
   if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", this->mon_->getDictId());
+    this->stack_->set("dictid", XrdMonitor::getDictId());
   }
   kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
 
-  this->mon_->sendUserIdent(dictid,
+  XrdMonitor::sendUserIdent(dictid,
       // protocol
       ctx->user.name, // user DN
       ctx->credentials.remoteAddress // user hostname
@@ -303,45 +303,10 @@ void ProfilerCatalog::updateReplica(const Replica& replica) throw (DmException)
 void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_id)
 {
   if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", this->mon_->getDictId());
+    this->stack_->set("dictid", XrdMonitor::getDictId());
   }
-  std::string full_path = this->mon_->getHostname() + ":" + path;
+  boost::any dictid_any = this->stack_->get("dictid");
+  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
 
-  {
-    boost::mutex::scoped_lock(this->mon_->redir_mutex_);
-    int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
-    int slots = msg_size / sizeof(XrdXrootdMonRedir);
-    if (msg_size % sizeof(XrdXrootdMonRedir)) {
-      ++slots;
-    }
-
-    XrdXrootdMonRedir *msg = this->mon_->getRedirBufferNextEntry(slots);
-
-    // the buffer could be full ..
-    if (msg == 0x00) {
-      this->mon_->sendRedirBuffer();
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "sent XROOTD_MON_OPENDIR msg");
-      msg = this->mon_->getRedirBufferNextEntry(slots);
-    }
-    // now it must be free, otherwise forget about it ..
-    if (msg != 0x00) {
-      msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
-      msg->arg0.rdr.Dent = slots - 1;
-      msg->arg0.rdr.Port = 0; // ??
-      boost::any dictid_any = this->stack_->get("dictid");
-      msg->arg1.dictid = Extensible::anyToUnsigned(dictid_any);
-      // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
-      char *dest = (char *) (msg + 1);
-      strncpy(dest, full_path.c_str(), full_path.length() + 1);
-
-      this->mon_->advanceRedirBufferNextEntry(slots);
-
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "added new XROOTD_MON_OPENDIR msg");
-    } else {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-          "did not send/add new XROOTD_MON_OPENDIR msg");
-    }
-  }
+  XrdMonitor::reportXrdRedirCmd(dictid, path, cmd_id);
 }

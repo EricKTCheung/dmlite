@@ -15,7 +15,7 @@ namespace dmlite {
 
     /// Constructor.
     /// @param decorates The underlying decorated catalog.
-    ProfilerCatalog(Catalog* decorates, XrdMonitor *mon) throw (DmException);
+    ProfilerCatalog(Catalog* decorates) throw (DmException);
 
     /// Destructor.
     ~ProfilerCatalog();
@@ -87,8 +87,6 @@ namespace dmlite {
 
     /// Plugin stack.
     StackInstance* stack_;
-
-    XrdMonitor *mon_;
 
     void reportXrdRedirCmd(const std::string &path, const int cmd_id);
   };

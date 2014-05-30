@@ -1,26 +1,37 @@
-/// @file   Profiler.cpp
+/// @file   XrdMonitor.cpp
 /// @brief  Profiler plugin.
 
 #include "XrdMonitor.h"
 
 using namespace dmlite;
 
-std::string XrdMonitor::hostname_;
-std::string XrdMonitor::username_;
-pid_t XrdMonitor::pid_;
-kXR_int64 XrdMonitor::sid_;
+time_t XrdMonitor::startup_time = 0;
+std::string XrdMonitor::collector_addr;
 
-kXR_unt32 XrdMonitor::dictid_;
+boost::mutex XrdMonitor::send_mutex_;
 
-int XrdMonitor::FD_;
+int XrdMonitor::FD_ = 0;
 struct sockaddr XrdMonitor::dest_addr_;
 socklen_t XrdMonitor::dest_addr_len_;
 
+pid_t XrdMonitor::pid_ = 0;
+kXR_int64 XrdMonitor::sid_ = 0;
+std::string XrdMonitor::hostname_;
+std::string XrdMonitor::username_;
+
+char XrdMonitor::pseq_counter_;
+boost::mutex XrdMonitor::pseq_mutex_;
+
+boost::mutex XrdMonitor::dictid_mutex_;
+kXR_unt32 XrdMonitor::dictid_;
+
+boost::mutex XrdMonitor::redir_mutex_;
+
 XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
-XrdMonitor::XrdMonitor():
-  collector_addr(""), redir_max_buffer_size(10),
-  is_initialized(false), pseq_counter_(0)
+XrdMonitor::XrdMonitor()
+//  collector_addr(""), redir_max_buffer_size(10),
+//  is_initialized(false), pseq_counter_(0)
 {
   // Nothing
 }
@@ -36,7 +47,7 @@ int XrdMonitor::init()
   time(&startup_time);
 
   // initialize the message buffers
-  ret = initRedirBuffer(this->redir_max_buffer_size);
+  ret = initRedirBuffer(redir_max_buffer_size);
   ret = insertRedirBufferWindowEntry();
 
   ret = initCollector();
@@ -120,7 +131,7 @@ int XrdMonitor::initCollector()
 
 bool XrdMonitor::isInitialized()
 {
-  return this->is_initialized;
+  return is_initialized;
 }
 
 int XrdMonitor::send(const void *buf, size_t buf_len)
@@ -308,4 +319,47 @@ int XrdMonitor::sendRedirBuffer()
   insertRedirBufferWindowEntry();
 
   return ret;
+}
+
+
+void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
+{
+  std::string full_path = getHostname() + ":" + path;
+
+  {
+    boost::mutex::scoped_lock(redir_mutex_);
+    int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
+    int slots = msg_size / sizeof(XrdXrootdMonRedir);
+    if (msg_size % sizeof(XrdXrootdMonRedir)) {
+      ++slots;
+    }
+
+    XrdXrootdMonRedir *msg = XrdMonitor::getRedirBufferNextEntry(slots);
+
+    // the buffer could be full ..
+    if (msg == 0x00) {
+      XrdMonitor::sendRedirBuffer();
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "sent XROOTD_MON_OPENDIR msg");
+      msg = XrdMonitor::getRedirBufferNextEntry(slots);
+    }
+    // now it must be free, otherwise forget about it ..
+    if (msg != 0x00) {
+      msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
+      msg->arg0.rdr.Dent = slots - 1;
+      msg->arg0.rdr.Port = 0; // ??
+      msg->arg1.dictid = dictid;
+      // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
+      char *dest = (char *) (msg + 1);
+      strncpy(dest, full_path.c_str(), full_path.length() + 1);
+
+      XrdMonitor::advanceRedirBufferNextEntry(slots);
+
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "added new XROOTD_MON_OPENDIR msg");
+    } else {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+          "did not send/add new XROOTD_MON_OPENDIR msg");
+    }
+  }
 }
