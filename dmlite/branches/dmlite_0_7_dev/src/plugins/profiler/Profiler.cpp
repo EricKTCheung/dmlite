@@ -34,8 +34,6 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 {
   if (key == "Collector") {
     this->mon.collector_addr = value;
-  } else if (key == "ProfileFunctions") {
-    profile_functions_ = value == "yes" ? true : false;
   } else if (key == "MsgBufferSize") {
     this->mon.redir_max_buffer_size = atoi(value.c_str());
   } else {
