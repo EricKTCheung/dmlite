@@ -115,10 +115,10 @@ namespace dmlite {
 
       struct XrdFStreamBuff
       {
-        struct XrdXrootdMonHeader    hdr;
-        struct XrdXrootdMonFileTOD   tod;
-        struct XrdXrootdMonFileHdr   info[sizeof(XrdXrootdMonFileHdr)];
-      }
+        XrdXrootdMonHeader    hdr;
+        XrdXrootdMonFileTOD   tod;
+        XrdXrootdMonFileHdr   info[sizeof(XrdXrootdMonFileHdr)];
+      };
 
       static struct FileBuffer
       {
