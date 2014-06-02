@@ -44,8 +44,8 @@ std::string ProfilerCatalog::getImplId() const throw ()
 
 void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  this->stack_ = si;
   BaseInterface::setStackInstance(this->decorated_, si);
+  this->stack_ = si;
 }
 
 
@@ -53,6 +53,7 @@ void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
+  this->secCtx_ = ctx;
 }
 
 
