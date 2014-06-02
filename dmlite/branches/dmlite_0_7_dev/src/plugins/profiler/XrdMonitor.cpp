@@ -59,6 +59,7 @@ int XrdMonitor::initOrNOP()
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
         "initRedirBuffer failed",
         ret);
+    return ret;
   }
 
   ret = insertRedirBufferWindowEntry();
@@ -66,6 +67,7 @@ int XrdMonitor::initOrNOP()
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
         "insertRedirBufferWindowEntry failed",
         ret);
+    return ret;
   }
 
   ret = initCollector();
@@ -73,6 +75,7 @@ int XrdMonitor::initOrNOP()
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
         "initCollector failed",
         ret);
+    return ret;
   }
 
   ret = initServerIdentVars();
@@ -80,6 +83,7 @@ int XrdMonitor::initOrNOP()
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
         "initServerIdentVars failed",
         ret);
+    return ret;
   }
 
   if (ret >= 0) {
