@@ -19,7 +19,9 @@ FACTORY_NOT_IMPLEMENTED(PoolManager* PoolManagerFactory::createPoolManager(Plugi
 
 PoolManager* PoolManagerFactory::createPoolManager(PoolManagerFactory* factory, PluginManager* pm) throw (DmException)
 {
-  return factory->createPoolManager(pm);
+  if (factory)
+    return factory->createPoolManager(pm);
+  return 0;
 }
 
 

@@ -28,6 +28,53 @@ size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
   PROFILE_RETURN(size_t, read, buffer, count);
 }
 
+void ProfilerIOHandler::close(void) throw (DmException)
+{
+  PROFILE(close);
+}
+struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
+{
+  PROFILE_RETURN(struct ::stat, fstat);
+}
+size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmException)
+{
+  PROFILE_RETURN(size_t, write, buffer, count);
+}
+size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
+{
+  PROFILE_RETURN(size_t, readv, vector, count);
+}
+size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
+{
+  PROFILE_RETURN(size_t, writev, vector, count);
+}
+size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
+{
+  PROFILE_RETURN(size_t, pread, buffer, count, offset);
+}
+size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
+{
+  PROFILE_RETURN(size_t, pwrite, buffer, count, offset);
+}
+void ProfilerIOHandler::seek(off_t offset, Whence whence) throw (DmException)
+{
+  PROFILE(seek, offset, whence);
+}
+off_t ProfilerIOHandler::tell(void) throw (DmException)
+{
+  PROFILE_RETURN(off_t, tell);
+}
+void ProfilerIOHandler::flush(void) throw (DmException)
+{
+  PROFILE(flush);
+}
+bool ProfilerIOHandler::eof(void) throw (DmException)
+{
+  PROFILE_RETURN(bool, eof);
+}
+
+
+
 
 // --------------- ProfilerIODriver
 

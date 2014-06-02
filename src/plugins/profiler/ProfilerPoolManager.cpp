@@ -13,8 +13,11 @@ using namespace dmlite;
 ProfilerPoolManager::ProfilerPoolManager(PoolManager* decorates) throw(DmException)
 {
   this->decorated_   = decorates;
-  this->decoratedId_ = new char [decorates->getImplId().size() + 1];
-  strcpy(this->decoratedId_, decorates->getImplId().c_str());
+
+  if (decorates) {
+    this->decoratedId_ = new char [decorates->getImplId().size() + 1];
+    strcpy(this->decoratedId_, decorates->getImplId().c_str());
+  }
 }
 
 

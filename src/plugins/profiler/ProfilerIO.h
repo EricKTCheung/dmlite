@@ -18,6 +18,17 @@ namespace dmlite {
     }
 
     virtual size_t read(char* buffer, size_t count) throw (DmException);
+    virtual void close(void) throw (DmException);
+    virtual struct ::stat fstat(void) throw (DmException);
+    virtual size_t write(const char* buffer, size_t count) throw (DmException);
+    virtual size_t readv(const struct iovec* vector, size_t count) throw (DmException);
+    virtual size_t writev(const struct iovec* vector, size_t count) throw (DmException);
+    virtual size_t pread(void* buffer, size_t count, off_t offset) throw (DmException);
+    virtual size_t pwrite(const void* buffer, size_t count, off_t offset) throw (DmException);
+    virtual void seek(off_t offset, Whence whence) throw (DmException);
+    virtual off_t tell(void) throw (DmException);
+    virtual void flush(void) throw (DmException);
+    virtual bool eof(void) throw (DmException);
 
   protected:
     IOHandler* decorated_;
