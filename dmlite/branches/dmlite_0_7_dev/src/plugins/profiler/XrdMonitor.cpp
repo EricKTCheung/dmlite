@@ -187,7 +187,7 @@ int XrdMonitor::sendServerIdent()
         "send serverident",
         info);
 
-  ret = sendMonMap('=', 0, info);
+  ret = sendMonMap(XROOTD_MON_MAPIDNT, 0, info);
   if (ret) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
         "failed sending ServerIdent msg");
@@ -208,7 +208,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
         "send short userident",
         info);
 
-  ret = sendMonMap('u', dictid, info);
+  ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
         "failed sending UserIdent msg");
@@ -342,7 +342,7 @@ int XrdMonitor::sendRedirBuffer()
   int buffer_size = (redirBuffer.next_slot - 1) * sizeof(XrdXrootdMonRedir) + 16;
 
   // Fill the msg header
-  buffer->hdr.code = 'r';
+  buffer->hdr.code = XROOTD_MON_MAPREDR;
   buffer->hdr.pseq = getPseqCounter();
   buffer->hdr.plen = htons(buffer_size);
   buffer->hdr.stod = htonl(startup_time);
