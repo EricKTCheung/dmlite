@@ -358,7 +358,7 @@ void ProfilerCatalog::sendUserIdentOrNOP()
   XrdMonitor::sendUserIdent(dictid,
       // protocol
       this->secCtx_->user.name, // user DN
-      this->secCtx_->credentials.clientName, // user hostname
+      this->secCtx_->credentials.remoteAddress, // user hostname
       // org
       // role
       this->secCtx_->groups[0].name
