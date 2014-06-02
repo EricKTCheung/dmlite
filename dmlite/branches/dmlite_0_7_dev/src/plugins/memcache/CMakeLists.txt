@@ -12,7 +12,7 @@ add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
                             MemcacheFunctionCounter.cpp
  ${PROTO_SRC})
 
-include_directories (${Boost_INCLUDE_DIR} ${DMLITE_INCLUDE_DIR})
+include_directories (${Boost_INCLUDE_DIR})
 
 #find_package(Memcache)
 target_link_libraries (memcache dmlite memcached protobuf pthread)
