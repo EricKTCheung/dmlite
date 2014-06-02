@@ -41,9 +41,12 @@ XrdMonitor::XrdMonitor()
 
 XrdMonitor::~XrdMonitor() {}
 
-int XrdMonitor::init()
+int XrdMonitor::initOrNOP()
 {
   boost::mutex::scoped_lock(init_mutex_);
+  if (is_initialized_ == true) {
+    return XRDMON_FUNC_IS_NOP;
+  }
 
   int ret;
   // get process startup time, or rather:
