@@ -88,6 +88,9 @@ namespace dmlite {
     /// Plugin stack.
     StackInstance* stack_;
 
+    /// Security context
+    const SecurityContext* secCtx_;
+
     void reportXrdRedirCmd(const std::string &path, const int cmd_id);
     void sendUserIdentOrNOP();
   };
