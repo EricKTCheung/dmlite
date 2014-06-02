@@ -78,7 +78,8 @@ IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmExcept
 void ProfilerFactory::initXrdMonitorIfNotInitialized() throw (DmException)
 {
   int ret;
-  if(ret = XrdMonitor::initOrNOP() < 0) {
+  ret = XrdMonitor::initOrNOP();
+  if (ret < 0) {
     throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
         std::string("Could not connect to the monitoring collector"));
   } else if (ret != XRDMON_FUNC_IS_NOP) {

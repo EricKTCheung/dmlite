@@ -33,8 +33,6 @@ namespace dmlite {
 
       static int initOrNOP();
 
-      static bool isInitialized();
-
       static int sendUserIdent(const kXR_char dictid,
                                const std::string &userDN,
                                const std::string &userHostname,

@@ -43,12 +43,14 @@ XrdMonitor::~XrdMonitor() {}
 
 int XrdMonitor::initOrNOP()
 {
+  int ret = 0;
+
   boost::mutex::scoped_lock(init_mutex_);
   if (is_initialized_ == true) {
-    return XRDMON_FUNC_IS_NOP;
+    ret = XRDMON_FUNC_IS_NOP;
+    return ret;
   }
 
-  int ret = 0;
   // get process startup time, or rather:
   // a time before any request is handled close to the startup time
   time(&startup_time);
@@ -157,12 +159,6 @@ int XrdMonitor::initCollector()
   freeaddrinfo(res);
 
   return 0;
-}
-
-bool XrdMonitor::isInitialized()
-{
-  boost::mutex::scoped_lock(init_mutex_);
-  return is_initialized_;
 }
 
 int XrdMonitor::send(const void *buf, size_t buf_len)
