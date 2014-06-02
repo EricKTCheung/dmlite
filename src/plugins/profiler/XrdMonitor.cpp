@@ -22,11 +22,11 @@ kXR_int64 XrdMonitor::sid_ = 0;
 std::string XrdMonitor::hostname_;
 std::string XrdMonitor::username_;
 
-char XrdMonitor::pseq_counter_;
+char XrdMonitor::pseq_counter_ = 0;
 boost::mutex XrdMonitor::pseq_mutex_;
 
+kXR_unt32 XrdMonitor::dictid_ = 0;
 boost::mutex XrdMonitor::dictid_mutex_;
-kXR_unt32 XrdMonitor::dictid_;
 
 int XrdMonitor::redir_max_buffer_size_ = 0;
 boost::mutex XrdMonitor::redir_mutex_;
