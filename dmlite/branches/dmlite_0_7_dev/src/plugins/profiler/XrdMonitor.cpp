@@ -191,6 +191,27 @@ int XrdMonitor::sendServerIdent()
 }
 
 
+int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
+{
+  int ret;
+
+  char info[1024+256];
+  snprintf(info, 1024+256, "%s.%d:%lld@%s\n",
+           username_.c_str(), pid_, sid_, hostname_.c_str());
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
+        "send short userident",
+        info);
+
+  ret = sendMonMap('u', dictid, info);
+  if (ret) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "failed sending UserIdent msg");
+  }
+  return ret;
+}
+
+
 int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, const std::string &userHostname)
 {
   int ret;
