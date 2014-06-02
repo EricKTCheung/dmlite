@@ -8,7 +8,8 @@ using namespace dmlite;
 time_t XrdMonitor::startup_time = 0;
 std::string XrdMonitor::collector_addr;
 
-bool XrdMonitor::is_initialized = false;
+bool XrdMonitor::is_initialized_ = false;
+boost::mutex XrdMonitor::init_mutex_;
 
 boost::mutex XrdMonitor::send_mutex_;
 
@@ -42,6 +43,8 @@ XrdMonitor::~XrdMonitor() {}
 
 int XrdMonitor::init()
 {
+  boost::mutex::scoped_lock(init_mutex_);
+
   int ret;
   // get process startup time, or rather:
   // a time before any request is handled close to the startup time
@@ -54,6 +57,10 @@ int XrdMonitor::init()
   ret = initCollector();
 
   ret = initServerIdentVars();
+
+  if (ret == 0) {
+    is_initialized_ = true;
+  }
 
   return ret;
 }
@@ -121,14 +128,13 @@ int XrdMonitor::initCollector()
 
   freeaddrinfo(res);
 
-  is_initialized = true;
-
   return 0;
 }
 
 bool XrdMonitor::isInitialized()
 {
-  return is_initialized;
+  boost::mutex::scoped_lock(init_mutex_);
+  return is_initialized_;
 }
 
 int XrdMonitor::send(const void *buf, size_t buf_len)

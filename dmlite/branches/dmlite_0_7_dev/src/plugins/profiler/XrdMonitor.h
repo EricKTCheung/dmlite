@@ -51,7 +51,8 @@ namespace dmlite {
 
       ~XrdMonitor();
 
-      static bool is_initialized;
+      static bool is_initialized_;
+      static boost::mutex init_mutex_;
 
       static int send(const void *buf, size_t buf_len);
 
