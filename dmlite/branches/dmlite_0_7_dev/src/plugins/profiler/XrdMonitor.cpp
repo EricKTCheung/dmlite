@@ -217,7 +217,10 @@ int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
 }
 
 
-int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, const std::string &userHostname)
+int XrdMonitor::sendUserIdent(const kXR_char dictid,
+                              const std::string &userDN,
+                              const std::string &userHostname,
+                              const std::string group)
 {
   int ret;
 
@@ -231,7 +234,8 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid, const std::string &userDN, 
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
            username_.c_str(), pid_, sid_, hostname_.c_str(),
-           "null", userDN.c_str(), userHost.c_str(), "null", "null", "null", "null");
+           "null", userDN.c_str(), userHost.c_str(),
+           "null", "null", group.c_str(), "null");
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
         "send userident",
