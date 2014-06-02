@@ -55,10 +55,6 @@ int XrdMonitor::init()
 
   ret = initServerIdentVars();
 
-  if (ret == 0) {
-    sendServerIdent();
-  }
-
   return ret;
 }
 
