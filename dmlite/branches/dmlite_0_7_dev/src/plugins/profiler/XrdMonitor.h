@@ -22,6 +22,8 @@
 
 #define XROOTD_MON_SIDMASK 0xFFFFFFFFFFFF // 48 bit
 
+#define XRDMON_FUNC_IS_NOP -1000
+
 
 namespace dmlite {
 
@@ -29,7 +31,7 @@ namespace dmlite {
     public:
       XrdMonitor();
 
-      static int init();
+      static int initOrNOP();
 
       static bool isInitialized();
 
