@@ -318,11 +318,6 @@ XrdXrootdMonRedir* XrdMonitor::getRedirBufferNextEntry(int slots)
     return 0x00;
 }
 
-std::string XrdMonitor::getHostname()
-{
-  return hostname_;
-}
-
 int XrdMonitor::advanceRedirBufferNextEntry(int slots)
 {
   int ret = 0;
@@ -382,6 +377,11 @@ int XrdMonitor::sendRedirBuffer()
   return ret;
 }
 
+std::string XrdMonitor::getHostname()
+{
+  return hostname_;
+}
+
 
 void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
 {
@@ -432,4 +432,82 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
         "did not send/add new REDIR msg");
   }
+}
+
+
+int XrdMonitor::initFileBuffer(int max_size)
+{
+  int max_slots = (max_size - sizeof(XrdXrootdMonHeader) - sizeof(XrdXrootdMonFileTOD)) / sizeof(XrdXrootdMonFileHdr); // round down
+
+  int msg_buffer_size = max_slots * sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonHeader) + sizeof(XrdXrootdMonFileTOD);
+  fileBuffer.max_slots = max_slots;
+  fileBuffer.next_slot = 0;
+  fileBuffer.msg_buffer = static_cast<XrdFStreamBuff *>(malloc(msg_buffer_size));
+  if (fileBuffer.msg_buffer == NULL) {
+    return -ENOMEM;
+  }
+
+  return 0;
+}
+
+XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
+{
+
+  // space from the last msg + this msg + the ending window message
+  if (fileBuffer.next_slot + slots + 1 < fileBuffer.max_slots) {
+    fileBuffer.msg_buffer->tod.tBeg = htonl(static_cast<int>(time(0)));
+    return &(fileBuffer.msg_buffer->info[fileBuffer.next_slot]);
+  } else
+    return 0x00;
+}
+
+int XrdMonitor::advanceFileBufferNextEntry(int slots)
+{
+  int ret = 0;
+
+  fileBuffer.next_slot += slots + 1;
+
+  return ret;
+}
+
+
+int XrdMonitor::sendFileBuffer()
+{
+  int ret = 0;
+
+  XrdFStreamBuff *buffer = fileBuffer.msg_buffer;
+
+  // the size of the part of the buffer that is filled with messages
+  int buffer_size = (redirBuffer.next_slot - 1) * sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonHeader) + sizeof(XrdXrootdMonFileTOD);
+
+  // Fill the msg header
+  buffer->hdr.code = XROOTD_MON_MAPFSTA;
+  buffer->hdr.pseq = getPseqCounter();
+  buffer->hdr.plen = htons(buffer_size);
+  buffer->hdr.stod = htonl(startup_time);
+
+  buffer->tod.tEnd = htonl(static_cast<int>(time(0)));
+
+  ret = send(buffer, buffer_size);
+
+  // Clean up the buffer:
+  // Delete everything after the header + server identification
+  memset(fileBuffer.msg_buffer->info,
+         0, (fileBuffer.max_slots) * sizeof(XrdXrootdMonFileHdr));
+  fileBuffer.next_slot = 0;
+
+  buffer->tod.tBeg = buffer->tod.tEnd;
+
+  return ret;
+}
+
+void reportXrdFileOpen(const kXR_unt32 dictid, const std::string &path)
+{
+
+}
+
+
+void reportXrdFileClose(const kXR_unt32 dictid, const XrdXrootdMonStatXFR xfr)
+{
+
 }

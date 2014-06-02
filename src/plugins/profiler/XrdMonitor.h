@@ -44,6 +44,8 @@ namespace dmlite {
       //int send_user_open_path(const std::string user, const std::string path);
 
       static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
+      static void reportXrdFileOpen(const kXR_unt32 dictid, const std::string &path);
+      static void reportXrdFileClose(const kXR_unt32 dictid, const XrdXrootdMonStatXFR xfr);
 
       static std::string getHostname();
       static kXR_unt32 getDictId();
@@ -101,6 +103,30 @@ namespace dmlite {
        int               next_slot;
        time_t            last_window_end;
       }                  redirBuffer;
+
+      static int file_max_buffer_size_;
+      static boost::mutex file_mutex_;
+
+      static int initFileBuffer(int max_size);
+
+      static int sendFileBuffer();
+      static XrdXrootdMonFileHdr* getFileBufferNextEntry(int msg_size);
+      static int advanceFileBufferNextEntry(int msg_size);
+
+      struct XrdFStreamBuff
+      {
+        struct XrdXrootdMonHeader    hdr;
+        struct XrdXrootdMonFileTOD   tod;
+        struct XrdXrootdMonFileHdr   info[sizeof(XrdXrootdMonFileHdr)];
+      }
+
+      static struct FileBuffer
+      {
+        XrdFStreamBuff   *msg_buffer;
+        int               max_slots;
+        int               next_slot;
+      }                   fileBuffer;
+
   };
 };
 #endif
