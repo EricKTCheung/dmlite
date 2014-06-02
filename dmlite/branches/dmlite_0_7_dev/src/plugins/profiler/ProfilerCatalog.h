@@ -89,6 +89,7 @@ namespace dmlite {
     StackInstance* stack_;
 
     void reportXrdRedirCmd(const std::string &path, const int cmd_id);
+    void sendUserIdentOrNOP();
   };
 
 };
