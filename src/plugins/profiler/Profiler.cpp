@@ -72,13 +72,8 @@ void ProfilerFactory::initXrdMonitorIfNotInitialized() throw (DmException)
     throw DmException(DMLITE_SYSERR(DMLITE_UNKNOWN_ERROR),
         std::string("Could not connect to the monitoring collector"));
     }
-    char info[1024+256];
-
-    snprintf(info, 1024+256, "%s.%d:%d@%s\n&pgm=%s&ver=%s",
-             "dpmmgr", 1, 16, "localhost", "dpm", "1.8.8");
-
-    XrdMonitor::sendMonMap('=', 0, info);
   }
+  XrdMonitor::sendServerIdent();
 }
 
 
