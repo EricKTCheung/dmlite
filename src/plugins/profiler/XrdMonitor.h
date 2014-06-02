@@ -22,7 +22,7 @@
 
 #define XROOTD_MON_SIDMASK 0xFFFFFFFFFFFF // 48 bit
 
-#define XRDMON_FUNC_IS_NOP -1000
+#define XRDMON_FUNC_IS_NOP 1000
 
 
 namespace dmlite {
