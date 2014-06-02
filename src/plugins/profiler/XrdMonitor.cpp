@@ -48,20 +48,41 @@ int XrdMonitor::initOrNOP()
     return XRDMON_FUNC_IS_NOP;
   }
 
-  int ret;
+  int ret = 0;
   // get process startup time, or rather:
   // a time before any request is handled close to the startup time
   time(&startup_time);
 
   // initialize the message buffers
   ret = initRedirBuffer(redir_max_buffer_size_);
+  if (ret < 0) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
+        "initRedirBuffer failed",
+        ret);
+  }
+
   ret = insertRedirBufferWindowEntry();
+  if (ret < 0) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
+        "insertRedirBufferWindowEntry failed",
+        ret);
+  }
 
   ret = initCollector();
+  if (ret < 0) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
+        "initCollector failed",
+        ret);
+  }
 
   ret = initServerIdentVars();
+  if (ret < 0) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
+        "initServerIdentVars failed",
+        ret);
+  }
 
-  if (ret == 0) {
+  if (ret >= 0) {
     is_initialized_ = true;
   }
 
@@ -77,7 +98,7 @@ int XrdMonitor::initServerIdentVars()
   sid_ = pid_ << 16;
 
   // get the hostname and username for monitorMap messages
-  int ret;
+  int ret = 0;
   char hostname[1024];
   ret = gethostname(hostname, 1024);
   hostname_.assign(hostname);
@@ -118,7 +139,7 @@ int XrdMonitor::initCollector()
     port = server[1].c_str();
   }
 
-  int ret;
+  int ret = 0;
   struct addrinfo hints, *res;
   memset(&hints, 0, sizeof(hints));
   hints.ai_socktype = SOCK_DGRAM;
@@ -156,7 +177,7 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
 
 int XrdMonitor::sendMonMap(kXR_char code, kXR_unt32 dictid, char *info)
 {
-  int ret;
+  int ret = 0;
 
   struct XrdXrootdMonMap mon_map;
   memset(&mon_map, 0, sizeof(mon_map));
@@ -178,7 +199,7 @@ int XrdMonitor::sendMonMap(kXR_char code, kXR_unt32 dictid, char *info)
 
 int XrdMonitor::sendServerIdent()
 {
-  int ret;
+  int ret = 0;
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&pgm=%s&ver=%s",
       username_.c_str(), pid_, sid_, hostname_.c_str(), "dpm", "1.8.8");
@@ -198,7 +219,7 @@ int XrdMonitor::sendServerIdent()
 
 int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
 {
-  int ret;
+  int ret = 0;
 
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n",
@@ -222,7 +243,7 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
                               const std::string &userHostname,
                               const std::string group)
 {
-  int ret;
+  int ret = 0;
 
   std::string userHost;
   if (userHostname.length() > 0) {
@@ -304,7 +325,7 @@ std::string XrdMonitor::getHostname()
 
 int XrdMonitor::advanceRedirBufferNextEntry(int slots)
 {
-  int ret;
+  int ret = 0;
 
   redirBuffer.next_slot += slots + 1;
 
@@ -313,7 +334,7 @@ int XrdMonitor::advanceRedirBufferNextEntry(int slots)
 
 int XrdMonitor::insertRedirBufferWindowEntry()
 {
-  int ret;
+  int ret = 0;
 
   time_t cur_time = time(NULL);
 
@@ -331,7 +352,7 @@ int XrdMonitor::insertRedirBufferWindowEntry()
 
 int XrdMonitor::sendRedirBuffer()
 {
-  int ret;
+  int ret = 0;
 
   XrdXrootdMonBurr *buffer = redirBuffer.msg_buffer;
 
