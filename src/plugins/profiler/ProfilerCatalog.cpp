@@ -353,17 +353,17 @@ void ProfilerCatalog::sendUserIdentOrNOP()
   }
   kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
 
-  XrdMonitor::sendShortUserIdent(dictid);
+  //XrdMonitor::sendShortUserIdent(dictid);
 
-  //XrdMonitor::sendUserIdent(dictid,
-  //    // protocol
-  //    ctx->user.name, // user DN
-  //    ctx->credentials.remoteAddress // user hostname
-  //    // org
-  //    // role
-  //    // grp
-  //    // info
-  //);
+  XrdMonitor::sendUserIdent(dictid,
+      // protocol
+      this->secCtx_->user.name, // user DN
+      this->secCtx_->credentials.clientName, // user hostname
+      // org
+      // role
+      this->secCtx_->groups[0].name
+      // info
+  );
 
   this->stack_->set("sent_userident", true);
 }
