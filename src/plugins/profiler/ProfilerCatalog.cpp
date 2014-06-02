@@ -56,15 +56,17 @@ void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmEx
   }
   kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
 
-  XrdMonitor::sendUserIdent(dictid,
-      // protocol
-      ctx->user.name, // user DN
-      ctx->credentials.remoteAddress // user hostname
-      // org
-      // role
-      // grp
-      // info
-  );
+  XrdMonitor::sendShortUserIdent(dictid);
+
+  //XrdMonitor::sendUserIdent(dictid,
+  //    // protocol
+  //    ctx->user.name, // user DN
+  //    ctx->credentials.remoteAddress // user hostname
+  //    // org
+  //    // role
+  //    // grp
+  //    // info
+  //);
 }
 
 
