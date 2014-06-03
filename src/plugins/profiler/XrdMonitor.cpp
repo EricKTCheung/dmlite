@@ -78,6 +78,14 @@ int XrdMonitor::initOrNOP()
     return ret;
   }
 
+  ret = initFileBuffer(file_max_buffer_size_);
+  if (ret < 0) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
+        "initFileBuffer failed",
+        ret);
+    return ret;
+  }
+
   ret = initCollector();
   if (ret < 0) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
