@@ -462,6 +462,14 @@ int XrdMonitor::initFileBuffer(int max_size)
     return -ENOMEM;
   }
 
+  XrdXrootdMonFileTOD msg = fileBuffer.msg_buffer->tod;
+  msg.Hdr.recType = XrdXrootdMonFileHdr::isTime;
+  msg.Hdr.recFlag = 0;
+  msg.Hdr.recSize = htons(sizeof(XrdXrootdMonFileTOD));
+
+  fileBuffer.xfr_msgs = 0;
+  fileBuffer.total_msgs = 0;
+
   return 0;
 }
 
@@ -470,6 +478,7 @@ XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
 
   // space from the last msg + this msg + the ending window message
   if (fileBuffer.next_slot + slots + 1 < fileBuffer.max_slots) {
+    ++fileBuffer.total_msgs;
     fileBuffer.msg_buffer->tod.tBeg = htonl(static_cast<int>(time(0)));
     return &(fileBuffer.msg_buffer->info[fileBuffer.next_slot]);
   } else
@@ -500,6 +509,9 @@ int XrdMonitor::sendFileBuffer()
   buffer->hdr.pseq = getPseqCounter();
   buffer->hdr.plen = htons(buffer_size);
   buffer->hdr.stod = htonl(startup_time);
+
+  buffer->tod.Hdr.nRecs[0] = htons(static_cast<short>(fileBuffer.xfr_msgs));
+  buffer->tod.Hdr.nRecs[1] = htons(static_cast<short>(fileBuffer.total_msgs));
 
   buffer->tod.tEnd = htonl(static_cast<int>(time(0)));
 

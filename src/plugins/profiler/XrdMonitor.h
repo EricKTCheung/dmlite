@@ -184,6 +184,8 @@ namespace dmlite {
         XrdFStreamBuff   *msg_buffer;
         int               max_slots;
         int               next_slot;
+        int               xfr_msgs;
+        int               total_msgs;
       }                   fileBuffer;
 
   };
