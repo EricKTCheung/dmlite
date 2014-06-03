@@ -10,6 +10,8 @@ set(dmlite_PATCH 0)
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
 
+set(CMAKE_BUILD_TYPE "Debug")
+
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX ""
