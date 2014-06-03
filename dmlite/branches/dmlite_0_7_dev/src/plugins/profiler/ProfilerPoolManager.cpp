@@ -14,20 +14,16 @@ ProfilerPoolManager::ProfilerPoolManager(PoolManager* decorates) throw(DmExcepti
 {
   this->decorated_   = decorates;
 
-  if (decorates) {
-    this->decoratedId_ = new char [decorates->getImplId().size() + 1];
-    strcpy(this->decoratedId_, decorates->getImplId().c_str());
-  }
+  this->decoratedId_ = new char [decorates->getImplId().size() + 1];
+  strcpy(this->decoratedId_, decorates->getImplId().c_str());
 }
 
 
 
 ProfilerPoolManager::~ProfilerPoolManager()
 {
-  if (this->decorated_ != 0x00)
-    delete this->decorated_;
-  if (this->decoratedId_ != 0x00)
-    delete this->decoratedId_;
+  delete this->decorated_;
+  delete this->decoratedId_;
 }
 
 
