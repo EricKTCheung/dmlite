@@ -47,6 +47,11 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
 Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 {
+  if (this->nestedCatalogFactory_ != 0x00)
+    nested = CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm);
+  else
+    return 0x00;
+
   initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
@@ -58,6 +63,11 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 
 PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmException)
 {
+  if (this->nestedPoolManagerFactory_ != 0x00)
+    nested = PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm);
+  else
+    return 0x00;
+
   initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
@@ -68,6 +78,11 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
 
 IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmException)
 {
+  if (this->nestedIODriverFactory_ != 0x00)
+    nested = IODriverFactory::createIODriver(this->nestedIODriverFactory_, pm);
+  else
+    return 0x00;
+
   initXrdMonitorIfNotInitialized();
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
