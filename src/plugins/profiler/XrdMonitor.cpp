@@ -33,6 +33,12 @@ boost::mutex XrdMonitor::redir_mutex_;
 
 XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
+int XrdMonitor::file_max_buffer_size_ = 0;
+boost::mutex XrdMonitor::file_mutex_;
+
+XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
+
+
 XrdMonitor::XrdMonitor()
 {
   // Nothing
@@ -389,6 +395,7 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
 
   int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
   int slots = msg_size / sizeof(XrdXrootdMonRedir);
+  // TODO: optimize, get rid of the %
   if (msg_size % sizeof(XrdXrootdMonRedir)) {
     ++slots;
   }
@@ -409,13 +416,13 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
         syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
             "sent REDIR msg");
       }
-      msg = XrdMonitor::getRedirBufferNextEntry(slots);
+      msg = getRedirBufferNextEntry(slots);
     }
     // now it must be free, otherwise forget about it ..
     if (msg != 0x00) {
       msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
       msg->arg0.rdr.Dent = slots - 1;
-      msg->arg0.rdr.Port = 0; // ??
+      msg->arg0.rdr.Port = 0; // TODO: ??
       msg->arg1.dictid = dictid;
       // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
       char *dest = (char *) (msg + 1);
@@ -501,13 +508,67 @@ int XrdMonitor::sendFileBuffer()
   return ret;
 }
 
-void reportXrdFileOpen(const kXR_unt32 dictid, const std::string &path)
+void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 fileid,
+                                   const std::string &path,
+                                   const long long file_size)
 {
+  int msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
+  //if (include_lfn) {
+  msg_size += sizeof(kXR_unt32) + path.length();
+  //}
+  // TODO: optimize, get rid of the %
+  int slots = msg_size / sizeof(XrdXrootdMonFileHdr);
+  if (msg_size % sizeof(XrdXrootdMonFileHdr)) {
+    ++slots;
+  }
+  int aligned_path_len = path.length() + (slots * sizeof(XrdXrootdMonFileHdr) - msg_size);
 
+  XrdXrootdMonFileOPN *msg;
+  {
+    boost::mutex::scoped_lock(file_mutex_);
+
+    msg = (XrdXrootdMonFileOPN *) getFileBufferNextEntry(slots);
+
+    if (msg == 0x00) {
+      int ret = XrdMonitor::sendFileBuffer();
+      if (ret) {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "failed sending FILE msg");
+      } else {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "sent FILE msg");
+      }
+      msg = (XrdXrootdMonFileOPN *) getFileBufferNextEntry(slots);
+    }
+
+    if (msg != 0x00) {
+      msg->Hdr.recType = XrdXrootdMonFileHdr::isOpen;
+      msg->Hdr.recFlag = XrdXrootdMonFileHdr::hasRW;
+      msg->Hdr.recSize = htons(static_cast<short>(slots*sizeof(XrdXrootdMonFileHdr)));
+      msg->Hdr.fileID = fileid;
+      msg->fsz = htonll(file_size);
+
+      //if (include_lfn) {
+      msg->Hdr.recFlag |= XrdXrootdMonFileHdr::hasLFN;
+      msg->ufn.user = dictid;
+      strncpy(msg->ufn.lfn, path.c_str(), aligned_path_len);
+      //}
+
+      advanceFileBufferNextEntry(slots);
+    }
+  }
+
+  if (msg != 0x00) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "added new FILE msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "did not send/add new FILE msg");
+  }
 }
 
 
-void reportXrdFileClose(const kXR_unt32 dictid, const XrdXrootdMonStatXFR xfr)
+void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr)
 {
 
 }
