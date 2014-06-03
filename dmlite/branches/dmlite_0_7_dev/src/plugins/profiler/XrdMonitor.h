@@ -20,6 +20,64 @@
 
 #include "XrdXrootdMonData.hh"
 
+#if defined(_BIG_ENDIAN) || defined(__BIG_ENDIAN__) || \
+   defined(__IEEE_BIG_ENDIAN) || \
+   (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN)
+#define Xrd_Big_Endian
+#ifndef htonll
+#define htonll(_x_)  _x_
+#endif
+#ifndef h2nll
+#define h2nll(_x_, _y_) memcpy((void *)&_y_,(const void *)&_x_,sizeof(long long))
+#endif
+#ifndef ntohll
+#define ntohll(_x_)  _x_
+#endif
+#ifndef n2hll
+#define n2hll(_x_, _y_) memcpy((void *)&_y_,(const void *)&_x_,sizeof(long long))
+#endif
+
+#elif defined(_LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || \
+     defined(__IEEE_LITTLE_ENDIAN) || \
+     (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN)
+#if !defined(__GNUC__) || defined(__APPLE__)
+
+#if !defined(__sun) || (defined(__sun) && (!defined(_LP64) || defined(__SunOS_5_10)))
+extern "C" unsigned long long Swap_n2hll(unsigned long long x);
+#ifndef htonll
+#define htonll(_x_) Swap_n2hll(_x_)
+#endif
+#ifndef ntohll
+#define ntohll(_x_) Swap_n2hll(_x_)
+#endif
+#endif
+
+#else
+
+#ifndef htonll
+#define htonll(_x_) __bswap_64(_x_)
+#endif
+#ifndef ntohll
+#define ntohll(_x_) __bswap_64(_x_)
+#endif
+
+#endif
+
+#ifndef h2nll
+#define h2nll(_x_, _y_) memcpy((void *)&_y_,(const void *)&_x_,sizeof(long long));\
+                        _y_ = htonll(_y_)
+#endif
+#ifndef n2hll
+#define n2hll(_x_, _y_) memcpy((void *)&_y_,(const void *)&_x_,sizeof(long long));\
+                        _y_ = ntohll(_y_)
+#endif
+
+#else
+#ifndef WIN32
+#error Unable to determine target architecture endianness!
+#endif
+#endif
+
 #define XROOTD_MON_SIDMASK 0xFFFFFFFFFFFF // 48 bit
 
 #define XRDMON_FUNC_IS_NOP 1000
@@ -44,8 +102,9 @@ namespace dmlite {
       //int send_user_open_path(const std::string user, const std::string path);
 
       static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
-      static void reportXrdFileOpen(const kXR_unt32 dictid, const std::string &path);
-      static void reportXrdFileClose(const kXR_unt32 dictid, const XrdXrootdMonStatXFR xfr);
+      static void reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 fileid,
+                                    const std::string &path, const long long file_size);
+      static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr);
 
       static std::string getHostname();
       static kXR_unt32 getDictId();
