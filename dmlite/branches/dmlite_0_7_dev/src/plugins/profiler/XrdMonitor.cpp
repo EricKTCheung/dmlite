@@ -262,7 +262,7 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
         "send userident",
         info);
 
-  ret = sendMonMap('u', dictid, info);
+  ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
         "failed sending UserIdent msg");
