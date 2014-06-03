@@ -47,6 +47,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
 Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 {
+  Catalog *nested;
   if (this->nestedCatalogFactory_ != 0x00)
     nested = CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm);
   else
@@ -56,13 +57,14 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
       "Creating ProfilerCatalog nesting", (unsigned long)this->nestedCatalogFactory_);
-  return new ProfilerCatalog(CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm));
+  return new ProfilerCatalog(nested);
 }
 
 
 
 PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmException)
 {
+  PoolManager *nested;
   if (this->nestedPoolManagerFactory_ != 0x00)
     nested = PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm);
   else
@@ -72,12 +74,13 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
       "Creating ProfilerPoolManager nesting", (unsigned long)this->nestedPoolManagerFactory_);
-  return new ProfilerPoolManager(PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm));
+  return new ProfilerPoolManager(nested);
 }
 
 
 IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmException)
 {
+  IODriver *nested;
   if (this->nestedIODriverFactory_ != 0x00)
     nested = IODriverFactory::createIODriver(this->nestedIODriverFactory_, pm);
   else
@@ -87,7 +90,7 @@ IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmExcept
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
       "Profiler",
       "Creating ProfilerIODriver nesting", (unsigned long)this->nestedIODriverFactory_);
-  return new ProfilerIODriver(IODriverFactory::createIODriver(this->nestedIODriverFactory_, pm));
+  return new ProfilerIODriver(nested);
 }
 
 
