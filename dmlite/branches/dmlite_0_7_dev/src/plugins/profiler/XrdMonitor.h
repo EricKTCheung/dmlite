@@ -36,7 +36,7 @@ namespace dmlite {
       static int sendUserIdent(const kXR_char dictid,
                                const std::string &userDN,
                                const std::string &userHostname,
-                               const std::string group);
+                               const std::string vo);
 
       static int sendShortUserIdent(const kXR_char dictid);
       static int sendMonMap(kXR_char code, kXR_unt32 dictid, char *info);
