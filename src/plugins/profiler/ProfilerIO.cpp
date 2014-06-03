@@ -10,11 +10,21 @@ using namespace dmlite;
 
 // --------------- ProfilerIOHandler
 
-ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates) throw(DmException)
+ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
+    const std::string& pfn, int flags, StackInstance *si) throw(DmException): stack_(si)
 {
   this->decorated_   = decorates;
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
   strcpy(this->decoratedId_, decorates->getImplId().c_str());
+
+  //test send fileMonitoring msg
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", XrdMonitor::getDictId());
+  }
+  boost::any dictid_any = this->stack_->get("dictid");
+  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+
+  XrdMonitor::reportXrdFileOpen(dictid, 0, pfn, 1001);
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
@@ -94,6 +104,7 @@ ProfilerIODriver::~ProfilerIODriver() {
 void ProfilerIODriver::setStackInstance(StackInstance* si) throw (DmException)
 {
   BaseInterface::setStackInstance(this->decorated_, si);
+  this->stack_ = si;
 }
 
 
