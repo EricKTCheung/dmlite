@@ -28,12 +28,12 @@ boost::mutex XrdMonitor::pseq_mutex_;
 kXR_unt32 XrdMonitor::dictid_ = 0;
 boost::mutex XrdMonitor::dictid_mutex_;
 
-int XrdMonitor::redir_max_buffer_size_ = 0;
+int XrdMonitor::redir_max_buffer_size_ = 32768;
 boost::mutex XrdMonitor::redir_mutex_;
 
 XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
-int XrdMonitor::file_max_buffer_size_ = 0;
+int XrdMonitor::file_max_buffer_size_ = 32768;
 boost::mutex XrdMonitor::file_mutex_;
 
 XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
