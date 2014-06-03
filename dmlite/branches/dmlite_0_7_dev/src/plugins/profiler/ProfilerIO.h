@@ -14,7 +14,11 @@ namespace dmlite {
     virtual ~ProfilerIOHandler();
 
     std::string getImplId(void) const throw() {
-      return std::string("ProfilerIOHandler");
+      std::string implId = "ProfilerIOHandler";
+      implId += " over ";
+      implId += this->decoratedId_;
+
+      return implId;
     }
 
     virtual size_t read(char* buffer, size_t count) throw (DmException);
