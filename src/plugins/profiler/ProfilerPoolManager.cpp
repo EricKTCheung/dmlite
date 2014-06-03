@@ -24,8 +24,10 @@ ProfilerPoolManager::ProfilerPoolManager(PoolManager* decorates) throw(DmExcepti
 
 ProfilerPoolManager::~ProfilerPoolManager()
 {
-  delete this->decorated_;
-  delete this->decoratedId_;
+  if (this->decorated_ != 0x00)
+    delete this->decorated_;
+  if (this->decoratedId_ != 0x00)
+    delete this->decoratedId_;
 }
 
 
