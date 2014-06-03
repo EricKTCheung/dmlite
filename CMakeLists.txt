@@ -56,6 +56,9 @@ link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 # Definitions
 add_definitions (-D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE)
 
+# Set Wall
+set (CMAKE_CXX_FLAGS "-Wall")
+
 # enable testing
 enable_testing()
 
