@@ -114,7 +114,7 @@ measurements regarding the performance of each call to dmlite.
 %setup -q -n %{name}-%{version}
 
 %build
-%cmake . -DCMAKE_INSTALL_PREFIX=/ -DRUN_ONLY_STANDALONE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+%cmake . -DCMAKE_INSTALL_PREFIX=/ -DRUN_ONLY_STANDALONE_TESTS=ON
 
 make %{?_smp_mflags}
 
