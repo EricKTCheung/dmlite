@@ -32,13 +32,40 @@ ProfilerFactory::~ProfilerFactory()
 
 void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  if (key == "Collector") {
+  // the monitor keyword accepts options in the xrootd syntax,
+  // i.e. all parameters in one line separated by whitespace
+  if (key == "monitor") {
+    std::vector<std::string> options;
+    boost::split(options, value, boost::is_any_of(" \t"));
+
+    std::vector<std::string>::const_iterator it;
+    for (it = options.begin(); it != options.end(); ++it) {
+      switch (*it) {
+        case "lfn":
+          XrdMonitor::include_lfn_ = true;
+          break;
+        case "rbuff":
+          if (it+1 == options.end())
+            break;
+          int buf_size = atoi(value.c_str());
+          if (buf_size > 0) {
+            XrdMonitor::redir_max_buffer_size_ = buf_size;
+            ++it;
+          }
+          break;
+        default:
+          if (it+1 == options.end())
+            XrdMonitor::collector_addr = value;
+          break;
+
+      }
+    }
+  } else if (key == "Collector") {
     XrdMonitor::collector_addr = value;
   } else if (key == "MsgBufferSize") {
     XrdMonitor::redir_max_buffer_size_ = atoi(value.c_str());
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());
-  } else if (key == "monitor") {
-    if (value == "lfn") {
+  } else if (value == "lfn") {
       XrdMonitor::include_lfn_ = true;
     }
   } else {
