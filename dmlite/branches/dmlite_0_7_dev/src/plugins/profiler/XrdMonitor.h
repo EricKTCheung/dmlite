@@ -165,6 +165,7 @@ namespace dmlite {
 
       static int file_max_buffer_size_;
       static boost::mutex file_mutex_;
+      static bool include_lfn_;
 
       static int initFileBuffer(int max_size);
 

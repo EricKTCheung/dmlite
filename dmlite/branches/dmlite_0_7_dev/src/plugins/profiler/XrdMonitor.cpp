@@ -35,6 +35,7 @@ XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
 int XrdMonitor::file_max_buffer_size_ = 32768;
 boost::mutex XrdMonitor::file_mutex_;
+bool include_lfn_ = false;
 
 XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
 
@@ -554,9 +555,9 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
 {
   static const int min_msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
   int msg_size = min_msg_size;
-  //if (include_lfn) {
-  msg_size += sizeof(kXR_unt32) + path.length();
-  //}
+  if (include_lfn_) {
+    msg_size += sizeof(kXR_unt32) + path.length();
+  }
   // TODO: optimize, get rid of the %
   int slots = msg_size / sizeof(XrdXrootdMonFileHdr);
   if (msg_size % sizeof(XrdXrootdMonFileHdr)) {
@@ -589,11 +590,11 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
       msg->Hdr.fileID = fileid;
       msg->fsz = htonll(file_size);
 
-      //if (include_lfn) {
-      msg->Hdr.recFlag |= XrdXrootdMonFileHdr::hasLFN;
-      msg->ufn.user = dictid;
-      strncpy(msg->ufn.lfn, path.c_str(), aligned_path_len);
-      //}
+      if (include_lfn_) {
+        msg->Hdr.recFlag |= XrdXrootdMonFileHdr::hasLFN;
+        msg->ufn.user = dictid;
+        strncpy(msg->ufn.lfn, path.c_str(), aligned_path_len);
+      }
 
       advanceFileBufferNextEntry(slots);
     }
