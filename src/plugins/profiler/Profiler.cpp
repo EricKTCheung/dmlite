@@ -37,6 +37,10 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
   } else if (key == "MsgBufferSize") {
     XrdMonitor::redir_max_buffer_size_ = atoi(value.c_str());
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());
+  } else if (key == "monitor") {
+    if (value == "lfn") {
+      XrdMonitor::include_lfn_ = true;
+    }
   } else {
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
         std::string("Unknown option ") + key);
