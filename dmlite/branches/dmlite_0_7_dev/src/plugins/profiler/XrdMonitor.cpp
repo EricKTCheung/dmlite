@@ -38,6 +38,23 @@ boost::mutex XrdMonitor::file_mutex_;
 
 XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
 
+#if defined(_LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || \
+      defined(__IEEE_LITTLE_ENDIAN) || \
+   (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN)
+#if !defined(__GNUC__) || defined(__APPLE__)
+extern "C"
+{
+  unsigned long long Swap_n2hll(unsigned long long x)
+  {
+    unsigned long long ret_val;
+    *( (unsigned int  *)(&ret_val) + 1) = ntohl(*( (unsigned int  *)(&x)));
+    *(((unsigned int  *)(&ret_val)))    = ntohl(*(((unsigned int  *)(&x))+1));
+    return ret_val;
+  }
+}
+#endif
+
+#endif
 
 XrdMonitor::XrdMonitor()
 {
@@ -336,7 +353,7 @@ int XrdMonitor::advanceRedirBufferNextEntry(int slots)
 {
   int ret = 0;
 
-  redirBuffer.next_slot += slots + 1;
+  redirBuffer.next_slot += slots;
 
   return ret;
 }
@@ -489,7 +506,7 @@ int XrdMonitor::advanceFileBufferNextEntry(int slots)
 {
   int ret = 0;
 
-  fileBuffer.next_slot += slots + 1;
+  fileBuffer.next_slot += slots;
 
   return ret;
 }
@@ -532,7 +549,8 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
                                    const std::string &path,
                                    const long long file_size)
 {
-  int msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
+  static const int min_msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
+  int msg_size = min_msg_size;
   //if (include_lfn) {
   msg_size += sizeof(kXR_unt32) + path.length();
   //}
