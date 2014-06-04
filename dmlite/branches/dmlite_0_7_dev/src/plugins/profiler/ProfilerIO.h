@@ -40,6 +40,8 @@ namespace dmlite {
     char*      decoratedId_;
 
     StackInstance *stack_;
+
+    void sendUserIdentOrNOP();
   };
 
 
