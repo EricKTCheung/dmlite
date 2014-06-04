@@ -24,6 +24,8 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   boost::any dictid_any = this->stack_->get("dictid");
   kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
 
+  sendUserIdentOrNOP();
+
   XrdMonitor::reportXrdFileOpen(dictid, 0, pfn, 1001);
 }
 
@@ -83,6 +85,31 @@ bool ProfilerIOHandler::eof(void) throw (DmException)
   PROFILE_RETURN(bool, eof);
 }
 
+void ProfilerIOHandler::sendUserIdentOrNOP()
+{
+  if (this->stack_->contains("sent_userident")) {
+    return;
+  }
+
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", XrdMonitor::getDictId());
+  }
+  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
+
+  //XrdMonitor::sendShortUserIdent(dictid);
+
+  XrdMonitor::sendUserIdent(dictid,
+      // protocol
+      this->secCtx_->user.name, // user DN
+      this->secCtx_->credentials.remoteAddress, // user hostname
+      // org
+      // role
+      this->secCtx_->groups[0].name
+      // info
+  );
+
+  this->stack_->set("sent_userident", true);
+}
 
 
 
