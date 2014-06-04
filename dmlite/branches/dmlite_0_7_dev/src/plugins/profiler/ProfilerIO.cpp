@@ -98,13 +98,15 @@ void ProfilerIOHandler::sendUserIdentOrNOP()
 
   //XrdMonitor::sendShortUserIdent(dictid);
 
+  SecurityContext *secCtx = this->stack_->getSecurityContext();
+
   XrdMonitor::sendUserIdent(dictid,
       // protocol
-      this->secCtx_->user.name, // user DN
-      this->secCtx_->credentials.remoteAddress, // user hostname
+      secCtx->user.name, // user DN
+      secCtx->credentials.remoteAddress, // user hostname
       // org
       // role
-      this->secCtx_->groups[0].name
+      secCtx->groups[0].name
       // info
   );
 
