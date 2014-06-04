@@ -519,7 +519,7 @@ int XrdMonitor::sendFileBuffer()
   XrdFStreamBuff *buffer = fileBuffer.msg_buffer;
 
   // the size of the part of the buffer that is filled with messages
-  int buffer_size = (redirBuffer.next_slot - 1) * sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonHeader) + sizeof(XrdXrootdMonFileTOD);
+  int buffer_size = (redirBuffer.next_slot) * sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonHeader) + sizeof(XrdXrootdMonFileTOD);
 
   // Fill the msg header
   buffer->hdr.code = XROOTD_MON_MAPFSTA;
@@ -539,6 +539,9 @@ int XrdMonitor::sendFileBuffer()
   memset(fileBuffer.msg_buffer->info,
          0, (fileBuffer.max_slots) * sizeof(XrdXrootdMonFileHdr));
   fileBuffer.next_slot = 0;
+
+  fileBuffer.xfr_msgs = 0;
+  fileBuffer.total_msgs = 0;
 
   buffer->tod.tBeg = buffer->tod.tEnd;
 
