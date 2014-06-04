@@ -462,10 +462,10 @@ int XrdMonitor::initFileBuffer(int max_size)
     return -ENOMEM;
   }
 
-  XrdXrootdMonFileTOD msg = fileBuffer.msg_buffer->tod;
-  msg.Hdr.recType = XrdXrootdMonFileHdr::isTime;
-  msg.Hdr.recFlag = 0;
-  msg.Hdr.recSize = htons(sizeof(XrdXrootdMonFileTOD));
+  XrdXrootdMonFileTOD *msg = &(fileBuffer.msg_buffer->tod);
+  msg->Hdr.recType = XrdXrootdMonFileHdr::isTime;
+  msg->Hdr.recFlag = 0;
+  msg->Hdr.recSize = htons(sizeof(XrdXrootdMonFileTOD));
 
   fileBuffer.xfr_msgs = 0;
   fileBuffer.total_msgs = 0;
