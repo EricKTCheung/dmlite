@@ -98,7 +98,7 @@ void ProfilerIOHandler::sendUserIdentOrNOP()
 
   //XrdMonitor::sendShortUserIdent(dictid);
 
-  SecurityContext *secCtx = this->stack_->getSecurityContext();
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
 
   XrdMonitor::sendUserIdent(dictid,
       // protocol
