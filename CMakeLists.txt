@@ -9,6 +9,7 @@ set(dmlite_PATCH 0)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
+option (BUILD_SHELL "Build the dmlite shell" ON)
 
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -69,6 +70,10 @@ add_subdirectory (tests)
 if (BUILD_PYTHON)
   add_subdirectory (python)
 endif (BUILD_PYTHON)
+
+if (BUILD_SHELL)
+  add_subdirectory (shell)
+endif (BUILD_SHELL)
 
 #######################################################
 # Configure an 'uninstall' target
