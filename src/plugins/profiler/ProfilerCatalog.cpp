@@ -338,7 +338,7 @@ void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_i
   boost::any dictid_any = this->stack_->get("dictid");
   kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
 
-  XrdMonitor::reportXrdRedirCmd(dictid, path, cmd_id);
+  XrdMonitor::reportXrdRedirNsCmd(dictid, path, cmd_id);
 }
 
 

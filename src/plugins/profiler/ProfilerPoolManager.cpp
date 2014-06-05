@@ -90,9 +90,10 @@ void ProfilerPoolManager::deletePool(const Pool& pool) throw (DmException)
 
 Location ProfilerPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(Location, whereToRead, path);
+  PROFILE_ASSIGN(Location, whereToRead, path);
+  reportXrdRedirCmd(ret, XROOTD_MON_OPENR);
 
-
+  return ret;
 }
 
 
@@ -106,5 +107,49 @@ Location ProfilerPoolManager::whereToRead(ino_t inode) throw (DmException)
 
 Location ProfilerPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
-  PROFILE_RETURN(Location, whereToWrite, path);
+  PROFILE_ASSIGN(Location, whereToWrite, path);
+  reportXrdRedirCmd(ret, XROOTD_MON_OPENW);
+
+  return ret;
+}
+
+
+void ProfilerCatalog::reportXrdRedirCmd(const Location &loc, const int cmd_id)
+{
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", XrdMonitor::getDictId());
+  }
+  boost::any dictid_any = this->stack_->get("dictid");
+  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+
+  Url url = loc[0].url;
+
+  XrdMonitor::reportXrdRedirCmd(dictid, url.domain, url.port, url.path, cmd_id);
+}
+
+
+void ProfilerCatalog::sendUserIdentOrNOP()
+{
+  if (this->stack_->contains("sent_userident")) {
+    return;
+  }
+
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", XrdMonitor::getDictId());
+  }
+  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
+
+  //XrdMonitor::sendShortUserIdent(dictid);
+
+  XrdMonitor::sendUserIdent(dictid,
+      // protocol
+      this->secCtx_->user.name, // user DN
+      this->secCtx_->credentials.remoteAddress, // user hostname
+      // org
+      // role
+      this->secCtx_->groups[0].name
+      // info
+  );
+
+  this->stack_->set("sent_userident", true);
 }

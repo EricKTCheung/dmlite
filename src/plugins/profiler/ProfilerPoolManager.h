@@ -33,6 +33,9 @@ namespace dmlite {
    protected:
     PoolManager* decorated_;
     char*        decoratedId_;
+
+    void reportXrdRedirCmd(const Location &loc, const int cmd_id);
+    void sendUserIdentOrNOP();
   };
 
 };

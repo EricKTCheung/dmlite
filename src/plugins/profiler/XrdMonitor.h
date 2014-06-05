@@ -99,9 +99,9 @@ namespace dmlite {
       static int sendShortUserIdent(const kXR_char dictid);
       static int sendMonMap(kXR_char code, kXR_unt32 dictid, char *info);
 
-      //int send_user_open_path(const std::string user, const std::string path);
-
-      static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
+      static void reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
+      static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &host, const int port,
+                                    const std::string &path, const int cmd_id);
       static void reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 fileid,
                                     const std::string &path, const long long file_size);
       static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced = false);
