@@ -9,7 +9,7 @@ time_t XrdMonitor::startup_time = 0;
 std::string XrdMonitor::collector_addr;
 
 // configuration options
-bool include_lfn_;
+bool include_lfn_ = false;
 
 bool XrdMonitor::is_initialized_ = false;
 boost::mutex XrdMonitor::init_mutex_;
@@ -38,7 +38,6 @@ XrdMonitor::RedirBuffer XrdMonitor::redirBuffer;
 
 int XrdMonitor::file_max_buffer_size_ = 32768;
 boost::mutex XrdMonitor::file_mutex_;
-bool include_lfn_ = false;
 
 XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
 
