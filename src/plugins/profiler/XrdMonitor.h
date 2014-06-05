@@ -116,6 +116,9 @@ namespace dmlite {
 
       ~XrdMonitor();
 
+      // configuration options
+      static bool include_lfn_;
+
       static bool is_initialized_;
       static boost::mutex init_mutex_;
 
@@ -165,7 +168,6 @@ namespace dmlite {
 
       static int file_max_buffer_size_;
       static boost::mutex file_mutex_;
-      static bool include_lfn_;
 
       static int initFileBuffer(int max_size);
 

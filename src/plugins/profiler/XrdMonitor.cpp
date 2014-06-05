@@ -8,6 +8,9 @@ using namespace dmlite;
 time_t XrdMonitor::startup_time = 0;
 std::string XrdMonitor::collector_addr;
 
+// configuration options
+bool include_lfn_;
+
 bool XrdMonitor::is_initialized_ = false;
 boost::mutex XrdMonitor::init_mutex_;
 
