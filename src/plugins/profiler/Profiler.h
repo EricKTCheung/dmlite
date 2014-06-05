@@ -107,7 +107,7 @@ if (failed)\
   throw exception;\
 return ret;
 
-
+/// Profile and use ret afterwards
 #define PROFILE_ASSIGN(type, method, ...)\
 struct timespec start, end;\
 double          duration;\
@@ -129,7 +129,7 @@ duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
 syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
 if (failed)\
-  throw exception;\
+  throw exception
 #else
 #define PROFILE(method, ...)\
 struct timespec  start, end;\
@@ -210,7 +210,7 @@ if (failed)\
   throw exception;\
 return ret;
 
-
+/// Profile and use ret afterwards
 #define PROFILE_ASSIGN(type, method, ...)\
 struct timespec start, end;\
 double          duration;\
@@ -248,7 +248,7 @@ duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
 syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
 if (failed)\
-  throw exception;\
+  throw exception;
 #endif
 };
 

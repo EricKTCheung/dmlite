@@ -104,7 +104,7 @@ namespace dmlite {
       static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
       static void reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 fileid,
                                     const std::string &path, const long long file_size);
-      static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced);
+      static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced = false);
 
       static std::string getHostname();
       static kXR_unt32 getDictId();
