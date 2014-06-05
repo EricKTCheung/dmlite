@@ -41,6 +41,9 @@ namespace dmlite {
 
     StackInstance *stack_;
 
+    XrdXrootdMonStatXFR xfrstats_;
+    bool file_closed_;
+
     void sendUserIdentOrNOP();
   };
 

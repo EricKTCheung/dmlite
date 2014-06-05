@@ -106,6 +106,30 @@ syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
 if (failed)\
   throw exception;\
 return ret;
+
+
+#define PROFILE_ASSIGN(type, method, ...)\
+struct timespec start, end;\
+double          duration;\
+DmException     exception;\
+bool            failed = false;\
+type            ret;\
+if (this->decorated_ == 0x00)\
+  throw DmException(DMLITE_SYSERR(EFAULT),\
+                    std::string("There is no plugin to delegate the call "#method));\
+clock_gettime(CLOCK_REALTIME, &start);\
+try {\
+  ret = this->decorated_->method(__VA_ARGS__);\
+} catch (DmException& e) {\
+  exception = e;\
+  failed = true;\
+}\
+clock_gettime(CLOCK_REALTIME, &end);\
+duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+duration /= 1000;\
+syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+if (failed)\
+  throw exception;\
 #else
 #define PROFILE(method, ...)\
 struct timespec  start, end;\
@@ -185,6 +209,46 @@ syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
 if (failed)\
   throw exception;\
 return ret;
+
+
+#define PROFILE_ASSIGN(type, method, ...)\
+struct timespec start, end;\
+double          duration;\
+DmException     exception;\
+bool            failed = false;\
+type            ret;\
+if (this->decorated_ == 0x00)\
+  throw DmException(DMLITE_SYSERR(EFAULT),\
+                    std::string("There is no plugin to delegate the call "#method));\
+{\
+clock_serv_t cclock;\
+mach_timespec_t mts;\
+host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+clock_get_time(cclock, &mts);\
+mach_port_deallocate(mach_task_self(), cclock);\
+start.tv_sec = mts.tv_sec;\
+start.tv_nsec = mts.tv_nsec;\
+}\
+try {\
+  ret = this->decorated_->method(__VA_ARGS__);\
+} catch (DmException& e) {\
+  exception = e;\
+  failed = true;\
+}\
+{\
+clock_serv_t cclock;\
+mach_timespec_t mts;\
+host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+clock_get_time(cclock, &mts);\
+mach_port_deallocate(mach_task_self(), cclock);\
+end.tv_sec = mts.tv_sec;\
+end.tv_nsec = mts.tv_nsec;\
+}\
+duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+duration /= 1000;\
+syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+if (failed)\
+  throw exception;\
 #endif
 };
 
