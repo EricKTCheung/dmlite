@@ -40,24 +40,21 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
     std::vector<std::string>::const_iterator it;
     for (it = options.begin(); it != options.end(); ++it) {
-      switch (*it.c_tr()) {
-        case "lfn":
-          XrdMonitor::include_lfn_ = true;
+      if (*it == "lfn") {
+        XrdMonitor::include_lfn_ = true;
+      }
+      else if (*it == "rbuff") {
+        if (it+1 == options.end())
           break;
-        case "rbuff":
-          if (it+1 == options.end())
-            break;
-          int buf_size = atoi(value.c_str());
-          if (buf_size > 0) {
-            XrdMonitor::redir_max_buffer_size_ = buf_size;
-            ++it;
-          }
-          break;
-        default:
-          if (it+1 == options.end())
-            XrdMonitor::collector_addr = value;
-          break;
-
+        int buf_size = atoi(value.c_str());
+        if (buf_size > 0) {
+          XrdMonitor::redir_max_buffer_size_ = buf_size;
+          ++it;
+        }
+      }
+      else {
+        if (it+1 == options.end())
+          XrdMonitor::collector_addr = value;
       }
     }
   } else if (key == "Collector") {
@@ -67,7 +64,6 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());
   } else if (value == "lfn") {
       XrdMonitor::include_lfn_ = true;
-    }
   } else {
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
         std::string("Unknown option ") + key);
