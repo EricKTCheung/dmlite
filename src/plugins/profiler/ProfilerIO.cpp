@@ -11,11 +11,15 @@ using namespace dmlite;
 // --------------- ProfilerIOHandler
 
 ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
-    const std::string& pfn, int flags, StackInstance *si) throw(DmException): stack_(si)
+    const std::string& pfn, int flags, StackInstance *si) throw(DmException): stack_(si), file_closed_(false)
 {
   this->decorated_   = decorates;
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
   strcpy(this->decoratedId_, decorates->getImplId().c_str());
+
+  xfrstats_.read = 0;
+  xfrstats_.readv = 0;
+  xfrstats_write = 0;
 
   //test send fileMonitoring msg
   if (!this->stack_->contains("dictid")) {
@@ -26,23 +30,51 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
 
   sendUserIdentOrNOP();
 
-  XrdMonitor::reportXrdFileOpen(dictid, 0, pfn, 1001);
+  if (!this->stack_->contains("fileid")) {
+    this->stack_->set("fileid", XrdMonitor::getDictId());
+  }
+  boost::any fileid_any = this->stack_->get("fileid");
+  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
+
+  XrdMonitor::reportXrdFileOpen(dictid, fileid, pfn, 1001);
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
 {
+  if (!file_closed_) {
+    boost::any fileid_any = this->stack_->get("fileid");
+    kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
+
+    XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_, true);
+  }
+
+  if (this->stack_->contains("dictid")) {
+    this->stack_->erase("dictid", XrdMonitor::getDictId());
+  }
+  if (this->stack_->contains("fileid")) {
+    this->stack_->erase("fileid", XrdMonitor::getDictId());
+  }
+
   delete this->decorated_;
   delete this->decoratedId_;
 }
 
 size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
-  PROFILE_RETURN(size_t, read, buffer, count);
+  PROFILE_ASSIGN(size_t, read, buffer, count);
+  xfrstats_.read += ret;
+  return ret;
 }
 
 void ProfilerIOHandler::close(void) throw (DmException)
 {
   PROFILE(close);
+
+  boost::any fileid_any = this->stack_->get("fileid");
+  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
+
+  XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_);
+  file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
 {
@@ -50,23 +82,33 @@ struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
 }
 size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
-  PROFILE_RETURN(size_t, write, buffer, count);
+  PROFILE_ASSIGN(size_t, write, buffer, count);
+  xfrstats_.write += ret;
+  return ret;
 }
 size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
-  PROFILE_RETURN(size_t, readv, vector, count);
+  PROFILE_ASSIGN(size_t, readv, vector, count);
+  xfrstats_.readv += ret;
+  return ret;
 }
 size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
 {
-  PROFILE_RETURN(size_t, writev, vector, count);
+  PROFILE_ASSIGN(size_t, writev, vector, count);
+  xfrstats_.write += ret;
+  return ret;
 }
 size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  PROFILE_RETURN(size_t, pread, buffer, count, offset);
+  PROFILE_ASSIGN(size_t, pread, buffer, count, offset);
+  xfrstats_.read += ret;
+  return ret;
 }
 size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  PROFILE_RETURN(size_t, pwrite, buffer, count, offset);
+  PROFILE_ASSIGN(size_t, pwrite, buffer, count, offset);
+  xfrstats_.write += ret;
+  return ret;
 }
 void ProfilerIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {

@@ -612,7 +612,54 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
 }
 
 
-void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr)
+void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced)
 {
+  int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
+  // TODO: optimize, get rid of the %
+  int slots = msg_size / sizeof(XrdXrootdMonFileHdr);
+  if (msg_size % sizeof(XrdXrootdMonFileHdr)) {
+    ++slots;
+  }
 
+  XrdXrootdMonFileCLS *msg;
+  {
+    boost::mutex::scoped_lock(file_mutex_);
+
+    msg = (XrdXrootdMonFileCLS *) getFileBufferNextEntry(slots);
+
+    if (msg == 0x00) {
+      int ret = XrdMonitor::sendFileBuffer();
+      if (ret) {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "failed sending FILE msg");
+      } else {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "sent FILE msg");
+      }
+      msg = (XrdXrootdMonFileCLS *) getFileBufferNextEntry(slots);
+    }
+
+    if (msg != 0x00) {
+      msg->Hdr.recType = XrdXrootdMonFileHdr::isClose;
+      msg->Hdr.recFlag = 0;
+      if (forced)
+        msg->Hdr.recFlag |= XrdXrootdMonFileHdr::forced;
+      msg->Hdr.recSize = htons(static_cast<short>(slots*sizeof(XrdXrootdMonFileHdr)));
+      msg->Hdr.fileID = fileid;
+
+      msg->Xfr.read = xfr.read;
+      msg->Xfr.readv = xfr.readv;
+      msg->Xfr.write = xfr.write;
+
+      advanceFileBufferNextEntry(slots);
+    }
+  }
+
+  if (msg != 0x00) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "added new FILE msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "did not send/add new FILE msg");
+  }
 }
