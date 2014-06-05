@@ -417,7 +417,7 @@ std::string XrdMonitor::getHostname()
 }
 
 
-void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
+void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
 {
   std::string full_path = getHostname() + ":" + path;
 
@@ -451,6 +451,60 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &pa
       msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
       msg->arg0.rdr.Dent = slots - 1;
       msg->arg0.rdr.Port = 0; // TODO: ??
+      msg->arg1.dictid = dictid;
+      // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
+      char *dest = (char *) (msg + 1);
+      strncpy(dest, full_path.c_str(), full_path.length() + 1);
+
+      advanceRedirBufferNextEntry(slots);
+    }
+  }
+
+  if (msg != 0x00) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "added new REDIR msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "did not send/add new REDIR msg");
+  }
+}
+
+
+void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &host, const int port,
+                                   const std::string &path, const int cmd_id)
+{
+  std::string full_path = host + ":" + path;
+
+  int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
+  int slots = msg_size / sizeof(XrdXrootdMonRedir);
+  // TODO: optimize, get rid of the %
+  if (msg_size % sizeof(XrdXrootdMonRedir)) {
+    ++slots;
+  }
+
+  XrdXrootdMonRedir *msg;
+  {
+    boost::mutex::scoped_lock(redir_mutex_);
+
+    msg = getRedirBufferNextEntry(slots);
+
+    // the buffer could be full ..
+    if (msg == 0x00) {
+      int ret = XrdMonitor::sendRedirBuffer();
+      if (ret) {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "failed sending REDIR msg");
+      } else {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "sent REDIR msg");
+      }
+      msg = getRedirBufferNextEntry(slots);
+    }
+    // now it must be free, otherwise forget about it ..
+    if (msg != 0x00) {
+      msg->arg0.rdr.Type = XROOTD_MON_REDIRECT | cmd_id;
+      msg->arg0.rdr.Dent = slots - 1;
+      msg->arg0.rdr.Port = port;
       msg->arg1.dictid = dictid;
       // arg1 + (XrdXrootdMonRedir) 1 = arg1 + 8*char
       char *dest = (char *) (msg + 1);
