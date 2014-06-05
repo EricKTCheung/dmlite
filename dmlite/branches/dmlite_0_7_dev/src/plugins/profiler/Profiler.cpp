@@ -40,7 +40,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 
     std::vector<std::string>::const_iterator it;
     for (it = options.begin(); it != options.end(); ++it) {
-      switch (*it) {
+      switch (*it.c_tr()) {
         case "lfn":
           XrdMonitor::include_lfn_ = true;
           break;
