@@ -110,6 +110,20 @@ This package provides the profiler plug-in for dmlite. This plug-in is a simple
 wrapper around a real plug-in implementation, and is used to do multiple
 measurements regarding the performance of each call to dmlite.
 
+%package -n dmlite-shell
+Summary:	Shell environment for dmlite
+Group:		Applications/Internet
+BuildRequires:	cmake
+BuildRequires:	python2-devel
+BuildArch:		noarch
+
+Requires:		python-dateutil
+Requires:		python-dmlite
+
+%description -n dmlite-shell
+This package provides a shell environment for dmlite. It includes useful
+commands for system administration, testers and power users.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -177,6 +191,12 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/plugin_profiler.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf
+
+%files -n dmlite-shell
+%defattr(-,root,root,-)
+%{_bindir}/*
+%{python_sitelib}/dmliteshell
+%doc LICENSE README RELEASE-NOTES
 
 %changelog
 * Fri Nov 29 2013 Alejandro Alvarez <aalvarez@cern.ch> - 0.6.1-2
