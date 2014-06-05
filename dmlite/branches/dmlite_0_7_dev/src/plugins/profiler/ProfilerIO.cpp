@@ -19,7 +19,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
 
   xfrstats_.read = 0;
   xfrstats_.readv = 0;
-  xfrstats_write = 0;
+  xfrstats_.write = 0;
 
   //test send fileMonitoring msg
   if (!this->stack_->contains("dictid")) {
@@ -49,10 +49,10 @@ ProfilerIOHandler::~ProfilerIOHandler()
   }
 
   if (this->stack_->contains("dictid")) {
-    this->stack_->erase("dictid", XrdMonitor::getDictId());
+    this->stack_->erase("dictid");
   }
   if (this->stack_->contains("fileid")) {
-    this->stack_->erase("fileid", XrdMonitor::getDictId());
+    this->stack_->erase("fileid");
   }
 
   delete this->decorated_;
