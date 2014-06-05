@@ -34,6 +34,9 @@ namespace dmlite {
     PoolManager* decorated_;
     char*        decoratedId_;
 
+    StackInstance *stack_;
+    const SecurityContext *secCtx_;
+
     void reportXrdRedirCmd(const Location &loc, const int cmd_id);
     void sendUserIdentOrNOP();
   };

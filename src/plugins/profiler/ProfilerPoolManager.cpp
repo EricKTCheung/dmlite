@@ -42,6 +42,7 @@ std::string ProfilerPoolManager::getImplId() const throw ()
 void ProfilerPoolManager::setStackInstance(StackInstance* si) throw (DmException)
 {
   BaseInterface::setStackInstance(this->decorated_, si);
+  this->stack_ = si;
 }
 
 
@@ -49,6 +50,7 @@ void ProfilerPoolManager::setStackInstance(StackInstance* si) throw (DmException
 void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
+  this->secCtx_ = ctx;
 }
 
 
@@ -114,7 +116,7 @@ Location ProfilerPoolManager::whereToWrite(const std::string& path) throw (DmExc
 }
 
 
-void ProfilerCatalog::reportXrdRedirCmd(const Location &loc, const int cmd_id)
+void ProfilerPoolManager::reportXrdRedirCmd(const Location &loc, const int cmd_id)
 {
   if (!this->stack_->contains("dictid")) {
     this->stack_->set("dictid", XrdMonitor::getDictId());
@@ -128,7 +130,7 @@ void ProfilerCatalog::reportXrdRedirCmd(const Location &loc, const int cmd_id)
 }
 
 
-void ProfilerCatalog::sendUserIdentOrNOP()
+void ProfilerPoolManager::sendUserIdentOrNOP()
 {
   if (this->stack_->contains("sent_userident")) {
     return;
