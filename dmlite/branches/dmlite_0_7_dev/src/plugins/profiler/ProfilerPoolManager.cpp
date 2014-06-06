@@ -50,7 +50,6 @@ void ProfilerPoolManager::setStackInstance(StackInstance* si) throw (DmException
 void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
-  this->secCtx_ = ctx;
 }
 
 

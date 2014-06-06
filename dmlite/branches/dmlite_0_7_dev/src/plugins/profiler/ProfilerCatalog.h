@@ -4,6 +4,8 @@
 #ifndef PROFILERCATALOG_H
 #define	PROFILERCATALOG_H
 
+#include "ProfilerXrdMon.h"
+
 #include <dmlite/cpp/catalog.h>
 
 namespace dmlite {

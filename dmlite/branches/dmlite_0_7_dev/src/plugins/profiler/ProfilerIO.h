@@ -4,6 +4,8 @@
 #ifndef PROFILERIO_H
 #define	PROFILERIO_H
 
+#include "ProfilerXrdMon.h"
+
 #include <dmlite/cpp/io.h>
 
 namespace dmlite {
