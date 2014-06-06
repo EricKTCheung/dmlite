@@ -309,7 +309,7 @@ char XrdMonitor::getPseqCounter()
   char this_counter;
   {
     boost::mutex::scoped_lock(pseq_mutex_);
-    pseq_counter_ = (pseq_counter_ + 1) % 256;
+    pseq_counter_ = (pseq_counter_ + 1) & ~0x03;
     this_counter = pseq_counter_;
   }
   return pseq_counter_;
@@ -422,11 +422,7 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
   std::string full_path = getHostname() + ":" + path;
 
   int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
-  int slots = msg_size / sizeof(XrdXrootdMonRedir);
-  // TODO: optimize, get rid of the %
-  if (msg_size % sizeof(XrdXrootdMonRedir)) {
-    ++slots;
-  }
+  int slots = (msg_size + 8) >> 3;
 
   XrdXrootdMonRedir *msg;
   {
@@ -476,11 +472,7 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
   std::string full_path = host + ":" + path;
 
   int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
-  int slots = msg_size / sizeof(XrdXrootdMonRedir);
-  // TODO: optimize, get rid of the %
-  if (msg_size % sizeof(XrdXrootdMonRedir)) {
-    ++slots;
-  }
+  int slots = (msg_size + 8) >> 3;
 
   XrdXrootdMonRedir *msg;
   {
@@ -614,11 +606,7 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
   if (include_lfn_) {
     msg_size += sizeof(kXR_unt32) + path.length();
   }
-  // TODO: optimize, get rid of the %
-  int slots = msg_size / sizeof(XrdXrootdMonFileHdr);
-  if (msg_size % sizeof(XrdXrootdMonFileHdr)) {
-    ++slots;
-  }
+  int slots = (msg_size + 8) >> 3;
   int aligned_path_len = path.length() + (slots * sizeof(XrdXrootdMonFileHdr) - msg_size);
 
   XrdXrootdMonFileOPN *msg;
@@ -670,10 +658,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
 {
   int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
   // TODO: optimize, get rid of the %
-  int slots = msg_size / sizeof(XrdXrootdMonFileHdr);
-  if (msg_size % sizeof(XrdXrootdMonFileHdr)) {
-    ++slots;
-  }
+  int slots = (msg_size + 8) >> 3;
 
   XrdXrootdMonFileCLS *msg;
   {
