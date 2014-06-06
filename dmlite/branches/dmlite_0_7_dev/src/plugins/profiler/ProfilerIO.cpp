@@ -127,35 +127,6 @@ bool ProfilerIOHandler::eof(void) throw (DmException)
   PROFILE_RETURN(bool, eof);
 }
 
-void ProfilerIOHandler::sendUserIdentOrNOP()
-{
-  if (this->stack_->contains("sent_userident")) {
-    return;
-  }
-
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
-
-  //XrdMonitor::sendShortUserIdent(dictid);
-
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-
-  XrdMonitor::sendUserIdent(dictid,
-      // protocol
-      secCtx->user.name, // user DN
-      secCtx->credentials.remoteAddress, // user hostname
-      // org
-      // role
-      secCtx->groups[0].name
-      // info
-  );
-
-  this->stack_->set("sent_userident", true);
-}
-
-
 
 // --------------- ProfilerIODriver
 

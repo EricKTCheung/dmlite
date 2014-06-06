@@ -8,7 +8,7 @@
 
 namespace dmlite {
 
-  class ProfilerPoolManager: public PoolManager {
+  class ProfilerPoolManager: public PoolManager, private ProfilerXrdMon {
    public:
     ProfilerPoolManager(PoolManager* decorated) throw (DmException);
     ~ProfilerPoolManager();
@@ -33,12 +33,6 @@ namespace dmlite {
    protected:
     PoolManager* decorated_;
     char*        decoratedId_;
-
-    StackInstance *stack_;
-    const SecurityContext *secCtx_;
-
-    void reportXrdRedirCmd(const Location &loc, const int cmd_id);
-    void sendUserIdentOrNOP();
   };
 
 };

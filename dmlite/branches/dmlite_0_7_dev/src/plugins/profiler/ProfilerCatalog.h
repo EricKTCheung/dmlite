@@ -9,7 +9,7 @@
 namespace dmlite {
 
   // Profiler catalog.
-  class ProfilerCatalog: public Catalog
+  class ProfilerCatalog: public Catalog, private ProfilerXrdMon
   {
    public:
 
@@ -84,15 +84,6 @@ namespace dmlite {
     /// The decorated Catalog.
     Catalog* decorated_;
     char*    decoratedId_;
-
-    /// Plugin stack.
-    StackInstance* stack_;
-
-    /// Security context
-    const SecurityContext* secCtx_;
-
-    void reportXrdRedirCmd(const std::string &path, const int cmd_id);
-    void sendUserIdentOrNOP();
   };
 
 };
