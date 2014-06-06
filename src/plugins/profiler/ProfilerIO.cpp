@@ -2,6 +2,7 @@
 /// @brief  ProfilerPoolManager implementation.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include "Profiler.h"
+#include "ProfilerXrdMon.h"
 #include "XrdXrootdMonData.hh"
 
 #include <string.h>
@@ -11,8 +12,10 @@ using namespace dmlite;
 // --------------- ProfilerIOHandler
 
 ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
-    const std::string& pfn, int flags, StackInstance *si) throw(DmException): stack_(si), file_closed_(false)
+    const std::string& pfn, int flags, StackInstance *si) throw(DmException)
 {
+  this->stack_ = si;
+
   this->decorated_   = decorates;
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
   strcpy(this->decoratedId_, decorates->getImplId().c_str());

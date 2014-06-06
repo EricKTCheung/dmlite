@@ -4,14 +4,19 @@
 #ifndef PROFILERXRDMON_H
 #define PROFILERXRDMON_H
 
-#include "Profiler.h"
+#include "XrdMonitor.h"
+#include "XrdXrootdMonData.hh"
+
+#include <dmlite/cpp/pooldriver.h>
+#include <dmlite/cpp/authn.h>
+#include <dmlite/cpp/dmlite.h>
 
 namespace dmlite {
 
   class ProfilerXrdMon
   {
     public:
-      ProfilerXrdMon() {};
+      ProfilerXrdMon();
 
       ~ProfilerXrdMon();
 

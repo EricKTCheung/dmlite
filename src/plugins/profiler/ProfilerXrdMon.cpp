@@ -7,6 +7,12 @@
 using namespace dmlite;
 
 
+ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
+{
+
+}
+
+
 ProfilerXrdMon::~ProfilerXrdMon()
 {
   if (this->stack_->contains("dictid")) {
@@ -47,7 +53,7 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
 }
 
 
-void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_id)
+void ProfilerXrdMon::reportXrdRedirCmd(const std::string &path, const int cmd_id)
 {
   if (!this->stack_->contains("dictid")) {
     this->stack_->set("dictid", XrdMonitor::getDictId());
@@ -59,7 +65,7 @@ void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_i
 }
 
 
-void ProfilerCatalog::reportXrdRedirCmd(const Location &loc, const int cmd_id)
+void ProfilerXrdMon::reportXrdRedirCmd(const Location &loc, const int cmd_id)
 {
   if (!this->stack_->contains("dictid")) {
     this->stack_->set("dictid", XrdMonitor::getDictId());

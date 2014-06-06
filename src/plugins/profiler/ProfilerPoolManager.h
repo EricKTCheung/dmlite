@@ -4,6 +4,8 @@
 #ifndef PROFILERPOOLMANAGER_H
 #define	PROFILERPOOLMANAGER_H
 
+#include "ProfilerXrdMon.h"
+
 #include <dmlite/cpp/poolmanager.h>
 
 namespace dmlite {
