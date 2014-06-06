@@ -18,13 +18,6 @@ ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 
 ProfilerCatalog::~ProfilerCatalog()
 {
-  if (this->stack_->contains("dictid")) {
-    this->stack_->erase("dictid");
-  }
-  if (this->stack_->contains("sent_userident")) {
-    this->stack_->erase("sent_userident");
-  }
-
   delete this->decorated_;
   delete [] this->decoratedId_;
 }
@@ -53,7 +46,6 @@ void ProfilerCatalog::setStackInstance(StackInstance* si) throw (DmException)
 void ProfilerCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
-  this->secCtx_ = ctx;
 }
 
 
@@ -327,43 +319,4 @@ void ProfilerCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   sendUserIdentOrNOP();
   PROFILE(updateReplica, replica);
-}
-
-
-void ProfilerCatalog::reportXrdRedirCmd(const std::string &path, const int cmd_id)
-{
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  boost::any dictid_any = this->stack_->get("dictid");
-  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
-
-  XrdMonitor::reportXrdRedirNsCmd(dictid, path, cmd_id);
-}
-
-
-void ProfilerCatalog::sendUserIdentOrNOP()
-{
-  if (this->stack_->contains("sent_userident")) {
-    return;
-  }
-
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
-
-  //XrdMonitor::sendShortUserIdent(dictid);
-
-  XrdMonitor::sendUserIdent(dictid,
-      // protocol
-      this->secCtx_->user.name, // user DN
-      this->secCtx_->credentials.remoteAddress, // user hostname
-      // org
-      // role
-      this->secCtx_->groups[0].name
-      // info
-  );
-
-  this->stack_->set("sent_userident", true);
 }

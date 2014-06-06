@@ -8,7 +8,7 @@
 
 namespace dmlite {
 
-  class ProfilerIOHandler: public IOHandler {
+  class ProfilerIOHandler: public IOHandler, private ProfilerXrdMon {
   public:
     ProfilerIOHandler(IOHandler* decorated, const std::string& pfn,
         int flags, StackInstance *si) throw (DmException);
@@ -38,13 +38,6 @@ namespace dmlite {
   protected:
     IOHandler* decorated_;
     char*      decoratedId_;
-
-    StackInstance *stack_;
-
-    XrdXrootdMonStatXFR xfrstats_;
-    bool file_closed_;
-
-    void sendUserIdentOrNOP();
   };
 
 
