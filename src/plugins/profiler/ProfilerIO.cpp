@@ -39,6 +39,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   boost::any fileid_any = this->stack_->get("fileid");
   kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
 
+  XrdMonitor::sendFileOpen(fileid, pfn);
   XrdMonitor::reportXrdFileOpen(dictid, fileid, pfn, 1001);
 }
 
