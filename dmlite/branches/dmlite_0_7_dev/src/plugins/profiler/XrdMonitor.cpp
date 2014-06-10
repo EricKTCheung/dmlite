@@ -28,6 +28,12 @@ std::string XrdMonitor::username_;
 char XrdMonitor::pseq_counter_ = 0;
 boost::mutex XrdMonitor::pseq_mutex_;
 
+char XrdMonitor::fstream_pseq_counter_ = 0;
+boost::mutex XrdMonitor::fstream_pseq_mutex_;
+
+char XrdMonitor::rstream_pseq_counter_ = 0;
+boost::mutex XrdMonitor::rstream_pseq_mutex_;
+
 kXR_unt32 XrdMonitor::dictid_ = 0;
 boost::mutex XrdMonitor::dictid_mutex_;
 
@@ -312,7 +318,29 @@ char XrdMonitor::getPseqCounter()
     pseq_counter_ = (pseq_counter_ + 1) & ~0x03;
     this_counter = pseq_counter_;
   }
-  return pseq_counter_;
+  return this_counter;
+}
+
+char XrdMonitor::getFstreamPseqCounter()
+{
+  char this_counter;
+  {
+    boost::mutex::scoped_lock(fstream_pseq_mutex_);
+    fstream_pseq_counter_ = (fstream_pseq_counter_ + 1) & ~0x03;
+    this_counter = fstream_pseq_counter_;
+  }
+  return this_counter;
+}
+
+char XrdMonitor::getRstreamPseqCounter()
+{
+  char this_counter;
+  {
+    boost::mutex::scoped_lock(rstream_pseq_mutex_);
+    rstream_pseq_counter_ = (rstream_pseq_counter_ + 1) & ~0x03;
+    this_counter = rstream_pseq_counter_;
+  }
+  return this_counter;
 }
 
 kXR_unt32 XrdMonitor::getDictId()
@@ -393,7 +421,7 @@ int XrdMonitor::sendRedirBuffer()
 
   // Fill the msg header
   buffer->hdr.code = XROOTD_MON_MAPREDR;
-  buffer->hdr.pseq = getPseqCounter();
+  buffer->hdr.pseq = getRstreamPseqCounter();
   buffer->hdr.plen = htons(buffer_size);
   buffer->hdr.stod = htonl(startup_time);
 
@@ -572,7 +600,7 @@ int XrdMonitor::sendFileBuffer()
 
   // Fill the msg header
   buffer->hdr.code = XROOTD_MON_MAPFSTA;
-  buffer->hdr.pseq = getPseqCounter();
+  buffer->hdr.pseq = getFstreamPseqCounter();
   buffer->hdr.plen = htons(buffer_size);
   buffer->hdr.stod = htonl(startup_time);
 
