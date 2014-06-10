@@ -281,7 +281,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
 int XrdMonitor::sendUserIdent(const kXR_char dictid,
                               const std::string &userDN,
                               const std::string &userHostname,
-                              const std::string vo)
+                              const std::string &vo)
 {
   int ret = 0;
 
@@ -306,6 +306,27 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
   if (ret) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
         "failed sending UserIdent msg");
+  }
+  return ret;
+}
+
+int XrdMonitor::sendFileOpen(const kXR_char fileid, const std::string &path)
+{
+  int ret = 0;
+
+  char info[1024+256];
+  snprintf(info, 1024+256, "%s.%d:%lld@%s\n%s",
+           username_.c_str(), pid_, sid_, hostname_.c_str(),
+           path.c_str());
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
+        "send fileopen",
+        info);
+
+  ret = sendMonMap(XROOTD_MON_MAPPATH, fileid, info);
+  if (ret) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "failed sending FileOpen/Path msg");
   }
   return ret;
 }
