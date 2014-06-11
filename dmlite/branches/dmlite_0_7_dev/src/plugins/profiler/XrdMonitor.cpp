@@ -20,11 +20,13 @@ int XrdMonitor::FD_ = 0;
 struct sockaddr XrdMonitor::dest_addr_;
 socklen_t XrdMonitor::dest_addr_len_;
 
+// information for server ident msg
 pid_t XrdMonitor::pid_ = 0;
 kXR_int64 XrdMonitor::sid_ = 0;
 std::string XrdMonitor::hostname_;
 std::string XrdMonitor::username_;
 
+// pseq counters
 char XrdMonitor::pseq_counter_ = 0;
 boost::mutex XrdMonitor::pseq_mutex_;
 
@@ -34,9 +36,13 @@ boost::mutex XrdMonitor::fstream_pseq_mutex_;
 char XrdMonitor::rstream_pseq_counter_ = 0;
 boost::mutex XrdMonitor::rstream_pseq_mutex_;
 
+// dictid generator and mapping
 kXR_unt32 XrdMonitor::dictid_ = 0;
 boost::mutex XrdMonitor::dictid_mutex_;
+std::map<std::string, kXR_unt32> XrdMonitor::dictid_map_;
+boost::mutex XrdMonitor::dictid_map_mutex_;
 
+// r- and f-stream buffers
 int XrdMonitor::redir_max_buffer_size_ = 32768;
 boost::mutex XrdMonitor::redir_mutex_;
 
@@ -373,6 +379,22 @@ kXR_unt32 XrdMonitor::getDictId()
     this_dictid = dictid_;
   }
   return this_dictid;
+}
+
+kXR_unt32 XrdMonitor::getDictIdFromDn(std::string &dn)
+{
+  kXR_unt32 dictid;
+  std::map<std::string, kXR_unt32>::iterator it;
+  {
+    boost::mutex::scoped_lock(dictid_map_mutex_);
+    if ((it = dictid_map_.find(dn)) != dictid_map_.end()) {
+      dictid = it->second;
+    } else {
+      dictid = getDictId();
+      dictid_map_[dn] = dictid;
+    }
+  }
+  return dictid;
 }
 
 int XrdMonitor::initRedirBuffer(int max_size)
