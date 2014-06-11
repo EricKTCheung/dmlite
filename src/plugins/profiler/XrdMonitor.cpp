@@ -336,7 +336,7 @@ char XrdMonitor::getPseqCounter()
   char this_counter;
   {
     boost::mutex::scoped_lock(pseq_mutex_);
-    pseq_counter_ = (pseq_counter_ + 1) & 0x03;
+    pseq_counter_ = (pseq_counter_ + 1) & 0xFF;
     this_counter = pseq_counter_;
   }
   return this_counter;
@@ -347,7 +347,7 @@ char XrdMonitor::getFstreamPseqCounter()
   char this_counter;
   {
     boost::mutex::scoped_lock(fstream_pseq_mutex_);
-    fstream_pseq_counter_ = (fstream_pseq_counter_ + 1) & 0x03;
+    fstream_pseq_counter_ = (fstream_pseq_counter_ + 1) & 0xFF;
     this_counter = fstream_pseq_counter_;
   }
   return this_counter;
@@ -358,7 +358,7 @@ char XrdMonitor::getRstreamPseqCounter()
   char this_counter;
   {
     boost::mutex::scoped_lock(rstream_pseq_mutex_);
-    rstream_pseq_counter_ = (rstream_pseq_counter_ + 1) & 0x03;
+    rstream_pseq_counter_ = (rstream_pseq_counter_ + 1) & 0xFF;
     this_counter = rstream_pseq_counter_;
   }
   return this_counter;
