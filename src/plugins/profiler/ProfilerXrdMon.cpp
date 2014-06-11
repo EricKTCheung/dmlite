@@ -23,6 +23,7 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
 {
   const SecurityContext *secCtx = this->stack_->getSecurityContext();
   std::pair<kXR_unt32, bool> id_pair = XrdMonitor::getDictIdFromDnMarkNew(secCtx->user.name);
+  kXR_unt32 dictid = id_pair.first;
 
   if (id_pair.second) {
     XrdMonitor::sendUserIdent(dictid,
