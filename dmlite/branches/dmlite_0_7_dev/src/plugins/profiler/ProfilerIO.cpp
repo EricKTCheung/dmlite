@@ -25,9 +25,6 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   xfrstats_.write = 0;
 
   //test send fileMonitoring msg
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
-
   sendUserIdentOrNOP();
 
   if (!this->stack_->contains("fileid")) {
@@ -35,6 +32,9 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   }
   boost::any fileid_any = this->stack_->get("fileid");
   kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
+
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   XrdMonitor::sendFileOpen(fileid, pfn);
   XrdMonitor::reportXrdFileOpen(dictid, fileid, pfn, 1001);
