@@ -153,10 +153,6 @@ namespace dmlite {
       static boost::mutex fstream_pseq_mutex_;
       static char getFstreamPseqCounter();
 
-      static char rstream_pseq_counter_;
-      static boost::mutex rstream_pseq_mutex_;
-      static char getRstreamPseqCounter();
-
       // dictid generator and mapping
       static boost::mutex dictid_mutex_;
       static kXR_unt32 dictid_;

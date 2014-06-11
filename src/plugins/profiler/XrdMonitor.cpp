@@ -33,9 +33,6 @@ boost::mutex XrdMonitor::pseq_mutex_;
 char XrdMonitor::fstream_pseq_counter_ = 0;
 boost::mutex XrdMonitor::fstream_pseq_mutex_;
 
-char XrdMonitor::rstream_pseq_counter_ = 0;
-boost::mutex XrdMonitor::rstream_pseq_mutex_;
-
 // dictid generator and mapping
 kXR_unt32 XrdMonitor::dictid_ = 0;
 boost::mutex XrdMonitor::dictid_mutex_;
@@ -339,17 +336,6 @@ char XrdMonitor::getFstreamPseqCounter()
     boost::mutex::scoped_lock(fstream_pseq_mutex_);
     fstream_pseq_counter_ = (fstream_pseq_counter_ + 1) & 0xFF;
     this_counter = fstream_pseq_counter_;
-  }
-  return this_counter;
-}
-
-char XrdMonitor::getRstreamPseqCounter()
-{
-  char this_counter;
-  {
-    boost::mutex::scoped_lock(rstream_pseq_mutex_);
-    rstream_pseq_counter_ = (rstream_pseq_counter_ + 1) & 0xFF;
-    this_counter = rstream_pseq_counter_;
   }
   return this_counter;
 }
