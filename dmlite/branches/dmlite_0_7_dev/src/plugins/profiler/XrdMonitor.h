@@ -110,7 +110,7 @@ namespace dmlite {
 
       static std::string getHostname();
       static kXR_unt32 getDictId();
-      static kXR_unt32 getDictIdFromDn(std::string &dn);
+      static kXR_unt32 getDictIdFromDn(const std::string &dn);
 
       static time_t startup_time;
       static std::string collector_addr;
