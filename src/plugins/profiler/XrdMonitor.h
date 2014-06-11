@@ -110,6 +110,7 @@ namespace dmlite {
 
       static std::string getHostname();
       static kXR_unt32 getDictId();
+      static kXR_unt32 getDictIdFromDn(std::string &dn);
 
       static time_t startup_time;
       static std::string collector_addr;
@@ -140,6 +141,7 @@ namespace dmlite {
       static std::string hostname_;
       static std::string username_;
 
+      // pseq counters
       static char pseq_counter_;
       static boost::mutex pseq_mutex_;
       static char getPseqCounter();
@@ -152,12 +154,17 @@ namespace dmlite {
       static boost::mutex rstream_pseq_mutex_;
       static char getRstreamPseqCounter();
 
+      // dictid generator and mapping
       static boost::mutex dictid_mutex_;
       static kXR_unt32 dictid_;
+      static std::map<std::string, kXR_unt32> dictid_map_;
+      static boost::mutex dictid_map_mutex_;
 
+      // initialize the connections
       static int initCollector();
       static int initServerIdentVars();
 
+      // redirection stream buffer
       static int redir_max_buffer_size_;
       static boost::mutex redir_mutex_;
 
@@ -176,6 +183,7 @@ namespace dmlite {
        time_t            last_window_end;
       }                  redirBuffer;
 
+      // file stream buffer
       static int file_max_buffer_size_;
       static boost::mutex file_mutex_;
 

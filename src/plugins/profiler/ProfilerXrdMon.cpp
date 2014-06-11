@@ -15,9 +15,6 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 
 ProfilerXrdMon::~ProfilerXrdMon()
 {
-  if (this->stack_->contains("dictid")) {
-    this->stack_->erase("dictid");
-  }
   if (this->stack_->contains("sent_userident")) {
     this->stack_->erase("sent_userident");
   }
@@ -30,14 +27,8 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
     return;
   }
 
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  kXR_char dictid = Extensible::anyToUnsigned(this->stack_->get("dictid"));
-
-  //XrdMonitor::sendShortUserIdent(dictid);
-
   const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   XrdMonitor::sendUserIdent(dictid,
       // protocol
@@ -55,11 +46,8 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
 
 void ProfilerXrdMon::reportXrdRedirCmd(const std::string &path, const int cmd_id)
 {
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  boost::any dictid_any = this->stack_->get("dictid");
-  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   XrdMonitor::reportXrdRedirNsCmd(dictid, path, cmd_id);
 }
@@ -67,11 +55,8 @@ void ProfilerXrdMon::reportXrdRedirCmd(const std::string &path, const int cmd_id
 
 void ProfilerXrdMon::reportXrdRedirCmd(const Location &loc, const int cmd_id)
 {
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  boost::any dictid_any = this->stack_->get("dictid");
-  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   Url url = loc[0].url;
 

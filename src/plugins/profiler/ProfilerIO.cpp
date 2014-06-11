@@ -25,11 +25,8 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   xfrstats_.write = 0;
 
   //test send fileMonitoring msg
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
-  }
-  boost::any dictid_any = this->stack_->get("dictid");
-  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   sendUserIdentOrNOP();
 
@@ -52,9 +49,6 @@ ProfilerIOHandler::~ProfilerIOHandler()
     XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_, true);
   }
 
-  if (this->stack_->contains("dictid")) {
-    this->stack_->erase("dictid");
-  }
   if (this->stack_->contains("fileid")) {
     this->stack_->erase("fileid");
   }
