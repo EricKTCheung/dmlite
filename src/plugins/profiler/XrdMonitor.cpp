@@ -397,6 +397,24 @@ kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
   return dictid;
 }
 
+std::pair<kXR_unt32, bool> XrdMonitor::getDictIdFromDnMarkNew(const std::string &dn)
+{
+  kXR_unt32 dictid;
+  bool new_dictid = false;
+  std::map<std::string, kXR_unt32>::iterator it;
+  {
+    boost::mutex::scoped_lock(dictid_map_mutex_);
+    if ((it = dictid_map_.find(dn)) != dictid_map_.end()) {
+      dictid = it->second;
+    } else {
+      dictid = getDictId();
+      dictid_map_[dn] = dictid;
+      new_dictid = true;
+    }
+  }
+  return std::pair<kXR_unt32, bool>(dictid, new_dictid);
+}
+
 int XrdMonitor::initRedirBuffer(int max_size)
 {
   int max_slots = (max_size - 16) / sizeof(XrdXrootdMonRedir); // round down
