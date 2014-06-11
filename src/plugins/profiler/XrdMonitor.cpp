@@ -464,7 +464,7 @@ int XrdMonitor::sendRedirBuffer()
 
   // Fill the msg header
   buffer->hdr.code = XROOTD_MON_MAPREDR;
-  buffer->hdr.pseq = getRstreamPseqCounter();
+  buffer->hdr.pseq = getPseqCounter();
   buffer->hdr.plen = htons(buffer_size);
   buffer->hdr.stod = htonl(startup_time);
 
