@@ -381,6 +381,12 @@ kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
   return dictid;
 }
 
+void XrdMonitor::rmDictIdFromDn(const std::string &dn)
+{
+  boost::mutex::scoped_lock(dictid_map_mutex_);
+  dictid_map_.erase(dn);
+}
+
 std::pair<kXR_unt32, bool> XrdMonitor::getDictIdFromDnMarkNew(const std::string &dn)
 {
   kXR_unt32 dictid;

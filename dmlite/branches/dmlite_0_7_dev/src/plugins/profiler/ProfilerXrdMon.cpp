@@ -15,7 +15,8 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 
 ProfilerXrdMon::~ProfilerXrdMon()
 {
-
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  XrdMonitor::rmDictIdFromDn(secCtx->user.name);
 }
 
 
