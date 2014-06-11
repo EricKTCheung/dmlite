@@ -381,7 +381,7 @@ kXR_unt32 XrdMonitor::getDictId()
   return this_dictid;
 }
 
-kXR_unt32 XrdMonitor::getDictIdFromDn(std::string &dn)
+kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
 {
   kXR_unt32 dictid;
   std::map<std::string, kXR_unt32>::iterator it;
