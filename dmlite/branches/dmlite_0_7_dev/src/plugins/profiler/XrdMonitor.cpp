@@ -53,24 +53,6 @@ boost::mutex XrdMonitor::file_mutex_;
 
 XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
 
-#if defined(_LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || \
-      defined(__IEEE_LITTLE_ENDIAN) || \
-   (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN)
-#if !defined(__GNUC__) || defined(__APPLE__)
-extern "C"
-{
-  unsigned long long Swap_n2hll(unsigned long long x)
-  {
-    unsigned long long ret_val;
-    *( (unsigned int  *)(&ret_val) + 1) = ntohl(*( (unsigned int  *)(&x)));
-    *(((unsigned int  *)(&ret_val)))    = ntohl(*(((unsigned int  *)(&x))+1));
-    return ret_val;
-  }
-}
-#endif
-
-#endif
-
 XrdMonitor::XrdMonitor()
 {
   // Nothing
@@ -78,6 +60,7 @@ XrdMonitor::XrdMonitor()
 
 
 XrdMonitor::~XrdMonitor() {}
+
 
 int XrdMonitor::initOrNOP()
 {
@@ -285,6 +268,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
 
 
 int XrdMonitor::sendUserIdent(const kXR_char dictid,
+                              const std::string &protocol,
                               const std::string &userDN,
                               const std::string &userHostname,
                               const std::string &vo)
@@ -301,7 +285,7 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
            username_.c_str(), pid_, sid_, hostname_.c_str(),
-           "null", userDN.c_str(), userHost.c_str(),
+           protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", "null");
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",

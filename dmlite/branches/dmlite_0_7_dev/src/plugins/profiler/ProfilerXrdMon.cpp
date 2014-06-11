@@ -26,8 +26,14 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
   kXR_unt32 dictid = id_pair.first;
 
   if (id_pair.second) {
+    std::string protocol = "null";
+    if (this->stack_->contains("protocol")) {
+      boost::any proto_any = this->stack_->get("protocol");
+      protocol = Extensible::anyToString(proto_any);
+    }
+
     XrdMonitor::sendUserIdent(dictid,
-        // protocol
+        protocol, // protocol
         secCtx->user.name, // user DN
         secCtx->credentials.remoteAddress, // user hostname
         // org
