@@ -15,32 +15,26 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 
 ProfilerXrdMon::~ProfilerXrdMon()
 {
-  if (this->stack_->contains("sent_userident")) {
-    this->stack_->erase("sent_userident");
-  }
+
 }
 
 
 void ProfilerXrdMon::sendUserIdentOrNOP()
 {
-  if (this->stack_->contains("sent_userident")) {
-    return;
-  }
-
   const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
+  std::pair<kXR_unt32, bool> id_pair = XrdMonitor::getDictIdFromDnMarkNew(secCtx->user.name);
 
-  XrdMonitor::sendUserIdent(dictid,
-      // protocol
-      secCtx->user.name, // user DN
-      secCtx->credentials.remoteAddress, // user hostname
-      // org
-      // role
-      secCtx->groups[0].name
-      // info
-  );
-
-  this->stack_->set("sent_userident", true);
+  if (id_pair.second) {
+    XrdMonitor::sendUserIdent(dictid,
+        // protocol
+        secCtx->user.name, // user DN
+        secCtx->credentials.remoteAddress, // user hostname
+        // org
+        // role
+        secCtx->groups[0].name
+        // info
+    );
+  }
 }
 
 
