@@ -26,37 +26,18 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
 
   //test send fileMonitoring msg
   sendUserIdentOrNOP();
-
-  if (!this->stack_->contains("fileid")) {
-    this->stack_->set("fileid", XrdMonitor::getDictId());
-  }
-  boost::any fileid_any = this->stack_->get("fileid");
-  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
-
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
-
-  XrdMonitor::sendFileOpen(fileid, pfn);
-  XrdMonitor::reportXrdFileOpen(dictid, fileid, pfn, 1001);
+  // we actually never use this, but active LFN in the stream
+  //XrdMonitor::sendFileOpen(pfn);
+  XrdMonitor::reportXrdFileOpen(pfn, 1001);
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
 {
   if (!file_closed_) {
-    boost::any fileid_any = this->stack_->get("fileid");
-    kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
-
-    XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_, true);
+    XrdMonitor::reportXrdFileClose(this->xfrstats_, true);
   }
-
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
   XrdMonitor::reportXrdFileDisc(dictid);
-
-  if (this->stack_->contains("fileid")) {
-    this->stack_->erase("fileid");
-  }
 
   delete this->decorated_;
   delete this->decoratedId_;
@@ -73,10 +54,7 @@ void ProfilerIOHandler::close(void) throw (DmException)
 {
   PROFILE(close);
 
-  boost::any fileid_any = this->stack_->get("fileid");
-  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
-
-  XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_);
+  XrdMonitor::reportXrdFileClose(this->xfrstats_);
   file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)

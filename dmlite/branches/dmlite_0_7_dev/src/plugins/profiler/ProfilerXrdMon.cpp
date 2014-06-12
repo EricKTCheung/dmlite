@@ -15,18 +15,16 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 
 ProfilerXrdMon::~ProfilerXrdMon()
 {
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  XrdMonitor::rmDictIdFromDn(secCtx->user.name);
+  rmDictId();
+  rmFileId();
 }
 
 
 void ProfilerXrdMon::sendUserIdentOrNOP()
 {
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  std::pair<kXR_unt32, bool> id_pair = XrdMonitor::getDictIdFromDnMarkNew(secCtx->user.name);
-  kXR_unt32 dictid = id_pair.first;
+  if (!this->stack_->contains("dictid")) {
+    kXR_unt32 dictid = getDictId();
 
-  if (id_pair.second) {
     std::string protocol = "null";
     if (this->stack_->contains("protocol")) {
       boost::any proto_any = this->stack_->get("protocol");
@@ -48,8 +46,7 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
 
 void ProfilerXrdMon::reportXrdRedirCmd(const std::string &path, const int cmd_id)
 {
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
+  kXR_unt32 dictid = getDictId();
 
   XrdMonitor::reportXrdRedirNsCmd(dictid, path, cmd_id);
 }
@@ -57,10 +54,76 @@ void ProfilerXrdMon::reportXrdRedirCmd(const std::string &path, const int cmd_id
 
 void ProfilerXrdMon::reportXrdRedirCmd(const Location &loc, const int cmd_id)
 {
-  const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
+  kXR_unt32 dictid = getDictId();
 
   Url url = loc[0].url;
 
   XrdMonitor::reportXrdRedirCmd(dictid, url.domain, url.port, url.path, cmd_id);
+}
+
+
+void ProfilerXrdMon::reportXrdFileOpen(const std::string &path, const long long file_size)
+{
+  kXR_unt32 dictid = getDictId();
+  kXR_unt32 fileid = getFileId();
+  XrdMonitor::reportXrdFileOpen(dictid, fileid, path, file_size);
+}
+
+
+void ProfilerXrdMon::reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const bool forced)
+{
+  kXR_unt32 fileid = getFileId();
+  XrdMonitor::reportXrdFileClose(fileid, xfr, forced);
+  rmFileId();
+}
+
+
+void ProfilerXrdMon::reportXrdFileDisc()
+{
+  kXR_unt32 dictid = getDictId();
+  XrdMonitor::reportXrdFileDisc(dictid);
+  rmDictId();
+}
+
+
+kXR_unt32 ProfilerXrdMon::getDictId()
+{
+  //const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  //kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
+
+  if (!this->stack_->contains("dictid")) {
+    this->stack_->set("dictid", XrdMonitor::getDictId());
+  }
+  boost::any dictid_any = this->stack_->get("dictid");
+  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
+
+  return dictid;
+}
+
+
+kXR_unt32 ProfilerXrdMon::getFileId()
+{
+  if (!this->stack_->contains("fileid")) {
+    this->stack_->set("fileid", XrdMonitor::getDictId());
+  }
+  boost::any fileid_any = this->stack_->get("fileid");
+  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
+
+  return fileid;
+}
+
+
+void ProfilerXrdMon::rmDictId()
+{
+  if (this->stack_->contains("dictid")) {
+    this->stack_->erase("dictid");
+  }
+}
+
+
+void ProfilerXrdMon::rmFileId()
+{
+  if (this->stack_->contains("fileid")) {
+    this->stack_->erase("fileid");
+  }
 }
