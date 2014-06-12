@@ -23,6 +23,8 @@ ProfilerXrdMon::~ProfilerXrdMon()
 void ProfilerXrdMon::sendUserIdentOrNOP()
 {
   if (!this->stack_->contains("dictid")) {
+    const SecurityContext *secCtx = this->stack_->getSecurityContext();
+
     kXR_unt32 dictid = getDictId();
 
     std::string protocol = "null";
