@@ -767,3 +767,45 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         "did not send/add new FILE msg");
   }
 }
+
+void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
+{
+  int msg_size = sizeof(XrdXrootdMonFileHdr);
+  int slots = 1;
+
+  XrdXrootdMonFileDSC *msg;
+  {
+    boost::mutex::scoped_lock(file_mutex_);
+
+    msg = (XrdXrootdMonFileDSC *) getFileBufferNextEntry(slots);
+
+    if (msg == 0x00) {
+      int ret = XrdMonitor::sendFileBuffer();
+      if (ret) {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "failed sending FILE msg");
+      } else {
+        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+            "sent FILE msg");
+      }
+      msg = (XrdXrootdMonFileDSC *) getFileBufferNextEntry(slots);
+    }
+
+    if (msg != 0x00) {
+      msg->Hdr.recType = XrdXrootdMonFileHdr::isDisc;
+      msg->Hdr.recFlag = 0;
+      msg->Hdr.recSize = htons(static_cast<short>(slots*sizeof(XrdXrootdMonFileHdr)));
+      msg->Hdr.userID = dictid;
+
+      advanceFileBufferNextEntry(slots);
+    }
+  }
+
+  if (msg != 0x00) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "added new FILE msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "did not send/add new FILE msg");
+  }
+}
