@@ -201,7 +201,7 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
   }
 }
 
-int XrdMonitor::sendMonMap(kXR_char code, kXR_unt32 dictid, char *info)
+int XrdMonitor::sendMonMap(const kXR_char code, const kXR_unt32 dictid, char *info)
 {
   int ret = 0;
 
@@ -243,7 +243,7 @@ int XrdMonitor::sendServerIdent()
 }
 
 
-int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
+int XrdMonitor::sendShortUserIdent(const kXR_unt32 dictid)
 {
   int ret = 0;
 
@@ -264,7 +264,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_char dictid)
 }
 
 
-int XrdMonitor::sendUserIdent(const kXR_char dictid,
+int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
                               const std::string &protocol,
                               const std::string &userDN,
                               const std::string &userHostname,
@@ -297,7 +297,7 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
   return ret;
 }
 
-int XrdMonitor::sendFileOpen(const kXR_char fileid, const std::string &path)
+int XrdMonitor::sendFileOpen(const kXR_unt32 fileid, const std::string &path)
 {
   if (include_lfn_) // do not send this if the path is included in the fstream
     return 0;

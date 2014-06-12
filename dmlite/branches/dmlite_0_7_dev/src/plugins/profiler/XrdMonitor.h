@@ -91,16 +91,16 @@ namespace dmlite {
 
       static int initOrNOP();
 
-      static int sendShortUserIdent(const kXR_char dictid);
-      static int sendUserIdent(const kXR_char dictid,
+      static int sendShortUserIdent(const kXR_unt32 dictid);
+      static int sendUserIdent(const kXR_unt32 dictid,
                                const std::string &protocol,
                                const std::string &userDN,
                                const std::string &userHostname,
                                const std::string &vo);
 
-      static int sendFileOpen(const kXR_char fileid, const std::string &path);
+      static int sendFileOpen(const kXR_unt32 fileid, const std::string &path);
 
-      static int sendMonMap(kXR_char code, kXR_unt32 dictid, char *info);
+      static int sendMonMap(const kXR_char code, const kXR_unt32 dictid, char *info);
 
       static void reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id);
       static void reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &host, const int port,
