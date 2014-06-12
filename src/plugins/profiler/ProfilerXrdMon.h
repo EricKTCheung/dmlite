@@ -18,7 +18,7 @@ namespace dmlite {
     public:
       ProfilerXrdMon();
 
-      ~ProfilerXrdMon();
+      virtual ~ProfilerXrdMon();
 
       void reportXrdRedirCmd(const std::string &path, const int cmd_id);
       void reportXrdRedirCmd(const Location &loc, const int cmd_id);
