@@ -56,6 +56,23 @@ This package provides headers and development libraries for dmlite.
 Summary:	API documentation for dmlite
 Group:		Applications/Internet
 
+%package private-devel
+Summary:	Private development libraries and headers for dmlite
+Group:		Applications/Internet
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
+Requires:	boost-devel >= 1.41.0
+%else
+Requires:	boost141-devel
+%endif
+
+%description private-devel
+This package provides private headers and development libraries for dmlite. These components are generally not binary compatible across releases.
+
+%package docs
+Summary:	API documentation for dmlite
+Group:		Applications/Internet
+
 %description docs
 Man pages and HTML documentation for dmlite.
 
@@ -82,11 +99,10 @@ BuildRequires:	boost-devel >= 1.41.0
 BuildRequires:	boost141-devel
 %endif
 BuildRequires:	cmake
-BuildRequires:	dmlite-devel >= 0.6.2
 BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
 
-Requires:	dmlite-libs >= 0.6.2
+Requires:	dmlite-libs = %{version}
 
 %description -n dmlite-plugins-memcache
 This package provides the memcached plug-in for dmlite. It provides a
@@ -101,9 +117,8 @@ BuildRequires:	boost-devel >= 1.41.0
 BuildRequires:	boost141-devel
 %endif
 BuildRequires:	cmake
-BuildRequires:	dmlite-devel >= 0.6.2
 
-Requires:	dmlite-libs >= 0.6.2
+Requires:	dmlite-libs = %{version}
 
 %description -n dmlite-plugins-profiler
 This package provides the profiler plug-in for dmlite. This plug-in is a simple
@@ -115,10 +130,10 @@ Summary:	Shell environment for dmlite
 Group:		Applications/Internet
 BuildRequires:	cmake
 BuildRequires:	python2-devel
-BuildArch:		noarch
+BuildArch:	noarch
 
-Requires:		python-dateutil
-Requires:		python-dmlite
+Requires:	python-dateutil
+Requires:	python-dmlite
 
 %description -n dmlite-shell
 This package provides a shell environment for dmlite. It includes useful
@@ -164,8 +179,13 @@ rm -rf %{buildroot}
 
 %files devel
 %defattr(-,root,root,-)
-%{_includedir}/dmlite
+%{_includedir}/dmlite/c
+%{_includedir}/dmlite/common
 %{_libdir}/libdmlite.so
+
+%files private-devel
+%defattr(-,root,root,-)
+%{_includedir}/dmlite/cpp
 
 %files docs
 %defattr(-,root,root,-)
@@ -199,6 +219,10 @@ rm -rf %{buildroot}
 %doc LICENSE README RELEASE-NOTES
 
 %changelog
+* Fri Nov 29 2013 Fabrizio Furano <furano@cern.ch> - 0.7.0-1
+- Introduced the private devel headers
+- Merged shell, profiler, memcache
+
 * Fri Nov 29 2013 Alejandro Alvarez <aalvarez@cern.ch> - 0.6.1-2
 - Enabled Python bindings
 
