@@ -299,6 +299,9 @@ int XrdMonitor::sendUserIdent(const kXR_char dictid,
 
 int XrdMonitor::sendFileOpen(const kXR_char fileid, const std::string &path)
 {
+  if (include_lfn_) // do not send this if the path is included in the fstream
+    return 0;
+
   int ret = 0;
 
   char info[1024+256];
