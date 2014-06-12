@@ -37,7 +37,7 @@ ProfilerIOHandler::~ProfilerIOHandler()
     reportXrdFileClose(this->xfrstats_, true);
   }
 
-  reportXrdFileDisc(dictid);
+  reportXrdFileDisc();
 
   delete this->decorated_;
   delete this->decoratedId_;
