@@ -27,17 +27,17 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   //test send fileMonitoring msg
   sendUserIdentOrNOP();
   // we actually never use this, but active LFN in the stream
-  //XrdMonitor::sendFileOpen(pfn);
-  XrdMonitor::reportXrdFileOpen(pfn, 1001);
+  //sendFileOpen(pfn);
+  reportXrdFileOpen(pfn, 1001);
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
 {
   if (!file_closed_) {
-    XrdMonitor::reportXrdFileClose(this->xfrstats_, true);
+    reportXrdFileClose(this->xfrstats_, true);
   }
 
-  XrdMonitor::reportXrdFileDisc(dictid);
+  reportXrdFileDisc(dictid);
 
   delete this->decorated_;
   delete this->decoratedId_;
@@ -54,7 +54,7 @@ void ProfilerIOHandler::close(void) throw (DmException)
 {
   PROFILE(close);
 
-  XrdMonitor::reportXrdFileClose(this->xfrstats_);
+  reportXrdFileClose(this->xfrstats_);
   file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
