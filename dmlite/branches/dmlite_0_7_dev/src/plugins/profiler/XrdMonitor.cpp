@@ -348,7 +348,7 @@ kXR_unt32 XrdMonitor::getDictId()
     dictid_ += 1;
     this_dictid = dictid_;
   }
-  return this_dictid;
+  return htonl(this_dictid);
 }
 
 kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
