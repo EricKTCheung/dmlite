@@ -92,7 +92,7 @@ void ProfilerPoolManager::deletePool(const Pool& pool) throw (DmException)
 Location ProfilerPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
   PROFILE_ASSIGN(Location, whereToRead, path);
-  reportXrdRedirCmd(ret, XROOTD_MON_OPENR);
+  //reportXrdRedirCmd(ret, XROOTD_MON_OPENR);
 
   return ret;
 }
@@ -109,7 +109,7 @@ Location ProfilerPoolManager::whereToRead(ino_t inode) throw (DmException)
 Location ProfilerPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   PROFILE_ASSIGN(Location, whereToWrite, path);
-  reportXrdRedirCmd(ret, XROOTD_MON_OPENW);
+  //reportXrdRedirCmd(ret, XROOTD_MON_OPENW);
 
   return ret;
 }
