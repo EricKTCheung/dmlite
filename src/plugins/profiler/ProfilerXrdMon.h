@@ -22,6 +22,10 @@ namespace dmlite {
 
       void reportXrdRedirCmd(const std::string &path, const int cmd_id);
       void reportXrdRedirCmd(const Location &loc, const int cmd_id);
+      void reportXrdFileOpen(const std::string &path, const long long file_size);
+      void reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const bool forced = false);
+      void reportXrdFileDisc();
+
       void sendUserIdentOrNOP();
 
     protected:
@@ -29,6 +33,11 @@ namespace dmlite {
       bool file_closed_;
 
       StackInstance *stack_;
+
+      kXR_unt32 getDictId();
+      void rmDictId();
+      kXR_unt32 getFileId();
+      void rmFileId();
   };
 };
 
