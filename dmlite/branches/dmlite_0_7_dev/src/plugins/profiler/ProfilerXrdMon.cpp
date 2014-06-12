@@ -84,6 +84,7 @@ void ProfilerXrdMon::reportXrdFileDisc()
 {
   kXR_unt32 dictid = getDictId();
   XrdMonitor::reportXrdFileDisc(dictid);
+  XrdMonitor::flushXrdFileStream();
   rmDictId();
 }
 

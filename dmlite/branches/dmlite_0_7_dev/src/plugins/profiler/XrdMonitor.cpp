@@ -812,3 +812,15 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
         "did not send/add new FILE msg");
   }
 }
+
+void XrdMonitor::flushXrdFileStream()
+{
+  int ret = XrdMonitor::sendFileBuffer();
+  if (ret) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "failed sending FILE msg");
+  } else {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+        "sent FILE msg");
+  }
+}
