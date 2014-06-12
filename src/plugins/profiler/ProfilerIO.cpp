@@ -49,6 +49,11 @@ ProfilerIOHandler::~ProfilerIOHandler()
     XrdMonitor::reportXrdFileClose(fileid, this->xfrstats_, true);
   }
 
+  const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
+
+  XrdMonitor::reportXrdFileDisc(dictid);
+
   if (this->stack_->contains("fileid")) {
     this->stack_->erase("fileid");
   }
