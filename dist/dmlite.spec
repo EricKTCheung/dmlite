@@ -56,6 +56,11 @@ This package provides headers and development libraries for dmlite.
 Summary:	API documentation for dmlite
 Group:		Applications/Internet
 
+
+%description docs
+Man pages and HTML documentation for dmlite.
+
+
 %package private-devel
 Summary:	Private development libraries and headers for dmlite
 Group:		Applications/Internet
@@ -69,12 +74,6 @@ Requires:	boost141-devel
 %description private-devel
 This package provides private headers and development libraries for dmlite. These components are generally not binary compatible across releases.
 
-%package docs
-Summary:	API documentation for dmlite
-Group:		Applications/Internet
-
-%description docs
-Man pages and HTML documentation for dmlite.
 
 %package -n python-dmlite
 Summary:	Python wrapper for dmlite
