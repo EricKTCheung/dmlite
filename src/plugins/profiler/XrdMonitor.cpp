@@ -6,7 +6,7 @@
 using namespace dmlite;
 
 time_t XrdMonitor::startup_time = 0;
-std::vector<std::string> XrdMonitor::collector_addr_list;
+std::set<std::string> XrdMonitor::collector_addr_list;
 
 // configuration options
 bool XrdMonitor::include_lfn_ = false;
@@ -168,8 +168,10 @@ int XrdMonitor::initCollector()
   FD_ = socket(PF_INET, SOCK_DGRAM, 0);
 
   collector_count_ = 0;
-  for (int i = 0; i < collector_addr_list.size(); ++i) {
-    std::string collector_addr = collector_addr_list[i];
+  std::set<std::string>::iterator it;
+  int i = 0;
+  for (it = collector_addr_list.begin(); it != collector_addr_list.end(); ++i, ++it) {
+    std::string collector_addr = *it;
 
     if (i > 1) {
       syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",

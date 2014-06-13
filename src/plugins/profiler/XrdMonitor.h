@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
+#include <set>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -118,7 +119,7 @@ namespace dmlite {
       static std::pair<kXR_unt32, bool> getDictIdFromDnMarkNew(const std::string &dn);
 
       static time_t startup_time;
-      static std::vector<std::string> collector_addr_list;
+      static std::set<std::string> collector_addr_list;
     private:
       friend class ProfilerFactory;
 
