@@ -75,8 +75,6 @@ inline ExtendedStat& fillChecksumInXattr(ExtendedStat& xstat)
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>& connPool,
     Catalog* decorates,
-    MemcacheBloomFilter* filter,
-    bool doFilter,
     MemcacheFunctionCounter* funcCounter,
     bool doFuncCount,
     unsigned int symLinkLimit,
@@ -86,8 +84,6 @@ throw (DmException):
   si_(0x00),
   conn_(connPool),
   connNoReply_(0x0),
-  bloomFilter_(filter),
-  doFilter_(doFilter),
   funcCounter_(funcCounter),
   doFuncCount_(doFuncCount),
   symLinkLimit_(symLinkLimit),
@@ -880,10 +876,6 @@ const std::string MemcacheCatalog::keyFromURI(const char* preKey,
 
 const std::string MemcacheCatalog::getValFromMemcachedKey(const std::string& key)  throw (MemcacheException)
 {
-  // if it's not in the bloom filter, don't even try to get it
-  if (this->doFilter_ && !this->bloomFilter_->contains(key))
-    return std::string();
-
   memcached_return statMemc;
   size_t lenValue;
   uint32_t flags;
@@ -945,9 +937,6 @@ void MemcacheCatalog::setMemcachedFromKeyValue(const std::string& key,
     throw MemcacheException(statMemc, this->conn_); //conn);
   }
 
-  if (this->doFilter_)
-    this->bloomFilter_->insert(key);
-
   return;
 }
 
@@ -973,11 +962,6 @@ void MemcacheCatalog::addMemcachedFromKeyValue(const std::string& key,
       this->memcachedExpirationLimit_,
       (uint32_t)0);
 
-  // be optimistic about failures:
-  // if the call fails, the key was already there
-  if (this->doFilter_)
-    this->bloomFilter_->insert(key);
-
   if (statMemc != MEMCACHED_SUCCESS) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
         "adding a value to memcache failed",
@@ -1000,10 +984,6 @@ void MemcacheCatalog::safeAddMemcachedFromKeyValue(const std::string& key,
 
 void MemcacheCatalog::delMemcachedFromKey(const std::string& key, const bool noreply) throw (MemcacheException)
 {
-  // if it's not in the bloom filter, don't even try to delete it
-  if (this->doFilter_ && !this->bloomFilter_->contains(key))
-    return;
-
   //memcached_st *conn;
   //if (noreply)
   //  conn = this->connNoReply_;

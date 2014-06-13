@@ -49,8 +49,6 @@ namespace dmlite {
       /// @param decorates The underlying decorated catalog.
       MemcacheCatalog(PoolContainer<memcached_st*>& connPool,
           Catalog* decorates,
-          MemcacheBloomFilter* filter,
-          bool doFilter,
           MemcacheFunctionCounter* funcCounter,
           bool doFuncCount,
           unsigned int symLinkLimit,
@@ -181,12 +179,6 @@ namespace dmlite {
 
   /// The Memcached connection. Set NOREPLY in the constructor.
   memcached_st* connNoReply_;
-
-  /// Bloom Filter to track elements in memcached..
-  MemcacheBloomFilter* bloomFilter_;
-
-  /// Use the bloom filter or not.
-  bool doFilter_;
 
   /// Stats counter for the overloaded functions.
   MemcacheFunctionCounter *funcCounter_;
