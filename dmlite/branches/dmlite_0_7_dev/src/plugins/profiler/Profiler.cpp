@@ -54,11 +54,11 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
       else if (*it == "dest") {
         if (it+1 == options.end())
           break;
-        XrdMonitor::collector_addr = *(++it);
+        XrdMonitor::collector_addr_list.push_back(*(++it));
       }
     }
   } else if (key == "Collector") {
-    XrdMonitor::collector_addr = value;
+    XrdMonitor::collector_addr_list.push_back(value);
   } else if (key == "MsgBufferSize") {
     XrdMonitor::redir_max_buffer_size_ = atoi(value.c_str());
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());

@@ -118,7 +118,7 @@ namespace dmlite {
       static std::pair<kXR_unt32, bool> getDictIdFromDnMarkNew(const std::string &dn);
 
       static time_t startup_time;
-      static std::string collector_addr;
+      static std::vector<std::string> collector_addr_list;
     private:
       friend class ProfilerFactory;
 
@@ -137,8 +137,16 @@ namespace dmlite {
       static boost::mutex send_mutex_;
 
       static int FD_;
-      static struct sockaddr dest_addr_;
-      static socklen_t dest_addr_len_;
+      static const int collector_max_ = 2;
+      static struct collector_info
+      {
+        struct sockaddr dest_addr;
+        socklen_t dest_addr_len;
+      } collector_[collector_max_];
+      static int collector_count_;
+
+      //static struct sockaddr dest_addr_;
+      //static socklen_t dest_addr_len_;
 
       // information for server ident msg
       static pid_t pid_;
