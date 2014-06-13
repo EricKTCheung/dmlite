@@ -211,11 +211,8 @@ int XrdMonitor::initCollector()
 
     ret = getaddrinfo(host, port, &hints, &res);
 
-    struct sockaddr dest_addr = collector_[i].dest_addr;
-    socklen_t dest_addr_len = collector_[i].dest_addr_len;
-
-    memcpy(&dest_addr, res->ai_addr, sizeof(dest_addr));
-    dest_addr_len = res->ai_addrlen;
+    memcpy(&collector_[i].dest_addr, res->ai_addr, sizeof(collector_[i].dest_addr));
+    collector_[i].dest_addr_len = res->ai_addrlen;
 
     ++collector_count_;
 
