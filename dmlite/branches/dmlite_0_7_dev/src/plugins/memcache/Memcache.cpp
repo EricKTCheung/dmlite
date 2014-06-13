@@ -9,7 +9,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include "Memcache.h"
-#include "MemcacheBloomFilter.h"
 #include "MemcacheCatalog.h"
 #include "MemcacheFunctionCounter.h"
 
@@ -145,8 +144,6 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmExcept
   nestedFactory_(catalogFactory),
   connectionFactory_(std::vector<std::string>(), true, "default"),
   connectionPool_(&connectionFactory_, 50),
-  bloomFilter_(0x00),
-  doFilter_(false),
   funcCounter_(0x00),
   doFuncCount_(false),
   funcCounterLogFreq_(18),
@@ -155,7 +152,6 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmExcept
   memcachedPOSIX_(false)
 {
   /*
-  this->bloomFilter_ = new MemcacheBloomFilter();
   this->funcCounter_ = new MemcacheFunctionCounter();
   */
 }
@@ -165,8 +161,6 @@ MemcacheFactory::~MemcacheFactory() throw(DmException)
   if (this->funcCounter_ != 0x00)
     delete this->funcCounter_;
 
-  if (this->bloomFilter_ != 0x00)
-    delete this->bloomFilter_;
 }
 
 
@@ -214,12 +208,6 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
     }
   } else if (key == "MemcachedFunctionCounterLogFrequency") {
     this->funcCounterLogFreq_ = atoi(value.c_str());
-  } else if (key == "MemcachedBloomFilter") {
-    if (value == "on") {
-      this->doFilter_ = true;
-      this->bloomFilter_ = new MemcacheBloomFilter();
-    } else
-      this->doFilter_ = false;
   } else if (key == "MemcachedPoolSize") {
     this->connectionPool_.resize(atoi(value.c_str()));
   } else
@@ -243,8 +231,6 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 
   return new MemcacheCatalog(this->connectionPool_,
       nested,
-      this->bloomFilter_,
-      this->doFilter_,
       this->funcCounter_,
       this->doFuncCount_,
       this->symLinkLimit_,

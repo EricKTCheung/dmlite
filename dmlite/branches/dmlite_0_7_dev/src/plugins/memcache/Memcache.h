@@ -10,7 +10,6 @@
 #include <dmlite/cpp/utils/poolcontainer.h>
 #include <dmlite/cpp/utils/urls.h>
 
-#include "MemcacheBloomFilter.h"
 #include "MemcacheFunctionCounter.h"
 
 #define MEMCACHED_DEFAULT_PORT 11211
@@ -63,12 +62,6 @@ namespace dmlite {
 
       /// Connection pool.
       PoolContainer<memcached_st*> connectionPool_;
-
-      /// Bloom Filter to track elements in memcached.
-      MemcacheBloomFilter *bloomFilter_;
-
-      /// Use the bloom filter or not.
-      bool doFilter_;
 
       /// Stats counter for the overloaded functions.
       MemcacheFunctionCounter* funcCounter_;

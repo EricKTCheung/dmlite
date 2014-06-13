@@ -8,9 +8,8 @@ find_package(Protobuf REQUIRED)
 wrap_proto(PROTO_SRC MemcacheCatalog.proto)
 
 add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
-                            MemcacheBloomFilter.cpp
                             MemcacheFunctionCounter.cpp
- ${PROTO_SRC})
+                            ${PROTO_SRC})
 
 include_directories (${Boost_INCLUDE_DIR} ${DMLITE_INCLUDE_DIR})
 
