@@ -13,9 +13,9 @@ add_library(profiler SHARED XrdMonitor.cpp
                             ProfilerXrdMon.cpp)
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  target_link_libraries (profiler ${DMLITE_LIBRARIES} boost_system)
+  target_link_libraries (profiler dmlite boost_system)
 ELSE()
-  target_link_libraries (profiler ${DMLITE_LIBRARIES} rt)
+  target_link_libraries (profiler dmlite rt)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set_target_properties (profiler PROPERTIES PREFIX "plugin_")
 
