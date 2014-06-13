@@ -47,7 +47,7 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
         }
       }
     }
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s", log_stream.str().c_str());
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), log_stream.str().c_str());
   }
   if (do_reset) {
     reset();

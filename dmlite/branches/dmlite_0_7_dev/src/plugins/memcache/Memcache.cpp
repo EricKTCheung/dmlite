@@ -235,6 +235,8 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 
   if (this->nestedFactory_ != 0x00)
     nested = CatalogFactory::createCatalog(this->nestedFactory_, pm);
+  else
+    return 0x00;
 
   if (this->funcCounter_ == 0x00 && this->doFuncCount_)
     this->funcCounter_ = new MemcacheFunctionCounter(this->funcCounterLogFreq_);
