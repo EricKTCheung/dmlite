@@ -9,12 +9,13 @@ wrap_proto(PROTO_SRC MemcacheCatalog.proto)
 
 add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
                             MemcacheBloomFilter.cpp
-                            MemcacheFunctionCounter.cpp
- ${PROTO_SRC})
+                            MemcacheFunctionCounter.cpp)
+
+include_directories(${PROJECT_BINARY_DIR})
+include_directories(${PROJECT_BINARY_DIR}/src)
 
 include_directories (${Boost_INCLUDE_DIR})
 
-#find_package(Memcache)
 target_link_libraries (memcache dmlite memcached protobuf pthread)
 set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
