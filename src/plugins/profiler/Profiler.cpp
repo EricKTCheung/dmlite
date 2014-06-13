@@ -46,15 +46,15 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
       else if (*it == "rbuff") {
         if (it+1 == options.end())
           break;
-        int buf_size = atoi((it+1)->c_str());
+        int buf_size = atoi((++it)->c_str());
         if (buf_size > 0) {
           XrdMonitor::redir_max_buffer_size_ = buf_size;
-          ++it;
         }
       }
-      else {
+      else if (*it == "dest") {
         if (it+1 == options.end())
-          XrdMonitor::collector_addr = *it;
+          break;
+        XrdMonitor::collector_addr = *(++it);
       }
     }
   } else if (key == "Collector") {
