@@ -21,6 +21,8 @@ static pthread_once_t patternGlobalOnce = PTHREAD_ONCE_INIT;
 // while in MacOS, for instance, it is a struct dirent*
 #ifdef __linux__
 static int configFilter(const struct dirent* entry)
+#elif __APPLE__
+static int configFilter(const struct dirent* entry)
 #else
 static int configFilter(struct dirent* entry)
 #endif
