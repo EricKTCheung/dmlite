@@ -213,6 +213,15 @@ int XrdMonitor::initCollector()
 
     ret = getaddrinfo(host, port, &hints, &res);
 
+    if (ret != 0) { // if it fails, we do not need to clean up
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
+          "could not connect to the collector server address",
+          "adding a server failed",
+          "could not connect",
+          collector_addr.c_str());
+      continue;
+    }
+
     memcpy(&collector_[i].dest_addr, res->ai_addr, sizeof(collector_[i].dest_addr));
     collector_[i].dest_addr_len = res->ai_addrlen;
 
