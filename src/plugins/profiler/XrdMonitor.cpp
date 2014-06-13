@@ -6,7 +6,7 @@
 using namespace dmlite;
 
 time_t XrdMonitor::startup_time = 0;
-std::string XrdMonitor::collector_addr;
+std::vector<std::string> XrdMonitor::collector_addr_list;
 
 // configuration options
 bool XrdMonitor::include_lfn_ = false;
@@ -17,8 +17,10 @@ boost::mutex XrdMonitor::init_mutex_;
 boost::mutex XrdMonitor::send_mutex_;
 
 int XrdMonitor::FD_ = 0;
-struct sockaddr XrdMonitor::dest_addr_;
-socklen_t XrdMonitor::dest_addr_len_;
+struct XrdMonitor::collector_info XrdMonitor::collector_[XrdMonitor::collector_max_];
+int XrdMonitor::collector_count_ = 0;
+//struct sockaddr XrdMonitor::dest_addr_;
+//socklen_t XrdMonitor::dest_addr_len_;
 
 // information for server ident msg
 pid_t XrdMonitor::pid_ = 0;
@@ -163,43 +165,62 @@ int XrdMonitor::initServerIdentVars()
 
 int XrdMonitor::initCollector()
 {
-  if (collector_addr == "")
-    return -1;
-
   FD_ = socket(PF_INET, SOCK_DGRAM, 0);
 
-  const char* host;
-  const char* port = "9930";
+  collector_count_ = 0;
+  for (int i = 0; i < collector_addr_list.size(); ++i) {
+    std::string collector_addr = collector_addr_list[i];
 
-  std::vector<std::string> server;
-  boost::split(server, collector_addr, boost::is_any_of(":/?"));
+    if (i > 1) {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
+          "could not add another collector server address",
+          "maximum of two is already reached",
+          collector_addr.c_str());
 
-  if (server.size() > 0) {
-    host = server[0].c_str();
-  } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
-        "could not read the collector server address",
-        "adding a server failed",
-        "could not parse value",
-        collector_addr.c_str());
-    return -1;
+      break;
+    }
+
+    if (collector_addr == "")
+      continue;
+
+    const char* host;
+    const char* port = "9930";
+
+    std::vector<std::string> server;
+    boost::split(server, collector_addr, boost::is_any_of(":/?"));
+
+    if (server.size() > 0) {
+      host = server[0].c_str();
+    } else {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
+          "could not read the collector server address",
+          "adding a server failed",
+          "could not parse value",
+          collector_addr.c_str());
+      continue;
+    }
+    if (server.size() > 1) {
+      port = server[1].c_str();
+    }
+
+    int ret = 0;
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_family = AF_INET;
+
+    ret = getaddrinfo(host, port, &hints, &res);
+
+    struct sockaddr dest_addr = collector_[i].dest_addr;
+    socklen_t dest_addr_len = collector_[i].dest_addr_len;
+
+    memcpy(&dest_addr, res->ai_addr, sizeof(dest_addr));
+    dest_addr_len = res->ai_addrlen;
+
+    ++collector_count_;
+
+    freeaddrinfo(res);
   }
-  if (server.size() > 1) {
-    port = server[1].c_str();
-  }
-
-  int ret = 0;
-  struct addrinfo hints, *res;
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_family = AF_INET;
-
-  ret = getaddrinfo(host, port, &hints, &res);
-
-  memcpy(&dest_addr_, res->ai_addr, sizeof(dest_addr_));
-  dest_addr_len_ = res->ai_addrlen;
-
-  freeaddrinfo(res);
 
   return 0;
 }
@@ -209,7 +230,18 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
   boost::mutex::scoped_lock(send_mutex_);
 
   ssize_t ret;
-  ret = sendto(FD_, buf, buf_len, 0, &dest_addr_, dest_addr_len_);
+
+  for (int i = 0; i < collector_count_; ++i) {
+    struct sockaddr dest_addr = collector_[i].dest_addr;
+    socklen_t dest_addr_len = collector_[i].dest_addr_len;
+
+    ret = sendto(FD_, buf, buf_len, 0, &dest_addr, dest_addr_len);
+
+    if (ret != buf_len) {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s\n",
+            "sending a message failed");
+    }
+  }
 
   if (ret == buf_len) {
     return 0;
