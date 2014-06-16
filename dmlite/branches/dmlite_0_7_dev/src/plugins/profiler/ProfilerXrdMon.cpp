@@ -28,11 +28,14 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
     kXR_unt32 dictid = getDictId();
 
     std::string protocol = "null";
-    protocol = secCtx->credentials.mech;
-    //if (this->stack_->contains("protocol")) {
-    //  boost::any proto_any = this->stack_->get("protocol");
-    //  protocol = Extensible::anyToString(proto_any);
-    //}
+    //protocol = secCtx->credentials.mech;
+    if (this->stack_->contains("protocol")) {
+      boost::any proto_any = this->stack_->get("protocol");
+      protocol = Extensible::anyToString(proto_any);
+    }
+    if (secCtx->user.name != "nobody") {
+      protocol = "gsi";
+    }
 
     char dictid_str[21];
     snprintf(dictid_str, 21, "%d", ntohl(dictid));
