@@ -149,7 +149,7 @@ BuildRequires:	mysql-devel
 
 Requires:	dmlite-libs >= 0.6.2
 
-%description
+%description -n dmlite-plugins-mysql
 This package provides the MySQL plug-in for dmlite.
 
 
@@ -247,7 +247,7 @@ rm -rf %{buildroot}
 %{python_sitelib}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
-%files 
+%files -n dmlite-plugins-mysql
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_mysql.so
 %doc LICENSE README RELEASE-NOTES
