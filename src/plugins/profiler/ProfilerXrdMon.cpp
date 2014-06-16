@@ -32,7 +32,7 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
     //if (this->stack_->contains("protocol")) {
     //  boost::any proto_any = this->stack_->get("protocol");
     //  protocol = Extensible::anyToString(proto_any);
-    }
+    //}
 
     char dictid_str[21];
     snprintf(dictid_str, 21, "%d", ntohl(dictid));
