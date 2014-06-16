@@ -33,14 +33,17 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
       protocol = Extensible::anyToString(proto_any);
     }
 
+    std::string unique_userid = secCtx->user.name;
+    unique_userid += dictid;
+
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
-        secCtx->user.name, // user DN
+        unique_userid, // unique username
         secCtx->credentials.remoteAddress, // user hostname
         // org
         // role
-        secCtx->groups[0].name
-        // info
+        secCtx->groups[0].name,
+        secCtx->user.name // info, here: user DN
     );
   }
 }
