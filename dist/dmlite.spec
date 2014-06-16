@@ -127,7 +127,6 @@ measurements regarding the performance of each call to dmlite.
 %package -n dmlite-shell
 Summary:	Shell environment for dmlite
 Group:		Applications/Internet
-BuildRequires:	cmake
 BuildRequires:	python2-devel
 BuildArch:	noarch
 
@@ -137,6 +136,37 @@ Requires:	python-dmlite
 %description -n dmlite-shell
 This package provides a shell environment for dmlite. It includes useful
 commands for system administration, testers and power users.
+
+
+
+
+
+
+%package -n dmlite-plugins-mysql
+Summary:	MySQL plugin for dmlite
+Group:		Applications/Internet
+BuildRequires:	mysql-devel
+
+Requires:	dmlite-libs >= 0.6.2
+
+%description
+This package provides the MySQL plug-in for dmlite.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -217,10 +247,18 @@ rm -rf %{buildroot}
 %{python_sitelib}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
+%files 
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_mysql.so
+%doc LICENSE README RELEASE-NOTES
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/*
+
+
+
 %changelog
-* Fri Nov 29 2013 Fabrizio Furano <furano@cern.ch> - 0.7.0-1
+* Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-1
 - Introduced the private devel headers
-- Merged shell, profiler, memcache
+- Merged shell, profiler, memcache, mysql, adapter
 
 * Fri Nov 29 2013 Alejandro Alvarez <aalvarez@cern.ch> - 0.6.1-2
 - Enabled Python bindings

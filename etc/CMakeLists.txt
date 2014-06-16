@@ -13,16 +13,3 @@ file (MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d)
 install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dmlite.conf.d
          DESTINATION etc)
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
-                @ONLY)
-
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
-         DESTINATION etc/dmlite.conf.d)
-
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/profiler.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
-                @ONLY)
-
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
-         DESTINATION etc/dmlite.conf.d)
