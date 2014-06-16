@@ -12,6 +12,7 @@ add_library(profiler SHARED XrdMonitor.cpp
                             ProfilerIO.cpp
                             ProfilerXrdMon.cpp)
 
+
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries (profiler dmlite boost_system)
 ELSE()
@@ -21,3 +22,12 @@ set_target_properties (profiler PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       profiler
         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/)
+
+
+
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/profiler.conf.in
+                ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
+                @ONLY)
+
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
+         DESTINATION etc/dmlite.conf.d)
