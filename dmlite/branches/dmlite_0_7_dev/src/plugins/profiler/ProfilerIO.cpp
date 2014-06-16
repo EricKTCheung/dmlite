@@ -29,6 +29,9 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   // we actually never use this, but active LFN in the stream
   //sendFileOpen(pfn);
   reportXrdFileOpen(pfn, 1001);
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
@@ -41,6 +44,9 @@ ProfilerIOHandler::~ProfilerIOHandler()
 
   delete this->decorated_;
   delete this->decoratedId_;
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
@@ -115,12 +121,18 @@ ProfilerIODriver::ProfilerIODriver(IODriver* decorates) throw(DmException)
 {
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 ProfilerIODriver::~ProfilerIODriver() {
 
   delete this->decorated_;
   free(this->decoratedId_);
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 

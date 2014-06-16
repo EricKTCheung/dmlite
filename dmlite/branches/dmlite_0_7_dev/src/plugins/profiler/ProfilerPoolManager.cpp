@@ -16,6 +16,9 @@ ProfilerPoolManager::ProfilerPoolManager(PoolManager* decorates) throw(DmExcepti
 
   this->decoratedId_ = new char [decorates->getImplId().size() + 1];
   strcpy(this->decoratedId_, decorates->getImplId().c_str());
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 
@@ -24,6 +27,9 @@ ProfilerPoolManager::~ProfilerPoolManager()
 {
   delete this->decorated_;
   delete this->decoratedId_;
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
+      __func__);
 }
 
 
