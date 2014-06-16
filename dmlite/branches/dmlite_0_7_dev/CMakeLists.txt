@@ -50,15 +50,22 @@ endif (Boost_FOUND)
 #--------------------------------
 # Find MySQL
 find_package (MySQL)
-if (MySQL_NOTFOUND)
+if (NOT MYSQL_FOUND)
   message("-- Mysql not found... disabling the MySQL plugin")
   set (BUILD_MYSQL OFF)
 endif()
 
 #--------------------------------
-# Find legacy LCGDM
+# Find Protocol Buffers
 find_package(Protobuf REQUIRED)
 
+#--------------------------------
+# Find DPM/LCGDM
+find_package (DPM)
+if (NOT DPM_FOUND OR NOT DPM_FOUND)
+  message("-- DPM not found... disabling the adapter plugin")
+  set (BUILD_ADAPTER OFF)
+endif()
 
 # Include path
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ 

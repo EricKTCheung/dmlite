@@ -77,7 +77,7 @@ add_executable        (test-put test-put.cpp)
 target_link_libraries (test-put test-base dmlite ${CPPUNIT_LIBRARY} dl)
 
 add_executable        (test-poolcontainer test-poolcontainer.cpp)
-target_link_libraries (test-poolcontainer dmlite ${CPPUNIT_LIBRARY} boost_system boost_thread pthread )
+target_link_libraries (test-poolcontainer dmlite ${CPPUNIT_LIBRARY} boost_system boost_thread-mt pthread )
 
 add_executable        (test-pools test-pools.cpp)
 target_link_libraries (test-pools test-base dmlite ${CPPUNIT_LIBRARY} dl)
