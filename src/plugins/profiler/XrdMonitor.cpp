@@ -339,8 +339,8 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
 
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
-           username_.c_str(), pid_, sid_, hostname_.c_str(),
-           protocol.c_str(), userName.c_str(), userHost.c_str(),
+           userName.c_str(), pid_, sid_, hostname_.c_str(),
+           protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
