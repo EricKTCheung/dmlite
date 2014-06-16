@@ -39,7 +39,7 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
 
     char dictid_str[21];
     snprintf(dictid_str, 21, "%d", ntohl(dictid));
-    std::string unique_userid = secCtx->user.name + dictid_str;
+    std::string unique_userid = std::string(dictid_str);
 
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
