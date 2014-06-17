@@ -17,8 +17,7 @@
 # -----------------------------------------------------
 find_library(DPM_LIBRARIES
     NAMES dpm lcgdm
-    HINTS ${DPM_LOCATION}/lib ${DPM_LOCATION}/lib64 ${DPM_LOCATION}/lib32
-	/usr/lib64 /opt/lcg/lib /opt/lcg/lib32 /opt/lcg/lib64
+    HINTS ${DPM_LOCATION}/lib ${DPM_LOCATION}/lib64 ${DPM_LOCATION}/lib32 /usr/lib64 /opt/lcg/lib /opt/lcg/lib32 /opt/lcg/lib64
     DOC "The main dpm library"
 )
 
@@ -27,8 +26,7 @@ find_library(DPM_LIBRARIES
 # -----------------------------------------------------
 find_path(DPM_INCLUDE_DIR 
     NAMES dpm/dpm_api.h 
-    HINTS ${DPM_LOCATION} ${DPM_LOCATION}/include ${DPM_LOCATION}/include/*
-	/usr/include /usr/include/* /opt/lcg/include/
+    HINTS ${DPM_LOCATION} ${DPM_LOCATION}/include ${DPM_LOCATION}/include/* /usr/include /usr/include/* /opt/lcg/include/
     DOC "The dpm include directory"
 )
 if(DPM_INCLUDE_DIR)
