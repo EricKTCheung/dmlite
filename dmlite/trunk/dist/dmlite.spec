@@ -38,6 +38,11 @@ Provides:	dmlite-plugins-mysql-debuginfo
 Provides:	dmlite-plugins-memcache-debuginfo
 Provides:	dmlite-plugins-profiler-debuginfo
 Provides:	dmlite-shell-debuginfo
+Obsoletes:	dmlite-plugins-adapter-debuginfo
+Obsoletes:	dmlite-plugins-mysql-debuginfo
+Obsoletes:	dmlite-plugins-memcache-debuginfo
+Obsoletes:	dmlite-plugins-profiler-debuginfo
+Obsoletes:	dmlite-shell-debuginfo
 
 %description
 This package provides a set of common libraries and plugins that implement
