@@ -27,6 +27,10 @@ BuildRequires:	graphviz
 BuildRequires:	openssl-devel
 BuildRequires:	python-devel
 BuildRequires:	zlib-devel
+BuildRequires:	dpm-devel
+BuildRequires:	mysql-devel
+BuildRequires:	libmemcached-devel
+BuildRequires:	protobuf-devel
 
 %description
 This package provides a set of common libraries and plugins that implement
@@ -92,15 +96,6 @@ Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 %package -n dmlite-plugins-memcache
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildRequires:	boost-devel >= 1.41.0
-%else
-BuildRequires:	boost141-devel
-%endif
-BuildRequires:	cmake
-BuildRequires:	libmemcached-devel
-BuildRequires:	protobuf-devel
-
 Requires:	dmlite-libs = %{version}
 
 %description -n dmlite-plugins-memcache
@@ -110,13 +105,6 @@ memcached based implementation of the NS interface.
 %package -n dmlite-plugins-profiler
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildRequires:	boost-devel >= 1.41.0
-%else
-BuildRequires:	boost141-devel
-%endif
-BuildRequires:	cmake
-
 Requires:	dmlite-libs = %{version}
 
 %description -n dmlite-plugins-profiler
@@ -127,35 +115,32 @@ measurements regarding the performance of each call to dmlite.
 %package -n dmlite-shell
 Summary:	Shell environment for dmlite
 Group:		Applications/Internet
-BuildRequires:	python2-devel
 BuildArch:	noarch
 
 Requires:	python-dateutil
-Requires:	python-dmlite
+Requires:	python-dmlite = %{version}
 
 %description -n dmlite-shell
 This package provides a shell environment for dmlite. It includes useful
 commands for system administration, testers and power users.
 
-
-
-
-
-
 %package -n dmlite-plugins-mysql
 Summary:	MySQL plugin for dmlite
 Group:		Applications/Internet
-BuildRequires:	mysql-devel
-
-Requires:	dmlite-libs >= 0.6.2
+Requires:       dmlite-libs = %{version}
 
 %description -n dmlite-plugins-mysql
 This package provides the MySQL plug-in for dmlite.
 
+%package -n dmlite-plugins-adapter
+Summary:        Adapter plugin for dmlite
+Group:          Applications/Internet
+Requires:       dmlite-libs = %{version}
 
-
-
-
+%description -n dmlite-plugins-adapter
+This package provides the adapter plug-in for dmlite. This plug-in provides both
+a name-space and pool management implementation which fallback to forwarding
+calls to the old DPNS and DPM daemons.
 
 
 
@@ -253,7 +238,11 @@ rm -rf %{buildroot}
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf
 
-
+%files -n dmlite-plugins-adapter
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_adapter.so
+%doc LICENSE README RELEASE-NOTES
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/*
 
 %changelog
 * Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-1
