@@ -28,6 +28,7 @@ BuildRequires:	openssl-devel
 BuildRequires:	python-devel
 BuildRequires:	zlib-devel
 BuildRequires:	dpm-devel
+BuildRequires:	lcgdm-devel
 BuildRequires:	mysql-devel
 BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
@@ -136,6 +137,8 @@ This package provides the MySQL plug-in for dmlite.
 Summary:        Adapter plugin for dmlite
 Group:          Applications/Internet
 Requires:       dmlite-libs = %{version}
+Requires:       dpm-libs >= 1.8.8
+Requires:       lcgdm-libs >= 1.8.8
 
 %description -n dmlite-plugins-adapter
 This package provides the adapter plug-in for dmlite. This plug-in provides both
