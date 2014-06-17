@@ -10,6 +10,8 @@ add_library (adapter MODULE Adapter.cpp
                             RFIO.cpp
             )
 
+include_directories ( ${DPM_INCLUDE_DIR}/dpm )
+
 target_link_libraries (adapter ${DPM_LIBRARIES} pthread ${DMLITE_LIBRARIES} )
 set_target_properties (adapter PROPERTIES PREFIX "plugin_")
 
