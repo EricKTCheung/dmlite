@@ -1,0 +1,514 @@
+/// @file   AuthnMySql.cpp
+/// @brief  MySQL Authn Implementation.
+/// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+#include <dmlite/cpp/utils/security.h>
+#include "AuthnMySql.h"
+#include "Queries.h"
+#include "MySqlFactories.h"
+
+using namespace dmlite;
+
+AuthnMySql::AuthnMySql(NsMySqlFactory* factory,
+                       const std::string& db,
+                       const std::string& mapfile,
+                       bool hostDnIsRoot, const std::string& hostDn) throw(DmException):
+  factory_(factory), nsDb_(db), mapFile_(mapfile), hostDnIsRoot_(hostDnIsRoot),
+  hostDn_(hostDn)
+{
+  // Nothing
+}
+
+
+
+AuthnMySql::~AuthnMySql()
+{
+  // Nothing
+}
+
+
+
+std::string AuthnMySql::getImplId(void) const throw()
+{
+  return std::string("AuthnMySql");
+}
+
+
+
+SecurityContext* AuthnMySql::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
+{
+  UserInfo user;
+  std::vector<GroupInfo> groups;
+
+  this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
+  return new SecurityContext(cred, user, groups);
+}
+
+
+
+SecurityContext* AuthnMySql::createSecurityContext(void) throw (DmException)
+{
+  UserInfo user;
+  std::vector<GroupInfo> groups;
+  GroupInfo group;
+
+  user.name    = "root";
+  user["uid"]  = 0;
+  group.name   = "root";
+  group["gid"] = 0;
+  groups.push_back(group);
+
+  return new SecurityContext(SecurityCredentials(), user, groups);
+}
+
+
+
+GroupInfo AuthnMySql::newGroup(const std::string& gname) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+
+  if (mysql_query(conn, "BEGIN") != 0)
+    throw DmException(DMLITE_DBERR(mysql_errno(conn)),
+                      mysql_error(conn));
+  
+  
+  gid_t gid;
+  try {
+    // Get the last gid, increment and update
+    Statement gidStmt(conn, this->nsDb_, STMT_GET_UNIQ_GID_FOR_UPDATE);
+
+    gidStmt.execute();
+    gidStmt.bindResult(0, &gid);
+
+    // Update the gid
+    if (gidStmt.fetch()) {
+      Statement updateGidStmt(conn, this->nsDb_, STMT_UPDATE_UNIQ_GID);
+      ++gid;
+      updateGidStmt.bindParam(0, gid);
+      updateGidStmt.execute();
+    }
+    // Couldn't get, so insert it instead
+    else {
+      Statement insertGidStmt(conn, this->nsDb_, STMT_INSERT_UNIQ_GID);
+      gid = 1;
+      insertGidStmt.bindParam(0, gid);
+      insertGidStmt.execute();
+    }
+
+    // Insert the group
+    Statement groupStmt(conn, this->nsDb_, STMT_INSERT_GROUP);
+
+    groupStmt.bindParam(0, gid);
+    groupStmt.bindParam(1, gname);
+    groupStmt.bindParam(2, 0);
+
+    groupStmt.execute();
+  }
+  catch (...) {
+    mysql_query(conn, "ROLLBACK");
+    throw;
+  }
+
+  mysql_query(conn, "COMMIT");
+
+  // Build and return the GroupInfo
+  GroupInfo g;
+  g.name      = gname;
+  g["gid"]    = gid;
+  g["banned"] = 0;
+
+  return g;
+}
+
+
+
+GroupInfo AuthnMySql::getGroup(const std::string& groupName) throw (DmException)
+{
+  GroupInfo group;
+  gid_t     gid;
+  int       banned;
+  char      groupname[256], meta[1024];
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  
+  Statement stmt(conn, this->nsDb_, STMT_GET_GROUPINFO_BY_NAME);
+
+  stmt.bindParam(0, groupName);
+  stmt.execute();
+
+  stmt.bindResult(0, &gid);
+  stmt.bindResult(1, groupname, sizeof(groupname));
+  stmt.bindResult(2, &banned);
+  stmt.bindResult(3, meta, sizeof(meta));
+  
+  if (!stmt.fetch())
+    throw DmException(DMLITE_NO_SUCH_GROUP, "Group %s not found", groupName.c_str());
+  
+  group.name      = groupname;
+  group["gid"]    = gid;
+  group["banned"] = banned;
+  group.deserialize(meta);
+  
+  return group;
+}
+
+
+
+GroupInfo AuthnMySql::getGroup(const std::string& key,
+                               const boost::any& value) throw (DmException)
+{
+  GroupInfo group;
+  gid_t     gid;
+  int       banned;
+  char      groupname[256], meta[1024];
+  
+  if (key != "gid")
+    throw DmException(DMLITE_UNKNOWN_KEY,
+                      "AuthnMySql does not support querying by %s",
+                      key.c_str());
+  
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+
+  gid = Extensible::anyToUnsigned(value);
+  Statement stmt(conn, this->nsDb_, STMT_GET_GROUPINFO_BY_GID);
+  
+  stmt.bindParam(0, gid);
+  stmt.execute();
+  
+  stmt.bindResult(0, &gid);
+  stmt.bindResult(1, groupname, sizeof(groupname));
+  stmt.bindResult(2, &banned);
+  stmt.bindResult(3, meta, sizeof(meta));
+  
+  if (!stmt.fetch())
+    throw DmException(DMLITE_NO_SUCH_GROUP, "Group %u not found", gid);
+  
+  group.name      = groupname;
+  group["gid"]    = gid;
+  group["banned"] = banned;
+  group.deserialize(meta);
+  
+  return group;
+}
+
+
+
+void AuthnMySql::updateGroup(const GroupInfo& group) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_UPDATE_GROUP);
+  
+  stmt.bindParam(0, group.getLong("banned"));
+  GroupInfo g = group;
+  g.erase("gid");
+  g.erase("banned");
+  stmt.bindParam(1, g.serialize());
+  stmt.bindParam(2, group.name);
+  
+  stmt.execute();
+}
+
+
+
+void AuthnMySql::deleteGroup(const std::string& groupName) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_DELETE_GROUP);
+  
+  stmt.bindParam(0, groupName);
+  
+  stmt.execute();
+}
+
+
+
+UserInfo AuthnMySql::newUser(const std::string& uname) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+
+  if (mysql_query(conn, "BEGIN") != 0)
+    throw DmException(mysql_errno(conn), mysql_error(conn));
+
+  uid_t uid;
+  
+  try {
+    // Get the last uid, increment and update
+    Statement uidStmt(conn, this->nsDb_, STMT_GET_UNIQ_UID_FOR_UPDATE);
+
+    uidStmt.execute();
+    uidStmt.bindResult(0, &uid);
+
+    // Update the uid
+    if (uidStmt.fetch()) {
+      Statement updateUidStmt(conn, this->nsDb_, STMT_UPDATE_UNIQ_UID);
+      ++uid;
+      updateUidStmt.bindParam(0, uid);
+      updateUidStmt.execute();
+    }
+    // Couldn't get, so insert it instead
+    else {
+      Statement insertUidStmt(conn, this->nsDb_, STMT_INSERT_UNIQ_UID);
+      uid = 1;
+      insertUidStmt.bindParam(0, uid);
+      insertUidStmt.execute();
+    }
+
+    // Insert the user
+    Statement userStmt(conn, this->nsDb_, STMT_INSERT_USER);
+
+    userStmt.bindParam(0, uid);
+    userStmt.bindParam(1, uname);
+    userStmt.bindParam(2, 0);
+
+    userStmt.execute();
+  }
+  catch (...) {
+    mysql_query(conn, "ROLLBACK");
+    throw;
+  }
+
+  if (mysql_query(conn, "COMMIT") != 0)
+    throw DmException(mysql_errno(conn), mysql_error(conn));
+
+  // Build and return the UserInfo
+  UserInfo u;
+  u.name      = uname;
+  u["uid"]    = uid;
+  u["banned"] = 0;
+
+  return u;
+}
+
+
+
+UserInfo AuthnMySql::getUser(const std::string& userName) throw (DmException)
+{
+  UserInfo   user;
+  uid_t      uid;
+  int        banned;
+  char       ca[1024], username[256], meta[1024];
+  
+  // If the username is the host DN, root!
+  if (this->hostDnIsRoot_ && userName == this->hostDn_) {
+    user.name      = userName;
+    user["ca"]     = std::string();
+    user["banned"] = 0;
+    user["uid"]    = 0u;
+  }
+  else {
+    // Search in the DB
+    PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+    Statement stmt(conn, this->nsDb_, STMT_GET_USERINFO_BY_NAME);
+
+    stmt.bindParam(0, userName);
+    stmt.execute();
+
+    stmt.bindResult(0, &uid);
+    stmt.bindResult(1, username, sizeof(username));
+    stmt.bindResult(2, ca, sizeof(ca));
+    stmt.bindResult(3, &banned);
+    stmt.bindResult(4, meta, sizeof(meta));
+
+    if (!stmt.fetch())
+      throw DmException(DMLITE_NO_SUCH_USER, "User %s not found", userName.c_str());
+    
+    user.name      = username;
+    user["uid"]    = uid;
+    user["banned"] = banned;
+    user.deserialize(meta);
+  }
+  
+  return user;
+}
+
+
+
+UserInfo AuthnMySql::getUser(const std::string& key,
+                             const boost::any& value) throw (DmException)
+{
+  UserInfo   user;
+  uid_t      uid;
+  int        banned;
+  char       ca[1024], username[256], meta[1024];
+  
+  if (key != "uid")
+    throw DmException(DMLITE_UNKNOWN_KEY,
+                      "AuthnMySql does not support querying by %s",
+                      key.c_str());
+  
+  uid = Extensible::anyToUnsigned(value);
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_GET_USERINFO_BY_UID);
+
+  stmt.bindParam(0, uid);
+  stmt.execute();
+
+  stmt.bindResult(0, &uid);
+  stmt.bindResult(1, username, sizeof(username));
+  stmt.bindResult(2, ca, sizeof(ca));
+  stmt.bindResult(3, &banned);
+  stmt.bindResult(4, meta, sizeof(meta));
+
+  if (!stmt.fetch())
+    throw DmException(DMLITE_NO_SUCH_USER, "User %u not found", uid);
+
+  user.name      = username;
+  user["uid"]    = uid;
+  user["banned"] = banned;
+  user.deserialize(meta);
+  
+  return user;
+}
+
+
+
+void AuthnMySql::updateUser(const UserInfo& user) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_UPDATE_USER);
+  
+  stmt.bindParam(0, user.getLong("banned"));
+  UserInfo u = user;
+  u.erase("uid");
+  u.erase("banned");
+  stmt.bindParam(1, u.serialize());
+  stmt.bindParam(2, user.name);
+  
+  stmt.execute();
+}
+
+
+
+void AuthnMySql::deleteUser(const std::string& userName) throw (DmException)
+{
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_DELETE_USER);
+  
+  stmt.bindParam(0, userName);
+  
+  stmt.execute();
+}
+
+
+
+std::vector<GroupInfo> AuthnMySql::getGroups(void) throw (DmException)
+{
+  std::vector<GroupInfo> groups;
+  GroupInfo group;
+  
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_GET_ALL_GROUPS);
+  stmt.execute();  
+  
+  gid_t gid;
+  char  gname[256], meta[1024];
+  int   banned;
+
+  stmt.bindResult(0, &gid);
+  stmt.bindResult(1, gname, sizeof(gname));
+  stmt.bindResult(2, &banned);
+  stmt.bindResult(3, meta, sizeof(meta));
+  
+  while (stmt.fetch()) {
+    group.clear();
+    group.name      = gname;
+    group["gid"]    = gid;
+    group["banned"] = banned;
+    group.deserialize(meta);
+    groups.push_back(group);
+  }
+  
+  return groups;
+}
+
+
+
+std::vector<UserInfo> AuthnMySql::getUsers(void) throw (DmException)
+{
+  std::vector<UserInfo> users;
+  UserInfo user;
+  
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_GET_ALL_USERS);
+  stmt.execute();
+  
+  uid_t uid;
+  char  uname[256], ca[512], meta[1024];
+  int   banned;
+  
+  stmt.bindResult(0, &uid);
+  stmt.bindResult(1, uname, sizeof(uname));
+  stmt.bindResult(2, ca, sizeof(ca));
+  stmt.bindResult(3, &banned);
+  stmt.bindResult(4, meta, sizeof(meta));
+          
+  while (stmt.fetch()) {
+    user.clear();
+    
+    user.name      = uname;
+    user["uid"]    = uid;
+    user["banned"] = banned;
+    user["ca"]     = std::string(ca);
+    user.deserialize(meta);
+    
+    users.push_back(user);
+  }
+  
+  return users;
+}
+
+
+
+void AuthnMySql::getIdMap(const std::string& userName,
+                          const std::vector<std::string>& groupNames,
+                          UserInfo* user,
+                          std::vector<GroupInfo>* groups) throw (DmException)
+{
+  std::string vo;
+  GroupInfo   group;
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
+
+  // Clear
+  groups->clear();
+
+  // User mapping
+  try {
+    *user = this->getUser(userName);
+  }
+  catch (DmException& e) {
+    if (DMLITE_ERRNO(e.code()) == DMLITE_NO_SUCH_USER)
+      *user = this->newUser(userName);
+    else
+      throw;
+  }
+
+  // No VO information, so use the mapping file to get the group
+  if (groupNames.empty()) {
+    vo = voFromDn(this->mapFile_, userName);
+    try {
+      group = this->getGroup(vo);
+    }
+    catch (DmException& e) {
+      if (DMLITE_ERRNO(e.code()) == DMLITE_NO_SUCH_GROUP)
+        group = this->newGroup(vo);
+      else
+        throw;
+    }
+    groups->push_back(group);
+  }
+  else {
+    // Get group info
+    std::vector<std::string>::const_iterator i;
+    for (i = groupNames.begin(); i != groupNames.end(); ++i) {
+      vo = voFromRole(*i);
+      try {
+        group = this->getGroup(vo);
+      }
+      catch (DmException& e) {
+        if (DMLITE_ERRNO(e.code()) == DMLITE_NO_SUCH_GROUP)
+          group = this->newGroup(vo);
+        else
+          throw;
+      }
+      groups->push_back(group);
+    }
+  }
+}
