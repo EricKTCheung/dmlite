@@ -40,8 +40,6 @@ ProfilerIOHandler::~ProfilerIOHandler()
     reportXrdFileClose(this->xfrstats_, true);
   }
 
-  reportXrdFileDisc();
-
   delete this->decorated_;
   delete this->decoratedId_;
 
@@ -130,6 +128,8 @@ ProfilerIODriver::~ProfilerIODriver() {
 
   delete this->decorated_;
   free(this->decoratedId_);
+
+  reportXrdFileDisc();
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
       __func__);
