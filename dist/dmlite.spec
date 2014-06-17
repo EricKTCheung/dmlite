@@ -32,6 +32,7 @@ BuildRequires:	lcgdm-devel
 BuildRequires:	mysql-devel
 BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
+BuildRequires:	lcgdm-devel
 
 %description
 This package provides a set of common libraries and plugins that implement
