@@ -129,7 +129,7 @@ ProfilerIODriver::~ProfilerIODriver() {
   delete this->decorated_;
   free(this->decoratedId_);
 
-  reportXrdFileDisc();
+  reportXrdFileDiscAndFlushOrNOP();
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
       __func__);

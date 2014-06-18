@@ -88,12 +88,23 @@ void ProfilerXrdMon::reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const boo
 }
 
 
-void ProfilerXrdMon::reportXrdFileDisc()
+void ProfilerXrdMon::reportXrdFileDiscAndFlush()
 {
   kXR_unt32 dictid = getDictId();
   XrdMonitor::reportXrdFileDisc(dictid);
   XrdMonitor::flushXrdFileStream();
   rmDictId();
+}
+
+
+void ProfilerXrdMon::reportXrdFileDiscAndFlushOrNOP()
+{
+  if (hasDictId()) {
+    kXR_unt32 dictid = getDictId();
+    XrdMonitor::reportXrdFileDisc(dictid);
+    XrdMonitor::flushXrdFileStream();
+    rmDictId();
+  }
 }
 
 
@@ -109,6 +120,12 @@ kXR_unt32 ProfilerXrdMon::getDictId()
   kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
 
   return dictid;
+}
+
+
+bool ProfilerXrdMon::hasDictId()
+{
+  return this->stack_->contains("dictid");
 }
 
 
