@@ -43,7 +43,7 @@ namespace dmlite {
   };
 
 
-  class ProfilerIODriver: public IODriver, private ProfilerXrdMon {
+  class ProfilerIODriver: public IODriver, public ProfilerXrdMon {
   public:
     ProfilerIODriver(IODriver* decorates) throw (DmException);
     virtual ~ProfilerIODriver();
