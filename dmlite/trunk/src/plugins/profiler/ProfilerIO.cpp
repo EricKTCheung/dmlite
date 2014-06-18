@@ -24,11 +24,19 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   xfrstats_.readv = 0;
   xfrstats_.write = 0;
 
+  size_t file_size = 0;
+  try {
+    file_size = this->stack_->getCatalog()->extendedStatByRFN(pfn).stat.st_size;
+  } catch (DmException& e) {
+    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "Could not determine filesize for %s",
+        pfn.c_str());
+  }
+
   //test send fileMonitoring msg
   sendUserIdentOrNOP();
   // we actually never use this, but active LFN in the stream
   //sendFileOpen(pfn);
-  reportXrdFileOpen(pfn, 1001);
+  reportXrdFileOpen(pfn, file_size);
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
       __func__);
