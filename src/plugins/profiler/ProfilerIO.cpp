@@ -30,7 +30,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
     file_size = this->stack_->getCatalog()->extendedStatByRFN(rfn).stat.st_size;
   } catch (DmException& e) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "Could not determine filesize for %s: %d, %s",
-        pfn.c_str(), e.code(), e.what());
+        rfn.c_str(), e.code(), e.what());
   }
 
   //test send fileMonitoring msg
