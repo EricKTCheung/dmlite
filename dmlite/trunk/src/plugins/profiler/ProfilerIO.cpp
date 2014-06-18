@@ -25,8 +25,9 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   xfrstats_.write = 0;
 
   size_t file_size = 0;
+  std::string rfn = XrdMonitor::getHostname() + ":" + pfn;
   try {
-    file_size = this->stack_->getCatalog()->extendedStatByRFN(pfn).stat.st_size;
+    file_size = this->stack_->getCatalog()->extendedStatByRFN(rfn).stat.st_size;
   } catch (DmException& e) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "Could not determine filesize for %s: %d, %s",
         pfn.c_str(), e.code(), e.what());
