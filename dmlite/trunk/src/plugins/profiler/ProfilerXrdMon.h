@@ -24,7 +24,8 @@ namespace dmlite {
       void reportXrdRedirCmd(const Location &loc, const int cmd_id);
       void reportXrdFileOpen(const std::string &path, const long long file_size);
       void reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const bool forced = false);
-      void reportXrdFileDisc();
+      void reportXrdFileDiscAndFlush();
+      void reportXrdFileDiscAndFlushOrNOP();
 
       void sendUserIdentOrNOP();
 
@@ -35,6 +36,7 @@ namespace dmlite {
       StackInstance *stack_;
 
       kXR_unt32 getDictId();
+      bool hasDictId();
       void rmDictId();
       kXR_unt32 getFileId();
       void rmFileId();
