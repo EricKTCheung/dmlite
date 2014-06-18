@@ -38,6 +38,7 @@ namespace dmlite {
       void rmDictId();
       kXR_unt32 getFileId();
       void rmFileId();
+      std::string getShortUserName(const std::string &username);
   };
 };
 

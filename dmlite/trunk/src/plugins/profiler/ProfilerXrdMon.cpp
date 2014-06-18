@@ -37,13 +37,13 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
       protocol = "gsi";
     }
 
-    char dictid_str[21];
-    snprintf(dictid_str, 21, "%d", ntohl(dictid));
-    std::string unique_userid = std::string(dictid_str);
+    //char dictid_str[21];
+    //snprintf(dictid_str, 21, "%d", ntohl(dictid));
+    //std::string unique_userid = std::string(dictid_str);
 
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
-        unique_userid, // unique username
+        getShortUserName(secCtx->user.name), // unique username
         secCtx->credentials.remoteAddress, // user hostname
         // org
         // role
@@ -137,4 +137,23 @@ void ProfilerXrdMon::rmFileId()
   if (this->stack_->contains("fileid")) {
     this->stack_->erase("fileid");
   }
+}
+
+
+std::string ProfilerXrdMon::getShortUserName(const std::string &username)
+{
+  if (username[0] != '/')
+    return username;
+
+  std::string short_uname;
+  size_t pos1, pos2;
+
+  pos1 = username.find("CN");
+  if (pos1 == username.npos)
+    return username;
+
+  pos2 = username.find("CN", pos1+1);
+  short_uname.assign(username, pos1, pos2-pos1);
+
+  return short_uname;
 }
