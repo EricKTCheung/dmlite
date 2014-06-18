@@ -15,8 +15,8 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 
 ProfilerXrdMon::~ProfilerXrdMon()
 {
-  rmDictId();
-  rmFileId();
+  // we have to trust that the IDs are deleted with the stack
+  // in a useful manner :)
 }
 
 
