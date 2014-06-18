@@ -18,3 +18,12 @@ set_target_properties (adapter PROPERTIES PREFIX "plugin_")
 install (TARGETS       adapter
          LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/
                        COMPONENT   dmlite-plugins)
+
+
+# Configuration files
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/adapter.conf.in
+                ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf
+                @ONLY)
+
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf
+         DESTINATION etc/dmlite.conf.d)
