@@ -169,7 +169,7 @@ std::string ProfilerXrdMon::getShortUserName(const std::string &username)
   if (pos1 == username.npos)
     return username;
 
-  pos2 = username.find("CN", pos1+1);
+  pos2 = username.find("/CN", pos1+1);
   short_uname.assign(username, pos1, pos2-pos1);
 
   return short_uname;
