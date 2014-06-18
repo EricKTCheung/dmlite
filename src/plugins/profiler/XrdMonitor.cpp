@@ -1,6 +1,8 @@
 /// @file   XrdMonitor.cpp
 /// @brief  Profiler plugin.
 
+#include <sys/syscall.h>
+
 #include "XrdMonitor.h"
 
 using namespace dmlite;
@@ -337,9 +339,11 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
     userHost = "null";
   }
 
+  pid_t tid = syscall(SYS_gettid);
+
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
-           userName.c_str(), getpid(), /* gets the thread id */
+           userName.c_str(), static_cast<unsigned int>(tid), /* gets the thread id */
            sid_, hostname_.c_str(),
            protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
