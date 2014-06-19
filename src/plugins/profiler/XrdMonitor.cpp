@@ -73,7 +73,7 @@ extern "C"
 
 XrdMonitor::XrdMonitor()
 {
-  // Nothing
+  close(FD_);
 }
 
 
