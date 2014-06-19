@@ -174,6 +174,7 @@ calls to the old DPNS and DPM daemons.
 %cmake . -DCMAKE_INSTALL_PREFIX=/ -DRUN_ONLY_STANDALONE_TESTS=ON
 
 make %{?_smp_mflags}
+make doc
 
 %check
 pushd tests
