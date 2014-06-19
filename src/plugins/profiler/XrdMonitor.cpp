@@ -341,10 +341,33 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
 
   pid_t tid = syscall(SYS_gettid);
 
+  /* combine thread id with the dictid
+   *
+   * with sufficient load on apache, we see again (some)
+   * orphaned f-stream messages. with its thread model in
+   * event mode, it _might_ be (totally unconfirmed) that
+   * this is due to packet reordering on the network. If a
+   * user disconnects, we send its fstream. When the same
+   * user reconnects and gets served by the same thread,
+   * its userIdent msg will have the same userName.tid
+   * combination. If then the packets of the fstream and
+   * userIdent gets reordered, so that the userIdent
+   * arrives before, its user will replace the old one
+   * in the gled usermap and its dictid be orphaned --
+   * the fstream cannot be parsed then.
+   *
+   * Because of this hypothetical situation, or any
+   * other that might lead to the same result, we add the
+   * dictid to the thread id and call it user_id :)
+   *
+   * Remember the dictid is in network byte order,
+   * we convert it to limit its influence.
+   */
+  unsigned int user_id = static_cast<unsigned int>(tid) + ntohl(dictid);
+
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
-           userName.c_str(), static_cast<unsigned int>(tid), /* gets the thread id */
-           sid_, hostname_.c_str(),
+           userName.c_str(), user_id, sid_, hostname_.c_str(),
            protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
 
