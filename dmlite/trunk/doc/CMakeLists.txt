@@ -7,7 +7,7 @@ if (DOXYGEN_FOUND)
   configure_file (Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
   configure_file (Doxyfile-man.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-man @ONLY)
 
-  add_custom_target(doc ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../include/dmlite/cpp/*)
+  add_custom_target(doc DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../include/dmlite/cpp/*)
 
   add_custom_command(TARGET doc
 		     PRE_BUILD
