@@ -840,9 +840,9 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
       msg->Hdr.recSize = htons(static_cast<short>(slots*sizeof(XrdXrootdMonFileHdr)));
       msg->Hdr.fileID = fileid;
 
-      msg->Xfr.read = xfr.read;
-      msg->Xfr.readv = xfr.readv;
-      msg->Xfr.write = xfr.write;
+      msg->Xfr.read = htonll(xfr.read);
+      msg->Xfr.readv = htonll(xfr.readv);
+      msg->Xfr.write = htonll(xfr.write);
 
       advanceFileBufferNextEntry(slots);
     }
