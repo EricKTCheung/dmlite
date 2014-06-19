@@ -142,6 +142,7 @@ namespace dmlite {
       static const int collector_max_ = 2;
       static struct collector_info
       {
+        std::string name;
         struct sockaddr dest_addr;
         socklen_t dest_addr_len;
       } collector_[collector_max_];

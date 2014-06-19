@@ -226,6 +226,7 @@ int XrdMonitor::initCollector()
 
     memcpy(&collector_[i].dest_addr, res->ai_addr, sizeof(collector_[i].dest_addr));
     collector_[i].dest_addr_len = res->ai_addrlen;
+    collector_[i].name = collector_addr;
 
     ++collector_count_;
 
@@ -240,16 +241,22 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
   boost::mutex::scoped_lock(send_mutex_);
 
   ssize_t ret;
+  int errsv;
 
   for (int i = 0; i < collector_count_; ++i) {
     struct sockaddr dest_addr = collector_[i].dest_addr;
     socklen_t dest_addr_len = collector_[i].dest_addr_len;
 
     ret = sendto(FD_, buf, buf_len, 0, &dest_addr, dest_addr_len);
+    errsv = errno;
 
     if (ret != buf_len) {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s\n",
-            "sending a message failed");
+      char errbuffer[256];
+      strerror_r(errsv, errbuffer, 256);
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s %s %s %s %s\n",
+            "sending a message failed",
+            "collector: ", collector_[i].name.c_str(),
+            "reason: ", errbuffer);
     }
   }
 
