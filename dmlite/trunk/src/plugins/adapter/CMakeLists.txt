@@ -12,7 +12,7 @@ add_library (adapter MODULE Adapter.cpp
 
 include_directories ( ${DPM_INCLUDE_DIR}/dpm )
 
-target_link_libraries (adapter ${DPM_LIBRARIES} pthread ${DMLITE_LIBRARIES} )
+target_link_libraries (adapter ${DPM_LIBRARIES} pthread dmlite )
 set_target_properties (adapter PROPERTIES PREFIX "plugin_")
 
 install (TARGETS       adapter
