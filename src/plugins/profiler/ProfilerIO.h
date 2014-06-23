@@ -63,7 +63,6 @@ namespace dmlite {
 
     };
 
-
     void setStackInstance(StackInstance* si) throw (DmException);
 
     void setSecurityContext(const SecurityContext* ctx) throw (DmException);

@@ -698,6 +698,8 @@ int XrdMonitor::initFileBuffer(int max_size)
   fileBuffer.xfr_msgs = 0;
   fileBuffer.total_msgs = 0;
 
+  fileBuffer.msg_buffer->tod.tBeg = htonl(static_cast<int>(time(0)));
+
   return 0;
 }
 
@@ -707,7 +709,6 @@ XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
   // space from the last msg + this msg + the ending window message
   if (fileBuffer.next_slot + slots + 1 < fileBuffer.max_slots) {
     ++fileBuffer.total_msgs;
-    fileBuffer.msg_buffer->tod.tBeg = htonl(static_cast<int>(time(0)));
     return &(fileBuffer.msg_buffer->info[fileBuffer.next_slot]);
   } else
     return 0x00;
