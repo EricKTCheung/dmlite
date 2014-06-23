@@ -21,8 +21,6 @@ boost::mutex XrdMonitor::send_mutex_;
 int XrdMonitor::FD_ = 0;
 struct XrdMonitor::collector_info XrdMonitor::collector_[XrdMonitor::collector_max_];
 int XrdMonitor::collector_count_ = 0;
-//struct sockaddr XrdMonitor::dest_addr_;
-//socklen_t XrdMonitor::dest_addr_len_;
 
 // information for server ident msg
 pid_t XrdMonitor::pid_ = 0;
@@ -820,7 +818,6 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
 void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced)
 {
   int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
-  // TODO: optimize, get rid of the %
   int slots = (msg_size + 8) >> 3;
 
   XrdXrootdMonFileCLS *msg;
