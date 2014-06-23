@@ -58,7 +58,7 @@ XrdMonitor::FileBuffer XrdMonitor::fileBuffer;
   defined(__IEEE_LITTLE_ENDIAN) || \
   (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN)
 #if !defined(__GNUC__) || defined(__APPLE__)
-extern "C" 
+extern "C"
 {
   unsigned long long Swap_n2hll(unsigned long long x)
   {
@@ -172,7 +172,7 @@ int XrdMonitor::initCollector()
   collector_count_ = 0;
   std::set<std::string>::iterator it;
   int i = 0;
-  for (it = collector_addr_list.begin(); it != collector_addr_list.end(); ++i, ++it) {
+  for (it = collector_addr_list.begin(); it != collector_addr_list.end(); ++it) {
     std::string collector_addr = *it;
 
     if (i > 1) {
@@ -229,6 +229,7 @@ int XrdMonitor::initCollector()
     collector_[i].name = collector_addr;
 
     ++collector_count_;
+    ++i; // put the next collector in the next slot
 
     freeaddrinfo(res);
   }
@@ -253,10 +254,10 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
     if (ret != buf_len) {
       char errbuffer[256];
       strerror_r(errsv, errbuffer, 256);
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s %s %s %s %s\n",
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s collector = %s, reason = %s\n",
             "sending a message failed",
-            "collector: ", collector_[i].name.c_str(),
-            "reason: ", errbuffer);
+            collector_[i].name.c_str(),
+            errbuffer);
     }
   }
 
