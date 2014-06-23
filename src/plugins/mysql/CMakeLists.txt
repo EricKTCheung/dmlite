@@ -5,7 +5,7 @@ set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
 
 find_package (MySQL REQUIRED)
 
-include_directories (${Boost_INCLUDE_DIR} ${DMLITE_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR})
+include_directories (${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR})
 
 add_library (mysql MODULE AuthnMySql.cpp
                           DpmMySql.cpp
@@ -15,7 +15,7 @@ add_library (mysql MODULE AuthnMySql.cpp
                           Queries.cpp
             )
 
-target_link_libraries (mysql ${DMLITE_LIBRARIES} ${MYSQL_LIBRARIES})
+target_link_libraries (mysql dmlite ${MYSQL_LIBRARIES})
 set_target_properties (mysql PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       mysql

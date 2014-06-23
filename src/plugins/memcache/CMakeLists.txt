@@ -14,8 +14,6 @@ add_library(memcache MODULE Memcache.cpp MemcacheCatalog.cpp
                             MemcacheFunctionCounter.cpp
                             MemcacheCatalog.pb.cc)
 
-include_directories (${Boost_INCLUDE_DIR} ${DMLITE_INCLUDE_DIR})
-
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries (memcache dmlite boost_system memcached protobuf pthread)
 ELSE()
@@ -25,8 +23,6 @@ set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       memcache
         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/)
-
-
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
                 ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
