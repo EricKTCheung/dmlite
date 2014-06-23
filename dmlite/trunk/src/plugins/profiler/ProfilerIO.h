@@ -68,6 +68,7 @@ namespace dmlite {
 
     void setSecurityContext(const SecurityContext* ctx) throw (DmException);
 
+    virtual void doneWriting(const Location& loc) throw (DmException);
   protected:
 
     IODriver*  decorated_;
