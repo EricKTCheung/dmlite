@@ -156,3 +156,8 @@ void ProfilerIODriver::setSecurityContext(const SecurityContext* ctx) throw (DmE
 {
   BaseInterface::setSecurityContext(this->decorated_, ctx);
 }
+
+void ProfilerIODriver::doneWriting(const Location& loc) throw (DmException)
+{
+  PROFILE(doneWriting, loc);
+}
