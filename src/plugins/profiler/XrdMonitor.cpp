@@ -5,6 +5,8 @@
 
 #include "XrdMonitor.h"
 
+extern "C" char *program_invocation_short_name;
+
 using namespace dmlite;
 
 time_t XrdMonitor::startup_time = 0;
@@ -26,6 +28,7 @@ int XrdMonitor::collector_count_ = 0;
 pid_t XrdMonitor::pid_ = 0;
 kXR_int64 XrdMonitor::sid_ = 0;
 std::string XrdMonitor::hostname_;
+std::string XrdMonitor::processname_;
 std::string XrdMonitor::username_;
 
 // pseq counters
@@ -153,6 +156,13 @@ int XrdMonitor::initServerIdentVars()
   char hostname[1024];
   ret = gethostname(hostname, 1024);
   hostname_.assign(hostname);
+
+  processname_ = "dpm-";
+#if defined(__APPLE__)
+  processname_.append(std::string(getprogname()));
+#else
+  processname_.append(std::string(program_invocation_short_name));
+#endif
 
   char username[1024];
   if (ret == 0) {

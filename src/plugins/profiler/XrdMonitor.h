@@ -4,6 +4,7 @@
 #define XRDMONITOR_H
 
 #include <ctime>
+#include <errno.h>
 #include <stdio.h>
 #include <string>
 #include <syslog.h>
@@ -155,6 +156,7 @@ namespace dmlite {
       static pid_t pid_;
       static kXR_int64 sid_;
       static std::string hostname_;
+      static std::string processname_;
       static std::string username_;
 
       // pseq counters
