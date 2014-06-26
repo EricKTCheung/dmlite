@@ -140,7 +140,7 @@ namespace dmlite {
       static boost::mutex send_mutex_;
 
       static int FD_;
-      static const int collector_max_ = 2;
+      static const int collector_max_ = 4;
       static struct collector_info
       {
         std::string name;
