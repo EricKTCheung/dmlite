@@ -368,7 +368,7 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
 
   std::vector<Replica> replicas;
   std::string valMemc;
-  SerialKeyList pb_keys;
+  SerialReplicaList pb_replicas;
   Replica repl;
 
   // get replica list from memcached
@@ -378,15 +378,8 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
   valMemc = safeGetValFromMemcachedKey(key);
 
   if (!valMemc.empty()) {
-    pb_keys.ParseFromString(valMemc);
-    //deserializeReplicaList(valMemc, replicas);
-    for (int idx = 0; idx < pb_keys.key_size(); ++idx) {
-      try {
-        replicas.push_back(getReplicaByRFN(pb_keys.key(idx).key()));
-      } catch (DmException& e) {
-        if (e.code() != DMLITE_NO_SUCH_REPLICA) throw;
-      }
-    }
+    pb_replicas.ParseFromString(valMemc);
+    deserializeReplicaList(valMemc, replicas);
   }
   if (replicas.size() == 0) {
     // otherwise, get replicas from mysql
@@ -395,16 +388,7 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
     incrementFunctionCounter(GETREPLICAS_DELEGATE);
     DELEGATE_ASSIGN(replicas, getReplicas, absPath);
 
-    std::vector<Replica>::const_iterator it;
-    for (it = replicas.begin(); it != replicas.end(); ++it) {
-      SerialKey *pntKey = pb_keys.add_key();
-      pntKey->set_key(it->rfn);
-    }
-
-    //valMemc = serializeReplicaList(replicas);
-    // it won't serialize without the state set -- value is irrelevant
-    pb_keys.set_state(VALID);
-    valMemc = pb_keys.SerializeAsString();
+    valMemc = serializeReplicaList(replicas);
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
