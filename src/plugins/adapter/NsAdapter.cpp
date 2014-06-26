@@ -989,11 +989,11 @@ Replica NsAdapterCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcep
   throw DmException(DMLITE_SYSERR(ENOSYS),
                     "NsAdapterCatalog: Get replica by RFN not implemented");
 }
-        
+
 
 
 void NsAdapterCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   throw DmException(DMLITE_SYSERR(ENOSYS),
-                    "NsAdapterCatalog: Get replica by RFN not implemented");
+                    "NsAdapterCatalog: updateReplica not implemented");
 }
