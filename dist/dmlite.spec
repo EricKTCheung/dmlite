@@ -105,53 +105,55 @@ Group:		Applications/Internet
 %description test
 Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 
-%package -n dmlite-plugins-memcache
+%package plugins-memcache
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 Requires:	dmlite-libs = %{version}
 
-%description -n dmlite-plugins-memcache
+%description plugins-memcache
 This package provides the memcached plug-in for dmlite. It provides a
 memcached based implementation of the NS interface.
 
-%package -n dmlite-plugins-profiler
+%package plugins-profiler
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 Requires:	dmlite-libs = %{version}
 
-%description -n dmlite-plugins-profiler
+%description plugins-profiler
 This package provides the profiler plug-in for dmlite. This plug-in is a simple
 wrapper around a real plug-in implementation, and is used to do multiple
 measurements regarding the performance of each call to dmlite.
 
-%package -n dmlite-shell
+%package shell
 Summary:	Shell environment for dmlite
 Group:		Applications/Internet
+%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
 BuildArch:	noarch
+%endif
 
 Requires:	python-dateutil
 Requires:	python-dmlite = %{version}
 
-%description -n dmlite-shell
+%description shell
 This package provides a shell environment for dmlite. It includes useful
 commands for system administration, testers and power users.
 
-%package -n dmlite-plugins-mysql
+%package plugins-mysql
 Summary:	MySQL plugin for dmlite
 Group:		Applications/Internet
 Requires:       dmlite-libs = %{version}
 
-%description -n dmlite-plugins-mysql
+%description plugins-mysql
 This package provides the MySQL plug-in for dmlite.
 
-%package -n dmlite-plugins-adapter
+%package plugins-adapter
 Summary:        Adapter plugin for dmlite
 Group:          Applications/Internet
 Requires:       dmlite-libs = %{version}
 Requires:       dpm-libs >= 1.8.8
 Requires:       lcgdm-libs >= 1.8.8
 
-%description -n dmlite-plugins-adapter
+%description plugins-adapter
 This package provides the adapter plug-in for dmlite. This plug-in provides both
 a name-space and pool management implementation which fallback to forwarding
 calls to the old DPNS and DPM daemons.
@@ -229,31 +231,31 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/test
 
-%files -n dmlite-plugins-memcache
+%files plugins-memcache
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_memcache.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/zmemcache.conf
 
-%files -n dmlite-plugins-profiler
+%files plugins-profiler
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_profiler.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf
 
-%files -n dmlite-shell
+%files shell
 %defattr(-,root,root,-)
 %{_bindir}/*
 %{python_sitelib}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
-%files -n dmlite-plugins-mysql
+%files plugins-mysql
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_mysql.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf
 
-%files -n dmlite-plugins-adapter
+%files plugins-adapter
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_adapter.so
 %doc LICENSE README RELEASE-NOTES
