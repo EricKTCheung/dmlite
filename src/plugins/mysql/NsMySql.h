@@ -114,15 +114,16 @@ namespace dmlite {
     /// The corresponding factory.
     NsMySqlFactory* factory_;
 
-    // Connection
-    PoolGrabber<MYSQL*> conn_;
-
     /// Transaction level, so begins and commits can be nested.
     unsigned transactionLevel_;
 
    private:
     /// NS DB.
     std::string nsDb_;
+
+
+    // Connection
+    MYSQL *conn_;
 
   };
 
