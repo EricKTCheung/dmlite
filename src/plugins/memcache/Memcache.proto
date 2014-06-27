@@ -70,3 +70,42 @@ message SerialReplica {
   optional string filesystem = 11;
   optional string url = 12;
 }
+
+message SerialPoolList {
+  repeated SerialPool pool = 1;
+}
+
+message SerialPool {
+  optional string name = 1;
+  optional string type = 2;
+  //optional int64 defsize = 3;
+  //optional int64 gc_start_thresh = 4;
+  //optional int64 gc_stop_thresh = 5;
+  //optional int64 def_lifetime = 6;
+  //optional int64 defpintime = 7;
+  //optional int64 max_lifetime = 8;
+  //optional int64 maxpintime = 9;
+  //optional string fss_policy = 10;
+  //optional string gc_policy = 11;
+  //optional string mig_policy = 12;
+  //optional string rs_policy = 13;
+  //optional SerialGroups groups = 14;
+  //optional string ret_policy = 15;
+  //optional string s_type = 16;
+  //optional string meta = 17;
+
+}
+
+message SerialUrl {
+  optional string scheme = 1;
+  optional string domain = 2;
+  optional int64 port = 3;
+  optional string path = 4;
+  optional string token = 5;
+}
+
+message SerialChunk {
+  optional int64 offset = 1;
+  optional int64 size = 2;
+  optional SerialUrl url = 3;
+}
