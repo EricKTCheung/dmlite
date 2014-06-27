@@ -10,9 +10,11 @@
 
 #include "Memcache.h"
 #include "MemcacheCatalog.h"
+#include "MemcachePoolManager.h"
 #include "MemcacheFunctionCounter.h"
 
 using namespace dmlite;
+
 
 MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts,
     bool useBinaryProtocol,
@@ -140,8 +142,10 @@ bool MemcacheConnectionFactory::isValid(memcached_st* c) throw ()
   return true;
 }
 
-MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException):
-  nestedFactory_(catalogFactory),
+MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory,
+                                 PoolManagerFactory* poolManagerFactory) throw (DmException):
+  nestedCatalogFactory_(catalogFactory),
+  nestedPoolManagerFactory_(poolManagerFactory),
   connectionFactory_(std::vector<std::string>(), true, "default"),
   connectionPool_(&connectionFactory_, 50),
   funcCounter_(0x00),
@@ -175,7 +179,8 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
     unsigned int expLimit = atoi(value.c_str());
     // 60*60*24*30 = 30 days from which on the expiration limit
     // will be treated as a timestamp by memcached
-    if (expLimit >= 0 && expLimit < 60*60*24*30)
+    // >= 0 is implicit because it's an unsigned value
+    if (expLimit < 60*60*24*30)
       this->memcachedExpirationLimit_ = expLimit;
     else
       this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
@@ -221,8 +226,8 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 {
   Catalog* nested = 0x00;
 
-  if (this->nestedFactory_ != 0x00)
-    nested = CatalogFactory::createCatalog(this->nestedFactory_, pm);
+  if (this->nestedCatalogFactory_ != 0x00)
+    nested = CatalogFactory::createCatalog(this->nestedCatalogFactory_, pm);
   else
     return 0x00;
 
@@ -240,15 +245,47 @@ Catalog* MemcacheFactory::createCatalog(PluginManager* pm) throw(DmException)
 
 
 
+PoolManager* MemcacheFactory::createPoolManager(PluginManager* pm) throw (DmException)
+{
+  PoolManager *nested;
+  if (this->nestedPoolManagerFactory_ != 0x00)
+    nested = PoolManagerFactory::createPoolManager(this->nestedPoolManagerFactory_, pm);
+  else
+    return 0x00;
+
+  if (this->funcCounter_ == 0x00 && this->doFuncCount_)
+    this->funcCounter_ = new MemcacheFunctionCounter(this->funcCounterLogFreq_);
+
+  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
+      "Memcache",
+      "Creating MemcachePoolManager nesting", (unsigned long)this->nestedPoolManagerFactory_);
+
+  return new MemcachePoolManager(this->connectionPool_,
+      nested,
+      this->funcCounter_,
+      this->doFuncCount_,
+      this->memcachedExpirationLimit_);
+}
+
+
+
 static void registerPluginMemcache(PluginManager* pm) throw(DmException)
 {
-  CatalogFactory* nested = pm->getCatalogFactory();
+  CatalogFactory* nestedCAT = pm->getCatalogFactory();
 
-  if (nested == NULL)
+  if (nestedCAT == NULL)
     throw DmException(DMLITE_SYSERR(DMLITE_NO_CATALOG),
         std::string("Memcache cannot be loaded first"));
 
-  pm->registerCatalogFactory(new MemcacheFactory(nested));
+  PoolManagerFactory* nestedPM = pm->getPoolManagerFactory();
+
+  if (nestedPM == NULL)
+    throw DmException(DMLITE_SYSERR(DMLITE_NO_POOL_MANAGER),
+        std::string("Memcache cannot be loaded first"));
+
+  MemcacheFactory *mf = new MemcacheFactory(nestedCAT, nestedPM);
+  pm->registerCatalogFactory(mf);
+  pm->registerPoolManagerFactory(mf);
 }
 
 

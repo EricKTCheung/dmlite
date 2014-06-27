@@ -7,6 +7,7 @@
 #include <libmemcached/memcached.h>
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/catalog.h>
+#include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/utils/poolcontainer.h>
 #include <dmlite/cpp/utils/urls.h>
 
@@ -19,6 +20,34 @@
 #define MAX_SERVERNAME_LENGTH 4096
 
 namespace dmlite {
+
+  /// Used to keep the Key Prefixes
+  enum {
+    PRE_STAT = 0,
+    PRE_REPL,
+    PRE_REPL_LIST,
+    PRE_COMMENT,
+    PRE_DIR,
+    PRE_DIR_LIST,
+    PRE_POOL,
+    PRE_POOL_LIST,
+    PRE_LOCATION
+  };
+
+  /// Used internally to define Key Prefixes.
+  /// Must match with PRE_* constants!
+  static const char* key_prefix[] = {
+    "STAT",
+    "REPL",
+    "RPLI",
+    "CMNT",
+    "DIR",
+    "DRLI",
+    "POOL",
+    "POLI",
+    "LOCA"
+  };
+
 
   class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
     public:
@@ -44,18 +73,23 @@ namespace dmlite {
   };
 
   /// Concrete factory for the Memcache plugin.
-  class MemcacheFactory: public CatalogFactory {
+  class MemcacheFactory: public CatalogFactory, public PoolManagerFactory {
     public:
       /// Constructor
-      MemcacheFactory(CatalogFactory* catalogFactory) throw (DmException);
+      MemcacheFactory(CatalogFactory* catalogFactory,
+                      PoolManagerFactory* poolManagerFactory) throw (DmException);
       /// Destructor
       ~MemcacheFactory() throw (DmException);
 
       void configure(const std::string& key, const std::string& value) throw (DmException);
-      Catalog* createCatalog(PluginManager*) throw (DmException);
+      virtual Catalog* createCatalog(PluginManager*) throw (DmException);
+      virtual PoolManager* createPoolManager(PluginManager*) throw (DmException);
     protected:
       /// Decorated
-      CatalogFactory* nestedFactory_;
+      CatalogFactory* nestedCatalogFactory_;
+
+      /// The decorated PoolManager factory.
+      PoolManagerFactory* nestedPoolManagerFactory_;
 
       /// Connection factory.
       MemcacheConnectionFactory connectionFactory_;
@@ -82,6 +116,31 @@ namespace dmlite {
       bool memcachedPOSIX_;
     private:
   };
+
+/// Little help here to avoid redundancy
+#define DELEGATE(method, ...) \
+{ \
+  if (this->decorated_ == 0x00)\
+throw DmException(DMLITE_SYSERR(ENOSYS), "There is no plugin in the stack that implements "#method);\
+this->decorated_->method(__VA_ARGS__);\
+} \
+
+/// Little help here to avoid redundancy
+#define DELEGATE_RETURN(method, ...) \
+{ \
+  if (this->decorated_ == 0x00)\
+throw DmException(DMLITE_SYSERR(ENOSYS), "There is no plugin in the stack that implements "#method);\
+return this->decorated_->method(__VA_ARGS__);\
+} \
+
+/// Little help here to avoid redundancy
+#define DELEGATE_ASSIGN(var, method, ...) \
+{ \
+  if (this->decorated_ == 0x00)\
+throw DmException(DMLITE_SYSERR(ENOSYS), "There is no plugin in the stack that implements "#method);\
+var = this->decorated_->method(__VA_ARGS__);\
+} \
+
 
 }
 
