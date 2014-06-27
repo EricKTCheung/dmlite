@@ -9,6 +9,7 @@
 namespace dmlite {
 
   enum {
+    /// Catalog Functions
     // direct functions
     CHANGEDIR = 0,
     GETWORKINGDIR,
@@ -76,10 +77,30 @@ namespace dmlite {
     RENAME_DELEGATE,
     REMOVEDIR_DELEGATE,
     GETREPLICABYRFN_DELEGATE,
-    UPDATEREPLICA_DELEGATE
+    UPDATEREPLICA_DELEGATE,
+    /// PoolManager Functions
+    // direct functions
+    GETPOOLS,
+    GETPOOL,
+    NEWPOOL,
+    UPDATEPOOL,
+    DELETEPOOL,
+    WHERETOREAD,
+    WHERETOWRITE,
+    CANCELWRITE,
+    // delegate functions
+    GETPOOLS_DELEGATE,
+    GETPOOL_DELEGATE,
+    NEWPOOL_DELEGATE,
+    UPDATEPOOL_DELEGATE,
+    DELETEPOOL_DELEGATE,
+    WHERETOREAD_DELEGATE,
+    WHERETOWRITE_DELEGATE,
+    CANCELWRITE_DELEGATE
   };
 
   static const char* catalog_func_names[] = {
+    /// Catalog Functions
     // direct functions
     "changeDir",
     "getWorkingDir",
@@ -148,6 +169,25 @@ namespace dmlite {
     "removeDir_delegate",
     "getReplicaByRFN_delegate",
     "updateReplica_delegate"
+    /// PoolManager Functions
+    // direct functions
+    "getPools",
+    "getPool",
+    "newPool",
+    "updatePool",
+    "deletePool",
+    "whereToRead",
+    "whereToWrite",
+    "cancelWrite",
+    // delegate functions
+    "getPools_delegate",
+    "getPool_delegate",
+    "newPool_delegate",
+    "updatePool_delegate",
+    "deletePool_delegate",
+    "whereToRead_delegate",
+    "whereToWrite_delegate",
+    "cancelWrite_delegate"
   };
 }
 

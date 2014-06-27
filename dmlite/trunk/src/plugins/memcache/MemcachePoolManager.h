@@ -39,7 +39,6 @@ namespace dmlite {
       void cancelWrite(const Location& loc) throw (DmException);
 
     protected:
-      Location whereToRead(const std::vector<Replica>& replicas) throw (DmException);
 
     private:
       PoolManager* decorated_;

@@ -81,6 +81,7 @@ std::vector<Pool> MemcachePoolManager::getPools(PoolAvailability availability) t
 
   return pools;
   */
+  incrementFunctionCounter(GETPOOLS_DELEGATE);
   DELEGATE_RETURN(getPools, availability);
 }
 
@@ -107,6 +108,7 @@ Pool MemcachePoolManager::getPool(const std::string& poolname) throw (DmExceptio
 
   return pool;
   */
+  incrementFunctionCounter(GETPOOL_DELEGATE);
   DELEGATE_RETURN(getPool, poolname);
 }
 
@@ -114,6 +116,7 @@ Pool MemcachePoolManager::getPool(const std::string& poolname) throw (DmExceptio
 
 void MemcachePoolManager::newPool(const Pool& pool) throw (DmException)
 {
+  incrementFunctionCounter(NEWPOOL_DELEGATE);
   DELEGATE(newPool, pool);
 }
 
@@ -121,6 +124,7 @@ void MemcachePoolManager::newPool(const Pool& pool) throw (DmException)
 
 void MemcachePoolManager::updatePool(const Pool& pool) throw (DmException)
 {
+  incrementFunctionCounter(UPDATEPOOL_DELEGATE);
   DELEGATE(updatePool, pool);
 }
 
@@ -128,6 +132,7 @@ void MemcachePoolManager::updatePool(const Pool& pool) throw (DmException)
 
 void MemcachePoolManager::deletePool(const Pool& pool) throw (DmException)
 {
+  incrementFunctionCounter(DELETEPOOL_DELEGATE);
   DELEGATE(deletePool, pool);
 }
 
@@ -135,6 +140,8 @@ void MemcachePoolManager::deletePool(const Pool& pool) throw (DmException)
 
 Location MemcachePoolManager::whereToRead(const std::string& path) throw (DmException)
 {
+  incrementFunctionCounter(WHERETOREAD);
+
   Location loc;
   Chunk chunk;
   SerialChunk pb_chunk;
@@ -156,6 +163,7 @@ Location MemcachePoolManager::whereToRead(const std::string& path) throw (DmExce
     chunk.url.query["token"] = p_url->token();
     loc = Location(1, chunk);
   } else {
+    incrementFunctionCounter(WHERETOREAD_DELEGATE);
     DELEGATE_ASSIGN(loc, whereToRead, path);
 
     chunk = loc[0];
@@ -180,6 +188,7 @@ Location MemcachePoolManager::whereToRead(const std::string& path) throw (DmExce
 
 Location MemcachePoolManager::whereToRead(ino_t inode) throw (DmException)
 {
+  incrementFunctionCounter(WHERETOREAD_DELEGATE);
   DELEGATE_RETURN(whereToRead, inode);
 }
 
@@ -187,6 +196,7 @@ Location MemcachePoolManager::whereToRead(ino_t inode) throw (DmException)
 
 Location MemcachePoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
+  incrementFunctionCounter(WHERETOWRITE_DELEGATE);
   DELEGATE_RETURN(whereToWrite, path);
 }
 
@@ -194,6 +204,7 @@ Location MemcachePoolManager::whereToWrite(const std::string& path) throw (DmExc
 
 void MemcachePoolManager::cancelWrite(const Location& loc) throw (DmException)
 {
+  incrementFunctionCounter(CANCELWRITE_DELEGATE);
   DELEGATE_RETURN(cancelWrite, loc);
 }
 
