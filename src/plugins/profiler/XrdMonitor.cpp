@@ -85,7 +85,7 @@ int XrdMonitor::initOrNOP()
 {
   int ret = 0;
 
-  boost::mutex::scoped_lock(init_mutex_);
+  boost::mutex::scoped_lock lock(init_mutex_);
   if (is_initialized_ == true) {
     ret = XRDMON_FUNC_IS_NOP;
     return ret;
@@ -183,11 +183,11 @@ int XrdMonitor::initCollector()
   for (it = collector_addr_list.begin(); it != collector_addr_list.end(); ++it) {
     std::string collector_addr = *it;
 
-    if (i > 1) {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
+    if (i >= XrdMonitor::collector_max_) {
+      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: maximum of %d is already reached",
           "could not add another collector server address",
-          "maximum of two is already reached",
-          collector_addr.c_str());
+          collector_addr.c_str(),
+          XrdMonitor::collector_max_);
 
       break;
     }
@@ -236,18 +236,19 @@ int XrdMonitor::initCollector()
     collector_[i].dest_addr_len = res->ai_addrlen;
     collector_[i].name = collector_addr;
 
-    ++collector_count_;
     ++i; // put the next collector in the next slot
 
     freeaddrinfo(res);
   }
+
+  collector_count_ = i;
 
   return 0;
 }
 
 int XrdMonitor::send(const void *buf, size_t buf_len)
 {
-  boost::mutex::scoped_lock(send_mutex_);
+  boost::mutex::scoped_lock lock(send_mutex_);
 
   ssize_t ret;
   int errsv;
@@ -427,7 +428,7 @@ char XrdMonitor::getPseqCounter()
 {
   char this_counter;
   {
-    boost::mutex::scoped_lock(pseq_mutex_);
+    boost::mutex::scoped_lock lock(pseq_mutex_);
     pseq_counter_ = (pseq_counter_ + 1) & 0xFF;
     this_counter = pseq_counter_;
   }
@@ -438,7 +439,7 @@ char XrdMonitor::getFstreamPseqCounter()
 {
   char this_counter;
   {
-    boost::mutex::scoped_lock(fstream_pseq_mutex_);
+    boost::mutex::scoped_lock lock(fstream_pseq_mutex_);
     fstream_pseq_counter_ = (fstream_pseq_counter_ + 1) & 0xFF;
     this_counter = fstream_pseq_counter_;
   }
@@ -449,7 +450,7 @@ kXR_unt32 XrdMonitor::getDictId()
 {
   kXR_unt32 this_dictid;
   {
-    boost::mutex::scoped_lock(dictid_mutex_);
+    boost::mutex::scoped_lock lock(dictid_mutex_);
     dictid_ += 1;
     this_dictid = dictid_;
   }
@@ -461,7 +462,7 @@ kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
   kXR_unt32 dictid;
   std::map<std::string, kXR_unt32>::iterator it;
   {
-    boost::mutex::scoped_lock(dictid_map_mutex_);
+    boost::mutex::scoped_lock lock(dictid_map_mutex_);
     if ((it = dictid_map_.find(dn)) != dictid_map_.end()) {
       dictid = it->second;
     } else {
@@ -474,7 +475,7 @@ kXR_unt32 XrdMonitor::getDictIdFromDn(const std::string &dn)
 
 void XrdMonitor::rmDictIdFromDn(const std::string &dn)
 {
-  boost::mutex::scoped_lock(dictid_map_mutex_);
+  boost::mutex::scoped_lock lock(dictid_map_mutex_);
   dictid_map_.erase(dn);
 }
 
@@ -484,7 +485,7 @@ std::pair<kXR_unt32, bool> XrdMonitor::getDictIdFromDnMarkNew(const std::string 
   bool new_dictid = false;
   std::map<std::string, kXR_unt32>::iterator it;
   {
-    boost::mutex::scoped_lock(dictid_map_mutex_);
+    boost::mutex::scoped_lock lock(dictid_map_mutex_);
     if ((it = dictid_map_.find(dn)) != dictid_map_.end()) {
       dictid = it->second;
     } else {
@@ -596,7 +597,7 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
 
   XrdXrootdMonRedir *msg;
   {
-    boost::mutex::scoped_lock(redir_mutex_);
+    boost::mutex::scoped_lock lock(redir_mutex_);
 
     msg = getRedirBufferNextEntry(slots);
 
@@ -646,7 +647,7 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
 
   XrdXrootdMonRedir *msg;
   {
-    boost::mutex::scoped_lock(redir_mutex_);
+    boost::mutex::scoped_lock lock(redir_mutex_);
 
     msg = getRedirBufferNextEntry(slots);
 
@@ -782,7 +783,7 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
 
   XrdXrootdMonFileOPN *msg;
   {
-    boost::mutex::scoped_lock(file_mutex_);
+    boost::mutex::scoped_lock lock(file_mutex_);
 
     msg = (XrdXrootdMonFileOPN *) getFileBufferNextEntry(slots);
 
@@ -832,7 +833,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
 
   XrdXrootdMonFileCLS *msg;
   {
-    boost::mutex::scoped_lock(file_mutex_);
+    boost::mutex::scoped_lock lock(file_mutex_);
 
     msg = (XrdXrootdMonFileCLS *) getFileBufferNextEntry(slots);
 
@@ -880,7 +881,7 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
 
   XrdXrootdMonFileDSC *msg;
   {
-    boost::mutex::scoped_lock(file_mutex_);
+    boost::mutex::scoped_lock lock(file_mutex_);
 
     msg = (XrdXrootdMonFileDSC *) getFileBufferNextEntry(slots);
 
