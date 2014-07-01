@@ -121,11 +121,38 @@ namespace dmlite {
     /// NS DB.
     std::string nsDb_;
 
-
     // Connection
     MYSQL *conn_;
 
+
   };
+
+
+  /// Convenience class that releases a resource on destruction
+  class InodeMySqlTrans {
+  public:
+    InodeMySqlTrans(INodeMySql *o)
+    {
+      obj = o;
+      obj->begin();
+    }
+
+    ~InodeMySqlTrans() {
+      if (obj != 0) obj->rollback();
+      obj = 0;
+    }
+
+    void Commit() {
+      if (obj != 0) obj->commit();
+      obj = 0;
+    }
+
+  private:
+    INodeMySql *obj;
+
+  };
+
+
 
 };
 
