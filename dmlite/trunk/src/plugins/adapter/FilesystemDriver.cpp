@@ -362,17 +362,17 @@ bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmExceptio
 
 bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (DmException)
 {
-  driver_->setDpmApiIdentity();
-
   if (replica.status != dmlite::Replica::kAvailable)
     return false;
+
+  driver_->setDpmApiIdentity();
 
   // No API call for getting one specific FS
   std::string pool = Extensible::anyToString(replica["pool"]);
   std::vector<dpm_fs> fs = this->getFilesystems(pool);
-  
+
+  std::string filesystem = Extensible::anyToString(replica["filesystem"]);
   for (unsigned i = 0; i < fs.size(); ++i) {
-    std::string filesystem = Extensible::anyToString(replica["filesystem"]);
     if (filesystem == fs[i].fs && replica.server == fs[i].server) {
       return (fs[i].status != FS_DISABLED);
     }
