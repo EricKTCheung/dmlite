@@ -333,8 +333,6 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
   }
   if (replicas.size() == 0) {
     // otherwise, get replicas from mysql
-    // this also applies if all cached replicas have been
-    // deleted, but just the list remains
     incrementFunctionCounter(GETREPLICAS_DELEGATE);
     DELEGATE_ASSIGN(replicas, getReplicas, absPath);
 
