@@ -40,9 +40,8 @@ namespace dmlite {
       /// The decorated interface as string.
       char*    decoratedId_;
 
-      /// The Memcached connection.
-      //memcached_st* conn_;
-      PoolGrabber<memcached_st*> conn_;
+      /// The Memcached connection pool.
+      PoolContainer<memcached_st*> *connPool_;
 
       /// The Memcached connection. Set NOREPLY in the constructor.
       memcached_st* connNoReply_;

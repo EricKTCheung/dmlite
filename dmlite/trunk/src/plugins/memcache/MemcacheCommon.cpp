@@ -12,7 +12,7 @@ MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
     MemcacheFunctionCounter* funcCounter,
     bool doFuncCount,
     time_t memcachedExpirationLimit):
-  conn_(connPool),
+  connPool_(&connPool),
   connNoReply_(0x0),
   funcCounter_(funcCounter),
   doFuncCount_(doFuncCount),
@@ -65,7 +65,9 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   char* valMemc;
   std::string valMemcStr;
 
-  valMemc = memcached_get(this->conn_,
+  PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
+
+  valMemc = memcached_get(conn,
       key.data(),
       key.length(),
       &lenValue,
@@ -76,8 +78,8 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
       statMemc != MEMCACHED_NOTFOUND) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
         "getting a value from memcache failed",
-        memcached_strerror(this->conn_, statMemc));
-    throw MemcacheException(statMemc, this->conn_);
+        memcached_strerror(conn, statMemc));
+    throw MemcacheException(statMemc, conn);
   }
 
   if (lenValue > 0) {
@@ -99,25 +101,29 @@ const std::string MemcacheCommon::safeGetValFromMemcachedKey(const std::string& 
 void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
     const std::string& value, const bool noreply) throw (MemcacheException)
 {
+  PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
+
   //memcached_st *conn;
   //if (noreply)
   //  conn = this->connNoReply_;
   //else
   //  conn = this->conn_;
 
+  //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
+
   memcached_return statMemc;
-  statMemc = memcached_set(this->conn_, //conn,
+  statMemc = memcached_set(conn,
       key.data(),
       key.length(),
       value.data(), value.length(),
-      this->memcachedExpirationLimit_,
+      this->memcachedExpirationLimit_, // + randExpLimit,
       (uint32_t)0);
 
   if (statMemc != MEMCACHED_SUCCESS) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
         "setting a value to memcache failed",
-        memcached_strerror(this->conn_, statMemc));
-    throw MemcacheException(statMemc, this->conn_); //conn);
+        memcached_strerror(conn, statMemc));
+    throw MemcacheException(statMemc, conn);
   }
 
   return;
@@ -137,8 +143,10 @@ void MemcacheCommon::safeSetMemcachedFromKeyValue(const std::string& key,
 void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
     const std::string& value) throw (MemcacheException)
 {
+  PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
+
   memcached_return statMemc;
-  statMemc = memcached_add(this->conn_,
+  statMemc = memcached_add(conn,
       key.data(),
       key.length(),
       value.data(), value.length(),
@@ -148,8 +156,8 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
   if (statMemc != MEMCACHED_SUCCESS) {
     syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
         "adding a value to memcache failed",
-        memcached_strerror(this->conn_, statMemc));
-    throw MemcacheException(statMemc, this->conn_);
+        memcached_strerror(conn, statMemc));
+    throw MemcacheException(statMemc, conn);
   }
 
   return;
@@ -167,6 +175,8 @@ void MemcacheCommon::safeAddMemcachedFromKeyValue(const std::string& key,
 
 void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool noreply) throw (MemcacheException)
 {
+  PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
+
   //memcached_st *conn;
   //if (noreply)
   //  conn = this->connNoReply_;
@@ -174,14 +184,14 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //  conn = this->conn_;
 
   memcached_return statMemc;
-  statMemc = memcached_delete(this->conn_, //conn,
+  statMemc = memcached_delete(conn,
       key.data(),
       key.length(),
       (time_t)0);
 
   if (statMemc != MEMCACHED_SUCCESS &&
       statMemc != MEMCACHED_NOTFOUND) {
-    throw MemcacheException(statMemc, this->conn_); //conn);
+    throw MemcacheException(statMemc, conn);
   }
 }
 
