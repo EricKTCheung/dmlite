@@ -108,9 +108,12 @@ void INodeMySql::begin(void) throw (DmException)
 {
   conn_ = factory_->getPool().acquire();
 
-  if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0)
+  if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0) {
+    if (conn_) factory_->getPool().release(conn_);
+    conn_ = 0;
     throw DmException(DMLITE_DBERR(mysql_errno(this->conn_)),
                       mysql_error(this->conn_));
+    }
   
   this->transactionLevel_++;
 }
@@ -126,9 +129,12 @@ void INodeMySql::commit(void) throw (DmException)
   
   this->transactionLevel_--;
   
-  if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "COMMIT") != 0)
-    throw DmException(DMLITE_DBERR(mysql_errno(this->conn_)),
-                      mysql_error(this->conn_));
+  if (this->transactionLevel_ == 0 && mysql_query(conn_, "COMMIT") != 0) {
+    if (conn_) factory_->getPool().release(conn_);
+    conn_ = 0;
+    throw DmException(DMLITE_DBERR(mysql_errno(conn_)),
+                      mysql_error(conn_));
+    }
 
   if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
@@ -139,9 +145,12 @@ void INodeMySql::commit(void) throw (DmException)
 void INodeMySql::rollback(void) throw (DmException)
 {
   this->transactionLevel_ = 0;
-  if (mysql_query(this->conn_, "ROLLBACK") != 0)
+  if (mysql_query(this->conn_, "ROLLBACK") != 0) {
+    if (conn_) factory_->getPool().release(conn_);
+    conn_ = 0;
     throw DmException(DMLITE_DBERR(mysql_errno(this->conn_)),
                       mysql_error(this->conn_));
+    }
 
   if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
@@ -168,7 +177,8 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   }
 
   // Start transaction
-  this->begin();
+  InodeMySqlTrans trans(this);
+
   
   // Fetch the new file ID
   ino_t newFileId;
@@ -236,7 +246,8 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   }
 
   // Commit and return back
-  this->commit();
+  trans.Commit();
+
   
   return this->extendedStat(newFileId);
 }
