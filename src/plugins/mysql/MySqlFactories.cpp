@@ -1,6 +1,11 @@
 /// @file   MySqlFactories.cpp
 /// @brief  MySQL backend for libdm.
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
+
+#ifdef __APPLE__
+#include <bsm/audit_errno.h>
+#endif
+
 #include <algorithm>
 #include <cstring>
 #include <pthread.h>
@@ -63,7 +68,11 @@ MYSQL* MySqlConnectionFactory::create()
     std::string err("Could not connect! ");
     err += mysql_error(c);
     mysql_close(c);
+#ifdef __APPLE__
+    throw DmException(DMLITE_DBERR(BSM_ERRNO_ECOMM), err);
+#else
     throw DmException(DMLITE_DBERR(ECOMM), err);
+#endif
   }
   return c;
 }
