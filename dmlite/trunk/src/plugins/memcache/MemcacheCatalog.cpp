@@ -71,7 +71,7 @@ std::string MemcacheCatalog::getImplId() const throw ()
 {
   std::string implId = "MemcacheCatalog";
   implId += " over ";
-  implId += this->decoratedId_;
+  implId += std::string(this->decoratedId_);
 
   return implId;
 }
