@@ -15,7 +15,11 @@ add_library (mysql MODULE AuthnMySql.cpp
                           Queries.cpp
             )
 
-target_link_libraries (mysql dmlite ${MYSQL_LIBRARIES})
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  target_link_libraries (mysql boost_system dmlite ${MYSQL_LIBRARIES})
+ELSE()
+  target_link_libraries (mysql dmlite ${MYSQL_LIBRARIES})
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set_target_properties (mysql PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       mysql

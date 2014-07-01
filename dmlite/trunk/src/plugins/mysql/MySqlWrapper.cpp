@@ -202,6 +202,17 @@ void Statement::bindResult(unsigned index, short* destination) throw (DmExceptio
 }
 
 
+void Statement::bindResult(unsigned index, unsigned short* destination) throw (DmException)
+{
+  BIND_RESULTS_SANITY();
+  result_[index].buffer_type = MYSQL_TYPE_SHORT;
+  result_[index].buffer      = destination;
+  result_[index].is_unsigned = true;
+  result_[index].is_null     = &this->result_null_[index];
+  this->status_ = STMT_RESULTS_UNBOUND;
+}
+
+
 
 void Statement::bindResult(unsigned index, signed int* destination) throw (DmException)
 {

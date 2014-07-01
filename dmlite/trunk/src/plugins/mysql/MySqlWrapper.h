@@ -25,6 +25,7 @@ public:
   unsigned long execute(void) throw (DmException);
 
   void bindResult(unsigned index, short*              destination) throw (DmException);
+  void bindResult(unsigned index, unsigned short*     destination) throw (DmException);
   void bindResult(unsigned index, signed int*         destination) throw (DmException);
   void bindResult(unsigned index, unsigned int*       destination) throw (DmException);
   void bindResult(unsigned index, signed long*        destination) throw (DmException);
