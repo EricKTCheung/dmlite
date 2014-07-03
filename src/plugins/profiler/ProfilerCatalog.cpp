@@ -10,8 +10,7 @@ using namespace dmlite;
 ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 {
   this->decorated_   = decorates;
-  this->decoratedId_ = new char [decorates->getImplId().size() + 1];
-  strcpy(this->decoratedId_, decorates->getImplId().c_str());
+  this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
       __func__);
@@ -22,7 +21,7 @@ ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
 ProfilerCatalog::~ProfilerCatalog()
 {
   delete this->decorated_;
-  delete [] this->decoratedId_;
+  free(this->decoratedId_);
 
   syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
       __func__);
