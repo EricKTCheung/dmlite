@@ -49,8 +49,7 @@ throw (DmException):
   //memcached_behavior_set(this->connNoReply_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
   this->decorated_   = decorates;
-  this->decoratedId_ = new char [decorates->getImplId().size() + 1];
-  strcpy(this->decoratedId_, decorates->getImplId().c_str());
+  this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 }
 
 
@@ -63,7 +62,7 @@ MemcacheCatalog::~MemcacheCatalog() throw (DmException)
     delete this->decorated_;
 
   if (this->decoratedId_ != 0x00)
-    delete this->decoratedId_;
+    free(this->decoratedId_);
 }
 
 

@@ -19,16 +19,18 @@ MemcachePoolManager::MemcachePoolManager(PoolContainer<memcached_st*>& connPool,
   si_(0x00)
 {
   this->decorated_   = decorates;
-  this->decoratedId_ = new char [decorates->getImplId().size() + 1];
-  strcpy(this->decoratedId_, decorates->getImplId().c_str());
+  this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 }
 
 
 
 MemcachePoolManager::~MemcachePoolManager()
 {
-  delete this->decorated_;
-  delete this->decoratedId_;
+  if (this->decorated_ != 0x00)
+    delete this->decorated_;
+
+  if (this->decoratedId_ != 0x00)
+    free(this->decoratedId_);
 }
 
 
