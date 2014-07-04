@@ -4,7 +4,7 @@
 #ifndef MEMCACHE_FUNCTIONS_H
 #define MEMCACHE_FUNCTIONS_H
 
-#define NUM_CATALOG_API_FUNCTIONS 65
+#define NUM_CATALOG_API_FUNCTIONS 90
 
 namespace dmlite {
 
