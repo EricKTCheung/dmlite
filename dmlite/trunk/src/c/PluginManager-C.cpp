@@ -183,7 +183,9 @@ int dmlite_context_free(dmlite_context* context)
 {
   if (context != NULL) {
     dmlite_free_secctx(context->secCtx);
+    context->secCtx = 0;
     delete context->stack;
+    context->stack = 0;
     delete context;
   }
   return 0;
