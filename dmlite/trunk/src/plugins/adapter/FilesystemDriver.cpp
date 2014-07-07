@@ -348,13 +348,15 @@ bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmExceptio
 {
   driver_->setDpmApiIdentity();
 
-  std::vector<dpm_fs> fs = this->getFilesystems(this->poolName_);
+  this->getFilesystems();
   
-  for (unsigned i = 0; i < fs.size(); ++i) {
-    if ((write && fs[i].status == 0) || (!write && fs[i].status != FS_DISABLED))
-      return true;
-  }
-  
+    {
+        boost::lock_guard< boost::mutex > l(mtx);
+        for (unsigned i = 0; i < dpmfs_.size(); ++i) {
+            if ((write && dpmfs_[i].status == 0) || (!write && dpmfs_[i].status != FS_DISABLED))
+                return true;
+        }
+    }
   return false;
 }
 
@@ -367,14 +369,12 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
 
   driver_->setDpmApiIdentity();
 
-  // No API call for getting one specific FS
-  std::string pool = Extensible::anyToString(replica["pool"]);
-  std::vector<dpm_fs> fs = this->getFilesystems(pool);
+  getFilesystems();
 
   std::string filesystem = Extensible::anyToString(replica["filesystem"]);
-  for (unsigned i = 0; i < fs.size(); ++i) {
-    if (filesystem == fs[i].fs && replica.server == fs[i].server) {
-      return (fs[i].status != FS_DISABLED);
+  for (unsigned i = 0; i < dpmfs_.size(); ++i) {
+    if (filesystem == dpmfs_[i].fs && replica.server == dpmfs_[i].server) {
+      return (dpmfs_[i].status != FS_DISABLED);
     }
   }
 
@@ -536,12 +536,12 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
   }
 
   dpm_fs fs;
-  std::vector<dpm_fs> fsV = this->getFilesystems(this->poolName_);
-
-  if (fsV.size() == 0)
+  
+  
+  if (getFilesystems() == 0)
     throw DmException(DMLITE_SYSERR(ENODEV),
                       "There are no filesystems inside the pool " + this->poolName_);
-
+  
   bool useParams = false;
 
   // choose either specific or randomly
@@ -550,12 +550,15 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
     if (this->driver_->si_->contains("filesystem")) {
       boost::any any = this->driver_->si_->get("filesystem");
       std::string requestedFs = Extensible::anyToString(any);
-      fs = chooseFilesystem(requestedFs, fsV);
+      fs = chooseFilesystem(requestedFs);
       strncpy(reqfile.server, fs.server, sizeof(reqfile.server));
       strncpy(reqfile.pfnhint, fs.fs, sizeof(reqfile.pfnhint));
       useParams = true;
     } else if (this->driver_->si_->contains("pool")) {
-      fs = fsV[rand() % fsV.size()];
+      
+      boost::lock_guard< boost::mutex> l(mtx);
+      fs = dpmfs_[rand() % dpmfs_.size()];
+      
       strncpy(reqfile.server, fs.server, sizeof(reqfile.server));
       strncpy(reqfile.pfnhint, fs.fs, sizeof(reqfile.pfnhint));
       useParams = true;
@@ -672,27 +675,35 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
 }
 
 
-dpm_fs FilesystemPoolHandler::chooseFilesystem(std::string& requestedFs, std::vector<dpm_fs>& fsV) throw (DmException)
+dpm_fs FilesystemPoolHandler::chooseFilesystem(std::string& requestedFs) throw (DmException)
 {
-  dpm_fs chosenFs;
-  bool fsFound = false;
+    dpm_fs chosenFs;
+    bool fsFound = false;
 
-  std::string fs;
-  std::vector<dpm_fs>::const_iterator i;
-  for (i = fsV.begin(); i != fsV.end(); ++i) {
-    fs = (*i).server;
-    fs += ":";
-    fs += (*i).fs;
-    if (fs == requestedFs) {
-      chosenFs = *i;
-      fsFound = true;
-      break;
+    getFilesystems();
+
+    
+    {
+        boost::lock_guard< boost::mutex> l(mtx);
+
+        std::string fs;
+        std::vector<dpm_fs>::const_iterator i;
+        for (i = dpmfs_.begin(); i != dpmfs_.end(); ++i) {
+            fs = (*i).server;
+            fs += ":";
+            fs += (*i).fs;
+            if (fs == requestedFs) {
+                chosenFs = *i;
+                fsFound = true;
+                break;
+            }
+        }
+        if (!fsFound)
+            throw DmException(ENOSPC, "The specified filesystem could not be selected, it must be of format <server>:<filesystem>: %s", requestedFs.c_str());
+
     }
-  }
-  if (!fsFound)
-    throw DmException(ENOSPC, "The specified filesystem could not be selected, it must be of format <server>:<filesystem>: %s", requestedFs.c_str());
 
-  return chosenFs;
+    return chosenFs;
 }
 
 /*
@@ -722,19 +733,30 @@ void FilesystemPoolHandler::cancelWrite(const Location& loc) throw (DmException)
 
 
 
-std::vector<dpm_fs> FilesystemPoolHandler::getFilesystems(const std::string& poolname) throw (DmException)
+int FilesystemPoolHandler::getFilesystems() throw (DmException)
 {
-  std::vector<dpm_fs> fsV;
   int nfs;
   struct dpm_fs* fs_array = NULL;
-    
-  if (dpm_getpoolfs((char*)poolname.c_str(),  &nfs, &fs_array) != 0)
+  
+  // Don't update if the last update is too recent  
+  // Also don't bother synchronizing here, we accept to be wrong sometimes
+  if (dpmfs_lastupd >= time(0) - 30) return dpmfs_.size();
+  
+  if (dpm_getpoolfs((char*)poolName_.c_str(),  &nfs, &fs_array) != 0)
     ThrowExceptionFromSerrno(serrno);
 
-  for (int i = 0; i < nfs; ++i) {
-    fsV.push_back(fs_array[i]);
-  }
-  free(fs_array);
-  
-  return fsV;
+    {
+        boost::lock_guard< boost::mutex> l(mtx);
+        dpmfs_.clear();
+        for (int i = 0; i < nfs; ++i) {
+            dpmfs_.push_back(fs_array[i]);
+        }
+        free(fs_array);
+
+        // Update the last update time, this time we need sync
+        mtx.lock();
+        dpmfs_lastupd = time(0);
+        mtx.unlock();
+    }
+  return nfs;
 }
