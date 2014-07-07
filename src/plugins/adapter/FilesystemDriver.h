@@ -67,7 +67,8 @@ namespace dmlite {
     uint64_t    getTotalSpace  (void) throw (DmException);
     uint64_t    getFreeSpace   (void) throw (DmException);
     bool        poolIsAvailable(bool) throw (DmException);
-
+    int        getFilesystems (void) throw (DmException);
+    
     bool     replicaIsAvailable(const Replica& replica) throw (DmException);
     Location whereToRead       (const Replica& replica) throw (DmException);
 
@@ -81,11 +82,14 @@ namespace dmlite {
     FilesystemPoolDriver* driver_;
     std::string           poolName_;
     uint64_t              total_, free_;
-
+    std::vector<dpm_fs> dpmfs_;
+    time_t dpmfs_lastupd;
+    boost::mutex          mtx;
+    
     void update(void) throw (DmException);
 
-    std::vector<dpm_fs> getFilesystems(const std::string&) throw (DmException);
-    dpm_fs              chooseFilesystem(std::string& requestedFs, std::vector<dpm_fs>& fsV) throw (DmException);
+    
+    dpm_fs              chooseFilesystem(std::string& requestedFs) throw (DmException);
     // Create a date string as used in the DPM storage hierarchy -- not used for now
     // std::string         getDateString(void) throw ();
   };
