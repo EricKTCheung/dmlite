@@ -20,6 +20,7 @@
 
 
 using namespace dmlite;
+time_t FilesystemPoolHandler::dpmfs_lastupd = (time_t)0;
 
 FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp,
                                            unsigned life, unsigned retryLimit,
