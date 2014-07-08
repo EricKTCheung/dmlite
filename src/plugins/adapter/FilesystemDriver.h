@@ -78,12 +78,14 @@ namespace dmlite {
 
     void cancelWrite(const Location& loc) throw (DmException);
 
+    
   private:
     FilesystemPoolDriver* driver_;
     std::string           poolName_;
     uint64_t              total_, free_;
     std::vector<dpm_fs> dpmfs_;
-    time_t dpmfs_lastupd;
+    static time_t dpmfs_lastupd;
+
     boost::mutex          mtx;
     
     void update(void) throw (DmException);
