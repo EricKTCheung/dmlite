@@ -371,13 +371,15 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
 
   getFilesystems();
 
+  {
+  boost::lock_guard< boost::mutex> l(mtx);
   std::string filesystem = Extensible::anyToString(replica["filesystem"]);
   for (unsigned i = 0; i < dpmfs_.size(); ++i) {
     if (filesystem == dpmfs_[i].fs && replica.server == dpmfs_[i].server) {
       return (dpmfs_[i].status != FS_DISABLED);
     }
   }
-
+  }
   return false;
 }
 
@@ -754,9 +756,9 @@ int FilesystemPoolHandler::getFilesystems() throw (DmException)
         free(fs_array);
 
         // Update the last update time, this time we need sync
-        mtx.lock();
+        
         dpmfs_lastupd = time(0);
-        mtx.unlock();
+        
     }
   return nfs;
 }
