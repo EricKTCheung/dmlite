@@ -19,8 +19,11 @@
 #include "FunctionWrapper.h"
 
 
+
 using namespace dmlite;
-time_t FilesystemPoolHandler::dpmfs_lastupd = (time_t)0;
+
+
+std::map< std::string, poolfsnfo > FilesystemPoolHandler::dpmfs_;
 
 FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp,
                                            unsigned life, unsigned retryLimit,
@@ -353,8 +356,8 @@ bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmExceptio
   
     {
         boost::lock_guard< boost::mutex > l(mtx);
-        for (unsigned i = 0; i < dpmfs_.size(); ++i) {
-            if ((write && dpmfs_[i].status == 0) || (!write && dpmfs_[i].status != FS_DISABLED))
+        for (unsigned i = 0; i < dpmfs_[poolName_].dpmfs_.size(); ++i) {
+            if ((write && dpmfs_[poolName_].dpmfs_[i].status == 0) || (!write && dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED))
                 return true;
         }
     }
@@ -375,9 +378,9 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
   {
   boost::lock_guard< boost::mutex> l(mtx);
   std::string filesystem = Extensible::anyToString(replica["filesystem"]);
-  for (unsigned i = 0; i < dpmfs_.size(); ++i) {
-    if (filesystem == dpmfs_[i].fs && replica.server == dpmfs_[i].server) {
-      return (dpmfs_[i].status != FS_DISABLED);
+  for (unsigned i = 0; i < dpmfs_[poolName_].dpmfs_.size(); ++i) {
+    if (filesystem == dpmfs_[poolName_].dpmfs_[i].fs && replica.server == dpmfs_[poolName_].dpmfs_[i].server) {
+      return (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED);
     }
   }
   }
@@ -560,7 +563,7 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
     } else if (this->driver_->si_->contains("pool")) {
       
       boost::lock_guard< boost::mutex> l(mtx);
-      fs = dpmfs_[rand() % dpmfs_.size()];
+      fs = dpmfs_[poolName_].dpmfs_[rand() % dpmfs_[poolName_].dpmfs_.size()];
       
       strncpy(reqfile.server, fs.server, sizeof(reqfile.server));
       strncpy(reqfile.pfnhint, fs.fs, sizeof(reqfile.pfnhint));
@@ -691,7 +694,7 @@ dpm_fs FilesystemPoolHandler::chooseFilesystem(std::string& requestedFs) throw (
 
         std::string fs;
         std::vector<dpm_fs>::const_iterator i;
-        for (i = dpmfs_.begin(); i != dpmfs_.end(); ++i) {
+        for (i = dpmfs_[poolName_].dpmfs_.begin(); i != dpmfs_[poolName_].dpmfs_.end(); ++i) {
             fs = (*i).server;
             fs += ":";
             fs += (*i).fs;
@@ -738,28 +741,33 @@ void FilesystemPoolHandler::cancelWrite(const Location& loc) throw (DmException)
 
 int FilesystemPoolHandler::getFilesystems() throw (DmException)
 {
-  int nfs;
-  struct dpm_fs* fs_array = NULL;
-  
-  // Don't update if the last update is too recent  
-  // Also don't bother synchronizing here, we accept to be wrong sometimes
-  if (dpmfs_lastupd >= time(0) - 30) return dpmfs_.size();
-  
-  if (dpm_getpoolfs((char*)poolName_.c_str(),  &nfs, &fs_array) != 0)
-    ThrowExceptionFromSerrno(serrno);
+    int nfs;
+    struct dpm_fs* fs_array = NULL;
+    time_t timenow = time(0);
+
+    // Don't update if the last update is too recent
+    {
+        boost::lock_guard< boost::mutex> l(mtx);
+        if ( dpmfs_[poolName_].dpmfs_lastupd >= timenow - 30 ) 
+	  return dpmfs_[poolName_].dpmfs_.size();
+    }
+
+    if (dpm_getpoolfs((char*)poolName_.c_str(),  &nfs, &fs_array) != 0)
+        ThrowExceptionFromSerrno(serrno);
 
     {
         boost::lock_guard< boost::mutex> l(mtx);
-        dpmfs_.clear();
+        dpmfs_[poolName_].dpmfs_.clear();
+
         for (int i = 0; i < nfs; ++i) {
-            dpmfs_.push_back(fs_array[i]);
+            dpmfs_[poolName_].dpmfs_.push_back(fs_array[i]);
         }
         free(fs_array);
 
         // Update the last update time, this time we need sync
-        
-        dpmfs_lastupd = time(0);
+
+        dpmfs_[poolName_].dpmfs_lastupd = timenow;
         
     }
-  return nfs;
+            return nfs;
 }

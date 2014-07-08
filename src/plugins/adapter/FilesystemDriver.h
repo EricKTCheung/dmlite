@@ -12,6 +12,15 @@
 #define REPLICATE_FLAG 4
 
 namespace dmlite {
+  // A little helper class to share pool information across threads
+  class poolfsnfo {
+  public:
+    std::vector<dpm_fs> dpmfs_;
+    time_t dpmfs_lastupd;
+    poolfsnfo() {
+        dpmfs_lastupd = 0;
+    }
+  };
   
   /// Filesystem driver.
   class FilesystemPoolDriver: public PoolDriver {
@@ -67,7 +76,7 @@ namespace dmlite {
     uint64_t    getTotalSpace  (void) throw (DmException);
     uint64_t    getFreeSpace   (void) throw (DmException);
     bool        poolIsAvailable(bool) throw (DmException);
-    int        getFilesystems (void) throw (DmException);
+    
     
     bool     replicaIsAvailable(const Replica& replica) throw (DmException);
     Location whereToRead       (const Replica& replica) throw (DmException);
@@ -83,14 +92,15 @@ namespace dmlite {
     FilesystemPoolDriver* driver_;
     std::string           poolName_;
     uint64_t              total_, free_;
-    std::vector<dpm_fs> dpmfs_;
-    static time_t dpmfs_lastupd;
-
+    
+    // We share the pool information across threads, for sure the cost
+    // of this little serialization is less than the cost of refetching them
+    static std::map< std::string, poolfsnfo > dpmfs_;
     boost::mutex          mtx;
     
     void update(void) throw (DmException);
 
-    
+    int                 getFilesystems (void) throw (DmException);
     dpm_fs              chooseFilesystem(std::string& requestedFs) throw (DmException);
     // Create a date string as used in the DPM storage hierarchy -- not used for now
     // std::string         getDateString(void) throw ();
