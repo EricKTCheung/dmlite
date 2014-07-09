@@ -25,7 +25,7 @@ do{                                											\
 do{                                											\
 		std::ostringstream outs;                                   			\
 		outs << "ERROR " << where << "::" << __func__ << " : " << what;                      			\
-		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
+		Logger::get()->log((Logger::Level)0, outs.str());    				\
 }while(0)       
 
 /**
