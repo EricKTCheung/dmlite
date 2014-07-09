@@ -25,7 +25,6 @@ using namespace dmlite;
 Logger::bitmask dmlite::adapterlogmask = 0;
 Logger::component dmlite::adapterlogname = "Adapter";
 
-
 int IntConnectionFactory::create() { return 1; }
 void IntConnectionFactory::destroy(int) {};
 bool IntConnectionFactory::isValid(int) { return true; }
@@ -135,6 +134,9 @@ DpmAdapterFactory::~DpmAdapterFactory()
 
 void DpmAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
@@ -218,8 +220,7 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
 
 static void registerPluginDriver(PluginManager* pm) throw (DmException)
 {
-  adapterlogmask = Logger::get()->getMask(adapterlogname);
-  
+   
   pm->registerPoolDriverFactory(new DpmAdapterFactory());
 }
 
@@ -227,7 +228,6 @@ static void registerPluginDriver(PluginManager* pm) throw (DmException)
 
 static void registerIOPlugin(PluginManager* pm) throw (DmException)
 {
-  adapterlogmask = Logger::get()->getMask(adapterlogname);
   
   pm->registerIODriverFactory(new StdIOFactory());
 }
@@ -236,7 +236,6 @@ static void registerIOPlugin(PluginManager* pm) throw (DmException)
 
 static void registerRFIOPlugin(PluginManager* pm) throw (DmException)
 {
-  adapterlogmask = Logger::get()->getMask(adapterlogname);
   
   pm->registerIODriverFactory(new StdRFIOFactory());
 }
