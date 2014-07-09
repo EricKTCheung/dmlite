@@ -21,7 +21,7 @@ do{                                											\
 }while(0)                                                               			\
 
 
-#define Err(mymask, where, what) 												\
+#define Err(where, what) 												\
 do{                                											\
 		std::ostringstream outs;                                   			\
 		outs << "ERROR " << where << "::" << __func__ << " : " << what;                      			\
