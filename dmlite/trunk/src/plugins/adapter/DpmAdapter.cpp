@@ -83,6 +83,8 @@ void DpmAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (Dm
 
 void DpmAdapterCatalog::unlink(const std::string& path) throw (DmException)
 {
+  Log(Logger::BASE, adapterlogmask, adapterlogname, " Path: " << path);
+  
   setDpmApiIdentity();
 
   int                    nReplies;
@@ -213,6 +215,8 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
 
 std::vector<Pool> DpmAdapterPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " PoolAvailability: " << availability);
+  
   setDpmApiIdentity();
 
   struct dpm_pool* dpmPools = NULL;
@@ -293,6 +297,7 @@ Pool DpmAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcept
       return pools[i];
   }
   
+  Err(adapterlogname, " Pool poolname: " << poolname << " not found.");
   throw DmException(DMLITE_NO_SUCH_POOL,
                     "Pool " + poolname + " not found");
 }
@@ -325,6 +330,8 @@ void DpmAdapterPoolManager::deletePool(const Pool&) throw (DmException)
 
 Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Path: " << path);
+  
   setDpmApiIdentity();
 
   struct dpm_getfilereq     request;
@@ -358,8 +365,10 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
     FunctionWrapper<int, int, dpm_getfilereq*, int, char**, char*, time_t, char*, int*, dpm_getfilestatus**>
       (dpm_get, 1, &request, 2, protocols, description, 0, r_token, &nReplies, &statuses)(this->retryLimit_);
 
-    if (nReplies < 1)
+    if (nReplies < 1) {
+      Log(Logger::WARNING, adapterlogmask, adapterlogname, "No replicas found for: " << path);
       throw DmException(DMLITE_NO_REPLICAS, "No replicas found for " + path);
+    }
 
     // Wait for answer
     wait = (statuses[0].status == DPM_QUEUED ||
@@ -373,6 +382,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
     delay.tv_sec = 0; delay.tv_usec = 125000;
     while (wait) {
       if (npoll >= 24) {
+	Err(adapterlogname, "No result from dpm for get : " << path);
         throw DmException(DMLITE_INTERNAL_ERROR, "No result from dpm for get "
           "request for " + path);
       }
@@ -382,8 +392,10 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
       statuses = 0;
       getReq();
       ++npoll;
-      if (!nReplies)
+      if (!nReplies) {
+	Log(Logger::WARNING, adapterlogmask, adapterlogname, "No replicas found for: " << path);
         throw DmException(DMLITE_NO_REPLICAS, "No replicas found for " + path);
+      }
 
       wait = (statuses[0].status == DPM_QUEUED ||
               statuses[0].status == DPM_RUNNING ||
@@ -395,6 +407,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
 
     switch(statuses[0].status & 0xF000) {
       case DPM_FAILED: case DPM_ABORTED: case DPM_EXPIRED:
+	Err(adapterlogname, "No error string returned from DPM : " << path);
         throw DmException(DMLITE_SYSERR(statuses[0].status & 0x0FFF),
                           "The DPM get request failed (%s)",
                           statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM");
@@ -419,6 +432,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
     single.url.query["token"] = dmlite::generateToken(this->userId_, rloc.path,
                                                       this->tokenPasswd_, this->tokenLife_);
     
+    Log(Logger::INFO, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
     return Location(1, single);          
   }
   catch (...) {
@@ -441,6 +455,8 @@ Location DpmAdapterPoolManager::whereToRead(ino_t) throw (DmException)
 
 Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
+  Log(Logger::INFO, adapterlogmask, adapterlogname, " Path: " << path);
+  
   setDpmApiIdentity();
 
   struct dpm_putfilereq     reqfile;
@@ -541,6 +557,9 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
 
     switch(statuses[0].status & 0xF000) {
       case DPM_FAILED: case DPM_ABORTED: case DPM_EXPIRED:
+	Err(adapterlogname, " No error string returned from DPM: " << path << " " << 
+	  statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM"
+	);
         throw DmException(DMLITE_SYSERR(statuses[0].status & 0x0FFF),
                           "The DPM put request failed (%s)",
                           statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM");
@@ -552,6 +571,7 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
     delay.tv_sec = 0; delay.tv_usec = 125000;
     while (wait) {
       if (npoll >= 24) {
+	Err(adapterlogname, " No result from dpm for put: " << path);
        	throw DmException(DMLITE_INTERNAL_ERROR, "No result from dpm for put "
           "request for " + path);
       }
@@ -561,9 +581,11 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
       statuses = 0;
       putReq();
       ++npoll;
-      if (!nReplies)
+      if (!nReplies) {
+	Err(adapterlogname, " Didn't get a destination from DPM: " << path);
         throw DmException(DMLITE_SYSERR(serrno),
                           "Didn't get a destination from DPM");
+      }
 
       wait = (statuses[0].status == DPM_QUEUED  ||
                   statuses[0].status == DPM_RUNNING ||
@@ -574,7 +596,10 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
     }
     
     switch(statuses[0].status & 0xF000) {
+      
       case DPM_FAILED: case DPM_ABORTED: case DPM_EXPIRED:
+	Err(adapterlogname, " Error: " << path << " " << 
+	  statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM");
         throw DmException(DMLITE_SYSERR(statuses[0].status & 0x0FFF),
                           "The DPM put request failed (%s)",
                           statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM");
@@ -599,6 +624,8 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
     single.url.query["token"]    = dmlite::generateToken(this->userId_, rloc.path,
                                                          this->tokenPasswd_, this->tokenLife_, true);
     
+    Log(Logger::WARNING, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
+    
     return Location(1, single);
   }
   catch (...) {
@@ -613,6 +640,7 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
 
 void DpmAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException)
 {
+  Log(Logger::BASE, adapterlogmask, adapterlogname, " Location: " << loc.toString());
   setDpmApiIdentity();
 
   FunctionWrapper<int, char*>(dpm_abortreq, (char*)loc[0].url.query.getString("dpmtoken").c_str())();
