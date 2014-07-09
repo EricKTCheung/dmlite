@@ -20,14 +20,12 @@ do{                                											\
 	}                                                             			\
 }while(0)                                                               			\
 
-#define Err(lvl, mymask, where, what) 												\
+
+#define Err(mymask, where, what) 												\
 do{                                											\
-	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
-	{    																	\
 		std::ostringstream outs;                                   			\
 		outs << "ERROR " << where << "::" << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
-	}                                                             			\
 }while(0)       
 
 /**
@@ -49,7 +47,7 @@ public:
      */
     enum Level
     {
-        BASE,
+        BASE,       // The default?
         WARNING,
         NOTICE,
         INFO,
