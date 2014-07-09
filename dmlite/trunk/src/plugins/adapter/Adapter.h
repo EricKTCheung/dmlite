@@ -10,9 +10,13 @@
 #include <dmlite/cpp/inode.h>
 #include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/utils/poolcontainer.h>
+#include "utils/logger.h"
 
 namespace dmlite {
 
+
+  extern Logger::bitmask adapterlogmask;
+  extern Logger::component adapterlogname;
 
   /// Fake Factory for Pool resources
   class IntConnectionFactory: public PoolElementFactory<int> {

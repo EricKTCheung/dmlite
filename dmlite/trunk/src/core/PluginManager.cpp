@@ -208,7 +208,7 @@ void PluginManager::loadConfiguration(const std::string& file) throw(DmException
             if (e.code() == DMLITE_CFGERR(DMLITE_UNKNOWN_KEY))
               std::cerr << "Warning: Invalid configuration parameter '"
                         << parameter
-                        << "' at " << file << ':' << line << std::endl;
+                        << "' at " << file << ':' << line << " - " << e.what() << std::endl ;
             else
               throw DmException(e.code(),
                                 "'%s' (error at line %d)", e.what(), line);

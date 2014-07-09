@@ -18,6 +18,8 @@
 #include "FilesystemDriver.h"
 #include "FunctionWrapper.h"
 
+#include "utils/logger.h"
+
 
 
 using namespace dmlite;
@@ -304,6 +306,8 @@ void FilesystemPoolDriver::toBeDeleted(const Pool& pool) throw (DmException)
 FilesystemPoolHandler::FilesystemPoolHandler(FilesystemPoolDriver* driver, const std::string& poolName):
   driver_(driver), poolName_(poolName)
 {
+  
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Ctor poolname:" << poolName);
   // Nothing
 }
 
