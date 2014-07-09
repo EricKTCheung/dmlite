@@ -87,7 +87,7 @@ try {\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::INFO, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
 if (failed)\
   throw exception;
 
