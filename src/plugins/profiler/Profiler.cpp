@@ -6,6 +6,13 @@
 
 #include "Profiler.h"
 
+
+
+
+Logger::bitmask dmlite::profilerlogmask = 0;
+Logger::component dmlite::profilerlogname = "Profiler";
+
+
 using namespace dmlite;
 
 ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
@@ -16,9 +23,9 @@ ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
   this->nestedPoolManagerFactory_ = poolManagerFactory;
   this->nestedIODriverFactory_    = ioFactory;
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s",
-      "Profiler",
-      "ProfilerFactory started");
+  profilerlogmask = Logger::get()->getMask(profilerlogname);
+  Log(Logger::BASE, profilerlogmask, profilerlogname, "ProfilerFactory started.");
+  
 }
 
 
@@ -81,9 +88,9 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
     return 0x00;
 
   initXrdMonitorIfNotInitialized();
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
-      "Profiler",
-      "Creating ProfilerCatalog nesting", (unsigned long)this->nestedCatalogFactory_);
+  
+  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerCatalog nesting" << (unsigned long)this->nestedCatalogFactory_);
+  
   return new ProfilerCatalog(nested);
 }
 
@@ -98,9 +105,9 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
     return 0x00;
 
   initXrdMonitorIfNotInitialized();
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
-      "Profiler",
-      "Creating ProfilerPoolManager nesting", (unsigned long)this->nestedPoolManagerFactory_);
+  
+  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerPoolManager nesting" << (unsigned long)this->nestedPoolManagerFactory_);
+  
   return new ProfilerPoolManager(nested);
 }
 
@@ -114,12 +121,11 @@ IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmExcept
     return 0x00;
 
   initXrdMonitorIfNotInitialized();
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
-      "Profiler",
-      "Creating ProfilerIODriver nesting", (unsigned long)this->nestedIODriverFactory_);
+  
+  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerIODriver nesting" << (unsigned long)this->nestedIODriverFactory_);
+
   return new ProfilerIODriver(nested);
 }
-
 
 void ProfilerFactory::initXrdMonitorIfNotInitialized() throw (DmException)
 {

@@ -87,7 +87,6 @@ namespace dmlite {
 
     void cancelWrite(const Location& loc) throw (DmException);
 
-    
   private:
     FilesystemPoolDriver* driver_;
     std::string           poolName_;

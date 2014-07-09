@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include "Config.h"
+#include "utils/logger.h"
 
 
 using namespace dmlite;
@@ -115,8 +116,18 @@ void ConfigFactory::processIncludes(const std::string& path) throw (DmException)
 void ConfigFactory::configure(const std::string& key,
                               const std::string& value) throw (DmException)
 {
+  if (key == "LogLevel" || key == "loglevel") {
+    Log(Logger::BASE, Logger::unregistered, "config", "Setting global log level to :" << value);
+    Logger::get()->setLevel((Logger::Level)atoi(value.c_str()));
+  }
+  else
   if (key == "Include" || key == "include") {
     this->processIncludes(value);
+  }
+  else
+  if (key == "Log" || key == "log") {
+    Logger::get()->setLogged(value, true);   
+    
   }
   else {
     throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),

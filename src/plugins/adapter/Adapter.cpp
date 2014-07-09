@@ -16,12 +16,14 @@
 #include <Cthread_api.h>
 #include <stdlib.h>
 
+#include <utils/logger.h>
+
 using namespace dmlite;
 
 
 
-
-
+Logger::bitmask dmlite::adapterlogmask = 0;
+Logger::component dmlite::adapterlogname = "Adapter";
 
 
 int IntConnectionFactory::create() { return 1; }
@@ -36,6 +38,8 @@ NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3), hostDn
 {
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
+  
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
 }
 
 
@@ -49,6 +53,9 @@ NsAdapterFactory::~NsAdapterFactory()
 
 void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
     setenv("DPNS_HOST", value.c_str(), 1);
     setenv("LFC_HOST", value.c_str(), 1);
@@ -113,6 +120,8 @@ DpmAdapterFactory::DpmAdapterFactory() throw (DmException):
 {
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
+  
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
 }
 
 
@@ -209,6 +218,8 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
 
 static void registerPluginDriver(PluginManager* pm) throw (DmException)
 {
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
+  
   pm->registerPoolDriverFactory(new DpmAdapterFactory());
 }
 
@@ -216,6 +227,8 @@ static void registerPluginDriver(PluginManager* pm) throw (DmException)
 
 static void registerIOPlugin(PluginManager* pm) throw (DmException)
 {
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
+  
   pm->registerIODriverFactory(new StdIOFactory());
 }
 
@@ -223,6 +236,8 @@ static void registerIOPlugin(PluginManager* pm) throw (DmException)
 
 static void registerRFIOPlugin(PluginManager* pm) throw (DmException)
 {
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
+  
   pm->registerIODriverFactory(new StdRFIOFactory());
 }
 

@@ -23,7 +23,16 @@
 #include "dmlite/cpp/io.h"
 #include "ProfilerIO.h"
 
+#include "utils/logger.h"
+
+
+
 namespace dmlite {
+  
+  
+  
+extern Logger::bitmask profilerlogmask;
+extern Logger::component profilerlogname;
 
 /// Concrete factory for Profiler plugin.
   class ProfilerFactory: public CatalogFactory, public PoolManagerFactory, public IODriverFactory {

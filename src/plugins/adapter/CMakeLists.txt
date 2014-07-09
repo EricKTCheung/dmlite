@@ -8,6 +8,7 @@ add_library (adapter MODULE Adapter.cpp
                             NsAdapter.cpp
                             NsAdapterINode.cpp
                             RFIO.cpp
+                            ../../utils/Logger.cpp
             )
 
 include_directories ( ${DPM_INCLUDE_DIR}/dpm )

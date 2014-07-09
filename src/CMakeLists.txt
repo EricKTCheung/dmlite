@@ -9,6 +9,11 @@ add_library(dmlite SHARED ${DMLITE_CAPI_SOURCES}
                           ${DMLITE_CORE_SOURCES}
                           ${DMLITE_UTILS_SOURCES})
 
+                          
+set_target_properties(dmlite PROPERTIES COMPILE_FLAGS -rdynamic )
+
+
+
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries (dmlite boost_regex boost_system boost_thread-mt crypto dl pthread ssl z)
 ELSE()
