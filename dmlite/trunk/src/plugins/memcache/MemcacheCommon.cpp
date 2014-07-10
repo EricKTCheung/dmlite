@@ -105,7 +105,10 @@ const std::string MemcacheCommon::safeGetValFromMemcachedKey(const std::string& 
 {
   try {
     return getValFromMemcachedKey(key);
-  } catch (MemcacheException) { return std::string(); /* pass */ }
+  } catch (MemcacheException) {
+    Err(memcachelogname, "ignore memcached get failure");
+    return std::string(); /* pass */
+  }
 }
 
 
@@ -158,7 +161,10 @@ void MemcacheCommon::safeSetMemcachedFromKeyValue(const std::string& key,
   try {
     // set noreply true, since we don't look at the return anyway
     return setMemcachedFromKeyValue(key, value, true);
-  } catch (MemcacheException) { /* pass */ }
+  } catch (MemcacheException) {
+    Err(memcachelogname, "ignore memcached set failure");
+    return; /* pass */
+  }
 }
 
 
@@ -202,7 +208,10 @@ void MemcacheCommon::safeAddMemcachedFromKeyValue(const std::string& key,
 {
   try {
     return addMemcachedFromKeyValue(key, value);
-  } catch (MemcacheException) { /* pass */ }
+  } catch (MemcacheException) {
+    Err(memcachelogname, "ignore memcached add failure");
+    return; /* pass */
+  }
 }
 
 
@@ -245,7 +254,10 @@ void MemcacheCommon::safeDelMemcachedFromKey(const std::string& key) throw ()
   try {
     // set noreply true, since we don't look at the return anyway
     return delMemcachedFromKey(key, true);
-  } catch (MemcacheException) { /* pass */ }
+  } catch (MemcacheException) {
+    Err(memcachelogname, "ignore memcached delete failure");
+    return; /* pass */
+  }
 }
 
 
