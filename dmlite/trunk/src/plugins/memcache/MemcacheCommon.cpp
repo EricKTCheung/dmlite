@@ -67,7 +67,7 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
 
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
       "starting to retrieve value from memcached, key: " <<
       key);
 
@@ -125,7 +125,7 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
 
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
       "starting to set value to memcached, key: " <<
       key);
 
@@ -173,7 +173,7 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
 {
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
       "starting to add value to memcached, key: " <<
       key);
 
@@ -225,7 +225,7 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //else
   //  conn = this->conn_;
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
       "starting to delete value to memcached, key: " <<
       key);
 
