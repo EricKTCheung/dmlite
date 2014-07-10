@@ -5,14 +5,18 @@
 #define MEMCACHE_CATALOG_H
 
 #include <vector>
-#include <syslog.h>
 
 #include <dmlite/cpp/catalog.h>
 
 #include "Memcache.h"
 #include "MemcacheCommon.h"
 
+#include "utils/logger.h"
+
 namespace dmlite {
+
+  extern Logger::bitmask memcachelogmask;
+  extern Logger::component memcachelogname;
 
   class MemcacheDir: public Directory {
     public:

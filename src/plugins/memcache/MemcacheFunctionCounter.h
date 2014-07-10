@@ -6,13 +6,17 @@
 
 #include <boost/thread/mutex.hpp>
 #include <map>
-#include <syslog.h>
 
 #include <dmlite/cpp/dmlite.h>
 
 #include "MemcacheFunctions.h"
 
+#include "utils/logger.h"
+
 namespace dmlite {
+
+  extern Logger::bitmask memcachelogmask;
+  extern Logger::component memcachelogname;
 
   class MemcacheFunctionCounter {
     public:

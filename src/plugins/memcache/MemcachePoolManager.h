@@ -9,7 +9,12 @@
 #include "Memcache.h"
 #include "MemcacheCommon.h"
 
+#include "utils/logger.h"
+
 namespace dmlite {
+
+  extern Logger::bitmask memcachelogmask;
+  extern Logger::component memcachelogname;
 
   class MemcachePoolManager: public PoolManager, protected MemcacheCommon {
     public:

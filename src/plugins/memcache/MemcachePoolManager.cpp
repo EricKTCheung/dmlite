@@ -3,7 +3,6 @@
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
 
 #include <vector>
-#include <syslog.h>
 
 #include "MemcachePoolManager.h"
 #include "MemcacheFunctions.h"
@@ -18,6 +17,8 @@ MemcachePoolManager::MemcachePoolManager(PoolContainer<memcached_st*>& connPool,
   MemcacheCommon(connPool, funcCounter, doFuncCount, memcachedExpirationLimit),
   si_(0x00)
 {
+  Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcachePoolManager started.");
+
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 }
