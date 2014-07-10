@@ -561,12 +561,16 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
       addMemcachedFromKeyValue(dirkey, "CANBEANYTHING");
       dirp->pb_keys.set_state(MISSING);
     } catch (MemcacheException) {
+      Log(Logger::INFO, memcachelogmask, memcachelogname,
+          "conflict when caching dir object" <<
+          "caching is already in process");
       dirp->pb_keys.set_state(INVALID);
     }
     incrementFunctionCounter(OPENDIR_DELEGATE);
     try {
       DELEGATE_ASSIGN(dirp->decorated_dirp, openDir, dirp->basepath);
     } catch (...) {
+      Err(memcachelogname, "delegation of openDir failed");
       delete dirp;
       throw;
     }
