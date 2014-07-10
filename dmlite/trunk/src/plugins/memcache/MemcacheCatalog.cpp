@@ -48,6 +48,8 @@ throw (DmException):
   // it will just be slightly slower. No reason to fail.
   //memcached_behavior_set(this->connNoReply_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
+  Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcacheCatalog started.");
+
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 }
@@ -653,8 +655,10 @@ ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *d
     // computes the serialized size of the message, it can still
     // grow large in memory. use .SpaceUsed() to test that.
     if (dirp->pb_keys.ByteSize() > (1 << 20)) {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %d", this->decoratedId_,
-          "dir size to large to cache", dirp->pb_keys.ByteSize());
+      Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+          "dir size to large to cache: " << dirp->pb_keys.ByteSize());
+      //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %d", this->decoratedId_,
+      //    "dir size to large to cache", dirp->pb_keys.ByteSize());
       dirp->pb_keys.set_state(INVALID);
     }
 

@@ -67,6 +67,10 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
 
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "starting to retrieve value from memcached, key: " <<
+      key);
+
   valMemc = memcached_get(conn,
       key.data(),
       key.length(),
@@ -76,11 +80,18 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
 
   if (statMemc != MEMCACHED_SUCCESS &&
       statMemc != MEMCACHED_NOTFOUND) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-        "getting a value from memcache failed",
+    Err(memcachelogname,
+        "getting a value from memcache failed: " <<
         memcached_strerror(conn, statMemc));
+    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
+    //    "getting a value from memcache failed",
+    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
+
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "successfully retrieved value from memcached, key: " <<
+      key);
 
   if (lenValue > 0) {
     valMemcStr.assign(valMemc, lenValue);
@@ -111,6 +122,10 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
 
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "starting to set value to memcached, key: " <<
+      key);
+
   memcached_return statMemc;
   statMemc = memcached_set(conn,
       key.data(),
@@ -120,11 +135,18 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
       (uint32_t)0);
 
   if (statMemc != MEMCACHED_SUCCESS) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-        "setting a value to memcache failed",
+    Err(memcachelogname,
+        "setting a value to memcache failed: " <<
         memcached_strerror(conn, statMemc));
+    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
+    //    "setting a value to memcache failed",
+    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
+
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "successfully set value to memcached, key: " <<
+      key);
 
   return;
 }
@@ -145,6 +167,10 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
 {
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "starting to add value to memcached, key: " <<
+      key);
+
   memcached_return statMemc;
   statMemc = memcached_add(conn,
       key.data(),
@@ -154,11 +180,18 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
       (uint32_t)0);
 
   if (statMemc != MEMCACHED_SUCCESS) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-        "adding a value to memcache failed",
+    Err(memcachelogname,
+        "adding a value to memcache failed: " <<
         memcached_strerror(conn, statMemc));
+    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
+    //    "adding a value to memcache failed",
+    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
+
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "successfully added value to memcached, key: " <<
+      key);
 
   return;
 }
@@ -183,6 +216,10 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //else
   //  conn = this->conn_;
 
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "starting to delete value to memcached, key: " <<
+      key);
+
   memcached_return statMemc;
   statMemc = memcached_delete(conn,
       key.data(),
@@ -191,8 +228,15 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
 
   if (statMemc != MEMCACHED_SUCCESS &&
       statMemc != MEMCACHED_NOTFOUND) {
+    Err(memcachelogname,
+        "deleting a value from memcache failed: " <<
+        memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
+
+  Log(Logger::INFO, memcachelogmask, memcachelogname,
+      "successfully deleted value from memcached, key: " <<
+      key);
 }
 
 

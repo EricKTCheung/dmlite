@@ -15,7 +15,12 @@
 #include "MemcacheFunctionCounter.h"
 #include "Memcache.pb.h"
 
+#include "utils/logger.h"
+
 namespace dmlite {
+
+  extern Logger::bitmask memcachelogmask;
+  extern Logger::component memcachelogname;
 
   class MemcacheException: public DmException {
     public:

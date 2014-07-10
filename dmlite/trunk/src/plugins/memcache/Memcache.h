@@ -13,6 +13,8 @@
 
 #include "MemcacheFunctionCounter.h"
 
+#include "utils/logger.h"
+
 #define MEMCACHED_DEFAULT_PORT 11211
 
 #define DEFAULT_MEMCACHED_EXPIRATION 60
@@ -20,6 +22,9 @@
 #define MAX_SERVERNAME_LENGTH 4096
 
 namespace dmlite {
+
+  extern Logger::bitmask memcachelogmask;
+  extern Logger::component memcachelogname;
 
   /// Used to keep the Key Prefixes
   enum {
