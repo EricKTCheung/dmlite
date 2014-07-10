@@ -7,11 +7,13 @@
 #include <dmlite/cpp/exceptions.h>
 #include <iomanip>
 #include <sstream>
+#include "utils/logger.h"
 
 using namespace dmlite;
 
 DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 {
+  Err("", " DmException()");
   // Nothing
 }
 
@@ -19,6 +21,7 @@ DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 
 DmException::DmException(int code): errorCode_(code), errorMsg_()
 {
+  Err("", " DmException(" << code << ")");
   // Nothing
 }
 
@@ -32,6 +35,8 @@ DmException::DmException(int code, const std::string& string): errorCode_(code)
      << std::setfill('0') << std::setw(6) << (DMLITE_ERRNO(code))
      << "] " << string;
   errorMsg_ = os.str();
+  
+  Err("", " DmException(..): errorMsg_");
 }
 
 
@@ -43,6 +48,8 @@ DmException::DmException(int code, const char* fmt, ...): errorCode_(code)
   va_start(args, fmt);
   this->setMessage(fmt, args);
   va_end(args);
+  
+  Err("", " DmException(..): errorMsg_");
 }
 
 
@@ -50,6 +57,8 @@ DmException::DmException(int code, const char* fmt, ...): errorCode_(code)
 DmException::DmException(int code, const char* fmt, va_list args): errorCode_(code)
 {
   this->setMessage(fmt, args);
+  
+  Err("", " DmException(..): errorMsg_");
 }
 
 
@@ -58,6 +67,8 @@ DmException::DmException(const DmException &base)
 {
   this->errorCode_ = base.errorCode_;
   this->errorMsg_  = base.errorMsg_;
+  
+  Err("", " DmException(..): errorMsg_");
 }
 
 
