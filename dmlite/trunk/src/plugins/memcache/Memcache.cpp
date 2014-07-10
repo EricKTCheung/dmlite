@@ -291,7 +291,6 @@ PoolManager* MemcacheFactory::createPoolManager(PluginManager* pm) throw (DmExce
 }
 
 
-
 static void registerPluginMemcache(PluginManager* pm) throw(DmException)
 {
   CatalogFactory* nestedCAT = pm->getCatalogFactory();
@@ -312,9 +311,47 @@ static void registerPluginMemcache(PluginManager* pm) throw(DmException)
 }
 
 
+static void registerPluginMemcacheNs(PluginManager* pm) throw(DmException)
+{
+  CatalogFactory* nestedCAT = pm->getCatalogFactory();
+
+  if (nestedCAT == NULL)
+    throw DmException(DMLITE_SYSERR(DMLITE_NO_CATALOG),
+        std::string("Memcache cannot be loaded first"));
+
+  MemcacheFactory *mf = new MemcacheFactory(nestedCAT, 0x00);
+  pm->registerCatalogFactory(mf);
+}
+
+
+static void registerPluginMemcachePm(PluginManager* pm) throw(DmException)
+{
+  PoolManagerFactory* nestedPM = pm->getPoolManagerFactory();
+
+  if (nestedPM == NULL)
+    throw DmException(DMLITE_SYSERR(DMLITE_NO_POOL_MANAGER),
+        std::string("Memcache cannot be loaded first"));
+
+  MemcacheFactory *mf = new MemcacheFactory(0x00, nestedPM);
+  pm->registerPoolManagerFactory(mf);
+}
+
+
 
 /// This is what the PluginManager looks for
 PluginIdCard plugin_memcache = {
   PLUGIN_ID_HEADER,
   registerPluginMemcache
+};
+
+
+PluginIdCard plugin_memcache_ns = {
+  PLUGIN_ID_HEADER,
+  registerPluginMemcacheNs
+};
+
+
+PluginIdCard plugin_memcache_pm = {
+  PLUGIN_ID_HEADER,
+  registerPluginMemcachePm
 };
