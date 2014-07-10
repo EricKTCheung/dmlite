@@ -68,8 +68,9 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
-      "starting to retrieve value from memcached, key: " <<
-      key);
+      "starting to retrieve value from memcached: " <<
+      "key: " << key.data() <<
+      "length: " << key.length());
 
   valMemc = memcached_get(conn,
       key.data(),
@@ -126,8 +127,11 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
-      "starting to set value to memcached, key: " <<
-      key);
+      "starting to set value to memcached: " <<
+      "key: " << key.data() <<
+      "length: " << key.length() <<
+      "value: " << value.data() <<
+      "vlength: " << value.length());
 
   memcached_return statMemc;
   statMemc = memcached_set(conn,
@@ -174,8 +178,11 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
-      "starting to add value to memcached, key: " <<
-      key);
+      "starting to add value to memcached: " <<
+      "key: " << key.data() <<
+      "length: " << key.length() <<
+      "value: " << value.data() <<
+      "vlength: " << value.length());
 
   memcached_return statMemc;
   statMemc = memcached_add(conn,
@@ -226,8 +233,9 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //  conn = this->conn_;
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
-      "starting to delete value to memcached, key: " <<
-      key);
+      "starting to delete value to memcached: " <<
+      "key: " << key.data() <<
+      "length: " << key.length());
 
   memcached_return statMemc;
   statMemc = memcached_delete(conn,
