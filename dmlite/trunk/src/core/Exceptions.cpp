@@ -36,7 +36,7 @@ DmException::DmException(int code, const std::string& string): errorCode_(code)
      << "] " << string;
   errorMsg_ = os.str();
   
-  Err("", " DmException(..): errorMsg_");
+  Err("", " DmException(..):" << errorMsg_);
 }
 
 
@@ -49,7 +49,7 @@ DmException::DmException(int code, const char* fmt, ...): errorCode_(code)
   this->setMessage(fmt, args);
   va_end(args);
   
-  Err("", " DmException(..): errorMsg_");
+  Err("", " DmException(..): " << errorMsg_);
 }
 
 
@@ -58,7 +58,7 @@ DmException::DmException(int code, const char* fmt, va_list args): errorCode_(co
 {
   this->setMessage(fmt, args);
   
-  Err("", " DmException(..): errorMsg_");
+  Err("", " DmException(..): " << errorMsg_);
 }
 
 
@@ -68,7 +68,7 @@ DmException::DmException(const DmException &base)
   this->errorCode_ = base.errorCode_;
   this->errorMsg_  = base.errorMsg_;
   
-  Err("", " DmException(..): errorMsg_");
+  Err("", " DmException(..): " << errorMsg_);
 }
 
 
@@ -105,4 +105,5 @@ void DmException::setMessage(const char* fmt, va_list args)
           
   vsnprintf(buffer + n, sizeof(buffer) - n, fmt, args);
   this->errorMsg_ = std::string(buffer);
+  Err("", " DmException(..): " << errorMsg_);
 }
