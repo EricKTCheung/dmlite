@@ -62,7 +62,8 @@ public:
     /// @return the singleton instance
     static Logger *get()
     {
-    	if (instance == 0) instance = new Logger();
+    	if (instance == 0)
+	  instance = new Logger();
     	return instance;
     }
 

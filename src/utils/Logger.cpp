@@ -27,7 +27,7 @@ Logger::~Logger()
 
 void Logger::log(Level lvl, std::string const & msg) const
 {
-    syslog(LOG_ERR, msg.c_str());
+    syslog(LOG_ERR, "%s", msg.c_str());
 }
 
 void Logger::registerComponent(component const &  comp)
