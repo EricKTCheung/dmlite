@@ -35,10 +35,12 @@ bool IntConnectionFactory::isValid(int) { return true; }
 NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3), hostDnIsRoot_(false),
     hostDn_(), connectionPool_(&connectionFactory_, 10)
 {
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Hi.");
+  
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
   
-  adapterlogmask = Logger::get()->getMask(adapterlogname);
 }
 
 
@@ -117,10 +119,12 @@ DpmAdapterFactory::DpmAdapterFactory() throw (DmException):
   retryLimit_(3), tokenPasswd_("default"), tokenUseIp_(true), tokenLife_(600),
   adminUsername_("root"), connectionPool_(&connectionFactory_, 10)
 {
+  adapterlogmask = Logger::get()->getMask(adapterlogname);
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Ctor");
+  
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
   
-  adapterlogmask = Logger::get()->getMask(adapterlogname);
 }
 
 
