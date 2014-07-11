@@ -15,11 +15,7 @@ add_library(pydmlite
             SHARED pydmlite.cpp authn.cpp base.cpp catalog.cpp errno.cpp 
                    exceptions.cpp extensible.cpp inode.cpp io.cpp 
                    pooldriver.cpp poolmanager.cpp types.cpp)
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  target_link_libraries(pydmlite ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dmlite)
-ELSE()
-  target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+target_link_libraries(pydmlite ${Boost_LIBRARIES} dmlite)
 set_target_properties (pydmlite PROPERTIES PREFIX "")
 
 install(TARGETS       pydmlite
