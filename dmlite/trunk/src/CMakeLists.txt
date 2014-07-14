@@ -15,9 +15,9 @@ set_target_properties(dmlite PROPERTIES COMPILE_FLAGS -rdynamic )
 
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  target_link_libraries (dmlite boost_regex boost_system boost_thread-mt crypto dl pthread ssl z)
+  target_link_libraries (dmlite boost_regex boost_system ${Boost_THREAD_LIBRARY_RELEASE} crypto dl pthread ssl z)
 ELSE()
-  target_link_libraries (dmlite boost_regex boost_thread-mt crypto dl pthread ssl z)
+  target_link_libraries (dmlite boost_regex ${Boost_THREAD_LIBRARY_RELEASE} crypto dl pthread ssl z)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 set_target_properties(dmlite PROPERTIES
