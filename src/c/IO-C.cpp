@@ -168,9 +168,11 @@ ssize_t dmlite_fpwrite(dmlite_fd* fd, const void* buffer, size_t count, off_t of
 
 int dmlite_feof(dmlite_fd* fd)
 {
-  TRY(fd, feof)
+  TRY(fd, feof);
   NOT_NULL(fd->stream);
+  
   return fd->stream->eof();
+  
   CATCH(fd, feof)
 }
 
