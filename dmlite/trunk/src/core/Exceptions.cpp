@@ -13,7 +13,7 @@ using namespace dmlite;
 
 DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 {
-  Err("", " DmException()");
+  //Err("", " DmException()");
   // Nothing
 }
 
@@ -21,7 +21,7 @@ DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 
 DmException::DmException(int code): errorCode_(code), errorMsg_()
 {
-  Err("", " DmException(" << code << ")");
+  //Err("", " DmException(" << code << ")");
   // Nothing
 }
 
@@ -36,7 +36,7 @@ DmException::DmException(int code, const std::string& string): errorCode_(code)
      << "] " << string;
   errorMsg_ = os.str();
   
-  Err("", " DmException(..):" << this->errorMsg_);
+  //Err("", " DmException(..):" << this->errorMsg_);
 }
 
 
@@ -56,7 +56,7 @@ DmException::DmException(int code, const char* fmt, ...): errorCode_(code)
 DmException::DmException(int code, const char* fmt, va_list args): errorCode_(code)
 {
   this->setMessage(fmt, args);
-  Err("", " DmException(..): " << errorMsg_);
+  //Err("", " DmException(..): " << errorMsg_);
 }
 
 
@@ -105,6 +105,6 @@ void DmException::setMessage(const char* fmt, va_list args)
   buffer[sizeof(buffer)-1] = '\0';
   
   this->errorMsg_ = buffer;
-  Err("DmException", this->errorMsg_);
+  //Err("DmException", this->errorMsg_);
   
 }
