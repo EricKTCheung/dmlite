@@ -20,6 +20,10 @@ void export_pooldriver()
         .def(vector_indexing_suite< std::vector< Chunk > >()) // only works with operator== and != in Chunk
         ;
 
+    class_<Location, bases < std::vector< Chunk > > >("Location", init<>())
+        .def("toString", &Location::toString)
+        ;
+
     class_<PoolHandlerWrapper, boost::noncopyable>("PoolHandler", no_init)
         .def("getPoolType", boost::python::pure_virtual(&PoolHandler::getPoolType))
         .def("getPoolName", boost::python::pure_virtual(&PoolHandler::getPoolName))
