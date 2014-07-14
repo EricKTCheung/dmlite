@@ -18,6 +18,8 @@ void export_types()
         .def("splitPath", &Url::splitPath)
         .def("joinPath", &Url::joinPath)
         .def("normalizePath", &Url::normalizePath)
+        .def("toString", &Url::toString)
+        .def("queryToString", &Url::queryToString)
     ;
 
 
