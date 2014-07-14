@@ -25,7 +25,7 @@ Logger::~Logger()
     closelog();
 }
 
-void Logger::log(Level lvl, std::string const & msg) const
+void Logger::log(Level lvl, const std::string & msg) const
 {
     syslog(LOG_ERR, "%s", msg.c_str());
 }
