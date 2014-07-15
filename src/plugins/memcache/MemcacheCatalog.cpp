@@ -55,7 +55,7 @@ throw (DmException):
 }
 
 
-MemcacheCatalog::~MemcacheCatalog() throw (DmException)
+MemcacheCatalog::~MemcacheCatalog()
 {
   //this->connPool_->release(this->conn_);
   //this->connPool_->release(this->connNoReply_);
