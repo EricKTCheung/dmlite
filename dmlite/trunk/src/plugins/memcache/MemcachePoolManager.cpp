@@ -143,6 +143,16 @@ void MemcachePoolManager::deletePool(const Pool& pool) throw (DmException)
 
 Location MemcachePoolManager::whereToRead(const std::string& path) throw (DmException)
 {
+    incrementFunctionCounter(WHERETOREAD_DELEGATE);
+    DELEGATE_RETURN(whereToRead, path);
+
+
+  /* The Location should not (ever) be cached, as it holds the dmlite security token
+   * that must be regenerated on every access.
+   * In case that ever changes, here's the code :)
+   */
+
+  /*
   incrementFunctionCounter(WHERETOREAD);
 
   Location loc;
@@ -185,6 +195,7 @@ Location MemcachePoolManager::whereToRead(const std::string& path) throw (DmExce
   }
 
   return loc;
+  */
 }
 
 
