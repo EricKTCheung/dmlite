@@ -181,7 +181,7 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory,
   Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcacheFactory started.");
 }
 
-MemcacheFactory::~MemcacheFactory() throw(DmException)
+MemcacheFactory::~MemcacheFactory()
 {
   if (this->funcCounter_ != 0x00)
     delete this->funcCounter_;

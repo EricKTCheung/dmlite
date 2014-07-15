@@ -59,7 +59,7 @@ namespace dmlite {
       MemcacheConnectionFactory(std::vector<std::string> hosts,
           bool useBinaryProtocol,
           std::string dist);
-      ~MemcacheConnectionFactory();
+      virtual ~MemcacheConnectionFactory();
 
       memcached_st* create() throw ();
       void   destroy(memcached_st*) throw ();
@@ -84,7 +84,7 @@ namespace dmlite {
       MemcacheFactory(CatalogFactory* catalogFactory,
                       PoolManagerFactory* poolManagerFactory) throw (DmException);
       /// Destructor
-      ~MemcacheFactory() throw (DmException);
+      virtual ~MemcacheFactory();
 
       void configure(const std::string& key, const std::string& value) throw (DmException);
       virtual Catalog* createCatalog(PluginManager*) throw (DmException);

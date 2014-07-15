@@ -45,7 +45,7 @@ namespace dmlite {
         throw (DmException);
 
       /// Destructor
-      ~MemcacheCatalog() throw (DmException);
+      virtual ~MemcacheCatalog();
 
       std::string getImplId(void) const throw ();
 
