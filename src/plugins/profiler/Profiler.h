@@ -8,7 +8,6 @@
 #include <ctime>
 #include <iostream>
 #include <string>
-#include <syslog.h>
 
 #ifdef __APPLE__
 #include <mach/clock.h>
@@ -111,7 +110,7 @@ try {\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
 if (failed)\
   throw exception;\
 return ret;
@@ -136,7 +135,7 @@ try {\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
 if (failed)\
   throw exception
 #else
@@ -174,7 +173,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
 if (failed)\
   throw exception;
 
@@ -214,7 +213,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
 if (failed)\
   throw exception;\
 return ret;
@@ -255,7 +254,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-syslog(LOG_USER | LOG_DEBUG, "%s::"#method" %f", this->decoratedId_, duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
 if (failed)\
   throw exception;
 #endif
