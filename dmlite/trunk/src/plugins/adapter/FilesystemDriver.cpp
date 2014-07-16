@@ -33,6 +33,8 @@ FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp
     secCtx_(NULL), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life),
     retryLimit_(retryLimit), fqans_(NULL), nFqans_(0), adminUsername_(adminUsername)
 {
+  
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " username: " << adminUsername);
   // nothing to do
 }
 
@@ -40,6 +42,7 @@ FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp
 
 FilesystemPoolDriver::~FilesystemPoolDriver()
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
   if (this->fqans_ != NULL) {
     for (int i = 0; i < this->nFqans_; ++i)
       delete [] this->fqans_[i];
@@ -54,14 +57,21 @@ FilesystemPoolDriver::~FilesystemPoolDriver()
 //
 void FilesystemPoolDriver::setDpmApiIdentity()
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  
   FunctionWrapper<int> reset(dpm_client_resetAuthorizationId);
   reset();
 
   // can not do any more if there is no security context
-  if (!secCtx_) { return; }
+  if (!secCtx_) {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    return;
+    
+  }
 
   uid_t uid = secCtx_->user.getUnsigned("uid");
-
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "uid=" << uid);
+  
   // nothing more to do for root
   if (uid == 0) { return; }
 
@@ -71,10 +81,14 @@ void FilesystemPoolDriver::setDpmApiIdentity()
         (char*)secCtx_->user.name.c_str())();
 
   if (fqans_ && nFqans_) {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "fqan=" << fqans_[0]);
     FunctionWrapper<int, char*, char**, int>(
         dpm_client_setVOMS_data,
           fqans_[0], fqans_, nFqans_)();
   }
+  
+  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. uid=" << uid <<
+      " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
 
 std::string FilesystemPoolDriver::getImplId() const throw ()
@@ -86,6 +100,7 @@ std::string FilesystemPoolDriver::getImplId() const throw ()
 
 void FilesystemPoolDriver::setStackInstance(StackInstance* si) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Entering");
   this->si_ = si;
 }
 
@@ -93,8 +108,10 @@ void FilesystemPoolDriver::setStackInstance(StackInstance* si) throw (DmExceptio
 
 void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Entering");
+  
   if (this->fqans_ != NULL) {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Deleting previous fqans");
     for (int i = 0; i < this->nFqans_; ++i)
       delete [] this->fqans_[i];
     delete [] this->fqans_;
@@ -106,7 +123,11 @@ void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw 
   // Store
   this->secCtx_ = ctx;
 
-  if (!ctx) { return; }
+  if (!ctx) { 
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    return;
+    
+  }
 
   // String => const char*
   this->nFqans_ = ctx->groups.size();
@@ -121,6 +142,8 @@ void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw 
     this->userId_ = this->secCtx_->credentials.remoteAddress;
   else
     this->userId_ = this->secCtx_->credentials.clientName;
+  
+  Log(Logger::INFO, adapterlogmask, adapterlogname, "userid=" << userId_ << " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
 
 
@@ -134,6 +157,8 @@ PoolHandler* FilesystemPoolDriver::createPoolHandler(const std::string& poolName
 
 void FilesystemPoolDriver::toBeCreated(const Pool& pool) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "pool=" << pool.name);
+  
   setDpmApiIdentity();
 
   // Need to create the pool here, or DPM won't see it!
@@ -175,6 +200,7 @@ void FilesystemPoolDriver::toBeCreated(const Pool& pool) throw (DmException)
           sizeof(dpmPool.rs_policy));
 
   try {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_addpool pool: " << dpmPool.poolname);
     FunctionWrapper<int, dpm_pool*>(dpm_addpool, &dpmPool)();
     delete [] dpmPool.gids;
   }
@@ -188,6 +214,12 @@ void FilesystemPoolDriver::toBeCreated(const Pool& pool) throw (DmException)
   
   for (unsigned i = 0; i < filesystems.size(); ++i) {
     Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
+    
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_addfs pool: " << dpmPool.poolname <<
+        " server=" << fs.getString("server") <<
+        " fs=" << fs.getString("fs") <<
+        " st=" << fs.getLong("status") 
+       );
     
     FunctionWrapper<int, char*, char*, char*, int, int>(dpm_addfs,
                                                         dpmPool.poolname,
@@ -209,6 +241,8 @@ void FilesystemPoolDriver::justCreated(const Pool& pool) throw (DmException)
 
 void FilesystemPoolDriver::update(const Pool& pool) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "pool=" << pool.name);
+  
   setDpmApiIdentity();
 
   std::vector<boost::any> groups = pool.getVector("groups");
@@ -249,6 +283,7 @@ void FilesystemPoolDriver::update(const Pool& pool) throw (DmException)
           sizeof(dpmPool.rs_policy));
 
   try {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_modifypool pool: " << dpmPool.poolname);
     FunctionWrapper<int, dpm_pool*>(dpm_modifypool, &dpmPool)();
     delete [] dpmPool.gids;
   }
@@ -263,6 +298,12 @@ void FilesystemPoolDriver::update(const Pool& pool) throw (DmException)
   for (unsigned i = 0; i < filesystems.size(); ++i) {
     Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
     
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_modifyfs pool: " << dpmPool.poolname <<
+        " server=" << fs.getString("server") <<
+        " fs=" << fs.getString("fs") <<
+        " st=" << fs.getLong("status") 
+       );
+     
     FunctionWrapper<int, char*, char*, int, int>(dpm_modifyfs,
                                                  (char*)fs.getString("server").c_str(),
                                                  (char*)fs.getString("fs").c_str(),
@@ -275,15 +316,20 @@ void FilesystemPoolDriver::update(const Pool& pool) throw (DmException)
 
 void FilesystemPoolDriver::toBeDeleted(const Pool& pool) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "pool=" << pool.name);
+  
   setDpmApiIdentity();
 
   // Delete filesystems
   int nFs;
   struct dpm_fs* dpmFs = NULL;
   
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_getpoolfs(" << pool.name << ")");
   if (dpm_getpoolfs((char*)pool.name.c_str(), &nFs, &dpmFs) == 0) {
-    for (int i = 0; i < nFs; ++i)
+    for (int i = 0; i < nFs; ++i) {
+      Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_rmfs(" << dpmFs[i].server << ", " << dpmFs[i].fs << ")");
       FunctionWrapper<int, char*, char*>(dpm_rmfs, dpmFs[i].server, dpmFs[i].fs)();
+    }
     free(dpmFs);
   }
   else if (serrno != EINVAL) {
@@ -292,6 +338,7 @@ void FilesystemPoolDriver::toBeDeleted(const Pool& pool) throw (DmException)
   
   // Delete it here
   try {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_rmpool(" << pool.name << ")");
     FunctionWrapper<int, char*>(dpm_rmpool, (char*)pool.name.c_str())();
   }
   catch (DmException& e) {
@@ -299,6 +346,8 @@ void FilesystemPoolDriver::toBeDeleted(const Pool& pool) throw (DmException)
     throw DmException(DMLITE_SYSERR(DMLITE_NO_SUCH_POOL),
                       "Pool %s not found", pool.name.c_str());
   }
+  
+  Log(Logger::INFO, adapterlogmask, adapterlogname, "pool=" << pool.name);
 }
 
 
@@ -336,8 +385,11 @@ std::string FilesystemPoolHandler::getPoolName(void) throw (DmException)
 
 uint64_t FilesystemPoolHandler::getTotalSpace(void) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << this->poolName_);
   driver_->setDpmApiIdentity();
   this->update();
+  
+  Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " returns " << total_);
   return this->total_;
 }
 
@@ -345,8 +397,10 @@ uint64_t FilesystemPoolHandler::getTotalSpace(void) throw (DmException)
 
 uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_);
   driver_->setDpmApiIdentity();
   this->update();
+  Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " returns " << free_);
   return this->free_;
 }
 
@@ -354,6 +408,7 @@ uint64_t FilesystemPoolHandler::getFreeSpace(void) throw (DmException)
 
 bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_);
   driver_->setDpmApiIdentity();
 
   this->getFilesystems();
@@ -361,10 +416,14 @@ bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmExceptio
     {
         boost::lock_guard< boost::mutex > l(mtx);
         for (unsigned i = 0; i < dpmfs_[poolName_].dpmfs_.size(); ++i) {
-            if ((write && dpmfs_[poolName_].dpmfs_[i].status == 0) || (!write && dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED))
+            if ((write && dpmfs_[poolName_].dpmfs_[i].status == 0) || (!write && dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED)) {
+	        Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " returns true.");
                 return true;
+	    }
         }
     }
+    
+  Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " returns true.");
   return false;
 }
 
@@ -372,8 +431,12 @@ bool FilesystemPoolHandler::poolIsAvailable(bool write = true) throw (DmExceptio
 
 bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (DmException)
 {
-  if (replica.status != dmlite::Replica::kAvailable)
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn);
+  
+  if (replica.status != dmlite::Replica::kAvailable) {
+    Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " returns false");
     return false;
+  }
 
   driver_->setDpmApiIdentity();
 
@@ -384,10 +447,16 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
   std::string filesystem = Extensible::anyToString(replica["filesystem"]);
   for (unsigned i = 0; i < dpmfs_[poolName_].dpmfs_.size(); ++i) {
     if (filesystem == dpmfs_[poolName_].dpmfs_[i].fs && replica.server == dpmfs_[poolName_].dpmfs_[i].server) {
+      
+      Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " returns " <<
+	( (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED) ? "true" : "false") );
       return (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED);
     }
+    
   }
   }
+  
+  Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " returns false");
   return false;
 }
 
@@ -398,6 +467,8 @@ void FilesystemPoolHandler::update() throw (DmException)
   int npools;
   struct dpm_pool *pool_array;
 
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_);
+  
   if (dpm_getpools(&npools, &pool_array) != 0)
     ThrowExceptionFromSerrno(serrno);
 
@@ -429,6 +500,7 @@ void FilesystemPoolHandler::update() throw (DmException)
 
 Location FilesystemPoolHandler::whereToRead(const Replica& replica) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << replica.rfn);
   driver_->setDpmApiIdentity();
 
   Url rloc(replica.rfn);
@@ -456,6 +528,7 @@ Location FilesystemPoolHandler::whereToRead(const Replica& replica) throw (DmExc
                                                     this->driver_->tokenPasswd_,
                                                     this->driver_->tokenLife_);
   
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << replica.rfn << " returns" << single.toString());
   return Location(1, single);
 }
 
@@ -463,6 +536,7 @@ Location FilesystemPoolHandler::whereToRead(const Replica& replica) throw (DmExc
 
 void FilesystemPoolHandler::removeReplica(const Replica& replica) throw (DmException)
 {
+  Log(Logger::NOTICE, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << replica.rfn);
   driver_->setDpmApiIdentity();
 
   if (dpm_delreplica((char*)replica.rfn.c_str()) != 0)
@@ -473,6 +547,8 @@ void FilesystemPoolHandler::removeReplica(const Replica& replica) throw (DmExcep
 
 Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << sfn);
+  
   driver_->setDpmApiIdentity();
 
   struct dpm_putfilereqx    reqfile;
@@ -592,6 +668,7 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
         reset();
       }
 
+      Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Invoking dpm_putx. poolname:" << poolName_ << " sfn:" << sfn);
       FunctionWrapper<int, int, dpm_putfilereqx*, int, char**, char*, int,
         time_t, char*, int*, dpm_putfilestatus**>
           (dpm_putx, 1, &reqfile, 2, rfiov, (char *)"dmlite::adapter::put", flags,
@@ -603,6 +680,7 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
       }
 
     } else {
+      Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Invoking dpm_put. poolname:" << poolName_ << " sfn:" << sfn);
       FunctionWrapper<int, int, dpm_putfilereq*, int, char**, char*, int,
         time_t, char*, int*, dpm_putfilestatus**>
           (dpm_put, 1, reinterpret_cast<struct dpm_putfilereq *>(&reqfile), 2, rfiov,
@@ -626,12 +704,18 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
       select(0, 0, 0, 0, &tmpdel);
       dpm_free_pfilest(nReplies, statuses);
       statuses = 0;
+      
+      Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Invoking dpm_getstatus_putreq. poolname:" << poolName_);
       putReq();
+      
+      
       ++npoll;
       if (!nReplies)
         throw DmException(DMLITE_SYSERR(serrno),
                           "Didn't get a destination from DPM");
 
+      Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Invoking dpm_getstatus_putreq. status:" << statuses[0].status);
+      
       wait = (statuses[0].status == DPM_QUEUED  ||
               statuses[0].status == DPM_RUNNING ||
               statuses[0].status == DPM_ACTIVE);
@@ -674,6 +758,8 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
                                                          url.path,
                                                          this->driver_->tokenPasswd_,
                                                          this->driver_->tokenLife_, true);
+    
+    Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << sfn << " returns" << single.toString());
     return Location(1, single);
   }
   catch (...) {
@@ -690,6 +776,8 @@ dpm_fs FilesystemPoolHandler::chooseFilesystem(std::string& requestedFs) throw (
     dpm_fs chosenFs;
     bool fsFound = false;
 
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " requestedFs:" << requestedFs);
+    
     getFilesystems();
 
     
@@ -713,6 +801,7 @@ dpm_fs FilesystemPoolHandler::chooseFilesystem(std::string& requestedFs) throw (
 
     }
 
+    Log(Logger::INFO, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " chosenFs:" << chosenFs.fs);
     return chosenFs;
 }
 
@@ -734,6 +823,7 @@ std::string FilesystemPoolHandler::getDateString() throw ()
 
 void FilesystemPoolHandler::cancelWrite(const Location& loc) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " loc:" << loc.toString());
   driver_->setDpmApiIdentity();
 
   if (loc.empty())
@@ -749,13 +839,16 @@ int FilesystemPoolHandler::getFilesystems() throw (DmException)
     struct dpm_fs* fs_array = NULL;
     time_t timenow = time(0);
 
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ );
+    
     // Don't update if the last update is too recent
     {
         boost::lock_guard< boost::mutex> l(mtx);
-        if ( dpmfs_[poolName_].dpmfs_lastupd >= timenow - 30 ) 
+        if ( dpmfs_[poolName_].dpmfs_lastupd >= timenow - 60 ) 
 	  return dpmfs_[poolName_].dpmfs_.size();
     }
 
+    
     if (dpm_getpoolfs((char*)poolName_.c_str(),  &nfs, &fs_array) != 0)
         ThrowExceptionFromSerrno(serrno);
 
@@ -773,5 +866,7 @@ int FilesystemPoolHandler::getFilesystems() throw (DmException)
         dpmfs_[poolName_].dpmfs_lastupd = timenow;
         
     }
-            return nfs;
+    
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " returns " << nfs);
+    return nfs;
 }
