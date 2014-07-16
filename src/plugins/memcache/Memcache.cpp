@@ -278,7 +278,7 @@ PoolManager* MemcacheFactory::createPoolManager(PluginManager* pm) throw (DmExce
     this->funcCounter_ = new MemcacheFunctionCounter(this->funcCounterLogFreq_);
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
-      "Creating MemcachePoolManager nesting: " << (unsigned long)this->nestedPoolManagerFactory_);
+      "Creating MemcachePoolManager");
   //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
   //    "Memcache",
   //    "Creating MemcachePoolManager nesting", (unsigned long)this->nestedPoolManagerFactory_);
