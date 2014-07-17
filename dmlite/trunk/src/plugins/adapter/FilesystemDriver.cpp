@@ -124,7 +124,7 @@ void FilesystemPoolDriver::setSecurityContext(const SecurityContext* ctx) throw 
   this->secCtx_ = ctx;
 
   if (!ctx) { 
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    Log(Logger::INFO, adapterlogmask, adapterlogname, "No security context. Exiting.");
     return;
     
   }

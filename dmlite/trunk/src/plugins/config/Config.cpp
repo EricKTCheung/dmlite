@@ -122,6 +122,7 @@ void ConfigFactory::configure(const std::string& key,
   }
   else
   if (key == "Include" || key == "include") {
+    Log(Logger::BASE, Logger::unregistered, "config", "Processing config file:" << value);
     this->processIncludes(value);
   }
   else
