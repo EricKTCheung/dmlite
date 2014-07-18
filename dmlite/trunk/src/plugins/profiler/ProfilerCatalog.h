@@ -8,12 +8,7 @@
 
 #include <dmlite/cpp/catalog.h>
 
-#include "utils/logger.h"
-
 namespace dmlite {
-
-extern Logger::bitmask profilerlogmask;
-extern Logger::component profilerlogname;
 
   // Profiler catalog.
   class ProfilerCatalog: public Catalog, private ProfilerXrdMon

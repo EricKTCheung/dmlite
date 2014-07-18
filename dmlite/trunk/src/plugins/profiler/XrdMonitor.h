@@ -7,7 +7,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string>
-#include <syslog.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
@@ -21,6 +20,8 @@
 #include <boost/thread/mutex.hpp>
 
 #include "XrdXrootdMonData.hh"
+
+#include "utils/logger.h"
 
 #if defined(_BIG_ENDIAN) || defined(__BIG_ENDIAN__) || \
    defined(__IEEE_BIG_ENDIAN) || \
@@ -86,6 +87,9 @@ extern "C" unsigned long long Swap_n2hll(unsigned long long x);
 
 
 namespace dmlite {
+
+  extern Logger::bitmask profilerlogmask;
+  extern Logger::component profilerlogname;
 
   class XrdMonitor {
     public:
