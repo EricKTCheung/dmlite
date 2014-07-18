@@ -58,7 +58,6 @@ void ProfilerCatalog::changeDir(const std::string& path) throw (DmException)
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path);
   //sendUserIdentOrNOP();
   PROFILE(changeDir, path);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -115,7 +114,6 @@ void ProfilerCatalog::addReplica(const Replica& replica) throw (DmException)
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "replica: " << replica.rfn);
   //sendUserIdentOrNOP();
   PROFILE(addReplica, replica);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -125,7 +123,6 @@ void ProfilerCatalog::deleteReplica(const Replica& replica) throw (DmException)
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "replica: " << replica.rfn);
   //sendUserIdentOrNOP();
   PROFILE(deleteReplica, replica);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -144,7 +141,6 @@ void ProfilerCatalog::symlink(const std::string& oldpath, const std::string& new
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "oldpath: " << oldpath << ", newpath: " << newpath);
   //sendUserIdentOrNOP();
   PROFILE(symlink, oldpath, newpath);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -164,7 +160,6 @@ void ProfilerCatalog::unlink(const std::string& path) throw (DmException)
   //sendUserIdentOrNOP();
   //reportXrdRedirCmd(path, XROOTD_MON_RM);
   PROFILE(unlink, path);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -175,7 +170,6 @@ void ProfilerCatalog::create(const std::string& path, mode_t mode) throw (DmExce
   //sendUserIdentOrNOP();
   //reportXrdRedirCmd(path, XROOTD_MON_OPENC);
   PROFILE(create, path, mode);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -194,7 +188,6 @@ void ProfilerCatalog::setMode(const std::string& path, mode_t mode) throw (DmExc
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", mode: " << mode);
   //sendUserIdentOrNOP();
   PROFILE(setMode, path, mode);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -209,7 +202,6 @@ void ProfilerCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newG
         );
   //sendUserIdentOrNOP();
   PROFILE(setOwner, path, newUid, newGid, fs);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -219,7 +211,6 @@ void ProfilerCatalog::setSize(const std::string& path, size_t newSize) throw (Dm
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", newSize: " << newSize);
   //sendUserIdentOrNOP();
   PROFILE(setSize, path, newSize);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -233,7 +224,6 @@ void ProfilerCatalog::setChecksum(const std::string& path, const std::string& cs
         );
   //sendUserIdentOrNOP();
   PROFILE(setChecksum, path, csumtype, csumvalue);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -243,7 +233,6 @@ void ProfilerCatalog::setAcl(const std::string& path, const Acl& acls) throw (Dm
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", acls: " << acls.serialize());
   //sendUserIdentOrNOP();
   PROFILE(setAcl, path, acls);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -253,7 +242,6 @@ void ProfilerCatalog::utime(const std::string& path, const struct utimbuf* buf) 
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", buf: " << buf);
   //sendUserIdentOrNOP();
   PROFILE(utime, path, buf);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -272,7 +260,6 @@ void ProfilerCatalog::setComment(const std::string& path, const std::string& com
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", comment: " << comment);
   //sendUserIdentOrNOP();
   PROFILE(setComment, path, comment);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -282,7 +269,6 @@ void ProfilerCatalog::setGuid(const std::string& path, const std::string& guid) 
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", guid: " << guid);
   //sendUserIdentOrNOP();
   PROFILE(setGuid, path, guid);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -293,7 +279,6 @@ void ProfilerCatalog::updateExtendedAttributes(const std::string& path,
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path << ", attr size: " << (attr.end() - attr.begin()));
   //sendUserIdentOrNOP();
   PROFILE(updateExtendedAttributes, path, attr);  
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -313,7 +298,6 @@ void ProfilerCatalog::closeDir(Directory* dir) throw (DmException)
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "dir: " << dir);
   //sendUserIdentOrNOP();
   PROFILE(closeDir, dir);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -342,7 +326,6 @@ void ProfilerCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
   //sendUserIdentOrNOP();
   //reportXrdRedirCmd(path, XROOTD_MON_MKDIR);
   PROFILE(makeDir, path, mode);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -353,7 +336,6 @@ void ProfilerCatalog::rename(const std::string& oldPath, const std::string& newP
   //sendUserIdentOrNOP();
   //reportXrdRedirCmd(oldPath, XROOTD_MON_MV);
   PROFILE(rename, oldPath, newPath);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -364,7 +346,6 @@ void ProfilerCatalog::removeDir(const std::string& path) throw (DmException)
   //sendUserIdentOrNOP();
   //reportXrdRedirCmd(path, XROOTD_MON_RMDIR);
   PROFILE(removeDir, path);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
 
 
@@ -383,5 +364,4 @@ void ProfilerCatalog::updateReplica(const Replica& replica) throw (DmException)
   Log(Logger::DEBUG, profilerlogmask, profilerlogname, "replica: " << replica.rfn);
   //sendUserIdentOrNOP();
   PROFILE(updateReplica, replica);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Exiting.");
 }
