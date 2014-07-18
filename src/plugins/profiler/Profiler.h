@@ -110,7 +110,7 @@ try {\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
 if (failed)\
   throw exception;\
 return ret;
@@ -135,7 +135,7 @@ try {\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
 if (failed)\
   throw exception
 #else

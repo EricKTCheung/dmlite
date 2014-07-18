@@ -29,8 +29,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   try {
     file_size = this->fstat().st_size;
   } catch (DmException& e) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "Could not determine filesize for %s: %d, %s",
-        pfn.c_str(), e.code(), e.what());
+    Err(profilerlogname, "Could not determine filesize for " << pfn << ": " << e.code() << ", " << e.what());
   }
 
   //test send fileMonitoring msg
@@ -151,8 +150,7 @@ ProfilerIODriver::~ProfilerIODriver() {
 
   reportXrdFileDiscAndFlushOrNOP();
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-      __func__);
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "");
 }
 
 

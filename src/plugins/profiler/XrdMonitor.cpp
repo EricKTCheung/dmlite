@@ -98,41 +98,31 @@ int XrdMonitor::initOrNOP()
   // initialize the message buffers
   ret = initRedirBuffer(redir_max_buffer_size_);
   if (ret < 0) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
-        "initRedirBuffer failed",
-        ret);
+    Err(profilerlogname, "initRedirBuffer failed: error code = " << ret);
     return ret;
   }
 
   ret = insertRedirBufferWindowEntry();
   if (ret < 0) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
-        "insertRedirBufferWindowEntry failed",
-        ret);
+    Err(profilerlogname, "insertRedirBufferWindowEntry failed: error code = " << ret);
     return ret;
   }
 
   ret = initFileBuffer(file_max_buffer_size_);
   if (ret < 0) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
-        "initFileBuffer failed",
-        ret);
+    Err(profilerlogname, "initFileBuffer failed: error code = " << ret);
     return ret;
   }
 
   ret = initCollector();
   if (ret < 0) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
-        "initCollector failed",
-        ret);
+    Err(profilerlogname, "initCollector failed: error code = " << ret);
     return ret;
   }
 
   ret = initServerIdentVars();
   if (ret < 0) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: error code = %d",
-        "initServerIdentVars failed",
-        ret);
+    Err(profilerlogname, "initServerIdentVars failed: error code = " << ret);
     return ret;
   }
 
@@ -184,11 +174,12 @@ int XrdMonitor::initCollector()
     std::string collector_addr = *it;
 
     if (i >= XrdMonitor::collector_max_) {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: maximum of %d is already reached",
-          "could not add another collector server address",
-          collector_addr.c_str(),
-          XrdMonitor::collector_max_);
-
+      Err(profilerlogname, "could not add another collector server address: "
+              << collector_addr
+              << ": maximum of "
+              << XrdMonitor::collector_max_
+              << " is already reached"
+          );
       break;
     }
 
@@ -204,11 +195,10 @@ int XrdMonitor::initCollector()
     if (server.size() > 0) {
       host = server[0].c_str();
     } else {
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
-          "could not read the collector server address",
-          "adding a server failed",
-          "could not parse value",
-          collector_addr.c_str());
+      Err(profilerlogname,
+              "could not read the collector server address: adding a server failed: could not parse value = "
+              << collector_addr.c_str()
+         );
       continue;
     }
     if (server.size() > 1) {
@@ -224,11 +214,10 @@ int XrdMonitor::initCollector()
     ret = getaddrinfo(host, port, &hints, &res);
 
     if (ret != 0) { // if it fails, we do not need to clean up
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
-          "could not connect to the collector server address",
-          "adding a server failed",
-          "could not connect",
-          collector_addr.c_str());
+      Err(profilerlogname,
+              "could not connect to the collector server address: adding a server failed: could not connect = "
+              << collector_addr.c_str()
+         );
       continue;
     }
 
@@ -263,10 +252,10 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
     if (ret != buf_len) {
       char errbuffer[256];
       strerror_r(errsv, errbuffer, 256);
-      syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s collector = %s, reason = %s\n",
-            "sending a message failed",
-            collector_[i].name.c_str(),
-            errbuffer);
+      Err(profilerlogname, "sending a message failed collector = "
+              << collector_[i].name.c_str()
+              << ", reason = " << errbuffer
+         );
     }
   }
 
@@ -306,14 +295,11 @@ int XrdMonitor::sendServerIdent()
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&pgm=%s&ver=%s",
       username_.c_str(), pid_, sid_, hostname_.c_str(), processname_.c_str(), "1.8.8");
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
-        "send serverident",
-        info);
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "send serverident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPIDNT, 0, info);
   if (ret) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "failed sending ServerIdent msg");
+    Err(profilerlogname, "failed sending ServerIdent msg: error code = " << ret);
   }
   return ret;
 }
@@ -327,14 +313,11 @@ int XrdMonitor::sendShortUserIdent(const kXR_unt32 dictid)
   snprintf(info, 1024+256, "%s.%d:%lld@%s",
            username_.c_str(), pid_, sid_, hostname_.c_str());
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
-        "send short userident",
-        info);
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send short userident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "failed sending UserIdent msg");
+    Err(profilerlogname, "failed sending UserIdent msg: error code = " << ret);
   }
   return ret;
 }
@@ -388,14 +371,11 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
            protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
-        "send userident",
-        info);
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send userident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "failed sending UserIdent msg");
+    Err(profilerlogname, "failed sending UserIdent msg, error code = " << ret);
   }
   return ret;
 }
@@ -412,14 +392,11 @@ int XrdMonitor::sendFileOpen(const kXR_unt32 fileid, const std::string &path)
            username_.c_str(), pid_, sid_, hostname_.c_str(),
            path.c_str());
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:\n%s",
-        "send fileopen",
-        info);
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send fileopen:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPPATH, fileid, info);
   if (ret) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "failed sending FileOpen/Path msg");
+    Err(profilerlogname, "failed sending FileOpen/Path msg, error code = " << ret);
   }
   return ret;
 }
@@ -605,11 +582,9 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
     if (msg == 0x00) {
       int ret = XrdMonitor::sendRedirBuffer();
       if (ret) {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "failed sending REDIR msg");
+        Err(profilerlogname, "failed sending REDIR msg, error code = " << ret);
       } else {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "sent REDIR msg");
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent REDIR msg");
       }
       msg = getRedirBufferNextEntry(slots);
     }
@@ -628,11 +603,9 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
   }
 
   if (msg != 0x00) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "added new REDIR msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new REDIR msg");
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "did not send/add new REDIR msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -655,11 +628,9 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
     if (msg == 0x00) {
       int ret = XrdMonitor::sendRedirBuffer();
       if (ret) {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "failed sending REDIR msg");
+        Err(profilerlogname, "failed sending REDIR msg, error code = " << ret);
       } else {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "sent REDIR msg");
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent REDIR msg");
       }
       msg = getRedirBufferNextEntry(slots);
     }
@@ -678,11 +649,9 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
   }
 
   if (msg != 0x00) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "added new REDIR msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new REDIR msg");
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "did not send/add new REDIR msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -790,11 +759,9 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
     if (msg == 0x00) {
       int ret = XrdMonitor::sendFileBuffer();
       if (ret) {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "failed sending FILE msg");
+        Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "sent FILE msg");
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileOPN *) getFileBufferNextEntry(slots);
     }
@@ -817,11 +784,9 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
   }
 
   if (msg != 0x00) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "added new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "did not send/add new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -840,11 +805,9 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
     if (msg == 0x00) {
       int ret = XrdMonitor::sendFileBuffer();
       if (ret) {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "failed sending FILE msg");
+        Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "sent FILE msg");
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileCLS *) getFileBufferNextEntry(slots);
     }
@@ -866,11 +829,9 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
   }
 
   if (msg != 0x00) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "added new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "did not send/add new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -888,11 +849,9 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
     if (msg == 0x00) {
       int ret = XrdMonitor::sendFileBuffer();
       if (ret) {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "failed sending FILE msg");
+        Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-            "sent FILE msg");
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileDSC *) getFileBufferNextEntry(slots);
     }
@@ -908,11 +867,9 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
   }
 
   if (msg != 0x00) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "added new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "did not send/add new FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -920,10 +877,8 @@ void XrdMonitor::flushXrdFileStream()
 {
   int ret = XrdMonitor::sendFileBuffer();
   if (ret) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "failed sending FILE msg");
+    Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
   } else {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s",
-        "sent FILE msg");
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
   }
 }
