@@ -41,6 +41,7 @@ NsAdapterINode::NsAdapterINode(unsigned retryLimit, bool hostDnIsRoot, std::stri
                        fqans_(NULL), nFqans_(0), hostDnIsRoot_(hostDnIsRoot), hostDn_(hostDn),
                        secCtx_(NULL)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " hostDn: " << hostDn);
   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
   pthread_once(&once_control, ns_init_routine);
 }
@@ -60,14 +61,21 @@ NsAdapterINode::~NsAdapterINode() throw (DmException)
 //
 void NsAdapterINode::setDpnsApiIdentity()
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  
   FunctionWrapper<int> reset(dpns_client_resetAuthorizationId);
   reset();
 
   // can not do any more if there is no security context
-  if (!secCtx_) { return; }
+  if (!secCtx_) {
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    return;
+    
+  }
 
   uid_t uid = secCtx_->user.getUnsigned("uid");
-
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "uid=" << uid);
+  
   // nothing more to do for root
   if (uid == 0) { return; }
 
@@ -136,15 +144,17 @@ void NsAdapterINode::setSecurityContext(const SecurityContext* ctx) throw (DmExc
 void NsAdapterINode::updateExtendedAttributes(ino_t inode,
                                           const Extensible& attr) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  
   setDpnsApiIdentity();
 
   char path[kPathMax];
   FunctionWrapper<int, char*, u_signed64, char*>(dpns_getpath, (char*) this->dpnsHost_.c_str(),
                                                  (u_signed64) inode, (char*) path)();
 
-  syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s::%s: %s = %s provided by %s", this->getImplId().c_str(),
-      "updateExtendedAttributes", "Full file path", path, this->dpnsHost_.c_str());
-
+  Log(Logger::DEBUG, adapterlogmask, adapterlogname, this->getImplId().c_str() << "::" <<
+     "updateExtendedAttributes: Full file path = " << path << " provided by " this->dpnsHost_.c_str()"");
+  
   std::string path_str((const char *) path);
 
   this->si_->getCatalog()->updateExtendedAttributes(path_str, attr);
