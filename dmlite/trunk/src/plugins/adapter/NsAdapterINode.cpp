@@ -153,7 +153,7 @@ void NsAdapterINode::updateExtendedAttributes(ino_t inode,
                                                  (u_signed64) inode, (char*) path)();
 
   Log(Logger::DEBUG, adapterlogmask, adapterlogname, this->getImplId().c_str() << "::" <<
-     "updateExtendedAttributes: Full file path = " << path << " provided by " this->dpnsHost_.c_str()"");
+     "updateExtendedAttributes: Full file path = " << path << " provided by " << this->dpnsHost_.c_str());
   
   std::string path_str((const char *) path);
 
