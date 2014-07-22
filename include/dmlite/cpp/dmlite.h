@@ -11,6 +11,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include "utils/logger.h"
 
 /// Namespace for the dmlite C++ API
 namespace dmlite {
@@ -146,6 +147,9 @@ namespace dmlite {
     PluginManager(const PluginManager&);
   };
 
+  extern Logger::bitmask stackinstancelogmask;
+  extern Logger::component stackinstancelogname;
+  
   /// We need to have something that allows one plugin stack to access
   /// another plugin stack, so this represents a instantiation
   /// of each plugin stack.

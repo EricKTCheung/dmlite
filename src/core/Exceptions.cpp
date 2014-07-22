@@ -56,7 +56,7 @@ DmException::DmException(int code, const char* fmt, ...): std::exception(), erro
 DmException::DmException(int code, const char* fmt, va_list args): std::exception(), errorCode_(code)
 {
   this->setMessage(fmt, args);
-  Err("", " DmException(..): " << errorMsg_);
+  
 }
 
 
