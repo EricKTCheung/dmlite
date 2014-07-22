@@ -10,7 +10,13 @@
 #include <map>
 #include <vector>
 
+#include "utils/logger.h"
+
 namespace dmlite {
+
+
+extern Logger::bitmask mysqllogmask;
+extern Logger::component mysqllogname;
 
 /// Prepared statement wrapper.
 class Statement {

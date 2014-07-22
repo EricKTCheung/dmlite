@@ -5,6 +5,7 @@
 #include "AuthnMySql.h"
 #include "Queries.h"
 #include "MySqlFactories.h"
+#include "utils/logger.h"
 
 using namespace dmlite;
 
@@ -15,6 +16,8 @@ AuthnMySql::AuthnMySql(NsMySqlFactory* factory,
   factory_(factory), nsDb_(db), mapFile_(mapfile), hostDnIsRoot_(hostDnIsRoot),
   hostDn_(hostDn)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Ctor");
+  
   // Nothing
 }
 
@@ -22,6 +25,7 @@ AuthnMySql::AuthnMySql(NsMySqlFactory* factory,
 
 AuthnMySql::~AuthnMySql()
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Dtor");
   // Nothing
 }
 
@@ -36,17 +40,25 @@ std::string AuthnMySql::getImplId(void) const throw()
 
 SecurityContext* AuthnMySql::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, cred.clientName << " " << cred.remoteAddress);
+  
   UserInfo user;
   std::vector<GroupInfo> groups;
 
   this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
-  return new SecurityContext(cred, user, groups);
+  
+  SecurityContext* sec = new SecurityContext(cred, user, groups);
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, cred.clientName << " " << cred.remoteAddress);
+  return sec;
 }
 
 
 
 SecurityContext* AuthnMySql::createSecurityContext(void) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  
   UserInfo user;
   std::vector<GroupInfo> groups;
   GroupInfo group;
@@ -57,13 +69,18 @@ SecurityContext* AuthnMySql::createSecurityContext(void) throw (DmException)
   group["gid"] = 0;
   groups.push_back(group);
 
-  return new SecurityContext(SecurityCredentials(), user, groups);
+  SecurityContext* sec = new SecurityContext(SecurityCredentials(), user, groups);
+  Log(Logger::INFO, mysqllogmask, mysqllogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
+  
+  return sec;
 }
 
 
 
 GroupInfo AuthnMySql::newGroup(const std::string& gname) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "group:" << gname);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   if (mysql_query(conn, "BEGIN") != 0)
@@ -116,6 +133,7 @@ GroupInfo AuthnMySql::newGroup(const std::string& gname) throw (DmException)
   g["gid"]    = gid;
   g["banned"] = 0;
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. group:" << gname << " gid:" << gid);
   return g;
 }
 
@@ -127,6 +145,9 @@ GroupInfo AuthnMySql::getGroup(const std::string& groupName) throw (DmException)
   gid_t     gid;
   int       banned;
   char      groupname[256], meta[1024];
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "group:" << groupName);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   
   Statement stmt(conn, this->nsDb_, STMT_GET_GROUPINFO_BY_NAME);
@@ -147,6 +168,8 @@ GroupInfo AuthnMySql::getGroup(const std::string& groupName) throw (DmException)
   group["banned"] = banned;
   group.deserialize(meta);
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. group:" << groupname << " gid:" << gid);
+  
   return group;
 }
 
@@ -159,6 +182,8 @@ GroupInfo AuthnMySql::getGroup(const std::string& key,
   gid_t     gid;
   int       banned;
   char      groupname[256], meta[1024];
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "key:" << key);
   
   if (key != "gid")
     throw DmException(DMLITE_UNKNOWN_KEY,
@@ -186,6 +211,7 @@ GroupInfo AuthnMySql::getGroup(const std::string& key,
   group["banned"] = banned;
   group.deserialize(meta);
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. group:" << groupname << " gid:" << gid);
   return group;
 }
 
@@ -193,6 +219,8 @@ GroupInfo AuthnMySql::getGroup(const std::string& key,
 
 void AuthnMySql::updateGroup(const GroupInfo& group) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "grp:" << group.name);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_GROUP);
   
@@ -204,24 +232,30 @@ void AuthnMySql::updateGroup(const GroupInfo& group) throw (DmException)
   stmt.bindParam(2, group.name);
   
   stmt.execute();
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting. group:" << group.name);
 }
 
 
 
 void AuthnMySql::deleteGroup(const std::string& groupName) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "grp:" << groupName);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_GROUP);
   
   stmt.bindParam(0, groupName);
   
   stmt.execute();
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting. group:" << groupName);
 }
 
 
 
 UserInfo AuthnMySql::newUser(const std::string& uname) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "usr:" << uname);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   if (mysql_query(conn, "BEGIN") != 0)
@@ -274,6 +308,8 @@ UserInfo AuthnMySql::newUser(const std::string& uname) throw (DmException)
   u["uid"]    = uid;
   u["banned"] = 0;
 
+  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. usr:" << uname << " uid:" << uid);
+  
   return u;
 }
 
@@ -285,6 +321,8 @@ UserInfo AuthnMySql::getUser(const std::string& userName) throw (DmException)
   uid_t      uid;
   int        banned;
   char       ca[1024], username[256], meta[1024];
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "usr:" << userName);
   
   // If the username is the host DN, root!
   if (this->hostDnIsRoot_ && userName == this->hostDn_) {
@@ -316,6 +354,7 @@ UserInfo AuthnMySql::getUser(const std::string& userName) throw (DmException)
     user.deserialize(meta);
   }
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. usr:" << username << " uid:" << uid << " ban:" << banned);
   return user;
 }
 
@@ -329,6 +368,8 @@ UserInfo AuthnMySql::getUser(const std::string& key,
   int        banned;
   char       ca[1024], username[256], meta[1024];
   
+   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "key:" << key);
+   
   if (key != "uid")
     throw DmException(DMLITE_UNKNOWN_KEY,
                       "AuthnMySql does not support querying by %s",
@@ -355,6 +396,7 @@ UserInfo AuthnMySql::getUser(const std::string& key,
   user["banned"] = banned;
   user.deserialize(meta);
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. usr:" << username << " uid:" << uid << " ban:" << banned);
   return user;
 }
 
@@ -362,6 +404,8 @@ UserInfo AuthnMySql::getUser(const std::string& key,
 
 void AuthnMySql::updateUser(const UserInfo& user) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "usr:" << user.name);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_USER);
   
@@ -373,18 +417,24 @@ void AuthnMySql::updateUser(const UserInfo& user) throw (DmException)
   stmt.bindParam(2, user.name);
   
   stmt.execute();
+  
+  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. usr:" << user.name << " ban:" << boost::any_cast<bool>(user["banned"]) );
+  
 }
 
 
 
 void AuthnMySql::deleteUser(const std::string& userName) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "usr:" << userName);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_USER);
   
   stmt.bindParam(0, userName);
   
   stmt.execute();
+  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting usr:" << userName);
 }
 
 
@@ -393,6 +443,8 @@ std::vector<GroupInfo> AuthnMySql::getGroups(void) throw (DmException)
 {
   std::vector<GroupInfo> groups;
   GroupInfo group;
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_ALL_GROUPS);
@@ -416,6 +468,7 @@ std::vector<GroupInfo> AuthnMySql::getGroups(void) throw (DmException)
     groups.push_back(group);
   }
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. ngroups:" << groups.size());
   return groups;
 }
 
@@ -425,6 +478,8 @@ std::vector<UserInfo> AuthnMySql::getUsers(void) throw (DmException)
 {
   std::vector<UserInfo> users;
   UserInfo user;
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_ALL_USERS);
@@ -452,6 +507,7 @@ std::vector<UserInfo> AuthnMySql::getUsers(void) throw (DmException)
     users.push_back(user);
   }
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. nusers:" << users.size());
   return users;
 }
 
@@ -464,6 +520,9 @@ void AuthnMySql::getIdMap(const std::string& userName,
 {
   std::string vo;
   GroupInfo   group;
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "usr:" << userName);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   // Clear
@@ -511,4 +570,6 @@ void AuthnMySql::getIdMap(const std::string& userName,
       groups->push_back(group);
     }
   }
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. usr:" << userName);
 }

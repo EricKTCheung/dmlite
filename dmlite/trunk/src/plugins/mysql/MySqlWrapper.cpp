@@ -10,6 +10,7 @@
 
 using namespace dmlite;
 
+
 #define ASSIGN_POINTER_TYPECAST(type, where, value) (*((type*)where)) = value
 
 #define SANITY_CHECK(status, method) \
@@ -133,6 +134,8 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 unsigned long Statement::execute(void) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Executing: " << stmt_ << " nParams_: " << nParams_);
+  
   SANITY_CHECK(STMT_CREATED, execute);
 
   mysql_stmt_bind_param(this->stmt_, this->params_);
@@ -157,7 +160,9 @@ unsigned long Statement::execute(void) throw (DmException)
     mysql_free_result(meta);
   }
 
-  return (unsigned long) mysql_stmt_affected_rows(this->stmt_);
+  unsigned long l = (unsigned long) mysql_stmt_affected_rows(this->stmt_);
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Executed: " << stmt_ << " nParams_: " << nParams_ << " nrows:" << l);
+  return l;
 }
 
 

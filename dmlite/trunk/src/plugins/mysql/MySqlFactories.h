@@ -13,6 +13,10 @@
 
 namespace dmlite {
 
+  
+extern Logger::bitmask mysqllogmask;
+extern Logger::component mysqllogname;
+
 /// Factory for Pool resources
 class MySqlConnectionFactory: public PoolElementFactory<MYSQL*> {
 public:

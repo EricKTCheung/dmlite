@@ -8,9 +8,12 @@
 #include <dmlite/cpp/io.h>
 #include <dmlite/cpp/poolmanager.h>
 
+#include "utils/logger.h"
+
 using namespace dmlite;
 
-
+Logger::bitmask dmlite::stackinstancelogmask = 0;
+Logger::component dmlite::stackinstancelogname = "StackInstance";
 
 #define INSTANTIATE(var, pm, factory, creator)\
 var = factory?factory->creator(pm):NULL;
@@ -24,6 +27,8 @@ var = factory?factory->creator(pm):NULL;
 
 void StackInstance::setSecurityContextImpl_(void)
 {
+  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  
   if (this->inode_ != 0)
     this->inode_->setSecurityContext(this->secCtx_);
   if (this->catalog_ != 0)
@@ -36,12 +41,16 @@ void StackInstance::setSecurityContextImpl_(void)
   std::map<std::string, PoolDriver*>::iterator i;
   for (i = this->poolDrivers_.begin(); i != this->poolDrivers_.end(); ++i)
     i->second->setSecurityContext(this->secCtx_);
+  
+  Log(Logger::INFO, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm)
 {
+  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  
   // Instantiate each interface
   INSTANTIATE(this->authn_,       pm, pm->getAuthnFactory(),       createAuthn);
   INSTANTIATE(this->inode_,       pm, pm->getINodeFactory(),       createINode);
@@ -69,12 +78,16 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
 
   // Set the context, if was created
   if (this->secCtx_) setSecurityContextImpl_();
+  
+  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
 
 StackInstance::~StackInstance()
 {
+  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  
   if (this->authn_)       delete this->authn_;
   if (this->inode_)       delete this->inode_;
   if (this->catalog_)     delete this->catalog_;
@@ -90,6 +103,7 @@ StackInstance::~StackInstance()
     delete i->second;
   }
   this->poolDrivers_.clear();
+  Log(Logger::INFO, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
@@ -234,6 +248,8 @@ IODriver* StackInstance::getIODriver() throw (DmException)
 
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
+  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, " cred:" << cred.clientName << " " << cred.remoteAddress);
+  
   if (this->authn_ == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_NO_AUTHN),
                       "There is no plugin that provides createSecurityContext");
@@ -245,6 +261,8 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
   this->secCtx_ = this->authn_->createSecurityContext(cred);
   
   setSecurityContextImpl_();
+  
+  Log(Logger::NOTICE, stackinstancelogmask, stackinstancelogname, "Exiting. cred:" << cred.clientName << " " << cred.remoteAddress);
 }
 
 

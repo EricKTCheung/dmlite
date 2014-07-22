@@ -28,6 +28,7 @@ INodeMySql::INodeMySql(NsMySqlFactory* factory,
   factory_(factory), conn_(0), transactionLevel_(0),
   nsDb_(db)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   // Nothing
 }
 
@@ -35,6 +36,7 @@ INodeMySql::INodeMySql(NsMySqlFactory* factory,
 
 INodeMySql::~INodeMySql()
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   // Nothing
 }
 
@@ -106,6 +108,7 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 
 void INodeMySql::begin(void) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   conn_ = factory_->getPool().acquire();
 
   if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0) {
@@ -116,12 +119,15 @@ void INodeMySql::begin(void) throw (DmException)
     }
   
   this->transactionLevel_++;
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
 
 void INodeMySql::commit(void) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  
   if (this->transactionLevel_ == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                       "INodeMySql::commit Inconsistent state (Maybe there is a\
@@ -138,12 +144,15 @@ void INodeMySql::commit(void) throw (DmException)
 
   if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
 
 void INodeMySql::rollback(void) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  
   this->transactionLevel_ = 0;
   if (mysql_query(this->conn_, "ROLLBACK") != 0) {
     if (conn_) factory_->getPool().release(conn_);
@@ -154,12 +163,16 @@ void INodeMySql::rollback(void) throw (DmException)
 
   if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
 
 ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  
   ExtendedStat parentMeta;
   
   // Get parent metadata, if it is not root
@@ -248,6 +261,7 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   // Commit and return back
   trans.Commit();
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
   
   return this->extendedStat(newFileId);
 }
@@ -256,6 +270,8 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
 
 void INodeMySql::symlink(ino_t inode, const std::string &link) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " lnk:" << link);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   Statement stmt(conn, this->nsDb_, STMT_INSERT_SYMLINK);
@@ -264,12 +280,15 @@ void INodeMySql::symlink(ino_t inode, const std::string &link) throw (DmExceptio
   stmt.bindParam(1, link);
 
   stmt.execute();
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.  lnk:" << link);
 }
 
 
 
 void INodeMySql::unlink(ino_t inode) throw (DmException)
 {
+  Log(Logger::INFO, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   // Get file metadata
   ExtendedStat file = this->extendedStat(inode);
   
@@ -319,12 +338,16 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
 
   // Done!
   this->commit();
+  
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode);
 }
 
 
 
 void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
 {
+  Log(Logger::INFO, mysqllogmask, mysqllogname, " inode:" << inode << " dest:" << dest);
+  
   this->begin();
   
   // Metadata
@@ -383,12 +406,16 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
   
   // Done
   this->commit();
+  
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " dest:" << dest);
 }
 
 
 
 void INodeMySql::rename(ino_t inode, const std::string& name) throw (DmException)
 {
+  Log(Logger::INFO, mysqllogmask, mysqllogname, " inode:" << inode << " name:" << name);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement changeNameStmt(conn, this->nsDb_, STMT_CHANGE_NAME);
 
@@ -398,12 +425,16 @@ void INodeMySql::rename(ino_t inode, const std::string& name) throw (DmException
   if (changeNameStmt.execute() == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                       "Could not change the name");
+    
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " name:" << name);
 }
 
 
 
 ExtendedStat INodeMySql::extendedStat(ino_t inode) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_ID);
   ExtendedStat meta;
@@ -418,6 +449,7 @@ ExtendedStat INodeMySql::extendedStat(ino_t inode) throw (DmException)
   
   dumpCStat(cstat, &meta);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " sz:" << meta.size());
   return meta;
 }
 
@@ -425,6 +457,8 @@ ExtendedStat INodeMySql::extendedStat(ino_t inode) throw (DmException)
 
 ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " parent:" << parent << " name:" << name);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_NAME);
   ExtendedStat meta;
@@ -441,6 +475,7 @@ ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) thr
   
   dumpCStat(cstat, &meta);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. parent:" << parent << " name:" << name << " sz:" << meta.size());
   return meta;
 }
 
@@ -448,6 +483,8 @@ ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) thr
 
 ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " guid:" << guid);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_GUID);
   ExtendedStat meta;
@@ -463,6 +500,7 @@ ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmExceptio
 
   dumpCStat(cstat, &meta);
   
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.  guid:" << guid << " sz:" << meta.size());
   return meta;
 }
 
@@ -470,6 +508,8 @@ ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmExceptio
 
 SymLink INodeMySql::readLink(ino_t inode) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_SYMLINK);
   SymLink   link;
@@ -487,6 +527,8 @@ SymLink INodeMySql::readLink(ino_t inode) throw (DmException)
   
   link.link = clink;
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode);
+  
   return link;
 }
 
@@ -496,6 +538,8 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
 {
   std::string  host;
   char         cstatus, ctype;
+  
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " replica:" << replica.rfn);
   
   // Make sure fileid exists and is a regular file
   ExtendedStat s = this->extendedStat(replica.fileid);
@@ -541,18 +585,22 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
   statement.bindParam(9, replica.serialize());
 
   statement.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. replica:" << replica.rfn);
 }
 
 
 
 void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
 {
+  Log(Logger::INFO, mysqllogmask, mysqllogname, " replica:" << replica.rfn);
   // Remove
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement statement(conn, this->nsDb_, STMT_DELETE_REPLICA);
   statement.bindParam(0, replica.fileid);
   statement.bindParam(1, replica.rfn);
   statement.execute();
+  Log(Logger::NOTICE, mysqllogmask, mysqllogname, "Exiting. replica:" << replica.rfn);
 }
 
 
@@ -567,6 +615,8 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
   char      cmeta[4096];  
   char      ctype, cstatus;
 
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   // MySQL statement
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_FILE_REPLICAS);
@@ -611,6 +661,7 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
     ++i;
   };
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " nrepls:" << i);
   return replicas;
 }
 
@@ -618,6 +669,8 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
 
 Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " rid:" << rid);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_ID);
   stmt.bindParam(0, rid);
@@ -658,6 +711,8 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   r.type          = static_cast<Replica::ReplicaType>(ctype);
   r.deserialize(cmeta);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. rid:" << rid << " repl:" << r.rfn);
+  
   return r;
 }
 
@@ -665,6 +720,8 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
 
 Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " rfn:" << rfn);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
   stmt.bindParam(0, rfn);
@@ -705,6 +762,7 @@ Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
   r.type          = static_cast<Replica::ReplicaType>(ctype);
   r.deserialize(cmeta);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
   return r;
 }
 
@@ -712,6 +770,8 @@ Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
 
 void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " rdata:" << rdata.rfn);
+  
   // Update
   char status = static_cast<char>(rdata.status);
   char type   = static_cast<char>(rdata.type);
@@ -733,12 +793,16 @@ void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
   stmt.bindParam(11, rdata.replicaid);
 
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. rdata:" << rdata.rfn);
 }
 
  
 
 void INodeMySql::utime(ino_t inode, const struct utimbuf* buf) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   // If NULL, current time.
   struct utimbuf internal;
   if (buf == NULL) {
@@ -755,6 +819,8 @@ void INodeMySql::utime(ino_t inode, const struct utimbuf* buf) throw (DmExceptio
   stmt.bindParam(2, inode);
 
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode);
 }
 
 
@@ -762,6 +828,8 @@ void INodeMySql::utime(ino_t inode, const struct utimbuf* buf) throw (DmExceptio
 void INodeMySql::setMode(ino_t inode, uid_t uid, gid_t gid,
                          mode_t mode, const Acl& acl) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " mode:" << mode);
+  
   // Clean type bits
   mode &= ~S_IFMT;
   
@@ -777,17 +845,23 @@ void INodeMySql::setMode(ino_t inode, uid_t uid, gid_t gid,
   stmt.bindParam(6, acl.serialize());
   stmt.bindParam(7, inode);
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " mode:" << mode);
 }
 
 
 
 void INodeMySql::setSize(ino_t inode, size_t size) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " size:" << size);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_CHANGE_SIZE);
   stmt.bindParam(0, size);
   stmt.bindParam(1, inode);
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " size:" << size);
 }
 
 
@@ -795,13 +869,15 @@ void INodeMySql::setSize(ino_t inode, size_t size) throw (DmException)
 void INodeMySql::setChecksum(ino_t inode, const std::string& csumtype,
                              const std::string& csumvalue) throw (DmException)
 {
-
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_CHANGE_CHECKSUM);
   stmt.bindParam(0, csumtype);
   stmt.bindParam(1, csumvalue);
   stmt.bindParam(2, inode);
   stmt.execute();
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
 }
 
 
@@ -810,6 +886,8 @@ std::string INodeMySql::getComment(ino_t inode) throw (DmException)
 {
   char comment[1024];
 
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_COMMENT);
 
@@ -820,6 +898,7 @@ std::string INodeMySql::getComment(ino_t inode) throw (DmException)
   if (!stmt.fetch())
     throw DmException(DMLITE_NO_COMMENT, "There is no comment for inode %ld", inode);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " comment:'" << comment << "'");
   return std::string(comment);
 }
 
@@ -827,6 +906,8 @@ std::string INodeMySql::getComment(ino_t inode) throw (DmException)
 
 void INodeMySql::setComment(ino_t inode, const std::string& comment) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " comment:'" << comment << "'");
+  
   // Try to set first
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_SET_COMMENT);
@@ -843,22 +924,30 @@ void INodeMySql::setComment(ino_t inode, const std::string& comment) throw (DmEx
     
     stmti.execute();
   }
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " comment:'" << comment << "'");
 }
 
 
 
 void INodeMySql::deleteComment(ino_t inode) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode );
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_COMMENT);
   stmt.bindParam(0, inode);
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode);
 }
 
 
 
 void INodeMySql::setGuid(ino_t inode, const std::string& guid) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " guid:" << guid );
+  
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_SET_GUID);
 
@@ -866,6 +955,8 @@ void INodeMySql::setGuid(ino_t inode, const std::string& guid) throw (DmExceptio
   stmt.bindParam(1, inode);
 
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " guid:" << guid );
 }
 
 
@@ -873,6 +964,7 @@ void INodeMySql::setGuid(ino_t inode, const std::string& guid) throw (DmExceptio
 void INodeMySql::updateExtendedAttributes(ino_t inode,
                                           const Extensible& attr) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode << " nattrs:" << attr.size() );
   PoolGrabber<MYSQL*> conn(factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_SET_XATTR);
   
@@ -880,6 +972,8 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
   stmt.bindParam(1, inode);
   
   stmt.execute();
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
 }
 
 
@@ -889,6 +983,8 @@ IDirectory* INodeMySql::openDir(ino_t inode) throw (DmException)
   NsMySqlDir  *dir;
   ExtendedStat meta;
 
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " inode:" << inode);
+  
   // Get the directory
   meta = this->extendedStat(inode);
   if (!S_ISDIR(meta.stat.st_mode))
@@ -906,8 +1002,6 @@ IDirectory* INodeMySql::openDir(ino_t inode) throw (DmException)
     bindMetadata(*dir->stmt, &dir->cstat);
     
     dir->eod = !dir->stmt->fetch();
-    
-    return dir;
   }
   catch (...) {
     if (conn_) factory_->getPool().release(conn_);
@@ -915,6 +1009,9 @@ IDirectory* INodeMySql::openDir(ino_t inode) throw (DmException)
     delete dir;
     throw;
   }
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. inode:" << inode);
+  return dir;
 }
 
 
@@ -923,6 +1020,8 @@ void INodeMySql::closeDir(IDirectory* dir) throw (DmException)
 {
   NsMySqlDir *dirp;
 
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+   
   if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
 
@@ -935,6 +1034,8 @@ void INodeMySql::closeDir(IDirectory* dir) throw (DmException)
 
   delete dirp->stmt;
   delete dirp;
+  
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. dir:" << dirp->dir.name);
 }
 
 
@@ -943,6 +1044,8 @@ ExtendedStat* INodeMySql::readDirx(IDirectory* dir) throw (DmException)
 {
   NsMySqlDir *dirp;
 
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  
   if (dir == NULL)
     throw DmException(DMLITE_SYSERR(EFAULT),
                       "Tried to read a null dir");
@@ -958,9 +1061,11 @@ ExtendedStat* INodeMySql::readDirx(IDirectory* dir) throw (DmException)
     
     dirp->eod = !dirp->stmt->fetch();
     
+    Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Exiting. item:" << dirp->current.name);
     return &dirp->current;
   }
   else {
+    Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Exiting. with NULL");
     return NULL;
   }
 }
@@ -969,6 +1074,7 @@ ExtendedStat* INodeMySql::readDirx(IDirectory* dir) throw (DmException)
 
 struct dirent* INodeMySql::readDir (IDirectory* dir) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   if (this->readDirx(dir) == 0)
     return NULL;
   else
