@@ -124,6 +124,8 @@ namespace dmlite {
       /// @return           The absolute path string.
       std::string getAbsolutePath(const std::string& path) throw (DmException);
 
+      std::vector<std::string> getSubPathVec(const std::vector<std::string>& components) throw (DmException);
+
       /// Get the base path.
       /// Behaves similar to dirname, with the exception that it
       /// prints trailing slashes of directories. This matches the way
@@ -160,6 +162,11 @@ namespace dmlite {
       /// @param key   The memcached key as string.
       /// @return      The value from memcached.
       const std::string getValFromMemcachedKey(const std::string& key) throw (MemcacheException);
+
+      /// Return the value to a given key from memcached.
+      /// @param key   The memcached key as string.
+      /// @return      The value from memcached.
+      const std::vector<std::string> getValVecFromMemcachedKeyVec(const std::vector<std::string>& keys) throw (MemcacheException);
 
       /// Return the value to a given key from memcached.
       /// @param key   The memcached key as string.

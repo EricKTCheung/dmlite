@@ -40,7 +40,7 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
     boost::format log_format("%1%: %2%: \n");
     {
       boost::mutex::scoped_lock lock(this->write_mutex_);
-      for (int idx = 0; idx < NUM_CATALOG_API_FUNCTIONS ; ++idx) {
+      for (int idx = 0; idx < sizeof(catalog_func_names); ++idx) {
         //log_stream << log_format % "MemcacheFunctionCounter"
         //  % catalog_func_names[idx] % this->counter_array_[idx];
         log_stream << log_format % catalog_func_names[idx]
