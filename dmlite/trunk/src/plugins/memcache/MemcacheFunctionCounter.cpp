@@ -70,7 +70,7 @@ void MemcacheFunctionCounter::reset()
     std::fill_n(this->counter_array_, NUM_CATALOG_API_FUNCTIONS, 0LL);
   }
   Log(Logger::INFO, memcachelogmask, memcachelogname,
-      "MemcacheFunctionCounter" <<
+      "MemcacheFunctionCounter: " <<
       "reset counters to 0");
   //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s",
   //    "MemcacheFunctionCounter",

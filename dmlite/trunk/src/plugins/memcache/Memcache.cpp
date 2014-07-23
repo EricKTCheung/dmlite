@@ -122,7 +122,7 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
     } else {
       Err(memcachelogname, "creating a memcache connection failed: " <<
           "adding a server failed: " <<
-          "could not parse value" <<
+          "could not parse value: " <<
           i->c_str());
       //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
       //    "creating a memcache connection failed",

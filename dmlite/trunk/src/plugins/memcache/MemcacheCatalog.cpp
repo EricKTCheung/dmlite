@@ -562,7 +562,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
       dirp->pb_keys.set_state(MISSING);
     } catch (MemcacheException) {
       Log(Logger::INFO, memcachelogmask, memcachelogname,
-          "conflict when caching dir object" <<
+          "conflict when caching dir object: " <<
           "caching is already in process");
       dirp->pb_keys.set_state(INVALID);
     }
