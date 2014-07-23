@@ -84,9 +84,6 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
     Err(memcachelogname,
         "getting a value from memcache failed: " <<
         memcached_strerror(conn, statMemc));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-    //    "getting a value from memcache failed",
-    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
 
@@ -145,9 +142,6 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
     Err(memcachelogname,
         "setting a value to memcache failed: " <<
         memcached_strerror(conn, statMemc));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-    //    "setting a value to memcache failed",
-    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
 
@@ -196,9 +190,6 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
     Err(memcachelogname,
         "adding a value to memcache failed: " <<
         memcached_strerror(conn, statMemc));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %s", this->decoratedId_,
-    //    "adding a value to memcache failed",
-    //    memcached_strerror(conn, statMemc));
     throw MemcacheException(statMemc, conn);
   }
 

@@ -52,10 +52,6 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
     Err(memcachelogname, "configuring a memcache connection failed: " <<
         "setting binary/ascii protocol: " <<
         memcached_strerror(c, memc_return_val));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-    //    "configuring a memcache connection failed",
-    //    "setting binary/ascii protocol",
-    //    memcached_strerror(c, memc_return_val));
   }
 
   if (dist_ == "consistent")
@@ -65,10 +61,6 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
     Err(memcachelogname, "configuring a memcache connection failed: " <<
         "setting the distribution: " <<
         memcached_strerror(c, memc_return_val));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-    //    "configuring a memcache connection failed",
-    //    "setting the distribution",
-    //    memcached_strerror(c, memc_return_val));
   }
 
   // make sure that NOREPLY is deactivated, otherwise deletes will hang
@@ -78,10 +70,6 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
     Err(memcachelogname, "configuring a memcache connection failed: " <<
         "unsetting noreply behaviour: " <<
         memcached_strerror(c, memc_return_val));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-    //    "configuring a memcache connection failed",
-    //    "unsetting noreply behaviour",
-    //    memcached_strerror(c, memc_return_val));
   }
 
   memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_NO_BLOCK, 1);
@@ -90,19 +78,14 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
     Err(memcachelogname, "configuring a memcache connection failed: " <<
         "setting no block behaviour: " <<
         memcached_strerror(c, memc_return_val));
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-    //    "configuring a memcache connection failed",
-    //    "setting no block behaviour",
-    //    memcached_strerror(c, memc_return_val));
   }
 
   /* comment out: not supported in the libmemcached version on EPEL, compile will fail
   memc_return_val =  memcached_behavior_set(c, MEMCACHED_BEHAVIOR_KEEPALIVE, 1);
 
   if (memc_return_val != MEMCACHED_SUCCESS) {
-    syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-        "configuring a memcache connection failed",
-        "setting keepalive (prob version of libmemcached too old",
+    Err(memcachelogname, "configuring a memcache connection failed: " <<
+        "setting keepalive behaviour: " <<
         memcached_strerror(c, memc_return_val));
   }
   */
@@ -124,11 +107,6 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
           "adding a server failed: " <<
           "could not parse value: " <<
           i->c_str());
-      //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s = %s",
-      //    "creating a memcache connection failed",
-      //    "adding a server failed",
-      //    "could not parse value",
-      //    i->c_str());
       continue;
     }
     if (server.size() > 1) {
@@ -143,10 +121,6 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
       Err(memcachelogname, "creating a memcache connection failed: " <<
           "adding a server failed: " <<
           memcached_strerror(c, memc_return_val));
-      //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s: %s",
-      //    "creating a memcache connection failed",
-      //    "adding a server failed",
-      //    memcached_strerror(c, memc_return_val));
     }
   }
 
@@ -279,9 +253,6 @@ PoolManager* MemcacheFactory::createPoolManager(PluginManager* pm) throw (DmExce
 
   Log(Logger::DEBUG, memcachelogmask, memcachelogname,
       "Creating MemcachePoolManager");
-  //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s: %s 0x%lx",
-  //    "Memcache",
-  //    "Creating MemcachePoolManager nesting", (unsigned long)this->nestedPoolManagerFactory_);
 
   return new MemcachePoolManager(this->connectionPool_,
       nested,

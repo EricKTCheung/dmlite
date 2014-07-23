@@ -36,13 +36,10 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
   std::stringstream log_stream;
   if (random_print_int == static_cast<unsigned int>(0)) {
     // debug print the counters
-    //boost::format log_format("%1%:: %2%: %3% \n");
     boost::format log_format("%1%: %2%: \n");
     {
       boost::mutex::scoped_lock lock(this->write_mutex_);
       for (int idx = 0; idx < sizeof(catalog_func_names); ++idx) {
-        //log_stream << log_format % "MemcacheFunctionCounter"
-        //  % catalog_func_names[idx] % this->counter_array_[idx];
         log_stream << log_format % catalog_func_names[idx]
           % this->counter_array_[idx];
         if ((this->counter_array_[idx] - (1LL << 40)) > 0) {
@@ -50,7 +47,6 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
         }
       }
     }
-    //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s", log_stream.str().c_str());
     Log(Logger::INFO, memcachelogmask, memcachelogname, log_stream.str().c_str());
   }
   if (do_reset) {
@@ -72,7 +68,4 @@ void MemcacheFunctionCounter::reset()
   Log(Logger::INFO, memcachelogmask, memcachelogname,
       "MemcacheFunctionCounter: " <<
       "reset counters to 0");
-  //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s",
-  //    "MemcacheFunctionCounter",
-  //    "reset counters to 0");
 }

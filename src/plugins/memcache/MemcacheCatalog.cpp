@@ -661,8 +661,6 @@ ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *d
     if (dirp->pb_keys.ByteSize() > (1 << 20)) {
       Log(Logger::DEBUG, memcachelogmask, memcachelogname,
           "dir size to large to cache: " << dirp->pb_keys.ByteSize());
-      //syslog(LOG_MAKEPRI(LOG_USER, LOG_DEBUG), "%s:: %s: %d", this->decoratedId_,
-      //    "dir size to large to cache", dirp->pb_keys.ByteSize());
       dirp->pb_keys.set_state(INVALID);
     }
 
