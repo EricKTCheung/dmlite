@@ -25,7 +25,8 @@
 using namespace dmlite;
 
 
-std::map< std::string, poolfsnfo > FilesystemPoolHandler::dpmfs_;
+std::map< std::string, poolfsnfo >   FilesystemPoolHandler::dpmfs_;
+boost::mutex                         FilesystemPoolHandler::mtx;
 
 FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp,
                                            unsigned life, unsigned retryLimit,
