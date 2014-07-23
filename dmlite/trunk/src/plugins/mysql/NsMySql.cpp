@@ -135,15 +135,17 @@ void INodeMySql::commit(void) throw (DmException)
   
   this->transactionLevel_--;
   
-  if (this->transactionLevel_ == 0 && mysql_query(conn_, "COMMIT") != 0) {
+  if (this->transactionLevel_ == 0) {
+    Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Releasing transaction.");
     if (conn_) factory_->getPool().release(conn_);
-    conn_ = 0;
-    throw DmException(DMLITE_DBERR(mysql_errno(conn_)),
+        
+    if  (mysql_query(conn_, "COMMIT") != 0) {
+      throw DmException(DMLITE_DBERR(mysql_errno(conn_)),
                       mysql_error(conn_));
     }
-
-  if (conn_) factory_->getPool().release(conn_);
-  conn_ = 0;
+    conn_ = 0;
+  }
+  
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
 }
 
