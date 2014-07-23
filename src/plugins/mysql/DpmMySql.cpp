@@ -16,7 +16,8 @@
 
 using namespace dmlite;
 
-
+poolinfo              MySqlPoolManager::pools_;
+boost::shared_mutex   MySqlPoolManager::poolmtx_;
 
 MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
                                    const std::string& dpmDb,
@@ -60,13 +61,72 @@ void MySqlPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmE
 
 std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Poolavailability: " << availability);
+
+  std::vector<Pool> pools;
+  time_t timenow = time(0);
+  {
+    boost::shared_lock<boost::shared_mutex> l(poolmtx_);
+    if (pools_.pool_lastupd >= timenow - 60) {
+      Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
+      return filterPools(pools_.pools, availability);
+    }
+  }
+
+  pools = getPoolsFromMySql();
+
+  {
+    boost::unique_lock<boost::shared_mutex> l(poolmtx_);
+    pools_.pools.assign(pools.begin(), pools.end());
+    pools_.pool_lastupd = timenow;
+  }
+
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
+  return filterPools(pools_.pools, availability);
+}
+
+
+
+std::vector<Pool> MySqlPoolManager::filterPools(std::vector<Pool>& pools, PoolAvailability availability) throw (DmException)
+{
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
-  
+  if (availability == kAny) {
+    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
+    return pools;
+  }
+  else {
+    std::vector<Pool> filtered;
+
+    for (unsigned i = 0; i < pools.size(); ++i) {
+      PoolHandler* handler = this->stack_->getPoolDriver(pools[i].type)->
+                               createPoolHandler(pools[i].name);
+
+      bool isAvailable = handler->poolIsAvailable(availability == kForWrite ||
+                                                  availability == kForBoth);
+
+      if ((availability == kNone && !isAvailable) ||
+          (availability != kNone && isAvailable))
+        filtered.push_back(pools[i]);
+
+      delete handler;
+    }
+
+    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
+    return filtered;
+  }
+}
+
+
+
+std::vector<Pool> MySqlPoolManager::getPoolsFromMySql() throw (DmException)
+{
+  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+
   Pool pool;
   std::vector<Pool> pools;
   char poolName[kPoolNameMax], defSize[kDefSizeMax], gc_Start_Thresh[kGc_Start_ThreshMax], gc_Stop_Thresh[kGc_Stop_ThreshMax], def_Lifetime[kDef_LifetimeMax], defPintime[kDefPintimeMax], max_Lifetime[kMax_LifetimeMax], maxPintime[kMaxPintimeMax], fss_Policy[kFss_PolicyMax], gc_Policy[kGc_PolicyMax], mig_Policy[kMig_PolicyMax], rs_Policy[kRs_PolicyMax], Groups[kGroupsMax], ret_Policy[kRet_PolicyMax], s_Type[kS_TypeMax], poolType[kPoolTypeMax], poolMeta[kPoolMetaMax];
 
-  
+
   // Get all
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_GET_POOLS);
@@ -124,101 +184,25 @@ std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) thro
     pools.push_back(pool);
   }
 
-  // Filter
-  if (availability == kAny) {
-    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
-    return pools;
-  }
-  else {
-    std::vector<Pool> filtered;
-  
-    for (unsigned i = 0; i < pools.size(); ++i) {
-      PoolHandler* handler = this->stack_->getPoolDriver(pools[i].type)->
-                               createPoolHandler(pools[i].name);
-    
-      bool isAvailable = handler->poolIsAvailable(availability == kForWrite ||
-                                                  availability == kForBoth);
-      
-      if ((availability == kNone && !isAvailable) ||
-          (availability != kNone && isAvailable))
-        filtered.push_back(pools[i]);
-    
-      delete handler;
-    }
-    
-    Log(Logger::INFO, mysqllogmask, mysqllogname, " npools:" << filtered.size());
-    return filtered;
-  }
-  
+  return pools;
 }
 
 
 
 Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
-  Pool pool;
-  char poolName[kPoolNameMax], defSize[kDefSizeMax], gc_Start_Thresh[kGc_Start_ThreshMax], gc_Stop_Thresh[kGc_Stop_ThreshMax], def_Lifetime[kDef_LifetimeMax], defPintime[kDefPintimeMax], max_Lifetime[kMax_LifetimeMax], maxPintime[kMaxPintimeMax], fss_Policy[kFss_PolicyMax], gc_Policy[kGc_PolicyMax], mig_Policy[kMig_PolicyMax], rs_Policy[kRs_PolicyMax], Groups[kGroupsMax], ret_Policy[kRet_PolicyMax], s_Type[kS_TypeMax], poolType[kPoolTypeMax], poolMeta[kPoolMetaMax];
-
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, " poolname:" << poolname);
-  
-  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
-  Statement stmt(conn, this->dpmDb_, STMT_GET_POOL);
 
-  stmt.bindParam(0, poolname);
-  stmt.execute();
-
-  stmt.bindResult(0, poolName, sizeof(poolName));
-  stmt.bindResult(1, defSize, sizeof(defSize));
-  stmt.bindResult(2, gc_Start_Thresh, sizeof(gc_Start_Thresh));
-  stmt.bindResult(3, gc_Stop_Thresh, sizeof(gc_Stop_Thresh));
-  stmt.bindResult(4, def_Lifetime, sizeof(def_Lifetime));
-  stmt.bindResult(5, defPintime, sizeof(defPintime));
-  stmt.bindResult(6, max_Lifetime, sizeof(max_Lifetime));
-  stmt.bindResult(7, maxPintime, sizeof(maxPintime));
-  stmt.bindResult(8, fss_Policy, sizeof(fss_Policy));
-  stmt.bindResult(9, gc_Policy, sizeof(gc_Policy));
-  stmt.bindResult(10, mig_Policy, sizeof(mig_Policy));
-  stmt.bindResult(11, rs_Policy, sizeof(rs_Policy));
-  stmt.bindResult(12, Groups, sizeof(Groups));
-  stmt.bindResult(13, ret_Policy, sizeof(ret_Policy));
-  stmt.bindResult(14, s_Type, sizeof(s_Type));
-  stmt.bindResult(15, poolType, sizeof(poolType));
-  stmt.bindResult(16, poolMeta, sizeof(poolMeta));
-
-  if (!stmt.fetch())
-    throw DmException(DMLITE_NO_SUCH_POOL, "Pool '%s' not found", poolname.c_str());
-
-  pool.name = poolName;
-  pool["defsize"] = std::strtoul(defSize, NULL, 0);
-  pool["gc_start_thresh"] = std::strtoul(gc_Start_Thresh, NULL, 0);
-  pool["gc_stop_thresh"] = std::strtoul(gc_Stop_Thresh, NULL, 0);
-  pool["def_lifetime"] = std::strtoul(def_Lifetime, NULL, 0);
-  pool["defpintime"] = std::strtoul(defPintime, NULL, 0);
-  pool["max_lifetime"] = std::strtoul(max_Lifetime, NULL, 0);
-  pool["maxpintime"] = std::strtoul(maxPintime, NULL, 0);
-  pool["fss_policy"] = std::string(fss_Policy);
-  pool["gc_policy"] = std::string(gc_Policy);
-  pool["mig_policy"] = std::string(mig_Policy);
-  pool["rs_policy"] = std::string(rs_Policy);
-  std::vector<boost::any> group_list;
-  std::string gr = std::string(Groups);
-  std::stringstream ss(gr);
-  int i;
-  while (ss >> i)
-  {
-    i = Extensible::anyToUnsigned(i);
-    group_list.push_back(i);
-    if (ss.peek() == ',')
-      ss.ignore();
+  std::vector<Pool> pools = getPools(kAny);
+  std::vector<Pool>::iterator it;
+  for (it = pools.begin(); it != pools.end(); ++it) {
+    if (it->name == poolname) {
+      Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. poolname:" << it->name);
+      return *it;
+    }
   }
-  pool["groups"] = group_list;
-  pool["ret_policy"] = std::string(ret_Policy);
-  pool["s_type"] = std::string(s_Type);
-  pool.type = poolType;
-  pool.deserialize(poolMeta);
-  
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
-  return pool;
+
+  throw DmException(DMLITE_NO_SUCH_POOL, "Pool '%s' not found", poolname.c_str());
 }
 
 
@@ -226,16 +210,16 @@ Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
 {
   Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
-  
+
   // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
       !dmlite::hasGroup(this->secCtx_->groups, 0)) {
     throw DmException(EACCES, "Only root user or root group can add pools");
   }
-  
+
   // Get the driver
   PoolDriver* driver = this->stack_->getPoolDriver(pool.type);
-  
+
   // Call the driver before
   driver->toBeCreated(pool);
 
@@ -280,10 +264,10 @@ void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
 
     stmt.execute();
   }
-  
+
   // Let the driver know
   driver->justCreated(pool);
-  
+
   Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
@@ -292,23 +276,23 @@ void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
 void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
 {
   Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
-  
+
   // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
       !dmlite::hasGroup(this->secCtx_->groups, 0)) {
     throw DmException(EACCES, "Only root user or root group can modify pools");
   }
-  
+
   // Get the driver
   PoolDriver* driver = this->stack_->getPoolDriver(pool.type);
-  
+
   // Update the db
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_UPDATE_POOL);
-  
+
   std::vector<boost::any> groups = pool.getVector("groups");
   std::ostringstream gids;
-  
+
   if (groups.size() > 0) {
     unsigned i;
     for (i = 0; i < groups.size() - 1; ++i)
@@ -318,7 +302,7 @@ void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
   else {
     gids << "0";
   }
-  
+
   stmt.bindParam( 0, pool.getLong("defsize"));
   stmt.bindParam( 1, pool.getLong("gc_start_thresh"));
   stmt.bindParam( 2, pool.getLong("gc_stop_thresh"));
@@ -351,13 +335,13 @@ void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
   p.erase("s_type");
   stmt.bindParam(15, p.serialize());
   stmt.bindParam(16, pool.name);
-  
+
   if (stmt.execute() == 0)
     throw DmException(DMLITE_NO_SUCH_POOL, "Pool '%s' not found", pool.name.c_str());
-  
+
   // Tell the driver, since it may need to know
   driver->update(pool);
-  
+
   Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
@@ -366,23 +350,23 @@ void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
 void MySqlPoolManager::deletePool(const Pool& pool) throw (DmException)
 {
   Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
-  
+
     // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
       !dmlite::hasGroup(this->secCtx_->groups, 0)) {
     throw DmException(EACCES, "Only root user or root group can delete pools");
   }
-  
+
   // Notify the driver
   this->stack_->getPoolDriver(pool.type)->toBeDeleted(pool);
-  
+
   // Remove from the database, ignoring if it does not exist, since
   // the handler may have done it (fs)
   PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_DELETE_POOL);
   stmt.bindParam(0, pool.name);
   stmt.execute();
-  
+
   Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
@@ -406,18 +390,18 @@ Location MySqlPoolManager::whereToRead(const std::vector<Replica>& replicas) thr
 {
   unsigned i;
   std::vector<Location> available;
-  
+
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, " nr:" << replicas.size());
-  
+
   if (replicas.size() == 0)
     throw DmException(DMLITE_NO_REPLICAS, "No replicas");
 
-  
+
   // See if available, and translate
   for (i = 0; i < replicas.size(); ++i) {
     if (replicas[i].hasField("pool")) {
       Pool pool = this->getPool(replicas[i].getString("pool"));
-      
+
       try {
         PoolHandler* handler = this->stack_->getPoolDriver(pool.type)->
                                   createPoolHandler(pool.name);
@@ -431,7 +415,7 @@ Location MySqlPoolManager::whereToRead(const std::vector<Replica>& replicas) thr
       }
     }
   }
-  
+
   // Pick a random one from the available
   if (available.size() > 0) {
     i = rand() % available.size();
@@ -453,7 +437,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
   Acl acl;
 
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, " path:" << path);
-  
+
   if (this->stack_->contains("overwrite"))
     overwrite = Extensible::anyToBoolean(this->stack_->get("overwrite"));
 
@@ -553,7 +537,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
 void MySqlPoolManager::cancelWrite(const Location& loc) throw (DmException)
 {
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "loc:" << loc.toString());
-  
+
   if (loc.empty())
     throw DmException(EINVAL, "Location is empty");
 
@@ -573,8 +557,8 @@ void MySqlPoolManager::cancelWrite(const Location& loc) throw (DmException)
   handler->cancelWrite(loc);
   this->stack_->getINode()->unlink(replica.fileid);
 
-  
+
   delete handler;
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. loc:" << loc.toString());
-  
+
 }
