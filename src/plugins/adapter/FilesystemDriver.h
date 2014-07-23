@@ -95,7 +95,7 @@ namespace dmlite {
     // We share the pool information across threads, for sure the cost
     // of this little serialization is less than the cost of refetching them
     static std::map< std::string, poolfsnfo > dpmfs_;
-    boost::mutex          mtx;
+    static boost::mutex          mtx;
     
     void update(void) throw (DmException);
 
