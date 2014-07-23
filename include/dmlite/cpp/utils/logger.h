@@ -15,7 +15,7 @@ do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
 	{    																	\
 		std::ostringstream outs;                                   			\
-		outs << where << "::" << __func__ << " : " << what;                      			\
+		outs << "dmlite " << where << "::" << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
 	}                                                             			\
 }while(0)                                                               			\
@@ -24,7 +24,7 @@ do{                                											\
 #define Err(where, what) 												\
 do{                                											\
 		std::ostringstream outs;                                   			\
-		outs << "ERROR " << where << "::" << __func__ << " : " << what;                      			\
+		outs << "dmlite " << "ERROR " << where << "::" << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)0, outs.str());    				\
 }while(0)       
 
