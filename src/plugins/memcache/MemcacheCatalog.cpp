@@ -3,7 +3,6 @@
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
 
 #include <algorithm>
-#include <assert.h>
 #include <libgen.h>
 #include <cstring>
 #include <set>
@@ -136,28 +135,17 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
   std::vector<std::string> components;
   std::vector<std::string> cwdComponents;
 
-  std::vector<std::string> subPathVec;
-  std::vector<std::string> serialXstatVec;
-  SerialExtendedStat xstat;
-
   std::string cwd = this->cwd_;
 
   unsigned int symLinkLevel = 0;
   unsigned int cwdMarker = 0;
 
   components = Url::splitPath(path);
-
-  subPathVec = getSubPathVec(components);
-  xstatVec = getValVecFromMemcachedKeyVec(subPathVec);
-
-  assert(components.length() == xstatVec.length());
-
   if (path[0] == '/' || cwd.empty()) {
-    //meta = this->extendedStatNoPOSIX("/", followSym);
-    xstat.ParseFromString(xstatVec[0]);
+    meta = this->extendedStatNoPOSIX("/", followSym);
   } else {
     cwdComponents = Url::splitPath(cwd);
-    //meta = this->extendedStatNoPOSIX(cwd, followSym);
+    meta = this->extendedStatNoPOSIX(cwd, followSym);
   }
 
   for (; cwdMarker < components.size(); ) {
