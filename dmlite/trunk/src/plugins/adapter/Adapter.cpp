@@ -90,8 +90,10 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
   else if (key == "ConnPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
   else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      "Unrecognised option " + key);
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+  
+  //  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+  //                    "Unrecognised option " + key);
 }
 
 INode* NsAdapterFactory::createINode(PluginManager*) throw(DmException)

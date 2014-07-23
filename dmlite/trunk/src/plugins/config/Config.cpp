@@ -131,8 +131,9 @@ void ConfigFactory::configure(const std::string& key,
     
   }
   else {
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      "Unknown parameter %s", key.c_str());
+    Log(Logger::DEBUG, Logger::unregistered, "ConfigFactory", "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      "Unknown parameter %s", key.c_str());
   }
 }
 

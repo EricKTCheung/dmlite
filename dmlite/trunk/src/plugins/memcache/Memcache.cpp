@@ -166,6 +166,8 @@ MemcacheFactory::~MemcacheFactory()
 
 void MemcacheFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
+  Log(Logger::DEBUG, memcachelogmask, memcachelogname, "Key: " << key << " Value: " << value);
+  
   if (key == "MemcachedServer")
     this->connectionFactory_.hosts_.push_back(value);
   else if (key == "SymLinkLimit")
@@ -211,8 +213,9 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   } else if (key == "MemcachedPoolSize") {
     this->connectionPool_.resize(atoi(value.c_str()));
   } else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-        std::string("Unknown option ") + key);
+    Log(Logger::DEBUG, memcachelogmask, memcachelogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//        std::string("Unknown option ") + key);
 }
 
 

@@ -153,8 +153,9 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
   else if (key == "HostCertificate")
     this->hostDn_ = getCertificateSubject(value);
   else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      std::string("Unknown option ") + key);
+    Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      std::string("Unknown option ") + key);
 }
 
 
