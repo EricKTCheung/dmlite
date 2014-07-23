@@ -4,6 +4,9 @@
 #ifndef DPMMYSQL_H
 #define	DPMMYSQL_H
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
+
 #include "NsMySql.h"
 #include <dmlite/cpp/poolmanager.h>
 
@@ -26,6 +29,15 @@ namespace dmlite {
   const int kS_TypeMax = 1;
   const int kPoolTypeMax = 32;
   const int kPoolMetaMax = 1024;
+
+  class poolinfo {
+  public:
+    std::vector<Pool> pools;
+    time_t pool_lastupd;
+    poolinfo() {
+        pool_lastupd = 0;
+    }
+  };
 
   class DpmMySqlFactory;
 
@@ -57,6 +69,9 @@ namespace dmlite {
    protected:
      Location whereToRead(const std::vector<Replica>& replicas) throw (DmException);
 
+     std::vector<Pool> filterPools(std::vector<Pool>& pools, PoolAvailability availability) throw (DmException);
+     std::vector<Pool> getPoolsFromMySql() throw (DmException);
+
    private:
     /// Plugin stack.
     StackInstance* stack_;
@@ -72,6 +87,10 @@ namespace dmlite {
 
     /// Admin username for replication.
     const std::string adminUsername_;
+
+    /// Cache of the pools.
+    static poolinfo pools_;
+    static boost::shared_mutex poolmtx_;
   };
 
 };
