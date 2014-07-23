@@ -39,6 +39,8 @@ ProfilerFactory::~ProfilerFactory()
 
 void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " Key: " << key << " Value: " << value);
+  
   // the monitor keyword accepts options in the xrootd syntax,
   // i.e. all parameters in one line separated by whitespace
   if (key == "monitor") {
@@ -72,8 +74,9 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
   } else if (key == "SendLFN") {
       XrdMonitor::include_lfn_ = true;
   } else {
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-        std::string("Unknown option ") + key);
+    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//        std::string("Unknown option ") + key);
   }
 }
 
