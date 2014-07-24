@@ -33,8 +33,8 @@ namespace dmlite {
 extern Logger::bitmask profilerlogmask;
 extern Logger::component profilerlogname;
 
-extern Logger::bitmask dmlite::profilertimingslogmask;
-extern Logger::component dmlite::profilertimingslogname;
+extern Logger::bitmask profilertimingslogmask;
+extern Logger::component profilertimingslogname;
 
 /// Concrete factory for Profiler plugin.
   class ProfilerFactory: public CatalogFactory, public PoolManagerFactory, public IODriverFactory {
