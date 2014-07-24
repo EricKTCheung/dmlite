@@ -17,7 +17,8 @@ namespace dmlite {
 
     std::string getImplId(void) const throw();
 
-    SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
+    virtual SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
+    virtual SecurityContext* createSecurityContext() throw (DmException);
 
     GroupInfo newGroup   (const std::string& gname) throw (DmException);
     GroupInfo getGroup   (gid_t gid) throw (DmException);

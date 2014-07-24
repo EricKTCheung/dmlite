@@ -39,14 +39,26 @@ std::string BuiltInAuthn::getImplId() const throw ()
 
 SecurityContext* BuiltInAuthn::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
+  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   " clientname: " << cred.clientName);
+  
   UserInfo user;
   std::vector<GroupInfo> groups;
 
   this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
-  return new SecurityContext(cred, user, groups);
+  
+  SecurityContext *sec = new SecurityContext(cred, user, groups);
+  
+  Log(Logger::INFO, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting. clientname: " << cred.clientName);
+  return sec;
 }
 
-
+SecurityContext* BuiltInAuthn::createSecurityContext() throw (DmException)
+{
+  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   "");
+  
+  Log(Logger::INFO, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting with NULL");
+  return NULL;
+}
 
 GroupInfo BuiltInAuthn::getGroup(gid_t gid) throw (DmException)
 {
@@ -91,7 +103,6 @@ GroupInfo BuiltInAuthn::getGroup(const std::string& groupName) throw (DmExceptio
   
   return gi;
 }
-
 
 
 GroupInfo BuiltInAuthn::getGroup(const std::string& key,
