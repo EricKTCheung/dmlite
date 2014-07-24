@@ -26,6 +26,8 @@ MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> ho
   useBinaryProtocol_(useBinaryProtocol),
   dist_(dist)
 {
+  memcachelogmask = Logger::get()->getMask(memcachelogname);
+  
   // Nothing
 }
 

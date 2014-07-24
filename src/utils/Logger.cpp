@@ -73,6 +73,9 @@ void Logger::setLogged(component const &comp, bool tobelogged) {
     if (tobelogged)
       // Switch on the corresponsing bit
       mask |= b;
+      // Setting ON some logging disables the unregistered category where everything else falls
+      if (comp != "unregistered")
+	setLogged("unregistered", false);
     else
       // Switch off the corresponding bit
       mask &= ~b;

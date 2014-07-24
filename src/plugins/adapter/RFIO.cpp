@@ -14,6 +14,11 @@
 
 using namespace dmlite;
 
+
+Logger::bitmask dmlite::adapterRFIOlogmask = 0;
+Logger::component dmlite::adapterRFIOlogname = "AdapterRFIO";
+
+
 // Prototype of rfio method (in rfio_api.h header but only available for rfio kernel)
 extern "C" { 
 int rfio_parse(char *, char **, char **); 
@@ -24,6 +29,8 @@ int rfio_parse(char *, char **, char **);
 
 StdRFIOFactory::StdRFIOFactory(): passwd_("default"), useIp_(true)
 {
+  adapterRFIOlogmask = Logger::get()->getMask(adapterRFIOlogname);
+  
   Cthread_init();
   
   setenv("CSEC_MECH", "ID", 1);
@@ -54,8 +61,9 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      key + " not known");
+    Log(Logger::DEBUG, rfiologmask, rfiologname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      key + " not known");
 }
 
 

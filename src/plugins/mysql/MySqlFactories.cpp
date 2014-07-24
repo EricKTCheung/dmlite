@@ -41,6 +41,8 @@ MySqlConnectionFactory::MySqlConnectionFactory(const std::string& host, unsigned
                                                const std::string& user, const std::string& passwd):
   host(host), port(port), user(user), passwd(passwd)
 {
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
+  
   Log(Logger::NOTICE, mysqllogmask, mysqllogname, user << "@" << host << ":" << port);
   // Nothing
 }

@@ -71,8 +71,9 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
     this->updateATime_ = (value == "yes");
   }
   else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      "Unknown option " + key);
+    Log(Logger::DEBUG, Logger::unregistered, "BuiltInCatalogFactory", "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      "Unknown option " + key);
 }
 
 
