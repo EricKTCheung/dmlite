@@ -1033,11 +1033,11 @@ void INodeMySql::closeDir(IDirectory* dir) throw (DmException)
 
   dirp = dynamic_cast<NsMySqlDir*>(dir);
 
+  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. dir:" << dirp->dir.name);
 
   delete dirp->stmt;
   delete dirp;
   
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. dir:" << dirp->dir.name);
 }
 
 
