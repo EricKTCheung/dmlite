@@ -17,7 +17,9 @@ namespace dmlite {
 
   extern Logger::bitmask adapterlogmask;
   extern Logger::component adapterlogname;
-
+  extern Logger::bitmask adapterRFIOlogmask;
+  extern Logger::component adapterRFIOlogname;
+  
   /// Fake Factory for Pool resources
   class IntConnectionFactory: public PoolElementFactory<int> {
   public:

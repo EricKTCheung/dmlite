@@ -127,6 +127,7 @@ void ConfigFactory::configure(const std::string& key,
   }
   else
   if (key == "Log" || key == "log") {
+    Log(Logger::BASE, Logger::unregistered, "config", "Setting log ON for component '" << value << "'");
     Logger::get()->setLogged(value, true);   
     
   }
