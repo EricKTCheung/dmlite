@@ -32,14 +32,14 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
   // print with some probability: p = 1/2^(log_prob_indicator_)
   random_print_int >>= sizeof(unsigned int)*8 - this->log_prob_indicator_;
 
-  bool do_reset = false;
-  std::stringstream log_stream;
   if (random_print_int == static_cast<unsigned int>(0)) {
+    bool do_reset = false;
+    std::stringstream log_stream;
     // debug print the counters
-    boost::format log_format("%1%: %2%: \n");
+    boost::format log_format("%1%: %2%\n");
     {
       boost::mutex::scoped_lock lock(this->write_mutex_);
-      for (int idx = 0; idx < sizeof(catalog_func_names); ++idx) {
+      for (int idx = 0; idx < NUM_CATALOG_API_FUNCTIONS; ++idx) {
         log_stream << log_format % catalog_func_names[idx]
           % this->counter_array_[idx];
         if ((this->counter_array_[idx] - (1LL << 40)) > 0) {
@@ -48,9 +48,9 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
       }
     }
     Log(Logger::INFO, memcachelogmask, memcachelogname, log_stream.str().c_str());
-  }
-  if (do_reset) {
-    reset();
+    if (do_reset) {
+      reset();
+    }
   }
 }
 
