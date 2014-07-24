@@ -33,6 +33,9 @@ namespace dmlite {
 extern Logger::bitmask profilerlogmask;
 extern Logger::component profilerlogname;
 
+extern Logger::bitmask dmlite::profilertimingslogmask;
+extern Logger::component dmlite::profilertimingslogname;
+
 /// Concrete factory for Profiler plugin.
   class ProfilerFactory: public CatalogFactory, public PoolManagerFactory, public IODriverFactory {
 public:
@@ -81,13 +84,13 @@ try {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   throw;\
 }\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);
 
 
 /// Profile with pointers
@@ -105,13 +108,13 @@ try {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   throw;\
 }\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
 return ret;
 
 /// Profile and use ret afterwards
@@ -129,13 +132,13 @@ try {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   throw;\
 }\
 clock_gettime(CLOCK_REALTIME, &end);\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << "::"#method << " " << duration);
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);
 #else
 #define PROFILE(method, ...)\
 struct timespec  start, end;\
@@ -166,7 +169,7 @@ try {\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   throw;\
 }\
 {\
@@ -180,7 +183,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);
 
 /// Profile with pointers
 #define PROFILE_RETURN(type, method, ...)\
@@ -213,7 +216,7 @@ try {\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   throw;\
 }\
 {\
@@ -227,7 +230,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
 return ret;
 
 /// Profile and use ret afterwards
@@ -261,7 +264,7 @@ try {\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   throw;\
 }\
 {\
@@ -275,7 +278,7 @@ end.tv_nsec = mts.tv_nsec;\
 }\
 duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
 duration /= 1000;\
-Log(Logger::DEBUG, profilerlogmask, profilerlogname, this->decoratedId_ << " " << duration);
+Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);
 #endif
 };
 

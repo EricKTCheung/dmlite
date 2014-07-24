@@ -11,6 +11,8 @@
 
 Logger::bitmask dmlite::profilerlogmask = 0;
 Logger::component dmlite::profilerlogname = "Profiler";
+Logger::bitmask dmlite::profilertimingslogmask = 0;
+Logger::component dmlite::profilertimingslogname = "ProfilerTimings";
 
 
 using namespace dmlite;
@@ -24,6 +26,7 @@ ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
   this->nestedIODriverFactory_    = ioFactory;
 
   profilerlogmask = Logger::get()->getMask(profilerlogname);
+  profilertimingslogmask = Logger::get()->getMask(profilertimingslogname);
   Log(Logger::BASE, profilerlogmask, profilerlogname, "ProfilerFactory started.");
   
 }
