@@ -63,7 +63,6 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    
     Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      key + " not known");

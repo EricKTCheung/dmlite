@@ -28,7 +28,7 @@ Logger::component dmlite::adapterlogname = "Adapter";
 int IntConnectionFactory::create() { return 1; }
 void IntConnectionFactory::destroy(int) {};
 bool IntConnectionFactory::isValid(int) { return true; }
-
+IntConnectionFactory::~IntConnectionFactory()  {};
 
 
 
