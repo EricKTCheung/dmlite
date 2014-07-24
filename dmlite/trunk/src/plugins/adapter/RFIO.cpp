@@ -165,7 +165,7 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
   int                        nReplies;
   std::string                sfn;
   
-  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "loc: " << loc);
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "loc: " << loc.toString());
   
   if (loc.empty())
     throw DmException(EINVAL, "Empty location");
@@ -191,7 +191,7 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
     (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
 
   dpm_free_filest(nReplies, statuses);
-  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. loc: " << loc);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. loc: " << loc.toString());
 }
 
 
