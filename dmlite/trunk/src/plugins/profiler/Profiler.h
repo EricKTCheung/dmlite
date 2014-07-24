@@ -72,213 +72,241 @@ private:
 /// Profiler macro
 #ifndef __APPLE__
 #define PROFILE(method, ...)\
-struct timespec  start, end;\
-double           duration;\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-clock_gettime(CLOCK_REALTIME, &start);\
+struct timespec  start, end;\
+double           duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  clock_gettime(CLOCK_REALTIME, &start);\
+}\
 try {\
   this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
+  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+    clock_gettime(CLOCK_REALTIME, &end);\
+    duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+    duration /= 1000;\
+    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  }\
+  throw;\
+}\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
   Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
-  throw;\
-}\
-clock_gettime(CLOCK_REALTIME, &end);\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);
+}
 
 
 /// Profile with pointers
 #define PROFILE_RETURN(type, method, ...)\
-struct timespec start, end;\
-double          duration;\
-type            ret;\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-clock_gettime(CLOCK_REALTIME, &start);\
+type             ret;\
+struct timespec  start, end;\
+double           duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  clock_gettime(CLOCK_REALTIME, &start);\
+}\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
+  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+    clock_gettime(CLOCK_REALTIME, &end);\
+    duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+    duration /= 1000;\
+    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  }\
+  throw;\
+}\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
   Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
-  throw;\
 }\
-clock_gettime(CLOCK_REALTIME, &end);\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
 return ret;
 
 /// Profile and use ret afterwards
 #define PROFILE_ASSIGN(type, method, ...)\
-struct timespec start, end;\
-double          duration;\
-type            ret;\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-clock_gettime(CLOCK_REALTIME, &start);\
+struct timespec  start, end;\
+double           duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  clock_gettime(CLOCK_REALTIME, &start);\
+}\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
+  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+    clock_gettime(CLOCK_REALTIME, &end);\
+    duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+    duration /= 1000;\
+    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  }\
+  throw;\
+}\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
   Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
-  throw;\
-}\
-clock_gettime(CLOCK_REALTIME, &end);\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);
-#else
+}
+
+#else // ifndef __APPLE__
 #define PROFILE(method, ...)\
-struct timespec  start, end;\
-double           duration;\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-start.tv_sec = mts.tv_sec;\
-start.tv_nsec = mts.tv_nsec;\
+struct timespec  start, end;\
+double           duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  clock_serv_t cclock;\
+  mach_timespec_t mts;\
+  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+  clock_get_time(cclock, &mts);\
+  mach_port_deallocate(mach_task_self(), cclock);\
+  start.tv_sec = mts.tv_sec;\
+  start.tv_nsec = mts.tv_nsec;\
 }\
 try {\
   this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
+  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+    {\
+      clock_serv_t cclock;\
+      mach_timespec_t mts;\
+      host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+      clock_get_time(cclock, &mts);\
+      mach_port_deallocate(mach_task_self(), cclock);\
+      end.tv_sec = mts.tv_sec;\
+      end.tv_nsec = mts.tv_nsec;\
+    }\
+    duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+    duration /= 1000;\
+    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  }\
+  throw;\
+}\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   {\
+    clock_serv_t cclock;\
+    mach_timespec_t mts;\
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+    clock_get_time(cclock, &mts);\
+    mach_port_deallocate(mach_task_self(), cclock);\
+    end.tv_sec = mts.tv_sec;\
+    end.tv_nsec = mts.tv_nsec;\
+  }\
+  duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+  duration /= 1000;\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+}
+
+/// Profile with pointers
+#define PROFILE_RETURN(type, method, ...)\
+if (this->decorated_ == 0x00)\
+  throw DmException(DMLITE_SYSERR(EFAULT),\
+                    std::string("There is no plugin to delegate the call "#method));\
+type            ret;\
+struct timespec  start, end;\
+double           duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_serv_t cclock;\
   mach_timespec_t mts;\
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
   clock_get_time(cclock, &mts);\
   mach_port_deallocate(mach_task_self(), cclock);\
-  end.tv_sec = mts.tv_sec;\
-  end.tv_nsec = mts.tv_nsec;\
-  }\
-  duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-  duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
-  throw;\
-}\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-end.tv_sec = mts.tv_sec;\
-end.tv_nsec = mts.tv_nsec;\
-}\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);
-
-/// Profile with pointers
-#define PROFILE_RETURN(type, method, ...)\
-struct timespec start, end;\
-double          duration;\
-type            ret;\
-if (this->decorated_ == 0x00)\
-  throw DmException(DMLITE_SYSERR(EFAULT),\
-                    std::string("There is no plugin to delegate the call "#method));\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-start.tv_sec = mts.tv_sec;\
-start.tv_nsec = mts.tv_nsec;\
+  start.tv_sec = mts.tv_sec;\
+  start.tv_nsec = mts.tv_nsec;\
 }\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
+  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+    {\
+      clock_serv_t cclock;\
+      mach_timespec_t mts;\
+      host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+      clock_get_time(cclock, &mts);\
+      mach_port_deallocate(mach_task_self(), cclock);\
+      end.tv_sec = mts.tv_sec;\
+      end.tv_nsec = mts.tv_nsec;\
+    }\
+    duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+    duration /= 1000;\
+    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  }\
+  throw;\
+}\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   {\
-  clock_serv_t cclock;\
-  mach_timespec_t mts;\
-  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-  clock_get_time(cclock, &mts);\
-  mach_port_deallocate(mach_task_self(), cclock);\
-  end.tv_sec = mts.tv_sec;\
-  end.tv_nsec = mts.tv_nsec;\
+    clock_serv_t cclock;\
+    mach_timespec_t mts;\
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+    clock_get_time(cclock, &mts);\
+    mach_port_deallocate(mach_task_self(), cclock);\
+    end.tv_sec = mts.tv_sec;\
+    end.tv_nsec = mts.tv_nsec;\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
   Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
-  throw;\
 }\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-end.tv_sec = mts.tv_sec;\
-end.tv_nsec = mts.tv_nsec;\
-}\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
 return ret;
 
 /// Profile and use ret afterwards
 #define PROFILE_ASSIGN(type, method, ...)\
-struct timespec start, end;\
-double          duration;\
-type            ret;\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-start.tv_sec = mts.tv_sec;\
-start.tv_nsec = mts.tv_nsec;\
-}\
-try {\
-  ret = this->decorated_->method(__VA_ARGS__);\
-} catch (DmException& e) {\
-  {\
+type            ret;\
+struct timespec start, end;\
+double          duration;\
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_serv_t cclock;\
   mach_timespec_t mts;\
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
   clock_get_time(cclock, &mts);\
   mach_port_deallocate(mach_task_self(), cclock);\
-  end.tv_sec = mts.tv_sec;\
-  end.tv_nsec = mts.tv_nsec;\
+  start.tv_sec = mts.tv_sec;\
+  start.tv_nsec = mts.tv_nsec;\
+}\
+try {\
+  ret = this->decorated_->method(__VA_ARGS__);\
+} catch (DmException& e) {\
+  {\
+    clock_serv_t cclock;\
+    mach_timespec_t mts;\
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+    clock_get_time(cclock, &mts);\
+    mach_port_deallocate(mach_task_self(), cclock);\
+    end.tv_sec = mts.tv_sec;\
+    end.tv_nsec = mts.tv_nsec;\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
   Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   throw;\
 }\
-{\
-clock_serv_t cclock;\
-mach_timespec_t mts;\
-host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
-clock_get_time(cclock, &mts);\
-mach_port_deallocate(mach_task_self(), cclock);\
-end.tv_sec = mts.tv_sec;\
-end.tv_nsec = mts.tv_nsec;\
-}\
-duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
-duration /= 1000;\
-Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);
+if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  {\
+    clock_serv_t cclock;\
+    mach_timespec_t mts;\
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
+    clock_get_time(cclock, &mts);\
+    mach_port_deallocate(mach_task_self(), cclock);\
+    end.tv_sec = mts.tv_sec;\
+    end.tv_nsec = mts.tv_nsec;\
+  }\
+  duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
+  duration /= 1000;\
+  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+}
 #endif
 };
 
