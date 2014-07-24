@@ -61,7 +61,7 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    Log(Logger::DEBUG, rfiologmask, rfiologname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      key + " not known");
 }
@@ -116,6 +116,8 @@ IOHandler* StdRFIODriver::createIOHandler(const std::string& pfn,
                                           const Extensible& extras,
                                           mode_t mode) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "pfn: " << pfn);
+  
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
         throw DmException(EACCES, "Missing token");
@@ -163,6 +165,8 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
   int                        nReplies;
   std::string                sfn;
   
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "loc: " << loc);
+  
   if (loc.empty())
     throw DmException(EINVAL, "Empty location");
 
@@ -187,6 +191,7 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
     (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
 
   dpm_free_filest(nReplies, statuses);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. loc: " << loc);
 }
 
 
@@ -198,6 +203,8 @@ StdRFIOHandler::StdRFIOHandler(const std::string& path,
   char *host, *filename;
   std::string qpath = path;
 
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "path: " << path);
+  
   if (qpath[0] == '/')
       qpath = "localhost:" + qpath;
 
@@ -214,9 +221,11 @@ StdRFIOHandler::StdRFIOHandler(const std::string& path,
 
 StdRFIOHandler::~StdRFIOHandler()
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "");
   if (this->fd_ != -1)
     rfio_close(this->fd_);
   pthread_mutex_destroy(&this->mtx_);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting.");
 }
 
 
@@ -231,52 +240,76 @@ void StdRFIOHandler::close() throw (DmException)
 
 size_t StdRFIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "count:" << count);
+  
   lk l(islocal_ ? 0 : &this->mtx_);
   size_t nbytes = rfio_read(this->fd_, buffer, count);
   
   eof_  = (nbytes < count);
   
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. count:" << count << " res:" << nbytes);
   return nbytes;
 }
 
 size_t StdRFIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "offs:" << offset << "count:" << count);
   if (this->islocal_)
     return static_cast<size_t>(::pread(this->fd_, buffer, count, offset));
   lk l(&this->mtx_);
   pp p(this->fd_, &this->eof_, offset);
-  return rfio_read(this->fd_, buffer, count);
+  
+  size_t res = rfio_read(this->fd_, buffer, count);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << offset << " count:" << count << " res:" << res);
+  return res;
 }
 
 size_t StdRFIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "count:" << count);
   lk l(islocal_ ? 0 : &this->mtx_);
   size_t nbytes = rfio_write(this->fd_, (char *)buffer, count);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. count:" << count << " res:" << nbytes);
   return nbytes;
 }
 
 size_t StdRFIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "offs:" << offset << "count:" << count);
   if (this->islocal_)
     return static_cast<size_t>(::pwrite(this->fd_, buffer, count, offset));
   lk l(&this->mtx_);
   pp p(this->fd_, &this->eof_, offset);
-  return rfio_write(this->fd_, (char *)buffer, count);
+  
+  size_t res = rfio_write(this->fd_, (char *)buffer, count);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << offset << " count:" << count << " res:" << res);
+  return res;
 }
 
 void StdRFIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
+  
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "offs:" << offset);
+  
   lk l(islocal_ ? 0 : &this->mtx_);
   if (rfio_lseek64(this->fd_, offset, whence) == -1)
     throw DmException(serrno, "Could not seek");
+  
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << offset);
 }
 
 
 
 off_t StdRFIOHandler::tell(void) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "");
+  
   lk l(islocal_ ? 0 : &this->mtx_);
-  return rfio_lseek64(this->fd_, 0, SEEK_CUR);
+  
+  off_t o = rfio_lseek64(this->fd_, 0, SEEK_CUR);
+  
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << offset);
+  return o;
 }
 
 
