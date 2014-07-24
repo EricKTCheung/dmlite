@@ -53,8 +53,9 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      key + " not known");
+    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      key + " not known");
 }
 
 

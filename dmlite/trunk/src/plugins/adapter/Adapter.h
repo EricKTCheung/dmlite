@@ -24,7 +24,7 @@ namespace dmlite {
   class IntConnectionFactory: public PoolElementFactory<int> {
   public:
     IntConnectionFactory() {};
-    virtual ~IntConnectionFactory() {};
+    virtual ~IntConnectionFactory();
 
     virtual int create();
     virtual void   destroy(int);
