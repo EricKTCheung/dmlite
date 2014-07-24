@@ -20,8 +20,8 @@ LogLevel 1
 # tells to the logging subsystem to *only* log the activity of the adapter plugin
 # Here are some examples with components names:
 # Log unregistered
-# Log adapter
-# Log mysql
-# Log oracle
+# Log Adapter
+# Lof Memcache
+# Log Mysql
 
 Include /etc/dmlite.conf.d/*.conf
