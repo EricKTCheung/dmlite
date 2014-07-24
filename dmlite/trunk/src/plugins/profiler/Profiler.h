@@ -130,7 +130,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
 return ret;
 
 /// Profile and use ret afterwards
-#define PROFILE_ASSIGN(type, method, ...)\
+#define PROFILE_ASSIGN(var, method, ...)\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
@@ -140,7 +140,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
   clock_gettime(CLOCK_REALTIME, &start);\
 }\
 try {\
-  ret = this->decorated_->method(__VA_ARGS__);\
+  var = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
   if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
     clock_gettime(CLOCK_REALTIME, &end);\
@@ -212,7 +212,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-type            ret;\
+type             ret;\
 struct timespec  start, end;\
 double           duration;\
 if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
@@ -260,11 +260,10 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
 return ret;
 
 /// Profile and use ret afterwards
-#define PROFILE_ASSIGN(type, method, ...)\
+#define PROFILE_ASSIGN(var, method, ...)\
 if (this->decorated_ == 0x00)\
   throw DmException(DMLITE_SYSERR(EFAULT),\
                     std::string("There is no plugin to delegate the call "#method));\
-type            ret;\
 struct timespec start, end;\
 double          duration;\
 if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
@@ -277,7 +276,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
   start.tv_nsec = mts.tv_nsec;\
 }\
 try {\
-  ret = this->decorated_->method(__VA_ARGS__);\
+  var = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
   {\
     clock_serv_t cclock;\
