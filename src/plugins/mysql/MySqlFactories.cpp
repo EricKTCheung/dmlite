@@ -108,6 +108,7 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
   connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"),
   mapFile_("/etc/lcgdm-mapfile"), hostDnIsRoot_(false), hostDn_("")
 {
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   mysql_library_init(0, NULL, NULL);  
   pthread_key_create(&this->thread_mysql_conn_, NULL);
@@ -188,6 +189,7 @@ PoolContainer<MYSQL*>& NsMySqlFactory::getPool(void) throw ()
 DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
   NsMySqlFactory(), dpmDb_("dpm_db"), adminUsername_("root")
 {
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Ctor");
   // MySQL initialization done by NsMySqlFactory
 }
