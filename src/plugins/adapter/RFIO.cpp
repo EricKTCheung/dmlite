@@ -308,7 +308,7 @@ off_t StdRFIOHandler::tell(void) throw (DmException)
   
   off_t o = rfio_lseek64(this->fd_, 0, SEEK_CUR);
   
-  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << offset);
+  Log(Logger::INFO, adapterRFIOlogmask, adapterRFIOlogmask, "Exiting. offs:" << o);
   return o;
 }
 
