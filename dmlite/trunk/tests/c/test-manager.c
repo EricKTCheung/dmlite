@@ -13,7 +13,8 @@ int main(int argn, char** argv)
   printf("DMLite API Version: %d\n", dmlite_api_version());
   
   /* Creation */
-  SECTION("Creation");
+  SECTION("Creation");  
+  
   manager = dmlite_manager_new();
   TEST_ASSERT(manager != NULL);
   
@@ -27,8 +28,9 @@ int main(int argn, char** argv)
   TEST_MANAGER_CALL(manager, dmlite_manager_load_plugin, "./plugin_mock.so", "plugin_mock");
   
   /* Set an unknown option */
-  TEST_ASSERT_EQUAL(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                    dmlite_manager_set(manager, "Option", "Value"));
+  /* Removed 24 Jul 2014, as ignorance is not a sin */ 
+  //TEST_ASSERT_EQUAL(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+  //                  dmlite_manager_set(manager, "Option", "Value"));
   
   /* Set a known option, and get it back */
   TEST_MANAGER_CALL(manager, dmlite_manager_set, "TestParam", "something");
