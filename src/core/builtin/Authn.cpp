@@ -9,6 +9,8 @@
 #include <pwd.h>
 #include "Authn.h"
 
+#include "utils/logger.h"
+
 using namespace dmlite;
 
 
@@ -305,13 +307,16 @@ BuiltInAuthnFactory::~BuiltInAuthnFactory()
 void BuiltInAuthnFactory::configure(const std::string& key,
                                     const std::string& value) throw (DmException)
 {
+  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   " Key: " << key << " Value: " << value);
+  
   if (key == "AnonymousUser")
     this->nobody_ = value;
   else if (key == "AnonymousGroup")
     this->nogroup_ = value;
-  else
-    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-                      "Unknown option %s", key.c_str());
+  else  
+    Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      "Unknown option %s", key.c_str());
 }
 
 

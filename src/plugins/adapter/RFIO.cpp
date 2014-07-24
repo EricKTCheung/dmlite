@@ -47,6 +47,8 @@ StdRFIOFactory::~StdRFIOFactory()
 
 void StdRFIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogname,  " Key: " << key << " Value: " << value);
+  
   if (key == "TokenPassword") {
     this->passwd_ = value;
   }
@@ -61,7 +63,8 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogmask, "Unrecognized option. Key: " << key << " Value: " << value);
+    
+    Log(Logger::DEBUG, adapterRFIOlogmask, adapterRFIOlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      key + " not known");
 }
