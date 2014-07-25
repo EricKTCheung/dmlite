@@ -10,6 +10,7 @@
 #include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/utils/poolcontainer.h>
 #include <dmlite/cpp/utils/urls.h>
+#include <set>
 
 #include "MemcacheFunctionCounter.h"
 
@@ -56,7 +57,7 @@ namespace dmlite {
 
   class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
     public:
-      MemcacheConnectionFactory(std::vector<std::string> hosts,
+      MemcacheConnectionFactory(std::set<std::string> hosts,
           bool useBinaryProtocol,
           std::string dist);
       virtual ~MemcacheConnectionFactory();
@@ -66,7 +67,7 @@ namespace dmlite {
       bool   isValid(memcached_st*) throw ();
 
       // Attributes
-      std::vector<std::string>  hosts_;
+      std::set<std::string>  hosts_;
 
       /// The memcached protocol (binary/ascii) to use.
       bool useBinaryProtocol_;
