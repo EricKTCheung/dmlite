@@ -19,7 +19,7 @@ Logger::component dmlite::memcachelogname = "Memcache";
 using namespace dmlite;
 
 
-MemcacheConnectionFactory::MemcacheConnectionFactory(std::vector<std::string> hosts,
+MemcacheConnectionFactory::MemcacheConnectionFactory(std::set<std::string> hosts,
     bool useBinaryProtocol,
     std::string dist):
   hosts_(hosts),
@@ -93,7 +93,7 @@ memcached_st* MemcacheConnectionFactory::create() throw ()
   */
 
   // Add memcached TCP hosts
-  std::vector<std::string>::iterator i;
+  std::set<std::string>::iterator i;
   for (i = this->hosts_.begin(); i != this->hosts_.end(); i++) {
     // split host and port
     const char* host;
@@ -144,7 +144,7 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory,
                                  PoolManagerFactory* poolManagerFactory) throw (DmException):
   nestedCatalogFactory_(catalogFactory),
   nestedPoolManagerFactory_(poolManagerFactory),
-  connectionFactory_(std::vector<std::string>(), true, "default"),
+  connectionFactory_(std::set<std::string>(), true, "default"),
   connectionPool_(&connectionFactory_, 250),
   funcCounter_(0x00),
   doFuncCount_(false),
@@ -171,7 +171,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   Log(Logger::DEBUG, memcachelogmask, memcachelogname, "Key: " << key << " Value: " << value);
   
   if (key == "MemcachedServer")
-    this->connectionFactory_.hosts_.push_back(value);
+    this->connectionFactory_.hosts_.insert(value);
   else if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "MemcachedExpirationLimit") {
