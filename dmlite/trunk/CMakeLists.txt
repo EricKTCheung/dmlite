@@ -14,7 +14,8 @@ option (BUILD_MYSQL "Build the mysql plugin" ON)
 option (BUILD_MEMCACHE "Build the memcache plugin" ON)
 option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
 
-
+OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
+OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
 
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -103,11 +104,14 @@ endif (BUILD_SHELL)
 
 
 message(" ----------------- build summary ----------------")
-message(" -- BUILD_PYTHON:" ${BUILD_PYTHON} )
-message(" -- BUILD_SHELL: " ${BUILD_SHELL} )
-message(" -- BUILD_MYSQL: " ${BUILD_MYSQL} )
-message(" -- BUILD_MEMCACHE: " ${BUILD_MEMCACHE} )
-message(" -- BUILD_ADAPTER: " ${BUILD_ADAPTER} )
+message(" -- BUILD_PYTHON   :" ${BUILD_PYTHON} )
+message(" -- BUILD_SHELL    : " ${BUILD_SHELL} )
+message(" -- BUILD_MYSQL    : " ${BUILD_MYSQL} )
+message(" -- BUILD_MEMCACHE : " ${BUILD_MEMCACHE} )
+message(" -- BUILD_ADAPTER  : " ${BUILD_ADAPTER} )
+message(" --" )
+message(" -- RSYSLOG CFG    : " ${RSYSLOG_SUPPORT} )
+message(" -- LOGROTATE CFG  : " ${LOGROTATE_SUPPORT} )
 message(" ---------------- ")
 
 
