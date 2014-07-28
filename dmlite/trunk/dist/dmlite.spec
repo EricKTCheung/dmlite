@@ -207,6 +207,8 @@ rm -rf %{buildroot}
 %dir %{_libdir}/dmlite
 %{_libdir}/dmlite/plugin_config.so
 %doc README LICENSE RELEASE-NOTES
+%dir %{_sysconfdir}/logrotate.d/dmlite
+%{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 
 %files devel
 %defattr(-,root,root,-)
