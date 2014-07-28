@@ -722,11 +722,11 @@ void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newP
   incrementFunctionCounter(RENAME_DELEGATE);
   std::string absOldPath = getAbsolutePath(oldPath);
   std::string absNewPath = getAbsolutePath(newPath);
-  DELEGATE(rename, absOldPath, absNewPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absOldPath));
+  DELEGATE(rename, absOldPath, absNewPath);
 }
 
 
@@ -734,10 +734,10 @@ void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
   incrementFunctionCounter(REMOVEDIR_DELEGATE);
   std::string absPath = getAbsolutePath(path);
-  DELEGATE(removeDir, absPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absPath));
+  DELEGATE(removeDir, absPath);
 }
 
 
