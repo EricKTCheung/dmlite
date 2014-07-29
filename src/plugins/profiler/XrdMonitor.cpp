@@ -569,6 +569,8 @@ std::string XrdMonitor::getHostname()
 
 void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   std::string full_path = getHostname() + ":" + path;
 
   int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
@@ -615,6 +617,8 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
 void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &host, const int port,
                                    const std::string &path, const int cmd_id)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   std::string full_path = host + ":" + path;
 
   int msg_size = sizeof(XrdXrootdMonRedir) + full_path.length() + 1;
@@ -660,6 +664,8 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
 
 int XrdMonitor::initFileBuffer(int max_size)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int max_slots = (max_size - sizeof(XrdXrootdMonHeader) - sizeof(XrdXrootdMonFileTOD)) / sizeof(XrdXrootdMonFileHdr); // round down
 
   int msg_buffer_size = max_slots * sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonHeader) + sizeof(XrdXrootdMonFileTOD);
@@ -685,6 +691,7 @@ int XrdMonitor::initFileBuffer(int max_size)
 
 XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
 
   // space from the last msg + this msg + the ending window message
   if (fileBuffer.next_slot + slots + 1 < fileBuffer.max_slots) {
@@ -696,6 +703,8 @@ XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
 
 int XrdMonitor::advanceFileBufferNextEntry(int slots)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int ret = 0;
 
   fileBuffer.next_slot += slots;
@@ -706,6 +715,8 @@ int XrdMonitor::advanceFileBufferNextEntry(int slots)
 
 int XrdMonitor::sendFileBuffer()
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int ret = 0;
 
   XrdFStreamBuff *buffer = fileBuffer.msg_buffer;
@@ -744,6 +755,8 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
                                    const std::string &path,
                                    const long long file_size)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   static const int min_msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
   int msg_size = min_msg_size;
   if (include_lfn_) {
@@ -798,6 +811,8 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
                                     const XrdXrootdMonStatSSQ ssq,
                                     const int flags)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
   if (flags & XrdXrootdMonFileHdr::hasSSQ)
     msg_size += sizeof(XrdXrootdMonStatOPS) + sizeof(XrdXrootdMonStatSSQ);
@@ -871,6 +886,8 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
 
 void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int msg_size = sizeof(XrdXrootdMonFileHdr);
   int slots = 1;
 
@@ -909,6 +926,8 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
 
 void XrdMonitor::flushXrdFileStream()
 {
+  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+
   int ret = XrdMonitor::sendFileBuffer();
   if (ret) {
     Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
