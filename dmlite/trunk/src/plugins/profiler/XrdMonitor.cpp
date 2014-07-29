@@ -847,12 +847,12 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
       msg->Xfr.readv = htonll(xfr.readv);
       msg->Xfr.write = htonll(xfr.write);
 
-      // report unusual values
-      if (xfr.read > 2 << 30)
+      // report unusual values -- > 2^30
+      if (xfr.read > 1073741824)
         Err(profilerlogname, " bytes read:" << xfr.read);
-      if (xfr.readv > 2 << 30)
+      if (xfr.readv > 1073741824)
         Err(profilerlogname, " bytes readv:" << xfr.readv);
-      if (xfr.write > 2 << 30)
+      if (xfr.write > 1073741824)
         Err(profilerlogname, " bytes write:" << xfr.write);
 
       if (flags & XrdXrootdMonFileHdr::hasOPS) {
