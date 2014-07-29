@@ -12,6 +12,8 @@ using namespace dmlite;
 time_t XrdMonitor::startup_time = 0;
 std::set<std::string> XrdMonitor::collector_addr_list;
 
+int XrdMonitor::file_flags_ = 0;
+
 // configuration options
 bool XrdMonitor::include_lfn_ = false;
 
@@ -791,9 +793,16 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
 }
 
 
-void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced)
+void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr,
+                                    const XrdXrootdMonStatOPS ops,
+                                    const XrdXrootdMonStatSSQ ssq,
+                                    const int flags)
 {
   int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
+  if (flags & XrdXrootdMonFileHdr::hasSSQ)
+    msg_size += sizeof(XrdXrootdMonStatOPS) + sizeof(XrdXrootdMonStatSSQ);
+  else if (flags & XrdXrootdMonFileHdr::hasOPS)
+    msg_size += sizeof(XrdXrootdMonStatOPS);
   int slots = (msg_size + 8) >> 3;
 
   XrdXrootdMonFileCLS *msg;
@@ -815,8 +824,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
     if (msg != 0x00) {
       msg->Hdr.recType = XrdXrootdMonFileHdr::isClose;
       msg->Hdr.recFlag = 0;
-      if (forced)
-        msg->Hdr.recFlag |= XrdXrootdMonFileHdr::forced;
+      msg->Hdr.recFlag |= flags;
       msg->Hdr.recSize = htons(static_cast<short>(slots*sizeof(XrdXrootdMonFileHdr)));
       msg->Hdr.fileID = fileid;
 
@@ -831,6 +839,24 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         Err(profilerlogname, " bytes readv:" << xfr.readv);
       if (xfr.write > 2 << 30)
         Err(profilerlogname, " bytes write:" << xfr.write);
+
+      if (flags & XrdXrootdMonFileHdr::hasOPS) {
+        msg->Ops.read  = htonl(ops.read);   // Number of read()  calls
+        msg->Ops.readv = htonl(ops.readv);   // Number of readv() calls
+        msg->Ops.write = htonl(ops.write);   // Number of write() calls
+        msg->Ops.rsMin = htons(ops.rsMin);   // Smallest  readv() segment count
+        msg->Ops.rsMax = htons(ops.rsMax);   // Largest   readv() segment count
+        msg->Ops.rsegs = htonll(ops.rsegs);   // Number of readv() segments
+        msg->Ops.rdMin = htonl(ops.rdMin);   // Smallest  read()  request size
+        msg->Ops.rdMax = htonl(ops.rdMax);   // Largest   read()  request size
+        msg->Ops.rvMin = htonl(ops.rvMin);   // Smallest  readv() request size
+        msg->Ops.rvMax = htonl(ops.rvMax);   // Largest   readv() request size
+        msg->Ops.wrMin = htonl(ops.wrMin);   // Smallest  write() request size
+        msg->Ops.wrMax = htonl(ops.wrMax);   // Largest   write() request size
+      }
+      if (flags & XrdXrootdMonFileHdr::hasSSQ) {
+        // to be implemented
+      }
 
       advanceFileBufferNextEntry(slots);
     }

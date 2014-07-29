@@ -114,7 +114,10 @@ namespace dmlite {
                                     const std::string &path, const int cmd_id);
       static void reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 fileid,
                                     const std::string &path, const long long file_size);
-      static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr, const bool forced = false);
+      static void reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonStatXFR xfr,
+                                     const XrdXrootdMonStatOPS ops,
+                                     const XrdXrootdMonStatSSQ ssq,
+                                     const int flags = 0);
       static void reportXrdFileDisc(const kXR_unt32 dictid);
       static void flushXrdFileStream();
 
@@ -126,6 +129,8 @@ namespace dmlite {
 
       static time_t startup_time;
       static std::set<std::string> collector_addr_list;
+
+      static int file_flags_;
     private:
       friend class ProfilerFactory;
 

@@ -25,6 +25,19 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   xfrstats_.readv = 0;
   xfrstats_.write = 0;
 
+  opsstats_.read = 0;
+  opsstats_.readv = 0;
+  opsstats_.write = 0;
+  opsstats_.rsMin = 0x7fff;
+  opsstats_.rsMax = 0;
+  opsstats_.rsegs = 0;
+  opsstats_.rdMin = 0x7fffffff;
+  opsstats_.rdMax = 0;
+  opsstats_.rvMin = 0x7fffffff;
+  opsstats_.rvMax = 0;
+  opsstats_.wrMin = 0x7fffffff;
+  opsstats_.wrMax = 0;
+
   size_t file_size = 0;
   try {
     file_size = this->fstat().st_size;
@@ -42,7 +55,10 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
 ProfilerIOHandler::~ProfilerIOHandler()
 {
   if (!file_closed_) {
-    reportXrdFileClose(this->xfrstats_, true);
+    reportXrdFileClose(this->xfrstats_,
+                       this->opsstats_,
+                       this->ssqstats_,
+                       XrdMonitor::file_flags_ | XrdXrootdMonFileHdr::forced);
   }
 
   delete this->decorated_;
@@ -55,6 +71,13 @@ size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
 
   PROFILE_ASSIGN(size_t, read, buffer, count);
   xfrstats_.read += ret;
+
+  opsstats_.read += 1;
+  if (opsstats_.rdMin > ret)
+    opsstats_.rdMin = ret;
+  if (opsstats_.rdMax < ret)
+    opsstats_.rdMax = ret;
+
   return ret;
 }
 
@@ -64,7 +87,10 @@ void ProfilerIOHandler::close(void) throw (DmException)
 
   PROFILE(close);
 
-  reportXrdFileClose(this->xfrstats_);
+  reportXrdFileClose(this->xfrstats_,
+                     this->opsstats_,
+                     this->ssqstats_,
+                     XrdMonitor::file_flags_);
   file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
@@ -79,6 +105,13 @@ size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmExcep
 
   PROFILE_ASSIGN(size_t, write, buffer, count);
   xfrstats_.write += ret;
+
+  opsstats_.write += 1;
+  if (opsstats_.wrMin > ret)
+    opsstats_.wrMin = ret;
+  if (opsstats_.wrMax < ret)
+    opsstats_.wrMax = ret;
+
   return ret;
 }
 size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
@@ -87,6 +120,20 @@ size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw 
 
   PROFILE_ASSIGN(size_t, readv, vector, count);
   xfrstats_.readv += ret;
+
+  opsstats_.readv += 1;
+  // ret: the number of bytes read
+  if (opsstats_.rvMin > ret)
+    opsstats_.rvMin = ret;
+  if (opsstats_.rvMax < ret)
+    opsstats_.rvMax = ret;
+  // count: the number of segments to be read into
+  opsstats_.rsegs += count;
+  if (opsstats_.rsMin > count)
+    opsstats_.rsMin = count;
+  if (opsstats_.rsMax < count)
+    opsstats_.rsMax = count;
+
   return ret;
 }
 size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
@@ -95,6 +142,13 @@ size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw
 
   PROFILE_ASSIGN(size_t, writev, vector, count);
   xfrstats_.write += ret;
+
+  opsstats_.write += 1;
+  if (opsstats_.wrMin > ret)
+    opsstats_.wrMin = ret;
+  if (opsstats_.wrMax < ret)
+    opsstats_.wrMax = ret;
+
   return ret;
 }
 size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
@@ -103,6 +157,13 @@ size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw 
 
   PROFILE_ASSIGN(size_t, pread, buffer, count, offset);
   xfrstats_.read += ret;
+
+  opsstats_.read += 1;
+  if (opsstats_.rdMin > ret)
+    opsstats_.rdMin = ret;
+  if (opsstats_.rdMax < ret)
+    opsstats_.rdMax = ret;
+
   return ret;
 }
 size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
@@ -111,6 +172,13 @@ size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset)
 
   PROFILE_ASSIGN(size_t, pwrite, buffer, count, offset);
   xfrstats_.write += ret;
+
+  opsstats_.write += 1;
+  if (opsstats_.wrMin > ret)
+    opsstats_.wrMin = ret;
+  if (opsstats_.wrMax < ret)
+    opsstats_.wrMax = ret;
+
   return ret;
 }
 void ProfilerIOHandler::seek(off_t offset, Whence whence) throw (DmException)
