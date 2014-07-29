@@ -80,10 +80,13 @@ void ProfilerXrdMon::reportXrdFileOpen(const std::string &path, const long long 
 }
 
 
-void ProfilerXrdMon::reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const bool forced)
+void ProfilerXrdMon::reportXrdFileClose(const XrdXrootdMonStatXFR xfr,
+                                        const XrdXrootdMonStatOPS ops,
+                                        const XrdXrootdMonStatSSQ ssq,
+                                        const int flags)
 {
   kXR_unt32 fileid = getFileId();
-  XrdMonitor::reportXrdFileClose(fileid, xfr, forced);
+  XrdMonitor::reportXrdFileClose(fileid, xfr, ops, ssq, flags);
   rmFileId();
 }
 

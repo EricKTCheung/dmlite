@@ -68,6 +68,12 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
           break;
         XrdMonitor::collector_addr_list.insert(*(++it));
       }
+      else if (*it == "ops") {
+        XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
+      }
+      else if (*it == "ssq") {
+        XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
+      }
     }
   } else if (key == "Collector") {
     XrdMonitor::collector_addr_list.insert(value);
@@ -76,6 +82,10 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());
   } else if (key == "SendLFN") {
       XrdMonitor::include_lfn_ = true;
+  } else if (key == "Ops") {
+      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
+  }  else if (key == "Ssq") {
+      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
   } else {
     Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),

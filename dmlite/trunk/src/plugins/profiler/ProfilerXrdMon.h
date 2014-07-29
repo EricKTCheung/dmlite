@@ -23,7 +23,10 @@ namespace dmlite {
       void reportXrdRedirCmd(const std::string &path, const int cmd_id);
       void reportXrdRedirCmd(const Location &loc, const int cmd_id);
       void reportXrdFileOpen(const std::string &path, const long long file_size);
-      void reportXrdFileClose(const XrdXrootdMonStatXFR xfr, const bool forced = false);
+      void reportXrdFileClose(const XrdXrootdMonStatXFR xfr,
+                              const XrdXrootdMonStatOPS ops,
+                              const XrdXrootdMonStatSSQ ssq,
+                              const int flags = 0);
       void reportXrdFileDiscAndFlush();
       void reportXrdFileDiscAndFlushOrNOP();
 
@@ -31,6 +34,8 @@ namespace dmlite {
 
     protected:
       XrdXrootdMonStatXFR xfrstats_;
+      XrdXrootdMonStatOPS opsstats_;
+      XrdXrootdMonStatSSQ ssqstats_;
       bool file_closed_;
 
       StackInstance *stack_;
