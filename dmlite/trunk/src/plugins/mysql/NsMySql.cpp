@@ -109,14 +109,23 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 void INodeMySql::begin(void) throw (DmException)
 {
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
-  conn_ = factory_->getPool().acquire();
+
+  if (!conn_) {
+    conn_ = factory_->getPool().acquire();
+  }
+
+  if (!conn_) {
+    throw DmException(DMLITE_DBERR(DMLITE_INTERNAL_ERROR),
+      "No MySQL connection handle");
+  }
 
   if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0) {
-    if (conn_) factory_->getPool().release(conn_);
+    unsigned int merrno = mysql_errno(this->conn_);
+    std::string merror = mysql_error(this->conn_);
+    factory_->getPool().release(conn_);
     conn_ = 0;
-    throw DmException(DMLITE_DBERR(mysql_errno(this->conn_)),
-                      mysql_error(this->conn_));
-    }
+    throw DmException(DMLITE_DBERR(merrno), merror);
+  }
   
   this->transactionLevel_++;
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
@@ -127,23 +136,35 @@ void INodeMySql::begin(void) throw (DmException)
 void INodeMySql::commit(void) throw (DmException)
 {
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
-  
+
   if (this->transactionLevel_ == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                       "INodeMySql::commit Inconsistent state (Maybe there is a\
  commit without a begin, or a badly handled error sequence.)");
+
+  if (!conn_) {
+    throw DmException(DMLITE_DBERR(DMLITE_INTERNAL_ERROR),
+      "No MySQL connection handle");
+  }
   
   this->transactionLevel_--;
   
   if (this->transactionLevel_ == 0) {
+    int qret;
+    unsigned int merrno;
+    std::string merror;
+
     Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Releasing transaction.");
-    if (conn_) factory_->getPool().release(conn_);
-        
-    if  (mysql_query(conn_, "COMMIT") != 0) {
-      throw DmException(DMLITE_DBERR(mysql_errno(conn_)),
-                      mysql_error(conn_));
+    qret = mysql_query(conn_, "COMMIT");
+    if (qret != 0) {
+      merrno = mysql_errno(this->conn_);
+      merror = mysql_error(this->conn_);
     }
+    factory_->getPool().release(conn_);
     conn_ = 0;
+    if  (qret != 0) {
+      throw DmException(DMLITE_DBERR(merrno), merror);
+    }
   }
   
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
@@ -156,16 +177,27 @@ void INodeMySql::rollback(void) throw (DmException)
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   
   this->transactionLevel_ = 0;
-  if (mysql_query(this->conn_, "ROLLBACK") != 0) {
-    if (conn_) factory_->getPool().release(conn_);
-    conn_ = 0;
-    throw DmException(DMLITE_DBERR(mysql_errno(this->conn_)),
-                      mysql_error(this->conn_));
+
+  if (conn_) {
+    int qret;
+    unsigned int merrno;
+    std::string merror;
+
+    qret = mysql_query(this->conn_, "ROLLBACK");
+
+    if (qret != 0) {
+      merrno = mysql_errno(this->conn_);
+      merror = mysql_error(this->conn_);
     }
 
-  if (conn_) factory_->getPool().release(conn_);
-  conn_ = 0;
+    factory_->getPool().release(conn_);
+    conn_ = 0;
   
+    if (qret != 0) {
+      throw DmException(DMLITE_DBERR(merrno), merror);
+    }
+  }
+
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
 }
 
