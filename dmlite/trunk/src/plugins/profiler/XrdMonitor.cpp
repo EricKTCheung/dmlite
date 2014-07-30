@@ -856,6 +856,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         Err(profilerlogname, " bytes write:" << xfr.write);
 
       if (flags & XrdXrootdMonFileHdr::hasOPS) {
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add OPS file statistics");
         msg->Ops.read  = htonl(ops.read);   // Number of read()  calls
         msg->Ops.readv = htonl(ops.readv);   // Number of readv() calls
         msg->Ops.write = htonl(ops.write);   // Number of write() calls
@@ -870,6 +871,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         msg->Ops.wrMax = htonl(ops.wrMax);   // Largest   write() request size
       }
       if (flags & XrdXrootdMonFileHdr::hasSSQ) {
+        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add SSQ file statistics");
         // to be implemented
       }
 
