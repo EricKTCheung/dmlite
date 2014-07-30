@@ -869,6 +869,18 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         msg->Ops.rvMax = htonl(ops.rvMax);   // Largest   readv() request size
         msg->Ops.wrMin = htonl(ops.wrMin);   // Smallest  write() request size
         msg->Ops.wrMax = htonl(ops.wrMax);   // Largest   write() request size
+
+        // withouth any read/readv/write ops, reset their min value
+        if (!ops.read) {
+          msg->Ops.rvMin = 0;
+        }
+        if (!ops.rsegs) {
+          msg->Ops.rsMin = 0;
+          msg->Ops.rvMin = 0;
+        }
+        if (!ops.write) {
+          msg->Ops.wrMin = 0;
+        }
       }
       if (flags & XrdXrootdMonFileHdr::hasSSQ) {
         Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add SSQ file statistics");
