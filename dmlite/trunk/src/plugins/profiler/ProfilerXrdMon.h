@@ -46,6 +46,14 @@ namespace dmlite {
       kXR_unt32 getFileId();
       void rmFileId();
       std::string getShortUserName(const std::string &username);
+      void fillSsqStats();
+
+      struct {
+        double read;     // sum(read_size[i] **2) i = 1 to Ops.read
+        double readv;    // sum(readv_size[i]**2) i = 1 to Ops.readv
+        double rsegs;    // sum(readv_segs[i]**2) i = 1 to Ops.readv
+        double write;    // sum(write_size[i]**2) i = 1 to Ops.write
+      } ssq_;
   };
 };
 

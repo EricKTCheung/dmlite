@@ -884,7 +884,11 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
       }
       if (flags & XrdXrootdMonFileHdr::hasSSQ) {
         Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add SSQ file statistics");
-        // to be implemented
+        // WARNING: these value are already in network-byte order!
+        msg->Ssq.read.dlong = ssq.read.dlong;
+        msg->Ssq.readv.dlong = ssq.readv.dlong;
+        msg->Ssq.rsegs.dlong = ssq.rsegs.dlong;
+        msg->Ssq.write.dlong = ssq.write.dlong;
       }
 
       advanceFileBufferNextEntry(slots);

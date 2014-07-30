@@ -72,6 +72,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
         XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
       }
       else if (*it == "ssq") {
+        XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
         XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
       }
     }
@@ -85,6 +86,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
   } else if (key == "Ops") {
       XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
   }  else if (key == "Ssq") {
+      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
       XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
   } else {
     Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
