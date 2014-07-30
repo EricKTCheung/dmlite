@@ -38,6 +38,11 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   opsstats_.wrMin = 0x7fffffff;
   opsstats_.wrMax = 0;
 
+  ssq_.read = 0;
+  ssq_.readv = 0;
+  ssq_.rsegs = 0;
+  ssq_.write = 0;
+
   size_t file_size = 0;
   try {
     file_size = this->fstat().st_size;
@@ -55,6 +60,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
 ProfilerIOHandler::~ProfilerIOHandler()
 {
   if (!file_closed_) {
+    fillSsqStats();
     reportXrdFileClose(this->xfrstats_,
                        this->opsstats_,
                        this->ssqstats_,
@@ -78,6 +84,8 @@ size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
   if (opsstats_.rdMax < ret)
     opsstats_.rdMax = ret;
 
+  ssq_.read += static_cast<double>(ret) * static_cast<double>(ret);
+
   return ret;
 }
 
@@ -87,6 +95,7 @@ void ProfilerIOHandler::close(void) throw (DmException)
 
   PROFILE(close);
 
+  fillSsqStats();
   reportXrdFileClose(this->xfrstats_,
                      this->opsstats_,
                      this->ssqstats_,
@@ -112,6 +121,8 @@ size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmExcep
   if (opsstats_.wrMax < ret)
     opsstats_.wrMax = ret;
 
+  ssq_.write += static_cast<double>(ret) * static_cast<double>(ret);
+
   return ret;
 }
 size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
@@ -134,6 +145,9 @@ size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw 
   if (opsstats_.rsMax < count)
     opsstats_.rsMax = count;
 
+  ssq_.readv += static_cast<double>(ret) * static_cast<double>(ret);
+  ssq_.rsegs += static_cast<double>(count) * static_cast<double>(count);
+
   return ret;
 }
 size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
@@ -148,6 +162,8 @@ size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw
     opsstats_.wrMin = ret;
   if (opsstats_.wrMax < ret)
     opsstats_.wrMax = ret;
+
+  ssq_.write += static_cast<double>(ret) * static_cast<double>(ret);
 
   return ret;
 }

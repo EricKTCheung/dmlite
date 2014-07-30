@@ -177,3 +177,19 @@ std::string ProfilerXrdMon::getShortUserName(const std::string &username)
 
   return short_uname;
 }
+
+
+void ProfilerXrdMon::fillSsqStats()
+{
+  if (XrdMonitor::file_flags_ & XrdXrootdMonFileHdr::hasSSQ) {
+    XrdXrootdMonDouble xval;
+    xval.dreal = ssq_.read;
+    ssqstats_.read.dlong = htonll(xval.dlong);
+    xval.dreal = ssq_.readv;
+    ssqstats_.readv.dlong = htonll(xval.dlong);
+    xval.dreal = ssq_.rsegs;
+    ssqstats_.rsegs.dlong = htonll(xval.dlong);
+    xval.dreal = ssq_.write;
+    ssqstats_.write.dlong = htonll(xval.dlong);
+  }
+}
