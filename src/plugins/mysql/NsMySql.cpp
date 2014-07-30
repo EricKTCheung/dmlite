@@ -25,8 +25,8 @@ using namespace dmlite;
 
 INodeMySql::INodeMySql(NsMySqlFactory* factory,
                        const std::string& db) throw(DmException):
-  factory_(factory), conn_(0), transactionLevel_(0),
-  nsDb_(db)
+  factory_(factory), transactionLevel_(0), nsDb_(db),
+  conn_(0)
 {
   Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
   // Nothing
@@ -151,7 +151,7 @@ void INodeMySql::commit(void) throw (DmException)
   
   if (this->transactionLevel_ == 0) {
     int qret;
-    unsigned int merrno;
+    unsigned int merrno = 0;
     std::string merror;
 
     Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Releasing transaction.");
@@ -180,7 +180,7 @@ void INodeMySql::rollback(void) throw (DmException)
 
   if (conn_) {
     int qret;
-    unsigned int merrno;
+    unsigned int merrno = 0;
     std::string merror;
 
     qret = mysql_query(this->conn_, "ROLLBACK");
