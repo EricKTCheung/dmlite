@@ -567,10 +567,14 @@ void MemcacheCommon::deserializePool(const std::string& serial_str, Pool& pool)
 std::string MemcacheCommon::getAbsolutePath(const std::string& path)
   throw (DmException)
 {
+
   if (path[0] == '/') {
-    return path;
+    std::string outPath = path;
+    removeTrailingSlash(outPath);
+    return outPath;
   } else {
     std::string cwd = this->cwd_;
+    removeTrailingSlash(cwd);
     if (path.length() == 0) {
       return cwd;
     }
@@ -578,6 +582,14 @@ std::string MemcacheCommon::getAbsolutePath(const std::string& path)
       return cwd;
     }
     return Url::normalizePath(cwd + "/" + path, false);
+  }
+}
+
+
+void MemcacheCommon::removeTrailingSlash(std::string& path)
+{
+  if (*(path.end()-1) == '/') {
+    path.erase(path.end()-1);
   }
 }
 
