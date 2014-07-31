@@ -47,6 +47,7 @@ namespace dmlite {
     /// Destructor
     ~PoolContainer()
     {
+      boost::mutex::scoped_lock lock(mutex_);
       // Free 'free'
       while (free_.size() > 0) {
         E e = free_.front();
@@ -63,7 +64,10 @@ namespace dmlite {
     /// Acquires a free resource.
     E  acquire(bool block = true)
     {
+      
       E e;
+      boost::mutex::scoped_lock lock(mutex_);
+      
       // Wait for one free
       if (!block && (freeSlots_ == 0)) {
         throw DmException(DMLITE_SYSERR(EBUSY),
@@ -72,7 +76,7 @@ namespace dmlite {
 
 
       boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(60);
-      boost::mutex::scoped_lock lock(mutex_);
+      
       while (freeSlots_ < 1) {
         if (boost::get_system_time() >= timeout) {
            syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds", 60);
