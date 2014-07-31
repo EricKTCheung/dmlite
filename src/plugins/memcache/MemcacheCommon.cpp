@@ -577,7 +577,7 @@ std::string MemcacheCommon::getAbsolutePath(const std::string& path)
     if (path.length() == 1 && path[0] == '.') {
       return cwd;
     }
-    return Url::normalizePath(cwd + "/" + path);
+    return Url::normalizePath(cwd + "/" + path, false);
   }
 }
 
@@ -589,7 +589,7 @@ std::string MemcacheCommon::getBasePath(const std::string& path)
   if (path[lastPos] == '/') {
     --lastPos;
   }
-  // +1 to copy also the '/' later
+  // do not copy the trailing slash
   size_t basepath_end = path.find_last_of('/', lastPos);
 
   if (basepath_end > 0)

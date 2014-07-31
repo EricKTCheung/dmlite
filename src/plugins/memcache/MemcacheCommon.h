@@ -120,14 +120,14 @@ namespace dmlite {
       /// Create an absolute path based on the current working dir
       /// and a relative path.
       /// This function takes the cwd from the decorated plugin.
+      /// It _never_ returns a trailing slash.
       /// @param path       The (relative) path string.
       /// @return           The absolute path string.
       std::string getAbsolutePath(const std::string& path) throw (DmException);
 
       /// Get the base path.
-      /// Behaves similar to dirname, with the exception that it
-      /// prints trailing slashes of directories. This matches the way
-      /// keys for the cache are generated.
+      /// Behaves similar to dirname.
+      /// It _never_ returns a trailing slash.
       /// Requires an absolute path, as a path without any '/' simply
       /// returns the whole path.
       /// @param path       The absolute path string.
