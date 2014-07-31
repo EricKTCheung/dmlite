@@ -44,7 +44,7 @@ namespace dmlite {
     static std::string joinPath(const std::vector<std::string>& components) throw();
     
     /// Remove multiple slashes.
-    static std::string normalizePath(const std::string& path) throw ();
+    static std::string normalizePath(const std::string& path, const bool add_trailing_slash = true) throw ();
      
   };
 };

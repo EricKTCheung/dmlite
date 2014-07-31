@@ -304,7 +304,7 @@ std::string Url::joinPath(const std::vector<std::string>& components) throw()
 
 
 
-std::string Url::normalizePath(const std::string& path) throw ()
+std::string Url::normalizePath(const std::string& path, const bool add_trailing_slash) throw ()
 {
   std::vector<std::string> components = Url::splitPath(path);
   std::string              result;
@@ -325,8 +325,10 @@ std::string Url::normalizePath(const std::string& path) throw ()
       result.append("/");
   }
   
-  if (components.size() > 1 && path[path.length() - 1] == '/')
-    result.append("/");
+  if (add_trailing_slash) {
+    if (components.size() > 1 && path[path.length() - 1] == '/')
+      result.append("/");
+  }
   
   return result;
 }
