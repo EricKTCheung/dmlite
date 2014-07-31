@@ -106,7 +106,7 @@ void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
   if (normPath[0] == '/')
     this->cwd_ = normPath;
   else
-    this->cwd_ = Url::normalizePath(this->cwd_ + "/" + normPath);
+    this->cwd_ = Url::normalizePath(this->cwd_ + "/" + normPath, false);
 }
 
 
