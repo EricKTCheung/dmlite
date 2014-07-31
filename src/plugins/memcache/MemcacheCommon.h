@@ -125,6 +125,12 @@ namespace dmlite {
       /// @return           The absolute path string.
       std::string getAbsolutePath(const std::string& path) throw (DmException);
 
+      /// Remove the trailing slash of a path.
+      /// Changes the provided path in-place, so make sure that
+      /// mutating the string is ok.
+      /// @param path       The path string.
+      void removeTrailingSlash(std::string& path);
+
       /// Get the base path.
       /// Behaves similar to dirname.
       /// It _never_ returns a trailing slash.
