@@ -30,8 +30,8 @@ int Logger::getStackTrace(std::string &s)
 {
   std::ostringstream o;
   
-  void * array[4];
-  int size = backtrace(array, 4);
+  void * array[6];
+  int size = backtrace(array, 6);
   
   char ** messages = backtrace_symbols(array, size);    
   
