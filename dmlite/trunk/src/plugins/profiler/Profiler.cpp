@@ -27,7 +27,7 @@ ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
 
   profilerlogmask = Logger::get()->getMask(profilerlogname);
   profilertimingslogmask = Logger::get()->getMask(profilertimingslogname);
-  Log(Logger::BASE, profilerlogmask, profilerlogname, "ProfilerFactory started.");
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "ProfilerFactory started.");
   
 }
 
@@ -107,7 +107,7 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerCatalog");
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerCatalog");
   
   return new ProfilerCatalog(nested);
 }
@@ -124,7 +124,7 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerPoolManager");
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerPoolManager");
   
   return new ProfilerPoolManager(nested);
 }
@@ -140,7 +140,7 @@ IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmExcept
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::BASE, profilerlogmask, profilerlogname, "Creating ProfilerIODriver");
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerIODriver");
 
   return new ProfilerIODriver(nested);
 }
