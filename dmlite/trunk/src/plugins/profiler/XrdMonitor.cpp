@@ -872,7 +872,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
 
         // withouth any read/readv/write ops, reset their min value
         if (!ops.read) {
-          msg->Ops.rvMin = 0;
+          msg->Ops.rdMin = 0;
         }
         if (!ops.rsegs) {
           msg->Ops.rsMin = 0;
