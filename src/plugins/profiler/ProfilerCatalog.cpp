@@ -12,7 +12,7 @@ ProfilerCatalog::ProfilerCatalog(Catalog* decorates) throw(DmException)
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "");
+  Log(Logger::INFO, profilerlogmask, profilerlogname, "Ctor");
 }
 
 

@@ -48,7 +48,7 @@ throw (DmException):
   // it will just be slightly slower. No reason to fail.
   //memcached_behavior_set(this->connNoReply_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
-  Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcacheCatalog started.");
+  Log(Logger::INFO, memcachelogmask, memcachelogname, "Ctor: " << " symlinkLimit" << symlinkLimit);
 
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
