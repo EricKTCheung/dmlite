@@ -49,7 +49,7 @@ SecurityContext* AuthnMySql::createSecurityContext(const SecurityCredentials& cr
   
   SecurityContext* sec = new SecurityContext(cred, user, groups);
   
-  Log(Logger::INFO, mysqllogmask, mysqllogname, cred.clientName << " " << cred.remoteAddress);
+  Log(Logger::WARNING, mysqllogmask, mysqllogname, cred.clientName << " " << cred.remoteAddress);
   return sec;
 }
 
@@ -70,7 +70,7 @@ SecurityContext* AuthnMySql::createSecurityContext(void) throw (DmException)
   groups.push_back(group);
 
   SecurityContext* sec = new SecurityContext(SecurityCredentials(), user, groups);
-  Log(Logger::INFO, mysqllogmask, mysqllogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
+  Log(Logger::WARNING, mysqllogmask, mysqllogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
   
   return sec;
 }
