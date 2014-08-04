@@ -36,7 +36,8 @@ int Logger::getStackTrace(std::string &s)
   char ** messages = backtrace_symbols(array, size);    
   
   // skip first stack frame (points here)
-  for (int i = 1; i < size && messages != NULL; ++i)
+  // skip previous one (usually an exception)
+  for (int i = 2; i < size && messages != NULL; ++i)
   {
     char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
     
