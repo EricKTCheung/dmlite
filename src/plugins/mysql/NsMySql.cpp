@@ -215,6 +215,8 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   }
  
   // Destination must not exist!
+  // For the future... I think that this overhead can be avoided by more carefully
+  // checking for the execute() return values and exceptions
   try {
     this->extendedStat(nf.parent, nf.name);
     throw DmException(EEXIST, "%s already exists", nf.name.c_str());
@@ -223,80 +225,95 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
     if (e.code() != ENOENT) throw;
   }
 
+  
+    
+  // Fetch the new file ID
+  ino_t newFileId = 0;
+  
+      
   // Start transaction
   InodeMySqlTrans trans(this);
-
   
-  // Fetch the new file ID
-  ino_t newFileId;
+  {
+    // Scope to make sure that the local objects that involve mysql
+    // are destroyed before the transaction is closed
+    
+    
+    Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
+    
+    uniqueId.execute();
+    uniqueId.bindResult(0, &newFileId);
+    
+    // Update the unique ID
+    if (uniqueId.fetch()) {
+      Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
+      ++newFileId;
+      updateUnique.bindParam(0, newFileId);
+      updateUnique.execute();
+    }
+    // Couldn't get, so insert
+    else {
+      Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
+      newFileId = 1;
+      insertUnique.bindParam(0, newFileId);
+      insertUnique.execute();
+    }
+    
+    // Regular files start with 1 link. Directories 0.
+    unsigned    nlink   = S_ISDIR(nf.stat.st_mode) ? 0 : 1;
+    std::string aclStr  = nf.acl.serialize();
+    char        cstatus = static_cast<char>(nf.status);
+    
+    // Create the entry
+    Statement fileStmt(this->conn_, this->nsDb_, STMT_INSERT_FILE);
+    
+    fileStmt.bindParam( 0, newFileId);
+    fileStmt.bindParam( 1, nf.parent);
+    fileStmt.bindParam( 2, nf.name);
+    fileStmt.bindParam( 3, nf.stat.st_mode);
+    fileStmt.bindParam( 4, nlink);
+    fileStmt.bindParam( 5, nf.stat.st_uid);
+    fileStmt.bindParam( 6, nf.stat.st_gid);
+    fileStmt.bindParam( 7, nf.stat.st_size);
+    fileStmt.bindParam( 8, 0);
+    fileStmt.bindParam( 9, std::string(&cstatus, 1));
+    fileStmt.bindParam(10, nf.csumtype);
+    fileStmt.bindParam(11, nf.csumvalue);
+    fileStmt.bindParam(12, aclStr);
+    fileStmt.bindParam(13, nf.serialize());
+    
+    fileStmt.execute();
+    
+    // Increment the parent nlink
+    if (nf.parent > 0) {
+      Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
+      nlinkStmt.bindParam(0, nf.parent);
+      nlinkStmt.execute();
+      nlinkStmt.bindResult(0, &parentMeta.stat.st_nlink);
+      nlinkStmt.fetch();
+      
+      Statement nlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
+      
+      parentMeta.stat.st_nlink++;
+      nlinkUpdateStmt.bindParam(0, parentMeta.stat.st_nlink);
+      nlinkUpdateStmt.bindParam(1, parentMeta.stat.st_ino);
+      
+      nlinkUpdateStmt.execute();
+    }
+    
+    // Closing the scope here makes sure that no local mysql-involving objects
+    // are still around when we close the transaction
+  }
   
-  Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
-
-  uniqueId.execute();
-  uniqueId.bindResult(0, &newFileId);
-
-  // Update the unique ID
-  if (uniqueId.fetch()) {
-    Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
-    ++newFileId;
-    updateUnique.bindParam(0, newFileId);
-    updateUnique.execute();
-  }
-  // Couldn't get, so insert
-  else {
-    Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
-    newFileId = 1;
-    insertUnique.bindParam(0, newFileId);
-    insertUnique.execute();
-  }
-
-  // Regular files start with 1 link. Directories 0.
-  unsigned    nlink   = S_ISDIR(nf.stat.st_mode) ? 0 : 1;
-  std::string aclStr  = nf.acl.serialize();
-  char        cstatus = static_cast<char>(nf.status);
-
-  // Create the entry
-  Statement fileStmt(this->conn_, this->nsDb_, STMT_INSERT_FILE);
-
-  fileStmt.bindParam( 0, newFileId);
-  fileStmt.bindParam( 1, nf.parent);
-  fileStmt.bindParam( 2, nf.name);
-  fileStmt.bindParam( 3, nf.stat.st_mode);
-  fileStmt.bindParam( 4, nlink);
-  fileStmt.bindParam( 5, nf.stat.st_uid);
-  fileStmt.bindParam( 6, nf.stat.st_gid);
-  fileStmt.bindParam( 7, nf.stat.st_size);
-  fileStmt.bindParam( 8, 0);
-  fileStmt.bindParam( 9, std::string(&cstatus, 1));
-  fileStmt.bindParam(10, nf.csumtype);
-  fileStmt.bindParam(11, nf.csumvalue);
-  fileStmt.bindParam(12, aclStr);
-  fileStmt.bindParam(13, nf.serialize());
-
-  fileStmt.execute();
-  
-  // Increment the parent nlink
-  if (nf.parent > 0) {
-    Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
-    nlinkStmt.bindParam(0, nf.parent);
-    nlinkStmt.execute();
-    nlinkStmt.bindResult(0, &parentMeta.stat.st_nlink);
-    nlinkStmt.fetch();
-
-    Statement nlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-
-    parentMeta.stat.st_nlink++;
-    nlinkUpdateStmt.bindParam(0, parentMeta.stat.st_nlink);
-    nlinkUpdateStmt.bindParam(1, parentMeta.stat.st_ino);
-
-    nlinkUpdateStmt.execute();
-  }
-
-  // Commit and return back
+  // Commit the local trans object
+  // This also releases the connection back to the pool
   trans.Commit();
+  
 
   Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
   
+  
+  // Note: Maybe also this additional overhead can be avoided in the future
   return this->extendedStat(newFileId);
 }
 
@@ -336,40 +353,45 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
 
   // All preconditions are good! Start transaction.
   this->begin();
-
-  // Remove associated symlink
-  Statement delSymlink(this->conn_, this->nsDb_, STMT_DELETE_SYMLINK);
-  delSymlink.bindParam(0, inode);
-  delSymlink.execute();
-
-  // Remove associated comments
-  Statement delComment(this->conn_, this->nsDb_, STMT_DELETE_COMMENT);
-  delComment.bindParam(0, inode);
-  delComment.execute();
   
-  // Remove replicas
-  Statement delReplicas(this->conn_, this->nsDb_, STMT_DELETE_ALL_REPLICAS);
-  delReplicas.bindParam(0, inode);
-  delReplicas.execute();
-  
-  // Remove file itself
-  Statement delFile(this->conn_, this->nsDb_, STMT_DELETE_FILE);
-  delFile.bindParam(0, inode);
-  delFile.execute();
-
-  // Decrement parent nlink
-  Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
-  nlinkStmt.bindParam(0, parent.stat.st_ino);
-  nlinkStmt.execute();
-  nlinkStmt.bindResult(0, &parent.stat.st_nlink);
-  nlinkStmt.fetch();
-
-  Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-  parent.stat.st_nlink--;
-  nlinkUpdate.bindParam(0, parent.stat.st_nlink);
-  nlinkUpdate.bindParam(1, parent.stat.st_ino);
-  nlinkUpdate.execute();
-
+  {
+    // Scope to make sure that the local objects that involve mysql
+    // are destroyed before the transaction is closed
+    
+    // Remove associated symlink
+    Statement delSymlink(this->conn_, this->nsDb_, STMT_DELETE_SYMLINK);
+    delSymlink.bindParam(0, inode);
+    delSymlink.execute();
+    
+    // Remove associated comments
+    Statement delComment(this->conn_, this->nsDb_, STMT_DELETE_COMMENT);
+    delComment.bindParam(0, inode);
+    delComment.execute();
+    
+    // Remove replicas
+    Statement delReplicas(this->conn_, this->nsDb_, STMT_DELETE_ALL_REPLICAS);
+    delReplicas.bindParam(0, inode);
+    delReplicas.execute();
+    
+    // Remove file itself
+    Statement delFile(this->conn_, this->nsDb_, STMT_DELETE_FILE);
+    delFile.bindParam(0, inode);
+    delFile.execute();
+    
+    // Decrement parent nlink
+    Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
+    nlinkStmt.bindParam(0, parent.stat.st_ino);
+    nlinkStmt.execute();
+    nlinkStmt.bindResult(0, &parent.stat.st_nlink);
+    nlinkStmt.fetch();
+    
+    Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
+    parent.stat.st_nlink--;
+    nlinkUpdate.bindParam(0, parent.stat.st_nlink);
+    nlinkUpdate.bindParam(1, parent.stat.st_ino);
+    nlinkUpdate.execute();
+    
+  }
   // Done!
   this->commit();
   
@@ -384,60 +406,65 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
   
   this->begin();
   
-  // Metadata
-  ExtendedStat file = this->extendedStat(inode);
-  
-  // Make sure the destiny is a dir!
-  ExtendedStat newParent = this->extendedStat(dest);
-  if (!S_ISDIR(newParent.stat.st_mode))
-    throw DmException(ENOTDIR, "Inode %ld is not a directory", dest);
-  
-  // Change parent
-  Statement changeParentStmt(this->conn_, this->nsDb_, STMT_CHANGE_PARENT);
-
-  changeParentStmt.bindParam(0, dest);
-  changeParentStmt.bindParam(1, inode);
-
-  if (changeParentStmt.execute() == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not update the parent ino!");
-
-  // Reduce nlinks from old parent
-  ExtendedStat oldParent = this->extendedStat(file.parent);
-          
-  Statement oldNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
-  oldNlinkStmt.bindParam(0, oldParent.stat.st_ino);
-  oldNlinkStmt.execute();
-  oldNlinkStmt.bindResult(0, &oldParent.stat.st_nlink);
-  oldNlinkStmt.fetch();
-
-  Statement oldNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-
-  oldParent.stat.st_nlink--;
-  oldNlinkUpdateStmt.bindParam(0, oldParent.stat.st_nlink);
-  oldNlinkUpdateStmt.bindParam(1, oldParent.stat.st_ino);
-
-  if (oldNlinkUpdateStmt.execute() == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not update the old parent nlink!");
-
-  // Increment from new
-  Statement newNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
-  newNlinkStmt.bindParam(0, newParent.stat.st_ino);
-  newNlinkStmt.execute();
-  newNlinkStmt.bindResult(0, &newParent.stat.st_nlink);
-  newNlinkStmt.fetch();
-
-  Statement newNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-
-  newParent.stat.st_nlink++;
-  newNlinkUpdateStmt.bindParam(0, newParent.stat.st_nlink);
-  newNlinkUpdateStmt.bindParam(1, newParent.stat.st_ino);
-
-  if (newNlinkUpdateStmt.execute() == 0)
-    throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
-                      "Could not update the new parent nlink!");
-  
+  {
+    // Scope to make sure that the local objects that involve mysql
+    // are destroyed before the transaction is closed
+    
+    // Metadata
+    ExtendedStat file = this->extendedStat(inode);
+    
+    // Make sure the destiny is a dir!
+    ExtendedStat newParent = this->extendedStat(dest);
+    if (!S_ISDIR(newParent.stat.st_mode))
+      throw DmException(ENOTDIR, "Inode %ld is not a directory", dest);
+    
+    // Change parent
+    Statement changeParentStmt(this->conn_, this->nsDb_, STMT_CHANGE_PARENT);
+    
+    changeParentStmt.bindParam(0, dest);
+    changeParentStmt.bindParam(1, inode);
+    
+    if (changeParentStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+			"Could not update the parent ino!");
+      
+      // Reduce nlinks from old parent
+      ExtendedStat oldParent = this->extendedStat(file.parent);
+    
+    Statement oldNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
+    oldNlinkStmt.bindParam(0, oldParent.stat.st_ino);
+    oldNlinkStmt.execute();
+    oldNlinkStmt.bindResult(0, &oldParent.stat.st_nlink);
+    oldNlinkStmt.fetch();
+    
+    Statement oldNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
+    
+    oldParent.stat.st_nlink--;
+    oldNlinkUpdateStmt.bindParam(0, oldParent.stat.st_nlink);
+    oldNlinkUpdateStmt.bindParam(1, oldParent.stat.st_ino);
+    
+    if (oldNlinkUpdateStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+			"Could not update the old parent nlink!");
+      
+      // Increment from new
+      Statement newNlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
+    newNlinkStmt.bindParam(0, newParent.stat.st_ino);
+    newNlinkStmt.execute();
+    newNlinkStmt.bindResult(0, &newParent.stat.st_nlink);
+    newNlinkStmt.fetch();
+    
+    Statement newNlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
+    
+    newParent.stat.st_nlink++;
+    newNlinkUpdateStmt.bindParam(0, newParent.stat.st_nlink);
+    newNlinkUpdateStmt.bindParam(1, newParent.stat.st_ino);
+    
+    if (newNlinkUpdateStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+			"Could not update the new parent nlink!");
+      
+  }
   // Done
   this->commit();
   
