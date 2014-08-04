@@ -122,6 +122,17 @@ public:
      */
     bitmask getMask(component const & comp);
 
+    /**
+     * Build a printable stacktrace. Useful e.g. inside exceptions, to understand
+     * where they come from.
+     * Note: I don't think that the backtrace() function is thread safe, nor this function
+     * Returns the number of backtraces
+     * @param s : the string that will contain the printable stacktrace
+     * @return the number of stacktraces
+     */
+    static int getStackTrace(std::string &s);
+
+
 private:
 
     ///Private constructor

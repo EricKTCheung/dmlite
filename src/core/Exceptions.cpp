@@ -8,12 +8,22 @@
 #include <iomanip>
 #include <sstream>
 #include "utils/logger.h"
+#include <string>
 
 using namespace dmlite;
 
+
+
+
+
+
+
+
 DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 {
-  Err("", " DmException()");
+  std::string s;
+  Logger::getStackTrace(s);
+  Err("", " DmException() at " << s);
   // Nothing
 }
 
@@ -21,7 +31,9 @@ DmException::DmException(): std::exception(), errorCode_(0), errorMsg_()
 
 DmException::DmException(int code): std::exception(), errorCode_(code), errorMsg_()
 {
-  Err("", " DmException(" << code << ")");
+  std::string s;
+  Logger::getStackTrace(s);
+  Err("", " DmException(" << code << ") at " << std::endl << s);
   // Nothing
 }
 
@@ -29,6 +41,9 @@ DmException::DmException(int code): std::exception(), errorCode_(code), errorMsg
 
 DmException::DmException(int code, const std::string& string): std::exception(), errorCode_(code)
 {
+  std::string s;
+  Logger::getStackTrace(s);
+  
   std::ostringstream os;
   os << "[#"
      << std::setfill('0') << std::setw(2) << (DMLITE_ETYPE(code) >> 24) << '.'
@@ -36,7 +51,7 @@ DmException::DmException(int code, const std::string& string): std::exception(),
      << "] " << string;
   errorMsg_ = os.str();
   
-  Err("", " DmException(..):" << this->errorMsg_);
+  Err("", " DmException(..):" << this->errorMsg_ << " at "  << std::endl << s);
 }
 
 
@@ -66,7 +81,7 @@ DmException::DmException(const DmException &base) : std::exception()
   this->errorCode_ = base.errorCode_;
   this->errorMsg_  = base.errorMsg_;
   
-  Err("", " DmException(..): " << errorMsg_);
+  //Err("", " DmException(..): " << errorMsg_);
 }
 
 
@@ -94,6 +109,9 @@ const char* DmException::what() const throw()
 
 void DmException::setMessage(const char* fmt, va_list args)
 {
+  std::string s;
+  Logger::getStackTrace(s);
+  
   char buffer[512];
   int  n;
   
@@ -105,6 +123,6 @@ void DmException::setMessage(const char* fmt, va_list args)
   buffer[sizeof(buffer)-1] = '\0';
   
   this->errorMsg_ = buffer;
-  Err("DmException", this->errorMsg_);
+  Err("DmException", this->errorMsg_ << " at "  << std::endl << s);
   
 }
