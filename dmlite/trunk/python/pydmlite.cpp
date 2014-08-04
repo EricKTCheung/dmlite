@@ -41,6 +41,7 @@ PyObject* dmExceptionTypeObj = 0;
 
 void translate(const DmException& e)
 {
+  PyObject_SetAttrString(dmExceptionTypeObj, "code", PyInt_FromLong(e.code()));
   PyErr_SetString(dmExceptionTypeObj, e.what());
 }
 
