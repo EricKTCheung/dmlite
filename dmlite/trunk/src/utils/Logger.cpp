@@ -2,9 +2,116 @@
 #include <stdlib.h>
 #include <iostream>
 #include <boost/iterator/iterator_concepts.hpp>
+#include <cxxabi.h>
+#include <execinfo.h>
 
 Logger *Logger::instance = 0;
 Logger::bitmask Logger::unregistered = ~0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Build a printable stacktrace. Useful e.g. inside exceptions, to understand
+// where they come from.
+// Note: I don't think that the backtrace() function is thread safe, nor this function
+// Returns the number of backtraces
+int Logger::getStackTrace(std::string &s)
+{
+  std::ostringstream o;
+  
+  void * array[4];
+  int size = backtrace(array, 4);
+  
+  char ** messages = backtrace_symbols(array, size);    
+  
+  // skip first stack frame (points here)
+  for (int i = 1; i < size && messages != NULL; ++i)
+  {
+    char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
+    
+    // find parantheses and +address offset surrounding mangled name
+    for (char *p = messages[i]; *p; ++p)
+    {
+      if (!p) break;
+      
+      if (*p == '(') {
+	mangled_name = p; 
+      }
+      else if (*p == '+') {
+	offset_begin = p;
+      }
+      else if (*p == ')') {
+	offset_end = p;
+	break;
+      }
+    }
+    
+    // if the line could be processed, attempt to demangle the symbol
+    if (mangled_name && offset_begin && offset_end && 
+      mangled_name < offset_begin)
+    {
+      *mangled_name++ = '\0';
+      *offset_begin++ = '\0';
+      *offset_end++ = '\0';
+      
+      int status;
+      char * real_name = abi::__cxa_demangle(mangled_name, 0, 0, &status);
+      
+      // if demangling is successful, output the demangled function name
+      if (status == 0)
+      {
+	o << "[bt]: (" << i << ") " << messages[i] << " : " 
+	<< real_name << "+" << offset_begin << offset_end 
+	<< std::endl;
+	
+      }
+      // otherwise, output the mangled function name
+      else
+      {
+	o << "[bt]: (" << i << ") " << messages[i] << " : " 
+	<< mangled_name << "+" << offset_begin << offset_end 
+	<< std::endl;
+      }
+      free(real_name);
+    }
+    // otherwise, print the whole line
+    else
+    {
+      o << "[bt]: (" << i << ") " << messages[i] << std::endl;
+    }
+  }
+  
+  free(messages);
+  
+  s += o.str();
+  
+  return size;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Logger::Logger() : level(DEBUG), size(0)
 {
