@@ -114,7 +114,7 @@ int Logger::getStackTrace(std::string &s)
 
 
 
-Logger::Logger() : level(DEBUG), size(0)
+Logger::Logger() : level(Lvl4), size(0)
 {
     mask = 0;
     registerComponent("unregistered");
@@ -153,7 +153,7 @@ void Logger::registerComponent(component const &  comp)
     
     std::ostringstream outs;
     outs << "Logger::registerComponent" << " : " << "Registered logger component" << comp << "," << size;                      			\
-    log(BASE, outs.str());
+    log(Lvl0, outs.str());
 }
 
 void Logger::registerComponents(std::vector<component> const & components)

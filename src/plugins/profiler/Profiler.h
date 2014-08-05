@@ -77,25 +77,25 @@ if (this->decorated_ == 0x00)\
                     std::string("There is no plugin to delegate the call "#method));\
 struct timespec  start, end;\
 double           duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &start);\
 }\
 try {\
   this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
-  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
     clock_gettime(CLOCK_REALTIME, &end);\
     duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
     duration /= 1000;\
-    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+    Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   }\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
 }
 
 
@@ -107,25 +107,25 @@ if (this->decorated_ == 0x00)\
 type             ret;\
 struct timespec  start, end;\
 double           duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &start);\
 }\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
-  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
     clock_gettime(CLOCK_REALTIME, &end);\
     duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
     duration /= 1000;\
-    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+    Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   }\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
 }\
 return ret;
 
@@ -137,25 +137,25 @@ if (this->decorated_ == 0x00)\
 type             ret;\
 struct timespec  start, end;\
 double           duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &start);\
 }\
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
-  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
     clock_gettime(CLOCK_REALTIME, &end);\
     duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
     duration /= 1000;\
-    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+    Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
   }\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_gettime(CLOCK_REALTIME, &end);\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << "::"#method << " " << duration);\
 }
 
 #else // ifndef __APPLE__
@@ -165,7 +165,7 @@ if (this->decorated_ == 0x00)\
                     std::string("There is no plugin to delegate the call "#method));\
 struct timespec  start, end;\
 double           duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_serv_t cclock;\
   mach_timespec_t mts;\
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
@@ -177,7 +177,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
 try {\
   this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
-  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
     {\
       clock_serv_t cclock;\
       mach_timespec_t mts;\
@@ -189,11 +189,11 @@ try {\
     }\
     duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
     duration /= 1000;\
-    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+    Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   }\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   {\
     clock_serv_t cclock;\
     mach_timespec_t mts;\
@@ -205,7 +205,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
 }
 
 /// Profile with pointers
@@ -216,7 +216,7 @@ if (this->decorated_ == 0x00)\
 type             ret;\
 struct timespec  start, end;\
 double           duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_serv_t cclock;\
   mach_timespec_t mts;\
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
@@ -228,7 +228,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
 try {\
   ret = this->decorated_->method(__VA_ARGS__);\
 } catch (DmException& e) {\
-  if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
     {\
       clock_serv_t cclock;\
       mach_timespec_t mts;\
@@ -240,11 +240,11 @@ try {\
     }\
     duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
     duration /= 1000;\
-    Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+    Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   }\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   {\
     clock_serv_t cclock;\
     mach_timespec_t mts;\
@@ -256,7 +256,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
 }\
 return ret;
 
@@ -268,7 +268,7 @@ if (this->decorated_ == 0x00)\
 type            ret;\
 struct timespec start, end;\
 double          duration;\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   clock_serv_t cclock;\
   mach_timespec_t mts;\
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);\
@@ -291,10 +291,10 @@ try {\
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
   throw;\
 }\
-if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profilertimingslogmask)) {\
+if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(profilertimingslogmask)) {\
   {\
     clock_serv_t cclock;\
     mach_timespec_t mts;\
@@ -306,7 +306,7 @@ if (Logger::get()->getLevel() >= Logger::DEBUG && Logger::get()->isLogged(profil
   }\
   duration = ((end.tv_sec - start.tv_sec) * 1E9) + (end.tv_nsec - start.tv_nsec);\
   duration /= 1000;\
-  Log(Logger::DEBUG, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
+  Log(Logger::Lvl4, profilertimingslogmask, profilertimingslogname, this->decoratedId_ << " " << duration);\
 }
 #endif
 };

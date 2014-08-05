@@ -15,7 +15,7 @@ ProfilerPoolManager::ProfilerPoolManager(PoolManager* decorates) throw(DmExcepti
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "");
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "");
 }
 
 
@@ -25,7 +25,7 @@ ProfilerPoolManager::~ProfilerPoolManager()
   delete this->decorated_;
   free(this->decoratedId_);
 
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "");
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "");
 }
 
 
@@ -58,7 +58,7 @@ void ProfilerPoolManager::setSecurityContext(const SecurityContext* ctx) throw (
 
 std::vector<Pool> ProfilerPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "availability: " << availability);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "availability: " << availability);
   PROFILE_RETURN(std::vector<Pool>, getPools, availability);
 }
 
@@ -66,7 +66,7 @@ std::vector<Pool> ProfilerPoolManager::getPools(PoolAvailability availability) t
 
 Pool ProfilerPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "poolname: " << poolname);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "poolname: " << poolname);
   PROFILE_RETURN(Pool, getPool, poolname);
 }
 
@@ -74,7 +74,7 @@ Pool ProfilerPoolManager::getPool(const std::string& poolname) throw (DmExceptio
 
 void ProfilerPoolManager::newPool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "pool: " << pool.name);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "pool: " << pool.name);
   PROFILE(newPool, pool);
 }
 
@@ -82,7 +82,7 @@ void ProfilerPoolManager::newPool(const Pool& pool) throw (DmException)
 
 void ProfilerPoolManager::updatePool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "pool: " << pool.name);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "pool: " << pool.name);
   PROFILE(updatePool, pool);
 }
 
@@ -90,7 +90,7 @@ void ProfilerPoolManager::updatePool(const Pool& pool) throw (DmException)
 
 void ProfilerPoolManager::deletePool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "pool: " << pool.name);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "pool: " << pool.name);
   PROFILE(deletePool, pool);
 }
 
@@ -98,10 +98,10 @@ void ProfilerPoolManager::deletePool(const Pool& pool) throw (DmException)
 
 Location ProfilerPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "path: " << path);
   PROFILE_ASSIGN(Location, whereToRead, path);
   //reportXrdRedirCmd(ret, XROOTD_MON_OPENR);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "return: " << ret.toString());
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "return: " << ret.toString());
   return ret;
 }
 
@@ -109,7 +109,7 @@ Location ProfilerPoolManager::whereToRead(const std::string& path) throw (DmExce
 
 Location ProfilerPoolManager::whereToRead(ino_t inode) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "inode: " << inode);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "inode: " << inode);
   PROFILE_RETURN(Location, whereToRead, inode);
 }
 
@@ -117,9 +117,9 @@ Location ProfilerPoolManager::whereToRead(ino_t inode) throw (DmException)
 
 Location ProfilerPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "path: " << path);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "path: " << path);
   PROFILE_ASSIGN(Location, whereToWrite, path);
   //reportXrdRedirCmd(ret, XROOTD_MON_OPENW);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "return: " << ret.toString());
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "return: " << ret.toString());
   return ret;
 }

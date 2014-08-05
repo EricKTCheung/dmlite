@@ -48,7 +48,7 @@ throw (DmException):
   // it will just be slightly slower. No reason to fail.
   //memcached_behavior_set(this->connNoReply_, MEMCACHED_BEHAVIOR_NOREPLY, 1);
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname, "Ctor: " << " symlinkLimit: " << symLinkLimit_);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "MemcacheCatalog started.");
 
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
@@ -561,7 +561,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
       addMemcachedFromKeyValue(dirkey, "CANBEANYTHING");
       dirp->pb_keys.set_state(MISSING);
     } catch (MemcacheException) {
-      Log(Logger::INFO, memcachelogmask, memcachelogname,
+      Log(Logger::Lvl3, memcachelogmask, memcachelogname,
           "conflict when caching dir object: " <<
           "caching is already in process");
       dirp->pb_keys.set_state(INVALID);
@@ -659,7 +659,7 @@ ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *d
     // computes the serialized size of the message, it can still
     // grow large in memory. use .SpaceUsed() to test that.
     if (dirp->pb_keys.ByteSize() > (1 << 20)) {
-      Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+      Log(Logger::Lvl4, memcachelogmask, memcachelogname,
           "dir size to large to cache: " << dirp->pb_keys.ByteSize());
       dirp->pb_keys.set_state(INVALID);
     }

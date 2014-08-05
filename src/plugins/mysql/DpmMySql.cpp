@@ -24,7 +24,7 @@ MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
                                    const std::string& adminUsername) throw (DmException):
       stack_(0x00), dpmDb_(dpmDb), factory_(factory), adminUsername_(adminUsername)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Ctor");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ctor");
   // Nothing
 }
 
@@ -32,7 +32,7 @@ MySqlPoolManager::MySqlPoolManager(DpmMySqlFactory* factory,
 
 MySqlPoolManager::~MySqlPoolManager()
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Dtor");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Dtor");
   // Nothing
 }
 
@@ -61,14 +61,14 @@ void MySqlPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmE
 
 std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Poolavailability: " << availability);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Poolavailability: " << availability);
 
   std::vector<Pool> pools;
   time_t timenow = time(0);
   {
     boost::shared_lock<boost::shared_mutex> l(poolmtx_);
     if (pools_.pool_lastupd >= timenow - 60) {
-      Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
+      Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
       return filterPools(pools_.pools, availability);
     }
   }
@@ -81,7 +81,7 @@ std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) thro
     pools_.pool_lastupd = timenow;
   }
 
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
   return filterPools(pools_.pools, availability);
 }
 
@@ -89,9 +89,9 @@ std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) thro
 
 std::vector<Pool> MySqlPoolManager::filterPools(std::vector<Pool>& pools, PoolAvailability availability) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   if (availability == kAny) {
-    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
+    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
     return pools;
   }
   else {
@@ -111,7 +111,7 @@ std::vector<Pool> MySqlPoolManager::filterPools(std::vector<Pool>& pools, PoolAv
       delete handler;
     }
 
-    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
+    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
     return filtered;
   }
 }
@@ -120,7 +120,7 @@ std::vector<Pool> MySqlPoolManager::filterPools(std::vector<Pool>& pools, PoolAv
 
 std::vector<Pool> MySqlPoolManager::getPoolsFromMySql() throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
 
   Pool pool;
   std::vector<Pool> pools;
@@ -191,13 +191,13 @@ std::vector<Pool> MySqlPoolManager::getPoolsFromMySql() throw (DmException)
 
 Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " poolname:" << poolname);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " poolname:" << poolname);
 
   std::vector<Pool> pools = getPools(kAny);
   std::vector<Pool>::iterator it;
   for (it = pools.begin(); it != pools.end(); ++it) {
     if (it->name == poolname) {
-      Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. poolname:" << it->name);
+      Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. poolname:" << it->name);
       return *it;
     }
   }
@@ -209,7 +209,7 @@ Pool MySqlPoolManager::getPool(const std::string& poolname) throw (DmException)
 
 void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
+  Log(Logger::Lvl2, mysqllogmask, mysqllogname, " pool:" << pool.name);
 
   // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
@@ -268,14 +268,14 @@ void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
   // Let the driver know
   driver->justCreated(pool);
 
-  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
+  Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
 
 
 void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
+  Log(Logger::Lvl2, mysqllogmask, mysqllogname, " pool:" << pool.name);
 
   // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
@@ -342,14 +342,14 @@ void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
   // Tell the driver, since it may need to know
   driver->update(pool);
 
-  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
+  Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
 
 
 void MySqlPoolManager::deletePool(const Pool& pool) throw (DmException)
 {
-  Log(Logger::NOTICE, mysqllogmask, mysqllogname, " pool:" << pool.name);
+  Log(Logger::Lvl2, mysqllogmask, mysqllogname, " pool:" << pool.name);
 
     // Must be root, or root group
   if (this->secCtx_->user.getUnsigned("uid") != 0 &&
@@ -367,7 +367,7 @@ void MySqlPoolManager::deletePool(const Pool& pool) throw (DmException)
   stmt.bindParam(0, pool.name);
   stmt.execute();
 
-  Log(Logger::WARNING, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
+  Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Exiting. poolname:" << pool.name);
 }
 
 
@@ -391,7 +391,7 @@ Location MySqlPoolManager::whereToRead(const std::vector<Replica>& replicas) thr
   unsigned i;
   std::vector<Location> available;
 
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " nr:" << replicas.size());
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " nr:" << replicas.size());
 
   if (replicas.size() == 0)
     throw DmException(DMLITE_NO_REPLICAS, "No replicas");
@@ -419,7 +419,7 @@ Location MySqlPoolManager::whereToRead(const std::vector<Replica>& replicas) thr
   // Pick a random one from the available
   if (available.size() > 0) {
     i = rand() % available.size();
-    Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. rep:" << available[i].toString());
+    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. rep:" << available[i].toString());
     return available[i];
   }
   else {
@@ -436,7 +436,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
   mode_t createMode = 0664;
   Acl acl;
 
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " path:" << path);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " path:" << path);
 
   if (this->stack_->contains("overwrite"))
     overwrite = Extensible::anyToBoolean(this->stack_->get("overwrite"));
@@ -528,7 +528,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
   delete handler;
 
   // Done!
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. loc:" << loc.toString());
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. loc:" << loc.toString());
   return loc;
 }
 
@@ -536,7 +536,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
 
 void MySqlPoolManager::cancelWrite(const Location& loc) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "loc:" << loc.toString());
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "loc:" << loc.toString());
 
   if (loc.empty())
     throw DmException(EINVAL, "Location is empty");
@@ -559,6 +559,6 @@ void MySqlPoolManager::cancelWrite(const Location& loc) throw (DmException)
 
 
   delete handler;
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting. loc:" << loc.toString());
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. loc:" << loc.toString());
 
 }

@@ -43,7 +43,7 @@ MySqlConnectionFactory::MySqlConnectionFactory(const std::string& host, unsigned
 {
   mysqllogmask = Logger::get()->getMask(mysqllogname);
   
-  Log(Logger::NOTICE, mysqllogmask, mysqllogname, user << "@" << host << ":" << port);
+  Log(Logger::Lvl2, mysqllogmask, mysqllogname, user << "@" << host << ":" << port);
   // Nothing
 }
 
@@ -62,7 +62,7 @@ MYSQL* MySqlConnectionFactory::create()
   my_bool reconnect  = 1;
   my_bool truncation = 0;
   
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Connecting... " << user << "@" << host << ":" << port);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Connecting... " << user << "@" << host << ":" << port);
   
   c = mysql_init(NULL);
 
@@ -82,7 +82,7 @@ MYSQL* MySqlConnectionFactory::create()
 #endif
   }
   
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Connected. " << user << "@" << host << ":" << port);
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Connected. " << user << "@" << host << ":" << port);
   return c;
 }
 
@@ -90,9 +90,9 @@ MYSQL* MySqlConnectionFactory::create()
 
 void MySqlConnectionFactory::destroy(MYSQL* c)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Destroying... ");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Destroying... ");
   mysql_close(c);
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Destroyed. ");
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Destroyed. ");
 }
 
 
@@ -111,10 +111,10 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
   mapFile_("/etc/lcgdm-mapfile"), hostDnIsRoot_(false), hostDn_("")
 {
   mysqllogmask = Logger::get()->getMask(mysqllogname);
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   mysql_library_init(0, NULL, NULL);  
   pthread_key_create(&this->thread_mysql_conn_, NULL);
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
@@ -122,10 +122,10 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
 
 NsMySqlFactory::~NsMySqlFactory()
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   mysql_library_end();
   pthread_key_delete(this->thread_mysql_conn_);
-  Log(Logger::INFO, mysqllogmask, mysqllogname, "Exiting.");
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
@@ -133,7 +133,7 @@ NsMySqlFactory::~NsMySqlFactory()
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
   
   if (key == "MySqlHost")
     this->connectionFactory_.host = value;
@@ -156,7 +156,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
   else if (key == "HostCertificate")
     this->hostDn_ = getCertificateSubject(value);
   else
-    Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      std::string("Unknown option ") + key);
 }
@@ -164,7 +164,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
 
 INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   pthread_once(&initialize_mysql_thread, init_thread);
   return new INodeMySql(this, this->nsDb_);
 }
@@ -173,7 +173,7 @@ INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
 
 Authn* NsMySqlFactory::createAuthn(PluginManager*) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   pthread_once(&initialize_mysql_thread, init_thread);
   return new AuthnMySql(this, this->nsDb_, this->mapFile_,
                         this->hostDnIsRoot_, this->hostDn_);
@@ -192,7 +192,7 @@ DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
   NsMySqlFactory(), dpmDb_("dpm_db"), adminUsername_("root")
 {
   mysqllogmask = Logger::get()->getMask(mysqllogname);
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Ctor");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Ctor");
   // MySQL initialization done by NsMySqlFactory
 }
 
@@ -200,7 +200,7 @@ DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
 
 DpmMySqlFactory::~DpmMySqlFactory()
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   // MySQL termination done by NsMySqlFactory
 }
 
@@ -208,7 +208,7 @@ DpmMySqlFactory::~DpmMySqlFactory()
 
 void DpmMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
   
   if (key == "DpmDatabase")
     this->dpmDb_ = value;
@@ -222,7 +222,7 @@ void DpmMySqlFactory::configure(const std::string& key, const std::string& value
 
 PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   pthread_once(&initialize_mysql_thread, init_thread);
   return new MySqlPoolManager(this, this->dpmDb_, this->adminUsername_);
 }
@@ -231,7 +231,7 @@ PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmExcepti
 
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   NsMySqlFactory* nsFactory = new NsMySqlFactory();
   pm->registerINodeFactory(nsFactory);
   pm->registerAuthnFactory(nsFactory);
@@ -241,7 +241,7 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
 
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 { 
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   
   DpmMySqlFactory* dpmFactory = new DpmMySqlFactory();
   

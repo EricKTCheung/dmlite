@@ -297,7 +297,7 @@ int XrdMonitor::sendServerIdent()
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&pgm=%s&ver=%s",
       username_.c_str(), pid_, sid_, hostname_.c_str(), processname_.c_str(), "1.8.8");
 
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "send serverident:\n" << info);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "send serverident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPIDNT, 0, info);
   if (ret) {
@@ -315,7 +315,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_unt32 dictid)
   snprintf(info, 1024+256, "%s.%d:%lld@%s",
            username_.c_str(), pid_, sid_, hostname_.c_str());
 
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send short userident:\n" << info);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send short userident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
@@ -373,7 +373,7 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
            protocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
 
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send userident:\n" << info);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send userident:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPUSER, dictid, info);
   if (ret) {
@@ -394,7 +394,7 @@ int XrdMonitor::sendFileOpen(const kXR_unt32 fileid, const std::string &path)
            username_.c_str(), pid_, sid_, hostname_.c_str(),
            path.c_str());
 
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname,  "send fileopen:\n" << info);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send fileopen:\n" << info);
 
   ret = sendMonMap(XROOTD_MON_MAPPATH, fileid, info);
   if (ret) {
@@ -569,7 +569,7 @@ std::string XrdMonitor::getHostname()
 
 void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &path, const int cmd_id)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   std::string full_path = getHostname() + ":" + path;
 
@@ -588,7 +588,7 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
       if (ret) {
         Err(profilerlogname, "failed sending REDIR msg, error code = " << ret);
       } else {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent REDIR msg");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent REDIR msg");
       }
       msg = getRedirBufferNextEntry(slots);
     }
@@ -607,9 +607,9 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
   }
 
   if (msg != 0x00) {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "added new REDIR msg");
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -617,7 +617,7 @@ void XrdMonitor::reportXrdRedirNsCmd(const kXR_unt32 dictid, const std::string &
 void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &host, const int port,
                                    const std::string &path, const int cmd_id)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   std::string full_path = host + ":" + path;
 
@@ -636,7 +636,7 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
       if (ret) {
         Err(profilerlogname, "failed sending REDIR msg, error code = " << ret);
       } else {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent REDIR msg");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent REDIR msg");
       }
       msg = getRedirBufferNextEntry(slots);
     }
@@ -655,16 +655,16 @@ void XrdMonitor::reportXrdRedirCmd(const kXR_unt32 dictid, const std::string &ho
   }
 
   if (msg != 0x00) {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "added new REDIR msg");
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
 
 int XrdMonitor::initFileBuffer(int max_size)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int max_slots = (max_size - sizeof(XrdXrootdMonHeader) - sizeof(XrdXrootdMonFileTOD)) / sizeof(XrdXrootdMonFileHdr); // round down
 
@@ -691,7 +691,7 @@ int XrdMonitor::initFileBuffer(int max_size)
 
 XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   // space from the last msg + this msg + the ending window message
   if (fileBuffer.next_slot + slots + 1 < fileBuffer.max_slots) {
@@ -703,7 +703,7 @@ XrdXrootdMonFileHdr* XrdMonitor::getFileBufferNextEntry(int slots)
 
 int XrdMonitor::advanceFileBufferNextEntry(int slots)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int ret = 0;
 
@@ -715,7 +715,7 @@ int XrdMonitor::advanceFileBufferNextEntry(int slots)
 
 int XrdMonitor::sendFileBuffer()
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int ret = 0;
 
@@ -755,7 +755,7 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
                                    const std::string &path,
                                    const long long file_size)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   static const int min_msg_size = sizeof(XrdXrootdMonFileOPN) - sizeof(XrdXrootdMonFileLFN);
   int msg_size = min_msg_size;
@@ -776,7 +776,7 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
       if (ret) {
         Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileOPN *) getFileBufferNextEntry(slots);
     }
@@ -799,9 +799,9 @@ void XrdMonitor::reportXrdFileOpen(const kXR_unt32 dictid, const kXR_unt32 filei
   }
 
   if (msg != 0x00) {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
@@ -811,7 +811,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
                                     const XrdXrootdMonStatSSQ ssq,
                                     const int flags)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int msg_size = sizeof(XrdXrootdMonFileHdr) + sizeof(XrdXrootdMonStatXFR);
   if (flags & XrdXrootdMonFileHdr::hasSSQ)
@@ -831,7 +831,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
       if (ret) {
         Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileCLS *) getFileBufferNextEntry(slots);
     }
@@ -856,7 +856,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         Err(profilerlogname, " bytes write:" << xfr.write);
 
       if (flags & XrdXrootdMonFileHdr::hasOPS) {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add OPS file statistics");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "add OPS file statistics");
         msg->Ops.read  = htonl(ops.read);   // Number of read()  calls
         msg->Ops.readv = htonl(ops.readv);   // Number of readv() calls
         msg->Ops.write = htonl(ops.write);   // Number of write() calls
@@ -883,7 +883,7 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
         }
       }
       if (flags & XrdXrootdMonFileHdr::hasSSQ) {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "add SSQ file statistics");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "add SSQ file statistics");
         // WARNING: these value are already in network-byte order!
         msg->Ssq.read.dlong = ssq.read.dlong;
         msg->Ssq.readv.dlong = ssq.readv.dlong;
@@ -896,15 +896,15 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
   }
 
   if (msg != 0x00) {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
 void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int msg_size = sizeof(XrdXrootdMonFileHdr);
   int slots = 1;
@@ -920,7 +920,7 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
       if (ret) {
         Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
       } else {
-        Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
+        Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent FILE msg");
       }
       msg = (XrdXrootdMonFileDSC *) getFileBufferNextEntry(slots);
     }
@@ -936,20 +936,20 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
   }
 
   if (msg != 0x00) {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "added new FILE msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "added new FILE msg");
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "did not send/add new REDIR msg");
   }
 }
 
 void XrdMonitor::flushXrdFileStream()
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Entering");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
   int ret = XrdMonitor::sendFileBuffer();
   if (ret) {
     Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "sent FILE msg");
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "sent FILE msg");
   }
 }

@@ -27,7 +27,7 @@ var = factory?factory->creator(pm):NULL;
 
 void StackInstance::setSecurityContextImpl_(void)
 {
-  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl4, stackinstancelogmask, stackinstancelogname, "");
   
   if (this->inode_ != 0)
     this->inode_->setSecurityContext(this->secCtx_);
@@ -42,14 +42,14 @@ void StackInstance::setSecurityContextImpl_(void)
   for (i = this->poolDrivers_.begin(); i != this->poolDrivers_.end(); ++i)
     i->second->setSecurityContext(this->secCtx_);
   
-  Log(Logger::INFO, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl3, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
 StackInstance::StackInstance(PluginManager* pm) throw (DmException):
     pluginManager_(pm)
 {
-  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl4, stackinstancelogmask, stackinstancelogname, "");
   
   // Instantiate each interface
   INSTANTIATE(this->authn_,       pm, pm->getAuthnFactory(),       createAuthn);
@@ -79,14 +79,14 @@ StackInstance::StackInstance(PluginManager* pm) throw (DmException):
   // Set the context, if was created
   if (this->secCtx_) setSecurityContextImpl_();
   
-  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl4, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
 
 StackInstance::~StackInstance()
 {
-  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl4, stackinstancelogmask, stackinstancelogname, "");
   
   if (this->authn_)       delete this->authn_;
   if (this->inode_)       delete this->inode_;
@@ -103,7 +103,7 @@ StackInstance::~StackInstance()
     delete i->second;
   }
   this->poolDrivers_.clear();
-  Log(Logger::INFO, stackinstancelogmask, stackinstancelogname, "");
+  Log(Logger::Lvl3, stackinstancelogmask, stackinstancelogname, "");
 }
 
 
@@ -248,7 +248,7 @@ IODriver* StackInstance::getIODriver() throw (DmException)
 
 void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) throw (DmException)
 {
-  Log(Logger::DEBUG, stackinstancelogmask, stackinstancelogname, " cred:" << cred.clientName << " " << cred.remoteAddress);
+  Log(Logger::Lvl4, stackinstancelogmask, stackinstancelogname, " cred:" << cred.clientName << " " << cred.remoteAddress);
   
   if (this->authn_ == 0)
     throw DmException(DMLITE_SYSERR(DMLITE_NO_AUTHN),
@@ -262,7 +262,7 @@ void StackInstance::setSecurityCredentials(const SecurityCredentials& cred) thro
   
   setSecurityContextImpl_();
   
-  Log(Logger::NOTICE, stackinstancelogmask, stackinstancelogname, "Exiting. cred:" << cred.clientName << " " << cred.remoteAddress);
+  Log(Logger::Lvl2, stackinstancelogmask, stackinstancelogname, "Exiting. cred:" << cred.clientName << " " << cred.remoteAddress);
 }
 
 

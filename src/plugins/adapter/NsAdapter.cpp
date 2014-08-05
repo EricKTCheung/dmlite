@@ -48,7 +48,7 @@ NsAdapterCatalog::NsAdapterCatalog(unsigned retryLimit, bool hostDnIsRoot, std::
   throw (DmException): Catalog(), si_(NULL), retryLimit_(retryLimit),
                        fqans_(NULL), nFqans_(0), hostDnIsRoot_(hostDnIsRoot), hostDn_(hostDn), secCtx_(NULL)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " hostDn: " << hostDn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " hostDn: " << hostDn);
   
   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
   pthread_once(&once_control, ns_init_routine);
@@ -58,7 +58,7 @@ NsAdapterCatalog::NsAdapterCatalog(unsigned retryLimit, bool hostDnIsRoot, std::
 
 NsAdapterCatalog::~NsAdapterCatalog()
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " hostDn: " << this->hostDn_);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " hostDn: " << this->hostDn_);
   
   if (this->fqans_ != NULL) {
     for (unsigned i = 0; i < this->nFqans_; ++i)
@@ -74,19 +74,19 @@ NsAdapterCatalog::~NsAdapterCatalog()
 //
 void NsAdapterCatalog::setDpnsApiIdentity()
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   
   FunctionWrapper<int> reset(dpns_client_resetAuthorizationId);
   reset();
 
   // can not do any more if there is no security context
   if (!secCtx_) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "No security context. Exiting.");
     return;
   }
 
   uid_t uid = secCtx_->user.getUnsigned("uid");
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "uid=" << uid);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "uid=" << uid);
 
   // nothing more to do for root
   if (uid == 0) { return; }
@@ -97,7 +97,7 @@ void NsAdapterCatalog::setDpnsApiIdentity()
         (char*)secCtx_->user.name.c_str())();
 
   if (fqans_ && nFqans_) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "fqan=" << fqans_[0]);
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "fqan=" << fqans_[0]);
     FunctionWrapper<int, char*, char**, int>(
         dpns_client_setVOMS_data,
           fqans_[0], fqans_, nFqans_)();
@@ -151,7 +151,7 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
 {
   // String => const char*
   if (this->fqans_ != NULL) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Deleting previous fqans");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Deleting previous fqans");
     for (unsigned i = 0; i < this->nFqans_; ++i)
       delete [] this->fqans_[i];
     delete [] this->fqans_;
@@ -162,7 +162,7 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
   this->secCtx_ = ctx;
 
   if (!ctx) {
-    Log(Logger::INFO, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, "No security context. Exiting.");
     return;
     
   }
@@ -180,18 +180,18 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
     strcpy(this->fqans_[i], ctx->groups[i].name.c_str());
   }
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
 
 
 void NsAdapterCatalog::changeDir(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " path=" << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " path=" << path );
   setDpnsApiIdentity();
 
   FunctionWrapper<int, const char*>(dpns_chdir, path.c_str())();
   this->cwdPath_ = path;
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " Exiting. path=" << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " Exiting. path=" << path );
 }
 
 
@@ -199,14 +199,14 @@ void NsAdapterCatalog::changeDir(const std::string& path) throw (DmException)
 std::string NsAdapterCatalog::getWorkingDir(void) throw (DmException)
 {
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   
   setDpnsApiIdentity();
 
   char buffer[1024];
   std::string res = FunctionWrapper<char*, char*, int>(dpns_getcwd, buffer, sizeof(buffer))();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " Exiting. wd:" << res );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " Exiting. wd:" << res );
   return res;
 }
 
@@ -214,7 +214,7 @@ std::string NsAdapterCatalog::getWorkingDir(void) throw (DmException)
 
 ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " follow:" << follow);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " follow:" << follow);
   
   setDpnsApiIdentity();
 
@@ -255,7 +255,7 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
     xStat["type"] = dpnsStat.fileclass;
   }
 
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " size:" << xStat.stat.st_size <<
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " size:" << xStat.stat.st_size <<
       " gid:" << xStat.stat.st_gid << " uid:" << xStat.stat.st_uid << " mode:" << xStat.stat.st_mode <<
       " csumtype:" << xStat.csumtype << " csumvalue:" << xStat.csumvalue);
   
@@ -274,7 +274,7 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
     }
   }
 
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " nacls:" << xStat.acl.size() );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " nacls:" << xStat.acl.size() );
   
   // Missing bits
   xStat.parent = 0;
@@ -289,7 +289,7 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
 
 ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "rfn: " << rfn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "rfn: " << rfn);
   setDpnsApiIdentity();
 
   struct dpns_filestatg dpnsStat;
@@ -312,7 +312,7 @@ ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (
   xStat.parent = 0;
   xStat.name   = "";
 
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "rfn: " << rfn << " size:" << xStat.stat.st_size <<
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "rfn: " << rfn << " size:" << xStat.stat.st_size <<
       " gid:" << xStat.stat.st_gid << " uid:" << xStat.stat.st_uid << " mode:" << xStat.stat.st_mode <<
       " csumtype:" << xStat.csumtype << " csumvalue:" << xStat.csumvalue);
   
@@ -323,18 +323,18 @@ ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (
 
 bool NsAdapterCatalog::access(const std::string& sfn, int mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "sfn: " << sfn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "sfn: " << sfn);
   setDpnsApiIdentity();
 
   try {
     FunctionWrapper<int, const char*, int>(dpns_access, sfn.c_str(), mode)();
-    Log(Logger::INFO, adapterlogmask, adapterlogname, "sfn: " << sfn << " returns true");
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, "sfn: " << sfn << " returns true");
     return true;
   }
   catch (DmException& e) {
     if (e.code() != EACCES) throw;
   }
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "sfn: " << sfn << " returns false");
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "sfn: " << sfn << " returns false");
   return false;
 }
 
@@ -342,19 +342,19 @@ bool NsAdapterCatalog::access(const std::string& sfn, int mode) throw (DmExcepti
 
 bool NsAdapterCatalog::accessReplica(const std::string& rfn, int mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "rfn: " << rfn << " mode:" << mode);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "rfn: " << rfn << " mode:" << mode);
   setDpnsApiIdentity();
 
   try {
     FunctionWrapper<int, const char*, int>(dpns_accessr, rfn.c_str(), mode)();
-    Log(Logger::INFO, adapterlogmask, adapterlogname, "rfn: " << rfn << " returns true");
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, "rfn: " << rfn << " returns true");
     return true;
   }
   catch (DmException& e) {
     if (e.code() == ENOENT) throw DmException(DMLITE_NO_SUCH_REPLICA, e.what());
     if (e.code() != EACCES) throw;
   }
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "rfn: " << rfn << " returns false");
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "rfn: " << rfn << " returns false");
   return false;
 }
 
@@ -362,7 +362,7 @@ bool NsAdapterCatalog::accessReplica(const std::string& rfn, int mode) throw (Dm
 
 void NsAdapterCatalog::addReplica(const Replica& replica) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
   
   setDpnsApiIdentity();
 
@@ -393,14 +393,14 @@ void NsAdapterCatalog::addReplica(const Replica& replica) throw (DmException)
      replica.rfn.c_str(), replica.status, replica.type,
      pool.c_str(), filesystem.c_str())();
      
-   Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. replica: " << replica.rfn);
+   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. replica: " << replica.rfn);
 }
 
 
 
 void NsAdapterCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
   setDpnsApiIdentity();
 
   struct dpns_fileid uniqueId;
@@ -409,14 +409,14 @@ void NsAdapterCatalog::deleteReplica(const Replica& replica) throw (DmException)
   strncpy(uniqueId.server, getenv("DPNS_HOST"), sizeof(uniqueId.server));
 
   FunctionWrapper<int, const char*, dpns_fileid*, const char*>(dpns_delreplica, NULL, &uniqueId, replica.rfn.c_str())();
-  Log(Logger::NOTICE, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
+  Log(Logger::Lvl2, adapterlogmask, adapterlogname, "replica: " << replica.rfn);
 }
 
 
 
 std::vector<Replica> NsAdapterCatalog::getReplicas(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path);
   setDpnsApiIdentity();
 
   struct dpns_filereplicax *entries;
@@ -455,7 +455,7 @@ std::vector<Replica> NsAdapterCatalog::getReplicas(const std::string& path) thro
   
   free(entries);
 
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "path: " << path << " nreplicas:" << replicas.size());
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "path: " << path << " nreplicas:" << replicas.size());
   
   return replicas;
 }
@@ -464,23 +464,23 @@ std::vector<Replica> NsAdapterCatalog::getReplicas(const std::string& path) thro
 
 void NsAdapterCatalog::symlink(const std::string& oldpath, const std::string& newpath) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "oldpath: " << oldpath << " newpath: " << newpath);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "oldpath: " << oldpath << " newpath: " << newpath);
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, const char*>(dpns_symlink, oldpath.c_str(), newpath.c_str())();
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. oldpath: " << oldpath << " newpath: " << newpath);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. oldpath: " << oldpath << " newpath: " << newpath);
 }
 
 
 
 std::string NsAdapterCatalog::readLink(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   setDpnsApiIdentity();
 
   char buf[PATH_MAX];
   FunctionWrapper<int, const char*, char*, size_t>(dpns_readlink, path.c_str(), buf, sizeof(buf))();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "path: " << path << " res:" << buf);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "path: " << path << " res:" << buf);
   return buf;
 }
 
@@ -488,31 +488,31 @@ std::string NsAdapterCatalog::readLink(const std::string& path) throw (DmExcepti
 
 void NsAdapterCatalog::unlink(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*>(dpns_unlink, path.c_str())();
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 
 
 
 void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   FunctionWrapper<int, const char*, mode_t>(dpns_creat, path.c_str(), mode)();
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 
 
 
 mode_t NsAdapterCatalog::umask(mode_t mask) throw ()
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "mask: " << mask );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "mask: " << mask );
   setDpnsApiIdentity();
   
   mode_t res = dpns_umask(mask);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. mask: " << mask );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. mask: " << mask );
   return res;
 }
 
@@ -520,36 +520,36 @@ mode_t NsAdapterCatalog::umask(mode_t mask) throw ()
 
 void NsAdapterCatalog::setMode(const std::string& path, mode_t mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, mode_t>(dpns_chmod, path.c_str(), mode)();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 
 
 
 void NsAdapterCatalog::setOwner(const std::string& path, uid_t newUid, gid_t newGid, bool followSymLink) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   setDpnsApiIdentity();
   if (followSymLink)
     FunctionWrapper<int, const char*, uid_t, gid_t>(dpns_chown, path.c_str(), newUid, newGid)();
   else
     FunctionWrapper<int, const char*, uid_t, gid_t>(dpns_lchown, path.c_str(), newUid, newGid)();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 
 
 
 void NsAdapterCatalog::setSize(const std::string& path, size_t newSize) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " newsize:" << newSize);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " newsize:" << newSize);
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64>(dpns_setfsize, path.c_str(), NULL, newSize)();
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path << " newsize:" << newSize);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path << " newsize:" << newSize);
 }
 
 
@@ -558,7 +558,7 @@ void NsAdapterCatalog::setChecksum(const std::string& path,
                                    const std::string& csumtype,
                                    const std::string& csumvalue) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
   setDpnsApiIdentity();
 
   ExtendedStat stat = this->extendedStat(path, false);
@@ -567,14 +567,14 @@ void NsAdapterCatalog::setChecksum(const std::string& path,
     (dpns_setfsizec, path.c_str(), NULL, stat.stat.st_size,
      csumtype.c_str(), (char*)csumvalue.c_str())();
      
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Exiting. path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Exiting. path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
 }
 
 
 
 void NsAdapterCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " nacls:" << acl.size());
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " nacls:" << acl.size());
   setDpnsApiIdentity();
 
   struct dpns_acl *aclp;
@@ -599,30 +599,30 @@ void NsAdapterCatalog::setAcl(const std::string& path, const Acl& acl) throw (Dm
     throw;
   }
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path << " nacls:" << acl.size());
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path << " nacls:" << acl.size());
 }
 
 
 
 void NsAdapterCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, utimbuf*>(dpns_utime, path.c_str(), (struct utimbuf*)buf)();
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "path: " << path);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "path: " << path);
 }
 
 
 
 std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
   setDpnsApiIdentity();
 
   char comment[kCommentMax];
   FunctionWrapper<int, const char*, char*>(dpns_getcomment, path.c_str(), comment)();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path << "comment:" << comment);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path << "comment:" << comment);
   
   return std::string(comment);
 }
@@ -631,12 +631,12 @@ std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmExcep
 
 void NsAdapterCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " comment:" << comment);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " comment:" << comment);
   
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, char*>(dpns_setcomment, path.c_str(), (char*)comment.c_str())();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path << " comment:" << comment);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path << " comment:" << comment);
 }
 
 
@@ -652,7 +652,7 @@ void NsAdapterCatalog::setGuid(const std::string&, const std::string&) throw (Dm
 void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
                                                 const Extensible& attr) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path: " << path << " nattrs:" << attr.size() );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " nattrs:" << attr.size() );
   setDpnsApiIdentity();
 
   // At least one checksum.* attribute must be supported, but only those
@@ -682,14 +682,14 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
 
   this->setChecksum(path, shortCsumType, csumValue);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. path: " << path );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 
 
 
 GroupInfo NsAdapterCatalog::getGroup(gid_t gid) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "gid: " << gid );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "gid: " << gid );
   setDpnsApiIdentity();
 
   GroupInfo group;
@@ -700,7 +700,7 @@ GroupInfo NsAdapterCatalog::getGroup(gid_t gid) throw (DmException)
   group["gid"]    = gid;
   group["banned"] = 0;
 
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. gid: " << gid << " group:" << group.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. gid: " << gid << " group:" << group.name);
   return group;
 }
 
@@ -708,12 +708,12 @@ GroupInfo NsAdapterCatalog::getGroup(gid_t gid) throw (DmException)
 
 GroupInfo NsAdapterCatalog::newGroup(const std::string& gname) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "gname: " << gname );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "gname: " << gname );
   
   setDpnsApiIdentity();
   FunctionWrapper<int, gid_t, char*>(dpns_entergrpmap, -1, (char*)gname.c_str())();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. gname: " << gname );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. gname: " << gname );
   return this->getGroup(gname);
 }
 
@@ -721,7 +721,7 @@ GroupInfo NsAdapterCatalog::newGroup(const std::string& gname) throw (DmExceptio
 
 GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "groupName: " << groupName );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "groupName: " << groupName );
   setDpnsApiIdentity();
 
   GroupInfo group;
@@ -738,7 +738,7 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmExce
     throw DmException(DMLITE_NO_SUCH_GROUP, e.what());
   }
 
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Exiting. group: " << group.name );
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Exiting. group: " << group.name );
   return group;
 }
 
@@ -747,7 +747,7 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& groupName) throw (DmExce
 GroupInfo NsAdapterCatalog::getGroup(const std::string& key,
                                      const boost::any& value) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "key:" << key);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "key:" << key);
   setDpnsApiIdentity();
 
   if (key != "gid")
@@ -757,7 +757,7 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& key,
   
   gid_t gid = Extensible::anyToUnsigned(value);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. key:" << key);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. key:" << key);
   return this->getGroup(gid);
 }
 
@@ -765,7 +765,7 @@ GroupInfo NsAdapterCatalog::getGroup(const std::string& key,
 
 void NsAdapterCatalog::updateGroup(const GroupInfo& group) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "group:" << group.name);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "group:" << group.name);
   
   setDpnsApiIdentity();
 
@@ -776,14 +776,14 @@ void NsAdapterCatalog::updateGroup(const GroupInfo& group) throw (DmException)
                                           (char*)group.name.c_str(),
                                           group.getLong("banned"))();
 					  
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. group:" << group.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. group:" << group.name);
 }
 
 
 
 void NsAdapterCatalog::deleteGroup(const std::string& groupName) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "groupname:" << groupName);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "groupname:" << groupName);
   
   setDpnsApiIdentity();
 
@@ -795,14 +795,14 @@ void NsAdapterCatalog::deleteGroup(const std::string& groupName) throw (DmExcept
     if (e.code() != EINVAL) throw;
     throw DmException(DMLITE_NO_SUCH_GROUP, e.what());
   }
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. groupname:" << groupName);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. groupname:" << groupName);
 }
 
 
 
 UserInfo NsAdapterCatalog::getUser(const std::string& userName) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "userName:" << userName);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "userName:" << userName);
   setDpnsApiIdentity();
 
   UserInfo user;
@@ -826,7 +826,7 @@ UserInfo NsAdapterCatalog::getUser(const std::string& userName) throw (DmExcepti
     }
   }
 
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "userName:" << user.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "userName:" << user.name);
   return user;
 }
 
@@ -835,7 +835,7 @@ UserInfo NsAdapterCatalog::getUser(const std::string& userName) throw (DmExcepti
 UserInfo NsAdapterCatalog::getUser(const std::string& key,
                                    const boost::any& value) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "key:" << key);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "key:" << key);
   
   setDpnsApiIdentity();
 
@@ -854,7 +854,7 @@ UserInfo NsAdapterCatalog::getUser(const std::string& key,
   user["uid"]    = uid;
   user["banned"] = 0;
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. user:" << user.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. user:" << user.name);
   return user;
 }
 
@@ -862,14 +862,14 @@ UserInfo NsAdapterCatalog::getUser(const std::string& key,
 
 UserInfo NsAdapterCatalog::newUser(const std::string& uname) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "uname:" << uname);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "uname:" << uname);
   setDpnsApiIdentity();
 
   FunctionWrapper<int, uid_t, char*>(dpns_enterusrmap, -1, (char*)uname.c_str())();
   
   UserInfo u = this->getUser(uname);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "uname:" << u.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "uname:" << u.name);
   return u;
 }
 
@@ -877,7 +877,7 @@ UserInfo NsAdapterCatalog::newUser(const std::string& uname) throw (DmException)
 
 void NsAdapterCatalog::updateUser(const UserInfo& user) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "user:" << user.name);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "user:" << user.name);
   setDpnsApiIdentity();
 
   // uid may not be initialized
@@ -887,14 +887,14 @@ void NsAdapterCatalog::updateUser(const UserInfo& user) throw (DmException)
                                           (char*)user.name.c_str(),
                                           user.getLong("banned"))();
 					  
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. user:" << user.name);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. user:" << user.name);
 }
 
 
 
 void NsAdapterCatalog::deleteUser(const std::string& userName) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "userName:" << userName);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "userName:" << userName);
   
   setDpnsApiIdentity();
 
@@ -907,14 +907,14 @@ void NsAdapterCatalog::deleteUser(const std::string& userName) throw (DmExceptio
     throw DmException(DMLITE_NO_SUCH_USER, e.what());
   }
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. userName:" << userName);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. userName:" << userName);
 }
 
 
 
 std::vector<GroupInfo> NsAdapterCatalog::getGroups(void) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   
   setDpnsApiIdentity();
 
@@ -933,7 +933,7 @@ std::vector<GroupInfo> NsAdapterCatalog::getGroups(void) throw (DmException)
   }
   free(dpnsGroups);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " ngroups:" << groups.size());
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " ngroups:" << groups.size());
   return groups;
 }
 
@@ -941,7 +941,7 @@ std::vector<GroupInfo> NsAdapterCatalog::getGroups(void) throw (DmException)
 
 std::vector<UserInfo> NsAdapterCatalog::getUsers(void) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   setDpnsApiIdentity();
 
   std::vector<UserInfo> users;
@@ -960,7 +960,7 @@ std::vector<UserInfo> NsAdapterCatalog::getUsers(void) throw (DmException)
   }
   free(dpnsUsers);
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. nusers:" << users.size());
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. nusers:" << users.size());
   
   return users;
 }
@@ -971,7 +971,7 @@ void NsAdapterCatalog::getIdMap(const std::string& userName,
                                 const std::vector<std::string>& groupNames,
                                 UserInfo* user, std::vector<GroupInfo>* groups) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "userName:" << userName);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "userName:" << userName);
   setDpnsApiIdentity();
 
   unsigned    ngroups = groupNames.size();
@@ -1010,14 +1010,14 @@ void NsAdapterCatalog::getIdMap(const std::string& userName,
     }
   }
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. userName:" << userName);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. userName:" << userName);
 }
 
 
 
 Directory* NsAdapterCatalog::openDir(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path:" << path);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path:" << path);
   setDpnsApiIdentity();
 
   PrivateDir *privateDir;
@@ -1031,7 +1031,7 @@ Directory* NsAdapterCatalog::openDir(const std::string& path) throw (DmException
     return NULL;
   }
 
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "path:" << path);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "path:" << path);
   return privateDir;
 }
 
@@ -1039,7 +1039,7 @@ Directory* NsAdapterCatalog::openDir(const std::string& path) throw (DmException
 
 void NsAdapterCatalog::closeDir(Directory* dir) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   setDpnsApiIdentity();
 
   PrivateDir *privateDir = dynamic_cast<PrivateDir*>(dir);
@@ -1058,14 +1058,14 @@ void NsAdapterCatalog::closeDir(Directory* dir) throw (DmException)
     throw;
   }
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting.");
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting.");
 }
 
 
 
 struct dirent* NsAdapterCatalog::readDir(Directory* dir) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   setDpnsApiIdentity();
 
   PrivateDir *privateDir = dynamic_cast<PrivateDir*>(dir);
@@ -1075,7 +1075,7 @@ struct dirent* NsAdapterCatalog::readDir(Directory* dir) throw (DmException)
 
   struct dirent* de = FunctionWrapper<dirent*, dpns_DIR*>(dpns_readdir, privateDir->dpnsDir)();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. de:" << ( (de != 0) ? de->d_name : "none") );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. de:" << ( (de != 0) ? de->d_name : "none") );
   return de;
 }
 
@@ -1083,7 +1083,7 @@ struct dirent* NsAdapterCatalog::readDir(Directory* dir) throw (DmException)
 
 ExtendedStat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "");
   
   setDpnsApiIdentity();
 
@@ -1108,7 +1108,7 @@ ExtendedStat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException)
   privateDir->stat.stat.st_gid   = direnstat->gid;
   privateDir->stat.stat.st_nlink = direnstat->nlink;
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. privateDir:" << direnstat->d_name );
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. privateDir:" << direnstat->d_name );
   return &(privateDir->stat);
 }
 
@@ -1116,32 +1116,32 @@ ExtendedStat* NsAdapterCatalog::readDirx(Directory* dir) throw (DmException)
 
 void NsAdapterCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "path:" << path);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path:" << path);
   
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, mode_t>(dpns_mkdir, path.c_str(), mode)();
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting.");
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting.");
 }
 
 
 
 void NsAdapterCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "oldPath:" << oldPath << " newPath:" << newPath);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "oldPath:" << oldPath << " newPath:" << newPath);
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*, const char*>(dpns_rename, oldPath.c_str(), newPath.c_str())();
-  Log(Logger::NOTICE, adapterlogmask, adapterlogname, "oldPath:" << oldPath << " newPath:" << newPath);
+  Log(Logger::Lvl2, adapterlogmask, adapterlogname, "oldPath:" << oldPath << " newPath:" << newPath);
 }
 
 
 
 void NsAdapterCatalog::removeDir(const std::string& path) throw (DmException)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "path:" << path);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "path:" << path);
   setDpnsApiIdentity();
   FunctionWrapper<int, const char*>(dpns_rmdir, path.c_str())();
-  Log(Logger::NOTICE, adapterlogmask, adapterlogname, "path:" << path);
+  Log(Logger::Lvl2, adapterlogmask, adapterlogname, "path:" << path);
 }
 
 

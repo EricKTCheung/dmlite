@@ -36,7 +36,7 @@ NsAdapterFactory::NsAdapterFactory() throw (DmException): retryLimit_(3), hostDn
     hostDn_(), connectionPool_(&connectionFactory_, 10)
 {
   adapterlogmask = Logger::get()->getMask(adapterlogname);
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Hi.");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Hi.");
   
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
@@ -55,7 +55,7 @@ NsAdapterFactory::~NsAdapterFactory()
 void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
   
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
     setenv("DPNS_HOST", value.c_str(), 1);
@@ -90,7 +90,7 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
   else if (key == "ConnPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
   else
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
   
   //  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
   //                    "Unrecognised option " + key);
@@ -122,7 +122,7 @@ DpmAdapterFactory::DpmAdapterFactory() throw (DmException):
   adminUsername_("root"), connectionPool_(&connectionFactory_, 10)
 {
   adapterlogmask = Logger::get()->getMask(adapterlogname);
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Ctor");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Ctor");
   
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
@@ -141,7 +141,7 @@ DpmAdapterFactory::~DpmAdapterFactory()
 void DpmAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
   
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
     setenv("DPM_HOST", value.c_str(), 1);

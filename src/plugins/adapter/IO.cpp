@@ -19,7 +19,7 @@ using namespace dmlite;
 
 StdIOFactory::StdIOFactory(): passwd_("default"), useIp_(true)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Ctor");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Ctor");
   Cthread_init();
   
   setenv("CSEC_MECH", "ID", 1);
@@ -37,7 +37,7 @@ StdIOFactory::~StdIOFactory()
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
   
   if (key == "TokenPassword") {
     this->passwd_ = value;
@@ -53,7 +53,7 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
     setenv("DPNS_HOST", value.c_str(), 1);
   }
   else
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      key + " not known");
 }
@@ -71,7 +71,7 @@ StdIODriver::StdIODriver(std::string passwd, bool useIp):
   secCtx_(0), passwd_(passwd), useIp_(useIp)
 {
   // Nothing
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Ctor");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Ctor");
 }
 
 
@@ -103,7 +103,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
                                         const Extensible& extras,
                                         mode_t mode) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " pfn:" << pfn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " pfn:" << pfn);
   
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
@@ -133,7 +133,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
 
 void StdIODriver::doneWriting(const Location& loc) throw (DmException)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " loc:" << loc.toString());
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " loc:" << loc.toString());
   
   struct dpm_filestatus     *statuses;
   int                        nReplies;
@@ -163,7 +163,7 @@ void StdIODriver::doneWriting(const Location& loc) throw (DmException)
   FunctionWrapper<int, char*, int, char**, int*, dpm_filestatus**>
     (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
 
-  Log(Logger::NOTICE, adapterlogmask, adapterlogname, " loc:" << loc.toString() <<
+  Log(Logger::Lvl2, adapterlogmask, adapterlogname, " loc:" << loc.toString() <<
      " status[0]:" << (nReplies > 0 ? statuses->status : -1) <<
      " errstring: '" << (statuses->errstring != NULL ? statuses->errstring : "") << "'"
     );
@@ -186,7 +186,7 @@ StdIOHandler::StdIOHandler(const std::string& path,
                            int flags, mode_t mode) throw (DmException):
   eof_(false)
 { 
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " path:" << path);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " path:" << path);
   
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1)
@@ -205,7 +205,7 @@ StdIOHandler::~StdIOHandler()
 
 void StdIOHandler::close() throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_);
   ::close(this->fd_);
   this->fd_ = -1;
 }
@@ -215,7 +215,7 @@ void StdIOHandler::close() throw (DmException)
 struct stat StdIOHandler::fstat() throw (DmException)
 {
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_);
   
   struct stat st;
   ::fstat(this->fd_, &st);
@@ -226,7 +226,7 @@ struct stat StdIOHandler::fstat() throw (DmException)
 
 size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::read(this->fd_, buffer, count);
   if (nbytes < 0) {
@@ -244,7 +244,7 @@ size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
 
 size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::write(this->fd_, buffer, count);
   if (nbytes < 0) {
@@ -260,7 +260,7 @@ size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
 
 size_t StdIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::readv(this->fd_, vector, count);
   if (nbytes < 0) {
@@ -276,7 +276,7 @@ size_t StdIOHandler::readv(const struct iovec* vector, size_t count) throw (DmEx
 
 size_t StdIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::writev(this->fd_, vector, count);
   if (nbytes < 0) {
@@ -292,7 +292,7 @@ size_t StdIOHandler::writev(const struct iovec* vector, size_t count) throw (DmE
 
 size_t StdIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::pread(this->fd_, buffer, count, offset);
   if (nbytes < 0) {
@@ -308,7 +308,7 @@ size_t StdIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmEx
 
 size_t StdIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
   
   ssize_t nbytes = ::pwrite(this->fd_, buffer, count, offset);
   if (nbytes < 0) {
@@ -324,7 +324,7 @@ size_t StdIOHandler::pwrite(const void* buffer, size_t count, off_t offset) thro
 
 void StdIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " offs:" << offset);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " offs:" << offset);
   if (::lseek64(this->fd_, offset, whence) == ((off_t) - 1))
     throw DmException(errno, "Could not seek");
 }

@@ -154,7 +154,7 @@ MemcacheFactory::MemcacheFactory(CatalogFactory* catalogFactory,
   memcachedPOSIX_(false)
 {
   memcachelogmask = Logger::get()->getMask(memcachelogname);
-  Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcacheFactory started.");
+  Log(Logger::Lvl0, memcachelogmask, memcachelogname, "MemcacheFactory started.");
 }
 
 MemcacheFactory::~MemcacheFactory()
@@ -168,7 +168,7 @@ MemcacheFactory::~MemcacheFactory()
 
 void MemcacheFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname, "Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Key: " << key << " Value: " << value);
   
   if (key == "MemcachedServer")
     this->connectionFactory_.hosts_.insert(value);
@@ -215,7 +215,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   } else if (key == "MemcachedPoolSize") {
     this->connectionPool_.resize(atoi(value.c_str()));
   } else
-    Log(Logger::DEBUG, memcachelogmask, memcachelogname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //        std::string("Unknown option ") + key);
 }
@@ -256,7 +256,7 @@ PoolManager* MemcacheFactory::createPoolManager(PluginManager* pm) throw (DmExce
   if (this->funcCounter_ == 0x00 && this->doFuncCount_)
     this->funcCounter_ = new MemcacheFunctionCounter(this->funcCounterLogFreq_);
 
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "Creating MemcachePoolManager");
 
   return new MemcachePoolManager(this->connectionPool_,

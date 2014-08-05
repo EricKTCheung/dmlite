@@ -17,7 +17,7 @@ MemcachePoolManager::MemcachePoolManager(PoolContainer<memcached_st*>& connPool,
   MemcacheCommon(connPool, funcCounter, doFuncCount, memcachedExpirationLimit),
   si_(0x00)
 {
-  Log(Logger::BASE, memcachelogmask, memcachelogname, "MemcachePoolManager started.");
+  Log(Logger::Lvl0, memcachelogmask, memcachelogname, "MemcachePoolManager started.");
 
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );

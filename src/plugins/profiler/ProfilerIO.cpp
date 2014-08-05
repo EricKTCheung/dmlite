@@ -14,7 +14,7 @@ using namespace dmlite;
 ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
     const std::string& pfn, int flags, StackInstance *si) throw(DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " path:" << pfn);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " path:" << pfn);
 
   this->stack_ = si;
 
@@ -73,7 +73,7 @@ ProfilerIOHandler::~ProfilerIOHandler()
 
 size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, read, buffer, count);
   xfrstats_.read += ret;
@@ -91,7 +91,7 @@ size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
 
 void ProfilerIOHandler::close(void) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
 
   PROFILE(close);
 
@@ -104,13 +104,13 @@ void ProfilerIOHandler::close(void) throw (DmException)
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, "");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
 
   PROFILE_RETURN(struct ::stat, fstat);
 }
 size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, write, buffer, count);
   xfrstats_.write += ret;
@@ -127,7 +127,7 @@ size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmExcep
 }
 size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, readv, vector, count);
   xfrstats_.readv += ret;
@@ -152,7 +152,7 @@ size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw 
 }
 size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, writev, vector, count);
   xfrstats_.write += ret;
@@ -169,7 +169,7 @@ size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw
 }
 size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, pread, buffer, count, offset);
   xfrstats_.read += ret;
@@ -184,7 +184,7 @@ size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw 
 }
 size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " count:" << count);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " count:" << count);
 
   PROFILE_ASSIGN(size_t, pwrite, buffer, count, offset);
   xfrstats_.write += ret;
@@ -199,7 +199,7 @@ size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset)
 }
 void ProfilerIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " offs:" << offset);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " offs:" << offset);
 
   PROFILE(seek, offset, whence);
 }
@@ -221,7 +221,7 @@ bool ProfilerIOHandler::eof(void) throw (DmException)
 
 ProfilerIODriver::ProfilerIODriver(IODriver* decorates) throw(DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " Ctor");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " Ctor");
 
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
@@ -234,7 +234,7 @@ ProfilerIODriver::~ProfilerIODriver() {
 
   reportXrdFileDiscAndFlushOrNOP();
 
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "");
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "");
 }
 
 
@@ -253,7 +253,7 @@ void ProfilerIODriver::setSecurityContext(const SecurityContext* ctx) throw (DmE
 
 void ProfilerIODriver::doneWriting(const Location& loc) throw (DmException)
 {
-  Log(Logger::INFO, profilerlogmask, profilerlogname, " loc:" << loc.toString());
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, " loc:" << loc.toString());
 
   PROFILE(doneWriting, loc);
 }

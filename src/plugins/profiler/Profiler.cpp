@@ -27,7 +27,7 @@ ProfilerFactory::ProfilerFactory(CatalogFactory* catalogFactory,
 
   profilerlogmask = Logger::get()->getMask(profilerlogname);
   profilertimingslogmask = Logger::get()->getMask(profilertimingslogname);
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "ProfilerFactory started.");
+  Log(Logger::Lvl0, profilerlogmask, profilerlogname, "ProfilerFactory started.");
   
 }
 
@@ -42,7 +42,7 @@ ProfilerFactory::~ProfilerFactory()
 
 void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  Log(Logger::DEBUG, profilerlogmask, profilerlogname, " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " Key: " << key << " Value: " << value);
   
   // the monitor keyword accepts options in the xrootd syntax,
   // i.e. all parameters in one line separated by whitespace
@@ -89,7 +89,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
       XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
       XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
   } else {
-    Log(Logger::DEBUG, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //        std::string("Unknown option ") + key);
   }
@@ -107,7 +107,7 @@ Catalog* ProfilerFactory::createCatalog(PluginManager* pm) throw (DmException)
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerCatalog");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Creating ProfilerCatalog");
   
   return new ProfilerCatalog(nested);
 }
@@ -124,7 +124,7 @@ PoolManager* ProfilerFactory::createPoolManager(PluginManager* pm) throw (DmExce
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerPoolManager");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Creating ProfilerPoolManager");
   
   return new ProfilerPoolManager(nested);
 }
@@ -140,7 +140,7 @@ IODriver*   ProfilerFactory::createIODriver(PluginManager* pm)   throw (DmExcept
 
   initXrdMonitorIfNotInitialized();
   
-  Log(Logger::INFO, profilerlogmask, profilerlogname, "Creating ProfilerIODriver");
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Creating ProfilerIODriver");
 
   return new ProfilerIODriver(nested);
 }

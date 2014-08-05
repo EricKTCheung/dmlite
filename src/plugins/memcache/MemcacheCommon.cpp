@@ -67,7 +67,7 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
 
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to retrieve value from memcached:" <<
       " key: " << key.data() <<
       " length: " << key.length());
@@ -87,7 +87,7 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
     throw MemcacheException(statMemc, conn);
   }
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname,
       "successfully retrieved value from memcached, key: " <<
       key);
 
@@ -123,7 +123,7 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
 
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to set value to memcached:" <<
       " key: " << key.data() <<
       " length: " << key.length() <<
@@ -145,7 +145,7 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
     throw MemcacheException(statMemc, conn);
   }
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname,
       "successfully set value to memcached, key: " <<
       key);
 
@@ -171,7 +171,7 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
 {
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to add value to memcached:" <<
       " key: " << key.data() <<
       " length: " << key.length() <<
@@ -193,7 +193,7 @@ void MemcacheCommon::addMemcachedFromKeyValue(const std::string& key,
     throw MemcacheException(statMemc, conn);
   }
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname,
       "successfully added value to memcached, key: " <<
       key);
 
@@ -223,7 +223,7 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //else
   //  conn = this->conn_;
 
-  Log(Logger::DEBUG, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to delete value to memcached:" <<
       " key: " << key.data() <<
       " length: " << key.length());
@@ -242,7 +242,7 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
     throw MemcacheException(statMemc, conn);
   }
 
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname,
       "successfully deleted value from memcached, key: " <<
       key);
 }
