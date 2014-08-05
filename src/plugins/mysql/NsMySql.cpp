@@ -230,34 +230,50 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   // Fetch the new file ID
   ino_t newFileId = 0;
   
+  {
+    // Start transaction
+    InodeMySqlTrans trans(this);
+    
+    {
+      // Scope to make sure that the local objects that involve mysql
+      // are destroyed before the transaction is closed
       
-  // Start transaction
+      
+      Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
+      
+      uniqueId.execute();
+      uniqueId.bindResult(0, &newFileId);
+      
+      // Update the unique ID
+      if (uniqueId.fetch()) {
+	Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
+	++newFileId;
+	updateUnique.bindParam(0, newFileId);
+	updateUnique.execute();
+      }
+      // Couldn't get, so insert
+      else {
+	Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
+	newFileId = 1;
+	insertUnique.bindParam(0, newFileId);
+	insertUnique.execute();
+      }
+      
+      
+      // Closing the scope here makes sure that no local mysql-involving objects
+      // are still around when we close the transaction
+    }
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+  } 
+  
+  // Start a new transaction
   InodeMySqlTrans trans(this);
   
   {
-    // Scope to make sure that the local objects that involve mysql
-    // are destroyed before the transaction is closed
     
-    
-    Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
-    
-    uniqueId.execute();
-    uniqueId.bindResult(0, &newFileId);
-    
-    // Update the unique ID
-    if (uniqueId.fetch()) {
-      Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
-      ++newFileId;
-      updateUnique.bindParam(0, newFileId);
-      updateUnique.execute();
-    }
-    // Couldn't get, so insert
-    else {
-      Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
-      newFileId = 1;
-      insertUnique.bindParam(0, newFileId);
-      insertUnique.execute();
-    }
     
     // Regular files start with 1 link. Directories 0.
     unsigned    nlink   = S_ISDIR(nf.stat.st_mode) ? 0 : 1;
