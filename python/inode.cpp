@@ -13,7 +13,7 @@ void export_inode()
     class_<IDirectory, boost::noncopyable >("IDirectory", no_init)
         ;
 
-    class_<ExtendedStat>("ExtendedStat", init<>())
+    class_<ExtendedStat, bases< Extensible > >("ExtendedStat", init<>())
         .def_readwrite("parent", &ExtendedStat::parent)
         .def_readwrite("stat", &ExtendedStat::stat)
         .def_readwrite("status", &ExtendedStat::status)
