@@ -38,6 +38,8 @@ void export_extensible()
         .def("setString", &ExtensibleSetString)
     
         .def("getKeys", &Extensible::getKeys)
+        .def("__iter__", range(&Extensible::begin, &Extensible::end))
+        .def("__len__", &Extensible::size)
         ;
     
 
