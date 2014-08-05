@@ -367,9 +367,44 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
   // Get the parent
   ExtendedStat parent = this->extendedStat(file.parent);  
 
-  // All preconditions are good! Start transaction.
-  this->begin();
+  {
+    // All preconditions are good! Start transaction.
+    // Start transaction
+    InodeMySqlTrans trans(this);
+    
+    {
+      // Scope to make sure that the local objects that involve mysql
+      // are destroyed before the transaction is closed
+      
+      // Remove file itself
+      Statement delFile(this->conn_, this->nsDb_, STMT_DELETE_FILE);
+      delFile.bindParam(0, inode);
+      delFile.execute();
+      
+      // Decrement parent nlink
+      Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
+      nlinkStmt.bindParam(0, parent.stat.st_ino);
+      nlinkStmt.execute();
+      nlinkStmt.bindResult(0, &parent.stat.st_nlink);
+      nlinkStmt.fetch();
+      
+      Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
+      parent.stat.st_nlink--;
+      nlinkUpdate.bindParam(0, parent.stat.st_nlink);
+      nlinkUpdate.bindParam(1, parent.stat.st_ino);
+      nlinkUpdate.execute();
+      
+    }
+    // Done!
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+  } 
   
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Deleting symlinks, comments, replicas.  inode:" << inode);
+  
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   {
     // Scope to make sure that the local objects that involve mysql
     // are destroyed before the transaction is closed
@@ -389,27 +424,8 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
     delReplicas.bindParam(0, inode);
     delReplicas.execute();
     
-    // Remove file itself
-    Statement delFile(this->conn_, this->nsDb_, STMT_DELETE_FILE);
-    delFile.bindParam(0, inode);
-    delFile.execute();
-    
-    // Decrement parent nlink
-    Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
-    nlinkStmt.bindParam(0, parent.stat.st_ino);
-    nlinkStmt.execute();
-    nlinkStmt.bindResult(0, &parent.stat.st_nlink);
-    nlinkStmt.fetch();
-    
-    Statement nlinkUpdate(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-    parent.stat.st_nlink--;
-    nlinkUpdate.bindParam(0, parent.stat.st_nlink);
-    nlinkUpdate.bindParam(1, parent.stat.st_ino);
-    nlinkUpdate.execute();
     
   }
-  // Done!
-  this->commit();
   
   Log(Logger::Lvl2, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode);
 }
@@ -420,7 +436,11 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
 {
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, " inode:" << inode << " dest:" << dest);
   
-  this->begin();
+  
+  
+  // All preconditions are good! Start transaction.
+  // Start transaction
+  InodeMySqlTrans trans(this);
   
   {
     // Scope to make sure that the local objects that involve mysql
@@ -480,9 +500,16 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
       throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
 			"Could not update the new parent nlink!");
       
+      
+      
+      // Closing the scope here makes sure that no local mysql-involving objects
+      // are still around when we close the transaction
   }
-  // Done
-  this->commit();
+  
+  // Commit the local trans object
+  // This also releases the connection back to the pool
+  trans.Commit();
+  
   
   Log(Logger::Lvl2, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " dest:" << dest);
 }
