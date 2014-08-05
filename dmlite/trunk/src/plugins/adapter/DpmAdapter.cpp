@@ -24,7 +24,7 @@ using namespace dmlite;
 DpmAdapterCatalog::DpmAdapterCatalog(NsAdapterFactory* factory, unsigned retryLimit, bool hostDnIsRoot, std::string hostDn) throw (DmException):
   NsAdapterCatalog(retryLimit, hostDnIsRoot, hostDn), factory_(factory)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " hostDn: " << hostDn);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " hostDn: " << hostDn);
   
   factory_ = factory;
   factory_->getPool()->acquire();
@@ -85,7 +85,7 @@ void DpmAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (Dm
 
 void DpmAdapterCatalog::unlink(const std::string& path) throw (DmException)
 {
-  Log(Logger::BASE, adapterlogmask, adapterlogname, " Path: " << path);
+  Log(Logger::Lvl0, adapterlogmask, adapterlogname, " Path: " << path);
   
   setDpmApiIdentity();
 
@@ -120,7 +120,7 @@ DpmAdapterPoolManager::DpmAdapterPoolManager(DpmAdapterFactory* factory,
   si_(NULL), retryLimit_(retryLimit), tokenPasswd_(passwd), tokenUseIp_(useIp),
   tokenLife_(life), userId_(""), fqans_(NULL), nFqans_(0), factory_(factory), secCtx_(NULL)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "");
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "");
   
   // Nothing
   factory_->getPool()->acquire();
@@ -147,17 +147,17 @@ DpmAdapterPoolManager::~DpmAdapterPoolManager()
 //
 void DpmAdapterPoolManager::setDpmApiIdentity()
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Entering");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Entering");
   FunctionWrapper<int> reset(dpm_client_resetAuthorizationId);
   reset();
 
   // can not do any more if there is no security context
   if (!secCtx_) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "No security context... exiting");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "No security context... exiting");
     return; }
 
   uid_t uid = secCtx_->user.getUnsigned("uid");
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "uid=" << uid);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "uid=" << uid);
   
   // nothing more to do for root
   if (uid == 0) { return; }
@@ -167,7 +167,7 @@ void DpmAdapterPoolManager::setDpmApiIdentity()
     return;
   }
   
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "gid=" << secCtx_->groups[0].getUnsigned("gid"));
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "gid=" << secCtx_->groups[0].getUnsigned("gid"));
 
   FunctionWrapper<int, uid_t, gid_t, const char*, char*>(
       dpm_client_setAuthorizationId,
@@ -175,12 +175,12 @@ void DpmAdapterPoolManager::setDpmApiIdentity()
         (char*)secCtx_->user.name.c_str())();
 
   if (fqans_ && nFqans_) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "fqan=" << fqans_[0]);
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "fqan=" << fqans_[0]);
     FunctionWrapper<int, char*, char**, int>(
         dpm_client_setVOMS_data,
           fqans_[0], fqans_, nFqans_)();
   }
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. uid=" << uid <<
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. uid=" << uid <<
       " gid=" << ( (secCtx_->groups.size() > 0) ? secCtx_->groups[0].getUnsigned("gid"):-1) <<
       " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
@@ -203,7 +203,7 @@ void DpmAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmExcepti
 
 void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Entering");
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Entering");
   
   // String => const char*
   if (this->fqans_ != NULL) {
@@ -219,7 +219,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
 
   
   if (!ctx) {
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Context is null. Exiting.");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Context is null. Exiting.");
     return;
   }
   
@@ -228,7 +228,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
   for (size_t i = 0; i < this->nFqans_; ++i) {
     this->fqans_[i] = new char [ctx->groups[i].name.length() + 1];
     strcpy(this->fqans_[i], ctx->groups[i].name.c_str());
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "fqans_[" << i << "]='" << this->fqans_[i] << "'");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "fqans_[" << i << "]='" << this->fqans_[i] << "'");
   }
 
   if (this->tokenUseIp_)
@@ -236,7 +236,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
   else
     this->userId_ = ctx->credentials.clientName;
   
-  Log(Logger::INFO, adapterlogmask, adapterlogname, "Exiting. uid=" << this->userId_ <<
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. uid=" << this->userId_ <<
       " gid=" << ( (ctx->groups.size() > 0) ? ctx->groups[0].getUnsigned("gid"):-1) <<
       " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
@@ -245,7 +245,7 @@ void DpmAdapterPoolManager::setSecurityContext(const SecurityContext* ctx) throw
 
 std::vector<Pool> DpmAdapterPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " PoolAvailability: " << availability);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " PoolAvailability: " << availability);
   
   setDpmApiIdentity();
 
@@ -260,7 +260,7 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(PoolAvailability availability)
     Pool              pool;
 
     for (int i = 0; i < nPools; ++i) {
-      Log(Logger::DEBUG, adapterlogmask, adapterlogname, "dpmPools[" << i << "] name:" << dpmPools[i].poolname << " type:" << "filesystem");
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "dpmPools[" << i << "] name:" << dpmPools[i].poolname << " type:" << "filesystem");
       pool.name = dpmPools[i].poolname;
       pool.type = "filesystem";
       pools.push_back(pool);
@@ -276,12 +276,12 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(PoolAvailability availability)
     struct dpm_fs    *dpm_fs;
     std::vector<Pool> filtered;
     
-    Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Filtering pools");
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Filtering pools");
     
     for (unsigned i = 0; i < pools.size(); ++i) {
       int  nFs;
       bool anyFsAvailable;
-      Log(Logger::DEBUG, adapterlogmask, adapterlogname, "Invoking dpm_getpoolfs(" << pools[i].name << ")");
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Invoking dpm_getpoolfs(" << pools[i].name << ")");
       
       if (dpm_getpoolfs((char*)pools[i].name.c_str(), &nFs, &dpm_fs) < 0)
         ThrowExceptionFromSerrno(serrno);
@@ -304,14 +304,14 @@ std::vector<Pool> DpmAdapterPoolManager::getPools(PoolAvailability availability)
       // Unless kNone, anyFsAvailable means a match
       if ((availability == kNone && !anyFsAvailable) ||
           (availability != kNone && anyFsAvailable)) {
-	Log(Logger::DEBUG, adapterlogmask, adapterlogname, "pool available:" << pools[i].name);
+	Log(Logger::Lvl4, adapterlogmask, adapterlogname, "pool available:" << pools[i].name);
         filtered.push_back(pools[i]);
       }
       
       if (nFs > 0)
         free(dpm_fs);
     }
-    Log(Logger::INFO, adapterlogmask, adapterlogname, "Returning " << filtered.size() << " pools.");
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Returning " << filtered.size() << " pools.");
     return filtered;    
   }
   catch (...) {
@@ -367,7 +367,7 @@ void DpmAdapterPoolManager::deletePool(const Pool&) throw (DmException)
 
 Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  Log(Logger::DEBUG, adapterlogmask, adapterlogname, " Path: " << path);
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Path: " << path);
   
   setDpmApiIdentity();
 
@@ -403,7 +403,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
       (dpm_get, 1, &request, 2, protocols, description, 0, r_token, &nReplies, &statuses)(this->retryLimit_);
 
     if (nReplies < 1) {
-      Log(Logger::WARNING, adapterlogmask, adapterlogname, "No replicas found for: " << path);
+      Log(Logger::Lvl1, adapterlogmask, adapterlogname, "No replicas found for: " << path);
       throw DmException(DMLITE_NO_REPLICAS, "No replicas found for " + path);
     }
 
@@ -430,7 +430,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
       getReq();
       ++npoll;
       if (!nReplies) {
-	Log(Logger::WARNING, adapterlogmask, adapterlogname, "No replicas found for: " << path);
+	Log(Logger::Lvl1, adapterlogmask, adapterlogname, "No replicas found for: " << path);
         throw DmException(DMLITE_NO_REPLICAS, "No replicas found for " + path);
       }
 
@@ -469,7 +469,7 @@ Location DpmAdapterPoolManager::whereToRead(const std::string& path) throw (DmEx
     single.url.query["token"] = dmlite::generateToken(this->userId_, rloc.path,
                                                       this->tokenPasswd_, this->tokenLife_);
     
-    Log(Logger::INFO, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
     return Location(1, single);          
   }
   catch (...) {
@@ -492,7 +492,7 @@ Location DpmAdapterPoolManager::whereToRead(ino_t) throw (DmException)
 
 Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
-  Log(Logger::INFO, adapterlogmask, adapterlogname, " Path: " << path);
+  Log(Logger::Lvl3, adapterlogmask, adapterlogname, " Path: " << path);
   
   setDpmApiIdentity();
 
@@ -661,7 +661,7 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
     single.url.query["token"]    = dmlite::generateToken(this->userId_, rloc.path,
                                                          this->tokenPasswd_, this->tokenLife_, true);
     
-    Log(Logger::INFO, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, " Path: " << path << " --> " << rloc.toString());
     
     return Location(1, single);
   }
@@ -678,7 +678,7 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
 
 void DpmAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException)
 {
-  Log(Logger::BASE, adapterlogmask, adapterlogname, " Location: " << loc.toString());
+  Log(Logger::Lvl0, adapterlogmask, adapterlogname, " Location: " << loc.toString());
   setDpmApiIdentity();
 
   FunctionWrapper<int, char*>(dpm_abortreq, (char*)loc[0].url.query.getString("dpmtoken").c_str())();

@@ -134,7 +134,7 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 unsigned long Statement::execute(void) throw (DmException)
 {
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Executing: " << stmt_ << " nParams_: " << nParams_);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Executing: " << stmt_ << " nParams_: " << nParams_);
   
   SANITY_CHECK(STMT_CREATED, execute);
 
@@ -161,7 +161,7 @@ unsigned long Statement::execute(void) throw (DmException)
   }
 
   unsigned long l = (unsigned long) mysql_stmt_affected_rows(this->stmt_);
-  Log(Logger::DEBUG, mysqllogmask, mysqllogname, "Executed: " << stmt_ << " nParams_: " << nParams_ << " nrows:" << l);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Executed: " << stmt_ << " nParams_: " << nParams_ << " nrows:" << l);
   return l;
 }
 

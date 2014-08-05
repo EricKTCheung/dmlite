@@ -117,22 +117,22 @@ void ConfigFactory::configure(const std::string& key,
                               const std::string& value) throw (DmException)
 {
   if (key == "LogLevel" || key == "loglevel") {
-    Log(Logger::BASE, Logger::unregistered, "config", "Setting global log level to :" << value);
+    Log(Logger::Lvl0, Logger::unregistered, "config", "Setting global log level to :" << value);
     Logger::get()->setLevel((Logger::Level)atoi(value.c_str()));
   }
   else
   if (key == "Include" || key == "include") {
-    Log(Logger::BASE, Logger::unregistered, "config", "Processing config file:" << value);
+    Log(Logger::Lvl0, Logger::unregistered, "config", "Processing config file:" << value);
     this->processIncludes(value);
   }
   else
   if (key == "Log" || key == "log") {
-    Log(Logger::BASE, Logger::unregistered, "config", "Setting log ON for component '" << value << "'");
+    Log(Logger::Lvl0, Logger::unregistered, "config", "Setting log ON for component '" << value << "'");
     Logger::get()->setLogged(value, true);   
     
   }
   else {
-    Log(Logger::DEBUG, Logger::unregistered, "ConfigFactory", "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, Logger::unregistered, "ConfigFactory", "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      "Unknown parameter %s", key.c_str());
   }

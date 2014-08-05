@@ -39,7 +39,7 @@ std::string BuiltInAuthn::getImplId() const throw ()
 
 SecurityContext* BuiltInAuthn::createSecurityContext(const SecurityCredentials& cred) throw (DmException)
 {
-  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   " clientname: " << cred.clientName);
+  Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   " clientname: " << cred.clientName);
   
   UserInfo user;
   std::vector<GroupInfo> groups;
@@ -48,15 +48,15 @@ SecurityContext* BuiltInAuthn::createSecurityContext(const SecurityCredentials& 
   
   SecurityContext *sec = new SecurityContext(cred, user, groups);
   
-  Log(Logger::INFO, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting. clientname: " << cred.clientName);
+  Log(Logger::Lvl3, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting. clientname: " << cred.clientName);
   return sec;
 }
 
 SecurityContext* BuiltInAuthn::createSecurityContext() throw (DmException)
 {
-  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   "");
+  Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   "");
   
-  Log(Logger::INFO, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting with NULL");
+  Log(Logger::Lvl3, Logger::unregistered, "BuiltInAuthnFactory",   "Exiting with NULL");
   return NULL;
 }
 
@@ -318,14 +318,14 @@ BuiltInAuthnFactory::~BuiltInAuthnFactory()
 void BuiltInAuthnFactory::configure(const std::string& key,
                                     const std::string& value) throw (DmException)
 {
-  Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   " Key: " << key << " Value: " << value);
+  Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   " Key: " << key << " Value: " << value);
   
   if (key == "AnonymousUser")
     this->nobody_ = value;
   else if (key == "AnonymousGroup")
     this->nogroup_ = value;
   else  
-    Log(Logger::DEBUG, Logger::unregistered, "BuiltInAuthnFactory",   "Unrecognized option. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
 //                      "Unknown option %s", key.c_str());
 }

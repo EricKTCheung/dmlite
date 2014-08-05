@@ -47,7 +47,7 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
         }
       }
     }
-    Log(Logger::INFO, memcachelogmask, memcachelogname, log_stream.str().c_str());
+    Log(Logger::Lvl3, memcachelogmask, memcachelogname, log_stream.str().c_str());
     if (do_reset) {
       reset();
     }
@@ -65,7 +65,7 @@ void MemcacheFunctionCounter::reset()
     boost::mutex::scoped_lock lock(this->write_mutex_);
     std::fill_n(this->counter_array_, NUM_CATALOG_API_FUNCTIONS, 0LL);
   }
-  Log(Logger::INFO, memcachelogmask, memcachelogname,
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname,
       "MemcacheFunctionCounter: " <<
       "reset counters to 0");
 }

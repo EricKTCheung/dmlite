@@ -47,11 +47,11 @@ public:
      */
     enum Level
     {
-        BASE,       // The default?
-        WARNING,
-        NOTICE,
-        INFO,
-        DEBUG
+        Lvl0,       // The default?
+        Lvl1,
+        Lvl2,
+        Lvl3,
+        Lvl4
     };
 
     /// Destructor
