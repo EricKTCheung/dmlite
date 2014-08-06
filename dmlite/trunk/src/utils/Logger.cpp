@@ -33,6 +33,8 @@ int Logger::getStackTrace(std::string &s)
   
   void * array[8];
   int size = backtrace(array, 8);
+  
+  int linecnt = 0;
     
   char ** messages = backtrace_symbols(array, size);     
   
@@ -40,6 +42,9 @@ int Logger::getStackTrace(std::string &s)
   // skip previous one (usually an exception)
   for (int i = 2; i < size && messages != NULL; ++i)
   {
+    // Let's not print more than 4 lines
+    if (linecnt > 3) break;
+    
     char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
     
     // find parantheses and +address offset surrounding mangled name
@@ -80,6 +85,8 @@ int Logger::getStackTrace(std::string &s)
 	  o << "[bt]: (" << i << ") " << messages[i] << " : " 
 	  << real_name << "+" << offset_begin << offset_end 
 	  << std::endl;
+	  
+	  linecnt++;
 	}
 	
       }
@@ -89,6 +96,8 @@ int Logger::getStackTrace(std::string &s)
 	o << "[bt]: (" << i << ") " << messages[i] << " : " 
 	<< mangled_name << "+" << offset_begin << offset_end 
 	<< std::endl;
+	
+	linecnt++;
       }
       free(real_name);
     }
@@ -96,6 +105,7 @@ int Logger::getStackTrace(std::string &s)
     else
     {
       o << "[bt]: (" << i << ") " << messages[i] << std::endl;
+      linecnt++;
     }
   }
   
