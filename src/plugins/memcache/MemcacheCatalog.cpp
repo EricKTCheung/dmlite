@@ -366,9 +366,11 @@ void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
 {
   incrementFunctionCounter(UNLINK_DELEGATE);
   std::string absPath = getAbsolutePath(path);
+  std::string basepath = getBasePath(absPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absPath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], basepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], basepath));
   DELEGATE(unlink, absPath);
 }
 
