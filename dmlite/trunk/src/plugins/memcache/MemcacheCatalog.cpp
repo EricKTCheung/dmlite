@@ -368,9 +368,10 @@ void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
   std::string absPath = getAbsolutePath(path);
   std::string basepath = getBasePath(absPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], basepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], basepath));
   DELEGATE(unlink, absPath);
 }
 
@@ -730,11 +731,19 @@ void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newP
 {
   incrementFunctionCounter(RENAME_DELEGATE);
   std::string absOldPath = getAbsolutePath(oldPath);
+  std::string oldbasepath = getBasePath(absOldPath);
   std::string absNewPath = getAbsolutePath(newPath);
+  std::string newbasepath = getBasePath(absNewPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absOldPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absOldPath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], oldbasepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], oldbasepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], oldbasepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], newbasepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], newbasepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], newbasepath));
   DELEGATE(rename, absOldPath, absNewPath);
 }
 
@@ -743,9 +752,13 @@ void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
   incrementFunctionCounter(REMOVEDIR_DELEGATE);
   std::string absPath = getAbsolutePath(path);
+  std::string basepath = getBasePath(absPath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absPath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], basepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   DELEGATE(removeDir, absPath);
 }
 
