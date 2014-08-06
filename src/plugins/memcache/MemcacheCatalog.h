@@ -28,6 +28,7 @@ namespace dmlite {
       std::string basepath;
       SerialKeyList pb_keys;
       int pb_keys_idx;
+      bool has_called_opendir;
   };
 
   class MemcacheCatalog: public Catalog, protected MemcacheCommon {
