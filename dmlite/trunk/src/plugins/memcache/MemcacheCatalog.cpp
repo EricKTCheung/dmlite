@@ -695,7 +695,14 @@ ExtendedStat* MemcacheCatalog::getDirEntryFromCache(MemcacheDir *dirp) throw (Dm
     if (!valMemc.empty()) {
       deserializeExtendedStat(valMemc, *pMeta);
     } else {
-      DELEGATE_ASSIGN(*pMeta, extendedStat, absPath, true);
+      try {
+        DELEGATE_ASSIGN(*pMeta, extendedStat, absPath, true);
+      } catch (DmException& e) {
+        if (e.code() != ENOENT)
+          throw;
+        else
+          return getDirEntryFromCache(dirp);
+      }
       serializeExtendedStat(*pMeta, valMemc);
       safeSetMemcachedFromKeyValue(key, valMemc);
     }
