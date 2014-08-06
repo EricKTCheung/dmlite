@@ -542,6 +542,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
 
   dirp->dir = meta;
   dirp->basepath = getAbsolutePath(meta.getString("normPath"));
+  dirp->has_called_opendir = false;
 
   // get replica list from memcached
   const std::string key = keyFromString(key_prefix[PRE_DIR_LIST], dirp->basepath);
@@ -572,6 +573,7 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     incrementFunctionCounter(OPENDIR_DELEGATE);
     try {
       DELEGATE_ASSIGN(dirp->decorated_dirp, openDir, dirp->basepath);
+      dirp->has_called_opendir = true;
     } catch (...) {
       Err(memcachelogname, "delegation of openDir failed");
       delete dirp;
@@ -589,7 +591,8 @@ void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
 
   MemcacheDir *dirp = dynamic_cast<MemcacheDir *>(dir);
   //if (!(dirp->isCached)) {
-  if (dirp->pb_keys.state() != VALID) {
+  //if (dirp->pb_keys.state() != VALID) {
+  if (dirp->has_called_opendir) {
     incrementFunctionCounter(CLOSEDIR_DELEGATE);
     DELEGATE(closeDir, dirp->decorated_dirp);
   }
