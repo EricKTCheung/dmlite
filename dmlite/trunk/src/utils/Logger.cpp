@@ -4,6 +4,7 @@
 #include <boost/iterator/iterator_concepts.hpp>
 #include <cxxabi.h>
 #include <execinfo.h>
+#include <string.h>
 
 Logger *Logger::instance = 0;
 Logger::bitmask Logger::unregistered = ~0;
@@ -30,10 +31,10 @@ int Logger::getStackTrace(std::string &s)
 {
   std::ostringstream o;
   
-  void * array[6];
-  int size = backtrace(array, 6);
-  
-  char ** messages = backtrace_symbols(array, size);    
+  void * array[8];
+  int size = backtrace(array, 8);
+    
+  char ** messages = backtrace_symbols(array, size);     
   
   // skip first stack frame (points here)
   // skip previous one (usually an exception)
@@ -56,8 +57,8 @@ int Logger::getStackTrace(std::string &s)
 	offset_end = p;
 	break;
       }
-    }
-    
+    }  
+      
     // if the line could be processed, attempt to demangle the symbol
     if (mangled_name && offset_begin && offset_end && 
       mangled_name < offset_begin)
@@ -68,13 +69,18 @@ int Logger::getStackTrace(std::string &s)
       
       int status;
       char * real_name = abi::__cxa_demangle(mangled_name, 0, 0, &status);
+    
       
       // if demangling is successful, output the demangled function name
-      if (status == 0)
-      {
-	o << "[bt]: (" << i << ") " << messages[i] << " : " 
-	<< real_name << "+" << offset_begin << offset_end 
-	<< std::endl;
+      // Skip those who contain "dmlite::DmException::"
+      // as they are never meaningful and clutter the log
+      if (status == 0) {
+	
+	if (!strstr(real_name, "dmlite::DmException::") ) {
+	  o << "[bt]: (" << i << ") " << messages[i] << " : " 
+	  << real_name << "+" << offset_begin << offset_end 
+	  << std::endl;
+	}
 	
       }
       // otherwise, output the mangled function name
