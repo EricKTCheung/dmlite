@@ -550,14 +550,12 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
   const std::string valMemc = safeGetValFromMemcachedKey(key);
 
   if (!valMemc.empty()) {
-    //dirp->isCached = true;
     // ParseFromString will set the state for us
     dirp->pb_keys.ParseFromString(valMemc);
     dirp->pb_keys_idx = 0;
   }
   // also check the state of the value in memcached
   if (dirp->pb_keys.state() != VALID) {
-    //dirp->isCached = false;
     // avoid a race condition creating directories.
     // only one memcached_add can succeed
     const std::string dirkey = keyFromString(key_prefix[PRE_DIR], dirp->basepath);
@@ -590,8 +588,6 @@ void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
   incrementFunctionCounter(CLOSEDIR);
 
   MemcacheDir *dirp = dynamic_cast<MemcacheDir *>(dir);
-  //if (!(dirp->isCached)) {
-  //if (dirp->pb_keys.state() != VALID) {
   if (dirp->has_called_opendir) {
     incrementFunctionCounter(CLOSEDIR_DELEGATE);
     DELEGATE(closeDir, dirp->decorated_dirp);
@@ -639,7 +635,6 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   }
   else if (dirp->pb_keys.state() == MISSING) {
     // finally push all to memcached
-    //std::string valMemc = serializeDirList(dirp->keys);
     dirp->pb_keys.set_state(VALID);
     std::string valMemc = dirp->pb_keys.SerializeAsString();
     std::string listkey = keyFromString(key_prefix[PRE_DIR_LIST], dirp->basepath);
@@ -670,7 +665,6 @@ ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *d
       dirp->pb_keys.set_state(INVALID);
     }
 
-    //dirp->keys.push_back(pMeta->name);
     SerialKey *pntKey = dirp->pb_keys.add_key();
     pntKey->set_key(pMeta->name);
   }
@@ -685,11 +679,9 @@ ExtendedStat* MemcacheCatalog::getDirEntryFromCache(MemcacheDir *dirp) throw (Dm
 
   if (dirp->pb_keys.key_size() > dirp->pb_keys_idx) {
     std::string valMemc;
-    //std::string absPath = dirp->basepath + dirp->keys.front();
     std::string absPath =
       concatPath(dirp->basepath,
                  dirp->pb_keys.key(dirp->pb_keys_idx).key());
-    //dirp->keys.pop_front();
     dirp->pb_keys_idx++;
 
     std::string key = keyFromString(key_prefix[PRE_STAT], absPath);
