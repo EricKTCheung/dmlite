@@ -14,7 +14,7 @@ namespace dmlite {
   class ProfilerIOHandler: public IOHandler, private ProfilerXrdMon {
   public:
     ProfilerIOHandler(IOHandler* decorated, const std::string& pfn,
-        int flags, StackInstance *si) throw (DmException);
+        int flags, const Extensible& extras, StackInstance *si) throw (DmException);
     virtual ~ProfilerIOHandler();
 
     std::string getImplId(void) const throw() {
@@ -60,7 +60,7 @@ namespace dmlite {
                                        mode_t mode = 0660) throw (DmException) {
 
       return new ProfilerIOHandler( decorated_->createIOHandler(pfn, flags, extras, mode),
-                                   pfn, flags, stack_);
+                                   pfn, flags, extras, stack_);
 
     };
 

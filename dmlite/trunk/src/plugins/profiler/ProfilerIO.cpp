@@ -12,7 +12,8 @@ using namespace dmlite;
 // --------------- ProfilerIOHandler
 
 ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
-    const std::string& pfn, int flags, StackInstance *si) throw(DmException)
+    const std::string& pfn, int flags, const Extensible& extras,
+    StackInstance *si) throw(DmException)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, " path:" << pfn);
 
@@ -54,7 +55,15 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   sendUserIdentOrNOP();
   // we actually never use this, but active LFN in the stream
   //sendFileOpen(pfn);
-  reportXrdFileOpen(pfn, file_size);
+
+  const std::string sfn_key = "dav_sfn";
+  if (extras.hasField(sfn_key)) {
+    reportXrdFileOpen(extras.getString(sfn_key), file_size);
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Found an SFN for the file: " << extras.getString(sfn_key));
+  } else {
+    reportXrdFileOpen(pfn, file_size);
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "No SFN found, use PFN: " << pfn);
+  }
 }
 
 ProfilerIOHandler::~ProfilerIOHandler()
