@@ -4,6 +4,8 @@
 #ifndef MEMCACHE_COMMON_H
 #define MEMCACHE_COMMON_H
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include <sstream>
 #include <libmemcached/memcached.h>
 
@@ -18,6 +20,11 @@
 #include "utils/logger.h"
 
 namespace dmlite {
+
+  // used at the end for the local memory cache
+  typedef std::pair<std::string, std::string> LocalCacheEntry;
+  typedef std::list<LocalCacheEntry> LocalCacheList;
+  typedef std::map<std::string, LocalCacheList::iterator> LocalCacheMap;
 
   extern Logger::bitmask memcachelogmask;
   extern Logger::component memcachelogname;
@@ -228,6 +235,19 @@ namespace dmlite {
       /// @param serial_str   The serialized object as string.
       /// @param var          The deserialized object.
       void deserializePool(const std::string& serial_str, Pool& pool);
+
+      void setLocalFromKeyValue(const std::string& key, const std::string& value);
+      const std::string getValFromLocalKey(const std::string& key);
+      void delLocalFromKey(const std::string& key);
+
+      void purgeLocalItem();
+
+      // from http://stackoverflow.com/questions/2057424/lru-implementation-in-production-code
+      static LocalCacheList localCacheList;
+      static LocalCacheMap localCacheMap;
+      static int localCacheEntryCount;
+      static int localCacheMaxSize;
+      static boost::shared_mutex localCacheMutex;
   };
 };
 
