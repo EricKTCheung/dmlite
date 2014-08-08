@@ -664,7 +664,7 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
   LocalCacheEntry entry;
   LocalCacheMap::iterator it;
   {
-    boost::shared_lock<boost::shared_mutex> l(localCacheMutex);
+    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
     it = localCacheMap.find(key);
     if (it != localCacheMap.end()) {
       entry = *(it->second); // it->second is the list iterator
@@ -672,12 +672,9 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
       Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. No value found.");
       return std::string();
     }
-  }
-  {
-    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
     // move to front
     // splice keeps iterator-validity, so already-moved item (by another thread)
-    // can still be referenced.
+    // can still be referenced. but it can be deleted ...
     localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
     localCacheMap[key] = localCacheList.begin();
   }
