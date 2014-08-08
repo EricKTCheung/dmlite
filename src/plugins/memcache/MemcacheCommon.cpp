@@ -641,6 +641,7 @@ std::string MemcacheCommon::concatPath(const std::string& basepath, const std::s
 
 void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::string& value)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
   boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
   LocalCacheEntry entry(key, value);
   while (localCacheEntryCount > localCacheMaxSize) {
@@ -649,10 +650,12 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
   localCacheList.push_front(entry);
   localCacheMap[key] = localCacheList.begin();
   localCacheEntryCount++;
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry added, key = " << key);
 }
 
 const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
   LocalCacheEntry entry;
   LocalCacheMap::iterator it;
   {
@@ -661,6 +664,7 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
     if (it != localCacheMap.end()) {
       entry = *(it->second); // it->second is the list iterator
     } else { // here we failed
+      Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. No value found.");
       return std::string();
     }
   }
@@ -672,16 +676,19 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
     localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
     localCacheMap[key] = localCacheList.begin();
   }
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Value found.");
   return entry.second;
 }
 
 
 void MemcacheCommon::delLocalFromKey(const std::string& key)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
   boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
   LocalCacheMap::iterator it = localCacheMap.find(key);
   localCacheList.erase(it->second);
   localCacheMap.erase(it);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry deleted, key = " << key);
 }
 
 
@@ -690,7 +697,9 @@ void MemcacheCommon::purgeLocalItem()
   /* Only use this within a unique_lock, otherwise
    * everyone will die!
    */
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering. Next to purge key = " << localCacheList.back().first);
   localCacheMap.erase(localCacheList.back().first);
   localCacheList.pop_back();
   localCacheEntryCount--;
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
