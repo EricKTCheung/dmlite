@@ -106,6 +106,10 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
     valMemcStr.assign(valMemc, lenValue);
     free(valMemc);
   }
+
+  // add the element to the local cache
+  setLocalFromKeyValue(key, valMemcStr);
+
   return valMemcStr;
 }
 
@@ -650,7 +654,8 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
   localCacheList.push_front(entry);
   localCacheMap[key] = localCacheList.begin();
   localCacheEntryCount++;
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry added, key = " << key);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry added, key = " << key
+                                                      << " # entries = " << localCacheEntryCount);
 }
 
 const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
@@ -701,5 +706,5 @@ void MemcacheCommon::purgeLocalItem()
   localCacheMap.erase(localCacheList.back().first);
   localCacheList.pop_back();
   localCacheEntryCount--;
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. # entries = " << localCacheEntryCount);
 }
