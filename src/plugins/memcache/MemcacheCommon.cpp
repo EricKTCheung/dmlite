@@ -6,6 +6,11 @@
 
 using namespace dmlite;
 
+LocalCacheList MemcacheCommon::localCacheList;
+LocalCacheMap MemcacheCommon::localCacheMap;
+int MemcacheCommon::localCacheEntryCount = 0;
+int MemcacheCommon::localCacheMaxSize = 1000;
+boost::shared_mutex MemcacheCommon::localCacheMutex;
 
 
 MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
@@ -65,6 +70,12 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   char* valMemc;
   std::string valMemcStr;
 
+  // try the local cache
+  valMemcStr = getValFromLocalKey(key);
+  if (!valMemcStr.empty()) {
+    return valMemcStr;
+  }
+
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
 
   Log(Logger::Lvl4, memcachelogmask, memcachelogname,
@@ -122,6 +133,9 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
   //  conn = this->conn_;
 
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
+
+  // add to local cache
+  setLocalFromKeyValue(key, value);
 
   Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to set value to memcached:" <<
@@ -222,6 +236,9 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //  conn = this->connNoReply_;
   //else
   //  conn = this->conn_;
+
+  // delete from local cache
+  delLocalFromKey(key);
 
   Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to delete value to memcached:" <<
@@ -621,3 +638,59 @@ std::string MemcacheCommon::concatPath(const std::string& basepath, const std::s
   }
 }
 
+
+void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::string& value)
+{
+  boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+  LocalCacheEntry entry(key, value);
+  while (localCacheEntryCount > localCacheMaxSize) {
+    purgeLocalItem();
+  }
+  localCacheList.push_front(entry);
+  localCacheMap[key] = localCacheList.begin();
+  localCacheEntryCount++;
+}
+
+const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
+{
+  LocalCacheEntry entry;
+  LocalCacheMap::iterator it;
+  {
+    boost::shared_lock<boost::shared_mutex> l(localCacheMutex);
+    it = localCacheMap.find(key);
+    if (it != localCacheMap.end()) {
+      entry = *(it->second); // it->second is the list iterator
+    } else { // here we failed
+      return std::string();
+    }
+  }
+  {
+    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+    // move to front
+    // splice keeps iterator-validity, so already-moved item (by another thread)
+    // can still be referenced.
+    localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
+    localCacheMap[key] = localCacheList.begin();
+  }
+  return entry.second;
+}
+
+
+void MemcacheCommon::delLocalFromKey(const std::string& key)
+{
+  boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+  LocalCacheMap::iterator it = localCacheMap.find(key);
+  localCacheList.erase(it->second);
+  localCacheMap.erase(it);
+}
+
+
+void MemcacheCommon::purgeLocalItem()
+{
+  /* Only use this within a unique_lock, otherwise
+   * everyone will die!
+   */
+  localCacheMap.erase(localCacheList.back().first);
+  localCacheList.pop_back();
+  localCacheEntryCount--;
+}
