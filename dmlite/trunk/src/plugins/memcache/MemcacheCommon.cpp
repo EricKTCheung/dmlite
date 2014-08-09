@@ -676,8 +676,7 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
     // splice keeps iterator-validity, so already-moved item (by another thread)
     // can still be referenced. but it can be deleted ...
     localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
-    // unnecessary because of splice's iterator-validity
-    //localCacheMap[key] = localCacheList.begin();
+    localCacheMap[key] = localCacheList.begin();
   }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Value found.");
   return entry.second;
