@@ -686,10 +686,12 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
 void MemcacheCommon::delLocalFromKey(const std::string& key)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
-  boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
-  LocalCacheMap::iterator it = localCacheMap.find(key);
-  localCacheList.erase(it->second);
-  localCacheMap.erase(it);
+  {
+    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+    LocalCacheMap::iterator it = localCacheMap.find(key);
+    localCacheList.erase(it->second);
+    localCacheMap.erase(it);
+  }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry deleted, key = " << key);
 }
 

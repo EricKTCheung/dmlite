@@ -40,8 +40,7 @@ void MemcacheFunctionCounter::incr(const int key, unsigned int *seed)
     {
       boost::mutex::scoped_lock lock(this->write_mutex_);
       for (int idx = 0; idx < NUM_CATALOG_API_FUNCTIONS; ++idx) {
-        log_stream << log_format % catalog_func_names[idx]
-          % this->counter_array_[idx];
+        log_stream << log_format % catalog_func_names[idx] % this->counter_array_[idx];
         if ((this->counter_array_[idx] - (1LL << 40)) > 0) {
           do_reset = true;
         }
