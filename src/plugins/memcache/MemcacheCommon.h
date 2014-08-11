@@ -41,6 +41,7 @@ namespace dmlite {
   };
 
   class MemcacheCommon {
+      friend class MemcacheFactory;
     public:
       MemcacheCommon(PoolContainer<memcached_st*>& connPool,
                      MemcacheFunctionCounter* funcCounter,
