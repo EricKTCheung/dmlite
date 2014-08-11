@@ -5,7 +5,7 @@
 #define MEMCACHE_COMMON_H
 
 #include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
+//#include <boost/thread/shared_mutex.hpp>
 #include <sstream>
 #include <libmemcached/memcached.h>
 
@@ -247,7 +247,7 @@ namespace dmlite {
       static LocalCacheMap localCacheMap;
       static int localCacheEntryCount;
       static int localCacheMaxSize;
-      static boost::shared_mutex localCacheMutex;
+      static boost::mutex localCacheMutex;
   };
 };
 
