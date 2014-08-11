@@ -10,7 +10,7 @@ LocalCacheList MemcacheCommon::localCacheList;
 LocalCacheMap MemcacheCommon::localCacheMap;
 int MemcacheCommon::localCacheEntryCount = 0;
 int MemcacheCommon::localCacheMaxSize = 1000;
-boost::shared_mutex MemcacheCommon::localCacheMutex;
+boost::mutex MemcacheCommon::localCacheMutex;
 
 
 MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
@@ -646,14 +646,16 @@ std::string MemcacheCommon::concatPath(const std::string& basepath, const std::s
 void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::string& value)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
-  boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
   LocalCacheEntry entry(key, value);
-  while (localCacheEntryCount > localCacheMaxSize) {
-    purgeLocalItem();
+  {
+    boost::lock_guard<boost::mutex> l(localCacheMutex);
+    while (localCacheEntryCount > localCacheMaxSize) {
+      purgeLocalItem();
+    }
+    localCacheList.push_front(entry);
+    localCacheMap[key] = localCacheList.begin();
+    localCacheEntryCount++;
   }
-  localCacheList.push_front(entry);
-  localCacheMap[key] = localCacheList.begin();
-  localCacheEntryCount++;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry added, key = " << key
                                                       << " # entries = " << localCacheEntryCount);
 }
@@ -661,25 +663,29 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
 const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
-  LocalCacheEntry entry;
+  std::string value;
   LocalCacheMap::iterator it;
+  bool val_found = false;
   {
-    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+    boost::lock_guard<boost::mutex> l(localCacheMutex);
     it = localCacheMap.find(key);
     if (it != localCacheMap.end()) {
-      entry = *(it->second); // it->second is the list iterator
-    } else { // here we failed
-      Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. No value found.");
-      return std::string();
+      val_found = true;
+      value = (it->second)->second; // (it->second) is the list iterator
+      // move to front
+      // splice keeps iterator-validity, so an already-moved item (by another thread)
+      // can still be referenced. If it's deleted, though, the iterator is invalid, so this
+      // has to be in the same lock section as .find(key).
+      localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
+      localCacheMap[key] = localCacheList.begin();
     }
-    // move to front
-    // splice keeps iterator-validity, so already-moved item (by another thread)
-    // can still be referenced. but it can be deleted ...
-    localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
-    localCacheMap[key] = localCacheList.begin();
   }
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Value found.");
-  return entry.second;
+  if (val_found) {
+    Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Value found.");
+  } else {
+    Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. No value found.");
+  }
+  return value;
 }
 
 
@@ -687,7 +693,7 @@ void MemcacheCommon::delLocalFromKey(const std::string& key)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
   {
-    boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
+    boost::lock_guard<boost::mutex> l(localCacheMutex);
     LocalCacheMap::iterator it = localCacheMap.find(key);
     if (it != localCacheMap.end()) {
       localCacheList.erase(it->second);
