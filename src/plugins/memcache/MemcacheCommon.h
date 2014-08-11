@@ -4,6 +4,7 @@
 #ifndef MEMCACHE_COMMON_H
 #define MEMCACHE_COMMON_H
 
+#include <algorithm>
 #include <boost/thread/locks.hpp>
 //#include <boost/thread/shared_mutex.hpp>
 #include <sstream>
@@ -23,7 +24,8 @@ namespace dmlite {
 
   // used at the end for the local memory cache
   typedef std::pair<std::string, std::string> LocalCacheEntry;
-  typedef std::list<LocalCacheEntry> LocalCacheList;
+  typedef std::pair<time_t, LocalCacheEntry> LocalCacheListItem;
+  typedef std::list<LocalCacheListItem> LocalCacheList;
   typedef std::map<std::string, LocalCacheList::iterator> LocalCacheMap;
 
   extern Logger::bitmask memcachelogmask;
@@ -242,12 +244,15 @@ namespace dmlite {
       void delLocalFromKey(const std::string& key);
 
       void purgeLocalItem();
+      static bool compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y);
+      void expireLocalItems();
 
       // from http://stackoverflow.com/questions/2057424/lru-implementation-in-production-code
       static LocalCacheList localCacheList;
       static LocalCacheMap localCacheMap;
       static int localCacheEntryCount;
       static int localCacheMaxSize;
+      static time_t localCacheExpirationTimeout;
       static boost::mutex localCacheMutex;
   };
 };
