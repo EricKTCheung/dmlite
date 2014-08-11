@@ -10,6 +10,7 @@ LocalCacheList MemcacheCommon::localCacheList;
 LocalCacheMap MemcacheCommon::localCacheMap;
 int MemcacheCommon::localCacheEntryCount = 0;
 int MemcacheCommon::localCacheMaxSize = 1000;
+time_t MemcacheCommon::localCacheExpirationTimeout = 60;
 boost::mutex MemcacheCommon::localCacheMutex;
 
 
@@ -662,7 +663,7 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
     while (localCacheEntryCount > localCacheMaxSize) {
       purgeLocalItem();
     }
-    localCacheList.push_front(entry);
+    localCacheList.push_front(std::make_pair(time(0), entry));
     localCacheMap[key] = localCacheList.begin();
     localCacheEntryCount++;
   }
@@ -681,7 +682,8 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
     it = localCacheMap.find(key);
     if (it != localCacheMap.end()) {
       val_found = true;
-      value = (it->second)->second; // (it->second) is the list iterator
+      //    (list::iterator)->Entry.value
+      value = (it->second)->second.second;
       // move to front
       // splice keeps iterator-validity, so an already-moved item (by another thread)
       // can still be referenced. If it's deleted, though, the iterator is invalid, so this
@@ -720,8 +722,39 @@ void MemcacheCommon::purgeLocalItem()
    * everyone will die!
    */
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering. Next to purge key = " << localCacheList.back().first);
-  localCacheMap.erase(localCacheList.back().first);
+  //                            ListItem.Entry.key
+  localCacheMap.erase(localCacheList.back().second.first);
   localCacheList.pop_back();
   localCacheEntryCount--;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. # entries = " << localCacheEntryCount);
+}
+
+
+bool MemcacheCommon::compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y)
+{
+  return (x.first < y.first);
+}
+
+
+void MemcacheCommon::expireLocalItems()
+{
+  /* Only use this within a unique_lock, otherwise
+   * everyone will die!
+   */
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
+  int expireCount = 0;
+  time_t expirationTime = time(0) - localCacheExpirationTimeout;
+  LocalCacheListItem comparatorDummy = std::make_pair(expirationTime, LocalCacheEntry());
+  LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
+      comparatorDummy,
+      MemcacheCommon::compareLocalCacheListItems);
+  LocalCacheList::iterator it;
+  for (it = localCacheList.end(); expiryLimitIt != localCacheList.end(); --it) {
+    // same as purgeLocalItem
+    localCacheMap.erase(localCacheList.back().second.first);
+    localCacheList.pop_back();
+    localCacheEntryCount--;
+    ++expireCount;
+  }
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items.");
 }
