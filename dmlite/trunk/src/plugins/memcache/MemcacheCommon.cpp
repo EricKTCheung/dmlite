@@ -689,6 +689,7 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
       // can still be referenced. If it's deleted, though, the iterator is invalid, so this
       // has to be in the same lock section as .find(key).
       localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
+      localCacheList.front().first = time(0);
       localCacheMap[key] = localCacheList.begin();
     }
   }
