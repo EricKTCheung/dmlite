@@ -848,14 +848,14 @@ void XrdMonitor::reportXrdFileClose(const kXR_unt32 fileid, const XrdXrootdMonSt
       msg->Xfr.write = htonll(xfr.write);
 
       // report unusual values -- > 2^30
-      if (xfr.read > 1073741824)
+      if (xfr.read > 8589934592 || xfr.read < 0)
         Err(profilerlogname, " bytes read:" << xfr.read);
-      if (xfr.readv > 1073741824)
+      if (xfr.readv > 8589934592 || xfr.readv < 0)
         Err(profilerlogname, " bytes readv:" << xfr.readv);
-      if (xfr.write > 1073741824)
+      if (xfr.write > 8589934592 || xfr.write < 0)
         Err(profilerlogname, " bytes write:" << xfr.write);
 
-      if (flags & XrdXrootdMonFileHdr::hasOPS) {
+      if (flags & XrdXrootdMonFileHdr::hasOPS || flags & XrdXrootdMonFileHdr::hasSSQ) {
         Log(Logger::Lvl4, profilerlogmask, profilerlogname, "add OPS file statistics");
         msg->Ops.read  = htonl(ops.read);   // Number of read()  calls
         msg->Ops.readv = htonl(ops.readv);   // Number of readv() calls
