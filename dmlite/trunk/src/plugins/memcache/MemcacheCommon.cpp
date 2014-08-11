@@ -689,8 +689,10 @@ void MemcacheCommon::delLocalFromKey(const std::string& key)
   {
     boost::unique_lock<boost::shared_mutex> l(localCacheMutex);
     LocalCacheMap::iterator it = localCacheMap.find(key);
-    localCacheList.erase(it->second);
-    localCacheMap.erase(it);
+    if (it != localCacheMap.end()) {
+      localCacheList.erase(it->second);
+      localCacheMap.erase(it);
+    } // else it's already been deleted by another thread
   }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry deleted, key = " << key);
 }
