@@ -71,9 +71,12 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   std::string valMemcStr;
 
   // try the local cache
-  valMemcStr = getValFromLocalKey(key);
-  if (!valMemcStr.empty()) {
-    return valMemcStr;
+  if (localCacheMaxSize > 0) {
+    valMemcStr = getValFromLocalKey(key);
+    if (!valMemcStr.empty()) {
+      Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting with value from local cache.");
+      return valMemcStr;
+    }
   }
 
   PoolGrabber<memcached_st*> conn = PoolGrabber<memcached_st*>(*this->connPool_);
@@ -108,8 +111,11 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   }
 
   // add the element to the local cache
-  setLocalFromKeyValue(key, valMemcStr);
+  if (localCacheMaxSize > 0) {
+    setLocalFromKeyValue(key, valMemcStr);
+  }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting with value from memcached.");
   return valMemcStr;
 }
 
@@ -139,7 +145,9 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
   // add to local cache
-  setLocalFromKeyValue(key, value);
+  if (localCacheMaxSize) {
+    setLocalFromKeyValue(key, value);
+  }
 
   Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to set value to memcached:" <<
@@ -242,7 +250,9 @@ void MemcacheCommon::delMemcachedFromKey(const std::string& key, const bool nore
   //  conn = this->conn_;
 
   // delete from local cache
-  delLocalFromKey(key);
+  if (localCacheMaxSize > 0) {
+    delLocalFromKey(key);
+  }
 
   Log(Logger::Lvl4, memcachelogmask, memcachelogname,
       "starting to delete value to memcached:" <<
