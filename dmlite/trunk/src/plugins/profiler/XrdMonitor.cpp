@@ -946,7 +946,11 @@ void XrdMonitor::flushXrdFileStream()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
-  int ret = XrdMonitor::sendFileBuffer();
+  int ret;
+  {
+    boost::mutex::scoped_lock lock(file_mutex_);
+    ret = XrdMonitor::sendFileBuffer();
+  }
   if (ret) {
     Err(profilerlogname, "failed sending FILE msg, error code = " << ret);
   } else {
