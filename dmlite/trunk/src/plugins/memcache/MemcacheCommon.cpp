@@ -298,8 +298,6 @@ void MemcacheCommon::serializeExtendedStat(const ExtendedStat& var, std::string&
 {
   //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  //std::string serialString;
-  SerialExtendedStat seStat;
   SerialStat* pntSerialStat;
 
   pntSerialStat = seStat.mutable_stat();
@@ -327,7 +325,6 @@ void MemcacheCommon::serializeExtendedStat(const ExtendedStat& var, std::string&
   pntSerialStat->set_st_blocks(var.stat.st_blocks);
 
   serialString = seStat.SerializeAsString();
-  //  seStat.PrintDebugString();
 
   return;
 }
@@ -337,11 +334,9 @@ void MemcacheCommon::deserializeExtendedStat(const std::string& serial_str, Exte
 {
   //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  SerialExtendedStat seStat;
   const SerialStat* pntSerialStat;
 
   seStat.ParseFromString(serial_str);
-  //  seStat.PrintDebugString();
 
   pntSerialStat = &seStat.stat();
 
@@ -373,8 +368,6 @@ void MemcacheCommon::deserializeExtendedStat(const std::string& serial_str, Exte
 
 std::string MemcacheCommon::serializeReplica(const Replica& replica)
 {
-  SerialReplica serialReplica;
-
   serialReplica.set_replicaid(replica.replicaid);
   serialReplica.set_fileid(replica.fileid);
   serialReplica.set_nbaccesses(replica.nbaccesses);
@@ -394,7 +387,6 @@ std::string MemcacheCommon::serializeReplica(const Replica& replica)
 
 void MemcacheCommon::deserializeReplica(const std::string& serial_str, Replica& replica)
 {
-  SerialReplica serialReplica;
   serialReplica.ParseFromString(serial_str);
 
   replica.replicaid = serialReplica.replicaid();
@@ -416,15 +408,14 @@ void MemcacheCommon::deserializeReplica(const std::string& serial_str, Replica& 
 std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vecRepl)
 {
   SerialReplica* pReplica;
-  SerialReplicaList list;
-  std::string serialList;
+  serialReplicaList.Clear();
 
   std::vector<Replica>::const_iterator itVecRepl;
   for (itVecRepl = vecRepl.begin();
        itVecRepl != vecRepl.end();
        ++itVecRepl) {
 
-    pReplica = list.add_replica();
+    pReplica = serialReplicaList.add_replica();
 
     pReplica->set_replicaid(itVecRepl->replicaid);
     pReplica->set_fileid(itVecRepl->fileid);
@@ -441,21 +432,17 @@ std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vec
 
   }
 
-  serialList = list.SerializeAsString();
-
-  return serialList;
+  return serialReplicaList.SerializeAsString();
 }
 
 
 void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::vector<Replica>& vecRepl)
 {
-  SerialReplica serialReplica;
-  SerialReplicaList list;
-  list.ParseFromString(serial_str);
+  serialReplicaList.ParseFromString(serial_str);
   Replica replica;
 
-  for (int i = 0; i < list.replica_size(); ++i) {
-    serialReplica = list.replica(i);
+  for (int i = 0; i < serialReplicaList.replica_size(); ++i) {
+    serialReplica = serialReplicaList.replica(i);
 
     replica.replicaid = serialReplica.replicaid();
     replica.fileid = serialReplica.fileid();
@@ -479,10 +466,6 @@ void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::
 std::string MemcacheCommon::serializeComment(const std::string& var)
 {
   //GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  std::string serialString;
-  SerialComment seComment;
-
   seComment.set_comment(var);
 
   return seComment.SerializeAsString();
@@ -494,10 +477,7 @@ void MemcacheCommon::deserializeComment(std::string& serial_str,
 {
   //GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  SerialComment seComment;
-
   seComment.ParseFromString(serial_str);
-//  seStat.PrintDebugString();
 
   var = seComment.comment();
 }
@@ -506,35 +486,30 @@ void MemcacheCommon::deserializeComment(std::string& serial_str,
 std::string MemcacheCommon::serializePoolList(const std::vector<Pool>& vecPool)
 {
   SerialPool* pPool;
-  SerialPoolList list;
-  std::string serialList;
+  serialPoolList.Clear();
 
   std::vector<Pool>::const_iterator itVecPool;
   for (itVecPool = vecPool.begin();
        itVecPool != vecPool.end();
        ++itVecPool) {
 
-    pPool = list.add_pool();
+    pPool = serialPoolList.add_pool();
 
     pPool->set_name(itVecPool->name);
     pPool->set_type(itVecPool->type);
   }
 
-  serialList = list.SerializeAsString();
-
-  return serialList;
+  return serialPoolList.SerializeAsString();
 }
 
 
 void MemcacheCommon::deserializePoolList(const std::string& serial_str, std::vector<Pool>& vecPool)
 {
-  SerialPool serialPool;
-  SerialPoolList list;
-  list.ParseFromString(serial_str);
+  serialPoolList.ParseFromString(serial_str);
   Pool pool;
 
-  for (int i = 0; i < list.pool_size(); ++i) {
-    serialPool = list.pool(i);
+  for (int i = 0; i < serialPoolList.pool_size(); ++i) {
+    serialPool = serialPoolList.pool(i);
 
     pool.name = serialPool.name();
     pool.type = serialPool.type();
@@ -546,8 +521,6 @@ void MemcacheCommon::deserializePoolList(const std::string& serial_str, std::vec
 
 std::string MemcacheCommon::serializePool(const Pool& pool)
 {
-  SerialPool serialPool;
-
   serialPool.set_name(pool.name);
   serialPool.set_type(pool.type);
 
@@ -558,7 +531,6 @@ std::string MemcacheCommon::serializePool(const Pool& pool)
 
 void MemcacheCommon::deserializePool(const std::string& serial_str, Pool& pool)
 {
-  SerialPool serialPool;
   serialPool.ParseFromString(serial_str);
 
   pool.name = serialPool.name();

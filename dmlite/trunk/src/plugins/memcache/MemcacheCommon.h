@@ -76,6 +76,15 @@ namespace dmlite {
       /// The current directory
       std::string cwd_;
 
+      /// Protobuf objects for reuse
+      SerialExtendedStat seStat;
+      SerialReplica serialReplica;
+      SerialComment seComment;
+      SerialPool serialPool;
+
+      SerialReplicaList serialReplicaList;
+      SerialPoolList serialPoolList;
+
       /// Serialize an ExtendedStat object into a string.
       /// @param var          The object to serialize.
       /// @param serialString The string to serialize into.
