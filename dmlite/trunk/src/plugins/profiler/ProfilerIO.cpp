@@ -51,8 +51,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
     Err(profilerlogname, "Could not determine filesize for " << pfn << ": " << e.code() << ", " << e.what());
   }
 
-  //test send fileMonitoring msg
-  sendUserIdentOrNOP();
+  sendUserIdentOrNOP(extras.getString("user_dn"));
   // we actually never use this, but active LFN in the stream
   //sendFileOpen(pfn);
 

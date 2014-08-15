@@ -21,7 +21,7 @@ ProfilerXrdMon::~ProfilerXrdMon()
 }
 
 
-void ProfilerXrdMon::sendUserIdentOrNOP()
+void ProfilerXrdMon::sendUserIdentOrNOP(std::string user_dn)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
   if (!this->stack_->contains("dictid")) {
@@ -39,18 +39,25 @@ void ProfilerXrdMon::sendUserIdentOrNOP()
       protocol = "gsi";
     }
 
+    std::string username;
+    if (!user_dn.empty() && secCtx->user.name == "nobody") {
+      username = user_dn;
+    } else {
+      username = secCtx->user.name;
+    }
+
     //char dictid_str[21];
     //snprintf(dictid_str, 21, "%d", ntohl(dictid));
     //std::string unique_userid = std::string(dictid_str);
 
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
-        getShortUserName(secCtx->user.name), // unique username
+        getShortUserName(username), // unique username
         secCtx->credentials.remoteAddress, // user hostname
         // org
         // role
         secCtx->groups[0].name,
-        secCtx->user.name // info, here: user DN
+        username // info, here: user DN
     );
   }
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");

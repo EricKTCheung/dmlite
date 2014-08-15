@@ -30,7 +30,7 @@ namespace dmlite {
       void reportXrdFileDiscAndFlush();
       void reportXrdFileDiscAndFlushOrNOP();
 
-      void sendUserIdentOrNOP();
+      void sendUserIdentOrNOP(std::string user_dn);
 
     protected:
       XrdXrootdMonStatXFR xfrstats_;
