@@ -319,7 +319,6 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
 
   std::vector<Replica> replicas;
   std::string valMemc;
-  SerialReplicaList pb_replicas;
   Replica repl;
 
   // get replica list from memcached
@@ -329,7 +328,6 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
   valMemc = safeGetValFromMemcachedKey(key);
 
   if (!valMemc.empty()) {
-    pb_replicas.ParseFromString(valMemc);
     deserializeReplicaList(valMemc, replicas);
   }
   if (replicas.size() == 0) {
