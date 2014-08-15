@@ -571,7 +571,8 @@ void MemcacheCommon::deserializePool(const std::string& serial_str, Pool& pool)
 std::string MemcacheCommon::getAbsolutePath(const std::string& path)
   throw (DmException)
 {
-
+  if (path == "/")
+    return path;
   if (path[0] == '/') {
     std::string outPath = path;
     removeTrailingSlash(outPath);
