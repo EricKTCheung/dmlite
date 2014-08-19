@@ -179,6 +179,15 @@ namespace dmlite {
   /// @return             ExtendedStat
   ExtendedStat extendedStatNoPOSIX(const std::string& path, bool followSym) throw (DmException);
 
+  /// Get an ExtendedStat object without permission checking.
+  /// Fetches the ExtendedStat without checking permissions.
+  /// It is basically a wrapper around the memcache get function.
+  /// Complete POSIX semantics apply if the decorated plugin
+  /// implements them.
+  /// @param path         The path, absolute or relative
+  /// @return             ExtendedStat
+  ExtendedStat extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException);
+
   /// Delegate readDirx.
   /// Delegate the readDirx function and add the filename to
   /// the cache. First it is stored in the dirp, it will later
