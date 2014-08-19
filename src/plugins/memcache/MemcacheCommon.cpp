@@ -722,7 +722,7 @@ void MemcacheCommon::purgeLocalItem()
 
 bool MemcacheCommon::compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y)
 {
-  return (x.first < y.first);
+  return (x.first > y.first);
 }
 
 
@@ -739,7 +739,7 @@ void MemcacheCommon::expireLocalItems()
       comparatorDummy,
       MemcacheCommon::compareLocalCacheListItems);
   LocalCacheList::iterator it;
-  for (it = localCacheList.end(); it != expiryLimitIt; --it) {
+  for (it = expiryLimitIt; it != localCacheList.end(); ++it) {
     // same as purgeLocalItem
     localCacheMap.erase(localCacheList.back().second.first);
     localCacheList.pop_back();
