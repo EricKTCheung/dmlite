@@ -739,19 +739,28 @@ void MemcacheCommon::expireLocalItems()
   //LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
   //    comparatorDummy,
   //    MemcacheCommon::compareLocalCacheListItems);
-  LocalCacheList::iterator expiryLimitIt;
-  for (expiryLimitIt = localCacheList.begin(); expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
-    if (expiryLimitIt->first < expirationTime) {
-      break;
+  LocalCacheList::iterator it;
+  for (it = localCacheList.begin(); it != localCacheList.end(); ++it) {
+    if (it->first < expirationTime) {
+      localCacheMap.erase(it->second.first);
+      localCacheList.erase(it);
+      localCacheEntryCount--;
+      expireCount++;
     }
   }
-  for (; expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
-    // same as purgeLocalItem
-    localCacheMap.erase(localCacheList.back().second.first);
-    localCacheList.pop_back();
-    localCacheEntryCount--;
-    ++expireCount;
-  }
+  //LocalCacheList::iterator expiryLimitIt;
+  //for (expiryLimitIt = localCacheList.begin(); expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
+  //  if (expiryLimitIt->first < expirationTime) {
+  //    break;
+  //  }
+  //}
+  //for (; expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
+  //  // same as purgeLocalItem
+  //  localCacheMap.erase(localCacheList.back().second.first);
+  //  localCacheList.pop_back();
+  //  localCacheEntryCount--;
+  //  ++expireCount;
+  //}
   localCacheStats.expired += expireCount;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items.");
 }
