@@ -242,37 +242,13 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
-  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-    throw DmException(EACCES,
-                      "Not enough permissions to list " + meta.name);
-
   return fillChecksumInXattr(meta);
 }
 
 
 ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException)
 {
-  incrementFunctionCounter(EXTENDEDSTAT);
-
-  ExtendedStat meta;
-
-  std::string valMemc;
-
-  std::string absPath = getAbsolutePath(path);
-  const std::string key = keyFromString(key_prefix[PRE_STAT], absPath);
-
-  valMemc = safeGetValFromMemcachedKey(key);
-  if (!valMemc.empty()) {
-    deserializeExtendedStat(valMemc, meta);
-  } else // valMemc was not in memcached
-  {
-    incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
-    DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-    serializeExtendedStat(meta, valMemc);
-    safeSetMemcachedFromKeyValue(key, valMemc);
-  }
-
-  return fillChecksumInXattr(meta);
+  return extendedStatNoPOSIX(path, followSym);
 }
 
 

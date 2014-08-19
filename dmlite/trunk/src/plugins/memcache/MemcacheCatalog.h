@@ -184,6 +184,8 @@ namespace dmlite {
   /// It is basically a wrapper around the memcache get function.
   /// Complete POSIX semantics apply if the decorated plugin
   /// implements them.
+  /// It's currently the same as extendedStatNoPOSIX, but might
+  /// get more optimisations.
   /// @param path         The path, absolute or relative
   /// @return             ExtendedStat
   ExtendedStat extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException);
