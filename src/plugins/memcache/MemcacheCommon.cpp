@@ -12,7 +12,7 @@ int MemcacheCommon::localCacheEntryCount = 0;
 int MemcacheCommon::localCacheMaxSize = 1000;
 time_t MemcacheCommon::localCacheExpirationTimeout = 60;
 boost::mutex MemcacheCommon::localCacheMutex;
-
+MemcacheCommon::LocalCacheStats MemcacheCommon::localCacheStats;
 
 MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
     MemcacheFunctionCounter* funcCounter,
@@ -631,14 +631,24 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, key = " << key);
   LocalCacheEntry entry(key, value);
+  unsigned int randomExpire = rand();
+  const unsigned int expireIndicator = 4;
+  // expire items with some probability: p = 1/2^(expireIndicator)
+  randomExpire >>= sizeof(unsigned int)*8 - expireIndicator;
   {
     boost::lock_guard<boost::mutex> l(localCacheMutex);
+    if (randomExpire == 0) {
+      expireLocalItems();
+      logLocalCacheStatistics();
+      resetLocalCache();
+    }
     while (localCacheEntryCount > localCacheMaxSize) {
       purgeLocalItem();
     }
     localCacheList.push_front(std::make_pair(time(0), entry));
     localCacheMap[key] = localCacheList.begin();
     localCacheEntryCount++;
+    localCacheStats.set++;
   }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry added, key = " << key
                                                       << " # entries = " << localCacheEntryCount);
@@ -652,8 +662,10 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
   bool val_found = false;
   {
     boost::lock_guard<boost::mutex> l(localCacheMutex);
+    localCacheStats.get++;
     it = localCacheMap.find(key);
     if (it != localCacheMap.end()) {
+      localCacheStats.hit++;
       val_found = true;
       //    (list::iterator)->Entry.value
       value = (it->second)->second.second;
@@ -664,6 +676,8 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
       localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
       localCacheList.front().first = time(0);
       localCacheMap[key] = localCacheList.begin();
+    } else {
+      localCacheStats.miss++;
     }
   }
   if (val_found) {
@@ -684,6 +698,7 @@ void MemcacheCommon::delLocalFromKey(const std::string& key)
     if (it != localCacheMap.end()) {
       localCacheList.erase(it->second);
       localCacheMap.erase(it);
+      localCacheStats.del++;
     } // else it's already been deleted by another thread
   }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry deleted, key = " << key);
@@ -700,6 +715,7 @@ void MemcacheCommon::purgeLocalItem()
   localCacheMap.erase(localCacheList.back().second.first);
   localCacheList.pop_back();
   localCacheEntryCount--;
+  localCacheStats.purged++;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. # entries = " << localCacheEntryCount);
 }
 
@@ -723,12 +739,72 @@ void MemcacheCommon::expireLocalItems()
       comparatorDummy,
       MemcacheCommon::compareLocalCacheListItems);
   LocalCacheList::iterator it;
-  for (it = localCacheList.end(); expiryLimitIt != localCacheList.end(); --it) {
+  for (it = localCacheList.end(); it != expiryLimitIt; --it) {
     // same as purgeLocalItem
     localCacheMap.erase(localCacheList.back().second.first);
     localCacheList.pop_back();
     localCacheEntryCount--;
     ++expireCount;
   }
+  localCacheStats.expired += expireCount;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items.");
+}
+
+
+void MemcacheCommon::logLocalCacheStatistics()
+{
+  /* Only use this within a unique_lock, otherwise
+   * everyone will die!
+   */
+  if (Logger::get()->getLevel() >= Logger::Lvl4 && Logger::get()->isLogged(memcachelogmask)) {
+    std::stringstream logStream;
+    logStream << "local cache statistics:" << std::endl;
+    logStream << "get: " << localCacheStats.get << std::endl;
+    logStream << "set: " << localCacheStats.set << std::endl;
+    logStream << "hit: " << localCacheStats.hit << std::endl;
+    logStream << "miss: " << localCacheStats.miss << std::endl;
+    logStream << "del: " << localCacheStats.del << std::endl;
+    logStream << "purged: " << localCacheStats.purged << std::endl;
+    logStream << "expired: " << localCacheStats.expired << std::endl;
+    Log(Logger::Lvl4, memcachelogmask, memcachelogname, logStream.str());
+  }
+}
+
+
+void MemcacheCommon::resetLocalCache()
+{
+  /* Only use this within a unique_lock, otherwise
+   * everyone will die!
+   */
+  bool doReset = false;
+  if ((localCacheStats.get - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.set - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.hit - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.miss - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.del - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.purged - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if ((localCacheStats.expired - (1LL << 40)) > 0) {
+    doReset = true;
+  }
+  if (doReset) {
+    localCacheStats.get = 0;
+    localCacheStats.set = 0;
+    localCacheStats.hit = 0;
+    localCacheStats.miss = 0;
+    localCacheStats.del = 0;
+    localCacheStats.purged = 0;
+    localCacheStats.expired = 0;
+  }
 }
