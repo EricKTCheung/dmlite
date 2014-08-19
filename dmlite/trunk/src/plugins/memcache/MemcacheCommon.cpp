@@ -734,10 +734,16 @@ void MemcacheCommon::expireLocalItems()
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   int expireCount = 0;
   time_t expirationTime = time(0) - localCacheExpirationTimeout;
-  LocalCacheListItem comparatorDummy = std::make_pair(expirationTime, LocalCacheEntry());
-  LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
-      comparatorDummy,
-      MemcacheCommon::compareLocalCacheListItems);
+  //LocalCacheListItem comparatorDummy = std::make_pair(expirationTime, LocalCacheEntry());
+  //LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
+  //    comparatorDummy,
+  //    MemcacheCommon::compareLocalCacheListItems);
+  LocalCacheList::iterator expiryLimitIt;
+  for (expiryLimitIt = localCacheList.begin(); expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
+    if (expiryLimitIt->first < expirationTime) {
+      break;
+    }
+  }
   LocalCacheList::iterator it;
   for (it = expiryLimitIt; it != localCacheList.end(); ++it) {
     // same as purgeLocalItem
