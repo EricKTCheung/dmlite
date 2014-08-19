@@ -142,10 +142,10 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
 
   components = Url::splitPath(path);
   if (path[0] == '/' || cwd.empty()) {
-    meta = this->extendedStatNoPOSIX("/", followSym);
+    meta = this->extendedStatNoCheck("/", followSym);
   } else {
     cwdComponents = Url::splitPath(cwd);
-    meta = this->extendedStatNoPOSIX(cwd, followSym);
+    meta = this->extendedStatNoCheck(cwd, followSym);
   }
 
   for (; cwdMarker < components.size(); ) {
@@ -174,7 +174,7 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
       cwdComponents.push_back(currentPathElem);
       cwd = Url::joinPath(cwdComponents);
       // Stat, this throws an Exception if the path doesn't exist
-      meta = this->extendedStatNoPOSIX(cwd, followSym);
+      meta = this->extendedStatNoCheck(cwd, followSym);
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
@@ -200,7 +200,7 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
         // If absolute, need to reset parent
         if (link[0] == '/') {
           cwdComponents.clear();
-          meta = this->extendedStatNoPOSIX("/", followSym);
+          meta = this->extendedStatNoCheck("/", followSym);
         }
         // Keep the meta of the symlink, will be replaced soon
 
@@ -221,6 +221,36 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
 
 
 ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool followSym) throw (DmException)
+{
+  incrementFunctionCounter(EXTENDEDSTAT);
+
+  ExtendedStat meta;
+
+  std::string valMemc;
+
+  std::string absPath = getAbsolutePath(path);
+  const std::string key = keyFromString(key_prefix[PRE_STAT], absPath);
+
+  valMemc = safeGetValFromMemcachedKey(key);
+  if (!valMemc.empty()) {
+    deserializeExtendedStat(valMemc, meta);
+  } else // valMemc was not in memcached
+  {
+    incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
+    DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
+    serializeExtendedStat(meta, valMemc);
+    safeSetMemcachedFromKeyValue(key, valMemc);
+  }
+
+  if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
+    throw DmException(EACCES,
+                      "Not enough permissions to list " + meta.name);
+
+  return fillChecksumInXattr(meta);
+}
+
+
+ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException)
 {
   incrementFunctionCounter(EXTENDEDSTAT);
 
