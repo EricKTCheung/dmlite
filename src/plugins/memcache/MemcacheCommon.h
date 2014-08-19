@@ -302,13 +302,13 @@ namespace dmlite {
        * corresponding item in the list.
        *
        * performance characteristics:
-       *   (with respect to the cache size)
+       *   (with respect to the cache size N)
        *
        * getValFromLocalKey: O(log2)
        * setLocalFromKeyValue: O(log2)
        * delLocalFromKey: O(log2)
        * purgeLocalItem: O(log2)
-       * expireLocalItems: O(log2) + O(N_expired) * O(log2)
+       * expireLocalItems: O(N) + O(N_expired) * O(log2)
        *
        *   everything +c for constant operations like the list accesses
        *   or splice and such.
