@@ -711,7 +711,7 @@ void MemcacheCommon::purgeLocalItem()
   /* Only use this within a unique_lock, otherwise
    * everyone will die!
    */
-  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering. Next to purge key = " << localCacheList.back().first);
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering. Next to purge key = " << localCacheList.back().second.first);
   //                            ListItem.Entry.key
   localCacheMap.erase(localCacheList.back().second.first);
   localCacheList.pop_back();
@@ -721,9 +721,9 @@ void MemcacheCommon::purgeLocalItem()
 }
 
 
-bool MemcacheCommon::compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y)
+bool MemcacheCommon::compareLocalCacheListItems(const LocalCacheListItem& x, const int t)
 {
-  return (x.first > y.first);
+  return (x.first > t);
 }
 
 
@@ -735,10 +735,8 @@ void MemcacheCommon::expireLocalItems()
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   int expireCount = 0;
   time_t expirationTime = time(0) - localCacheExpirationTimeout;
-  LocalCacheListItem comparatorDummy = std::make_pair(expirationTime, LocalCacheEntry());
   LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
-      comparatorDummy,
-      MemcacheCommon::compareLocalCacheListItems);
+      expirationTime, MemcacheCommon::compareLocalCacheListItems);
   for (LocalCacheList::iterator it = expiryLimitIt; it != localCacheList.end(); ++it) {
     // delete map entries
     localCacheMap.erase(it->second.first);

@@ -268,9 +268,9 @@ namespace dmlite {
       /// Compare function for local cache items.
       /// Used for the binary search when deleting expired items.
       /// @param x            LocalCacheListItem.
-      /// @param y            LocalCacheListItem.
+      /// @param y            ExpirationTime.
       /// @return             Comparison response as bool.
-      static bool compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y);
+      static bool compareLocalCacheListItems(const LocalCacheListItem& x, const int t);
 
       /// Remove all expired items from the local cache.
       void expireLocalItems();
