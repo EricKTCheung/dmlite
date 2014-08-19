@@ -746,7 +746,8 @@ void MemcacheCommon::expireLocalItems()
   // delete list entries, separate to keep iterators useful
   localCacheList.erase(expiryLimitIt, localCacheList.end());
   localCacheStats.expired += expireCount;
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items.");
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items."
+      << localCacheEntryCount << " items left.");
 }
 
 
