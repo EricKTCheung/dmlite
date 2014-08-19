@@ -698,6 +698,7 @@ void MemcacheCommon::delLocalFromKey(const std::string& key)
     if (it != localCacheMap.end()) {
       localCacheList.erase(it->second);
       localCacheMap.erase(it);
+      localCacheEntryCount--;
       localCacheStats.del++;
     } // else it's already been deleted by another thread
   }
