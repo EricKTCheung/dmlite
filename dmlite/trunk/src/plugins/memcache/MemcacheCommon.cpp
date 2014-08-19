@@ -745,8 +745,7 @@ void MemcacheCommon::expireLocalItems()
       break;
     }
   }
-  LocalCacheList::iterator it;
-  for (it = expiryLimitIt; it != localCacheList.end(); ++it) {
+  for (; expiryLimitIt != localCacheList.end(); ++expiryLimitIt) {
     // same as purgeLocalItem
     localCacheMap.erase(localCacheList.back().second.first);
     localCacheList.pop_back();
