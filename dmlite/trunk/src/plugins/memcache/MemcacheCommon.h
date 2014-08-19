@@ -248,21 +248,89 @@ namespace dmlite {
       /// @param var          The deserialized object.
       void deserializePool(const std::string& serial_str, Pool& pool);
 
+      /// Set a value in the local cache.
+      /// @param key          The cache key.
+      /// @param value        The cache value, always an std::string.
       void setLocalFromKeyValue(const std::string& key, const std::string& value);
+
+      /// Get a value from the local cache.
+      /// @param key          The cache key.
+      /// @return             The value as std::string.
       const std::string getValFromLocalKey(const std::string& key);
+
+      /// Delete a key, value pair from the local cache.
+      /// @param key          The cache key.
       void delLocalFromKey(const std::string& key);
 
+      /// Purge the least recently used item from the local cache.
       void purgeLocalItem();
+
+      /// Compare function for local cache items.
+      /// Used for the binary search when deleting expired items.
+      /// @param x            LocalCacheListItem.
+      /// @param y            LocalCacheListItem.
+      /// @return             Comparison response as bool.
       static bool compareLocalCacheListItems(const LocalCacheListItem& x, const LocalCacheListItem& y);
+
+      /// Remove all expired items from the local cache.
       void expireLocalItems();
 
-      // from http://stackoverflow.com/questions/2057424/lru-implementation-in-production-code
+      /// log cache statistics.
+      void logLocalCacheStatistics();
+
+      /// Reset the cache stats counters.
+      void resetLocalCache();
+
+      /*
+       * The local in-memory cache:
+       *
+       * The principle layout is borrowed from
+       * http://stackoverflow.com/questions/2057424/ \
+       *   lru-implementation-in-production-code
+       * but is tuned to only use std:: containers and allow
+       * efficient expiring of items.
+       *
+       * It builds on a map and a list. The std::map uses a tree as
+       * storage structure, so element accesses are O(log2) and not
+       * O(1) as with a hashmap. This might not be too bad, because
+       * the tree does not need any hashing. String hashing can
+       * considerably slow down, so the treemap might be even better.
+       * I have seen tests that show this, but haven't tested
+       * myself ...
+       * Except for deleting expired items, we never search anything
+       * in the list, since the map holds an iterator to the
+       * corresponding item in the list.
+       *
+       * performance characteristics:
+       *   (with respect to the cache size)
+       *
+       * getValFromLocalKey: O(log2)
+       * setLocalFromKeyValue: O(log2)
+       * delLocalFromKey: O(log2)
+       * purgeLocalItem: O(log2)
+       * expireLocalItems: O(log2) + O(N_expired) * O(log2)
+       *
+       *   everything +c for constant operations like the list accesses
+       *   or splice and such.
+       */
       static LocalCacheList localCacheList;
       static LocalCacheMap localCacheMap;
       static int localCacheEntryCount;
       static int localCacheMaxSize;
       static time_t localCacheExpirationTimeout;
       static boost::mutex localCacheMutex;
+
+      struct LocalCacheStats {
+        int64_t get;
+        int64_t set;
+        int64_t hit;
+        int64_t miss;
+        int64_t del;
+        int64_t purged;
+        int64_t expired;
+      };
+      static LocalCacheStats localCacheStats;
+
   };
 };
 
