@@ -142,6 +142,8 @@ namespace dmlite {
       static bool is_initialized_;
       static boost::mutex init_mutex_;
 
+      static std::string getHostFromIP(const std::string& hostOrIp);
+
       static int send(const void *buf, size_t buf_len);
 
       static int sendServerIdent();
