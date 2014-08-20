@@ -2,6 +2,10 @@
 /// @brief  Profiler plugin.
 
 #include <sys/syscall.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include "XrdMonitor.h"
 
@@ -237,6 +241,23 @@ int XrdMonitor::initCollector()
   return 0;
 }
 
+std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
+{
+  int ret;
+  struct sockaddr_in sa;
+  ret = inet_pton(AF_INET, hostOrIp.c_str(), &(sa.sin_addr));
+  if (ret < 1) {
+    return hostOrIp;
+  }
+  char hostname[1024];
+  ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname, sizeof(hostname), NULL, 0, 0);
+  if (ret == 0) {
+    return std::string(hostname);
+  } else {
+    return hostOrIp;
+  }
+}
+
 int XrdMonitor::send(const void *buf, size_t buf_len)
 {
   boost::mutex::scoped_lock lock(send_mutex_);
@@ -336,7 +357,7 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
 
   std::string userHost;
   if (userHostname.length() > 0) {
-    userHost = userHostname;
+    userHost = getHostFromIP(userHostname);
   } else {
     userHost = "null";
   }
