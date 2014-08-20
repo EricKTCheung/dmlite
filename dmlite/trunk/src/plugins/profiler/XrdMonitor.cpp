@@ -243,17 +243,21 @@ int XrdMonitor::initCollector()
 
 std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
 {
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "host = " << hostOrIp);
   int ret;
   struct sockaddr_in sa;
   ret = inet_pton(AF_INET, hostOrIp.c_str(), &(sa.sin_addr));
   if (ret < 1) {
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Argument is not valid ip address.");
     return hostOrIp;
   }
   char hostname[1024];
   ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname, sizeof(hostname), NULL, 0, 0);
   if (ret == 0) {
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Hostname is " << hostname);
     return std::string(hostname);
   } else {
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Could not get hostname.");
     return hostOrIp;
   }
 }
