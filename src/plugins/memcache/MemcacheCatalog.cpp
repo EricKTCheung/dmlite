@@ -170,6 +170,7 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
     endCurrentPath = absPath.find('/', endCurrentPath+1);
   }
   meta = this->extendedStatNoCheck(absPath, followSym);
+  meta["normPath"] = absPath;
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return fillChecksumInXattr(meta);
@@ -295,6 +296,7 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
     serializeExtendedStat(meta, valMemc);
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
+  meta["normPath"] = absPath;
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return fillChecksumInXattr(meta);
