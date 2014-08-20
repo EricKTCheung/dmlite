@@ -112,7 +112,7 @@ const std::string MemcacheCommon::getValFromMemcachedKey(const std::string& key)
   }
 
   // add the element to the local cache
-  if (localCacheMaxSize > 0) {
+  if (localCacheMaxSize > 0 && lenValue > 0) {
     setLocalFromKeyValue(key, valMemcStr);
   }
 
@@ -146,7 +146,7 @@ void MemcacheCommon::setMemcachedFromKeyValue(const std::string& key,
   //unsigned int randExpLimit = rand() & 0x3F; // add up to 63 random seconds
 
   // add to local cache
-  if (localCacheMaxSize) {
+  if (localCacheMaxSize > 0) {
     setLocalFromKeyValue(key, value);
   }
 
