@@ -165,6 +165,15 @@ namespace dmlite {
 
   private:
   /// Get an ExtendedStat POSIX-like.
+  /// It's an efficient implementation for the case that no relative
+  /// movement ('.' or '..') is used nor symlinks. For these cases
+  /// it falls back to extendedStatPOSIX().
+  /// @param path         The path, absolute or relative
+  /// @param followSym    Flag whether to follow symlinks
+  /// @return             ExtendedStat
+  ExtendedStat extendedStatSimplePOSIX(const std::string& path, bool followSym) throw (DmException);
+
+  /// Get an ExtendedStat POSIX-like.
   /// The same logic as in BuiltInCatalog, but using cached entries.
   /// @param path         The path, absolute or relative
   /// @param followSym    Flag whether to follow symlinks
@@ -184,11 +193,9 @@ namespace dmlite {
   /// It is basically a wrapper around the memcache get function.
   /// Complete POSIX semantics apply if the decorated plugin
   /// implements them.
-  /// It's currently the same as extendedStatNoPOSIX, but might
-  /// get more optimisations.
-  /// @param path         The path, absolute or relative
+  /// @param absPath      The path, must be absolute
   /// @return             ExtendedStat
-  ExtendedStat extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException);
+  ExtendedStat extendedStatNoCheck(const std::string& absPath, bool followSym) throw (DmException);
 
   /// Delegate readDirx.
   /// Delegate the readDirx function and add the filename to
