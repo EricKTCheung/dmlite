@@ -58,8 +58,8 @@ namespace dmlite {
     std::string dpnsHost_;
 
     /// Connection pool.
-    PoolContainer<int> connectionPool_;
     IntConnectionFactory connectionFactory_;
+    PoolContainer<int> connectionPool_;
   };
 
   /// Concrete factory for DPM wrapper
@@ -90,8 +90,8 @@ namespace dmlite {
     std::string adminUsername_;
 
     /// Connection pool.
-    PoolContainer<int> connectionPool_;
     IntConnectionFactory connectionFactory_;
+    PoolContainer<int> connectionPool_;
   };
 
 };
