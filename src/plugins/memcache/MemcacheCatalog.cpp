@@ -94,6 +94,8 @@ void MemcacheCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmEx
 
 void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
+
   incrementFunctionCounter(CHANGEDIR);
 
   if (path.empty()) {
@@ -107,6 +109,8 @@ void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
     this->cwd_ = normPath;
   else
     this->cwd_ = Url::normalizePath(this->cwd_ + "/" + normPath, false);
+
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -119,15 +123,63 @@ std::string MemcacheCatalog::getWorkingDir(void) throw (DmException)
 
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
   if (this->memcachedPOSIX_)
-    return this->extendedStatPOSIX(path, followSym);
+    return this->extendedStatSimplePOSIX(path, followSym);
   else
     return this->extendedStatNoPOSIX(path, followSym);
 }
 
 
+ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, bool followSym) throw (DmException)
+{
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
+  ExtendedStat meta;
+
+  // includes cwd, if applicable
+  std::string absPath = getAbsolutePath(path);
+
+  // fall back to slower implementation, if relative movement
+  if (absPath.find("/./") != std::string::npos || absPath.find("/../") != std::string::npos) {
+    return extendedStatPOSIX(path, followSym);
+  }
+
+  size_t endCurrentPath = 1;
+
+  meta = this->extendedStatNoCheck("/", followSym);
+  endCurrentPath = absPath.find('/', 1);
+
+  while (endCurrentPath != std::string::npos) {
+    // Check that the parent is a directory first
+    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
+      throw DmException(ENOTDIR,
+          meta.name + " is not a directory");
+    // New element traversed! Need to check if it is possible to keep going.
+    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
+      throw DmException(EACCES,
+          "Not enough permissions to list " + meta.name);
+
+    std::string currentPath = absPath.substr(0, endCurrentPath);
+    // Stat, this throws an Exception if the path doesn't exist
+    meta = this->extendedStatNoCheck(currentPath, followSym);
+    // fall back to slower implementation, if link
+    if (S_ISLNK(meta.stat.st_mode)) {
+      return extendedStatPOSIX(path, followSym);
+    }
+    // include the next level
+    endCurrentPath = absPath.find('/', endCurrentPath+1);
+  }
+  meta = this->extendedStatNoCheck(absPath, followSym);
+
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+  return fillChecksumInXattr(meta);
+}
+
+
+
 ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool followSym) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   ExtendedStat meta;
 
   std::string currentPathElem;
@@ -216,12 +268,14 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
     cwd = "/";
   meta["normPath"] = cwd;
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return fillChecksumInXattr(meta);
 }
 
 
 ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool followSym) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(EXTENDEDSTAT);
 
   ExtendedStat meta;
@@ -242,18 +296,41 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return fillChecksumInXattr(meta);
 }
 
 
-ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& path, bool followSym) throw (DmException)
+ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bool followSym) throw (DmException)
 {
-  return extendedStatNoPOSIX(path, followSym);
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << absPath);
+  incrementFunctionCounter(EXTENDEDSTAT);
+
+  ExtendedStat meta;
+
+  std::string valMemc;
+
+  const std::string key = keyFromString(key_prefix[PRE_STAT], absPath);
+
+  valMemc = safeGetValFromMemcachedKey(key);
+  if (!valMemc.empty()) {
+    deserializeExtendedStat(valMemc, meta);
+  } else // valMemc was not in memcached
+  {
+    incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
+    DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
+    serializeExtendedStat(meta, valMemc);
+    safeSetMemcachedFromKeyValue(key, valMemc);
+  }
+
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+  return meta;
 }
 
 
 ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, rfn = " << rfn);
   incrementFunctionCounter(EXTENDEDSTATBYRFN);
 
   ExtendedStat meta;
@@ -273,12 +350,14 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return fillChecksumInXattr(meta);
 }
 
 
 bool MemcacheCatalog::access(const std::string& path, int mode) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   // Copy from BuiltinCatalog to use the memcache extendedStat method
   try {
     ExtendedStat xstat = this->extendedStat(path);
@@ -288,6 +367,7 @@ bool MemcacheCatalog::access(const std::string& path, int mode) throw (DmExcepti
     if (mode & W_OK) perm |= S_IWRITE;
     if (mode & X_OK) perm |= S_IEXEC;
 
+    Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
     return checkPermissions(this->secCtx_, xstat.acl, xstat.stat, perm) == 0;
   }
   catch (DmException& e) {
@@ -321,6 +401,7 @@ void MemcacheCatalog::deleteReplica(const Replica& replica) throw (DmException)
 
 std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw(DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(GETREPLICAS);
 
   std::vector<Replica> replicas;
@@ -345,6 +426,7 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return replicas;
 }
 
@@ -470,6 +552,7 @@ void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) 
 
 std::string MemcacheCatalog::getComment(const std::string& path) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(GETCOMMENT);
 
   // Get the file and check we can read
@@ -495,6 +578,7 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw (DmExcept
     valMemc = serializeComment(comment);
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return comment;
 }
 
@@ -531,6 +615,7 @@ void MemcacheCatalog::updateExtendedAttributes(const std::string& path,
 
 Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(OPENDIR);
 
   MemcacheDir *dirp;
@@ -583,12 +668,14 @@ Directory* MemcacheCatalog::openDir(const std::string& path) throw(DmException)
     }
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return dirp;
 }
 
 
 void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(CLOSEDIR);
 
   MemcacheDir *dirp = dynamic_cast<MemcacheDir *>(dir);
@@ -597,6 +684,7 @@ void MemcacheCatalog::closeDir(Directory* dir) throw(DmException)
     DELEGATE(closeDir, dirp->decorated_dirp);
   }
   delete dirp;
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -615,6 +703,9 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
 
   MemcacheDir *dirp = dynamic_cast<MemcacheDir *>(dir);
   ExtendedStat *pMeta = &(dirp->dir);
+
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, dir base path = " << dirp->basepath
+      << " dir name = " << dirp->dir.name);
 
   switch (dirp->pb_keys.state()) {
     case MISSING:
@@ -645,6 +736,8 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
     safeSetMemcachedFromKeyValue(listkey, valMemc);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+
   if (pMeta == 0x00)
     return 0x00;
   else {
@@ -656,6 +749,8 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
 
 ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *dirp) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, dir base path = " << dirp->basepath
+      << " dir name = " << dirp->dir.name);
   ExtendedStat* pMeta = &(dirp->dir);
 
   DELEGATE_ASSIGN(pMeta, readDirx, dirp->decorated_dirp);
@@ -673,12 +768,15 @@ ExtendedStat* MemcacheCatalog::delegateReadDirxAndAddEntryToCache(MemcacheDir *d
     pntKey->set_key(pMeta->name);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return pMeta;
 }
 
 
 ExtendedStat* MemcacheCatalog::getDirEntryFromCache(MemcacheDir *dirp) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, dir base path = " << dirp->basepath
+      << " dir name = " << dirp->dir.name);
   ExtendedStat *pMeta = &(dirp->dir);
 
   if (dirp->pb_keys.key_size() > dirp->pb_keys_idx) {
@@ -710,6 +808,7 @@ ExtendedStat* MemcacheCatalog::getDirEntryFromCache(MemcacheDir *dirp) throw (Dm
     return 0x00;
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return pMeta;
 }
 
@@ -764,6 +863,7 @@ void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 
 Replica MemcacheCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, rfn = " << rfn);
   incrementFunctionCounter(GETREPLICABYRFN);
 
   Replica replica;
@@ -783,6 +883,7 @@ Replica MemcacheCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcept
     safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return replica;
 }
 
