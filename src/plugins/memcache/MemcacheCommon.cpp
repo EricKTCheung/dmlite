@@ -640,7 +640,7 @@ void MemcacheCommon::setLocalFromKeyValue(const std::string& key, const std::str
     if (randomExpire == 0) {
       expireLocalItems();
       logLocalCacheStatistics();
-      resetLocalCache();
+      resetLocalCacheStats();
     }
     while (localCacheEntryCount > localCacheMaxSize) {
       purgeLocalItem();
@@ -674,7 +674,6 @@ const std::string MemcacheCommon::getValFromLocalKey(const std::string& key)
       // can still be referenced. If it's deleted, though, the iterator is invalid, so this
       // has to be in the same lock section as .find(key).
       localCacheList.splice(localCacheList.begin(), localCacheList, it->second);
-      localCacheList.front().first = time(0);
       localCacheMap[key] = localCacheList.begin();
     } else {
       localCacheStats.miss++;
@@ -723,12 +722,6 @@ void MemcacheCommon::purgeLocalItem()
 }
 
 
-bool MemcacheCommon::compareLocalCacheListItems(const LocalCacheListItem& x, const int t)
-{
-  return (x.first > t);
-}
-
-
 void MemcacheCommon::expireLocalItems()
 {
   /* Only use this within a unique_lock, otherwise
@@ -737,16 +730,16 @@ void MemcacheCommon::expireLocalItems()
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   int expireCount = 0;
   time_t expirationTime = time(0) - localCacheExpirationTimeout;
-  LocalCacheList::iterator expiryLimitIt = std::lower_bound(localCacheList.begin(), localCacheList.end(),
-      expirationTime, MemcacheCommon::compareLocalCacheListItems);
-  for (LocalCacheList::iterator it = expiryLimitIt; it != localCacheList.end(); ++it) {
-    // delete map entries
-    localCacheMap.erase(it->second.first);
-    localCacheEntryCount--;
-    expireCount++;
+  for (LocalCacheList::iterator it = localCacheList.begin(); it != localCacheList.end(); ) {
+    if (it->first < expirationTime) {
+      localCacheMap.erase(it->second.first);
+      it = localCacheList.erase(it);
+      localCacheEntryCount--;
+      expireCount++;
+    } else {
+      it++;
+    }
   }
-  // delete list entries, separate to keep iterators useful
-  localCacheList.erase(expiryLimitIt, localCacheList.end());
   localCacheStats.expired += expireCount;
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Expired " << expireCount << " items."
       << localCacheEntryCount << " items left.");
@@ -773,7 +766,7 @@ void MemcacheCommon::logLocalCacheStatistics()
 }
 
 
-void MemcacheCommon::resetLocalCache()
+void MemcacheCommon::resetLocalCacheStats()
 {
   /* Only use this within a unique_lock, otherwise
    * everyone will die!
