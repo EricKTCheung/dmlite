@@ -252,6 +252,7 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
     return hostOrIp;
   }
   char hostname[1024];
+  sa.sin_family = AF_INET;
   ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname, sizeof(hostname), NULL, 0, 0);
   if (ret == 0) {
     Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Hostname is " << hostname);
