@@ -265,13 +265,6 @@ namespace dmlite {
       /// Purge the least recently used item from the local cache.
       void purgeLocalItem();
 
-      /// Compare function for local cache items.
-      /// Used for the binary search when deleting expired items.
-      /// @param x            LocalCacheListItem.
-      /// @param y            ExpirationTime.
-      /// @return             Comparison response as bool.
-      static bool compareLocalCacheListItems(const LocalCacheListItem& x, const int t);
-
       /// Remove all expired items from the local cache.
       void expireLocalItems();
 
@@ -279,7 +272,7 @@ namespace dmlite {
       void logLocalCacheStatistics();
 
       /// Reset the cache stats counters.
-      void resetLocalCache();
+      void resetLocalCacheStats();
 
       /*
        * The local in-memory cache:
