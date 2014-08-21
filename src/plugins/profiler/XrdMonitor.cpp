@@ -257,7 +257,8 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
     Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Hostname is " << hostname);
     return std::string(hostname);
   } else {
-    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Could not get hostname.");
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Could not get hostname."
+        << " Error code = " << gai_strerror(ret));
     return hostOrIp;
   }
 }
