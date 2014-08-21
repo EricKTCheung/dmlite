@@ -381,23 +381,29 @@ bool MemcacheCatalog::access(const std::string& path, int mode) throw (DmExcepti
 
 bool MemcacheCatalog::accessReplica(const std::string& replica, int mode) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, replica = " << replica);
   incrementFunctionCounter(ACCESSREPLICA_DELEGATE);
   DELEGATE_RETURN(accessReplica, replica, mode);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(ADDREPLICA_DELEGATE);
   DELEGATE(addReplica, replica);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(DELETEREPLICA_DELEGATE);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL], replica.rfn));
   DELEGATE(deleteReplica, replica);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -435,23 +441,29 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
 
 void MemcacheCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, oldpath = " << oldPath
+      << " newpath = " << newPath);
   std::string absOldPath = getAbsolutePath(oldPath);
   std::string absNewPath = getAbsolutePath(newPath);
   incrementFunctionCounter(SYMLINK_DELEGATE);
   DELEGATE(symlink, absOldPath, absNewPath);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 std::string MemcacheCatalog::readLink(const std::string& path) throw(DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   std::string absPath = getAbsolutePath(path);
   incrementFunctionCounter(READLINK_DELEGATE);
   DELEGATE_RETURN(readLink, absPath);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(UNLINK_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   std::string basepath = getBasePath(absPath);
@@ -461,11 +473,13 @@ void MemcacheCatalog::unlink(const std::string& path) throw (DmException)
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
   DELEGATE(unlink, absPath);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(CREATE_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   std::string basepath = getBasePath(absPath);
@@ -473,25 +487,30 @@ void MemcacheCatalog::create(const std::string& path, mode_t mode) throw (DmExce
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 mode_t MemcacheCatalog::umask(mode_t mask) throw ()
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(UMASK_DELEGATE);
   DELEGATE_RETURN(umask, mask);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::setMode(const std::string& path, mode_t mode)
    throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETMODE_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setMode, absPath, mode);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -500,12 +519,14 @@ void MemcacheCatalog::setOwner(const std::string& path,
                                bool followSymLink)
   throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETOWNER_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setOwner, absPath, newUid, newGid);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -513,10 +534,12 @@ void MemcacheCatalog::setSize(const std::string& path,
                                   size_t newSize)
   throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETSIZE_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setSize, absPath, newSize);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -525,30 +548,36 @@ void MemcacheCatalog::setChecksum(const std::string& path,
                                   const std::string& csumvalue)
   throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETCHECKSUM_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setChecksum, absPath, csumtype, csumvalue);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETACL_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setAcl, absPath, acl);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::utime(const std::string& path, const struct utimbuf* buf) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(UTIME_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(utime, absPath, buf);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -587,31 +616,37 @@ std::string MemcacheCatalog::getComment(const std::string& path) throw (DmExcept
 
 void MemcacheCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETCOMMENT_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setComment, absPath, comment);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_COMMENT], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(SETGUID_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setGuid, absPath, guid);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::updateExtendedAttributes(const std::string& path,
                               const Extensible& attr) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(UPDATEEXTENDEDATTRIBUTES_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(updateExtendedAttributes, absPath, attr);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -817,6 +852,7 @@ ExtendedStat* MemcacheCatalog::getDirEntryFromCache(MemcacheDir *dirp) throw (Dm
 
 void MemcacheCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(MAKEDIR_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   std::string basepath = getBasePath(absPath);
@@ -824,11 +860,14 @@ void MemcacheCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExc
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, oldpath = " << oldPath
+      << " newpath = " << newPath);
   incrementFunctionCounter(RENAME_DELEGATE);
   std::string absOldPath = getAbsolutePath(oldPath);
   std::string oldbasepath = getBasePath(absOldPath);
@@ -845,11 +884,13 @@ void MemcacheCatalog::rename(const std::string& oldPath, const std::string& newP
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], newbasepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], newbasepath));
   DELEGATE(rename, absOldPath, absNewPath);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
 void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(REMOVEDIR_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   std::string basepath = getBasePath(absPath);
@@ -860,6 +901,7 @@ void MemcacheCatalog::removeDir(const std::string& path) throw (DmException)
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR], basepath));
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_DIR_LIST], basepath));
   DELEGATE(removeDir, absPath);
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
@@ -892,9 +934,11 @@ Replica MemcacheCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcept
 
 void MemcacheCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(UPDATEREPLICA_DELEGATE);
   DELEGATE(updateReplica, replica);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL], replica.rfn));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 

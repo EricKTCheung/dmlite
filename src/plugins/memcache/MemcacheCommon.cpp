@@ -700,7 +700,9 @@ void MemcacheCommon::delLocalFromKey(const std::string& key)
       localCacheMap.erase(it);
       localCacheEntryCount--;
       localCacheStats.del++;
-    } // else it's already been deleted by another thread
+    }  else {// else it's already been deleted by another thread
+    Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Entry to delete did not exist, key = " << key);
+    }
   }
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting. Entry deleted, key = " << key);
 }
