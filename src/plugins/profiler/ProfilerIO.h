@@ -14,7 +14,7 @@ namespace dmlite {
   class ProfilerIOHandler: public IOHandler, private ProfilerXrdMon {
   public:
     ProfilerIOHandler(IOHandler* decorated, const std::string& pfn,
-        int flags, const Extensible& extras, StackInstance *si) throw (DmException);
+        int flags, const Extensible& extras, SecurityContext secCtx) throw (DmException);
     virtual ~ProfilerIOHandler();
 
     std::string getImplId(void) const throw() {
@@ -44,7 +44,7 @@ namespace dmlite {
   };
 
 
-  class ProfilerIODriver: public IODriver, private ProfilerXrdMon {
+  class ProfilerIODriver: public IODriver {
   public:
     ProfilerIODriver(IODriver* decorates) throw (DmException);
     virtual ~ProfilerIODriver();
@@ -57,12 +57,7 @@ namespace dmlite {
     virtual IOHandler* createIOHandler(const std::string& pfn,
                                        int flags,
                                        const Extensible& extras,
-                                       mode_t mode = 0660) throw (DmException) {
-
-      return new ProfilerIOHandler( decorated_->createIOHandler(pfn, flags, extras, mode),
-                                   pfn, flags, extras, stack_);
-
-    };
+                                       mode_t mode = 0660) throw (DmException);
 
     void setStackInstance(StackInstance* si) throw (DmException);
 
@@ -70,6 +65,7 @@ namespace dmlite {
 
     virtual void doneWriting(const Location& loc) throw (DmException);
   protected:
+    StackInstance *stack_;
 
     IODriver*  decorated_;
     char*      decoratedId_;

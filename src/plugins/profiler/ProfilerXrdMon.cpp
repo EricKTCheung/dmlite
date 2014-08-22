@@ -7,7 +7,8 @@
 using namespace dmlite;
 
 
-ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
+ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false), stack_(0x00),
+  dictid_(0), fileid_(0), protocol_("null")
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
 }
@@ -16,25 +17,18 @@ ProfilerXrdMon::ProfilerXrdMon(): file_closed_(false)
 ProfilerXrdMon::~ProfilerXrdMon()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  // we have to trust that the IDs are deleted with the stack
-  // in a useful manner :)
 }
 
 
 void ProfilerXrdMon::sendUserIdentOrNOP(std::string user_dn)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  if (!this->stack_->contains("dictid")) {
-    const SecurityContext *secCtx = this->stack_->getSecurityContext();
+  if (!dictid_) {
+    const SecurityContext *secCtx = getSecurityContext();
 
     kXR_unt32 dictid = getDictId();
 
-    std::string protocol = "null";
-    //protocol = secCtx->credentials.mech;
-    if (this->stack_->contains("protocol")) {
-      boost::any proto_any = this->stack_->get("protocol");
-      protocol = Extensible::anyToString(proto_any);
-    }
+    std::string protocol = getProtocol();
     if (secCtx->user.name != "nobody") {
       protocol = "gsi";
     }
@@ -45,10 +39,6 @@ void ProfilerXrdMon::sendUserIdentOrNOP(std::string user_dn)
     } else {
       username = secCtx->user.name;
     }
-
-    //char dictid_str[21];
-    //snprintf(dictid_str, 21, "%d", ntohl(dictid));
-    //std::string unique_userid = std::string(dictid_str);
 
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
@@ -136,45 +126,39 @@ void ProfilerXrdMon::reportXrdFileDiscAndFlushOrNOP()
 kXR_unt32 ProfilerXrdMon::getDictId()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  //const SecurityContext *secCtx = this->stack_->getSecurityContext();
-  //kXR_unt32 dictid = XrdMonitor::getDictIdFromDn(secCtx->user.name);
 
-  if (!this->stack_->contains("dictid")) {
-    this->stack_->set("dictid", XrdMonitor::getDictId());
+  if (!dictid_) {
+    dictid_ = XrdMonitor::getDictId();
   }
-  boost::any dictid_any = this->stack_->get("dictid");
-  kXR_unt32 dictid = Extensible::anyToUnsigned(dictid_any);
 
-  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. dictid = " << dictid);
-  return dictid;
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. dictid = " << dictid_);
+  return dictid_;
 }
 
 
 bool ProfilerXrdMon::hasDictId()
 {
-  return this->stack_->contains("dictid");
+  return dictid_;
 }
 
 
 kXR_unt32 ProfilerXrdMon::getFileId()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  if (!this->stack_->contains("fileid")) {
-    this->stack_->set("fileid", XrdMonitor::getDictId());
+  if (!fileid_) {
+    fileid_ = XrdMonitor::getDictId();
   }
-  boost::any fileid_any = this->stack_->get("fileid");
-  kXR_unt32 fileid = Extensible::anyToUnsigned(fileid_any);
 
-  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. fileid = " << fileid);
-  return fileid;
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. fileid = " << fileid_);
+  return fileid_;
 }
 
 
 void ProfilerXrdMon::rmDictId()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  if (this->stack_->contains("dictid")) {
-    this->stack_->erase("dictid");
+  if (dictid_) {
+    dictid_ = 0;
   }
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");
 }
@@ -183,8 +167,8 @@ void ProfilerXrdMon::rmDictId()
 void ProfilerXrdMon::rmFileId()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  if (this->stack_->contains("fileid")) {
-    this->stack_->erase("fileid");
+  if (fileid_) {
+    fileid_ = 0;
   }
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");
 }
@@ -226,4 +210,30 @@ void ProfilerXrdMon::fillSsqStats()
     ssqstats_.write.dlong = htonll(xval.dlong);
   }
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");
+}
+
+
+const SecurityContext* ProfilerXrdMon::getSecurityContext()
+{
+  if (stack_) {
+    return this->stack_->getSecurityContext();
+  } else {
+    return &secCtx_;
+  }
+}
+
+
+std::string ProfilerXrdMon::getProtocol()
+{
+  if (stack_) {
+    if (stack_->contains("protocol")) {
+      boost::any proto_any = this->stack_->get("protocol");
+      std::string protocol = Extensible::anyToString(proto_any);
+      return protocol;
+    } else {
+      return "null";
+    }
+  } else {
+    return protocol_;
+  }
 }

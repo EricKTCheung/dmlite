@@ -38,7 +38,14 @@ namespace dmlite {
       XrdXrootdMonStatSSQ ssqstats_;
       bool file_closed_;
 
+      // either the stackinstance or protocol_
+      // and secCtx_ have to exist
       StackInstance *stack_;
+
+      kXR_unt32 dictid_;
+      kXR_unt32 fileid_;
+      std::string protocol_;
+      SecurityContext secCtx_;
 
       kXR_unt32 getDictId();
       bool hasDictId();
@@ -54,6 +61,9 @@ namespace dmlite {
         double rsegs;    // sum(readv_segs[i]**2) i = 1 to Ops.readv
         double write;    // sum(write_size[i]**2) i = 1 to Ops.write
       } ssq_;
+
+      const SecurityContext* getSecurityContext();
+      std::string getProtocol();
   };
 };
 
