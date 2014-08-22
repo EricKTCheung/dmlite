@@ -13,14 +13,15 @@ using namespace dmlite;
 
 ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
     const std::string& pfn, int flags, const Extensible& extras,
-    StackInstance *si) throw(DmException)
+    SecurityContext secCtx) throw(DmException)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, " path:" << pfn);
 
-  this->stack_ = si;
-
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
+
+  secCtx_ = secCtx;
+  protocol_ = extras.getString("protocol");
 
   xfrstats_.read = 0;
   xfrstats_.readv = 0;
@@ -240,9 +241,28 @@ ProfilerIODriver::~ProfilerIODriver() {
   delete this->decorated_;
   free(this->decoratedId_);
 
-  reportXrdFileDiscAndFlushOrNOP();
+  //reportXrdFileDiscAndFlushOrNOP();
 
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "");
+}
+
+
+IOHandler* ProfilerIODriver::createIOHandler(const std::string& pfn,
+                                             int flags,
+                                             const Extensible& extras,
+                                             mode_t mode) throw (DmException)
+{
+
+      Extensible profilerExtras;
+      profilerExtras.copy(extras);
+      if (stack_->contains("protocol")) {
+        profilerExtras["protocol"] = this->stack_->get("protocol");
+      } else {
+        profilerExtras["protocol"] = "null";
+      }
+      SecurityContext secCtx = *(this->stack_->getSecurityContext());
+      return new ProfilerIOHandler( decorated_->createIOHandler(pfn, flags, extras, mode),
+                                   pfn, flags, profilerExtras, secCtx);
 }
 
 
