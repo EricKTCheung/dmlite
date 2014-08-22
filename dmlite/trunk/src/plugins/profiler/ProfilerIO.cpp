@@ -258,7 +258,7 @@ IOHandler* ProfilerIODriver::createIOHandler(const std::string& pfn,
       if (stack_->contains("protocol")) {
         profilerExtras["protocol"] = this->stack_->get("protocol");
       } else {
-        profilerExtras["protocol"] = "null";
+        profilerExtras["protocol"] = std::string("null");
       }
       SecurityContext secCtx = *(this->stack_->getSecurityContext());
       return new ProfilerIOHandler( decorated_->createIOHandler(pfn, flags, extras, mode),
