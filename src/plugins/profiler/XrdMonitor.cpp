@@ -244,24 +244,34 @@ int XrdMonitor::initCollector()
 std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "host = " << hostOrIp);
+  std::string hostname = hostOrIp;
   int ret;
   struct sockaddr_in sa;
-  ret = inet_pton(AF_INET, hostOrIp.c_str(), &(sa.sin_addr));
-  if (ret < 1) {
-    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Argument is not valid ip address.");
-    return hostOrIp;
-  }
-  char hostname[1024];
+  // try IPv4
   sa.sin_family = AF_INET;
-  ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname, sizeof(hostname), NULL, 0, 0);
-  if (ret == 0) {
-    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Hostname is " << hostname);
-    return std::string(hostname);
-  } else {
-    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting. Could not get hostname."
-        << " Error code = " << gai_strerror(ret));
-    return hostOrIp;
+  ret = inet_pton(sa.sin_family, hostOrIp.c_str(), &(sa.sin_addr));
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv4: " << ((ret == 1) ? "true" : "false"));
+  if (ret < 1) {
+    //try IPv6
+    sa.sin_family = AF_INET6;
+    ret = inet_pton(sa.sin_family, hostOrIp.c_str(), &(sa.sin_addr));
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv6: " << ((ret == 1) ? "true" : "false"));
   }
+  if (ret == 1) {
+    char hostname_cstr[1024];
+    ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
+    if (ret == 0) {
+      Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Hostname is " << hostname);
+      hostname = std::string(hostname_cstr);
+    } else {
+      Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Could not get hostname."
+          << " Error code = " << gai_strerror(ret));
+    }
+  } else {
+    Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Argument is not valid ip address.");
+  }
+  Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");
+  return hostname;
 }
 
 int XrdMonitor::send(const void *buf, size_t buf_len)
