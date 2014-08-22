@@ -247,19 +247,24 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
   std::string hostname = hostOrIp;
   int ret;
   struct sockaddr_in sa;
+  struct sockaddr_in6 sa6;
+  bool isIPv6 = false;
   // try IPv4
   sa.sin_family = AF_INET;
   ret = inet_pton(sa.sin_family, hostOrIp.c_str(), &(sa.sin_addr));
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv4: " << ((ret == 1) ? "true" : "false"));
   if (ret < 1) {
     //try IPv6
-    sa.sin_family = AF_INET6;
-    ret = inet_pton(sa.sin_family, hostOrIp.c_str(), &(sa.sin_addr));
+    sa6.sin6_family = AF_INET6;
+    ret = inet_pton(sa6.sin6_family, hostOrIp.c_str(), &(sa6.sin6_addr));
     Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv6: " << ((ret == 1) ? "true" : "false"));
   }
   if (ret == 1) {
     char hostname_cstr[1024];
-    ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
+    if (isIPv6)
+      ret = getnameinfo((struct sockaddr *) &sa6, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
+    else
+      ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
     if (ret == 0) {
       Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Hostname is " << hostname);
       hostname = std::string(hostname_cstr);
