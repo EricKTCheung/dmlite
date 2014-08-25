@@ -255,6 +255,7 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv4: " << ((ret == 1) ? "true" : "false"));
   if (ret < 1) {
     //try IPv6
+    isIPv6 = true;
     sa6.sin6_family = AF_INET6;
     ret = inet_pton(sa6.sin6_family, hostOrIp.c_str(), &(sa6.sin6_addr));
     Log(Logger::Lvl3, profilerlogmask, profilerlogname, "IP address is IPv6: " << ((ret == 1) ? "true" : "false"));
