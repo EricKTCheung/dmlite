@@ -263,7 +263,7 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
   if (ret == 1) {
     char hostname_cstr[1024];
     if (isIPv6)
-      ret = getnameinfo((struct sockaddr *) &sa6, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
+      ret = getnameinfo((struct sockaddr *) &sa6, sizeof(sa6), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
     else
       ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
     if (ret == 0) {
