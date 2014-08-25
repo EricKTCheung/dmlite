@@ -267,8 +267,8 @@ std::string XrdMonitor::getHostFromIP(const std::string& hostOrIp)
     else
       ret = getnameinfo((struct sockaddr *) &sa, sizeof(sa), hostname_cstr, sizeof(hostname_cstr), NULL, 0, 0);
     if (ret == 0) {
-      Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Hostname is " << hostname);
       hostname = std::string(hostname_cstr);
+      Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Hostname is " << hostname);
     } else {
       Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Could not get hostname."
           << " Error code = " << gai_strerror(ret));
