@@ -75,6 +75,7 @@ ProfilerIOHandler::~ProfilerIOHandler()
                        this->ssqstats_,
                        XrdMonitor::file_flags_ | XrdXrootdMonFileHdr::forced);
   }
+  reportXrdFileDiscAndFlushOrNOP();
 
   delete this->decorated_;
   free(this->decoratedId_);
@@ -109,6 +110,7 @@ void ProfilerIOHandler::close(void) throw (DmException)
                      this->opsstats_,
                      this->ssqstats_,
                      XrdMonitor::file_flags_);
+  reportXrdFileDiscAndFlushOrNOP();
   file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
@@ -240,8 +242,6 @@ ProfilerIODriver::~ProfilerIODriver() {
 
   delete this->decorated_;
   free(this->decoratedId_);
-
-  //reportXrdFileDiscAndFlushOrNOP();
 
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "");
 }
