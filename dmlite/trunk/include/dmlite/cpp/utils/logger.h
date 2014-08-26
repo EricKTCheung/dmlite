@@ -24,7 +24,7 @@ do{                                											\
 #define Err(where, what) 												\
 do{                                											\
 		std::ostringstream outs;                                   			\
-		outs << "dmlite " << where << " ERROR " << __func__ << " : " << what;                      			\
+		outs << "dmlite " << where << " !! " << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)0, outs.str());    				\
 }while(0)       
 
