@@ -108,7 +108,7 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 
 void INodeMySql::begin(void) throw (DmException)
 {
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Starting transaction");
 
   if (!conn_) {
     conn_ = factory_->getPool().acquire();
@@ -410,17 +410,17 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
     // are destroyed before the transaction is closed
     
     // Remove associated symlink
-    Statement delSymlink(this->conn_, this->nsDb_, STMT_DELETE_SYMLINK);
+    Statement delSymlink(conn, this->nsDb_, STMT_DELETE_SYMLINK);
     delSymlink.bindParam(0, inode);
     delSymlink.execute();
     
     // Remove associated comments
-    Statement delComment(this->conn_, this->nsDb_, STMT_DELETE_COMMENT);
+    Statement delComment(conn, this->nsDb_, STMT_DELETE_COMMENT);
     delComment.bindParam(0, inode);
     delComment.execute();
     
     // Remove replicas
-    Statement delReplicas(this->conn_, this->nsDb_, STMT_DELETE_ALL_REPLICAS);
+    Statement delReplicas(conn, this->nsDb_, STMT_DELETE_ALL_REPLICAS);
     delReplicas.bindParam(0, inode);
     delReplicas.execute();
     
