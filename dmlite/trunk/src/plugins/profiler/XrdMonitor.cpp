@@ -338,7 +338,7 @@ int XrdMonitor::sendServerIdent()
   int ret = 0;
   char info[1024+256];
   snprintf(info, 1024+256, "%s.%d:%lld@%s\n&pgm=%s&ver=%s",
-      username_.c_str(), pid_, sid_, hostname_.c_str(), processname_.c_str(), "1.8.8");
+      username_.c_str(), pid_, sid_, hostname_.c_str(), processname_.c_str(), "1.8.9");
 
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "send serverident:\n" << info);
 
