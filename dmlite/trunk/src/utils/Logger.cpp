@@ -137,7 +137,7 @@ Logger::Logger() : level(Lvl4), size(0)
     mask = unregistered = getMask("unregistered");
     
     // log the process ID, connect to syslog without delay, log also to 'cerr'
-    int options = LOG_PID | LOG_NDELAY | LOG_PERROR;
+    int options = LOG_PID | LOG_NDELAY;
     // setting 'ident' to NULL means that the program name will be used
     openlog(0, options, LOG_USER);
 }
