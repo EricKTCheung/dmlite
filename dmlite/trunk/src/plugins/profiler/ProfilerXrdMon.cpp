@@ -29,9 +29,6 @@ void ProfilerXrdMon::sendUserIdentOrNOP(std::string user_dn)
     kXR_unt32 dictid = getDictId();
 
     std::string protocol = getProtocol();
-    if (secCtx->user.name != "nobody") {
-      protocol = "gsi";
-    }
 
     std::string username;
     if (!user_dn.empty() && secCtx->user.name == "nobody") {
