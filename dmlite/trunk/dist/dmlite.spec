@@ -81,6 +81,7 @@ Man pages and HTML documentation for dmlite.
 Summary:	Private development libraries and headers for dmlite
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
 Requires:	boost-devel >= 1.41.0
 %else
