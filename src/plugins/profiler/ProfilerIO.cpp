@@ -23,27 +23,7 @@ ProfilerIOHandler::ProfilerIOHandler(IOHandler* decorates,
   secCtx_ = secCtx;
   protocol_ = extras.getString("protocol");
 
-  xfrstats_.read = 0;
-  xfrstats_.readv = 0;
-  xfrstats_.write = 0;
-
-  opsstats_.read = 0;
-  opsstats_.readv = 0;
-  opsstats_.write = 0;
-  opsstats_.rsMin = 0x7fff;
-  opsstats_.rsMax = 0;
-  opsstats_.rsegs = 0;
-  opsstats_.rdMin = 0x7fffffff;
-  opsstats_.rdMax = 0;
-  opsstats_.rvMin = 0x7fffffff;
-  opsstats_.rvMax = 0;
-  opsstats_.wrMin = 0x7fffffff;
-  opsstats_.wrMax = 0;
-
-  ssq_.read = 0;
-  ssq_.readv = 0;
-  ssq_.rsegs = 0;
-  ssq_.write = 0;
+  resetCounters();
 
   size_t file_size = 0;
   try {
@@ -75,6 +55,7 @@ ProfilerIOHandler::~ProfilerIOHandler()
                        this->ssqstats_,
                        XrdMonitor::file_flags_ | XrdXrootdMonFileHdr::forced);
   }
+  resetCounters();
   reportXrdFileDiscAndFlushOrNOP();
 
   delete this->decorated_;
@@ -110,7 +91,7 @@ void ProfilerIOHandler::close(void) throw (DmException)
                      this->opsstats_,
                      this->ssqstats_,
                      XrdMonitor::file_flags_);
-  reportXrdFileDiscAndFlushOrNOP();
+  resetCounters();
   file_closed_ = true;
 }
 struct ::stat ProfilerIOHandler::fstat(void) throw (DmException)
@@ -225,6 +206,32 @@ void ProfilerIOHandler::flush(void) throw (DmException)
 bool ProfilerIOHandler::eof(void) throw (DmException)
 {
   PROFILE_RETURN(bool, eof);
+}
+
+void ProfilerIOHandler::resetCounters()
+{
+  xfrstats_.read = 0;
+  xfrstats_.readv = 0;
+  xfrstats_.write = 0;
+
+  opsstats_.read = 0;
+  opsstats_.readv = 0;
+  opsstats_.write = 0;
+  opsstats_.rsMin = 0x7fff;
+  opsstats_.rsMax = 0;
+  opsstats_.rsegs = 0;
+  opsstats_.rdMin = 0x7fffffff;
+  opsstats_.rdMax = 0;
+  opsstats_.rvMin = 0x7fffffff;
+  opsstats_.rvMax = 0;
+  opsstats_.wrMin = 0x7fffffff;
+  opsstats_.wrMax = 0;
+
+  ssq_.read = 0;
+  ssq_.readv = 0;
+  ssq_.rsegs = 0;
+  ssq_.write = 0;
+
 }
 
 

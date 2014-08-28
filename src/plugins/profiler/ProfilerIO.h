@@ -41,6 +41,8 @@ namespace dmlite {
   protected:
     IOHandler* decorated_;
     char*      decoratedId_;
+
+    void resetCounters();
   };
 
 

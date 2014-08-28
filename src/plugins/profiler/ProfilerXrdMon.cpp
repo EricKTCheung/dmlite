@@ -154,9 +154,7 @@ kXR_unt32 ProfilerXrdMon::getFileId()
 void ProfilerXrdMon::rmDictId()
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-  if (dictid_) {
-    dictid_ = 0;
-  }
+  dictid_ = 0;
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "Exiting.");
 }
 
