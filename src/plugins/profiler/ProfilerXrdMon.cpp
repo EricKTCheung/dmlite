@@ -37,8 +37,16 @@ void ProfilerXrdMon::sendUserIdentOrNOP(std::string user_dn)
       username = secCtx->user.name;
     }
 
+    std::string authProtocol;
+    if (secCtx->user.name == "nobody") {
+      authProtocol = "none";
+    } else {
+      authProtocol = "gsi";
+    }
+
     XrdMonitor::sendUserIdent(dictid,
         protocol, // protocol
+        authProtocol, // authentication protocol
         getShortUserName(username), // unique username
         secCtx->credentials.remoteAddress, // user hostname
         // org

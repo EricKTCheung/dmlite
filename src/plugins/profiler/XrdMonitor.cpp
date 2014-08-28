@@ -370,6 +370,7 @@ int XrdMonitor::sendShortUserIdent(const kXR_unt32 dictid)
 
 int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
                               const std::string &protocol,
+                              const std::string &authProtocol,
                               const std::string &userName,
                               const std::string &userHostname,
                               const std::string &vo,
@@ -411,9 +412,9 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
   unsigned int user_id = static_cast<unsigned int>(tid) + ntohl(dictid);
 
   char info[1024+256];
-  snprintf(info, 1024+256, "%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
-           userName.c_str(), user_id, sid_, hostname_.c_str(),
-           protocol.c_str(), userDN.c_str(), userHost.c_str(),
+  snprintf(info, 1024+256, "%s/%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
+           protocol.c_str(), userName.c_str(), user_id, sid_, hostname_.c_str(),
+           authProtocol.c_str(), userDN.c_str(), userHost.c_str(),
            vo.c_str(), "null", "null", userDN.c_str());
 
   Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send userident:\n" << info);
