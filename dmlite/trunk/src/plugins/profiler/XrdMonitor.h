@@ -100,6 +100,7 @@ namespace dmlite {
       static int sendShortUserIdent(const kXR_unt32 dictid);
       static int sendUserIdent(const kXR_unt32 dictid,
                                const std::string &protocol,
+                               const std::string &authProtocol,
                                const std::string &userName,
                                const std::string &userHostname,
                                const std::string &vo,
