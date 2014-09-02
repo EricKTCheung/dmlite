@@ -20,6 +20,8 @@ int XrdMonitor::file_flags_ = 0;
 
 // configuration options
 bool XrdMonitor::include_lfn_ = false;
+bool XrdMonitor::include_auth_ = false;
+bool XrdMonitor::include_dn_ = false;
 
 bool XrdMonitor::is_initialized_ = false;
 boost::mutex XrdMonitor::init_mutex_;
@@ -412,10 +414,20 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
   unsigned int user_id = static_cast<unsigned int>(tid) + ntohl(dictid);
 
   char info[1024+256];
-  snprintf(info, 1024+256, "%s/%s.%d:%lld@%s\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
-           protocol.c_str(), userName.c_str(), user_id, sid_, hostname_.c_str(),
-           authProtocol.c_str(), userDN.c_str(), userHost.c_str(),
-           vo.c_str(), "null", "null", userDN.c_str());
+  int cnt = 0;
+  cnt = snprintf(info, 1024+256, "%s/%s.%d:%lld@%s",
+           protocol.c_str(), userName.c_str(), user_id, sid_, hostname_.c_str());
+  if (XrdMonitor::include_auth_) {
+    if (XrdMonitor::include_dn_) {
+      snprintf(info+cnt, 1024+256-cnt, "\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
+               authProtocol.c_str(), userDN.c_str(), userHost.c_str(),
+               vo.c_str(), "null", "null", userDN.c_str());
+    } else {
+      snprintf(info+cnt, 1024+256-cnt, "\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
+               authProtocol.c_str(), "nobody", userHost.c_str(),
+               "nogroup", "null", "null", "null");
+    }
+  }
 
   Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send userident:\n" << info);
 

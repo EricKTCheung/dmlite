@@ -139,6 +139,8 @@ namespace dmlite {
 
       // configuration options
       static bool include_lfn_;
+      static bool include_auth_;
+      static bool include_dn_;
 
       static bool is_initialized_;
       static boost::mutex init_mutex_;

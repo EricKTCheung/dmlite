@@ -75,6 +75,10 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
         XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
         XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
       }
+      else if (*it == "auth") {
+        XrdMonitor::include_auth_ = true;
+        XrdMonitor::include_dn_ = true;
+      }
     }
   } else if (key == "Collector") {
     XrdMonitor::collector_addr_list.insert(value);
@@ -82,12 +86,17 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
     XrdMonitor::redir_max_buffer_size_ = atoi(value.c_str());
     XrdMonitor::file_max_buffer_size_ = atoi(value.c_str());
   } else if (key == "SendLFN") {
-      XrdMonitor::include_lfn_ = true;
+    XrdMonitor::include_lfn_ = true;
+  } else if (key == "SendAuth") {
+    XrdMonitor::include_auth_ = true;
+    if (value == "userdn") {
+      XrdMonitor::include_dn_ = true;
+    }
   } else if (key == "Ops") {
-      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
+    XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
   }  else if (key == "Ssq") {
-      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
-      XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
+    XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
+    XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
   } else {
     Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
 //    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
