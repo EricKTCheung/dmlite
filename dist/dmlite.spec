@@ -33,12 +33,6 @@ BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
 BuildRequires:	lcgdm-devel
 
-Obsoletes:	dmlite-plugins-adapter-debuginfo
-Obsoletes:	dmlite-plugins-mysql-debuginfo
-Obsoletes:	dmlite-plugins-memcache-debuginfo
-Obsoletes:	dmlite-plugins-profiler-debuginfo
-Obsoletes:	dmlite-shell-debuginfo
-
 %description
 This package provides a set of common libraries and plugins that implement
 logic for data management and storage on the grid.
@@ -46,6 +40,12 @@ logic for data management and storage on the grid.
 %package libs
 Summary:	Common libraries for all dmlite packages
 Group:		Applications/Internet
+
+Obsoletes:      dmlite-plugins-adapter-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-mysql-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-memcache-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-profiler-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-shell-debuginfo < 0.7.0-1
 
 %description libs
 This package provides the libraries used by dmlite components.
@@ -106,6 +106,9 @@ Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 Requires:	dmlite-libs = %{version}
 
+Obsoletes:      dmlite-plugins-memcache-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-memcache < 0.7.0-1
+
 %description plugins-memcache
 This package provides the memcached plug-in for dmlite. It provides a
 memcached based implementation of the NS interface.
@@ -114,6 +117,9 @@ memcached based implementation of the NS interface.
 Summary:	Memcached plugin for dmlite
 Group:		Applications/Internet
 Requires:	dmlite-libs = %{version}
+
+Obsoletes:      dmlite-plugins-profiler-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-profiler < 0.7.0-1
 
 %description plugins-profiler
 This package provides the profiler plug-in for dmlite. This plug-in is a simple
@@ -130,6 +136,9 @@ BuildArch:	noarch
 Requires:	python-dateutil
 Requires:	python-dmlite = %{version}
 
+Obsoletes:      dmlite-shell-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-shell < 0.7.0-1
+
 %description shell
 This package provides a shell environment for dmlite. It includes useful
 commands for system administration, testers and power users.
@@ -138,6 +147,9 @@ commands for system administration, testers and power users.
 Summary:	MySQL plugin for dmlite
 Group:		Applications/Internet
 Requires:       dmlite-libs = %{version}
+
+Obsoletes:      dmlite-plugins-mysql-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-mysql < 0.7.0-1
 
 %description plugins-mysql
 This package provides the MySQL plug-in for dmlite.
@@ -148,6 +160,9 @@ Group:          Applications/Internet
 Requires:       dmlite-libs = %{version}
 Requires:       dpm-libs >= 1.8.8
 Requires:       lcgdm-libs >= 1.8.8
+
+Obsoletes:      dmlite-plugins-adapter-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-adapter < 0.7.0-1
 
 %description plugins-adapter
 This package provides the adapter plug-in for dmlite. This plug-in provides both
