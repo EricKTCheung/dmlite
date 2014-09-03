@@ -418,11 +418,14 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
   cnt = snprintf(info, 1024+256, "%s/%s.%d:%lld@%s",
            protocol.c_str(), userName.c_str(), user_id, sid_, hostname_.c_str());
   if (XrdMonitor::include_auth_) {
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "including auth info");
     if (XrdMonitor::include_dn_) {
+      Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "including userdn");
       snprintf(info+cnt, 1024+256-cnt, "\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
                authProtocol.c_str(), userDN.c_str(), userHost.c_str(),
                vo.c_str(), "null", "null", userDN.c_str());
     } else {
+      Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "NOT including any auth info");
       snprintf(info+cnt, 1024+256-cnt, "\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
                authProtocol.c_str(), "nobody", userHost.c_str(),
                "nogroup", "null", "null", "null");
