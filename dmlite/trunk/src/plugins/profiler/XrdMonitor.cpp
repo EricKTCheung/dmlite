@@ -425,11 +425,12 @@ int XrdMonitor::sendUserIdent(const kXR_unt32 dictid,
                authProtocol.c_str(), userDN.c_str(), userHost.c_str(),
                vo.c_str(), "null", "null", userDN.c_str());
     } else {
-      Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "NOT including any auth info");
       snprintf(info+cnt, 1024+256-cnt, "\n&p=%s&n=%s&h=%s&o=%s&r=%s&g=%s&m=%s",
                authProtocol.c_str(), "nobody", userHost.c_str(),
                "nogroup", "null", "null", "null");
     }
+  } else {
+    Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "NOT including any auth info");
   }
 
   Log(Logger::Lvl4, profilerlogmask, profilerlogname,  "send userident:\n" << info);
