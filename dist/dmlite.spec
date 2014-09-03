@@ -33,11 +33,11 @@ BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
 BuildRequires:	lcgdm-devel
 
-Obsoletes:	dmlite-plugins-adapter-debuginfo
-Obsoletes:	dmlite-plugins-mysql-debuginfo
-Obsoletes:	dmlite-plugins-memcache-debuginfo
-Obsoletes:	dmlite-plugins-profiler-debuginfo
-Obsoletes:	dmlite-shell-debuginfo
+Obsoletes:	dmlite-plugins-adapter-debuginfo <= 0.6.2-1
+Obsoletes:	dmlite-plugins-mysql-debuginfo <= 0.6.2-1
+Obsoletes:	dmlite-plugins-memcache-debuginfo <= 0.6.2-1
+Obsoletes:	dmlite-plugins-profiler-debuginfo <= 0.6.2-1
+Obsoletes:	dmlite-shell-debuginfo <= 0.6.2-1
 
 %description
 This package provides a set of common libraries and plugins that implement
