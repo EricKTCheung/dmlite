@@ -33,12 +33,6 @@ BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
 BuildRequires:	lcgdm-devel
 
-Obsoletes:	dmlite-plugins-adapter-debuginfo <= 0.6.2-1
-Obsoletes:	dmlite-plugins-mysql-debuginfo <= 0.6.2-1
-Obsoletes:	dmlite-plugins-memcache-debuginfo <= 0.6.2-1
-Obsoletes:	dmlite-plugins-profiler-debuginfo <= 0.6.2-1
-Obsoletes:	dmlite-shell-debuginfo <= 0.6.2-1
-
 %description
 This package provides a set of common libraries and plugins that implement
 logic for data management and storage on the grid.
@@ -46,6 +40,12 @@ logic for data management and storage on the grid.
 %package libs
 Summary:	Common libraries for all dmlite packages
 Group:		Applications/Internet
+
+Obsoletes:      dmlite-plugins-adapter-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-mysql-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-memcache-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-plugins-profiler-debuginfo < 0.7.0-1
+Obsoletes:      dmlite-shell-debuginfo < 0.7.0-1
 
 %description libs
 This package provides the libraries used by dmlite components.
