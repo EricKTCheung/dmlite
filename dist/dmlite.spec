@@ -10,8 +10,8 @@ License:	ASL 2.0
 URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_6_1 dmlite-0.6.1
-# tar -czvf dmlite-0.6.1.tar.gz dmlite-0.6.1
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_7_0 dmlite-0.7.0
+# tar -czvf dmlite-0.7.0.tar.gz dmlite-0.7.0
 Source0:	%{name}-%{version}.tar.gz
 Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -33,11 +33,6 @@ BuildRequires:	libmemcached-devel
 BuildRequires:	protobuf-devel
 BuildRequires:	lcgdm-devel
 
-Provides:	dmlite-plugins-adapter-debuginfo
-Provides:	dmlite-plugins-mysql-debuginfo
-Provides:	dmlite-plugins-memcache-debuginfo
-Provides:	dmlite-plugins-profiler-debuginfo
-Provides:	dmlite-shell-debuginfo
 Obsoletes:	dmlite-plugins-adapter-debuginfo
 Obsoletes:	dmlite-plugins-mysql-debuginfo
 Obsoletes:	dmlite-plugins-memcache-debuginfo
