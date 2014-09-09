@@ -206,7 +206,9 @@ make install DESTDIR=%{buildroot}
 %clean
 rm -rf %{buildroot}
 
-%post libs -p /sbin/ldconfig
+%post libs
+/sbin/ldconfig
+/sbin/service rsyslog condrestart || true
 
 %postun libs -p /sbin/ldconfig
 
