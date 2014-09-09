@@ -488,6 +488,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
               PoolDriver* driver = this->stack_->getPoolDriver(pool.type);
               PoolHandler* handler = driver->createPoolHandler(pool.name);
 
+              // beware: this also removes the stat entry
               handler->removeReplica(*i);
 
               delete handler;
@@ -501,6 +502,7 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
               if (e.code() != DMLITE_NO_SUCH_REPLICA) throw;
             }
           }
+          this->stack_->getCatalog()->unlink(path);
       }
       catch (dmlite::DmException& e) {
           if (e.code() != ENOENT) throw;
