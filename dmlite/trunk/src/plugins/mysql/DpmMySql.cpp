@@ -489,7 +489,11 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
               PoolHandler* handler = driver->createPoolHandler(pool.name);
 
               // beware: this also removes the stat entry
-              handler->removeReplica(*i);
+              try {
+                handler->removeReplica(*i);
+              } catch (dmlite::DmException& e) {
+                if (e.code() != ENOENT) throw;
+              }
 
               delete handler;
             }
@@ -502,11 +506,24 @@ Location MySqlPoolManager::whereToWrite(const std::string& path) throw (DmExcept
               if (e.code() != DMLITE_NO_SUCH_REPLICA) throw;
             }
           }
-          this->stack_->getCatalog()->unlink(path);
       }
       catch (dmlite::DmException& e) {
           if (e.code() != ENOENT) throw;
       }
+      /* This statement is because of memcache, please don't remove it.
+       * Further up, handler->removeReplica also removes the file's stat entry,
+       * directly on the dpns level with the adapter. From this, it's not
+       * possible to inform higher levels in the dmlite stack to clear any
+       * information, e.g. clearing the memcache.
+       * Calling unlink on the plugin stack solves this.
+       * This call will, if everything above went right, because the entry
+       * has already been deleted, so we ignore all exceptions. If one of the
+       * plugins in the stack raises an exception before it gets to the memcache
+       * plugin, this approach fails.
+       */
+      try {
+        this->stack_->getCatalog()->unlink(path);
+      } catch (...) { /* pass */ }
   }
 
   // Create the entry if it does not exist already
