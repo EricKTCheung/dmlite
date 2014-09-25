@@ -1,183 +1,169 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib(1))")}
 
-Name:		dmlite
-Version:	0.7.0
-Release:	1%{?dist}
-Summary:	Common libraries for grid data management and storage
-Group:		Applications/Internet
-License:	ASL 2.0
-URL:		https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
+%{!?dmlite_test: %global dmlite_tests 0}
+
+Name:					dmlite
+Version:				0.7.0
+Release:				1%{?dist}
+Summary:				Lcgdm grid data management and storage framework
+Group:					Applications/Internet
+License:				ASL 2.0
+URL:					https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_7_0 dmlite-0.7.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_7_0_c dmlite-0.7.0
 # tar -czvf dmlite-0.7.0.tar.gz dmlite-0.7.0
-Source0:	%{name}-%{version}.tar.gz
-Buildroot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source0:				%{name}-%{version}.tar.gz
+Buildroot:				%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildRequires:	boost-devel >= 1.41.0
+BuildRequires:			boost-devel >= 1.41.0
 %else
-BuildRequires:	boost141-devel
+BuildRequires:			boost141-devel
 %endif
-BuildRequires:	cmake
-BuildRequires:	cppunit-devel
-BuildRequires:	doxygen
-BuildRequires:	graphviz
-BuildRequires:	openssl-devel
-BuildRequires:	python-devel
-BuildRequires:	zlib-devel
-BuildRequires:	dpm-devel
-BuildRequires:	mysql-devel
-BuildRequires:	libmemcached-devel
-BuildRequires:	protobuf-devel
-BuildRequires:	lcgdm-devel
+BuildRequires:			cmake
+BuildRequires:			cppunit-devel
+BuildRequires:			doxygen
+BuildRequires:			graphviz
+BuildRequires:			openssl-devel
+BuildRequires:			python-devel
+BuildRequires:			zlib-devel
+
+# Plugins requires
+BuildRequires:			dpm-devel
+BuildRequires:			lcgdm-devel
+BuildRequires:			libmemcached-devel
+BuildRequires:			mysql-devel
+BuildRequires:			protobuf-devel
 
 %description
-This package provides a set of common libraries and plugins that implement
-logic for data management and storage on the grid.
+This package provides the dmlite framework that implements common
+logic for data management and storage for the Lcg grid.
 
 %package libs
-Summary:	Common libraries for all dmlite packages
-Group:		Applications/Internet
+Summary:			Libraries for dmlite packages
+Group:				Applications/Internet
 
-Obsoletes:      dmlite-plugins-adapter-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-mysql-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-memcache-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-profiler-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-shell-debuginfo < 0.7.0-1
+# transition fix for package merge dmlite-*.src.rpm to dmlite.src.rpm
+Obsoletes:			dmlite-plugins-adapter-debuginfo < 0.7.0-1
+Obsoletes:			dmlite-plugins-mysql-debuginfo < 0.7.0-1
+Obsoletes:			dmlite-plugins-memcache-debuginfo < 0.7.0-1
+Obsoletes:			dmlite-plugins-profiler-debuginfo < 0.7.0-1
+Obsoletes:			dmlite-shell-debuginfo < 0.7.0-1
 
 %description libs
-This package provides the libraries used by dmlite components.
+This package provides the core libraries used by dmlite.
 
 %package devel
-Summary:	Development libraries and headers for dmlite
-Group:		Applications/Internet
-Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-Requires:	boost-devel >= 1.41.0
-%else
-Requires:	boost141-devel
-%endif
+Summary:			Development libraries and headers for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description devel
-This package provides headers and development libraries for dmlite.
+This package provides C headers and development libraries for dmlite.
 
 %package docs
-Summary:	API documentation for dmlite
-Group:		Applications/Internet
+Summary:			Documentation files for dmlite
+Group:				Applications/Internet
 
 
 %description docs
-Man pages and HTML documentation for dmlite.
+This package contains the man pages and HTML documentation for dmlite.
 
 
 %package private-devel
-Summary:	Private development libraries and headers for dmlite
-Group:		Applications/Internet
-Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
-Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
+Summary:			Private development libraries and headers for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-devel%{?_isa} = %{version}-%{release}
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-Requires:	boost-devel >= 1.41.0
+Requires:			boost-devel >= 1.41.0
 %else
-Requires:	boost141-devel
+Requires:			boost141-devel
 %endif
 
 %description private-devel
-This package provides private headers and development libraries for dmlite. These components are generally not binary compatible across releases.
+Private development headers for dmlite. Provided for the development of 
+dmlite plugins only, no API compatibility is guaranteed on these headers.
 
 
 %package -n python-dmlite
-Summary:	Python wrapper for dmlite
-Group:		Development/Libraries
+Summary:			Python wrapper for dmlite
+Group:				Development/Libraries
 
 %description -n python-dmlite
 This package provides a python wrapper for dmlite.
 
 %package test
-Summary:	All sorts of tests for dmlite interfaces
-Group:		Applications/Internet
+Summary:			All sorts of tests for dmlite interfaces
+Group:				Applications/Internet
 
 %description test
 Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 
 %package plugins-memcache
-Summary:	Memcached plugin for dmlite
-Group:		Applications/Internet
-Requires:	dmlite-libs = %{version}
+Summary:			Memcached plugin for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
-Obsoletes:      dmlite-plugins-memcache-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-memcache < 0.7.0-1
+# Merge migration 
+Obsoletes:			dmlite-plugins-memcache < 0.7.0-1
 
 %description plugins-memcache
 This package provides the memcached plug-in for dmlite. It provides a
-memcached based implementation of the NS interface.
+memcached based layer for the Lcgdm nameserver.
 
 %package plugins-profiler
-Summary:	Memcached plugin for dmlite
-Group:		Applications/Internet
-Requires:	dmlite-libs = %{version}
+Summary:			Memcached plugin for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
-Obsoletes:      dmlite-plugins-profiler-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-profiler < 0.7.0-1
+# Merge migration 
+Obsoletes:			dmlite-plugins-profiler < 0.7.0-1
 
 %description plugins-profiler
-This package provides the profiler plug-in for dmlite. This plug-in is a simple
-wrapper around a real plug-in implementation, and is used to do multiple
-measurements regarding the performance of each call to dmlite.
+This package provides the profiler plug-in for dmlite. This plug-in 
+provides multiple performance measurement tools for dmlite. 
 
 %package shell
-Summary:	Shell environment for dmlite
-Group:		Applications/Internet
+Summary:			Shell environment for dmlite
+Group:				Applications/Internet
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildArch:	noarch
+BuildArch:			noarch
 %endif
 
-Requires:	python-dateutil
-Requires:	python-dmlite = %{version}
+Requires:			python-dateutil
+Requires:			python-dmlite = %{version}
 
-Obsoletes:      dmlite-shell-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-shell < 0.7.0-1
+Obsoletes:			dmlite-shell < 0.7.0-1
 
 %description shell
 This package provides a shell environment for dmlite. It includes useful
 commands for system administration, testers and power users.
 
 %package plugins-mysql
-Summary:	MySQL plugin for dmlite
-Group:		Applications/Internet
-Requires:       dmlite-libs = %{version}
+Summary:			MySQL plugin for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
-Obsoletes:      dmlite-plugins-mysql-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-mysql < 0.7.0-1
+Obsoletes:			dmlite-plugins-mysql < 0.7.0-1
 
 %description plugins-mysql
 This package provides the MySQL plug-in for dmlite.
 
 %package plugins-adapter
-Summary:        Adapter plugin for dmlite
-Group:          Applications/Internet
-Requires:       dmlite-libs = %{version}
-Requires:       dpm-libs >= 1.8.8
-Requires:       lcgdm-libs >= 1.8.8
+Summary:			Adapter plugin for dmlite
+Group:				Applications/Internet
+Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:			dpm-libs >= 1.8.8
+Requires:			lcgdm-libs >= 1.8.8
 
-Obsoletes:      dmlite-plugins-adapter-debuginfo < 0.7.0-1
-Obsoletes:      dmlite-plugins-adapter < 0.7.0-1
+Obsoletes:			dmlite-plugins-adapter < 0.7.0-1
 
 %description plugins-adapter
 This package provides the adapter plug-in for dmlite. This plug-in provides both
 a name-space and pool management implementation which fallback to forwarding
-calls to the old DPNS and DPM daemons.
-
-
-
-
-
-
-
-
-
-
+calls to the old LcgDM DPNS and DPM daemons.
 
 
 %prep
@@ -203,6 +189,11 @@ mkdir -p %{buildroot}
 
 make install DESTDIR=%{buildroot}
 
+## remote tests if not needed
+%if %{?dmlite_tests} == 0
+rm -rf %{buildroot}/%{_libdir}/dmlite/test
+%endif
+
 %clean
 rm -rf %{buildroot}
 
@@ -214,14 +205,14 @@ rm -rf %{buildroot}
 
 %files libs
 %defattr(-,root,root,-)
-%config(noreplace) %{_sysconfdir}/dmlite.conf
 %dir %{_sysconfdir}/dmlite.conf.d
-%{_libdir}/libdmlite.so.*
 %dir %{_libdir}/dmlite
+%config(noreplace) %{_sysconfdir}/dmlite.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/dmlite
+%config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
+%{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
 %doc README LICENSE RELEASE-NOTES
-%dir %{_sysconfdir}/logrotate.d/dmlite
-%{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 
 %files devel
 %defattr(-,root,root,-)
@@ -242,9 +233,13 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{python_sitearch}/pydmlite.so
 
+%if %{?dmlite_tests}
+
 %files test
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/test
+
+%endif %{?dmlite_tests}
 
 %files plugins-memcache
 %defattr(-,root,root,-)
