@@ -5,14 +5,14 @@
 
 Name:					dmlite
 Version:				0.7.0
-Release:				1%{?dist}
+Release:				2%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
 License:				ASL 2.0
 URL:					https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 # The source of this package was pulled from upstream's vcs. Use the
 # following commands to generate the tarball:
-# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_7_0_c dmlite-0.7.0
+# svn export http://svn.cern.ch/guest/lcgdm/dmlite/tags/dmlite_0_7_0_d dmlite-0.7.0
 # tar -czvf dmlite-0.7.0.tar.gz dmlite-0.7.0
 Source0:				%{name}-%{version}.tar.gz
 Buildroot:				%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -272,6 +272,10 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-2
+- Push on Fedora/EPEL for 0.7.0
+- Fix ppc EPEL5 compilation issue
+
 * Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-1
 - Introduced the private devel headers
 - Merged shell, profiler, memcache, mysql, adapter
