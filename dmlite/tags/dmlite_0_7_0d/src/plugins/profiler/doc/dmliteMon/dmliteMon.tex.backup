@@ -1,0 +1,326 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Simple Sectioned Essay Template
+% LaTeX Template
+%
+% This template has been downloaded from:
+% http://www.latextemplates.com
+%
+% Note:
+% The \lipsum[#] commands throughout this template generate dummy text
+% to fill the template out. These commands should all be removed when 
+% writing essay content.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[12pt]{article} % Default font size is 12pt, it can be changed here
+
+\usepackage{geometry} % Required to change the page size to A4
+\geometry{a4paper} % Set the page size to be A4 as opposed to the default US Letter
+
+\usepackage{graphicx} % Required for including pictures
+
+\usepackage{float} % Allows putting an [H] in \begin{figure} to specify the exact location of the figure
+\usepackage{wrapfig} % Allows in-line images such as the example fish picture
+
+\usepackage{tabularx}
+
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+
+\linespread{1.2} % Line spacing
+
+%\setlength\parindent{0pt} % Uncomment to remove all indentation from paragraphs
+
+\graphicspath{{./Pictures/}} % Specifies the directory where pictures are stored
+
+\begin{document}
+
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
+
+\center % Center everything on the page
+
+\textsc{\LARGE CERN IT-SDC}\\[1.5cm] % Name of your university/college
+%\textsc{\Large Major Heading}\\[0.5cm] % Major heading such as course name
+%\textsc{\large Minor Heading}\\[0.5cm] % Minor heading such as course title
+
+\HRule \\[0.4cm]
+{\huge \bfseries Realtime monitoring for DMLite}\\[0.4cm] % Title of your document
+\HRule \\[1.5cm]
+
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+Fabrizio \textsc{Furano} \\ % Your name\\
+\emph{Author:}\\
+Martin \textsc{Hellmich} \\ % Your name\\
+\end{flushleft}
+\end{minipage}
+%~
+%\begin{minipage}{0.4\textwidth}
+%\begin{flushright} \large
+%\emph{Supervisor:} \\
+%Dr. James \textsc{Smith} % Supervisor's Name
+%\end{flushright}
+%\end{minipage}\\[4cm]
+
+{\large \today}\\[3cm] % Date, change the \today to a set date if you want to be precise
+
+%\includegraphics{Logo}\\[1cm] % Include a department/university logo - this will require the graphicx package
+
+
+
+\vfill % Fill the rest of the page with whitespace
+
+\end{titlepage}
+
+%----------------------------------------------------------------------------------------
+%	TABLE OF CONTENTS
+%----------------------------------------------------------------------------------------
+
+\tableofcontents % Include a table of contents
+
+\newpage % Begins the essay on a new page instead of on the same page as the table of contents 
+
+
+
+
+
+\begin{abstract}
+It's time for dmlite and the dpm frontends to report realtime monitoring information. This document explains the main choices that
+have been made to achieve the best compromise between cost of development, cost of maintenance and extendability. This is a preliminary
+investigation, which describes the main direction and technical choices. Some of the technical details will have to be understood
+on the way, following an exploratory approach.
+\end{abstract}
+
+
+
+
+
+
+\section{Introduction}
+Ok? Understood? Good. Let's go.
+
+
+
+
+\section{The goal and the difficulties}
+
+The purpose of the project is to contribute to the conspiracy theories. We will be happy to start contributing to the HAARP project for mind control, throwing chemical trails, fixing our coffee-based nuclear fusion device, and will wear a black tie and sunglasses forever while sleeping.\\
+
+The secondary goal is to be able to report to external systems about the activity of a DPM site. So far we envision two kinds of external systems:
+
+\begin{itemize}
+ \item an instance of the \textit{Gled Collector}, i.e. the software component that is used in the FAX and AAA deployments of the xrootd framework
+ \item a generic messaging broker, like the ones that feed the Dashboard application, yet not limited to it.
+\end{itemize}
+
+In the former case, the activity would have to be reported in the format supported by Gled, which is the monitoring format used by the xrootd framework. In the latter case the format will be some STOMP-based message or eventually ActiveMQ.\\
+
+Among the goals we cite the convenience in making the system sufficiently modular, so that the system administrator can choose which systems his instance of DPM should report to, andd be informed of the consequences of his choices.\\
+
+
+Either the activity information can be aggregated on the DPM site and sent to the monitoring system in bulk, or single events can be sent to the monitoring site where they are aggregated, or any level of partial aggregation in between. The choice influences the computational load and memory requirements on the DPM and monitoring sites as well as the amount of network traffic between them; then, it is limited by the capabilities of both sites to perform the aggregations. We present the rationale that leads to our preferred solution in the following.
+
+\subsection{Decorating the DMLite IO plugins}
+The DMLite architecture is able to load stacks of plugins that, together, override or pass-through the functionalities to another plugin. Since this project is about monitoring, we assume that we want to monitor the IO metrics generated the service, like bytes read and written, number of files accessed, etc.\\
+The feasibility of several of those measures is subject to the possibility of loading pass-through plugins in the IO stack of dmlite. Since apparently the DMLite IO stack cannot have the so-called decorated plugins, a needed effort to solve is to modify the DMLite API in order to support them.
+
+\subsection{Gathering aggregated information across forks}
+A DPM site provides multiple storage access protocols, which are exposed through different frontends. The different frontends are typically standard software components that are linked to DPM through the dmlite libraries. he goal of this project is to allow these protocols to send information about their activity.
+
+The difficulty is given by the fact that \textit{the architecture of dmlite is subject to the forking decisions of the frontend that is being used}. In the case of Apache for example, an instance of dmlite cannot know if there are (in the same machine) other similar instances that have been forked, according to the configuration of the Apache frontend. In this case, determining e.g. how many bytes have been read in total in the last time interval becomes a difficult exercise, as a process will not know about the activity of others.\\
+
+The case of the GridFTP frontend is similar to the one of Apache. Whatever internal monitoring schema we may choose, this must also work in the case of a purely forking frontend, i.e. a frontend that spawns a process in order to handle even only one request.\\
+
+This reason severely limits the kind of information that can be sent in realtime. For example, a report on the last file read operation can be sent easily. Instead, a report on the average number of read bytes per second is very difficult to compute. We are not aware of solutions to this problem that don't negatively impact on the latency of the various operations. This is what we call \textit{aggregated} data, i.e. information that can only be computed by comparing the behaviour of all the other clients in the system.
+
+Another consequence of not controlling forks is that a single instance of DPM will have to instantiate multiple information senders, typically one per process per machine. This aspect may be a challenge for external systems willing to collect and perform aggregations on this information.
+
+\subsection{\label{feeding}Feeding different monitoring systems}
+
+In the project's intentions, the system must support in principle feeding any external monitoring system, thus it has to be plugin-based. To be able to feed an external realtime monitoring system, there has to be a suitable plugin, able to talk to that system.\\
+The idea is to implement monitoring data producers in the form of DMLite pass-through plugins, in a way that is similar to the (currently never used) ``dmlite profiler'' plugin.\\
+
+These new DMLite plugins will implement both the DMLite activity collection and the specifics of sending data to an external system. Feeders for different external monitoring systems will compute different numbers and send them in different ways. This is consistent with the idea of implementing them in different DMLite plugins.\\
+
+An interesting consequence of this is that it will be possible to feed more than one external system at the same time, by loading more than one pass-through plugins into the DMLite stack.
+
+As mentioned before, sending information that is specific to the current process (e.g. the filename being opened) is not problematic; more difficult is to report about aggregated values (e.g. the average reading speed in the last minute). The importance of sending a particular counter has to be considered on a case by case base.\\
+
+
+\subsection{The Open semantics}
+
+Frameworks like xrootd, or gridftp are based on the posix-like concept of \textit{open-atcivity-close} for the lifetime of a file. DMLite does not have this behavior, being it closer to the idea of the HTTP GET request, where all the requests are independent, in the sense that they cannot easily be recognized as part of a ``session'' like the one represented by a POSIX open() call.\\
+
+The consequence of this is that there is no Open in DMLite, hence reporting strictly about Open calls is not possible. What DMLite can do is to report on single GET requests, which likely are individually translated by Apache into an \textit{open-read-close} sequence.
+
+\section{Where to send realtime monitoring information}
+
+DPM already sends Xrdmon packets to an existing Xrootd monitoring infrastructure. We assume that the DMLite configuation used for frontends that are not xrootd has to be able to feed the same infrastructure if needed. We also assume that DMLite should be able to send information about its realtime activity also to other kinds of infrastructures, through suitable plugins.
+
+\subsection{Message broker}
+
+One possibility could be to send the realtime activity reports to an activeMQ broker, eventually in a format that could be understood by the Dashboard applications, that (at the best of our knowledge) is the only messaging consumer of monitoring data so far.
+Broker needs aggregations, hence much more difficult. We chose to postpone.
+
+\subsection{XrdMon UDP packets}
+
+The other monitoring implementation that we consider is the one of the xrootd framework, called XrdMon, plus the infrastructure that has been built out of the GLED Collector. The GLED infrastructure is able to collect monitoring information from a very large number of endpoints and either write it locally into ROOT trees, or aggregate it and send it to an external ActiveMQ broker.
+
+Although it's actually used only in the xrootd framework, XrdMon represents quite an agnostic, POSIX-style implementation of a monitoring/reporting framework. DPM can already sends XrdMon packets, but only for the traffic that is done through its Xrootd frontend. A possibility is then to send UDP packets that have the same content of the ones sent by XrdMon, in order to utilize an already working production infrastructure.\\
+
+The choice of using UDP has several technical strong points:
+\begin{itemize}
+  \item Sending an UDP packet is quite an efficient operation, that does not need many system resources. This is very important in a server that likely will be very loaded.
+  \item The architectural choice of having external collectors as independent services is also scalable, and can feed more complex aggregated information to other services.
+\end{itemize}
+ \\
+ The maintainer of the GLED collector agrees in giving support and is available for working in the GLED collector to make it
+work in the corner cases that DPM may generate in the usage of the XrdMon protocol.\\ Some of these corner cases may be related
+to the absence of an Open() primitive in some protocols like HTTP. \\
+
+\subsubsection{Application-global state}
+
+The XrdMon monitoring schema relies on multiple globally-synchronized values. They are used to identify related events, keep a (loose) ordering of the packets, and distinguish services. A list of the different types can be found below.
+
+In Xrootd, the definition is clear: There is one Xrootd process running and the global level means process-global; shared state across all threads; Xrootd and Cmsd report as different entities. For dmlite we can have multiple processes running for each frontends, so we can decide between three possible definitions of global. Global state can be process-global as in Xrootd (then e.g.\ each httpd process would advertise itself as another dpm server), machine-global (then both httpd and gridftp share information), or frontend-global (then all httpd processes advertise as belonging to the same dpm server).
+
+The first option results in finer differentiation than Xrootd and is problematic. Since we don't control the forking behaviour of the frontends, there could be many hundred processes running. This happens with httpd started in fork mode. The second option is problematic as well. While the Xrootd monitoring schema allows to include information differentiating program versions, custom names, or ports to discriminate the frontends, sharing certain information is semantically difficult (e.g.\ the gridftp service is likely to be restarted separately form the httpd service, so sharing the server startup time makes no sense). The third option, using frontend-global values, is different from Xrootd implemenation-wise, but very similar semantically. It is necessary to implement cross-process communication, but not across frontends. If a common system for storing state or passing messages is used, we must ensure to keep different namespaces for the frontends.
+
+\begin{description}
+\item[server startup time] allows identifying unique IDs across server restarts
+\item[server ID] the server machine
+\item[service ID] the running service (the process)
+\item[packet sequence] sequence number in [0 255] to allow packet reordering on the collector
+\end{description}
+
+
+\section{Development priority}
+
+we do the gled/xrdmon, leaving stomp and broker for the future, as the result would be more uncertain
+
+
+\section{The system}
+We chose to send telekynetic information, through Dark Matter brokers.
+After it's unveiled, Aliens will come to stop us, so we can welcome their invasion
+
+recall that we can't do aggregations
+
+file dictid
+stack instance dictid
+
+dmlite funcs to instrument. IOHandler likely + where to read/write for the redir
+
+
+\subsection{Mapping of dmlite API function to XrdMon Messages}
+
+\begin{tabularx}{\textwidth}{p{1.5cm}|l|l| >{\setlength{\baselineskip}{0.75\baselineskip}}X}
+XrdMsg code & XrdMon message & type dmlite function & notes \\ \hline \hline
+= & server id & GetServIDorCreateNew() & {\footnotesize synchronizes the creation of the new id when the first primitive is called after the configuration} \\
+d & dictid user/path & TBDecided & {\footnotesize this ID will give a unique value that is valid on this host, but across different processes and process runs} \\
+f & f-stream & \\
+  & isOpen & XrootdMonitor::XrootdMonitor \\
+  & isClose & XrootdMonitor::~XrootdMonitor \\
+  & isDisc & \\
+  & isTime & \\
+  & isXFR & \\
+i & dictid user/info & \\
+p & file purge & \\
+r & redirect & \\
+u & dictid user/auth & \\
+x & file transfer & \\
+\end{tabularx}
+
+
+
+\subsection{Buffering}
+Packets are not sent immediately. They are rather buffered in sequences that are managed by a global static object. The sequence is flushed when:\\
+
+\begin{itemize}
+ \item the buffer is full
+ \item when the corresponding Profiler Factory is destroyed
+ \item at regular time intervals, on the order of 5-60 seconds
+\end{itemize}
+
+\section{Typical deployment}
+
+Any deployment where dmlite is involved will be a possible place for DMLiteMonitor. This includes the DPM deployments
+making use of the following frontends:
+\begin{itemize}
+ \item HTTP/WebDAV
+ \item GridFTP v2
+ \item DPM-xrootd
+\end{itemize}
+
+ Also the Dynamic Federations project will benefit from DMLiteMonitor, and will be able to report about global redirection decisions.
+
+Beware, the xrootd frontend will report by itself. In the case of the deployment of DPM with the xrootd frontend,
+the DMLite monitoring for the stack that is associated to DPM-xrootd must be kept disabled, otherwise every action will be notified twice.\\
+
+
+
+\section{Configuration parameters reference}
+
+TBD
+
+
+\begin{thebibliography}{9}
+
+\bibitem{contact} Contact,
+Carl Sagan
+ISBN: 978-0671004101
+
+\bibitem{alice} Alice in Wonderland,
+Lewis Carroll
+ISBN: 978-1619490222
+
+\bibitem{xrd} The xrootd.org homepage
+\verb"http://www.xrootd.org"
+
+\bibitem{gled} Gled is a Generic Lightweight Environment for Distributed computing
+\verb"http://www.gled.org/"
+
+\bibitem{gledwhitepaper} Gled - an Implementation of a Hierarchic Server-Client Model
+Matev\v{z} Tadel
+\verb"http://www.gled.org/docs/gled/gled-ihsm.pdf"
+
+\bibitem{activemq} Apache ActiveMQ
+The Apache Foundation
+\verb"http://activemq.apache.org/"
+
+
+
+
+\end{thebibliography}
+
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+\emph{DRAFT}\\
+
+
+\end{document}
