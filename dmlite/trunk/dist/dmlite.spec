@@ -4,7 +4,7 @@
 %{!?dmlite_test: %global dmlite_tests 0}
 
 Name:					dmlite
-Version:				0.7.0
+Version:				0.7.1
 Release:				2%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet

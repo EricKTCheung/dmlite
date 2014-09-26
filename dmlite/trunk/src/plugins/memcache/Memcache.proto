@@ -20,7 +20,7 @@ message SerialStat {
   optional int32 st_uid = 5;
   optional int32 st_gid = 6;
   optional int32 st_rdev = 7;
-  optional int32 st_size = 8;
+  optional int64 st_size = 8;
   optional int64 st_access_time = 9;
   optional int64 st_modified_time = 10;
   optional int64 st_change_time = 11;

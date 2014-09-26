@@ -5,7 +5,7 @@ project (dmlite)
 # Version
 set(dmlite_MAJOR 0)
 set(dmlite_MINOR 7)
-set(dmlite_PATCH 0)
+set(dmlite_PATCH 1)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
