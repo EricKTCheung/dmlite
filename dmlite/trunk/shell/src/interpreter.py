@@ -457,7 +457,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.6.3 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.0 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -587,7 +587,14 @@ class CdCommand(ShellCommand):
   def _execute(self, given):
     # change directory
     try:
-      self.interpreter.catalog.changeDir(given[0])
+      if given[0][0] == '/':
+        workingDir = ''
+      else:
+        workingDir = os.path.normpath(self.interpreter.catalog.getWorkingDir())
+        if workingDir[-1] != '/':
+          workingDir += '/'
+      path = os.path.normpath(workingDir + given[0])
+      self.interpreter.catalog.changeDir(path)
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
     return self.ok()
