@@ -293,8 +293,12 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-    serializeExtendedStat(meta, valMemc);
-    safeSetMemcachedFromKeyValue(key, valMemc);
+    
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either)
+    if (meta.stat.st_size > 0 ) {
+		serializeExtendedStat(meta, valMemc);
+    		safeSetMemcachedFromKeyValue(key, valMemc);
+    }
   }
   meta["normPath"] = absPath;
 
@@ -321,14 +325,18 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-    serializeExtendedStat(meta, valMemc);
-    safeSetMemcachedFromKeyValue(key, valMemc);
+   
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either)
+    if (meta.stat.st_size > 0 ) {
+             serializeExtendedStat(meta, valMemc);
+             safeSetMemcachedFromKeyValue(key, valMemc);
+     }
+     
   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return meta;
 }
-
 
 ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
@@ -348,8 +356,11 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
   {
     incrementFunctionCounter(EXTENDEDSTATBYRFN_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStatByRFN, rfn);
-    serializeExtendedStat(meta, valMemc);
-    safeSetMemcachedFromKeyValue(key, valMemc);
+   //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either) 
+   if (meta.stat.st_size > 0 ) {    
+	serializeExtendedStat(meta, valMemc);
+   	safeSetMemcachedFromKeyValue(key, valMemc);
+    }
   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
