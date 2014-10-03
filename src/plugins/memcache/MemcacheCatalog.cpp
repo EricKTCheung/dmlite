@@ -1,6 +1,7 @@
 /// @file    plugins/memcache/MemcacheCatalog.cpp
 /// @brief   memcached plugin.
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
+/// @author  Andrea Manzi <amanzi@cern.ch>
 
 #include <algorithm>
 #include <libgen.h>
@@ -293,12 +294,12 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-    
-    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either)
-    if (meta.stat.st_size > 0 ) {
-		serializeExtendedStat(meta, valMemc);
-    		safeSetMemcachedFromKeyValue(key, valMemc);
-    }
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
+    if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
+    else {              
+          serializeExtendedStat(meta, valMemc);
+          safeSetMemcachedFromKeyValue(key, valMemc);
+         }
   }
   meta["normPath"] = absPath;
 
@@ -326,13 +327,13 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
    
-    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either)
-    if (meta.stat.st_size > 0 ) {
-             serializeExtendedStat(meta, valMemc);
-             safeSetMemcachedFromKeyValue(key, valMemc);
-     }
-     
-  }
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
+    if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
+    else {       
+           serializeExtendedStat(meta, valMemc);
+           safeSetMemcachedFromKeyValue(key, valMemc);
+          }
+   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
   return meta;
@@ -356,9 +357,10 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
   {
     incrementFunctionCounter(EXTENDEDSTATBYRFN_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStatByRFN, rfn);
-   //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we don't cache empty dirs either) 
-   if (meta.stat.st_size > 0 ) {    
-	serializeExtendedStat(meta, valMemc);
+   //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
+   if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}    
+   else {
+  	serializeExtendedStat(meta, valMemc);
    	safeSetMemcachedFromKeyValue(key, valMemc);
     }
   }
