@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <title>DMLite Tutorial</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+<h1>DMLite tutorial <img alt="LOGO" src="dmlite.png" style="float: right" height="150" /></h1>
+
+<h2>Requirements</h2>
+<p>
+Installing the dmlite-devel RPM should push all the necessary build dependencies. You probably will need
+some plugins installed to do the tests, as dmlite-plugins-mysql, for instance, and configure them as
+explained in the <a href="https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite/Configuration">configuration guide</a>.
+</p>
+<p>
+The compilation commands shown assume that you have these components in their standard locations, and that the version of the
+Boost libraries is equal or higher than 1.41.<br/>
+For SL5, you can install boost141-devel from EPEL, but in that case you will need to add the parameter <code>-I /usr/include/boost141</code>
+</p>
+
+<h2>Tutorials</h2>
+<ul>
+  <li>How to use DMLite as backend
+    <ul>
+      <li><a href="backend_c.html">In C</a></li>
+      <li><a href="backend_cpp.html">In C++</a></li>
+      <li><a href="backend_python.html">In Python</a></li>
+    </ul>
+  </li>
+  <li><a href="plugin.html">How to write a new plugin</a></li>
+  <li><a href="../html/index.html" target="_blank">Doxygen Documentation</a></li>
+</ul>
+
+</body>
+</html>
