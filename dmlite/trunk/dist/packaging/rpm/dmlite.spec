@@ -272,6 +272,10 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Fri Oct 03 2014 Andrea Manzi <amanzi@cern.ch> - 0.7.1-1
+- Fix for wrong file size stored in Memcache
+- Fix for xroot third party copy when Memcache enabled 
+
 * Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-2
 - Push on Fedora/EPEL for 0.7.0
 - Fix ppc EPEL5 compilation issue
