@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # interpreter.py
 
 import pydmlite
@@ -9,43 +10,43 @@ import sys
 import re
 import time
 import dateutil.parser
+
 try:
-  import dpm2
+    import dpm2
 except:
-  pass
+    pass
 
 class DMLiteInterpreter:
   """
-  A class taking commands as strings and passing them to DMLite via pydmlite.
+      A class taking commands as strings and passing them to DMLite via pydmlite.
   """
-  
+
   def __init__(self, outputFunction, ConfigFile, quietMode = False):
     self.defaultConfigurationFile = ConfigFile
     self.write = outputFunction
     self.quietMode = quietMode
-    
     self.lastCompleted = 0
     self.lastCompletedState = 0
-    
+
     # collect all available commands into commands-array
     self.commands = []
     for (cname, cobj) in inspect.getmembers(sys.modules[__name__]):
       if inspect.isclass(cobj) and cname.endswith('Command') and cname != 'ShellCommand':
         self.commands.append(cobj(self))
-    
+
     # execute init command
     self.execute('init')
-    
+
   def execute(self, inputline):
     """Execute the given command.
     Return value: (message, error, exit shell)
     Last return value can be found in self.return"""
-    
+
     try:
       cmdline = shlex.split(inputline, True)
     except Exception, e:
       return self.error('Parsing error.')
-    
+
     if not cmdline:
       # empty command
       return self.ok()
@@ -992,7 +993,7 @@ class UtimeCommand(ShellCommand):
 class ACLCommand(ShellCommand):
   """Set or read the ACL of a file."""
   def _init(self):
-    self.parameters = ['Dfile', '*?ACL']
+    self.parameters = ['Dfile', '*?ACL', '*Ocommand:set:modify:delete']
 
   def getACL(self, interpreter, file):
     f = interpreter.catalog.extendedStat(file, False)
@@ -1072,43 +1073,134 @@ class ACLCommand(ShellCommand):
     return output
 
   def _execute(self, given):
-    try:
-      if len(given) == 1: # Get the ACL
-        filename = given[0]
-        f = self.interpreter.catalog.extendedStat(filename, False)
-        if not filename.startswith('/'):
-            filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
-        output = "# file: " + filename
-        try:
-            uid = pydmlite.boost_any()
-            uid.setUnsigned(f.stat.st_uid)
-            u = self.interpreter.authn.getUser('uid', uid)
-            uname = u.name
-        except Exception, e:
-            if f.stat.st_uid == 0:
-                uname = "root"
-            else:
-                uname = '???'
-        output += "\n# owner: %s (ID: %d)" % (uname, f.stat.st_uid)
-        try:
-            gid = pydmlite.boost_any()
-            gid.setUnsigned(f.stat.st_gid)
-            g = self.interpreter.authn.getGroup('gid', gid)
-            gname = g.name
-        except Exception, e:
-            if f.stat.st_gid == 0:
-                gname = "root"
-            else:
-                gname = '???'
-        output += "\n# group: %s (ID: %d)" % (gname, f.stat.st_gid)
-        self.ok(output)
-        return self.ok("\n".join(self.getACL(self.interpreter, filename)))
-      else: # Set the ACL
-        myacl = pydmlite.Acl(given[1])
-        self.interpreter.catalog.setAcl(given[0], myacl)
-        return self.ok()
-    except Exception, e:
-      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+      try:
+          filename = given[0]
+          f = self.interpreter.catalog.extendedStat(filename, False)
+
+          # Set the ACL
+          if len(given) > 1:
+            list_acl = f.acl.serialize().split(',')
+            try:
+                command = given[2]
+            except:
+                command = "modify"
+            if command == 'set':
+                list_acl = []
+            acls = given[1].split(',')
+            for acl in acls:
+                result = ""
+
+                default = False
+                if acl.startswith('default:') or acl.startswith('d:') :
+                    acl = acl[acl.find(':')+1:]
+                    default = True
+                if acl.find(':') < 0:
+                    continue
+                tag = acl[:acl.find(':')]
+                acl = acl[acl.find(':')+1:]
+                if acl.find(':') < 0:
+                    continue
+                id = acl[:acl.rfind(':')]
+                perm_rwx = acl[acl.find(':')+1:]
+                perm_count = 0
+                if 'r' in perm_rwx:
+                    perm_count += 4
+                if 'w' in perm_rwx:
+                    perm_count += 2
+                if 'x' in perm_rwx:
+                    perm_count += 1
+                perm = str(perm_count)
+
+                if tag in ['user', 'u'] and not id:
+                    if default:
+                        result = "a" + perm + str(f.stat.st_uid)
+                    else:
+                        result = "A" + perm + str(f.stat.st_uid)
+                elif tag in ['user', 'u']:
+                    if not id.isdigit():
+                        u = self.interpreter.authn.getUser(id)
+                        id = u.getString('uid','')
+                    if default:
+                        result = "b" + perm + id
+                    else:
+                        result = "B" + perm + id
+                elif tag in ['group', 'g'] and not id:
+                    if default:
+                        result = "c" + perm + str(f.stat.st_gid)
+                    else:
+                        result = "C" + perm + str(f.stat.st_gid)
+                elif tag in ['group', 'g']:
+                    if not id.isdigit():
+                        g = self.interpreter.authn.getGroup(id)
+                        id = g.getString('gid','')
+                    if default:
+                        result = "d" + perm + id
+                    else:
+                        result = "D" + perm + id
+                elif tag in ['mask', 'm']:
+                    if default:
+                        result = "e" + perm + '0'
+                    else:
+                        result = "E" + perm + '0'
+                elif tag in ['other', 'o']:
+                    if default:
+                        result = "f" + perm + '0'
+                    else:
+                        result = "F" + perm + '0'
+
+                if command == 'delete':
+                    for p in list_acl:
+                        p2 = p[:1] + "[0-7]" + p[2:]
+                        if re.search(p2, result):
+                            list_acl.remove(p)
+                            break
+                else:
+                    modification = False
+                    for i, p in enumerate(list_acl):
+                        p = p[:1] + "[0-7]" + p[2:]
+                        if re.search(p, result):
+                            list_acl[i] = result
+                            modification = True
+                            break
+                    if not modification:
+                        list_acl.append(result)
+            list_acl.sort()
+            myacl = pydmlite.Acl(','.join(list_acl))
+            self.interpreter.catalog.setAcl(filename, myacl)
+
+
+
+          # Get the ACL
+          if not filename.startswith('/'):
+              filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
+          output = "# file: " + filename
+          try:
+              uid = pydmlite.boost_any()
+              uid.setUnsigned(f.stat.st_uid)
+              u = self.interpreter.authn.getUser('uid', uid)
+              uname = u.name
+          except Exception, e:
+              if f.stat.st_uid == 0:
+                  uname = "root"
+              else:
+                  uname = '???'
+          output += "\n# owner: %s (ID: %d)" % (uname, f.stat.st_uid)
+          try:
+              gid = pydmlite.boost_any()
+              gid.setUnsigned(f.stat.st_gid)
+              g = self.interpreter.authn.getGroup('gid', gid)
+              gname = g.name
+          except Exception, e:
+              if f.stat.st_gid == 0:
+                  gname = "root"
+              else:
+                  gname = '???'
+          output += "\n# group: %s (ID: %d)" % (gname, f.stat.st_gid)
+          self.ok(output)
+          return self.ok("\n".join(self.getACL(self.interpreter, filename)))
+
+      except Exception, e:
+          return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 
 class SetGuidCommand(ShellCommand):
