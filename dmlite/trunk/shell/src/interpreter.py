@@ -161,6 +161,7 @@ class DMLiteInterpreter:
     self.catalog.closeDir(hDir)
     return flist
 
+
 class ShellCommand:
   """
   An abstract class for deriving classes for supported shell commands.
@@ -437,6 +438,7 @@ class ShellCommand:
     """Writes a syntax error message to the output. Returns False."""
     return self.error(msg + '\nExpected syntax is: ' + self.syntax())
 
+
 ### Specific commands to the DMLite Shell ###
 
 class InitCommand(ShellCommand):
@@ -457,7 +459,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.0 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.1 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -828,8 +830,11 @@ class InfoCommand(ShellCommand):
         u = self.interpreter.authn.getUser('uid', uid)
         uname = u.name
       except Exception, e:
-        uname = '???'
-      self.ok('User ID:    ' + str(f.stat.st_uid) + ' (' + uname + ')')
+         if f.stat.st_uid == 0:
+            uname = "root"
+         else:
+            uname = '???'
+      self.ok('User:       %s (ID: %d)' %(uname, f.stat.st_uid))
 
       try:
         gid = pydmlite.boost_any()
@@ -837,8 +842,11 @@ class InfoCommand(ShellCommand):
         g = self.interpreter.authn.getGroup('gid', gid)
         gname = g.name
       except Exception, e:
-        gname = '???'
-      self.ok('Group ID:   ' + str(f.stat.st_gid) + ' (' + gname + ')')
+          if f.stat.st_gid == 0:
+            gname = "root"
+          else:
+            gname = '???'
+      self.ok('Group:      %s (ID: %d)' %(gname, f.stat.st_gid))
       self.ok('CSumType:   ' + str(f.csumtype))
       self.ok('CSumValue:  ' + str(f.csumvalue))
       self.ok('ATime:      ' + time.ctime(f.stat.getATime()))
@@ -860,10 +868,8 @@ class InfoCommand(ShellCommand):
           self.ok('            Status: ' + str(r.status))
           self.ok('            Type:   ' + str(r.type))
       
-      if not f.acl:
-        self.ok('ACL:        Empty')
-      else:
-        self.ok('ACL:        ' + f.acl.serialize())
+      a=ACLCommand('/')
+      self.ok('ACL:        ' + "\n            ".join(a.getACL(self.interpreter, filename)))
       
       return self.ok(' ')
       
@@ -987,13 +993,117 @@ class ACLCommand(ShellCommand):
   """Set or read the ACL of a file."""
   def _init(self):
     self.parameters = ['Dfile', '*?ACL']
-    
+
+  def getACL(self, interpreter, file):
+    f = interpreter.catalog.extendedStat(file, False)
+    if not f.acl:
+        return ['No ACL']
+    output = []
+    perm = {0:"---",
+            1:"--x",
+            2:"-w-",
+            3:"-wx",
+            4:"r--",
+            5:"r-x",
+            6:"rw-",
+            7:"rwx"}
+    mask = "rwx"
+    defaultmask = "rwx"
+    for a in f.acl:
+        if a.type == 5:
+            mask = perm[a.perm]
+        elif a.type == 37:
+            defaultmask = perm[a.perm]
+    for a in f.acl:
+        line = ""
+        if a.type > 32:
+            line += "default:"
+        if a.type in [1,2,33,34]:
+            line += "user:"
+        elif a.type in [3,4,35,36]:
+            line += "group:"
+        elif a.type in [5,37]:
+            line += "mask:"
+        elif a.type in [6,38]:
+            line += "other:"
+        if a.type in [2,34]:
+            try:
+                uid = pydmlite.boost_any()
+                uid.setUnsigned(a.id)
+                u = interpreter.authn.getUser('uid', uid)
+                uname = u.name
+            except Exception, e:
+                if a.id == 0:
+                    uname = "root"
+                else:
+                    uname = '??? (ID: %d)' % a.id
+            line += uname
+        elif a.type in [4, 36]:
+            try:
+                gid = pydmlite.boost_any()
+                gid.setUnsigned(a.id)
+                g = interpreter.authn.getGroup('gid', gid)
+                gname = g.name
+            except Exception, e:
+                if a.id == 0:
+                    gname = "root"
+                else:
+                    gname = '??? (ID: %d)' % a.id
+            line += gname
+        permission = perm[a.perm]
+        line += ":" + permission
+
+        effective = "\t\t\t#effective:"
+        masked_perm = False
+        if (a.type in [2,3,4] and permission != mask and mask !=  7) or (a.type in [34,35,36] and permission != defaultmask and defaultmask != 7):
+            for p in ['r', 'w', 'x']:
+                if p in permission:
+                    if p not in mask:
+                        effective += "-"
+                        masked_perm = True
+                    else:
+                        effective += p
+                else:
+                    effective += "-"
+        if masked_perm:
+            line += effective
+        output.append(line)
+    #output.append(f.acl.serialize())
+    return output
+
   def _execute(self, given):
     try:
-      if len(given) == 1:
-        f = self.interpreter.catalog.extendedStat(given[0], False)
-        return self.ok(f.acl.serialize())
-      else:
+      if len(given) == 1: # Get the ACL
+        filename = given[0]
+        f = self.interpreter.catalog.extendedStat(filename, False)
+        if not filename.startswith('/'):
+            filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
+        output = "# file: " + filename
+        try:
+            uid = pydmlite.boost_any()
+            uid.setUnsigned(f.stat.st_uid)
+            u = self.interpreter.authn.getUser('uid', uid)
+            uname = u.name
+        except Exception, e:
+            if f.stat.st_uid == 0:
+                uname = "root"
+            else:
+                uname = '???'
+        output += "\n# owner: %s (ID: %d)" % (uname, f.stat.st_uid)
+        try:
+            gid = pydmlite.boost_any()
+            gid.setUnsigned(f.stat.st_gid)
+            g = self.interpreter.authn.getGroup('gid', gid)
+            gname = g.name
+        except Exception, e:
+            if f.stat.st_gid == 0:
+                gname = "root"
+            else:
+                gname = '???'
+        output += "\n# group: %s (ID: %d)" % (gname, f.stat.st_gid)
+        self.ok(output)
+        return self.ok("\n".join(self.getACL(self.interpreter, filename)))
+      else: # Set the ACL
         myacl = pydmlite.Acl(given[1])
         self.interpreter.catalog.setAcl(given[0], myacl)
         return self.ok()
@@ -1404,7 +1514,7 @@ class GroupInfoCommand(ShellCommand):
             status = ' (BANNED - LOCAL_BAN)'
           else:
             status = ''
-          self.ok(' - %s\t%s\t%s' % (str(gid), g.name, status))
+          self.ok(' - %s\t(ID: %d)\t%s' % (g.name, gid, status))
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -1449,7 +1559,7 @@ class UserInfoCommand(ShellCommand):
             status = ' (BANNED - LOCAL_BAN)'
           else:
             status = ''
-          self.ok(' - %s\t%s\t%s' % (str(uid), u.name, status))
+          self.ok(' - %s\t(ID: %d)\t%s' % (u.name, uid, status))
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
