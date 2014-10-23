@@ -67,6 +67,11 @@ public:
     	return instance;
     }
 
+    static void set(Logger *inst) {
+      Logger *old = instance;
+      instance = inst;
+      if (old) delete old;
+    }
     /// @return the current debug level
     short getLevel() const
     {
