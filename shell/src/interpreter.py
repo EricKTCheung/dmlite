@@ -198,11 +198,11 @@ class ShellCommand:
     # *Tparameter name
     # where * is added for optional parameters and T defines the
     # type of the parameter (for automatic checks and completion):
-    # f local file/directory
-    # d DMLite file/directory
+    #   f local file/directory
+    #   d DMLite file/directory
     #   c DMLite shell command
     #   o one of the options in the format ofieldname:option1:option2:option3
-    # ? other, no checks done
+    #   ? other, no checks done
     # Note: use uppercase letter for a check if file/command/.. exists
     self.parameters = []
     
@@ -445,22 +445,34 @@ class ShellCommand:
 class InitCommand(ShellCommand):
   """Initialise the DMLite shell with a given configuration file."""
   def _init(self):
-    self.parameters = ['*fconfiguration file']
+    self.parameters = ['*OLogLevel=0:0:1:2:3:4', '*Fconfiguration_file=' + self.interpreter.defaultConfigurationFile]
     
   def _execute(self, given):
-    # if config file parameter not given, use default one
-    given.append(self.interpreter.defaultConfigurationFile)   
-
-    # initialise the necessary dmlite objects with the configuration file
-    if not os.path.isfile(given[0]):
-      return self.syntaxError('Configuration file "' + given[0] + '" is not a valid file.')
-    self.interpreter.configurationFile = given[0]
+    if len(given) == 0:
+        configFile =  self.interpreter.defaultConfigurationFile
+        log = "0"
+    elif len(given) == 1:
+        configFile =  self.interpreter.defaultConfigurationFile
+        log = given[0]
+    else:
+        log = given[0]
+        configFile =  given[1]
+    conf = open(configFile, 'r')
+    confTmp = open("/tmp/dmlite.conf", 'w')
+    for line in conf:
+        if line.startswith("LogLevel"):
+            confTmp.write("LogLevel %s\n" % log)
+        else:
+            confTmp.write(line) 
+    conf.close()
+    confTmp.close()
+    self.interpreter.configurationFile = "/tmp/dmlite.conf"
 
     # check the existance of the pydmlite library
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.1 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.2 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -489,7 +501,7 @@ class InitCommand(ShellCommand):
 
     try:
       self.interpreter.catalog = self.interpreter.stackInstance.getCatalog()
-      self.interpreter.catalog.changeDir('/')
+      self.interpreter.catalog.changeDir('')
     except Exception, e:
       return self.error('Could not initialise the file catalog.\n' + e.__str__())
 
@@ -508,10 +520,13 @@ class InitCommand(ShellCommand):
         self.ok('\nWARNING: Could not initialise the pool manager. The functions like pools, modifypool, addpool, qryconf, ... will not work.\n' + e.__str__() + '\n')
 
     if not self.interpreter.quietMode:
-      self.ok('Using configuration "' + self.interpreter.configurationFile + '" as root.')
+      self.ok('Using configuration "' + configFile + '" as root.')
 
     if 'dpm2' not in sys.modules:
         self.ok("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work: fsadd, fsdel, fsmodify (and qryconf partially).")
+
+    if log != '0':
+        self.ok("Log Level set to %s." % log)
 
     return self.ok() 
 
@@ -519,7 +534,7 @@ class InitCommand(ShellCommand):
 class HelpCommand(ShellCommand):
   """Print a help text or descriptions for single commands."""
   def _init(self):
-    self.parameters = ['*ccommand']
+    self.parameters = ['*Ccommand']
 
   def _execute(self, given):
     if len(given) == 0:
@@ -529,16 +544,10 @@ class HelpCommand(ShellCommand):
       return self.ok(' ')
 
     else:
-      foundOne = False
       for c in self.interpreter.commands:
         if c.name.startswith(given[0]):
-          foundOne = True
           self.ok(c.moreHelp() + '\n')
-
-      if not foundOne:
-        return self.error('Command "' + given[0] + '" not found.')
-      else:
-        return self.ok()
+      return self.ok()
 
 
 class VersionCommand(ShellCommand):
@@ -590,13 +599,17 @@ class CdCommand(ShellCommand):
   def _execute(self, given):
     # change directory
     try:
+      path = given[0]
       if given[0][0] == '/':
-        workingDir = ''
+        self.interpreter.catalog.changeDir('')
+        path = path[1:]
+      """  workingDir = ''
       else:
         workingDir = os.path.normpath(self.interpreter.catalog.getWorkingDir())
         if workingDir[-1] != '/':
           workingDir += '/'
-      path = os.path.normpath(workingDir + given[0])
+      path = '.' + os.path.normpath(workingDir + given[0])
+      print path"""
       self.interpreter.catalog.changeDir(path)
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -630,7 +643,7 @@ class LsCommand(ShellCommand):
 class MkDirCommand(ShellCommand):
   """Create a new directory."""
   def _init(self):
-    self.parameters = ['ddirectory','*?parent']
+    self.parameters = ['ddirectory','*Oparent:p:parent:parents:-p:--parent:--parents']
     
   def _execute(self, given):
     try:
@@ -643,7 +656,7 @@ class MkDirCommand(ShellCommand):
       # Parent missing
       if code == 2:
         parent = False
-        if len(given) == 2 and given[1].lower() in ('p','parent', '-p', '--parent'):
+        if len(given) == 2 and given[1].lower() in ('p','parent','parents','-p','--parent','--parents'):
           listDir = []
           while(directory != ''):
               listDir.append(directory)
@@ -664,7 +677,7 @@ class MkDirCommand(ShellCommand):
 class UnlinkCommand(ShellCommand):
   """Remove a file from the database."""
   def _init(self):
-    self.parameters = ['Dfile','*?force']
+    self.parameters = ['Dfile','*Oforce:f:force:-f:--force']
     
   def _execute(self, given):
     try:
@@ -993,7 +1006,7 @@ class UtimeCommand(ShellCommand):
 class ACLCommand(ShellCommand):
   """Set or read the ACL of a file."""
   def _init(self):
-    self.parameters = ['Dfile', '*?ACL', '*Ocommand:set:modify:delete']
+    self.parameters = ['Dfile', '*?ACL', '*Ocommand=modify:set:modify:delete']
 
   def getACL(self, interpreter, file):
     f = interpreter.catalog.extendedStat(file, False)
