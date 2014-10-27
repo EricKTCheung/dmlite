@@ -658,7 +658,7 @@ class MkDirCommand(ShellCommand):
         parent = False
         if len(given) == 2 and given[1].lower() in ('p','parent','parents','-p','--parent','--parents'):
           listDir = []
-          while(directory != ''):
+          while(directory != '' and directory != '/'):
               listDir.append(directory)
               directory = os.path.dirname(directory)
           for dir in reversed(listDir):
