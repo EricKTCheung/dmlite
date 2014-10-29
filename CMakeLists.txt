@@ -30,6 +30,10 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 #---------------------------------
+#--------------------------------
+# needed for Boost 2.8
+set (Boost_NO_BOOST_CMAKE ON)
+#---------------------------------
 # ---------------- Find Boost 1.41
 set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
 set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
