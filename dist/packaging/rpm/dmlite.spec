@@ -4,7 +4,7 @@
 %{!?dmlite_test: %global dmlite_tests 0}
 
 Name:					dmlite
-Version:				0.7.1
+Version:				0.7.2
 Release:				2%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
@@ -272,6 +272,9 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Thu Nov 13 2014 Andrea Manzi <amanzi@cern.ch> - 0.7.2-1
+- Fix logname on RFIO.cpp
+
 * Fri Oct 03 2014 Andrea Manzi <amanzi@cern.ch> - 0.7.1-1
 - Fix for wrong file size stored in Memcache
 - Fix for xroot third party copy when Memcache enabled 
