@@ -1921,7 +1921,7 @@ class ReplicateCommand(ShellCommand):
             return self.error('There is no pool manager.')
 	
 	self.interpreter.securityContext.user.name = "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi"
-
+	self.interpreter.stackInstance.setSecurityContext(self.interpreter.securityContext)
 	print self.interpreter.securityContext.user.name
 	poolname = pydmlite.boost_any()
 	poolname.setString(given[0])
@@ -1930,15 +1930,17 @@ class ReplicateCommand(ShellCommand):
 	filesystem.setString(given[1])
         self.interpreter.stackInstance.set("filesystem",filesystem)
 	replicate = pydmlite.boost_any()
-	replicate.setBool(True)
+	replicate.setString("replicate")
         self.interpreter.stackInstance.set("replicate",replicate)
+	try:
+	        loc = self.interpreter.poolManager.whereToWrite(given[2])
+        except Exception, e:
+            return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-        loc = self.interpreter.poolManager.whereToWrite(given[2])
-
-
-        print loc[0].url.domain
-	print loc[0].url.path
-	destination = loc[0].url.domain+'/'+loc[0].url.path;
+	destination = loc[0].url.toString()
+	print destination
+	destination = urllib.unquote(destination)
+	destination = 'http://'+destination
         res2 = Response()
 	c = pycurl.Curl()
         c.setopt(c.SSLCERT, '/etc/grid-security/hostcertFull.pem')
