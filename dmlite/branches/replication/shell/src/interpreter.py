@@ -10,6 +10,8 @@ import sys
 import re
 import time
 import dateutil.parser
+import pycurl
+import urllib
 
 try:
     import dpm2
@@ -472,7 +474,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.2 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.3 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -1878,5 +1880,77 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
                 self.ok('Filesystem deleted')
             else:
                 self.error('Filesystem deleted.')
+        except Exception, e:
+            return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+### Replicate and Drain commands ###
+
+
+class Response(object):
+  """ utility class to collect the response """
+  def __init__(self):
+    self.chunks = []
+  def callback(self, chunk):
+    self.chunks.append(chunk)
+  def content(self):
+    return ''.join(self.chunks)
+  def headers(self):
+    s = ''.join(self.chunks)
+    print s
+    header_dict = {}
+    for line in s.split('\r\n'):
+      try:
+        key,val = line.split(':',1)
+        header_dict[key] = val
+      except:
+        pass
+
+    return header_dict
+
+class ReplicateCommand(ShellCommand):
+    """Replicate a File to a specific pool/filesystem"""
+
+    def _init(self):
+        self.parameters = ['?poolname',  '?filesystem', '?filename']
+
+    def _execute(self, given):
+	if self.interpreter.stackInstance is None:
+            return self.error('There is no stack Instance.')
+
+        if self.interpreter.poolManager is None:
+            return self.error('There is no pool manager.')
+	
+	self.interpreter.securityContext.user.name = "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi"
+
+	print self.interpreter.securityContext.user.name
+	poolname = pydmlite.boost_any()
+	poolname.setString(given[0])
+        self.interpreter.stackInstance.set("pool",poolname)
+	filesystem = pydmlite.boost_any()
+	filesystem.setString(given[1])
+        self.interpreter.stackInstance.set("filesystem",filesystem)
+	replicate = pydmlite.boost_any()
+	replicate.setBool(True)
+        self.interpreter.stackInstance.set("replicate",replicate)
+
+        loc = self.interpreter.poolManager.whereToWrite(given[2])
+
+
+        print loc[0].url.domain
+	print loc[0].url.path
+	destination = loc[0].url.domain+'/'+loc[0].url.path;
+        res2 = Response()
+	c = pycurl.Curl()
+        c.setopt(c.SSLCERT, '/etc/grid-security/hostcertFull.pem')
+        c.setopt(c.HEADERFUNCTION, res2.callback)
+        c.setopt(c.SSL_VERIFYPEER, 0)
+        c.setopt(c.SSL_VERIFYHOST, 0)
+        c.setopt(c.CUSTOMREQUEST, 'COPY')
+        c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
+        c.setopt(c.FOLLOWLOCATION, 1)
+        c.setopt(c.URL, 'https://dpm-puppet01.cern.ch/'+given[2])
+
+        try:
+                c.perform()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
