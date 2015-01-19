@@ -1988,10 +1988,12 @@ class ReplicateCommand(ShellCommand):
 	print destination
         res2 = Response()
 	c = pycurl.Curl()
-        c.setopt(c.SSLCERT, '/etc/grid-security/hostcertFull.pem')
+	#using DPM cert locations
+	c.setopt(c.SSLKEY,'/etc/grid-security/dpmmgr/dpmkey.pem')
+        c.setopt(c.SSLCERT, '/etc/grid-security/dpmmgr/dpmcert.pem')
         c.setopt(c.HEADERFUNCTION, res2.callback)
         c.setopt(c.SSL_VERIFYPEER, 0)
-        c.setopt(c.SSL_VERIFYHOST, 0)
+        c.setopt(c.SSL_VERIFYHOST, 2)
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
