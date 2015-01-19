@@ -1936,11 +1936,13 @@ class ReplicateCommand(ShellCommand):
 	        loc = self.interpreter.poolManager.whereToWrite(given[2])
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
+	
 	destination = loc[0].url.toString()
-	print destination
 	destination = urllib.unquote(destination)
+	#create correct destination url
+	destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
 	destination = 'http://'+destination
+	print destination
         res2 = Response()
 	c = pycurl.Curl()
         c.setopt(c.SSLCERT, '/etc/grid-security/hostcertFull.pem')
