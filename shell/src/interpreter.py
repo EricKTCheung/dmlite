@@ -1911,7 +1911,7 @@ class ReplicateCommand(ShellCommand):
     """Replicate a File to a specific pool/filesystem"""
 
     def _init(self):
-        self.parameters = ['?poolname',  '?filesystem', '?filename']
+        self.parameters = ['?filename', '*?poolname',  '*?filesystem', '*?filetype', '*?lifetime' ,'*?spacetoken']
 
     def _execute(self, given):
 	if self.interpreter.stackInstance is None:
@@ -1920,20 +1920,44 @@ class ReplicateCommand(ShellCommand):
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 	
-	self.interpreter.securityContext.user.name = "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi"
-	self.interpreter.stackInstance.setSecurityContext(self.interpreter.securityContext)
-	print self.interpreter.securityContext.user.name
-	poolname = pydmlite.boost_any()
-	poolname.setString(given[0])
-        self.interpreter.stackInstance.set("pool",poolname)
-	filesystem = pydmlite.boost_any()
-	filesystem.setString(given[1])
-        self.interpreter.stackInstance.set("filesystem",filesystem)
+	securityContext= self.interpreter.stackInstance.getSecurityContext()
+	securityContext.user.name = "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi"
+	self.interpreter.stackInstance.setSecurityContext(securityContext)
+
 	replicate = pydmlite.boost_any()
-	replicate.setString("replicate")
+        replicate.setBool(True)
         self.interpreter.stackInstance.set("replicate",replicate)
+	
+	if len(given) >= 2:
+		#pool
+		poolname = pydmlite.boost_any()
+		poolname.setString(given[1])
+        	self.interpreter.stackInstance.set("pool",poolname)
+	if len(given) >= 3:
+		#filestystem
+		filesystem = pydmlite.boost_any()
+		filesystem.setString(given[2])
+        	self.interpreter.stackInstance.set("filesystem",filesystem)
+	if len(given) >= 4:
+
+		#filetype
+		filetype = pydmlite.boost_any()
+	        filetype.setString(given[3])
+		self.interpreter.stackInstance.set("f_type",filetype)
+	if len(given) >= 5:
+
+		#lifetime
+		lifetime = pydmlite.boost_any()
+        	lifetime.setString(given[4])
+	        self.interpreter.stackInstance.set("lifetime",lifetime)
+	if len(given) >= 6:
+		#spacetoken
+		spacetoken = pydmlite.boost_any()
+	        spacetoken.setString(given[5])
+	        self.interpreter.stackInstance.set("UserSpaceTokenDescription",spacetoken)
+
 	try:
-	        loc = self.interpreter.poolManager.whereToWrite(given[2])
+	        loc = self.interpreter.poolManager.whereToWrite(given[0])
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -1952,7 +1976,7 @@ class ReplicateCommand(ShellCommand):
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://dpm-puppet01.cern.ch/'+given[2])
+        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+given[0])
 
         try:
                 c.perform()
