@@ -1928,11 +1928,17 @@ class ReplicateCommand(ShellCommand):
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 	adminUserName = None
+	dnisroot = None
 
     	for line in conf:
         	if line.startswith("AdminUsername"):
             		adminUserName = line[len("AdminUserName")+1:len(line)].strip()
+		if line.startswith("HostDNIsRoot"):
+			dnisroot=  line[len("HostDNIsRoot")+1:len(line)].strip()
 	conf.close()
+	
+	if (dnisroot is None) or (dnisroot == 'no'):
+		return self.error('HostDNIsRoot must be set to yes on the configuration files\nParameter(s): ' + ', '.join(given))
 
 	if  adminUserName is None:
 		return self.error('No AdminUserName defined on the configuration files\nParameter(s): ' + ', '.join(given))
