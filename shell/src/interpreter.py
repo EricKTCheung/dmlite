@@ -464,8 +464,6 @@ class InitCommand(ShellCommand):
     for line in conf:
         if line.startswith("LogLevel"):
             confTmp.write("LogLevel %s\n" % log)
-        elif line.startswith("AdminUserName"):
-            self.interpreter.adminUserName = line[len("AdminUserName")+1:len(line)]
 	else:
             confTmp.write(line) 
     conf.close()
