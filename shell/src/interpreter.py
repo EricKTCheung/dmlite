@@ -464,7 +464,9 @@ class InitCommand(ShellCommand):
     for line in conf:
         if line.startswith("LogLevel"):
             confTmp.write("LogLevel %s\n" % log)
-        else:
+        elif line.startswith("AdminUserName"):
+            self.interpreter.adminUserName = line[len("AdminUserName")+1:len(line)]
+	else:
             confTmp.write(line) 
     conf.close()
     confTmp.close()
@@ -1919,9 +1921,26 @@ class ReplicateCommand(ShellCommand):
 
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-	
+
+
+	#getting admin user name from configuration
+	try :
+		conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
+        except Exception, e:
+        	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+	adminUserName = None
+
+    	for line in conf:
+        	if line.startswith("AdminUsername"):
+            		adminUserName = line[len("AdminUserName")+1:len(line)].strip()
+	conf.close()
+
+	if  adminUserName is None:
+		return self.error('No AdminUserName defined on the configuration files\nParameter(s): ' + ', '.join(given))
+		
 	securityContext= self.interpreter.stackInstance.getSecurityContext()
-	securityContext.user.name = "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi"
+	securityContext.user.name = adminUserName
 	self.interpreter.stackInstance.setSecurityContext(securityContext)
 
 	replicate = pydmlite.boost_any()
