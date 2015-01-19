@@ -1965,13 +1965,34 @@ class ReplicateCommand(ShellCommand):
 
 		#filetype
 		filetype = pydmlite.boost_any()
-	        filetype.setString(given[3])
+		#check if the file type is correct		
+		if (given[3] ==  'V') or (given[3] ==  'D') or (given[3] ==  'P'):
+	        	filetype.setString(given[3])
+		else:
+			return self.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)\nParameter(s): ' + ', '.join(given))
+		
 		self.interpreter.stackInstance.set("f_type",filetype)
 	if len(given) >= 5:
 
 		#lifetime
 		lifetime = pydmlite.boost_any()
-        	lifetime.setString(given[4])
+		_lifetime = given[4]
+		if _lifetime == 'Inf':
+			_lifetime= 0x7FFFFFFF
+		elif _lifetime.endswith('y'):
+			_lifetime=_lifetime[0:_lifetime.index('y')]
+			_lifetime= long(_lifetime) * 365 * 86400
+		elif given[4].endswith('m'):
+			_lifetime=_lifetime[0:_lifetime.index('m')]
+                        _lifetime= long(_lifetime) * 30 * 86400   
+		elif given[4].endswith('d'):
+			_lifetime=_lifetime[0:_lifetime.index('d')]
+                        _lifetime= long(_lifetime) * 86400 
+		elif given[4].endswith('h'):
+			_lifetime=_lifetime[0:_lifetime.index('h')]
+                        _lifetime= long(_lifetime) * 3600
+ 
+        	lifetime.setLong(_lifetime)
 	        self.interpreter.stackInstance.set("lifetime",lifetime)
 	if len(given) >= 6:
 		#spacetoken
