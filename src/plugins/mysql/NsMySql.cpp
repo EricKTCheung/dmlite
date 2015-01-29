@@ -3,6 +3,7 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <mysql/mysql.h>
 #include <time.h>
+#include <dmlite/cpp/utils/checksums.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <list>
 #include <string>
@@ -1079,8 +1080,8 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
     stmt.execute();
   }
 
-  // If there were any checksums in list of attributes which have a legacy 2
-  // character type, set the first one in the legacy csumtype, csumvalue column
+  // If there were any checksums in list of attributes which have a legacy short
+  // type name set the first of them in the legacy csumtype, csumvalue columns
   std::vector<std::string> keys = attr.getKeys();
   std::string shortCsumType;
   std::string csumValue;
@@ -1089,7 +1090,7 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
     if (keys[i].compare(0, 9, "checksum.") == 0) {
       std::string csumXattr = keys[i];
       shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
-      if (shortCsumType.length() == 2) {
+      if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
         csumValue     = attr.getString(csumXattr);
         break;
       }
