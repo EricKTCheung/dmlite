@@ -306,6 +306,8 @@ ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (
   xStat.stat.st_ino   = dpnsStat.fileid;
   xStat.stat.st_mode  = dpnsStat.filemode;
   xStat.stat.st_size  = dpnsStat.filesize;
+  xStat.csumtype      = dpnsStat.csumtype;
+  xStat.csumvalue     = dpnsStat.csumvalue;
   xStat.status  = static_cast<ExtendedStat::FileStatus>(dpnsStat.status);
   xStat["type"] = dpnsStat.fileclass;
 
