@@ -33,16 +33,8 @@ const std::string MemcacheCommon::keyFromString(const char* preKey,
     const std::string& key)
 {
   std::stringstream streamKey;
-  std::string key_path;
 
-  const unsigned int strlen_path = key.length();
-  
-  if (strlen_path > 200) 
-	key_path.append(md5(key.c_str()));
-  else 
-	key_path.append(key);
-
-  streamKey << preKey << ":" << key_path;
+  streamKey << preKey << ":" << key;
 
   return streamKey.str();
 }
