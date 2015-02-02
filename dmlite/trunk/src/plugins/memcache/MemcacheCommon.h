@@ -19,6 +19,7 @@
 #include "Memcache.pb.h"
 
 #include "utils/logger.h"
+#include <dmlite/common/md5.h>
 
 namespace dmlite {
 
