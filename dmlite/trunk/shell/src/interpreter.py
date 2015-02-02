@@ -2028,3 +2028,14 @@ class ReplicateCommand(ShellCommand):
                 c.perform()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+
+class DrainServerCommand(ShellCommand):
+    """Drain a specific diskserver/pool/filesystem"""
+
+    def _init(self):
+        self.parameters = ['?diskserver', '*?poolname',  '*?filesystem', '*?gid', '*?group' ,'*?spacetoken', '*?size']
+
+    def _execute(self, given):
+        if self.interpreter.stackInstance is None:
+            return self.error('There is no stack Instance.')
