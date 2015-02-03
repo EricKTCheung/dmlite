@@ -21,7 +21,7 @@ StdIOFactory::StdIOFactory(): passwd_("default"), useIp_(true)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Ctor");
   Cthread_init();
-  
+
   setenv("CSEC_MECH", "ID", 1);
 }
 
@@ -36,9 +36,9 @@ StdIOFactory::~StdIOFactory()
 
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  
+
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
-  
+
   if (key == "TokenPassword") {
     this->passwd_ = value;
   }
@@ -93,7 +93,7 @@ std::string StdIODriver::getImplId() const throw ()
 void StdIODriver::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
   this->secCtx_ = ctx;
-  
+
 }
 
 
@@ -104,7 +104,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
                                         mode_t mode) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " pfn:" << pfn);
-  
+
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
         throw DmException(EACCES, "Missing token");
@@ -124,7 +124,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
             this->useIp_?"IP":"DN");
 
   }
-  
+
   // Create
   return new StdIOHandler(pfn, flags, mode);
 }
@@ -134,11 +134,11 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
 void StdIODriver::doneWriting(const Location& loc) throw (DmException)
 {
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, " loc:" << loc.toString());
-  
+
   struct dpm_filestatus     *statuses;
   int                        nReplies;
   std::string                sfn;
-  
+
   if (loc.empty())
     throw DmException(EINVAL, "Empty location");
 
@@ -150,15 +150,15 @@ void StdIODriver::doneWriting(const Location& loc) throw (DmException)
   // Need the dpm token
   std::string token = loc[0].url.query.getString("dpmtoken");
   if (token.empty())
-    throw DmException(EINVAL, "dpmtoken not specified"); 
+    throw DmException(EINVAL, "dpmtoken not specified");
 
 
   // Workaround... putdone in this context should be invoked by root
   // to make it work also in the cases when the client is unknown (nobody)
-  
+
   FunctionWrapper<int> reset(dpm_client_resetAuthorizationId);
   reset();
-  
+
   const char* sfnPtr[] = { sfn.c_str() };
   FunctionWrapper<int, char*, int, char**, int*, dpm_filestatus**>
     (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
@@ -167,7 +167,7 @@ void StdIODriver::doneWriting(const Location& loc) throw (DmException)
      " status[0]:" << (nReplies > 0 ? statuses->status : -1) <<
      " errstring: '" << (statuses->errstring != NULL ? statuses->errstring : "") << "'"
     );
-     
+
   dpm_free_filest(nReplies, statuses);
 }
 
@@ -185,9 +185,9 @@ void StdIODriver::setStackInstance(StackInstance* si) throw (DmException)
 StdIOHandler::StdIOHandler(const std::string& path,
                            int flags, mode_t mode) throw (DmException):
   eof_(false)
-{ 
+{
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " path:" << path);
-  
+
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1)
     throw DmException(errno, "Could not open %s", path.c_str());
@@ -211,12 +211,18 @@ void StdIOHandler::close() throw (DmException)
 }
 
 
+int StdIOHandler::fileno() throw (DmException)
+{
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_);
+    return this->fd_;
+}
+
 
 struct stat StdIOHandler::fstat() throw (DmException)
 {
-  
+
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_);
-  
+
   struct stat st;
   ::fstat(this->fd_, &st);
   return st;
@@ -227,16 +233,16 @@ struct stat StdIOHandler::fstat() throw (DmException)
 size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::read(this->fd_, buffer, count);
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
     throw DmException(errno, "%s", errbuffer);
   }
-  
+
   eof_ = (static_cast<size_t>(nbytes) < count);
-  
+
   return static_cast<size_t>(nbytes);
 }
 
@@ -245,7 +251,7 @@ size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
 size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::write(this->fd_, buffer, count);
   if (nbytes < 0) {
     char errbuffer[128];
@@ -261,7 +267,7 @@ size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
 size_t StdIOHandler::readv(const struct iovec* vector, size_t count) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::readv(this->fd_, vector, count);
   if (nbytes < 0) {
     char errbuffer[128];
@@ -277,7 +283,7 @@ size_t StdIOHandler::readv(const struct iovec* vector, size_t count) throw (DmEx
 size_t StdIOHandler::writev(const struct iovec* vector, size_t count) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::writev(this->fd_, vector, count);
   if (nbytes < 0) {
     char errbuffer[128];
@@ -293,7 +299,7 @@ size_t StdIOHandler::writev(const struct iovec* vector, size_t count) throw (DmE
 size_t StdIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::pread(this->fd_, buffer, count, offset);
   if (nbytes < 0) {
     char errbuffer[128];
@@ -309,7 +315,7 @@ size_t StdIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmEx
 size_t StdIOHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " count:" << count);
-  
+
   ssize_t nbytes = ::pwrite(this->fd_, buffer, count, offset);
   if (nbytes < 0) {
     char errbuffer[128];
@@ -333,7 +339,7 @@ void StdIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 
 off_t StdIOHandler::tell(void) throw (DmException)
 {
-  
+
   return ::lseek64(this->fd_, 0, SEEK_CUR);
 }
 

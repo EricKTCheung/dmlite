@@ -40,11 +40,11 @@ namespace dmlite {
 
    private:
     const SecurityContext* secCtx_;
-    
-    
+
+
     StackInstance* si_;
-    
-    
+
+
 
     std::string passwd_;
     bool        useIp_;
@@ -55,8 +55,9 @@ namespace dmlite {
     StdIOHandler(const std::string& path,
                  int flags, mode_t mode) throw (DmException);
     virtual ~StdIOHandler();
-    
+
     void   close(void) throw (DmException);
+    int    fileno() throw (DmException);
     struct stat fstat(void) throw (DmException);
 
     size_t read (char* buffer, size_t count) throw (DmException);

@@ -158,6 +158,15 @@ const char* dmlite_ferror(dmlite_fd* fd);
 int dmlite_donewriting(dmlite_context* context,
                        const dmlite_location* loc);
 
+/**
+ * @brief    Returns the system file descriptor if available.
+ * @param fd The file descriptor.
+ * @return   The file descriptor, -1 if it can not be retrieved.
+ * @note     Support depends on the plugin providing the file.
+ * @note     Calling dmlite_fclose _will_ close the file descriptor returned by this.
+ */
+int dmlite_fileno(dmlite_fd* fd);
+
 #ifdef	__cplusplus
 }
 #endif
