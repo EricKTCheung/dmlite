@@ -1,6 +1,7 @@
 /// @file    plugins/memcache/MemcacheCommon.cpp
 /// @brief   memcached plugin.
 /// @author  Martin Philipp Hellmich <mhellmic@cern.ch>
+/// @author  Andrea Manzi <amanzi@cern.ch>
 
 #include "MemcacheCommon.h"
 
@@ -27,18 +28,49 @@ MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
   // Nothing
 }
 
+const std::string MemcacheCommon::computeMd5(const std::string& key) 
+{
+    unsigned char digest[16];
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, key.c_str(), key.size());
+    MD5_Final(digest, &ctx);
+    
+    const int nbytes = 33;
+    char  buffer[nbytes];
+    char *p;
+
+    p = buffer;
+    for (size_t offset = 0; offset < nbytes; ++offset, p += 2)
+	    sprintf(p, "%02x", digest[offset]);
+     *p = '\0';
+
+    return std::string(buffer);
+
+}
 
 
 const std::string MemcacheCommon::keyFromString(const char* preKey,
     const std::string& key)
 {
   std::stringstream streamKey;
+  std::string key_path;
 
-  streamKey << preKey << ":" << key;
+  const unsigned int strlen_path = key.length();
+
+  if ( strlen_path > 200){
+        Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Long key, computing Md5 hash");
+	std::string hash = computeMd5(key);
+	Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Hash: "+ hash);        
+	key_path.append(hash);
+  }else {
+	key_path.append(key);
+  } 
+	
+  streamKey << preKey << ":" << key_path;
 
   return streamKey.str();
 }
-
 
 const std::string MemcacheCommon::keyFromURI(const char* preKey,
     const std::string& uri)
