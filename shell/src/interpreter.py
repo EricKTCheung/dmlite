@@ -2131,7 +2131,7 @@ class DrainPoolCommand(ShellCommand):
 
 		#step 1 : set as READONLY all FS in the pool to drain
 		for fs in listFStoDrain:
-			if not dpm2.dpm_modifyfs(fs.server, fs.name, 0, fs.weight):
+			if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
                 		self.ok('Filesystem modified')
             		else:
                 		self.error('Filesystem not modified.')
