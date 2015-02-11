@@ -69,15 +69,15 @@ class DPMDB(object):
       			print "Error %d: %s" % (e.args[0], e.args[1])
       			sys.exit(1)  
 
-	def getReplicasInFS(self,fsname):
+	def getReplicasInFS(self,fsname,server):
                 """Method to get all the file replica for a FS."""
                 try:
                         self.nsdb_c.execute('''
                         SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname
                         FROM Cns_file_replica r
                         JOIN Cns_file_metadata m USING (fileid)
-                        WHERE r.fs = '%(fs)s'
-                        ''' % {"fs" : fsname})
+                        WHERE r.fs = '%(fs)s' AND r.host= '%(host)s'
+                        ''' % {"fs" : fsname,"host" : server})
                         ret = list()
                         for row in self.nsdb_c.fetchall():
                                 ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8]))
