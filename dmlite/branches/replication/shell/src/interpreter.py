@@ -2042,6 +2042,8 @@ class DrainPoolCommand(ShellCommand):
             return self.error('There is no stack Instance.')
 	if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
+	if 'dpm2' not in sys.modules:
+            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
 
     	try:
@@ -2097,10 +2099,10 @@ class DrainPoolCommand(ShellCommand):
 		#getting FS directly from DB
 		self.ok("\n")
 		
-		list = db.getFilesystems(poolToDrain.name)
+		listFStoDrain = db.getFilesystems(poolToDrain.name)
 
-		for i in range(0, len(list)):
-			print list[i]
+		for fs in listFStoDrain:
+			print fs
 		
 		self.ok("\n")
 		try:
@@ -2120,13 +2122,31 @@ class DrainPoolCommand(ShellCommand):
 		#getting FS directly from DB
                 self.ok("\n")
 
-                list = db.getFilesystems(poolForDraining.name)
+                listFS = db.getFilesystems(poolForDraining.name)
 
-                for i in range(0, len(list)):
-                        print list[i]
+                for fs in listFS:
+                        print fs
 
                 self.ok("\n")
 
+		#step 1 : set as READONLY all FS in the pool to drain
+		for fs in listFStoDrain:
+			if not dpm2.dpm_modifyfs(fs.server, fs.name, 0, fs.weight):
+                		self.ok('Filesystem modified')
+            		else:
+                		self.error('Filesystem not modified.')
+				
+		#step 2 : get all FS associated to the pool to drain and get the list of replicas
+
+		for fs in listFStoDrain:
+			listFiles = db.getReplicasInFS(fs.name, fs.server)
+			for file in listFiles:
+				print file
+
+		#step 3 : for each file, check the type, status, pinned  and see if they can be drained
+		#step 4 : replicate files
+		#step 5 : remove drained replica
+		
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
