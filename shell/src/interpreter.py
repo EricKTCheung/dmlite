@@ -12,6 +12,7 @@ import time
 import dateutil.parser
 import pycurl
 import urllib
+from dbutils import DPMDB
 
 try:
     import dpm2
@@ -50,6 +51,7 @@ class DMLiteInterpreter:
       return self.error('Parsing error.')
 
     if not cmdline:
+
       # empty command
       return self.ok()
     
@@ -1502,7 +1504,7 @@ class QryConfCommand(ShellCommand):
             availability = pydmlite.PoolAvailability.kAny
             pools = self.interpreter.poolManager.getPools(availability)
             for pool in pools:
-                output = "POOLS %s " % (pool.name)
+                output = "POOL %s " % (pool.name)
                 for key in ['defsize', 'gc_start_thresh', 'gc_stop_thresh', 'def_lifetime', 'defpintime', 'max_lifetime', 'maxpintime']:
                     value = str(pool.getLong(key, -1))+" "
                     if value < 0:
@@ -2028,3 +2030,120 @@ class ReplicateCommand(ShellCommand):
                 c.perform()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+class DrainPoolCommand(ShellCommand):
+    """Drain a specific pool"""
+
+    def _init(self):
+        self.parameters = ['?poolname', '*?servername', '*?gid', '*?group' ,'*?size','*?nthreads' ]
+
+    def _execute(self, given):
+        if self.interpreter.stackInstance is None:
+            return self.error('There is no stack Instance.')
+	if self.interpreter.poolManager is None:
+            return self.error('There is no pool manager.')
+
+
+    	try:
+    		poolname = given[0]
+		#only this poolname for now
+    		if len(given) > 1:
+			servername = given[1]
+	except Exception, e:
+        	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+	
+	#instantiating DPMDB
+	try:
+		db = DPMDB()
+	except Exception, e:
+		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+
+        #get information on pools
+        try:
+   		availability = pydmlite.PoolAvailability.kAny
+	        pools = self.interpreter.poolManager.getPools(availability)
+
+		poolToDrain = None
+		poolForDraining = None
+        	for pool in pools:
+			if pool.name==poolname:
+				poolToDrain = pool
+			else: 
+		        	poolForDraining = pool
+
+		if poolToDrain is None:
+			return self.error("The poolname to drain has not been found in the configuration");
+		if poolForDraining is None:
+			return self.error("The poolname for draining has not been found in the configuration");	
+	
+		#print info on the pool to drain
+                try:
+                	self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(poolToDrain.type)
+	        except Exception, e:
+        		self.interpreter.poolDriver = None
+                    	return self.error('Could not initialise the pool driver.\n' + e.__str__())
+
+	        poolHandler = self.interpreter.poolDriver.createPoolHandler(poolToDrain.name)
+        	capacity = poolHandler.getTotalSpace()
+                free = poolHandler.getFreeSpace()
+
+                if capacity != 0:
+                	rate = round(float(100 * free ) / capacity,1)
+                else:
+              		rate = 0
+		self.ok('POOL TO DRAIN : %s' % poolToDrain.name)
+                self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
+		#getting FS directly from DB
+		self.ok("\n")
+		
+		list = db.getFilesystems(poolToDrain.name)
+
+		for i in range(0, len(list)):
+			print list[i]
+		
+		self.ok("\n")
+		try:
+                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(poolForDraining.type)
+                except Exception, e:
+                        self.interpreter.poolDriver = None
+                        return self.error('Could not initialise the pool driver.\n' + e.__str__())
+
+		poolHandler = self.interpreter.poolDriver.createPoolHandler(poolForDraining.name)
+                capacity = poolHandler.getTotalSpace()
+                free = poolHandler.getFreeSpace()
+
+
+		self.ok('POOL SELECTED FOR DRAINING : %s' % poolForDraining.name)
+                self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
+
+		#getting FS directly from DB
+                self.ok("\n")
+
+                list = db.getFilesystems(poolForDraining.name)
+
+                for i in range(0, len(list)):
+                        print list[i]
+
+                self.ok("\n")
+
+    	except Exception, e:
+    		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+class DrainServerCommand(ShellCommand):
+    """Drain a specific diskserver"""
+
+    def _init(self):
+        self.parameters = ['?server', '*?gid', '*?group' ,'*?size', '*?nthreads']
+
+    def _execute(self, given):
+	return self.error('Under Implementation')
+
+class DrainFSCommand(ShellCommand):
+    """Drain a specific filesystem"""
+
+    def _init(self):
+        self.parameters = ['?server', '?filesystem', '*?gid', '*?group' , '*?size', '*?nthreads']
+
+    def _execute(self, given):
+	return self.error('Under Implementation')
