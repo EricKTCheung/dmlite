@@ -13,7 +13,7 @@ class DPMDB(object):
         	try :
                 	conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
         	except Exception, e:
-                	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+                	return self.error(e.__str__())
 
 		username = None
         	password = None
@@ -56,14 +56,14 @@ class DPMDB(object):
   		"""Method to get all the file replica for a single server."""
 		try:
 			self.nsdb_c.execute('''
-	        	SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname
+	        	SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname, r.ptime
         		FROM Cns_file_replica r
         	 	JOIN Cns_file_metadata m USING (fileid)
         		WHERE r.host = '%(host)s'
         		''' % {"host" : server})
       			ret = list()
       			for row in self.nsdb_c.fetchall():
-     		   		ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8]))
+     		   		ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8],row[9]))
       			return ret
 	   	except MySQLdb.Error, e:
       			print "Error %d: %s" % (e.args[0], e.args[1])
@@ -73,14 +73,14 @@ class DPMDB(object):
                 """Method to get all the file replica for a FS."""
                 try:
                         self.nsdb_c.execute('''
-                        SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname
+                        SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname, r.ptime
                         FROM Cns_file_replica r
                         JOIN Cns_file_metadata m USING (fileid)
                         WHERE r.fs = '%(fs)s' AND r.host= '%(host)s'
                         ''' % {"fs" : fsname,"host" : server})
                         ret = list()
                         for row in self.nsdb_c.fetchall():
-                                ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8]))
+                                ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8],row[9]))
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
@@ -91,14 +91,14 @@ class DPMDB(object):
                 """Method to get all the file replica for a pool"""
                 try:
                         self.nsdb_c.execute('''
-                        SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname
+                        SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname, r.ptime
                         FROM Cns_file_replica r
                         JOIN Cns_file_metadata m USING (fileid)
                         WHERE r.poolname = '%(poolname)s'
                         ''' % {"poolname" : poolname})
                         ret = list()
                         for row in self.nsdb_c.fetchall():
-                                ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5], row[6],row[7],row[8]))
+                                ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5], row[6],row[7],row[8],row[9]))
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
@@ -152,9 +152,34 @@ class DPMDB(object):
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
 
+	def getLFNFromSFN(self, sfn):
+		"""get LFN from sfn"""
+		namelist = ['']
+		try:
+			self.nsdb_c.execute('''
+			select parent_fileid, name from Cns_file_replica JOIN Cns_file_metadata ON Cns_file_replica.fileid = Cns_file_metadata.fileid WHERE Cns_file_replica.sfn="%s"''' % sfn)
+	                name = ''
+	                (name,) = self.nsdb_c.fetchall() #this gets the "head" of the name
+	                namelist.append(str(name[1]))
+	                parent_fileid = name[0]
+	                while parent_fileid > 1:
+	                        self.nsdb_c.execute('''select parent_fileid, name from Cns_file_metadata where Cns_file_metadata.fileid = %s''' % parent_fileid)
+	                        (name,) = self.nsdb_c.fetchall()
+	                        namelist.append(str(name[1]))
+	                        parent_fileid = name[0]         
+	        except MySQLdb.Error, e:
+	                print "Error %d: %s" % (e.args[0], e.args[1])
+	                sys.exit(1)
+	        except ValueError as v:
+	                print "Path %s does not exist" % sfn
+	                sys.exit(1)
+	        namelist.reverse() #put entries in "right" order for joining together
+	        return '/'.join(namelist)[1:] #and sfn and print dpns name (minus srm bits)
+	
+
 # Get a filesytem information from db
 class FileReplica(object):
-  	def __init__(self, name,poolname, fsname, host,sfn, size,gid,status,setname):
+  	def __init__(self, name,poolname, fsname, host,sfn, size,gid,status,setname, ptime):
 		self.name = name
 		self.poolname = poolname
 		self.fsname = fsname
@@ -164,9 +189,10 @@ class FileReplica(object):
 		self.gid= gid
 		self.status=status
 		self.setname=setname
+		self.pinnedtime= ptime
 		
 	def __repr__(self):
-                return "FileReplica(name=" + self.name + ", poolname=" + self.poolname + ", server=" + self.host + ", fsname=" + self.fsname + ", sfn=" + self.sfn + ", size=" + str(self.size) + ", gid=" + str(self.gid) + ", status=" + self.status + ", setname=" + self.setname + ")"
+                return "FileReplica(name=" + self.name + ", poolname=" + self.poolname + ", server=" + self.host + ", fsname=" + self.fsname + ", sfn=" + self.sfn + ", size=" + str(self.size) + ", gid=" + str(self.gid) + ", status=" + self.status + ", setname=" + self.setname + ", pinnedtime=" + str(self.pinnedtime) +")"
 
 
 # Get a filesytem information from db

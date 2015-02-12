@@ -1887,7 +1887,6 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
 
 ### Replicate and Drain commands ###
 
-
 class Response(object):
   """ utility class to collect the response """
   def __init__(self):
@@ -1909,6 +1908,146 @@ class Response(object):
 
     return header_dict
 
+class Replicate():
+    """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
+    def __init__(self,interpreter,parameters):
+	self.interpreter=interpreter
+	if len(parameters) == 1:
+		self.filename=parameters[0]
+	else:
+		self.filename = None
+	if len(parameters) == 2:
+		self.poolname=parameters[1]
+	else:
+                self.poolname = None
+	if len(parameters) == 3:
+		self.filesystem=parameters[2]
+	else:
+                self.filesystem = None
+	if len(parameters) == 4:
+		self.filetype=parameters[3]
+	else:
+                self.filetype = None
+	if len(parameters) == 5:
+		self.lifetime=parameters[4]
+	else:
+                self.lifetime = None
+	if len(parameters) == 6:
+		self.spacetoken =parameters[5]
+	else:
+                self.spacetoken = None
+
+	#getting admin user name from configuration
+        try :
+                conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
+        except Exception, e:
+                return self.error(e.__str__())
+
+        adminUserName = None
+        dnisroot = None
+
+        for line in conf:
+                if line.startswith("AdminUsername"):
+                        adminUserName = line[len("AdminUserName")+1:len(line)].strip()
+                if line.startswith("HostDNIsRoot"):
+                        dnisroot=  line[len("HostDNIsRoot")+1:len(line)].strip()
+        conf.close()
+
+	if (dnisroot is None) or (dnisroot == 'no'):
+                return self.interpreter.error('HostDNIsRoot must be set to yes on the configuration files')
+
+        if  adminUserName is None:
+                return self.interpreter.error('No AdminUserName defined on the configuration files')
+
+        securityContext= self.interpreter.stackInstance.getSecurityContext()
+        securityContext.user.name = adminUserName
+        self.interpreter.stackInstance.setSecurityContext(securityContext)
+
+        replicate = pydmlite.boost_any()
+        replicate.setBool(True)
+        self.interpreter.stackInstance.set("replicate",replicate)
+	
+
+    def run(self):
+
+	if self.poolname :
+                poolname = pydmlite.boost_any()
+                poolname.setString(self.poolname)
+                self.interpreter.stackInstance.set("pool",poolname)
+        if self.filesystem:
+                #filesystem
+                filesystem = pydmlite.boost_any()
+                filesystem.setString(self.filesystem)
+                self.interpreter.stackInstance.set("filesystem",filesystem)
+        if self.filetype:
+                #filetype
+                filetype = pydmlite.boost_any()
+                #check if the file type is correct
+                if (self.filetype ==  'V') or (self.filetype ==  'D') or (self.filetype ==  'P'):
+                        filetype.setString(self.filetype)
+                else:
+                        return self.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
+
+                self.interpreter.stackInstance.set("f_type",filetype)
+        if self.lifetime:
+
+                #lifetime
+                lifetime = pydmlite.boost_any()
+                _lifetime = self.lifetime
+                if _lifetime == 'Inf':
+                        _lifetime= 0x7FFFFFFF
+                elif _lifetime.endswith('y'):
+                        _lifetime=_lifetime[0:_lifetime.index('y')]
+                        _lifetime= long(_lifetime) * 365 * 86400
+                elif given[4].endswith('m'):
+                        _lifetime=_lifetime[0:_lifetime.index('m')]
+                        _lifetime= long(_lifetime) * 30 * 86400
+                elif given[4].endswith('d'):
+                        _lifetime=_lifetime[0:_lifetime.index('d')]
+                        _lifetime= long(_lifetime) * 86400
+                elif given[4].endswith('h'):
+                        _lifetime=_lifetime[0:_lifetime.index('h')]
+                        _lifetime= long(_lifetime) * 3600
+
+                lifetime.setLong(_lifetime)
+                self.interpreter.stackInstance.set("lifetime",lifetime)
+        if self.spacetoken:
+                #spacetoken
+                spacetoken = pydmlite.boost_any()
+                spacetoken.setString(self.spacetoken)
+                self.interpreter.stackInstance.set("UserSpaceTokenDescription",spacetoken)
+
+        try:
+                loc = self.interpreter.poolManager.whereToWrite(self.filename)
+        except Exception, e:
+            	return self.interpreter.error(e.__str__())
+
+        destination = loc[0].url.toString()
+        destination = urllib.unquote(destination)
+        #create correct destination url
+        destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
+        destination = 'http://'+destination
+        print destination
+        res2 = Response()
+        c = pycurl.Curl()
+        #using DPM cert locations
+        c.setopt(c.SSLKEY,'/etc/grid-security/dpmmgr/dpmkey.pem')
+        c.setopt(c.SSLCERT, '/etc/grid-security/dpmmgr/dpmcert.pem')
+        c.setopt(c.HEADERFUNCTION, res2.callback)
+        c.setopt(c.SSL_VERIFYPEER, 0)
+        c.setopt(c.SSL_VERIFYHOST, 2)
+        c.setopt(c.CUSTOMREQUEST, 'COPY')
+        c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
+        c.setopt(c.FOLLOWLOCATION, 1)
+        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.filename)
+
+        try:
+                c.perform()
+        except Exception, e:
+            	return self.interpreter.error(e.__str__())
+
+
+
 class ReplicateCommand(ShellCommand):
     """Replicate a File to a specific pool/filesystem"""
 
@@ -1921,115 +2060,44 @@ class ReplicateCommand(ShellCommand):
 
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-
-
-	#getting admin user name from configuration
-	try :
-		conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
-        except Exception, e:
-        	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
-	adminUserName = None
-	dnisroot = None
-
-    	for line in conf:
-        	if line.startswith("AdminUsername"):
-            		adminUserName = line[len("AdminUserName")+1:len(line)].strip()
-		if line.startswith("HostDNIsRoot"):
-			dnisroot=  line[len("HostDNIsRoot")+1:len(line)].strip()
-	conf.close()
-	
-	if (dnisroot is None) or (dnisroot == 'no'):
-		return self.error('HostDNIsRoot must be set to yes on the configuration files\nParameter(s): ' + ', '.join(given))
-
-	if  adminUserName is None:
-		return self.error('No AdminUserName defined on the configuration files\nParameter(s): ' + ', '.join(given))
-		
-	securityContext= self.interpreter.stackInstance.getSecurityContext()
-	securityContext.user.name = adminUserName
-	self.interpreter.stackInstance.setSecurityContext(securityContext)
-
-	replicate = pydmlite.boost_any()
-        replicate.setBool(True)
-        self.interpreter.stackInstance.set("replicate",replicate)
-	
-	if len(given) >= 2:
-		#pool
-		poolname = pydmlite.boost_any()
-		poolname.setString(given[1])
-        	self.interpreter.stackInstance.set("pool",poolname)
-	if len(given) >= 3:
-		#filestystem
-		filesystem = pydmlite.boost_any()
-		filesystem.setString(given[2])
-        	self.interpreter.stackInstance.set("filesystem",filesystem)
-	if len(given) >= 4:
-
-		#filetype
-		filetype = pydmlite.boost_any()
-		#check if the file type is correct		
-		if (given[3] ==  'V') or (given[3] ==  'D') or (given[3] ==  'P'):
-	        	filetype.setString(given[3])
-		else:
-			return self.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)\nParameter(s): ' + ', '.join(given))
-		
-		self.interpreter.stackInstance.set("f_type",filetype)
-	if len(given) >= 5:
-
-		#lifetime
-		lifetime = pydmlite.boost_any()
-		_lifetime = given[4]
-		if _lifetime == 'Inf':
-			_lifetime= 0x7FFFFFFF
-		elif _lifetime.endswith('y'):
-			_lifetime=_lifetime[0:_lifetime.index('y')]
-			_lifetime= long(_lifetime) * 365 * 86400
-		elif given[4].endswith('m'):
-			_lifetime=_lifetime[0:_lifetime.index('m')]
-                        _lifetime= long(_lifetime) * 30 * 86400   
-		elif given[4].endswith('d'):
-			_lifetime=_lifetime[0:_lifetime.index('d')]
-                        _lifetime= long(_lifetime) * 86400 
-		elif given[4].endswith('h'):
-			_lifetime=_lifetime[0:_lifetime.index('h')]
-                        _lifetime= long(_lifetime) * 3600
- 
-        	lifetime.setLong(_lifetime)
-	        self.interpreter.stackInstance.set("lifetime",lifetime)
-	if len(given) >= 6:
-		#spacetoken
-		spacetoken = pydmlite.boost_any()
-	        spacetoken.setString(given[5])
-	        self.interpreter.stackInstance.set("UserSpaceTokenDescription",spacetoken)
-
 	try:
-	        loc = self.interpreter.poolManager.whereToWrite(given[0])
+		replicate = Replicate(self.interpreter,given)
+		replicate.run()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
-	destination = loc[0].url.toString()
-	destination = urllib.unquote(destination)
-	#create correct destination url
-	destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
-	destination = 'http://'+destination
-	print destination
-        res2 = Response()
-	c = pycurl.Curl()
-	#using DPM cert locations
-	c.setopt(c.SSLKEY,'/etc/grid-security/dpmmgr/dpmkey.pem')
-        c.setopt(c.SSLCERT, '/etc/grid-security/dpmmgr/dpmcert.pem')
-        c.setopt(c.HEADERFUNCTION, res2.callback)
-        c.setopt(c.SSL_VERIFYPEER, 0)
-        c.setopt(c.SSL_VERIFYHOST, 2)
-        c.setopt(c.CUSTOMREQUEST, 'COPY')
-        c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
-        c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+given[0])
+class DrainFileReplica():
+    """implement draining of a file replica"""
+    def __init__(self, interpreter , db, fileReplica, servername, group):
+	self.interpreter= interpreter
+        self.db = db
+        self.fileReplica=fileReplica
+        self.servername = servername
+        self.group = group
 
-        try:
-                c.perform()
-        except Exception, e:
-            return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+    def drain(self):
+        #step 4 : check the status, pinned  and see if they the replica can be drained
+        if self.fileReplica.status != "-":
+                if self.fileReplica.status =="P":
+                        self.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored")
+                        return 1;
+                else:
+                        self.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored")
+                        return 1;
+        currenttime= int(time.time())
+        if (self.fileReplica.pinnedtime > currenttime):
+                self.error("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored")
+                return 1;
+
+        #getting filename
+        filename = self.db.getLFNFromSFN(self.fileReplica.sfn)
+
+        #step 5 : replicate files
+	arguments = [filename,None, None, None, None, None]
+        replicate = Replicate(self.interpreter,arguments)
+        replicate.run()
+
+        #step 6 : remove drained replica
 
 class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
@@ -2048,9 +2116,16 @@ class DrainPoolCommand(ShellCommand):
 
     	try:
     		poolname = given[0]
-		#only this poolname for now
     		if len(given) > 1:
 			servername = given[1]
+		if len(given) > 2:
+                        gid = given[2]
+		if len(given) > 3:
+                        group = given[3]
+		if len(given) > 4:
+                        size = given[5]
+		if len(given) > 5:
+                        nthreads = given[6]
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2137,15 +2212,20 @@ class DrainPoolCommand(ShellCommand):
                 		self.error('Filesystem not modified.')
 				
 		#step 2 : get all FS associated to the pool to drain and get the list of replicas
-
+		listTotalFiles = []
 		for fs in listFStoDrain:
 			listFiles = db.getReplicasInFS(fs.name, fs.server)
 			for file in listFiles:
 				print file
-
-		#step 3 : for each file, check the type, status, pinned  and see if they can be drained
-		#step 4 : replicate files
-		#step 5 : remove drained replica
+			listTotalFiles.extend(listFiles)
+		
+		#step 3 : for each file call the drain method of DrainFileReplica
+		#TO DO: use nthreads as specified in the input parameters
+		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
+		
+		for file in listTotalFiles:
+			drainreplica = DrainFileReplica(self.interpreter,db,file,servername, group)
+			drainreplica.drain();
 		
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
