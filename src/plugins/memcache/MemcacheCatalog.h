@@ -214,10 +214,10 @@ namespace dmlite {
   /// @return            The file stats.
   ExtendedStat* getDirEntryFromCache(MemcacheDir *dirp) throw (DmException);
 
-  /// Get the parent of a directory.
-  /// @param The path to split.
-  /// @return The parent path as string.
-  //std::string getParent(const std::string& path) throw (DmException);
+  /// Get the full path of a file fiven the RFN
+  /// @param The RFN
+  /// @return The path as string.
+  std::string getFullPathByRFN(const std::string& rfn) throw (DmException);
 
   /// Increment the function counter.
   /// Check if counting is enabled and then increment.
