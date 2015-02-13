@@ -403,9 +403,18 @@ bool MemcacheCatalog::accessReplica(const std::string& replica, int mode) throw 
 
 void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
 {
+  std::string valMemc;
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(ADDREPLICA_DELEGATE);
   DELEGATE(addReplica, replica);
+  valMemc = serializeReplica(replica);
+  safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],replica.rfn),valMemc);
+
+  //invalidating replica list
+  std::string filepath = getFullPathByRFN(replica.rfn);
+  filepath = getAbsolutePath(filepath);
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath)); 
+
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
@@ -415,6 +424,10 @@ void MemcacheCatalog::deleteReplica(const Replica& replica) throw (DmException)
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(DELETEREPLICA_DELEGATE);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL], replica.rfn));
+  //invalidating replica list
+  std::string filepath = getFullPathByRFN(replica.rfn);
+  filepath = getAbsolutePath(filepath);
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath));
   DELEGATE(deleteReplica, replica);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
@@ -952,6 +965,34 @@ void MemcacheCatalog::updateReplica(const Replica& replica) throw (DmException)
   DELEGATE(updateReplica, replica);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL], replica.rfn));
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+}
+
+std::string MemcacheCatalog::getFullPathByRFN(const std::string& rfn) throw (DmException)
+{
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
+  ExtendedStat stat;
+  std::vector<std::string> paths;
+  std::string filename;
+  stat = this->extendedStatByRFN(rfn);
+  filename = stat.name;
+
+  while (stat.parent != 0) {
+      stat = this->si_->getINode()->extendedStat(stat.parent);
+      paths.push_back(stat.name);
+  }
+
+ std::string finalPath;
+
+ while( paths.size() > 0){
+    Log(Logger::Lvl4, memcachelogmask, memcachelogname, paths.back());
+    finalPath.append(paths.back()); 
+    paths.pop_back();
+    finalPath.append("/");
+ }
+ finalPath.append(filename);
+ Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Full Path:" << finalPath);
+ Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+ return finalPath.substr(1,finalPath.length());
 }
 
 
