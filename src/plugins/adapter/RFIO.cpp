@@ -239,7 +239,11 @@ void StdRFIOHandler::close() throw (DmException)
 
 int StdRFIOHandler::fileno(void) throw (DmException)
 {
+  Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, " fd:" << this->fd_);
+  if (islocal_) {
     return this->fd_;
+  }
+  throw DmException(EIO, "file not open or is accessed with rfio but not local, so file descriptor is unavailable");
 }
 
 size_t StdRFIOHandler::read(char* buffer, size_t count) throw (DmException)
