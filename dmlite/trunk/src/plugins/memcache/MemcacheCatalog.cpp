@@ -964,6 +964,11 @@ void MemcacheCatalog::updateReplica(const Replica& replica) throw (DmException)
   incrementFunctionCounter(UPDATEREPLICA_DELEGATE);
   DELEGATE(updateReplica, replica);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL], replica.rfn));
+  //invalidating replica list
+  std::string filepath = getFullPathByRFN(replica.rfn);
+  filepath = getAbsolutePath(filepath);
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath));
+
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
