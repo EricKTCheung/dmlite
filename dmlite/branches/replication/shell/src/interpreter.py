@@ -1871,7 +1871,8 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
         self.parameters = ['?filesystem name', '?server']
 
     def _execute(self, given):
-        if self.interpreter.poolManager is None:
+       
+	if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
         if 'dpm2' not in sys.modules:
@@ -1912,36 +1913,19 @@ class Replicate():
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
     def __init__(self,interpreter,parameters):
 	self.interpreter=interpreter
-	if len(parameters) == 1:
-		self.filename=parameters[0]
-	else:
-		self.filename = None
-	if len(parameters) == 2:
-		self.poolname=parameters[1]
-	else:
-                self.poolname = None
-	if len(parameters) == 3:
-		self.filesystem=parameters[2]
-	else:
-                self.filesystem = None
-	if len(parameters) == 4:
-		self.filetype=parameters[3]
-	else:
-                self.filetype = None
-	if len(parameters) == 5:
-		self.lifetime=parameters[4]
-	else:
-                self.lifetime = None
-	if len(parameters) == 6:
-		self.spacetoken =parameters[5]
-	else:
-                self.spacetoken = None
+	self.filename=parameters[0]
+	self.poolname=parameters[1]
+	self.filesystem=parameters[2]
+	self.filetype=parameters[3]
+	self.lifetime=parameters[4]
+	self.spacetoken =parameters[5]
 
 	#getting admin user name from configuration
         try :
                 conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
         except Exception, e:
-                return self.error(e.__str__())
+		self.interpreter.error(e.__str__())
+                return False
 
         adminUserName = None
         dnisroot = None
@@ -1954,10 +1938,12 @@ class Replicate():
         conf.close()
 
 	if (dnisroot is None) or (dnisroot == 'no'):
-                return self.interpreter.error('HostDNIsRoot must be set to yes on the configuration files')
+                self.interpreter.error('HostDNIsRoot must be set to yes on the configuration files')
+		return False
 
         if  adminUserName is None:
-                return self.interpreter.error('No AdminUserName defined on the configuration files')
+                self.interpreter.error('No AdminUserName defined on the configuration files')
+		return False
 
         securityContext= self.interpreter.stackInstance.getSecurityContext()
         securityContext.user.name = adminUserName
@@ -1974,11 +1960,13 @@ class Replicate():
                 poolname = pydmlite.boost_any()
                 poolname.setString(self.poolname)
                 self.interpreter.stackInstance.set("pool",poolname)
+		self.interpreter.ok("Trying to replicate to pool: " + self.poolname)
         if self.filesystem:
                 #filesystem
                 filesystem = pydmlite.boost_any()
                 filesystem.setString(self.filesystem)
                 self.interpreter.stackInstance.set("filesystem",filesystem)
+		self.interpreter.ok("Trying to replicate to filesystem: " + self.filesystem)
         if self.filetype:
                 #filetype
                 filetype = pydmlite.boost_any()
@@ -1986,7 +1974,8 @@ class Replicate():
                 if (self.filetype ==  'V') or (self.filetype ==  'D') or (self.filetype ==  'P'):
                         filetype.setString(self.filetype)
                 else:
-                        return self.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
+                        self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
+			return False
 
                 self.interpreter.stackInstance.set("f_type",filetype)
         if self.lifetime:
@@ -2020,14 +2009,14 @@ class Replicate():
         try:
                 loc = self.interpreter.poolManager.whereToWrite(self.filename)
         except Exception, e:
-            	return self.interpreter.error(e.__str__())
+            	self.interpreter.error(e.__str__())
+		return False
 
         destination = loc[0].url.toString()
         destination = urllib.unquote(destination)
         #create correct destination url
         destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
         destination = 'http://'+destination
-        print destination
         res2 = Response()
         c = pycurl.Curl()
         #using DPM cert locations
@@ -2044,7 +2033,9 @@ class Replicate():
         try:
                 c.perform()
         except Exception, e:
-            	return self.interpreter.error(e.__str__())
+		self.interpreter.error(e.__str__())
+		return False
+	return True
 
 
 
@@ -2060,6 +2051,9 @@ class ReplicateCommand(ShellCommand):
 
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
+  
+        for i in range(len(given),6):
+		given.append(None)
 	try:
 		replicate = Replicate(self.interpreter,given)
 		replicate.run()
@@ -2068,36 +2062,55 @@ class ReplicateCommand(ShellCommand):
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
-    def __init__(self, interpreter , db, fileReplica, servername, group):
+    def __init__(self, interpreter , db, fileReplica, poolname, group):
 	self.interpreter= interpreter
         self.db = db
         self.fileReplica=fileReplica
-        self.servername = servername
+        self.poolname = poolname
         self.group = group
 
     def drain(self):
         #step 4 : check the status, pinned  and see if they the replica can be drained
         if self.fileReplica.status != "-":
                 if self.fileReplica.status =="P":
-                        self.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored")
+                        self.interpreter.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored")
                         return 1;
                 else:
-                        self.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored")
+                        self.interpreter.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored")
                         return 1;
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
-                self.error("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored")
+                self.interpreter.error("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored")
                 return 1;
 
         #getting filename
         filename = self.db.getLFNFromSFN(self.fileReplica.sfn)
 
         #step 5 : replicate files
-	arguments = [filename,None, None, None, None, None]
+	arguments = [filename,self.poolname, None, None, None, None]
         replicate = Replicate(self.interpreter,arguments)
-        replicate.run()
+
+        self.interpreter.ok("Trying to replicate file: "+ filename +" to pool " +self.poolname);
+
+	replicated = None
+	try:
+	        replicated = replicate.run()
+        except Exception, e:
+		self.interpreter.error("error Draining Replica for file: " +filename)
+                return self.interpreter.error(e.__str__())
+
+	if not replicated:
+		return self.interpreter.error("error Draining Replica for file: " +filename)
 
         #step 6 : remove drained replica
+	replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
+
+	try:
+	        self.interpreter.catalog.deleteReplica(replica)
+        except Exception, e:
+                self.interpreter.error("error Removing Replica for file: " +filename)
+                return self.interpreter.error(e.__str__())
+
 
 class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
@@ -2112,7 +2125,11 @@ class DrainPoolCommand(ShellCommand):
             return self.error('There is no pool manager.')
 	if 'dpm2' not in sys.modules:
             return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
-
+	servername = None
+	gid = None
+	group = None
+	size = None
+	nthreads = None
 
     	try:
     		poolname = given[0]
@@ -2172,14 +2189,9 @@ class DrainPoolCommand(ShellCommand):
 		self.ok('POOL TO DRAIN : %s' % poolToDrain.name)
                 self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
 		#getting FS directly from DB
-		self.ok("\n")
 		
 		listFStoDrain = db.getFilesystems(poolToDrain.name)
 
-		for fs in listFStoDrain:
-			print fs
-		
-		self.ok("\n")
 		try:
                         self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(poolForDraining.type)
                 except Exception, e:
@@ -2194,37 +2206,27 @@ class DrainPoolCommand(ShellCommand):
 		self.ok('POOL SELECTED FOR DRAINING : %s' % poolForDraining.name)
                 self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
 
-		#getting FS directly from DB
-                self.ok("\n")
-
-                listFS = db.getFilesystems(poolForDraining.name)
-
-                for fs in listFS:
-                        print fs
-
-                self.ok("\n")
-
 		#step 1 : set as READONLY all FS in the pool to drain
 		for fs in listFStoDrain:
 			if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
-                		self.ok('Filesystem modified')
+				pass
             		else:
-                		self.error('Filesystem not modified.')
+                		self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
+				return
 				
 		#step 2 : get all FS associated to the pool to drain and get the list of replicas
 		listTotalFiles = []
 		for fs in listFStoDrain:
 			listFiles = db.getReplicasInFS(fs.name, fs.server)
 			for file in listFiles:
-				print file
-			listTotalFiles.extend(listFiles)
+				listTotalFiles.extend(listFiles)
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
 		#TO DO: use nthreads as specified in the input parameters
 		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
 		
 		for file in listTotalFiles:
-			drainreplica = DrainFileReplica(self.interpreter,db,file,servername, group)
+			drainreplica = DrainFileReplica(self.interpreter,db,file,poolForDraining.name, group)
 			drainreplica.drain();
 		
     	except Exception, e:
