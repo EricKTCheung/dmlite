@@ -13,6 +13,8 @@ import dateutil.parser
 import pycurl
 import urllib
 from dbutils import DPMDB
+import threading
+import Queue
 
 try:
     import dpm2
@@ -30,6 +32,7 @@ class DMLiteInterpreter:
     self.quietMode = quietMode
     self.lastCompleted = 0
     self.lastCompletedState = 0
+    global replicaQueue
 
     # collect all available commands into commands-array
     self.commands = []
@@ -2114,9 +2117,10 @@ class DrainFileReplica():
 
 class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
-
+    
     def _init(self):
         self.parameters = ['?poolname', '*?servername', '*?gid', '*?group' ,'*?size','*?nthreads' ]
+	self.replicaQueue = None
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -2224,13 +2228,44 @@ class DrainPoolCommand(ShellCommand):
 		#step 3 : for each file call the drain method of DrainFileReplica
 		#TO DO: use nthreads as specified in the input parameters
 		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
-		
+		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+	
 		for file in listTotalFiles:
-			drainreplica = DrainFileReplica(self.interpreter,db,file,poolForDraining.name, group)
-			drainreplica.drain();
+			print "putting file " + file.sfn
+			self.interpreter.replicaQueue.put(file)
+
+		for i in range(0,3):
+			thread = DrainThread(self.interpreter, db, poolForDraining.name, group, i)
+			thread.setDaemon(True)
+			thread.start()
+		
+		# Wait for all threads to complete
+		self.interpreter.replicaQueue.join()
 		
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+class DrainThread (threading.Thread):
+    """ Thread running a portion of the draining activity"""
+    def __init__(self, interpreter, db, poolForDraining, group, threadID):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+	self.interpreter = interpreter
+	self.db = db
+	self.group = group
+	self.pool = poolForDraining
+    def run(self):
+        print "Starting " + str(self.threadID)
+        self.drain_replica(self.threadID)
+        print "Exiting " + str(self.threadID)
+    
+    def drain_replica(self,threadName):
+    	while True:
+	        replica = self.interpreter.replicaQueue.get()
+                print "thread %d processing %s" % (threadName, replica.sfn)
+		self.interpreter.replicaQueue.task_done()
+		drainreplica = DrainFileReplica(self.interpreter,self.db,replica,self.pool, self.group)
+                drainreplica.drain();
 
 class DrainServerCommand(ShellCommand):
     """Drain a specific diskserver"""
