@@ -2020,6 +2020,7 @@ class Replicate():
         #create correct destination url
         destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
         destination = 'http://'+destination
+	print destination
         res2 = Response()
         c = pycurl.Curl()
         #using DPM cert locations
@@ -2065,13 +2066,11 @@ class ReplicateCommand(ShellCommand):
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
-    def __init__(self, interpreter , db, fileReplica, poolname, group):
+    def __init__(self, interpreter , fileReplica, group):
 	self.interpreter= interpreter
-        self.db = db
         self.fileReplica=fileReplica
-        self.poolname = poolname
         self.group = group
-
+	
     def drain(self):
         #step 4 : check the status, pinned  and see if they the replica can be drained
         if self.fileReplica.status != "-":
@@ -2086,14 +2085,13 @@ class DrainFileReplica():
                 self.interpreter.error("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored")
                 return 1;
 
-        #getting filename
-        filename = self.db.getLFNFromSFN(self.fileReplica.sfn)
+	filename = self.fileReplica.lfn
 
         #step 5 : replicate files
-	arguments = [filename,self.poolname, None, None, None, None]
+	arguments = [filename ,None, None, None, None, None]
         replicate = Replicate(self.interpreter,arguments)
 
-        self.interpreter.ok("Trying to replicate file: "+ filename +" to pool " +self.poolname);
+        self.interpreter.ok("Trying to replicate file: "+ filename);
 
 	replicated = None
 	try:
@@ -2119,7 +2117,7 @@ class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
     
     def _init(self):
-        self.parameters = ['?poolname', '*?servername', '*?gid', '*?group' ,'*?size','*?nthreads' ]
+        self.parameters = ['?poolname', '*?servername', '*?group' ,'*?size','*?nthreads' ]
 	self.replicaQueue = None
 
     def _execute(self, given):
@@ -2130,23 +2128,21 @@ class DrainPoolCommand(ShellCommand):
 	if 'dpm2' not in sys.modules:
             return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 	servername = None
-	gid = None
-	group = None
-	size = None
-	nthreads = None
+	#default
+	group = "ALL"
+	size = 100
+	nthreads = 5
 
     	try:
     		poolname = given[0]
     		if len(given) > 1:
 			servername = given[1]
 		if len(given) > 2:
-                        gid = given[2]
+                        group = given[2]
 		if len(given) > 3:
-                        group = given[3]
+                        size = given[3]
 		if len(given) > 4:
-                        size = given[5]
-		if len(given) > 5:
-                        nthreads = given[6]
+                        nthreads = given[4]
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2226,16 +2222,16 @@ class DrainPoolCommand(ShellCommand):
 				listTotalFiles.extend(listFiles)
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
-		#TO DO: use nthreads as specified in the input parameters
 		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
 	
 		for file in listTotalFiles:
-			print "putting file " + file.sfn
+			filename = db.getLFNFromSFN(file.sfn)
+                        file.lfn = filename
 			self.interpreter.replicaQueue.put(file)
 
-		for i in range(0,3):
-			thread = DrainThread(self.interpreter, db, poolForDraining.name, group, i)
+		for i in range(0,nthreads-1):
+			thread = DrainThread(self.interpreter, group, i)
 			thread.setDaemon(True)
 			thread.start()
 		
@@ -2245,42 +2241,118 @@ class DrainPoolCommand(ShellCommand):
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-class DrainThread (threading.Thread):
-    """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter, db, poolForDraining, group, threadID):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-	self.interpreter = interpreter
-	self.db = db
-	self.group = group
-	self.pool = poolForDraining
-    def run(self):
-        print "Starting " + str(self.threadID)
-        self.drain_replica(self.threadID)
-        print "Exiting " + str(self.threadID)
-    
-    def drain_replica(self,threadName):
-    	while True:
-	        replica = self.interpreter.replicaQueue.get()
-                print "thread %d processing %s" % (threadName, replica.sfn)
-		self.interpreter.replicaQueue.task_done()
-		drainreplica = DrainFileReplica(self.interpreter,self.db,replica,self.pool, self.group)
-                drainreplica.drain();
-
-class DrainServerCommand(ShellCommand):
-    """Drain a specific diskserver"""
-
-    def _init(self):
-        self.parameters = ['?server', '*?gid', '*?group' ,'*?size', '*?nthreads']
-
-    def _execute(self, given):
-	return self.error('Under Implementation')
-
 class DrainFSCommand(ShellCommand):
     """Drain a specific filesystem"""
 
     def _init(self):
-        self.parameters = ['?server', '?filesystem', '*?gid', '*?group' , '*?size', '*?nthreads']
+        self.parameters = ['?server', '?filesystem','*?group' ,'*?size', '*?nthreads']
+
+    def _execute(self, given):
+        if self.interpreter.stackInstance is None:
+            return self.error('There is no stack Instance.')
+        if self.interpreter.poolManager is None:
+            return self.error('There is no pool manager.')
+        if 'dpm2' not in sys.modules:
+            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
+        #default
+	group = "ALL"
+        size = 100
+        nthreads = 5
+
+        try:
+                servername = given[0]
+		filesystem = given[1]
+                if len(given) > 2:
+                        group = given[2]
+                if len(given) > 3:
+                        size = given[3]
+                if len(given) > 4:
+                        nthreads = given[4]
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        #instantiating DPMDB
+        try:
+                db = DPMDB()
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        #check if the filesystem is ok and also check if other filesystems are available
+	try:
+		availability = pydmlite.PoolAvailability.kAny
+                pools = self.interpreter.poolManager.getPools(availability)
+
+		fsAvailable = False
+		doDrain = False
+                for pool in pools:
+			print pool.name
+	        	listFS = db.getFilesystems(pool.name)
+			for fs in listFS:
+				print fs.server
+				print fs.name
+				if fs.name == filesystem and fs.server == servername:
+                                                fsAvailable =True
+				elif fs.status == 0 :
+						doDrain = True
+
+		if doDrain  and fsAvailable:
+			pass
+		else:
+			if not doDrain:
+				return self.error("There are no other availalble Filesystems for Draining.")
+			if not fsAvailable:
+				return self.error("The specified filesystem has not been found in the DPM configuration")
+
+		#get all files to drain
+		listFiles = db.getReplicasInFS(filesystem, servername)
+
+		#step 3 : for each file call the drain method of DrainFileReplica
+                #TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
+                self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+
+                for file in listFiles:
+                        #print "putting file " + file.sfn
+			filename = db.getLFNFromSFN(file.sfn)
+			file.lfn = filename
+                        self.interpreter.replicaQueue.put(file)
+
+                for i in range(0,nthreads-1):
+                        thread = DrainThread(self.interpreter, db, group, i)
+                        thread.setDaemon(True)
+                        thread.start()
+
+                # Wait for all threads to complete
+                self.interpreter.replicaQueue.join()
+ 	except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+
+class DrainThread (threading.Thread):
+    """ Thread running a portion of the draining activity"""
+    def __init__(self, interpreter, group, threadID):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.interpreter = interpreter
+        self.group = group
+    def run(self):
+        #print "Starting " + str(self.threadID)
+        self.drain_replica(self.threadID)
+        #print "Exiting " + str(self.threadID)
+
+    def drain_replica(self,threadName):
+        while True:
+                replica = self.interpreter.replicaQueue.get()
+                #print "thread %d processing %s" % (threadName, replica.sfn)
+                self.interpreter.replicaQueue.task_done()
+                drainreplica = DrainFileReplica(self.interpreter,replica,self.group)
+                drainreplica.drain();
+
+
+class DrainServerCommand(ShellCommand):
+    """Drain a specific Disk Server"""
+
+    def _init(self):
+        self.parameters = ['?server', '*?group' , '*?size', '*?nthreads']
 
     def _execute(self, given):
 	return self.error('Under Implementation')

@@ -120,6 +120,22 @@ class DPMDB(object):
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
 
+        def getPoolFromFS(self, server, fsname):
+                """get the pool related to FS"""
+                try:
+                        self.dpmdb_c.execute('''
+                        SELECT poolname
+                        FROM dpm_fs
+                        WHERE server = '%(server)s'  AND fs= '%(fsname)s'
+                        ''' % {"server" : server,"fsname" : fsname })
+                        ret = list()
+                        for row in self.dpmdb_c.fetchall():
+                                ret.append(row[0])
+                        return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        sys.exit(1)
+
 	def getGroupByGID(self, gid):
 		"""get groupname by gid """
 		try:
@@ -190,6 +206,7 @@ class FileReplica(object):
 		self.status=status
 		self.setname=setname
 		self.pinnedtime= ptime
+		self.lfn = None
 		
 	def __repr__(self):
                 return "FileReplica(name=" + self.name + ", poolname=" + self.poolname + ", server=" + self.host + ", fsname=" + self.fsname + ", sfn=" + self.sfn + ", size=" + str(self.size) + ", gid=" + str(self.gid) + ", status=" + self.status + ", setname=" + self.setname + ", pinnedtime=" + str(self.pinnedtime) +")"
