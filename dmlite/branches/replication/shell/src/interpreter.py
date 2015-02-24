@@ -2033,6 +2033,7 @@ class Replicate():
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
         c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.filename)
+	c.setopt(c.NOPROGRESS, 0)
 
         try:
                 c.perform()
@@ -2317,7 +2318,7 @@ class DrainFSCommand(ShellCommand):
                         self.interpreter.replicaQueue.put(file)
 
                 for i in range(0,nthreads-1):
-                        thread = DrainThread(self.interpreter, db, group, i)
+                        thread = DrainThread(self.interpreter,  group, i)
                         thread.setDaemon(True)
                         thread.start()
 
