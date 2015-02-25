@@ -1958,12 +1958,7 @@ class Replicate():
     def __init__(self,interpreter,admin,parameters):
 	self.interpreter=interpreter
 	self.adminUserName = admin
-	self.filename=parameters[0]
-	self.poolname=parameters[1]
-	self.filesystem=parameters[2]
-	self.filetype=parameters[3]
-	self.lifetime=parameters[4]
-	self.spacetoken =parameters[5]
+	self.parameters =parameters
 
         securityContext= self.interpreter.stackInstance.getSecurityContext()
         securityContext.user.name = self.adminUserName
@@ -1975,33 +1970,33 @@ class Replicate():
 	
     def run(self):
 
-	if self.poolname :
+	if 'poolname' in self.parameters:
                 poolname = pydmlite.boost_any()
-                poolname.setString(self.poolname)
+                poolname.setString(self.parameters['poolname'])
                 self.interpreter.stackInstance.set("pool",poolname)
-		self.interpreter.ok("Trying to replicate to pool: " + self.poolname)
-        if self.filesystem:
+		self.interpreter.ok("Trying to replicate to pool: " + self.parameters['poolname'])
+        if 'filesystem' in self.parameters:
                 #filesystem
                 filesystem = pydmlite.boost_any()
-                filesystem.setString(self.filesystem)
+                filesystem.setString(self.parameters['filesystem'])
                 self.interpreter.stackInstance.set("filesystem",filesystem)
-		self.interpreter.ok("Trying to replicate to filesystem: " + self.filesystem)
-        if self.filetype:
+		self.interpreter.ok("Trying to replicate to filesystem: " + self.parameters['filesystem'])
+        if 'filetype' in self.parameters:
                 #filetype
                 filetype = pydmlite.boost_any()
                 #check if the file type is correct
-                if (self.filetype ==  'V') or (self.filetype ==  'D') or (self.filetype ==  'P'):
-                        filetype.setString(self.filetype)
+                if (self.parameters['filetype']  ==  'V') or (self.parameters['filetype'] ==  'D') or (self.parameters['filetype'] ==  'P'):
+                        filetype.setString(self.parameters['filetype'])
                 else:
                         self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
 			return False
 
                 self.interpreter.stackInstance.set("f_type",filetype)
-        if self.lifetime:
+        if 'lifetime' in self.parameters:
 
                 #lifetime
                 lifetime = pydmlite.boost_any()
-                _lifetime = self.lifetime
+                _lifetime = self.parameters['lifetime']
                 if _lifetime == 'Inf':
                         _lifetime= 0x7FFFFFFF
                 elif _lifetime.endswith('y'):
@@ -2019,14 +2014,14 @@ class Replicate():
 
                 lifetime.setLong(_lifetime)
                 self.interpreter.stackInstance.set("lifetime",lifetime)
-        if self.spacetoken:
+        if 'spacetoken' in self.parameters:
                 #spacetoken
                 spacetoken = pydmlite.boost_any()
-                spacetoken.setString(self.spacetoken)
+                spacetoken.setString(self.parameters['spacetoken'])
                 self.interpreter.stackInstance.set("UserSpaceTokenDescription",spacetoken)
 
         try:
-                loc = self.interpreter.poolManager.whereToWrite(self.filename)
+                loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
         except Exception, e:
             	self.interpreter.error(e.__str__())
 		return False
@@ -2049,7 +2044,7 @@ class Replicate():
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.filename)
+        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.parameters['filename'])
 
         try:
                 c.perform()
@@ -2074,7 +2069,11 @@ class ReplicateCommand(ShellCommand):
     """Replicate a File to a specific pool/filesystem"""
 
     def _init(self):
-        self.parameters = ['?filename', '*?poolname',  '*?filesystem', '*?filetype', '*?lifetime' ,'*?spacetoken']
+        self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
 
     def _execute(self, given):
 	if self.interpreter.stackInstance is None:
@@ -2087,10 +2086,17 @@ class ReplicateCommand(ShellCommand):
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
-        for i in range(len(given),6):
-		given.append(None)
+	if len(given)%2 == 0:
+	    return self.error("Incorrect number of parameters")
+	
+	parameters = {}
+	parameters['filename'] = given[0]
+
+	for i in range(1, len(given),2):
+		parameters[given[i]] = given[i+1]
+
 	try:
-		replicate = Replicate(self.interpreter,adminUserName,given)
+		replicate = Replicate(self.interpreter,adminUserName,parameters)
 		replicate.run()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -2119,7 +2125,8 @@ class DrainFileReplica():
 	filename = self.fileReplica.lfn
 
         #step 5 : replicate files
-	arguments = [filename ,None, None, None, None, None]
+	arguments = {}
+	arguments['filename']=filename
         replicate = Replicate(self.interpreter,self.adminUserName,arguments)
 
         self.interpreter.ok("Trying to replicate file: "+ filename);
@@ -2148,8 +2155,11 @@ class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
     
     def _init(self):
-        self.parameters = ['?poolname', '*?servername', '*?group' ,'*?size','*?nthreads' ]
-	self.replicaQueue = None
+        self.parameters = ['?poolname', '*Oparameter:servername:group:size:nthreads',  '*?value',
+					'*Oparameter:servername:group:size:nthreads',  '*?value',
+					'*Oparameter:servername:group:size:nthreads',  '*?value',
+					'*Oparameter:servername:group:size:nthreads',  '*?value' ]
+
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -2162,6 +2172,9 @@ class DrainPoolCommand(ShellCommand):
 	adminUserName = Util.checkConf()
 	if not adminUserName:
             return self.error("DPM configuration is not correct")
+
+	if len(given)%2 == 0:
+            return self.error("Incorrect number of parameters")
 	
 	servername = None
 	#default
@@ -2171,14 +2184,15 @@ class DrainPoolCommand(ShellCommand):
 
     	try:
     		poolname = given[0]
-    		if len(given) > 1:
-			servername = given[1]
-		if len(given) > 2:
-                        group = given[2]
-		if len(given) > 3:
-                        size = given[3]
-		if len(given) > 4:
-                        nthreads = given[4]
+		for i in range(1, len(given),2):
+                	if given[i] == "servername":
+				servername = given[i+1]
+			elif given[i] == "group":
+				group = given[i+1]
+			elif given[i] == "size":
+				size = given[i+1]
+			elif given[i] == "nthreads":
+				nthreads = given[i+1] 
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2289,7 +2303,9 @@ class DrainFSCommand(ShellCommand):
     """Drain a specific filesystem"""
 
     def _init(self):
-        self.parameters = ['?server', '?filesystem','*?group' ,'*?size', '*?nthreads']
+        self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads',  '*?value',
+						      '*Oparameter:group:size:nthreads',  '*?value',
+						      '*Oparameter:group:size:nthreads',  '*?value' ] 
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -2303,20 +2319,24 @@ class DrainFSCommand(ShellCommand):
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
+	if len(given)%2 != 0:
+            return self.error("Incorrect number of parameters")
+
         #default
 	group = "ALL"
         size = 100
         nthreads = 5
 
         try:
-                servername = given[0]
+		servername = given[0]
 		filesystem = given[1]
-                if len(given) > 2:
-                        group = given[2]
-                if len(given) > 3:
-                        size = given[3]
-                if len(given) > 4:
-                        nthreads = given[4]
+                for i in range(2, len(given),2):
+                        if given[i] == "group":
+                                group = given[i+1]
+                        elif given[i] == "size":
+                                size = given[i+1]
+                        elif given[i] == "nthreads":
+                                nthreads = given[i+1]
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
