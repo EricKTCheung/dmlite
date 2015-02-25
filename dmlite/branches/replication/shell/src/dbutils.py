@@ -120,7 +120,41 @@ class DPMDB(object):
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
 
-        def getPoolFromFS(self, server, fsname):
+	def getFilesystemsInServer(self, server):
+                """get all filesystems in a server"""
+                try:
+                        self.dpmdb_c.execute('''
+                        SELECT poolname, server, fs, status, weight
+                        FROM dpm_fs
+                        WHERE server = '%(server)s'
+                        ''' % {"server" : server })
+                        ret = list()
+                        for row in self.dpmdb_c.fetchall():
+                                ret.append(FileSystem(row[0], row[1], row[2], row[3], row[4]))
+                        return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        sys.exit(1)
+
+	def getServers(self, pool):
+                """get all server in a server"""
+                try:
+                        self.dpmdb_c.execute('''
+                        SELECT server
+                        FROM dpm_fs
+                        WHERE poolname = '%(pool)s'
+                        ''' % {"pool" : pool })
+                        ret = list()
+                        for row in self.dpmdb_c.fetchall():
+                                ret.append(row[0])
+                        return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        sys.exit(1)
+
+
+
+	def getPoolFromFS(self, server, fsname):
                 """get the pool related to FS"""
                 try:
                         self.dpmdb_c.execute('''
