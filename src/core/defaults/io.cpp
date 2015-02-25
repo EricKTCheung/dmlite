@@ -59,7 +59,7 @@ IOHandler::~IOHandler()
 
 
 NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::close(void) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(int IOHandler::fileno(void) throw (DmException));
+
 
 
 struct stat IOHandler::fstat() throw (DmException)

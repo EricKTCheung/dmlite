@@ -3,7 +3,6 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <mysql/mysql.h>
 #include <time.h>
-#include <dmlite/cpp/utils/checksums.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <list>
 #include <string>
@@ -1070,36 +1069,13 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
                                           const Extensible& attr) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " nattrs:" << attr.size() );
-  {
-    PoolGrabber<MYSQL*> conn(factory_->getPool());
-    Statement stmt(conn, this->nsDb_, STMT_SET_XATTR);
+  PoolGrabber<MYSQL*> conn(factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_SET_XATTR);
   
-    stmt.bindParam(0, attr.serialize());
-    stmt.bindParam(1, inode);
+  stmt.bindParam(0, attr.serialize());
+  stmt.bindParam(1, inode);
   
-    stmt.execute();
-  }
-
-  // If there were any checksums in list of attributes which have a legacy short
-  // type name set the first of them in the legacy csumtype, csumvalue columns
-  std::vector<std::string> keys = attr.getKeys();
-  std::string shortCsumType;
-  std::string csumValue;
-
-  for (unsigned i = 0; i < keys.size(); ++i) {
-    if (keys[i].compare(0, 9, "checksum.") == 0) {
-      std::string csumXattr = keys[i];
-      shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
-      if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
-        csumValue     = attr.getString(csumXattr);
-        break;
-      }
-    }
-  }
-
-  if (!csumValue.empty()) {
-    this->setChecksum(inode, shortCsumType, csumValue);
-  }
+  stmt.execute();
   
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
 }

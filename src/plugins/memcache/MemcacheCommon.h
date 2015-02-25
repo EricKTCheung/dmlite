@@ -17,8 +17,7 @@
 
 #include "MemcacheFunctionCounter.h"
 #include "Memcache.pb.h"
-#include <stdio.h>
-#include <openssl/md5.h>
+
 #include "utils/logger.h"
 
 namespace dmlite {
@@ -28,8 +27,6 @@ namespace dmlite {
   typedef std::pair<time_t, LocalCacheEntry> LocalCacheListItem;
   typedef std::list<LocalCacheListItem> LocalCacheList;
   typedef std::map<std::string, LocalCacheList::iterator> LocalCacheMap;
-
-
 
   extern Logger::bitmask memcachelogmask;
   extern Logger::component memcachelogname;
@@ -276,11 +273,6 @@ namespace dmlite {
 
       /// Reset the cache stats counters.
       void resetLocalCacheStats();
-
-      /// compute Md5 hash for the given key
-      /// @param key          The cache key.
-      /// @return             The md5 value as std::string.
-      const std::string computeMd5(const std::string& key);
 
       /*
        * The local in-memory cache:

@@ -10,8 +10,6 @@ import sys
 import re
 import time
 import dateutil.parser
-import pycurl
-import urllib
 
 try:
     import dpm2
@@ -464,7 +462,7 @@ class InitCommand(ShellCommand):
     for line in conf:
         if line.startswith("LogLevel"):
             confTmp.write("LogLevel %s\n" % log)
-	else:
+        else:
             confTmp.write(line) 
     conf.close()
     confTmp.close()
@@ -474,7 +472,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.3 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.2 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -1882,4 +1880,3 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
                 self.error('Filesystem deleted.')
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-

@@ -4,8 +4,8 @@
 %{!?dmlite_test: %global dmlite_tests 0}
 
 Name:					dmlite
-Version:				0.7.3
-Release:				1%{?dist}
+Version:				0.7.2
+Release:				2%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
 License:				ASL 2.0

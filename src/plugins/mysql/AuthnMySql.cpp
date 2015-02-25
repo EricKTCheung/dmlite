@@ -539,13 +539,8 @@ void AuthnMySql::getIdMap(const std::string& userName,
       throw;
   }
 
-  //check if the user DN is the host DN and avoid getting the mapping
-  if (this->hostDnIsRoot_ && userName == this->hostDn_)  {
-    group.name   = "root";
-    group["gid"] = 0;
-    groups->push_back(group);
-  } // No VO information, so use the mapping file to get the group
-  else if (groupNames.empty()) {
+  // No VO information, so use the mapping file to get the group
+  if (groupNames.empty()) {
     vo = voFromDn(this->mapFile_, userName);
     try {
       group = this->getGroup(vo);

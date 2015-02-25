@@ -20,9 +20,9 @@ dmlite_fd* dmlite_fopen(dmlite_context* context, const char* path, int flags,
 {
   TRY(context, fopen)
   NOT_NULL(path);
-
+  
   dmlite::IOHandler* stream;
-
+  
   if (flags & O_CREAT) {
     va_list args;
     va_start(args, extra);
@@ -95,7 +95,7 @@ off_t dmlite_ftell(dmlite_fd* fd)
   TRY(fd, ftell)
   NOT_NULL(fd->stream);
   return fd->stream->tell();
-  CATCH_NEGATIVE(fd, ftell)
+  CATCH(fd, ftell)
 }
 
 
@@ -170,9 +170,9 @@ int dmlite_feof(dmlite_fd* fd)
 {
   TRY(fd, feof);
   NOT_NULL(fd->stream);
-
+  
   return fd->stream->eof();
-
+  
   CATCH(fd, feof)
 }
 
@@ -207,13 +207,4 @@ int dmlite_donewriting(dmlite_context* context,
   dmlite_clocation_to_cpplocation(loc, location);
   context->stack->getIODriver()->doneWriting(location);
   CATCH(context, donewriting)
-}
-
-
-int dmlite_fileno(dmlite_fd* fd)
-{
-  TRY(fd, fileno);
-  NOT_NULL(fd->stream);
-  return fd->stream->fileno();
-  CATCH_NEGATIVE(fd, feof)
 }

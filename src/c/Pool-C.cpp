@@ -151,22 +151,9 @@ dmlite_location* dmlite_getlocation(dmlite_context* context, const dmlite_replic
   dmlite_creplica_to_cppreplica(replica,
                                 &replicapp);
   
-  dmlite::PoolDriver*  driver;
-  dmlite::PoolHandler* handler;
-  try {
-    dmlite::Pool pool = context->stack->getPoolManager()->getPool(replicapp.getString("pool"));
-  
-    driver = context->stack->getPoolDriver(pool.type);
-    if (!driver) return 0;
-    handler = driver->createPoolHandler(pool.name);
-    if (!handler) return 0;
-    
-  } catch (...) {
-    // if getting the default pool produces an exception it means that
-    // we cannot have chunking or it is not wanted by the loaded plugin set
-    // By convention we return null, so that this can be easily catched by the caller (normally lcgdm-dav)
-    return 0;
-  }
+  dmlite::Pool pool = context->stack->getPoolManager()->getPool(replicapp.getString("pool"));
+  dmlite::PoolDriver*  driver = context->stack->getPoolDriver(pool.type);
+  dmlite::PoolHandler* handler = driver->createPoolHandler(pool.name);
   
   try {
     dmlite::Location loc = handler->whereToRead(replicapp);
