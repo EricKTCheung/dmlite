@@ -1,0 +1,33 @@
+# Uncomment to enable the namespace adapter plugin 
+# (adapter to the DPM or LFC nameserver)
+LoadPlugin plugin_adapter_ns /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
+
+# Uncomment to enable the adapter plugin to the DPM server
+LoadPlugin plugin_adapter_dpm /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
+
+# Uncomment to enable the adapter filesystem plugin 
+# (read from local filesystem)
+LoadPlugin plugin_fs_io /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
+
+# Uncomment to enable the adapter rfio plugin 
+# (read using rfio - local if local, remote rfio read if not)
+LoadPlugin plugin_fs_rfio /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
+
+# Uncommemt to enable the pool adapter plugin
+# (wrapper for a native pool type)
+LoadPlugin plugin_fs_pooldriver /usr/lib@LIB_SUFFIX@/dmlite/plugin_adapter.so
+
+# Remote DPM/LFC host to connect to
+NsHost localhost
+
+# Timeout when connection to the NsHost (in seconds)
+ConnectionTimeout 15
+# Number of retries when connecting to NsHost (in seconds)
+RetryLimit 3
+# Interval between retries when connecting to NsHost (in seconds)
+RetryInterval 2
+
+# Token generation
+TokenPassword change-this
+TokenId ip
+TokenLife 1000

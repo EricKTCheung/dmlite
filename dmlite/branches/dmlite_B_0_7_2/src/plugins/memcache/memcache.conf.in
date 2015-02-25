@@ -1,0 +1,23 @@
+# Load memcache plugin
+LoadPlugin plugin_memcache /usr/lib@LIB_SUFFIX@/dmlite/plugin_memcache.so
+
+# Can be set multiple times to use multiple caches, format <host>:<port>:<weight>
+MemcachedServer localhost:11211
+
+# Limit of symlinks to follow
+SymLinkLimit 5
+
+# Expiration of an entry in memcache (in seconds)
+MemcachedExpirationLimit 60
+
+# Use the 'ascii' or 'binary' protocol
+MemcachedProtocol binary
+
+# 'on' or 'off', use recursive permission checking or not
+MemcachedPOSIX on
+
+# Probabilistic counter for the function calls
+MemcachedFunctionCounter off
+
+# Local in-memory cache size (if zero, it's switched off)
+LocalCacheSize 0
