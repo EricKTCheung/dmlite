@@ -2285,29 +2285,34 @@ class DrainFSCommand(ShellCommand):
 		availability = pydmlite.PoolAvailability.kAny
                 pools = self.interpreter.poolManager.getPools(availability)
 
-		fsAvailable = False
+		fsToDrain = None
 		doDrain = False
+		
                 for pool in pools:
-			print pool.name
 	        	listFS = db.getFilesystems(pool.name)
 			for fs in listFS:
-				print fs.server
-				print fs.name
 				if fs.name == filesystem and fs.server == servername:
-                                                fsAvailable =True
+                                                fsToDrain = fs
 				elif fs.status == 0 :
 						doDrain = True
 
-		if doDrain  and fsAvailable:
+		if doDrain  and fsToDrain:
 			pass
 		else:
 			if not doDrain:
 				return self.error("There are no other availalble Filesystems for Draining.")
-			if not fsAvailable:
+			if not fsToDrain:
 				return self.error("The specified filesystem has not been found in the DPM configuration")
 
+		#set as READONLY the FS  to drain
+                if not dpm2.dpm_modifyfs(fsToDrain.server, fsToDrain.name, 2, fsToDrain.weight):
+                        pass
+                else:
+                        self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
+                        return
+
 		#get all files to drain
-		listFiles = db.getReplicasInFS(filesystem, servername)
+		listFiles = db.getReplicasInFS(fsToDrain.name, fsToDrain.server)
 
 		#step 3 : for each file call the drain method of DrainFileReplica
                 #TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
