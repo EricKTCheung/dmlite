@@ -1899,6 +1899,9 @@ class Response(object):
     self.chunks.append(chunk)
   def content(self):
     return ''.join(self.chunks)
+   ## Callback function invoked when body data is ready
+  def body(self,buf):
+    pass
   def headers(self):
     s = ''.join(self.chunks)
     print s
@@ -1956,7 +1959,6 @@ class Replicate():
         replicate.setBool(True)
         self.interpreter.stackInstance.set("replicate",replicate)
 	
-
     def run(self):
 
 	if self.poolname :
@@ -2021,19 +2023,19 @@ class Replicate():
         destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
         destination = 'http://'+destination
 	print destination
-        res2 = Response()
+        res = Response()
         c = pycurl.Curl()
         #using DPM cert locations
         c.setopt(c.SSLKEY,'/etc/grid-security/dpmmgr/dpmkey.pem')
         c.setopt(c.SSLCERT, '/etc/grid-security/dpmmgr/dpmcert.pem')
-        c.setopt(c.HEADERFUNCTION, res2.callback)
+        c.setopt(c.HEADERFUNCTION, res.callback)
+	c.setopt(c.WRITEFUNCTION, res.body)
         c.setopt(c.SSL_VERIFYPEER, 0)
         c.setopt(c.SSL_VERIFYHOST, 2)
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
         c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.filename)
-	c.setopt(c.NOPROGRESS, 0)
 
         try:
                 c.perform()
