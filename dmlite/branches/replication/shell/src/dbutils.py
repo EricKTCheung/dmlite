@@ -38,7 +38,7 @@ class DPMDB(object):
 		conf.close()
 
 		if int(port) == 0:
-			port =3316 
+			port =3306
 
 		try:
 		  	dpmdb = MySQLdb.connect(host=host, user=username, passwd=password, db=dpmDBName,port= port )
