@@ -1891,10 +1891,45 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
 
 ### Replicate and Drain commands ###
 
+class Util(object):
+	#check if mysql plugin is properly configured
+	@staticmethod
+	def checkConf():
+	        try :
+        	        conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
+	        except Exception, e:
+        	        print e.__str__()
+                	return False
+
+	        adminUserName = None
+        	dnisroot = None
+	        hostcert = False
+
+        	for line in conf:
+                	if line.startswith("AdminUsername"):
+	                        adminUserName = line[len("AdminUserName")+1:len(line)].strip()
+        	        if line.startswith("HostDNIsRoot"):
+                	        dnisroot=  line[len("HostDNIsRoot")+1:len(line)].strip()
+                	if line.startswith("HostCertificate"):
+                        	hostcert = True
+	        conf.close()
+
+        	if (dnisroot is None) or (dnisroot == 'no'):
+                	print 'HostDNIsRoot must be set to yes on the configuration files'
+                	return False
+	        if  adminUserName is None:
+        	        print 'No AdminUserName defined on the configuration files'
+                	return False
+	        if not hostcert:
+        	        print 'No HostCertificate defined on the configuration files'
+
+		return adminUserName
+
 class Response(object):
   """ utility class to collect the response """
   def __init__(self):
     self.chunks = []
+    self.header_dict = {}
   def callback(self, chunk):
     self.chunks.append(chunk)
   def content(self):
@@ -1904,21 +1939,25 @@ class Response(object):
     pass
   def headers(self):
     s = ''.join(self.chunks)
-    print s
-    header_dict = {}
     for line in s.split('\r\n'):
       try:
         key,val = line.split(':',1)
-        header_dict[key] = val
+        self.header_dict[key] = val
       except:
         pass
-
-    return header_dict
+    return self.header_dict
+  def printHeaders(self):
+    if not self.header_dict:
+	self.headers()
+    for key, value in self.header_dict.iteritems():
+	print key+"="+ value
+	
 
 class Replicate():
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
-    def __init__(self,interpreter,parameters):
+    def __init__(self,interpreter,admin,parameters):
 	self.interpreter=interpreter
+	self.adminUserName = admin
 	self.filename=parameters[0]
 	self.poolname=parameters[1]
 	self.filesystem=parameters[2]
@@ -1926,33 +1965,8 @@ class Replicate():
 	self.lifetime=parameters[4]
 	self.spacetoken =parameters[5]
 
-	#getting admin user name from configuration
-        try :
-                conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
-        except Exception, e:
-		self.interpreter.error(e.__str__())
-                return False
-
-        adminUserName = None
-        dnisroot = None
-
-        for line in conf:
-                if line.startswith("AdminUsername"):
-                        adminUserName = line[len("AdminUserName")+1:len(line)].strip()
-                if line.startswith("HostDNIsRoot"):
-                        dnisroot=  line[len("HostDNIsRoot")+1:len(line)].strip()
-        conf.close()
-
-	if (dnisroot is None) or (dnisroot == 'no'):
-                self.interpreter.error('HostDNIsRoot must be set to yes on the configuration files')
-		return False
-
-        if  adminUserName is None:
-                self.interpreter.error('No AdminUserName defined on the configuration files')
-		return False
-
         securityContext= self.interpreter.stackInstance.getSecurityContext()
-        securityContext.user.name = adminUserName
+        securityContext.user.name = self.adminUserName
         self.interpreter.stackInstance.setSecurityContext(securityContext)
 
         replicate = pydmlite.boost_any()
@@ -2042,8 +2056,18 @@ class Replicate():
         except Exception, e:
 		self.interpreter.error(e.__str__())
 		return False
-	return True
-
+	#check http code
+	try:
+		httpcode = str(c.getinfo(pycurl.HTTP_CODE))
+		if httpcode.startswith("2"):
+			return True
+		else:
+			self.interpreter.error("HTTP Error Code "+ httpcode)
+			return False
+ 	except Exception, e:
+                self.interpreter.error(e.__str__())
+                return False
+			
 
 
 class ReplicateCommand(ShellCommand):
@@ -2058,20 +2082,25 @@ class ReplicateCommand(ShellCommand):
 
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-  
+
+	adminUserName = Util.checkConf()
+        if not adminUserName:
+            return self.error("DPM configuration is not correct")
+
         for i in range(len(given),6):
 		given.append(None)
 	try:
-		replicate = Replicate(self.interpreter,given)
+		replicate = Replicate(self.interpreter,adminUserName,given)
 		replicate.run()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
-    def __init__(self, interpreter , fileReplica):
+    def __init__(self, interpreter , fileReplica,adminUserName):
 	self.interpreter= interpreter
         self.fileReplica=fileReplica
+	self.adminUserName = adminUserName
 	
     def drain(self):
         #step 4 : check the status, pinned  and see if they the replica can be drained
@@ -2091,7 +2120,7 @@ class DrainFileReplica():
 
         #step 5 : replicate files
 	arguments = [filename ,None, None, None, None, None]
-        replicate = Replicate(self.interpreter,arguments)
+        replicate = Replicate(self.interpreter,self.adminUserName,arguments)
 
         self.interpreter.ok("Trying to replicate file: "+ filename);
 
@@ -2129,6 +2158,11 @@ class DrainPoolCommand(ShellCommand):
             return self.error('There is no pool manager.')
 	if 'dpm2' not in sys.modules:
             return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
+	
+	adminUserName = Util.checkConf()
+	if not adminUserName:
+            return self.error("DPM configuration is not correct")
+	
 	servername = None
 	#default
 	group = "ALL"
@@ -2241,7 +2275,7 @@ class DrainPoolCommand(ShellCommand):
 			self.interpreter.replicaQueue.put(file)
 
 		for i in range(0,nthreads-1):
-			thread = DrainThread(self.interpreter, i)
+			thread = DrainThread(self.interpreter, i,adminUserName)
 			thread.setDaemon(True)
 			thread.start()
 		
@@ -2264,6 +2298,11 @@ class DrainFSCommand(ShellCommand):
             return self.error('There is no pool manager.')
         if 'dpm2' not in sys.modules:
             return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
+
+        adminUserName = Util.checkConf()
+        if not adminUserName:
+            return self.error("DPM configuration is not correct")
+
         #default
 	group = "ALL"
         size = 100
@@ -2341,7 +2380,7 @@ class DrainFSCommand(ShellCommand):
                         self.interpreter.replicaQueue.put(file)
 
                 for i in range(0,nthreads-1):
-                        thread = DrainThread(self.interpreter, i)
+                        thread = DrainThread(self.interpreter, i, adminUserName)
                         thread.setDaemon(True)
                         thread.start()
 
@@ -2353,10 +2392,11 @@ class DrainFSCommand(ShellCommand):
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter,threadID):
+    def __init__(self, interpreter,threadID,adminUserName):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
+	self.adminUserName = adminUserName
     def run(self):
         #print "Starting " + str(self.threadID)
         self.drain_replica(self.threadID)
@@ -2367,7 +2407,7 @@ class DrainThread (threading.Thread):
                 replica = self.interpreter.replicaQueue.get()
                 #print "thread %d processing %s" % (threadName, replica.sfn)
                 self.interpreter.replicaQueue.task_done()
-                drainreplica = DrainFileReplica(self.interpreter,replica)
+                drainreplica = DrainFileReplica(self.interpreter,replica,self.adminUserName)
                 drainreplica.drain();
 
 
