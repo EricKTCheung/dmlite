@@ -2062,6 +2062,27 @@ class Replicate():
  	except Exception, e:
                 self.interpreter.error(e.__str__())
                 return False
+
+
+class DrainThread (threading.Thread):
+    """ Thread running a portion of the draining activity"""
+    def __init__(self, interpreter,threadID,adminUserName):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.interpreter = interpreter
+        self.adminUserName = adminUserName
+    def run(self):
+        #print "Starting " + str(self.threadID)
+        self.drain_replica(self.threadID)
+        #print "Exiting " + str(self.threadID)
+
+    def drain_replica(self,threadName):
+        while True:
+                replica = self.interpreter.replicaQueue.get()
+                #print "thread %d processing %s" % (threadName, replica.sfn)
+                self.interpreter.replicaQueue.task_done()
+                drainreplica = DrainFileReplica(self.interpreter,replica,self.adminUserName)
+                drainreplica.drain();
 			
 
 
@@ -2409,33 +2430,79 @@ class DrainFSCommand(ShellCommand):
  	except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-
-class DrainThread (threading.Thread):
-    """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter,threadID,adminUserName):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.interpreter = interpreter
-	self.adminUserName = adminUserName
-    def run(self):
-        #print "Starting " + str(self.threadID)
-        self.drain_replica(self.threadID)
-        #print "Exiting " + str(self.threadID)
-
-    def drain_replica(self,threadName):
-        while True:
-                replica = self.interpreter.replicaQueue.get()
-                #print "thread %d processing %s" % (threadName, replica.sfn)
-                self.interpreter.replicaQueue.task_done()
-                drainreplica = DrainFileReplica(self.interpreter,replica,self.adminUserName)
-                drainreplica.drain();
-
-
 class DrainServerCommand(ShellCommand):
     """Drain a specific Disk Server"""
 
     def _init(self):
-        self.parameters = ['?server', '*?group' , '*?size', '*?nthreads']
+        self.parameters = ['?server',  '*Oparameter:group:size:nthreads',  '*?value',
+                                       '*Oparameter:group:size:nthreads',  '*?value',
+                                       '*Oparameter:group:size:nthreads',  '*?value' ]
 
     def _execute(self, given):
-	return self.error('Under Implementation')
+        if self.interpreter.stackInstance is None:
+            return self.error('There is no stack Instance.')
+        if self.interpreter.poolManager is None:
+            return self.error('There is no pool manager.')
+        if 'dpm2' not in sys.modules:
+            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
+
+        adminUserName = Util.checkConf()
+        if not adminUserName:
+            return self.error("DPM configuration is not correct")
+
+        if len(given)%2 == 0:
+            return self.error("Incorrect number of parameters")
+
+        #default
+        group = "ALL"
+        size = 100
+        nthreads = 5
+
+        try:
+                servername = given[0]
+                for i in range(1, len(given),2):
+                        if given[i] == "group":
+                                group = given[i+1]
+                        elif given[i] == "size":
+                                size = given[i+1]
+                        elif given[i] == "nthreads":
+                                nthreads = given[i+1]
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        #instantiating DPMDB
+        try:
+                db = DPMDB()
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+	#check if the server is ok and also check if other filesystems in other diskservers are available
+        try:
+                availability = pydmlite.PoolAvailability.kAny
+                pools = self.interpreter.poolManager.getPools(availability)
+
+                serverToDrain = False
+                doDrain = False
+
+                for pool in pools:
+                        listServers= db.getServers(pool.name)
+                        for server in listServers:
+                                if server == servername:
+                                	serverToDrain = True
+				#check if other filesystems in other disk servers are avaialble
+                                else:
+					for fs in db.getFilesystemsInServer(server):
+                                                if fs.status == 0 :
+                                                	doDrain = True
+
+                if doDrain  and serverToDrain:
+                        pass
+                else:
+                        if not doDrain:
+                                return self.error("There are no other Filesystems available in different Disk Servers for Draining.")
+                        if not serverToDrain:
+                                return self.error("The specified server has not been found in the DPM configuration")
+
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
