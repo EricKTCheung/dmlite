@@ -2069,10 +2069,9 @@ class ReplicateCommand(ShellCommand):
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
-    def __init__(self, interpreter , fileReplica, group):
+    def __init__(self, interpreter , fileReplica):
 	self.interpreter= interpreter
         self.fileReplica=fileReplica
-        self.group = group
 	
     def drain(self):
         #step 4 : check the status, pinned  and see if they the replica can be drained
@@ -2227,14 +2226,22 @@ class DrainPoolCommand(ShellCommand):
 		#step 3 : for each file call the drain method of DrainFileReplica
 		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+
+		gid = None
+                #filter by group
+                if group != "ALL":
+                        gid = db.getGroupIdByName(group)
 	
 		for file in listTotalFiles:
+			if (group != "ALL"):
+                        	if file.gid != gid:
+                                	continue
 			filename = db.getLFNFromSFN(file.sfn)
                         file.lfn = filename
 			self.interpreter.replicaQueue.put(file)
 
 		for i in range(0,nthreads-1):
-			thread = DrainThread(self.interpreter, group, i)
+			thread = DrainThread(self.interpreter, i)
 			thread.setDaemon(True)
 			thread.start()
 		
@@ -2318,14 +2325,23 @@ class DrainFSCommand(ShellCommand):
                 #TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
 
+		gid = None
+		#filter by group
+		if group != "ALL":
+			gid = db.getGroupIdByName(group)
+		
                 for file in listFiles:
                         #print "putting file " + file.sfn
+			#if filter on group check if the filereplica match
+			if (group != "ALL"):
+				if file.gid != gid:
+					continue
 			filename = db.getLFNFromSFN(file.sfn)
 			file.lfn = filename
                         self.interpreter.replicaQueue.put(file)
 
                 for i in range(0,nthreads-1):
-                        thread = DrainThread(self.interpreter,  group, i)
+                        thread = DrainThread(self.interpreter, i)
                         thread.setDaemon(True)
                         thread.start()
 
@@ -2337,11 +2353,10 @@ class DrainFSCommand(ShellCommand):
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter, group, threadID):
+    def __init__(self, interpreter,threadID):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
-        self.group = group
     def run(self):
         #print "Starting " + str(self.threadID)
         self.drain_replica(self.threadID)
@@ -2352,7 +2367,7 @@ class DrainThread (threading.Thread):
                 replica = self.interpreter.replicaQueue.get()
                 #print "thread %d processing %s" % (threadName, replica.sfn)
                 self.interpreter.replicaQueue.task_done()
-                drainreplica = DrainFileReplica(self.interpreter,replica,self.group)
+                drainreplica = DrainFileReplica(self.interpreter,replica)
                 drainreplica.drain();
 
 

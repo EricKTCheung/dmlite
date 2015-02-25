@@ -146,8 +146,7 @@ class DPMDB(object):
                         ''' % {"gid" : gid })
                         ret = list()
                         for row in self.nsdb_c.fetchall():
-                                ret.append(row[0])
-                        return ret
+                        	return row[0]
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
@@ -162,8 +161,7 @@ class DPMDB(object):
                         ''' % {"groupname" : groupname })
                         ret = list()
                         for row in self.nsdb_c.fetchall():
-                                ret.append(row[0])
-                        return ret
+                                return row[0]
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
