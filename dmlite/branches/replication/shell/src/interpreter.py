@@ -15,6 +15,7 @@ import urllib
 from dbutils import DPMDB
 import threading
 import Queue
+import signal 
 
 try:
     import dpm2
@@ -2095,6 +2096,10 @@ class ReplicateCommand(ShellCommand):
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
 
     def _execute(self, given):
 	if self.interpreter.stackInstance is None:
@@ -2180,6 +2185,10 @@ class DrainPoolCommand(ShellCommand):
 					'*Oparameter:servername:group:size:nthreads',  '*?value',
 					'*Oparameter:servername:group:size:nthreads',  '*?value',
 					'*Oparameter:servername:group:size:nthreads',  '*?value' ]
+	signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
 
 
     def _execute(self, given):
@@ -2211,9 +2220,9 @@ class DrainPoolCommand(ShellCommand):
 			elif given[i] == "group":
 				group = given[i+1]
 			elif given[i] == "size":
-				size = given[i+1]
+				size = int(given[i+1])
 			elif given[i] == "nthreads":
-				nthreads = given[i+1] 
+				nthreads = int(given[i+1])
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2327,6 +2336,10 @@ class DrainFSCommand(ShellCommand):
         self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads',  '*?value',
 						      '*Oparameter:group:size:nthreads',  '*?value',
 						      '*Oparameter:group:size:nthreads',  '*?value' ] 
+	signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -2355,9 +2368,9 @@ class DrainFSCommand(ShellCommand):
                         if given[i] == "group":
                                 group = given[i+1]
                         elif given[i] == "size":
-                                size = given[i+1]
+                                size = int(given[i+1])
                         elif given[i] == "nthreads":
-                                nthreads = given[i+1]
+                                nthreads = int(given[i+1])
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2409,7 +2422,11 @@ class DrainFSCommand(ShellCommand):
 		#filter by group
 		if group != "ALL":
 			gid = db.getGroupIdByName(group)
-		
+		numFiles =0
+
+		self.ok("Calculating Replicas to Drain..")
+		self.ok()
+
                 for file in listFiles:
                         #print "putting file " + file.sfn
 			#if filter on group check if the filereplica match
@@ -2419,6 +2436,9 @@ class DrainFSCommand(ShellCommand):
 			filename = db.getLFNFromSFN(file.sfn)
 			file.lfn = filename
                         self.interpreter.replicaQueue.put(file)
+			numFiles = numFiles+1
+
+		self.ok("Total Replicas to Drain: " + str(numFiles))
 
                 for i in range(0,nthreads-1):
                         thread = DrainThread(self.interpreter, i, adminUserName)
@@ -2437,6 +2457,10 @@ class DrainServerCommand(ShellCommand):
         self.parameters = ['?server',  '*Oparameter:group:size:nthreads',  '*?value',
                                        '*Oparameter:group:size:nthreads',  '*?value',
                                        '*Oparameter:group:size:nthreads',  '*?value' ]
+    	signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -2464,9 +2488,9 @@ class DrainServerCommand(ShellCommand):
                         if given[i] == "group":
                                 group = given[i+1]
                         elif given[i] == "size":
-                                size = given[i+1]
+                                size = int(given[i+1])
                         elif given[i] == "nthreads":
-                                nthreads = given[i+1]
+                                nthreads = int(given[i+1])
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
