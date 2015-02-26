@@ -104,7 +104,7 @@ Set of C,CPP and Python tests for dmlite interfaces and plug-ins.
 %package plugins-memcache
 Summary:			Memcached plugin for dmlite
 Group:				Applications/Internet
-Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:			%{name}-libs%{?_isa} = %{version}
 
 # Merge migration 
 Obsoletes:			dmlite-plugins-memcache < 0.7.0-1
@@ -116,7 +116,7 @@ memcached based layer for the Lcgdm nameserver.
 %package plugins-profiler
 Summary:			Memcached plugin for dmlite
 Group:				Applications/Internet
-Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:			%{name}-libs%{?_isa} = %{version}
 
 # Merge migration 
 Obsoletes:			dmlite-plugins-profiler < 0.7.0-1
@@ -144,7 +144,7 @@ commands for system administration, testers and power users.
 %package plugins-mysql
 Summary:			MySQL plugin for dmlite
 Group:				Applications/Internet
-Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:			%{name}-libs%{?_isa} = %{version}
 
 Obsoletes:			dmlite-plugins-mysql < 0.7.0-1
 
@@ -154,7 +154,7 @@ This package provides the MySQL plug-in for dmlite.
 %package plugins-adapter
 Summary:			Adapter plugin for dmlite
 Group:				Applications/Internet
-Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
+Requires:			%{name}-libs%{?_isa} = %{version}
 Requires:			dpm-libs >= 1.8.8
 Requires:			lcgdm-libs >= 1.8.8
 
