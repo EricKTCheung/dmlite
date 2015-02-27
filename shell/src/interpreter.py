@@ -2181,10 +2181,10 @@ class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
     
     def _init(self):
-        self.parameters = ['?poolname', '*Oparameter:servername:group:size:nthreads',  '*?value',
-					'*Oparameter:servername:group:size:nthreads',  '*?value',
-					'*Oparameter:servername:group:size:nthreads',  '*?value',
-					'*Oparameter:servername:group:size:nthreads',  '*?value' ]
+        self.parameters = ['?poolname', '*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value' ]
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
@@ -2211,7 +2211,8 @@ class DrainPoolCommand(ShellCommand):
 	group = "ALL"
 	size = 100
 	nthreads = 5
-
+	dryrun = False
+	
     	try:
     		poolname = given[0]
 		for i in range(1, len(given),2):
@@ -2223,6 +2224,9 @@ class DrainPoolCommand(ShellCommand):
 				size = int(given[i+1])
 			elif given[i] == "nthreads":
 				nthreads = int(given[i+1])
+			elif given[i] == "dryrun":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        dryrun = True
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2309,6 +2313,12 @@ class DrainPoolCommand(ShellCommand):
                 #filter by group
                 if group != "ALL":
                         gid = db.getGroupIdByName(group)
+
+	        numFiles = 0
+                fileSize = 0
+                self.ok("Calculating Replicas to Drain..")
+                self.ok()
+
 	
 		for file in listTotalFiles:
 			if (group != "ALL"):
@@ -2317,6 +2327,15 @@ class DrainPoolCommand(ShellCommand):
 			filename = db.getLFNFromSFN(file.sfn)
                         file.lfn = filename
 			self.interpreter.replicaQueue.put(file)
+                        numFiles = numFiles+1
+                        fileSize = fileSize + file.size
+
+                self.ok("Total Replicas to Drain: " + str(numFiles))
+                self.ok("Total Capacity to Drain: " + str(fileSize/1024) + " KB")
+
+                if dryrun:
+                        return
+
 
 		for i in range(0,nthreads-1):
 			thread = DrainThread(self.interpreter, i,adminUserName)
@@ -2333,9 +2352,10 @@ class DrainFSCommand(ShellCommand):
     """Drain a specific filesystem"""
 
     def _init(self):
-        self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads',  '*?value',
-						      '*Oparameter:group:size:nthreads',  '*?value',
-						      '*Oparameter:group:size:nthreads',  '*?value' ] 
+        self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',	
+						      '*Oparameter:group:size:nthreads:dryrun',  '*?value' ] 
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
@@ -2360,6 +2380,7 @@ class DrainFSCommand(ShellCommand):
 	group = "ALL"
         size = 100
         nthreads = 5
+	dryrun = False
 
         try:
 		servername = given[0]
@@ -2371,6 +2392,9 @@ class DrainFSCommand(ShellCommand):
                                 size = int(given[i+1])
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
+			elif given[i] == "dryrun":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        dryrun = True
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2422,8 +2446,8 @@ class DrainFSCommand(ShellCommand):
 		#filter by group
 		if group != "ALL":
 			gid = db.getGroupIdByName(group)
-		numFiles =0
-
+		numFiles = 0
+		fileSize = 0
 		self.ok("Calculating Replicas to Drain..")
 		self.ok()
 
@@ -2437,8 +2461,13 @@ class DrainFSCommand(ShellCommand):
 			file.lfn = filename
                         self.interpreter.replicaQueue.put(file)
 			numFiles = numFiles+1
-
+			fileSize = fileSize + file.size
 		self.ok("Total Replicas to Drain: " + str(numFiles))
+		self.ok("Total Capacity to Drain: " + str(fileSize/1024) + " KB")
+
+		if dryrun:
+			return 
+	
 
                 for i in range(0,nthreads-1):
                         thread = DrainThread(self.interpreter, i, adminUserName)
@@ -2454,9 +2483,11 @@ class DrainServerCommand(ShellCommand):
     """Drain a specific Disk Server"""
 
     def _init(self):
-        self.parameters = ['?server',  '*Oparameter:group:size:nthreads',  '*?value',
-                                       '*Oparameter:group:size:nthreads',  '*?value',
-                                       '*Oparameter:group:size:nthreads',  '*?value' ]
+        self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+				       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
+			
     	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
@@ -2481,6 +2512,7 @@ class DrainServerCommand(ShellCommand):
         group = "ALL"
         size = 100
         nthreads = 5
+	dryrun = False
 
         try:
                 servername = given[0]
@@ -2491,6 +2523,10 @@ class DrainServerCommand(ShellCommand):
                                 size = int(given[i+1])
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
+			elif given[i] == "dryrun":
+				if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+	                                dryrun = True
+			
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
