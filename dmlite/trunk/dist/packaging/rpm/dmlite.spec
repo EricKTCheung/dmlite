@@ -3,6 +3,15 @@
 
 %{!?dmlite_test: %global dmlite_tests 0}
 
+# systemd definition, to do the right thing if we need to restart daemons
+%if %{?fedora}%{!?fedora:0} >= 17 || %{?rhel}%{!?rhel:0} >= 7
+%global systemd 1
+%else
+%global systemd 0
+%endif
+
+
+
 Name:					dmlite
 Version:				0.7.3
 Release:				1%{?dist}
