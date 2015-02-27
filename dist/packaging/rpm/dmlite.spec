@@ -201,15 +201,15 @@ rm -rf %{buildroot}
 /sbin/ldconfig
 /sbin/service rsyslog condrestart || true
 %if %systemd
-        /bin/systemctl try-restart dpm.service > /dev/null 2>&1 || :
-        /bin/systemctl try-restart dpnsdaemon.service > /dev/null 2>&1 || :
-        /bin/systemctl try-restart httpd.service > /dev/null 2>&1 || :
-        /bin/systemctl try-restart dpm-gsiftp.service > /dev/null 2>&1 || :
+        /bin/systemctl try-restart dpm.service || true
+        /bin/systemctl try-restart dpnsdaemon.service || true
+        /bin/systemctl try-restart httpd.service || true
+        /bin/systemctl try-restart dpm-gsiftp.service || true
 %else
-        /sbin/service dpm condrestart > /dev/null 2>&1 || :
-        /sbin/service dpnsdaemon condrestart > /dev/null 2>&1 || :
-        /sbin/service httpd condrestart > /dev/null 2>&1 || :
-        /sbin/service dpm-gsiftp condrestart > /dev/null 2>&1 || :
+        /sbin/service dpm condrestart  || true
+        /sbin/service dpnsdaemon condrestart ||true
+        /sbin/service httpd condrestart || true
+        /sbin/service dpm-gsiftp condrestart ||true
 %endif
 
 
