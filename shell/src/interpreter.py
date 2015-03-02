@@ -2080,7 +2080,6 @@ class DrainThread (threading.Thread):
     def drain_replica(self,threadName):
         while True:
                 replica = self.interpreter.replicaQueue.get()
-                #print "thread %d processing %s" % (threadName, replica.sfn)
                 self.interpreter.replicaQueue.task_done()
                 drainreplica = DrainFileReplica(self.interpreter,replica,self.adminUserName)
                 drainreplica.drain();
@@ -2176,6 +2175,77 @@ class DrainFileReplica():
                 self.interpreter.error("error Removing Replica for file: " +filename)
                 return self.interpreter.error(e.__str__())
 
+class DrainReplicas():
+    """implement draining of a list of replicas"""
+    def __init__(self, interpreter , db,fileReplicas,adminUserName, group,size, nthreads, dryrun):
+       	self.interpreter= interpreter
+       	self.fileReplicas=fileReplicas
+     	self.adminUserName = adminUserName
+	self.group = group
+	self.db = db
+	self.size = size
+	self.nthreads= nthreads
+	self.dryrun = dryrun
+     	signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
+
+    def drain(self): 
+	gid = None
+        #filter by group
+	try:
+        	if self.group != "ALL":
+        		gid = self.db.getGroupIdByName(self.group)
+        	numFiles = 0
+        	fileSize = 0
+
+       	 	for file in self.fileReplicas:
+        		#print "putting file " + file.sfn
+                	#if filter on group check if the filereplica match
+                	if (self.group != "ALL"):
+                        	if file.gid != gid:
+                        		continue
+                	filename = self.db.getLFNFromSFN(file.sfn)
+                	file.lfn = filename
+                	numFiles = numFiles+1
+                	fileSize = fileSize + file.size
+        	self.interpreter.ok("Total Replicas stored in FS: " + str(numFiles))
+        	self.interpreter.ok("T:wotal Capacity stored in FS: " + str(fileSize/1024) + " KB")
+
+        	#in case the size is != 100, we should limit the number of replicas to drain
+        	sizeToDrain = fileSize
+        	if self.size != 100:
+        		sizeToDrain = sizeToDrain*self.size/100
+
+     	   	self.interpreter.ok("Percentage of size to drain: " + str(self.size)+ " %")
+        	self.interpreter.ok("Total Size to drain: " + str(sizeToDrain/1024)+ " KB")
+
+        	for file in self.fileReplicas:
+			if (self.group != "ALL"):
+                        	if file.gid != gid:
+                                	continue
+                	if self.size != 100:
+                        	if sizeToDrain > 0:
+                                	sizeToDrain= sizeToDrain-file.size
+                        	else:
+                                	break
+                  	if self.dryrun:
+                        	self.interpreter.ok("Storage File with Replica to drain: "+ file.lfn)
+                	self.interpreter.replicaQueue.put(file)
+
+        	if self.dryrun:
+        		return
+
+        	for i in range(0,self.nthreads-1):
+                	thread = DrainThread(self.interpreter, i, self.adminUserName)
+                	thread.setDaemon(True)
+                	thread.start()
+		# Wait for all threads to complete
+                self.interpreter.replicaQueue.join()
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
 
 class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
@@ -2249,10 +2319,9 @@ class DrainPoolCommand(ShellCommand):
 				poolToDrain = pool
 			else: 
 		        	poolForDraining = pool
-
 		if poolToDrain is None:
 			return self.error("The poolname to drain has not been found in the configuration");
-		if poolForDraining is None:
+		if poolForDraining  is None:
 			return self.error("The poolname for draining has not been found in the configuration");	
 	
 		#print info on the pool to drain
@@ -2276,27 +2345,17 @@ class DrainPoolCommand(ShellCommand):
 		
 		listFStoDrain = db.getFilesystems(poolToDrain.name)
 
-		try:
-                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(poolForDraining.type)
-                except Exception, e:
-                        self.interpreter.poolDriver = None
-                        return self.error('Could not initialise the pool driver.\n' + e.__str__())
-
-		poolHandler = self.interpreter.poolDriver.createPoolHandler(poolForDraining.name)
-                capacity = poolHandler.getTotalSpace()
-                free = poolHandler.getFreeSpace()
-
-
-		self.ok('POOL SELECTED FOR DRAINING : %s' % poolForDraining.name)
-                self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
-
+		
 		#step 1 : set as READONLY all FS in the pool to drain
-		for fs in listFStoDrain:
-			if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
-				pass
-            		else:
-                		self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
-				return
+		if not dryrun:
+			 for fs in listFStoDrain:
+				if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
+					pass
+            			else:
+                			self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
+					return
+		self.ok("Calculating Replicas to Drain..")
+                self.ok()
 				
 		#step 2 : get all FS associated to the pool to drain and get the list of replicas
 		listTotalFiles = []
@@ -2306,45 +2365,12 @@ class DrainPoolCommand(ShellCommand):
 				listTotalFiles.extend(listFiles)
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
-		#TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
 
-		gid = None
-                #filter by group
-                if group != "ALL":
-                        gid = db.getGroupIdByName(group)
+		drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, adminUserName, group, size, nthreads, dryrun)
+		self.ok("Starting draining process")
+                drainProcess.drain()
 
-	        numFiles = 0
-                fileSize = 0
-                self.ok("Calculating Replicas to Drain..")
-                self.ok()
-
-	
-		for file in listTotalFiles:
-			if (group != "ALL"):
-                        	if file.gid != gid:
-                                	continue
-			filename = db.getLFNFromSFN(file.sfn)
-                        file.lfn = filename
-			self.interpreter.replicaQueue.put(file)
-                        numFiles = numFiles+1
-                        fileSize = fileSize + file.size
-
-                self.ok("Total Replicas to Drain: " + str(numFiles))
-                self.ok("Total Capacity to Drain: " + str(fileSize/1024) + " KB")
-
-                if dryrun:
-                        return
-
-
-		for i in range(0,nthreads-1):
-			thread = DrainThread(self.interpreter, i,adminUserName)
-			thread.setDaemon(True)
-			thread.start()
-		
-		# Wait for all threads to complete
-		self.interpreter.replicaQueue.join()
-		
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2435,50 +2461,17 @@ class DrainFSCommand(ShellCommand):
                 	else:
                         	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
                         	return
-
+		self.ok("Calculating Replicas to Drain..")
+                self.ok()
 		#get all files to drain
 		listFiles = db.getReplicasInFS(fsToDrain.name, fsToDrain.server)
 
 		#step 3 : for each file call the drain method of DrainFileReplica
-                #TO DO: check the file size of the drained replica and use it to check it the size drained exceed the one specified as parameter
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+		
+		drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+		drainProcess.drain()
 
-		gid = None
-		#filter by group
-		if group != "ALL":
-			gid = db.getGroupIdByName(group)
-		numFiles = 0
-		fileSize = 0
-		self.ok("Calculating Replicas to Drain..")
-		self.ok()
-
-                for file in listFiles:
-                        #print "putting file " + file.sfn
-			#if filter on group check if the filereplica match
-			if (group != "ALL"):
-				if file.gid != gid:
-					continue
-			filename = db.getLFNFromSFN(file.sfn)
-			if dryrun:
-				self.ok("Storage File with Replica to drain: "+ filename)
-			file.lfn = filename
-                        self.interpreter.replicaQueue.put(file)
-			numFiles = numFiles+1
-			fileSize = fileSize + file.size
-		self.ok("Total Replicas to Drain: " + str(numFiles))
-		self.ok("Total Capacity to Drain: " + str(fileSize/1024) + " KB")
-
-		if dryrun:
-			return 
-	
-
-                for i in range(0,nthreads-1):
-                        thread = DrainThread(self.interpreter, i, adminUserName)
-                        thread.setDaemon(True)
-                        thread.start()
-
-                # Wait for all threads to complete
-                self.interpreter.replicaQueue.join()
  	except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2565,7 +2558,24 @@ class DrainServerCommand(ShellCommand):
                                 return self.error("There are no other Filesystems available in different Disk Servers for Draining.")
                         if not serverToDrain:
                                 return self.error("The specified server has not been found in the DPM configuration")
+		#set as READONLY the FS  to drain
+                if not dryrun:
+			for fs in db.getFilesystemsInServer(servername):
+                        	if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
+                                	pass
+                        	else:
+                                	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
+                                	return
+                self.ok("Calculating Replicas to Drain..")
+                self.ok()
+                #get all files to drain
+                listFiles = db.getReplicasInServer(servername)
 
+                #step 3 : for each file call the drain method of DrainFileReplica
+                self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+
+                drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+                drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
