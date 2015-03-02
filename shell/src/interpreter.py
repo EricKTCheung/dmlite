@@ -2429,11 +2429,12 @@ class DrainFSCommand(ShellCommand):
 				return self.error("The specified filesystem has not been found in the DPM configuration")
 
 		#set as READONLY the FS  to drain
-                if not dpm2.dpm_modifyfs(fsToDrain.server, fsToDrain.name, 2, fsToDrain.weight):
-                        pass
-                else:
-                        self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
-                        return
+		if not dryrun:
+	                if not dpm2.dpm_modifyfs(fsToDrain.server, fsToDrain.name, 2, fsToDrain.weight):
+        	                pass
+                	else:
+                        	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
+                        	return
 
 		#get all files to drain
 		listFiles = db.getReplicasInFS(fsToDrain.name, fsToDrain.server)
