@@ -222,7 +222,8 @@ class DPMDB(object):
 	                print "Path %s does not exist" % sfn
 	                sys.exit(1)
 	        namelist.reverse() #put entries in "right" order for joining together
-	        return '/'.join(namelist)[1:] #and sfn and print dpns name (minus srm bits)
+		name = '/'.join(namelist)[1:]#and sfn and print dpns name (minus srm bits)
+		return name[:-1] #remove last "/"
 	
 
 # Get a filesytem information from db

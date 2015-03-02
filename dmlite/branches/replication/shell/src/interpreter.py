@@ -2458,6 +2458,8 @@ class DrainFSCommand(ShellCommand):
 				if file.gid != gid:
 					continue
 			filename = db.getLFNFromSFN(file.sfn)
+			if dryrun:
+				self.ok("Storage File with Replica to drain: "+ filename)
 			file.lfn = filename
                         self.interpreter.replicaQueue.put(file)
 			numFiles = numFiles+1
