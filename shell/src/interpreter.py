@@ -2291,9 +2291,13 @@ class DrainPoolCommand(ShellCommand):
 			elif given[i] == "group":
 				group = given[i+1]
 			elif given[i] == "size":
-				size = int(given[i+1])
-			elif given[i] == "nthreads":
-				nthreads = int(given[i+1])
+                                size = int(given[i+1])
+                                if size > 100 or size < 1:
+                                        return self.error("Incorrect Drain size: it must be between 1 and 100")
+                        elif given[i] == "nthreads":
+                                nthreads = int(given[i+1])
+                                if nthreads < 1 or nthreads > 20:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
                                         dryrun = True
@@ -2414,10 +2418,14 @@ class DrainFSCommand(ShellCommand):
                 for i in range(2, len(given),2):
                         if given[i] == "group":
                                 group = given[i+1]
-                        elif given[i] == "size":
+			elif given[i] == "size":
                                 size = int(given[i+1])
+                                if size > 100 or size < 1:
+                                        return self.error("Incorrect Drain size: it must be between 1 and 100")
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
+                                if nthreads < 1 or nthreads > 20:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
                                         dryrun = True
@@ -2517,8 +2525,12 @@ class DrainServerCommand(ShellCommand):
                                 group = given[i+1]
                         elif given[i] == "size":
                                 size = int(given[i+1])
+				if size > 100 or size < 1:
+					return self.error("Incorrect Drain size: it must be between 1 and 100")
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
+				if nthreads < 1 or nthreads > 20:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
 			elif given[i] == "dryrun":
 				if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
 	                                dryrun = True
