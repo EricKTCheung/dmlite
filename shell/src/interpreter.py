@@ -2166,9 +2166,22 @@ class DrainFileReplica():
 	if not replicated:
 		return self.interpreter.error("error Draining Replica for file: " +filename)
 
-        #step 6 : remove drained replica
-	replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
+	#step 6 : remove drained replica file
+ 	pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
+        try:
+                self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
+        except Exception, e:
+                return self.interpreter.error('Could not initialise the pool driver.\n' + e.__str__())
 
+	replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
+        
+	try:
+		poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
+		poolHandler.removeReplica(replica)
+	except Exception, e:
+                return self.interpreter.error('Could not remove replica from pool.\n' + e.__str__())
+
+        #step 7 : remove drained replica from catalog
 	try:
 	        self.interpreter.catalog.deleteReplica(replica)
         except Exception, e:
