@@ -63,6 +63,9 @@ BuiltInCatalogFactory::~BuiltInCatalogFactory()
 
 void BuiltInCatalogFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  bool gotit = true;
+  Log(Logger::Lvl4, Logger::unregistered, "BuiltInCatalogFactory",   " Key: " << key << " Value: " << value);
+  
   if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "UpdateAccessTime") {
@@ -70,10 +73,11 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
     std::transform(value.begin(), value.end(), lower.begin(), tolower);
     this->updateATime_ = (value == "yes");
   }
-  else
-    Log(Logger::Lvl4, Logger::unregistered, "BuiltInCatalogFactory", "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//                      "Unknown option " + key);
+  else gotit = false;
+  
+  if (gotit)
+    Log(Logger::Lvl1, Logger::unregistered, "BuiltInCatalogFactory", "Setting BuiltInCatalogFactory parms. Key: " << key << " Value: " << value);
+    
 }
 
 

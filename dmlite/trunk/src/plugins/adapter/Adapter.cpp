@@ -54,7 +54,7 @@ NsAdapterFactory::~NsAdapterFactory()
 
 void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  
+  bool gotit = true;
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
   
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
@@ -89,11 +89,12 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
     this->hostDn_ = getCertificateSubject(value);
   else if (key == "ConnPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
-  else
-    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+  else gotit = false;
   
-  //  throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-  //                    "Unrecognised option " + key);
+  if (gotit)
+    Log(Logger::Lvl1, adapterlogmask, adapterlogname, "Setting parms. Key: " << key << " Value: " << value);
+  
+    
 }
 
 INode* NsAdapterFactory::createINode(PluginManager*) throw(DmException)
@@ -140,7 +141,7 @@ DpmAdapterFactory::~DpmAdapterFactory()
 
 void DpmAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  
+  bool gotit = true;
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
   
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
@@ -164,8 +165,14 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
   }
   else if (key == "ConnPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
-  else
+  else {
+    gotit = false;
     NsAdapterFactory::configure(key, value);
+  }
+  
+  if (gotit)
+    Log(Logger::Lvl1, adapterlogmask, adapterlogname, "Setting parms. Key: " << key << " Value: " << value);
+  
 }
 
 

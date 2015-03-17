@@ -116,6 +116,9 @@ void ConfigFactory::processIncludes(const std::string& path) throw (DmException)
 void ConfigFactory::configure(const std::string& key,
                               const std::string& value) throw (DmException)
 {
+  bool gotit = true;
+  Log(Logger::Lvl4, Logger::unregistered, "ConfigFactory",   " Key: " << key << " Value: " << value);
+  
   if (key == "LogLevel" || key == "loglevel") {
     Log(Logger::Lvl0, Logger::unregistered, "config", "Setting global log level to :" << value);
     Logger::get()->setLevel((Logger::Level)atoi(value.c_str()));
@@ -131,11 +134,12 @@ void ConfigFactory::configure(const std::string& key,
     Logger::get()->setLogged(value, true);   
     
   }
-  else {
-    Log(Logger::Lvl4, Logger::unregistered, "ConfigFactory", "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//                      "Unknown parameter %s", key.c_str());
-  }
+  else gotit = false;
+  
+ 
+  if (gotit)
+    Log(Logger::Lvl1, Logger::unregistered, "ConfigFactory", "Setting ConfigFactory parms. Key: " << key << " Value: " << value);
+    
 }
 
 

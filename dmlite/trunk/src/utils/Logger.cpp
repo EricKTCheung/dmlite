@@ -7,7 +7,7 @@
 #include <string.h>
 
 Logger *Logger::instance = 0;
-Logger::bitmask Logger::unregistered = ~0;
+Logger::bitmask Logger::unregistered = 0;
 
 
 
