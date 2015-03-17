@@ -47,6 +47,7 @@ StdRFIOFactory::~StdRFIOFactory()
 
 void StdRFIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  bool gotit = true;
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname,  " Key: " << key << " Value: " << value);
 
   if (key == "TokenPassword") {
@@ -62,10 +63,11 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
   }
-  else
-    Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//                      key + " not known");
+  else gotit = false;
+  
+  if (gotit)
+    Log(Logger::Lvl1, Logger::unregistered, "StdRFIOFactory", "Setting parms. Key: " << key << " Value: " << value);
+  
 }
 
 
@@ -122,7 +124,7 @@ IOHandler* StdRFIODriver::createIOHandler(const std::string& pfn,
 
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
-        throw DmException(EACCES, "Missing token");
+        throw DmException(EACCES, "Missing token on pfn: %s", pfn.c_str());
 
       std::string userId;
       if (this->useIp_)
@@ -135,8 +137,8 @@ IOHandler* StdRFIODriver::createIOHandler(const std::string& pfn,
             pfn, this->passwd_,
             flags != O_RDONLY) != kTokenOK)
 
-        throw DmException(EACCES, "Token does not validate (using %s)",
-            this->useIp_?"IP":"DN");
+        throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
+            this->useIp_?"IP":"DN", pfn.c_str());
 
   }
 
@@ -157,7 +159,7 @@ StdRFIOHandler::pp::pp(int fd, bool *peof, off_t np):
 StdRFIOHandler::pp::~pp()
 {
   if (rfio_lseek64(fd, pos, SEEK_SET) == - 1)
-    throw DmException(serrno, "Could not seek");
+    throw DmException(serrno, "Could not seek on ");
   *peof = eof;
 }
 
@@ -175,12 +177,12 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
   // Need the sfn
   sfn = loc[0].url.query.getString("sfn");
   if (sfn.empty())
-    throw DmException(EINVAL, "sfn not specified");
+    throw DmException(EINVAL, "sfn not specified. loc: %s", loc.toString().c_str());
 
   // Need the dpm token
   std::string token = loc[0].url.query.getString("dpmtoken");
   if (token.empty())
-    throw DmException(EINVAL, "dpmtoken not specified");
+    throw DmException(EINVAL, "dpmtoken not specified. loc: %s", loc.toString().c_str()); 
 
   // Workaround... putdone in this context should be invoked by root
   // to make it work also in the cases when the client is unknown (nobody)
@@ -301,7 +303,7 @@ void StdRFIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 
   lk l(islocal_ ? 0 : &this->mtx_);
   if (rfio_lseek64(this->fd_, offset, whence) == -1)
-    throw DmException(serrno, "Could not seek");
+    throw DmException(serrno, "Could not seek fd %s", this->fd_);
 
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. offs:" << offset);
 }

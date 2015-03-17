@@ -259,7 +259,8 @@ IOHandler* ProfilerIODriver::createIOHandler(const std::string& pfn,
                                              const Extensible& extras,
                                              mode_t mode) throw (DmException)
 {
-
+      Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
+      
       Extensible profilerExtras;
       profilerExtras.copy(extras);
       if (stack_->contains("protocol")) {
@@ -275,6 +276,7 @@ IOHandler* ProfilerIODriver::createIOHandler(const std::string& pfn,
 
 void ProfilerIODriver::setStackInstance(StackInstance* si) throw (DmException)
 {
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
   BaseInterface::setStackInstance(this->decorated_, si);
   this->stack_ = si;
 }
@@ -283,6 +285,7 @@ void ProfilerIODriver::setStackInstance(StackInstance* si) throw (DmException)
 
 void ProfilerIODriver::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
   BaseInterface::setSecurityContext(this->decorated_, ctx);
 }
 

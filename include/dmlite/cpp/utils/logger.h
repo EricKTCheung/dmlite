@@ -15,7 +15,7 @@ do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
 	{    																	\
 		std::ostringstream outs;                                   			\
-		outs << "dmlite " << where << " " << __func__ << " : " << what;                      			\
+		outs << "[" << lvl << "] dmlite " << where << " " << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
 	}                                                             			\
 }while(0)                                                               			\

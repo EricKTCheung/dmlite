@@ -36,7 +36,7 @@ StdIOFactory::~StdIOFactory()
 
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-
+  bool gotit = true;
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
 
   if (key == "TokenPassword") {
@@ -52,10 +52,11 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
   }
-  else
-    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//                      key + " not known");
+  else gotit = false;
+  
+  if (gotit)
+    Log(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", "Setting parms. Key: " << key << " Value: " << value);
+   
 }
 
 
@@ -107,7 +108,7 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
 
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
-        throw DmException(EACCES, "Missing token");
+        throw DmException(EACCES, "Missing token on pfn: %s", pfn.c_str());
 
       std::string userId;
       if (this->useIp_)
@@ -120,8 +121,8 @@ IOHandler* StdIODriver::createIOHandler(const std::string& pfn,
             pfn, this->passwd_,
             flags != O_RDONLY) != kTokenOK)
 
-        throw DmException(EACCES, "Token does not validate (using %s)",
-            this->useIp_?"IP":"DN");
+        throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
+            this->useIp_?"IP":"DN", pfn.c_str());
 
   }
 
@@ -145,12 +146,12 @@ void StdIODriver::doneWriting(const Location& loc) throw (DmException)
   // Need the sfn
   sfn = loc[0].url.query.getString("sfn");
   if (sfn.empty())
-    throw DmException(EINVAL, "sfn not specified");
+    throw DmException(EINVAL, "sfn not specified loc: %s", loc.toString().c_str());
 
   // Need the dpm token
   std::string token = loc[0].url.query.getString("dpmtoken");
   if (token.empty())
-    throw DmException(EINVAL, "dpmtoken not specified");
+    throw DmException(EINVAL, "dpmtoken not specified loc: %s", loc.toString().c_str());
 
 
   // Workaround... putdone in this context should be invoked by root
@@ -189,8 +190,11 @@ StdIOHandler::StdIOHandler(const std::string& path,
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " path:" << path);
 
   this->fd_ = ::open(path.c_str(), flags, mode);
-  if (this->fd_ == -1)
-    throw DmException(errno, "Could not open %s", path.c_str());
+  if (this->fd_ == -1) {
+    char errbuffer[128];
+    strerror_r(errno, errbuffer, sizeof(errbuffer));
+    throw DmException(errno, "Could not open %s err: %s", path.c_str(), errbuffer);
+  }
 }
 
 
@@ -238,7 +242,7 @@ size_t StdIOHandler::read(char* buffer, size_t count) throw (DmException)
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   eof_ = (static_cast<size_t>(nbytes) < count);
@@ -256,7 +260,7 @@ size_t StdIOHandler::write(const char* buffer, size_t count) throw (DmException)
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   return static_cast<size_t>(nbytes);
@@ -272,7 +276,7 @@ size_t StdIOHandler::readv(const struct iovec* vector, size_t count) throw (DmEx
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   return static_cast<size_t>(nbytes);
@@ -288,7 +292,7 @@ size_t StdIOHandler::writev(const struct iovec* vector, size_t count) throw (DmE
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   return static_cast<size_t>(nbytes);
@@ -304,7 +308,7 @@ size_t StdIOHandler::pread(void* buffer, size_t count, off_t offset) throw (DmEx
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   return static_cast<size_t>(nbytes);
@@ -320,7 +324,7 @@ size_t StdIOHandler::pwrite(const void* buffer, size_t count, off_t offset) thro
   if (nbytes < 0) {
     char errbuffer[128];
     strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "%s", errbuffer);
+    throw DmException(errno, "%s on fd %s ", errbuffer, this->fd_);
   }
 
   return static_cast<size_t>(nbytes);
@@ -332,7 +336,7 @@ void StdIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " fd:" << this->fd_ << " offs:" << offset);
   if (::lseek64(this->fd_, offset, whence) == ((off_t) - 1))
-    throw DmException(errno, "Could not seek");
+    throw DmException(errno, "Could not seek on fd %s ", this->fd_);
 }
 
 

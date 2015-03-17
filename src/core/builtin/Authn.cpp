@@ -318,16 +318,18 @@ BuiltInAuthnFactory::~BuiltInAuthnFactory()
 void BuiltInAuthnFactory::configure(const std::string& key,
                                     const std::string& value) throw (DmException)
 {
+  bool gotit = true;
   Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   " Key: " << key << " Value: " << value);
   
   if (key == "AnonymousUser")
     this->nobody_ = value;
   else if (key == "AnonymousGroup")
     this->nogroup_ = value;
-  else  
-    Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory",   "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//                      "Unknown option %s", key.c_str());
+  else gotit = false;
+  
+  if (gotit)
+    Log(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", "Setting parms. Key: " << key << " Value: " << value);
+    
 }
 
 
