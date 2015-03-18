@@ -119,7 +119,7 @@ Authn* NsAdapterFactory::createAuthn(PluginManager*) throw (DmException)
 
 
 DpmAdapterFactory::DpmAdapterFactory() throw (DmException):
-  retryLimit_(3), tokenPasswd_("default"), tokenUseIp_(true), tokenLife_(600),
+  retryLimit_(3), tokenPasswd_("default"), tokenUseIp_(true), tokenLife_(28800),
   adminUsername_("root"), connectionPool_(&connectionFactory_, 10)
 {
   adapterlogmask = Logger::get()->getMask(adapterlogname);
