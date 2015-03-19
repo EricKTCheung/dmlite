@@ -603,6 +603,7 @@ Location FilesystemPoolHandler::whereToWrite(const std::string& sfn) throw (DmEx
 
   if (!spaceToken.empty()) {
     strncpy(reqfile.s_token, spaceToken.c_str(), sizeof(reqfile.s_token));
+    reqfile.s_token[sizeof(reqfile.s_token)-1] = '\0';
   }
   else if (!userTokenDescription.empty()) {
     char **space_ids = NULL;
