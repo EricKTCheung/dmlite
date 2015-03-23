@@ -36,7 +36,7 @@ def test():
       print e
       return
 
-    f = stackInstance.getCatalog().extendedStat("/", True)
+    f = catalog.extendedStat("/", True)
     print f.stat.st_ino
     print f.stat.st_size
 
