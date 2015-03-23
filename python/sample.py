@@ -4,7 +4,6 @@ import pydmlite
 
 def test():
     configFile =  '/etc/dmlite.conf'
-    conf = open(configFile, 'r')
     try:
       pluginManager = pydmlite.PluginManager()
       pluginManager.loadConfiguration(configFile)
@@ -35,9 +34,12 @@ def test():
     except Exception, e:
       print e
       return
-
-    f = catalog.extendedStat("/", True)
-    print f.stat.st_ino
-    print f.stat.st_size
+    try:
+      f = catalog.extendedStat("/", True)
+      print f.stat.st_ino
+      print f.stat.st_size
+    except Exception, e:
+      print e
+      return
 
 test()
