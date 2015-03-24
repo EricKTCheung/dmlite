@@ -21,6 +21,7 @@ class DPMDB(object):
 		port = None
 		nsDBName = None
 		dpmDBName = None
+                self.dirhash = {}
 
         	for line in conf:
                 	if line.startswith("MySqlHost"):
@@ -211,10 +212,16 @@ class DPMDB(object):
 	                namelist.append(str(name[1]))
 	                parent_fileid = name[0]
 	                while parent_fileid > 1:
-	                        self.nsdb_c.execute('''select parent_fileid, name from Cns_file_metadata where Cns_file_metadata.fileid = %s''' % parent_fileid)
-	                        (name,) = self.nsdb_c.fetchall()
-	                        namelist.append(str(name[1]))
-	                        parent_fileid = name[0]         
+				try:
+					item = self.dirhash[str(parent_fileid)]
+					parent_fileid = item[1]
+                                 	namelist.append(str(item[0]))
+				except:
+		                        self.nsdb_c.execute('''select parent_fileid, name from Cns_file_metadata where Cns_file_metadata.fileid = %s''' % parent_fileid)
+		                        (name,) = self.nsdb_c.fetchall()
+					self.dirhash[str(parent_fileid)] = (name[1],name[0])
+		                        namelist.append(str(name[1]))
+		                        parent_fileid = name[0]         
 	        except MySQLdb.Error, e:
 	                print "Error %d: %s" % (e.args[0], e.args[1])
 	                sys.exit(1)

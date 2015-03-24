@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # interpreter.py
 
 import pydmlite
@@ -2257,7 +2257,7 @@ class DrainReplicas():
 		# Wait for all threads to complete
                 self.interpreter.replicaQueue.join()
         except Exception, e:
-                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+                return self.interpreter.error(e.__str__())
 
 
 class DrainPoolCommand(ShellCommand):
