@@ -1,1 +1,0 @@
-../../../dist/dmlite-shell.spec
