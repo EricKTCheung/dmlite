@@ -4,6 +4,9 @@ LoadPlugin plugin_mysql_ns /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
 # Load namespace and pool manager (DPM)
 LoadPlugin plugin_mysql_dpm /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
 
+# Load the IO passthrough, e.g. to catch the size of new files being written
+LoadPlugin plugin_mysql_iopassthrough /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
+
 # MySQL connection parameters
 MySqlHost localhost
 MySqlUsername dpmdbuser
