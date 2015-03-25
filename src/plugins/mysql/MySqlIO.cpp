@@ -1,9 +1,9 @@
 
 #include "MySqlIO.h"
 
+#include "sys/param.h"
+#include "NsMySql.h"
 
-
-  
 // ------------------------------------------------
 // MysqlIODriverPassthrough
 //
@@ -51,11 +51,77 @@ void MysqlIOPassthroughDriver::setSecurityContext(const SecurityContext* ctx) th
 
 
 void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmException) {
-  Log(Logger::Lvl3, mysqllogmask, mysqllogname, " loc:" << loc.toString());
-  
+  Log(Logger::Lvl1, mysqllogmask, mysqllogname, " loc:" << loc.toString());
+  ExtendedStat st;
   
   decorated_->doneWriting(loc);
   
+  // Semantically speaking, here the file size should be available
+  
+  // Stat the file to have the size of the file that was just written
+  try {
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Looking up size of " << loc[0].url.query.getString("sfn"));
+    st = this->stack_->getCatalog()->extendedStat(loc[0].url.query.getString("sfn"));
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Size of " << loc[0].url.query.getString("sfn") << " is " << st.stat.st_size);
+  }
+  catch (DmException& e) {
+    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve filesize for loc:" << loc.toString());
+    return;
+  }
+  
+  INodeMySql *inodeintf = dynamic_cast<INodeMySql *>(this->stack_->getINode());
+  if (!inodeintf) {
+    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
+    return;
+  }
+  
+  // Add this filesize to the size of its parent dirs, only the first N levels
+  {
+
+    
+    // Start transaction
+    InodeMySqlTrans trans(inodeintf);
+    
+    off_t sz = st.stat.st_size;
+    
+    
+    ino_t hierarchy[128];
+    size_t hierarchysz[128];
+    int idx = 0;
+    while (st.parent) {
+      
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+      
+      try {
+        st = inodeintf->extendedStat(st.parent);
+      }
+      catch (DmException& e) {
+        Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+        return;
+      }
+      
+      hierarchy[idx] = st.stat.st_ino;
+      hierarchysz[idx] = st.stat.st_size;
+      
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Size of inode " << st.stat.st_ino <<
+      " is " << st.stat.st_size << " with idx " << idx);
+      
+      idx++;
+      
+      if (idx >= sizeof(hierarchy)) {
+        Err( "MysqlIOPassthroughDriver::doneWriting" , " Too many parent directories for replica " << loc.toString());
+        return;
+      }
+    }
+    
+    for (int i = MIN(6, idx-1); i >= 2; i--) {
+      inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
+    }
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+  }
 }
 
 
