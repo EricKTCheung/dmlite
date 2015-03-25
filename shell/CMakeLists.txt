@@ -11,9 +11,6 @@ else (CMAKE_SIZEOF_VOID_P EQUAL 4)
 		CACHE STRING "library directory suffix value")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
-# Cmake module directory
-set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
-
 # Definitions
 add_definitions (-D_REENTRANT)
 
