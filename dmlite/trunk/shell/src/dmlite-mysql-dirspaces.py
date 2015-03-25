@@ -22,7 +22,8 @@ __author__  = "Fabrizio Furano"
 
 
 import collections
-
+import sys
+import re
 from optparse import OptionParser
 import MySQLdb
 
@@ -110,7 +111,7 @@ parser.add_option('--updatedb', dest='updatedb', action='store_true', default=Fa
 
 parser.add_option('-v', '--debug', dest='verbose', action='count', help='Each v increases the verbosity level for debugging (on stderr)')
 
-parser.add_option('--updatelevels', dest='updatelevels', default=6, help="Allows setting the directory size only for the first N levels")
+parser.add_option('--updatelevels', dest='updatelevels', default="6", help="Allows setting the directory size only for the first N levels")
 
 parser.add_option('--nsconfig', dest='nsconfig', default=None, help="Path to the NSCONFIG file where to take the db login info")
 parser.add_option('--dbhost', dest='dbhost', default=None, help="Database host, if no NSCONFIG given")
@@ -123,6 +124,17 @@ dbhost = options.dbhost
 dbuser = options.dbuser
 dbpwd = options.dbpwd
 
+try:
+  updatelevelsi = int(options.updatelevels)
+except Exception, e:
+  print "Invalid parameter ", options.updatelevels
+  print "For a list of parameters run:"
+  print "  dmlite-mysql-dirspaces.py -h"
+  sys.exit(1) 
+
+
+print
+print "Going to update the first ", updatelevelsi
 
 if options.nsconfig:
   # Parse the NSCONFIG line, extract the db login info from it
@@ -138,7 +150,7 @@ if options.nsconfig:
     dbhost = spl[2].strip()
   except Exception, e:
     print "Error while accessing NSCONFIG. " + str(e)
-    sys.exit(1);
+    sys.exit(1)
 
 
 
@@ -156,6 +168,9 @@ try:
   conn = MySQLdb.connect (str(dbhost), str(dbuser), str(dbpwd), "")
 except MySQLdb.Error, e:
   print "Error Connecting to mysql. %d: %s" % (e.args[0], e.args[1])
+  print "For a list of parameters run:"
+  print "  dmlite-mysql-dirspaces.py -h"
+  print
   sys.exit (1)
 
 print "DB... Connected!"
@@ -213,7 +228,7 @@ print "-----------------------------------------------------------"
 
 fixcnt = 0;
 for k in glbdirhash:
-  if glbdirhash[k][2] <= options.updatelevels:
+  if glbdirhash[k][2] <= updatelevelsi:
     
     if options.updatedb:
       print "Setting fileid ", k, glbdirhash[k][0], " with size ", glbdirhash[k][1]
@@ -234,4 +249,3 @@ print "Time elapsed: ", elapsed, "(", el, " seconds )"
 print "Total speed:", repcount / el, "fixed directories per second."
 print
 
-    
