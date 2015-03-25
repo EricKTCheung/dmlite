@@ -10,6 +10,9 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 install(PROGRAMS      dmlite-shell
         DESTINATION   usr/bin)
 
+install(PROGRAMS      dmlite-mysql-dirspaces.py
+        DESTINATION   usr/bin)
+
 install(FILES         __init__.py interpreter.py
 	DESTINATION   ${PYTHON_SITE_PACKAGES}/dmliteshell
 )
