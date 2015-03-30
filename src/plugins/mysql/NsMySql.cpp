@@ -449,7 +449,7 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
     
     // Metadata
     ExtendedStat file = this->extendedStat(inode);
-    
+        
     // Make sure the destiny is a dir!
     ExtendedStat newParent = this->extendedStat(dest);
     if (!S_ISDIR(newParent.stat.st_mode))

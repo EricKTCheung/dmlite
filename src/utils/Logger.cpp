@@ -8,14 +8,7 @@
 
 Logger *Logger::instance = 0;
 Logger::bitmask Logger::unregistered = 0;
-
-
-
-
-
-
-
-
+char *Logger::unregisteredname = (char *)"unregistered";
 
 
 
@@ -133,8 +126,8 @@ int Logger::getStackTrace(std::string &s)
 Logger::Logger() : level(Lvl4), size(0)
 {
     mask = 0;
-    registerComponent("unregistered");
-    mask = unregistered = getMask("unregistered");
+    registerComponent(unregisteredname);
+    mask = unregistered = getMask(unregisteredname);
     
     // log the process ID, connect to syslog without delay, log also to 'cerr'
     int options = LOG_PID | LOG_NDELAY;
@@ -198,8 +191,8 @@ void Logger::setLogged(component const &comp, bool tobelogged) {
       // Switch on the corresponsing bit
       mask |= b;
       // Setting ON some logging disables the unregistered category where everything else falls
-      if (comp != "unregistered")
-	setLogged("unregistered", false);
+      if (comp != unregisteredname)
+	setLogged(unregisteredname, false);
     }
     else
       // Switch off the corresponding bit

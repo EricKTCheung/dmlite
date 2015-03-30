@@ -41,7 +41,7 @@ public:
 	typedef std::string component;
 
 	static bitmask unregistered;
-
+        static char *unregisteredname;
     /**
      * Use the same values for log levels as syslog
      */

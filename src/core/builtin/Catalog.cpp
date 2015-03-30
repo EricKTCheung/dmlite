@@ -10,7 +10,7 @@
 #include <dmlite/cpp/utils/security.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <vector>
-
+#include <sys/param.h>
 #include <string.h>
 
 #include "Catalog.h"
@@ -349,6 +349,12 @@ void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
                       "Can not modify the file %d", replica.fileid);
   
   this->si_->getINode()->addReplica(replica);
+  
+  // Note: the space occupied by this replica is accounted for in the IODriver
+  // only if there is an IODriver, otherwise it is acounted for here
+  if (!this->si_->getIODriver())
+    addFileSizeToParents(meta, false);
+  
 }
 
 
@@ -363,6 +369,9 @@ void BuiltInCatalog::deleteReplica(const Replica& replica) throw (DmException)
                       "Can not modify the file %d", replica.fileid);
   
   this->si_->getINode()->deleteReplica(replica);
+  
+  // Subtract the size of this replica from the directory space counters
+  addFileSizeToParents(meta, true);
 }
 
 
@@ -799,8 +808,9 @@ std::string oldParentPath, newParentPath;
       this->si_->getINode()->rename(old.stat.st_ino, newName);
 
     // Change the parent if needed
-    if (newParent.stat.st_ino != oldParent.stat.st_ino)
+    if (newParent.stat.st_ino != oldParent.stat.st_ino) {
       this->si_->getINode()->move(old.stat.st_ino, newParent.stat.st_ino);
+    }
     else {
       // Parent is the same, but change its mtime
       struct utimbuf utim;
@@ -1258,4 +1268,101 @@ void BuiltInCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcept
       throw DmException(EACCES,
                         "Can not access #%ld", current.stat.st_ino);
   }
+}
+
+
+
+void BuiltInCatalog::addFileSizeToParents(const std::string &fname, bool subtract) throw (DmException)
+{
+  ExtendedStat st;
+ 
+  // Stat the file to have the size of the file that was just written
+  try {
+    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Looking up size of " << fname);
+    st = this->si_->getCatalog()->extendedStat(fname);
+    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Ok. Size of " << fname << " is " << st.stat.st_size);
+  }
+  catch (DmException& e) {
+    Err( "BuiltInCatalog::addSizeToParents" , " Cannot retrieve filesize for loc:" << fname);
+    return;
+  }
+  
+  addFileSizeToParents(st, subtract);
+}
+  
+void BuiltInCatalog::addFileSizeToParents(const ExtendedStat &statinfo, bool subtract) throw (DmException)
+{
+  ExtendedStat st = statinfo;
+  
+  INode *inodeintf = dynamic_cast<INode *>(this->si_->getINode());
+  if (!inodeintf) {
+    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
+    return;
+  }
+  
+  try {
+    
+    // Add this filesize to the size of its parent dirs, only the first N levels
+    {
+      
+      // Start transaction
+      inodeintf->begin();
+      
+      off_t sz = st.stat.st_size;
+      
+      
+      ino_t hierarchy[128];
+      size_t hierarchysz[128];
+      int idx = 0;
+      while (st.parent) {
+        
+        Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+        
+        try {
+          st = inodeintf->extendedStat(st.parent);
+        }
+        catch (DmException& e) {
+          Err( "BuiltInCatalog::addSizeToParents" , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+          inodeintf->rollback();
+          return;
+        }
+        
+        hierarchy[idx] = st.stat.st_ino;
+        hierarchysz[idx] = st.stat.st_size;
+        
+        Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Size of inode " << st.stat.st_ino <<
+        " is " << st.stat.st_size << " with idx " << idx);
+        
+        idx++;
+        
+        if (idx >= sizeof(hierarchy)) {
+          Err( "BuiltInCatalog::addSizeToParents" , " Too many parent directories for file " << statinfo.name << " fileid: " << statinfo.stat.st_ino);
+          inodeintf->rollback();
+          return;
+        }
+      }
+      
+      for (int i = MIN(6, idx-1); i >= 2; i--) {
+        off_t newsz = sz + hierarchysz[i];
+        if (subtract) {
+          if (sz < hierarchysz[i]) newsz = hierarchysz[i] - sz;
+          else newsz = 0;
+        }
+        inodeintf->setSize(hierarchy[i], newsz);
+      }
+      
+      // Commit the local trans object
+      // This also releases the connection back to the pool
+      inodeintf->commit();
+    }
+    
+    
+    
+  }
+  catch (...) {
+    inodeintf->rollback();
+    throw;
+  }
+  
+  
 }
