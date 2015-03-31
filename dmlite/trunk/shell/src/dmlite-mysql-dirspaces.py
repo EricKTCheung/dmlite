@@ -110,7 +110,9 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
   # Now take the list of the path tokens for this replica
   # and adjust their depth in the global hash
   dirtokens.reverse()
-  print "dirtokens: ", dirtokens
+  if options.verbose > 3:
+    print "dirtokens: ", dirtokens
+    
   cnt = 1
   for tk in dirtokens:
     item = dirhash[tk]
