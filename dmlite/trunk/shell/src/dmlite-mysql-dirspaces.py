@@ -49,16 +49,25 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
   dbcurs = dbconn.cursor()
   cnsname = repname
   cnsparentid = parentid
-  dirtokens = [];
+  dirtokens = []
+  
   
   while(1):
+   
+    
     if (cnsparentid == 0):
       #print "Finished :-)"
-      return
+      break
     
     item = None
+    
+    dirtokens.append(cnsparentid)
+    
     try:
+      
       item = dirhash[cnsparentid]
+      
+      
       
       # Try to update the size of the object in memory
       # an item is: name, size, parentid
@@ -66,11 +75,12 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
       
       # name is already in place
         
-      item2 = (item[0], item[1]+repsize, item[2])
+      item2 = (item[0], item[1]+repsize, item[2], item[3])
       if options.verbose > 2:
         print item, "becomes ", item2
       dirhash[cnsparentid] = item2
       cnsparentid = item[2]
+      
       
     except KeyError:
       # Get the currently pointed entry, then go up one level
@@ -80,7 +90,7 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
         (cnsfileid, cnsname, cnssize) = res
         
         # create new entry for the in memory hash
-        item = ( cnsname, repsize, cnsfileid )
+        item = ( cnsname, repsize, cnsfileid, 0 )
         
         if options.verbose:
           print "New item ", item
@@ -94,9 +104,26 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
           print " The fileid looked for was: ", cnsparentid
           print "Most likely the entry is orphan:", cnsname
         return
+  
+  
+  
+  # Now take the list of the path tokens for this replica
+  # and adjust their depth in the global hash
+  dirtokens.reverse()
+  print "dirtokens: ", dirtokens
+  cnt = 1
+  for tk in dirtokens:
+    item = dirhash[tk]
+    if (item[3] == 0):
+      item2 = (item[0], item[1], item[2], cnt)
+      dirhash[tk] = item2
       
-      
-
+    cnt = cnt+1
+    
+  # Done
+  
+  
+    
 #############
 # Main code #
 #############
@@ -228,7 +255,7 @@ print "-----------------------------------------------------------"
 
 fixcnt = 0;
 for k in glbdirhash:
-  if glbdirhash[k][2] <= updatelevelsi:
+  if glbdirhash[k][3] <= updatelevelsi:
     
     if options.updatedb:
       print "Setting fileid ", k, glbdirhash[k][0], " with size ", glbdirhash[k][1]
