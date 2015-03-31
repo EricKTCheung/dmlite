@@ -2223,16 +2223,16 @@ class DrainReplicas():
                 	file.lfn = filename
                 	numFiles = numFiles+1
                 	fileSize = fileSize + file.size
-        	self.interpreter.ok("Total Replicas stored in FS: " + str(numFiles))
-        	self.interpreter.ok("T:wotal Capacity stored in FS: " + str(fileSize/1024) + " KB")
+        	self.interpreter.ok("Total replicas installed in the FS to drain: " + str(numFiles))
+        	self.interpreter.ok("Total capacity installed in the FS to drain: " + str(fileSize/1024) + " KB")
 
         	#in case the size is != 100, we should limit the number of replicas to drain
         	sizeToDrain = fileSize
         	if self.size != 100:
         		sizeToDrain = sizeToDrain*self.size/100
 
-     	   	self.interpreter.ok("Percentage of size to drain: " + str(self.size)+ " %")
-        	self.interpreter.ok("Total Size to drain: " + str(sizeToDrain/1024)+ " KB")
+     	   	self.interpreter.ok("Percentage of capacity to drain: " + str(self.size)+ " %")
+        	self.interpreter.ok("Total capacity to drain: " + str(sizeToDrain/1024)+ " KB")
 
         	for file in self.fileReplicas:
 			if (self.group != "ALL"):
@@ -2243,8 +2243,6 @@ class DrainReplicas():
                                 	sizeToDrain= sizeToDrain-file.size
                         	else:
                                 	break
-                  	if self.dryrun:
-                        	self.interpreter.ok("Storage File with Replica to drain: "+ file.lfn)
                 	self.interpreter.replicaQueue.put(file)
 
         	if self.dryrun:
@@ -2264,10 +2262,10 @@ class DrainPoolCommand(ShellCommand):
     """Drain a specific pool"""
     
     def _init(self):
-        self.parameters = ['?poolname', '*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
-					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
-					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value',
-					'*Oparameter:servername:group:size:nthreads:dryrun',  '*?value' ]
+        self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
+					'*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
@@ -2289,7 +2287,6 @@ class DrainPoolCommand(ShellCommand):
 	if len(given)%2 == 0:
             return self.error("Incorrect number of parameters")
 	
-	servername = None
 	#default
 	group = "ALL"
 	size = 100
@@ -2299,9 +2296,7 @@ class DrainPoolCommand(ShellCommand):
     	try:
     		poolname = given[0]
 		for i in range(1, len(given),2):
-                	if given[i] == "servername":
-				servername = given[i+1]
-			elif given[i] == "group":
+			if given[i] == "group":
 				group = given[i+1]
 			elif given[i] == "size":
                                 size = int(given[i+1])
@@ -2341,25 +2336,6 @@ class DrainPoolCommand(ShellCommand):
 		if poolForDraining  is None:
 			return self.error("The poolname for draining has not been found in the configuration");	
 	
-		#print info on the pool to drain
-                try:
-                	self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(poolToDrain.type)
-	        except Exception, e:
-        		self.interpreter.poolDriver = None
-                    	return self.error('Could not initialise the pool driver.\n' + e.__str__())
-
-	        poolHandler = self.interpreter.poolDriver.createPoolHandler(poolToDrain.name)
-        	capacity = poolHandler.getTotalSpace()
-                free = poolHandler.getFreeSpace()
-
-                if capacity != 0:
-                	rate = round(float(100 * free ) / capacity,1)
-                else:
-              		rate = 0
-		self.ok('POOL TO DRAIN : %s' % poolToDrain.name)
-                self.ok('CAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
-		#getting FS directly from DB
-		
 		listFStoDrain = db.getFilesystems(poolToDrain.name)
 
 		
@@ -2375,11 +2351,7 @@ class DrainPoolCommand(ShellCommand):
                 self.ok()
 				
 		#step 2 : get all FS associated to the pool to drain and get the list of replicas
-		listTotalFiles = []
-		for fs in listFStoDrain:
-			listFiles = db.getReplicasInFS(fs.name, fs.server)
-			for file in listFiles:
-				listTotalFiles.extend(listFiles)
+		listTotalFiles = db.getReplicasInPool(poolToDrain.name)
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
