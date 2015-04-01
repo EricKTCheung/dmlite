@@ -68,6 +68,7 @@ class DPMDB(object):
       			return ret
 	   	except MySQLdb.Error, e:
       			print "Error %d: %s" % (e.args[0], e.args[1])
+                        print "Error in getReplicasInServer"
       			sys.exit(1)  
 
 	def getReplicasInFS(self,fsname,server):
@@ -204,6 +205,7 @@ class DPMDB(object):
 	def getLFNFromSFN(self, sfn):
 		"""get LFN from sfn"""
 		namelist = ['']
+                sfn = sfn.replace('"','')
 		try:
 			self.nsdb_c.execute('''
 			select parent_fileid, name from Cns_file_replica JOIN Cns_file_metadata ON Cns_file_replica.fileid = Cns_file_metadata.fileid WHERE Cns_file_replica.sfn="%s"''' % sfn)
@@ -224,10 +226,11 @@ class DPMDB(object):
 		                        parent_fileid = name[0]         
 	        except MySQLdb.Error, e:
 	                print "Error %d: %s" % (e.args[0], e.args[1])
-	                sys.exit(1)
+                        print "Error in getLFNFromSFN with sfn " + sfn
+	                return 0
 	        except ValueError as v:
 	                print "Path %s does not exist" % sfn
-	                sys.exit(1)
+                        return 0
 	        namelist.reverse() #put entries in "right" order for joining together
 		name = '/'.join(namelist)[1:]#and sfn and print dpns name (minus srm bits)
 		return name[:-1] #remove last "/"
