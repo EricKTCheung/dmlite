@@ -2220,6 +2220,8 @@ class DrainReplicas():
                         	if file.gid != gid:
                         		continue
                 	filename = self.db.getLFNFromSFN(file.sfn)
+                        if not filename:
+                          continue
                 	file.lfn = filename
                 	numFiles = numFiles+1
                 	fileSize = fileSize + file.size
