@@ -1990,7 +1990,7 @@ class Replicate():
                         filetype.setString(self.parameters['filetype'])
                 else:
                         self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
-			return False
+			return (False, None)
 
                 self.interpreter.stackInstance.set("f_type",filetype)
         if 'lifetime' in self.parameters:
@@ -2025,12 +2025,12 @@ class Replicate():
                 loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
         except Exception, e:
             	self.interpreter.error(e.__str__())
-		return False
+		return (False, None)
 
         destination = loc[0].url.toString()
         destination = urllib.unquote(destination)
         #create correct destination url and SFN
-	sfn = destination[0:destination.index(':')] + destination[destination.index(':')+1:destination.index('?')]
+	sfn = destination[0:destination.index(':')+1] + destination[destination.index(':')+1:destination.index('?')]
         destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
 
         destination = 'http://'+destination
@@ -2157,14 +2157,14 @@ class DrainFileReplica():
         if self.fileReplica.status != "-":
                 if self.fileReplica.status =="P":
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored\n")
-                        return 1;
+                        return 1
                 else:
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
-                        return 1;
+                        return 1
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
                 self.logError("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored\n")
-                return 1;
+                return 1
 
 	filename = self.fileReplica.lfn
 
@@ -2184,40 +2184,64 @@ class DrainFileReplica():
 	try:
 	        (replicated,destination) = replicate.run()
         except Exception, e:
+		self.logError(e.__str__())
 		self.logError("Error Draining Replica for file: " +filename+"\n")
-		self.logError("Error while copying to SFN: " +destination+"\n")
-                return self.logError(e.__str__())
-
+		if destination:
+			#logging only need to clean pending replica
+			self.logError("Error while copying to SFN: " +destination+"\n")
+		else:
+			return 1
+			
 	if not replicated:
 		self.logError("Error Draining Replica for file: " +filename+"\n")
-		self.logError("Error while copying to SFN: " +destination+"\n")
-		return 1
+		if destination:
+			#logging only need to clean pending replica 
+			self.logError("Error while copying to SFN: " +destination+"\n")
+		else:
+			return 1
 
-        self.logOK("The file has been correctly replicated to: "+ destination+"\n")
+        if replicated:
+		self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
-	#step 6 : remove drained replica file
- 	pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
-        try:
-                self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
-        except Exception, e:
-                return self.logError('Could not initialise the pool driver.\n' + e.__str__())
+	#step 6 : remove drained replica file if correctly replicated or erroneus drained file
+	if replicated:
+		replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
+		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
+	        try:
+        	        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
+	        except Exception, e:
+        	        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
 
-	replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
-        
+        else:
+		replica = self.interpreter.catalog.getReplicaByRFN(destination)
+		#TO DO: from replica object i don't know the pool hence the pooldriver, for the  moment i assume they are in the same pool
+		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
+                try:
+                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
+                except Exception, e:
+                        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
+
 	try:
 		poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
 		poolHandler.removeReplica(replica)
 	except Exception, e:
-                return self.logError('Could not remove replica from pool.\n' + e.__str__())
+               	return self.logError('Could not remove replica from pool.\n' + e.__str__())
 
         #step 7 : remove drained replica from catalog
-	try:
-	        self.interpreter.catalog.deleteReplica(replica)
-        except Exception, e:
-                self.logError("Error Removing Replica for file: " +filename+"\n")
+	if replicated:
+		try:
+		        self.interpreter.catalog.deleteReplica(replica)
+		        self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
+	        except Exception, e:
+        	        self.logError("Error Removing Replica for file: " +filename+"\n")
+               	return self.logError(e.__str__())
+	#remove pending replica from catalog because of an error
+	else:
+		try:
+                        self.interpreter.catalog.deleteReplica(replica)
+                except Exception, e:
+                        self.logError("Error Removing Pending Replica for file: " +filename+"\n")
                 return self.logError(e.__str__())
-
-	self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
 
 class DrainReplicas():
     """implement draining of a list of replicas"""
