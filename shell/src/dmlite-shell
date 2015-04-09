@@ -22,13 +22,25 @@ def main():
     parser.add_option("-c", "--config", dest="configfile", help="define the configuration file before launching the shell (default value is /etc/dmlite.conf)", default = "/etc/dmlite.conf")
     parser.add_option("-e", "--execute", dest="command", help="execute the given command and exit", default = '')
     parser.add_option("-s", "--script", dest="scriptfile", help="execute the given script file line by line and exit", default = '')
+    parser.add_option("-l", "--logfile", dest="logfile", help="write the logs to the specified file", default = '')
     (options, args) = parser.parse_args()
     if args:
         parser.error("Incorrect number of arguments")
 
     # init interpreter
     quietMode = (options.command) or (options.scriptfile) or (not sys.__stdin__.isatty())
-    interpreter2 = interpreter.DMLiteInterpreter(sys.stdout.write, options.configfile, quietMode)
+    if options.logfile:
+     	try:
+        	log = open(options.logfile, 'w+')
+		interpreter2 = interpreter.DMLiteInterpreter(log.write, options.configfile, quietMode)
+		print "Logs are now printed to " + options.logfile
+        except Exception, e:
+                print e.__str__()
+                print "Cannot open file " + options.logfile +" for logging, continue logging to stdout"
+		interpreter2 = interpreter.DMLiteInterpreter(sys.stdout.write, options.configfile, quietMode)
+
+    else:
+    	interpreter2 = interpreter.DMLiteInterpreter(sys.stdout.write, options.configfile, quietMode)
     if interpreter2.failed: # initialisation failed
         return
 
