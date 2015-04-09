@@ -2029,10 +2029,12 @@ class Replicate():
 
         destination = loc[0].url.toString()
         destination = urllib.unquote(destination)
-        #create correct destination url
+        #create correct destination url and SFN
+	sfn = destination[0:destination.index(':')] + destination[destination.index(':')+1:destination.index('?')]
         destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
+
         destination = 'http://'+destination
-	print destination
+	#print destination
         res = Response()
         c = pycurl.Curl()
         #using DPM cert locations
@@ -2051,18 +2053,18 @@ class Replicate():
                 c.perform()
         except Exception, e:
 		self.interpreter.error(e.__str__())
-		return False
+		return (False,sfn)
 	#check http code
 	try:
 		httpcode = str(c.getinfo(pycurl.HTTP_CODE))
 		if httpcode.startswith("2"):
-			return True
+			return (True,sfn)
 		else:
 			self.interpreter.error("HTTP Error Code "+ httpcode)
-			return False
+			return (False,sfn)
  	except Exception, e:
                 self.interpreter.error(e.__str__())
-                return False
+                return (False,sfn)
 
 
 class DrainThread (threading.Thread):
@@ -2072,16 +2074,19 @@ class DrainThread (threading.Thread):
         self.threadID = threadID
         self.interpreter = interpreter
         self.adminUserName = adminUserName
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
+
     def run(self):
-        #print "Starting " + str(self.threadID)
         self.drain_replica(self.threadID)
-        #print "Exiting " + str(self.threadID)
 
     def drain_replica(self,threadName):
         while True:
                 replica = self.interpreter.replicaQueue.get()
                 self.interpreter.replicaQueue.task_done()
-                drainreplica = DrainFileReplica(self.interpreter,replica,self.adminUserName)
+                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
                 drainreplica.drain();
 			
 
@@ -2128,23 +2133,37 @@ class ReplicateCommand(ShellCommand):
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
-    def __init__(self, interpreter , fileReplica,adminUserName):
+    def __init__(self, threadID,interpreter , fileReplica,adminUserName):
+        self.threadID = threadID
 	self.interpreter= interpreter
         self.fileReplica=fileReplica
 	self.adminUserName = adminUserName
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self,signal, frame):
+        sys.exit(0)
+
+    def getThreadID(self):
+	return "Thread " + str(self.threadID) +": "
+
+    def logError(self, msg):
+	return self.interpreter.error(self.getThreadID()+msg) 
+  
+    def logOK(self, msg):
+        return self.interpreter.ok(self.getThreadID()+msg)
 	
     def drain(self):
         #step 4 : check the status, pinned  and see if they the replica can be drained
         if self.fileReplica.status != "-":
                 if self.fileReplica.status =="P":
-                        self.interpreter.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored")
+                        self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored\n")
                         return 1;
                 else:
-                        self.interpreter.error("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored")
+                        self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
                         return 1;
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
-                self.interpreter.error("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored")
+                self.logError("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored\n")
                 return 1;
 
 	filename = self.fileReplica.lfn
@@ -2152,26 +2171,36 @@ class DrainFileReplica():
         #step 5 : replicate files
 	arguments = {}
 	arguments['filename']=filename
+
+	#step 5-1: check spacetoken
+        if self.fileReplica.setname is not "":
+		arguments['spacetoken']= self.fileReplica.setname
+		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
         replicate = Replicate(self.interpreter,self.adminUserName,arguments)
 
-        self.interpreter.ok("Trying to replicate file: "+ filename);
+        self.logOK("Trying to replicate file: "+ filename+"\n");
 
 	replicated = None
 	try:
-	        replicated = replicate.run()
+	        (replicated,destination) = replicate.run()
         except Exception, e:
-		self.interpreter.error("error Draining Replica for file: " +filename)
-                return self.interpreter.error(e.__str__())
+		self.logError("Error Draining Replica for file: " +filename+"\n")
+		self.logError("Error while copying to SFN: " +destination+"\n")
+                return self.logError(e.__str__())
 
 	if not replicated:
-		return self.interpreter.error("error Draining Replica for file: " +filename)
+		self.logError("Error Draining Replica for file: " +filename+"\n")
+		self.logError("Error while copying to SFN: " +destination+"\n")
+		return 1
+
+        self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
 	#step 6 : remove drained replica file
  	pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
         try:
                 self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
         except Exception, e:
-                return self.interpreter.error('Could not initialise the pool driver.\n' + e.__str__())
+                return self.logError('Could not initialise the pool driver.\n' + e.__str__())
 
 	replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
         
@@ -2179,14 +2208,16 @@ class DrainFileReplica():
 		poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
 		poolHandler.removeReplica(replica)
 	except Exception, e:
-                return self.interpreter.error('Could not remove replica from pool.\n' + e.__str__())
+                return self.logError('Could not remove replica from pool.\n' + e.__str__())
 
         #step 7 : remove drained replica from catalog
 	try:
 	        self.interpreter.catalog.deleteReplica(replica)
         except Exception, e:
-                self.interpreter.error("error Removing Replica for file: " +filename)
-                return self.interpreter.error(e.__str__())
+                self.logError("Error Removing Replica for file: " +filename+"\n")
+                return self.logError(e.__str__())
+
+	self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
 
 class DrainReplicas():
     """implement draining of a list of replicas"""
