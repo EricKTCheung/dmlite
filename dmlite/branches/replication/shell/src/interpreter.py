@@ -2019,7 +2019,7 @@ class Replicate():
                 #spacetoken
                 spacetoken = pydmlite.boost_any()
                 spacetoken.setString(self.parameters['spacetoken'])
-                self.interpreter.stackInstance.set("UserSpaceTokenDescription",spacetoken)
+                self.interpreter.stackInstance.set("SpaceToken",spacetoken)
 
         try:
                 loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
@@ -2138,10 +2138,6 @@ class DrainFileReplica():
 	self.interpreter= interpreter
         self.fileReplica=fileReplica
 	self.adminUserName = adminUserName
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-        sys.exit(0)
 
     def getThreadID(self):
 	return "Thread " + str(self.threadID) +": "
@@ -2234,14 +2230,14 @@ class DrainFileReplica():
 		        self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
 	        except Exception, e:
         	        self.logError("Error Removing Replica for file: " +filename+"\n")
-               	return self.logError(e.__str__())
+               		return self.logError(e.__str__())
 	#remove pending replica from catalog because of an error
 	else:
 		try:
                         self.interpreter.catalog.deleteReplica(replica)
                 except Exception, e:
                         self.logError("Error Removing Pending Replica for file: " +filename+"\n")
-                return self.logError(e.__str__())
+                	return self.logError(e.__str__())
 
 class DrainReplicas():
     """implement draining of a list of replicas"""
