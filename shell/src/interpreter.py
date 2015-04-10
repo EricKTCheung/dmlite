@@ -2027,11 +2027,25 @@ class Replicate():
             	self.interpreter.error(e.__str__())
 		return (False, None)
 
+	#checking ports to use
+	http_port = 80
+	try:
+	        http_port = os.environ['DPM_HTTP_PORT']
+	except Exception, e:
+                pass
+
+	https_port = 443
+	try:
+	        https_port = os.environ['DPM_HTTPS_PORT'] 
+        except Exception, e:
+                pass
+
+        
         destination = loc[0].url.toString()
         destination = urllib.unquote(destination)
         #create correct destination url and SFN
 	sfn = destination[0:destination.index(':')+1] + destination[destination.index(':')+1:destination.index('?')]
-        destination = destination[0:destination.index(':')+1]+'80'+destination[destination.index(':')+1:len(destination)]
+        destination = destination[0:destination.index(':')+1]+str(http_port)+destination[destination.index(':')+1:len(destination)]
 
         destination = 'http://'+destination
 	#print destination
@@ -2047,7 +2061,7 @@ class Replicate():
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+'/'+self.parameters['filename'])
+        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+':'+str(https_port)+'/'+self.parameters['filename'])
 
         try:
                 c.perform()
@@ -2177,6 +2191,7 @@ class DrainFileReplica():
         self.logOK("Trying to replicate file: "+ filename+"\n");
 
 	replicated = None
+	destination = None
 	try:
 	        (replicated,destination) = replicate.run()
         except Exception, e:
