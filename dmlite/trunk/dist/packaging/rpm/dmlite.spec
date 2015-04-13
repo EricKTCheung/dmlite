@@ -143,6 +143,7 @@ BuildArch:			noarch
 
 Requires:			python-dateutil
 Requires:			python-dmlite = %{version}
+Requires:                       MySQL-python
 
 Obsoletes:			dmlite-shell < 0.7.0-1
 
