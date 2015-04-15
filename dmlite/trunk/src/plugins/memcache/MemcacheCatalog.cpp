@@ -407,11 +407,14 @@ void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering.");
   incrementFunctionCounter(ADDREPLICA_DELEGATE);
   DELEGATE(addReplica, replica);
-  valMemc = serializeReplica(replica);
-  safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],replica.rfn),valMemc);
+  //I need to get the replica ID;
+  Replica newreplica;
+  DELEGATE_ASSIGN(newreplica, getReplicaByRFN, replica.rfn);
+  valMemc = serializeReplica(newreplica);
+  safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],newreplica.rfn),valMemc);
 
   //invalidating replica list
-  std::string filepath = getFullPathByRFN(replica.rfn);
+  std::string filepath = getFullPathByRFN(newreplica.rfn);
   filepath = getAbsolutePath(filepath);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath)); 
 
