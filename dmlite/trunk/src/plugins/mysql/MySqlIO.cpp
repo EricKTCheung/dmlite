@@ -11,9 +11,10 @@
   
   
 
-MysqlIOPassthroughDriver::MysqlIOPassthroughDriver(IODriver* decorates) throw (DmException) {
+MysqlIOPassthroughDriver::MysqlIOPassthroughDriver(IODriver* decorates, int maxdirspacereportdepth) throw (DmException) {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ctor");
 
+  this->dirspacereportdepth = maxdirspacereportdepth;
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
 }
@@ -114,7 +115,9 @@ void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmExcepti
       }
     }
     
-    for (int i = MIN(6, idx-1); i >= 2; i--) {
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    for (int i = MIN(dirspacereportdepth, idx-1); i >= 3; i--) {
       inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
     }
     
