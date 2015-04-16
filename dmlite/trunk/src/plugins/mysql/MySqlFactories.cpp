@@ -111,7 +111,7 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Setting mysql parms. Key: " << key << " Value: " << value);
+    LogCfgParm(Logger::Lvl1,  mysqllogmask, mysqllogname, key, value);
     
   return gotit;
 }
@@ -205,7 +205,7 @@ NsMySqlFactory::~NsMySqlFactory()
 
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  
+  bool gotit = true;
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
   
   if (key == "MapFile")
@@ -217,7 +217,10 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
   else if (key == "NsDatabase")
     this->nsDb_ = value;
   else
-    MySqlHolder::configure(key, value);
+    gotit = MySqlHolder::configure(key, value);
+  
+  if (gotit)
+    LogCfgParm(Logger::Lvl0,  mysqllogmask, mysqllogname, key, value);
   
 }
 
@@ -313,7 +316,7 @@ void MysqlIOPassthroughFactory::configure(const std::string& key, const std::str
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Setting mysql parms. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl0, mysqllogmask, mysqllogname, "Setting mysql parms. Key: " << key << " Value: " << value);
     
   MySqlHolder::configure(key, value);
 }

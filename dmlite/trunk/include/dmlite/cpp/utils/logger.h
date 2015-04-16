@@ -9,7 +9,6 @@
 #include <map>
 #include <vector>
 
-
 #define Log(lvl, mymask, where, what) 												\
 do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
@@ -159,6 +158,12 @@ private:
 
 
 };
+
+
+// Specialized func to log configuration values. Filters out sensitive stuff.
+void LogCfgParm(int lvl, Logger::bitmask mymask, std::string where, std::string key, std::string value);
+
+
 
 
 #endif

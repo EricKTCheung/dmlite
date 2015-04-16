@@ -55,7 +55,8 @@ NsAdapterFactory::~NsAdapterFactory()
 void NsAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   bool gotit = true;
-  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  
+  LogCfgParm(Logger::Lvl4, adapterlogmask, adapterlogname, key, value);
   
   if (key == "DpmHost" || key == "NsHost" || key == "Host") {
     setenv("DPNS_HOST", value.c_str(), 1);
@@ -92,7 +93,8 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, adapterlogmask, adapterlogname, "Setting parms. Key: " << key << " Value: " << value);
+    LogCfgParm(Logger::Lvl1, adapterlogmask, adapterlogname, key, value);
+    
   
     
 }
