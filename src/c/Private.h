@@ -23,7 +23,7 @@ try {\
   return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
   if (!context) return EFAULT;\
-  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
+  context->errorCode   = DMLITE_ERRNO(e.code()) ? e.code() : e.code()|DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return context->errorCode;\
 } catch (...) {\
@@ -37,7 +37,7 @@ try {\
 #define CATCH_POINTER(context, method)\
 } catch (dmlite::DmException& e) {\
   if (!context) return NULL;\
-  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
+  context->errorCode   = DMLITE_ERRNO(e.code()) ? e.code() : e.code()|DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return NULL;\
 } catch (...) {\
@@ -52,7 +52,7 @@ try {\
   return DMLITE_SUCCESS;\
 } catch (dmlite::DmException& e) {\
   if (!context) return EFAULT;\
-  context->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
+  context->errorCode   = DMLITE_ERRNO(e.code()) ? e.code() : e.code()|DMLITE_UNKNOWN_ERROR;\
   context->errorString = e.what();\
   return -1;\
 } catch (...) {\
@@ -70,7 +70,7 @@ try {\
 }\
 catch (dmlite::DmException& e) {\
   if (!handle) return EFAULT;\
-  handle->errorCode   = e.code() ? e.code() : DMLITE_UNKNOWN_ERROR;\
+  handle->errorCode   = DMLITE_ERRNO(e.code()) ? e.code() : e.code()|DMLITE_UNKNOWN_ERROR;\
   handle->errorString = e.what();\
   return handle->errorCode;\
 }\
