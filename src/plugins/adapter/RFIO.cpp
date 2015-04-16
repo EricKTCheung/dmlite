@@ -150,16 +150,16 @@ StdRFIOHandler::pp::pp(int fd, bool *peof, off_t np):
   fd(fd), peof(peof)
 {
   if ((pos = rfio_lseek64(fd, 0, SEEK_CUR)) == -1)
-    throw DmException(serrno, "Could not seek");
+    throw DmException(serrno, "Could not seek on fd ", fd);
   if (rfio_lseek64(fd, np, SEEK_SET) == - 1)
-    throw DmException(serrno, "Could not seek");
+    throw DmException(serrno, "Could not seek on fd ", fd);
   eof = *peof; *peof = false;
 }
 
 StdRFIOHandler::pp::~pp()
 {
   if (rfio_lseek64(fd, pos, SEEK_SET) == - 1)
-    throw DmException(serrno, "Could not seek on ");
+    throw DmException(serrno, "Could not seek on fd ", fd);
   *peof = eof;
 }
 

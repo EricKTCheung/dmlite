@@ -42,6 +42,8 @@ ProfilerFactory::~ProfilerFactory()
 
 void ProfilerFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
+  bool gotit = true;
+  
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, " Key: " << key << " Value: " << value);
   
   // the monitor keyword accepts options in the xrootd syntax,
@@ -97,11 +99,12 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
   }  else if (key == "Ssq") {
     XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasOPS;
     XrdMonitor::file_flags_ |= XrdXrootdMonFileHdr::hasSSQ;
-  } else {
-    Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Unrecognized option. Key: " << key << " Value: " << value);
-//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
-//        std::string("Unknown option ") + key);
-  }
+  } else 
+    gotit = false;
+  
+  if (gotit)
+    LogCfgParm(Logger::Lvl0, profilerlogmask, profilerlogname, key, value);
+
 }
 
 

@@ -117,7 +117,8 @@ void ConfigFactory::configure(const std::string& key,
                               const std::string& value) throw (DmException)
 {
   bool gotit = true;
-  Log(Logger::Lvl4, Logger::unregistered, "ConfigFactory",   " Key: " << key << " Value: " << value);
+  LogCfgParm(Logger::Lvl4, Logger::unregistered, "ConfigFactory", key, value);
+  
   
   if (key == "LogLevel" || key == "loglevel") {
     Log(Logger::Lvl0, Logger::unregistered, "config", "Setting global log level to :" << value);
@@ -138,7 +139,7 @@ void ConfigFactory::configure(const std::string& key,
   
  
   if (gotit)
-    Log(Logger::Lvl1, Logger::unregistered, "ConfigFactory", "Setting ConfigFactory parms. Key: " << key << " Value: " << value);
+    LogCfgParm(Logger::Lvl0, Logger::unregistered, "ConfigFactory", key, value);
     
 }
 
