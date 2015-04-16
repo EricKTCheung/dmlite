@@ -37,6 +37,7 @@ public:
   std::string  passwd;
 
   
+  int dirspacereportdepth;
 protected:
 private:
 };
@@ -143,6 +144,8 @@ protected:
   /// Admin username for replication.
   std::string adminUsername_;
   
+  
+  int dirspacereportdepth;
   
   /// The decorated IODriver factory
   IODriverFactory* nestedIODriverFactory_;

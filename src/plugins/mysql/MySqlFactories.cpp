@@ -106,6 +106,8 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
       if (h->connectionPool_)
 	h->connectionPool_->resize(h->poolsize);
     }
+  else if (key == "MySqlDirectorySpaceReportDepth")
+    h->connectionFactory_.dirspacereportdepth = atoi(value.c_str());
   else gotit = false;
   
   if (gotit)
@@ -118,6 +120,8 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
 // MySqlConnectionFactory
 //
 MySqlConnectionFactory::MySqlConnectionFactory() {
+  
+  dirspacereportdepth = 6;
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "MySqlConnectionFactory started");
   // Nothing
 }
@@ -182,7 +186,7 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
   nsDb_("cns_db"),
   mapFile_("/etc/lcgdm-mapfile"), hostDnIsRoot_(false), hostDn_("")
 {
-  
+
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "NsMySqlFactory started");
 }
 
@@ -291,6 +295,7 @@ MysqlIOPassthroughFactory::MysqlIOPassthroughFactory(IODriverFactory *ioFactory)
 
   this->nestedIODriverFactory_    = ioFactory;
 
+  dirspacereportdepth = 6;
   Log(Logger::Lvl3, mysqllogmask, mysqllogmask, "MysqlIOPassthroughFactory started.");
   
 }
@@ -300,7 +305,16 @@ MysqlIOPassthroughFactory::MysqlIOPassthroughFactory(IODriverFactory *ioFactory)
 void MysqlIOPassthroughFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
+  bool gotit = true;
   
+  
+  if (key == "MySqlDirectorySpaceReportDepth")
+    this->dirspacereportdepth = atoi(value.c_str());
+  else gotit = false;
+  
+  if (gotit)
+    Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Setting mysql parms. Key: " << key << " Value: " << value);
+    
   MySqlHolder::configure(key, value);
 }
 
@@ -313,7 +327,8 @@ IODriver* MysqlIOPassthroughFactory::createIODriver(PluginManager* pm) throw (Dm
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Creating mysql passthrough IODriver");
   
-  return new MysqlIOPassthroughDriver(nested);
+  
+  return new MysqlIOPassthroughDriver(nested, this->dirspacereportdepth);
   
 }
   

@@ -17,7 +17,7 @@ using namespace dmlite;
 class MysqlIOPassthroughDriver: public IODriver {
   
   public:
-    MysqlIOPassthroughDriver(IODriver* decorates) throw (DmException);
+    MysqlIOPassthroughDriver(IODriver* decorates, int maxdirspacereportdepth) throw (DmException);
     virtual ~MysqlIOPassthroughDriver();
 
     std::string getImplId(void) const throw() {
@@ -41,4 +41,5 @@ class MysqlIOPassthroughDriver: public IODriver {
     IODriver*  decorated_;
     char*      decoratedId_;
     
+    int dirspacereportdepth;
 };
