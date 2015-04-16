@@ -34,6 +34,7 @@ class DMLiteInterpreter:
     self.lastCompleted = 0
     self.lastCompletedState = 0
     global replicaQueue
+    global drainErrors
 
     # collect all available commands into commands-array
     self.commands = []
@@ -1989,8 +1990,8 @@ class Replicate():
                 if (self.parameters['filetype']  ==  'V') or (self.parameters['filetype'] ==  'D') or (self.parameters['filetype'] ==  'P'):
                         filetype.setString(self.parameters['filetype'])
                 else:
-                        self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
-			return (False, None)
+			self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
+			return (False, None, 'Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
 
                 self.interpreter.stackInstance.set("f_type",filetype)
         if 'lifetime' in self.parameters:
@@ -2024,8 +2025,8 @@ class Replicate():
         try:
                 loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
         except Exception, e:
-            	self.interpreter.error(e.__str__())
-		return (False, None)
+		self.interpreter.error(e.__str__())
+		return (False, None, e.__str__())
 
 	#checking ports to use
 	http_port = 80
@@ -2067,18 +2068,18 @@ class Replicate():
                 c.perform()
         except Exception, e:
 		self.interpreter.error(e.__str__())
-		return (False,sfn)
+		return (False,sfn, e.__str__())
 	#check http code
 	try:
 		httpcode = str(c.getinfo(pycurl.HTTP_CODE))
 		if httpcode.startswith("2"):
-			return (True,sfn)
+			return (True,sfn, None)
 		else:
 			self.interpreter.error("HTTP Error Code "+ httpcode)
-			return (False,sfn)
+			return (False,sfn, "HTTP Error Code "+ httpcode)
  	except Exception, e:
-                self.interpreter.error(e.__str__())
-                return (False,sfn)
+		self.interpreter.error(e.__str__())
+                return (False,sfn, e.__str__())
 
 
 class DrainThread (threading.Thread):
@@ -2167,13 +2168,16 @@ class DrainFileReplica():
         if self.fileReplica.status != "-":
                 if self.fileReplica.status =="P":
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under population, ignored\n")
+			self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is under population"))
                         return 1
                 else:
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
                         return 1
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
                 self.logError("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored\n")
+		self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is pinned"))
                 return 1
 
 	filename = self.fileReplica.lfn
@@ -2192,11 +2196,13 @@ class DrainFileReplica():
 
 	replicated = None
 	destination = None
+	error = None
 	try:
-	        (replicated,destination) = replicate.run()
+	        (replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.logError(e.__str__())
 		self.logError("Error Draining Replica for file: " +filename+"\n")
+		self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, e.__str__()))
 		if destination:
 			#logging only need to clean pending replica
 			self.logError("Error while copying to SFN: " +destination+"\n")
@@ -2204,11 +2210,13 @@ class DrainFileReplica():
 			return 1
 			
 	if not replicated:
-		self.logError("Error Draining Replica for file: " +filename+"\n")
 		if destination:
 			#logging only need to clean pending replica 
 			self.logError("Error while copying to SFN: " +destination+"\n")
-		else:
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +error))
+		else:	
+			self.logError("Error Draining Replica for file: " +filename+"\n")
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, error))
 			return 1
 
         if replicated:
@@ -2223,7 +2231,7 @@ class DrainFileReplica():
 	        except Exception, e:
         	        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
 
-        else:
+        elif destination:
 		replica = self.interpreter.catalog.getReplicaByRFN(destination)
 		#TO DO: from replica object i don't know the pool hence the pooldriver, for the  moment i assume they are in the same pool
 		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
@@ -2245,9 +2253,10 @@ class DrainFileReplica():
 		        self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
 	        except Exception, e:
         	        self.logError("Error Removing Replica for file: " +filename+"\n")
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error Removing Replica"))
                		return self.logError(e.__str__())
 	#remove pending replica from catalog because of an error
-	else:
+	elif destination:
 		try:
                         self.interpreter.catalog.deleteReplica(replica)
                 except Exception, e:
@@ -2265,6 +2274,7 @@ class DrainReplicas():
 	self.size = size
 	self.nthreads= nthreads
 	self.dryrun = dryrun
+	self.interpreter.drainErrors = []
      	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
@@ -2322,6 +2332,15 @@ class DrainReplicas():
                 	thread.start()
 		# Wait for all threads to complete
                 self.interpreter.replicaQueue.join()
+
+		self.interpreter.ok("Drain Process completed\n")
+                
+		if len(self.interpreter.drainErrors) > 0:
+			self.interpreter.ok("List of Drain Errors:\n")
+		#print errors:
+		for (file, sfn, error) in self.interpreter.drainErrors:
+			self.interpreter.ok("File: " + file+ " sfn: " +sfn +" Error: " +error)
+		
         except Exception, e:
                 return self.interpreter.error(e.__str__())
 
