@@ -1019,7 +1019,7 @@ The expected syntax is : acl <file> <ACL> command
 
 Where command could be set, modify or delete.
 
-ACL can be specied in the following form
+The ACL can be specified in the following form
 
 * user::rwx ( or u:)
 * user:<DN>:rwx  
@@ -1030,9 +1030,9 @@ ACL can be specied in the following form
 * other::rwx ( or o:)
 * mask::rwx ( mask wil apply to user and group acls
 
+and multiple ACLs can be included separated by a comma
 
-in case the DN or the GROUP contain spaces  the ACL expression should be sorrounded by either " or ' e.g. acl <file> '<ACL>' set
-
+N.B. In case the DN or the GROUP contain spaces  the ACL expression should be sorrounded by either " or ' e.g. acl <file> '<ACL>' set
 
 Default ACLs can be also set by specifying default: or d: in front of the ACL expression:
 
