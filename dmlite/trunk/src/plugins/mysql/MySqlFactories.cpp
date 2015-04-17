@@ -91,6 +91,7 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
   MySqlHolder *h = getInstance();
   bool gotit = true;
   
+  LogCfgParm(Logger::Lvl4, mysqllogmask, mysqllogname, key, value);
   
   if (key == "MySqlHost")
     h->connectionFactory_.host = value;
@@ -206,7 +207,7 @@ NsMySqlFactory::~NsMySqlFactory()
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
   bool gotit = true;
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
+  LogCfgParm(Logger::Lvl4, mysqllogmask, mysqllogname, key, value);
   
   if (key == "MapFile")
     this->mapFile_ = value;
@@ -220,7 +221,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     gotit = MySqlHolder::configure(key, value);
   
   if (gotit)
-    LogCfgParm(Logger::Lvl0,  mysqllogmask, mysqllogname, key, value);
+    LogCfgParm(Logger::Lvl1,  mysqllogmask, mysqllogname, key, value);
   
 }
 

@@ -73,10 +73,10 @@ if (NOT DPM_FOUND OR NOT DPM_FOUND)
 endif()
 
 # Include path
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ 
+include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
-                     ${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${Boost_INCLUDE_DIRS})
 
 # include the directory itself as a path to include directories
