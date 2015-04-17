@@ -501,6 +501,7 @@ void NsAdapterCatalog::unlink(const std::string& path) throw (DmException)
 void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
+  setDpnsApiIdentity();
   FunctionWrapper<int, const char*, mode_t>(dpns_creat, path.c_str(), mode)();
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
