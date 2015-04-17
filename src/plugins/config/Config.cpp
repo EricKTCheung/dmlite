@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include "Config.h"
+//#include "dmlite/common/config.h"
 #include "utils/logger.h"
 
 
@@ -44,6 +45,8 @@ static void initPatternGlobalKey(void)
 ConfigFactory::ConfigFactory(PluginManager* pm): manager(pm)
 {
   pthread_once(&patternGlobalOnce, initPatternGlobalKey);
+  Log(Logger::Lvl0, Logger::unregistered, "Config", "----------------- ConfigFactory started. Starting configuration phase. DMLite v" <<
+      DMLITE_MAJOR << "." << DMLITE_MINOR << "." << DMLITE_PATCH );
 }
 
 
@@ -105,7 +108,10 @@ void ConfigFactory::processIncludes(const std::string& path) throw (DmException)
   }
   
   for (int i = 0; i < nmatches; ++i) {
-    this->manager->loadConfiguration(location + "/" + namelist[i]->d_name);
+    std::string cfgf = location + "/" + namelist[i]->d_name;
+    
+    Log(Logger::Lvl1, Logger::unregistered, "config", "Processing config file:" << cfgf);
+    this->manager->loadConfiguration(cfgf);
     free(namelist[i]);
   }
   free(namelist);
@@ -126,7 +132,7 @@ void ConfigFactory::configure(const std::string& key,
   }
   else
   if (key == "Include" || key == "include") {
-    Log(Logger::Lvl0, Logger::unregistered, "config", "Processing config file:" << value);
+    Log(Logger::Lvl0, Logger::unregistered, "config", "Processing config directory:" << value);
     this->processIncludes(value);
   }
   else
@@ -139,7 +145,7 @@ void ConfigFactory::configure(const std::string& key,
   
  
   if (gotit)
-    LogCfgParm(Logger::Lvl0, Logger::unregistered, "ConfigFactory", key, value);
+    LogCfgParm(Logger::Lvl1, Logger::unregistered, "ConfigFactory", key, value);
     
 }
 

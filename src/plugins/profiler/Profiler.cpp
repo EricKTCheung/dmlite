@@ -44,7 +44,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
 {
   bool gotit = true;
   
-  Log(Logger::Lvl4, profilerlogmask, profilerlogname, " Key: " << key << " Value: " << value);
+  LogCfgParm(Logger::Lvl4, profilerlogmask, profilerlogname, key, value);
   
   // the monitor keyword accepts options in the xrootd syntax,
   // i.e. all parameters in one line separated by whitespace
@@ -103,7 +103,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
     gotit = false;
   
   if (gotit)
-    LogCfgParm(Logger::Lvl0, profilerlogmask, profilerlogname, key, value);
+    LogCfgParm(Logger::Lvl1, profilerlogmask, profilerlogname, key, value);
 
 }
 

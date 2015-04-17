@@ -170,14 +170,18 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 {
 
   LogCfgParm(Logger::Lvl4,  memcachelogmask, memcachelogname, key, value);
-
+  
+  bool gotit = true;
+  
   if (key == "MemcachedServer") {
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting memcached server :" << value);
+    
     this->connectionFactory_.hosts_.insert(value);
+    
   }
   else if (key == "SymLinkLimit") {
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting SymLinkLimit :" << value);
+    
     this->symLinkLimit_ = atoi(value.c_str());
+    
   }
   else if (key == "MemcachedExpirationLimit") {
     
@@ -186,17 +190,17 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
     // will be treated as a timestamp by memcached
     // >= 0 is implicit because it's an unsigned value
     if (expLimit < 60*60*24*30) {
-      Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << expLimit);
+      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << expLimit);
       this->memcachedExpirationLimit_ = expLimit;
     }
     else {
-      Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << DEFAULT_MEMCACHED_EXPIRATION);
+      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << DEFAULT_MEMCACHED_EXPIRATION);
       this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
     }
 
   } else if (key == "MemcachedHashDistribution") {
     if (value == "consistent" || value == "default") {
-      Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedHashDistribution :" << value);
+
       this->connectionFactory_.dist_ = value;
     }
     else
@@ -204,14 +208,14 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
           std::string("Unknown option value ") + value);
 
   } else if (key == "MemcachedProtocol") {
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedProtocol :" << value);
+
     if (value == "ascii")
       this->connectionFactory_.useBinaryProtocol_ = false;
     else
       this->connectionFactory_.useBinaryProtocol_ = true;
   }
   else if (key == "MemcachedPOSIX") {
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedPOSIX :" << value);
+
     if (value == "on")
       this->memcachedPOSIX_ = true;
     else if (value == "off")
@@ -222,28 +226,27 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 
   } else if (key == "MemcachedFunctionCounter") {
     
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedFunctionCounter :" << value);
     if (value == "on") {
       this->doFuncCount_ = true;
     }
     
   } else if (key == "MemcachedFunctionCounterLogFrequency") {
     
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedFunctionCounterLogFrequency :" << value);
     this->funcCounterLogFreq_ = atoi(value.c_str());
     
   } else if (key == "MemcachedPoolSize") {
     
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting MemcachedPoolSize :" << value);
     this->connectionPool_.resize(atoi(value.c_str()));
     
   } else if (key == "LocalCacheSize") {
 
-    Log(Logger::Lvl0, memcachelogmask, memcachelogname, "Setting LocalCacheSize :" << value);
     MemcacheCommon::localCacheMaxSize = atoi(value.c_str());
     
   }
+  else gotit = false;
   
+  if (gotit)
+    LogCfgParm(Logger::Lvl1,  memcachelogmask, memcachelogname, key, value);
 }
 
 

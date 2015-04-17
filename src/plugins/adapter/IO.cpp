@@ -37,7 +37,7 @@ StdIOFactory::~StdIOFactory()
 void StdIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   bool gotit = true;
-  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Key: " << key << " Value: " << value);
+  LogCfgParm(Logger::Lvl4, adapterlogmask, adapterlogname, key, value);
 
   if (key == "TokenPassword") {
     this->passwd_ = value;
@@ -55,7 +55,7 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", "Setting parms. Key: " << key << " Value: " << value);
+    LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
    
 }
 

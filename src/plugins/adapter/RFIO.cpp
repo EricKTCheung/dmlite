@@ -48,7 +48,7 @@ StdRFIOFactory::~StdRFIOFactory()
 void StdRFIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   bool gotit = true;
-  Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname,  " Key: " << key << " Value: " << value);
+  LogCfgParm(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, key, value);
 
   if (key == "TokenPassword") {
     this->passwd_ = value;
@@ -66,7 +66,7 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, Logger::unregistered, "StdRFIOFactory", "Setting parms. Key: " << key << " Value: " << value);
+    LogCfgParm(Logger::Lvl1, Logger::unregistered, "StdRFIOFactory", key, value);
   
 }
 
