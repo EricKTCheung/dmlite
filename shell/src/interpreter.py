@@ -1013,7 +1013,32 @@ class UtimeCommand(ShellCommand):
 
 
 class ACLCommand(ShellCommand):
-  """Set or read the ACL of a file."""
+  """Set or read the ACL of a file.
+  
+The expected syntax is : acl <file> <ACL> command 
+
+Where command could be set, modify or delete.
+
+ACL can be specied in the following form
+
+* user::rwx ( or u:)
+* user:<DN>:rwx  
+* user:<USERID>:rwx
+* group::rwx (or g:)
+* group:<GROUP>:rw
+* group:<GROUPID>:rw
+* other::rwx ( or o:)
+* mask::rwx ( mask wil apply to user and group acls
+
+
+in case the DN or the GROUP contain spaces  the ACL expression should be sorrounded by either " or ' e.g. acl <file> '<ACL>' set
+
+
+Default ACLs can be also set by specifying default: or d: in front of the ACL expression:
+
+* default:user::rwx
+* d:user::rwx"""
+
   def _init(self):
     self.parameters = ['Dfile', '*?ACL', '*Ocommand=modify:set:modify:delete']
 
