@@ -2114,25 +2114,35 @@ class DrainThread (threading.Thread):
         self.threadID = threadID
         self.interpreter = interpreter
         self.adminUserName = adminUserName
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-        sys.exit(0)
+	self.stop =  threading.Event()
 
     def run(self):
         self.drain_replica(self.threadID)
+	
+    def stop(self):
+	 self.stop.set()
+	 super(DrainThreadThread, self).join(None)
 
     def drain_replica(self,threadName):
-        while True:
-                replica = self.interpreter.replicaQueue.get()
-                self.interpreter.replicaQueue.task_done()
+        while not self.stop.isSet():
+		replica = self.interpreter.replicaQueue.get()
+        	self.interpreter.replicaQueue.task_done()
                 drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
                 drainreplica.drain();
 			
 
 
 class ReplicateCommand(ShellCommand):
-    """Replicate a File to a specific pool/filesystem"""
+    """Replicate a File to a specific pool/filesystem
+
+The replicate command accepts the following parameters:
+
+* <filename> 			: the file to replicate (absolute path)
+* poolname  <poolname> 		: the pool where to replicate the file to (optional)
+* filesystem <filesystemname> 	: the filesystem where to replicate the file to, specified as servername:fsname (optional)
+* filetype <filetype> 		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
+* lifetime <lifetime> 		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
+* spacetoken <spacetoken>	: the spacetoken to assign the new replica to (optional)"""
 
     def _init(self):
         self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
@@ -2140,10 +2150,6 @@ class ReplicateCommand(ShellCommand):
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-        sys.exit(0)
 
     def _execute(self, given):
 	if self.interpreter.stackInstance is None:
@@ -2300,10 +2306,19 @@ class DrainReplicas():
 	self.nthreads= nthreads
 	self.dryrun = dryrun
 	self.interpreter.drainErrors = []
-     	signal.signal(signal.SIGINT, self.signal_handler)
+	self.threadpool = []
 
-    def signal_handler(self,signal, frame):
-        sys.exit(0)
+    def stopThreads(self):
+	for t in self.threadpool:
+		t.stop()
+	self.printDrainErrors()
+
+
+    def printDrainErrors(self):
+	if len(self.interpreter.drainErrors) > 0:
+                        self.interpreter.ok("List of Drain Errors:\n")
+        for (file, sfn, error) in self.interpreter.drainErrors:
+        	self.interpreter.ok("File:\t" + file+ " sfn:\t" +sfn +" Error:\t" +error)
 
     def drain(self): 
 	gid = None
@@ -2350,28 +2365,34 @@ class DrainReplicas():
 
         	if self.dryrun:
         		return
-
+		
         	for i in range(0,self.nthreads-1):
                 	thread = DrainThread(self.interpreter, i, self.adminUserName)
                 	thread.setDaemon(True)
                 	thread.start()
+			self.threadpool.append(thread)
+
 		# Wait for all threads to complete
                 self.interpreter.replicaQueue.join()
 
 		self.interpreter.ok("Drain Process completed\n")
                 
-		if len(self.interpreter.drainErrors) > 0:
-			self.interpreter.ok("List of Drain Errors:\n")
-		#print errors:
-		for (file, sfn, error) in self.interpreter.drainErrors:
-			self.interpreter.ok("File: " + file+ " sfn: " +sfn +" Error: " +error)
+		self.printDrainErrors()
 		
         except Exception, e:
                 return self.interpreter.error(e.__str__())
 
 
 class DrainPoolCommand(ShellCommand):
-    """Drain a specific pool"""
+    """Drain a specific pool
+
+The drainpool command accepts the following parameters:
+
+* <poolname> 		: the pool to drain 
+* group <groupname> 	: the group the files to drain belongs to  (optional, default = ALL)
+* size <size> 		: the percentage of size to drain (optional, default = 100)
+* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
     
     def _init(self):
         self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2381,6 +2402,7 @@ class DrainPoolCommand(ShellCommand):
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
+        self.drainProcess.stopThreads()
         sys.exit(0)
 
 
@@ -2468,15 +2490,22 @@ class DrainPoolCommand(ShellCommand):
 		#step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
 
-		drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, adminUserName, group, size, nthreads, dryrun)
-		self.ok("Starting draining process")
-                drainProcess.drain()
+		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, adminUserName, group, size, nthreads, dryrun)
+                self.drainProcess.drain()
 
     	except Exception, e:
     		return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 class DrainFSCommand(ShellCommand):
-    """Drain a specific filesystem"""
+    """Drain a specific filesystem
+
+The drainfs command accepts the following parameters:
+
+* <servername> 	 	: the FQDN of the server to drain  
+* group <groupname> 	: the group the files to drain belongs to  (optional, default = ALL)
+* size <size> 		: the percentage of size to drain (optional, default = 100)
+* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
 
     def _init(self):
         self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2486,6 +2515,7 @@ class DrainFSCommand(ShellCommand):
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
+        self.drainProcess.stopThreads()
         sys.exit(0)
 
     def _execute(self, given):
@@ -2574,14 +2604,22 @@ class DrainFSCommand(ShellCommand):
 		#step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
 		
-		drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
-		drainProcess.drain()
+		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+		self.drainProcess.drain()
 
  	except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 class DrainServerCommand(ShellCommand):
-    """Drain a specific Disk Server"""
+    """Drain a specific Disk Server
+
+The drainserver command accepts the following parameters:
+
+* <servername> 		: the FQDN of the server to drain  
+* group <groupname> 	: the group the files to drain belongs to (optional, default = ALL)
+* size <size> 		: the percentage of size to drain (optional, default = 100)
+* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
 
     def _init(self):
         self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2592,6 +2630,7 @@ class DrainServerCommand(ShellCommand):
     	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
+	self.drainProcess.stopThreads()
         sys.exit(0)
 
     def _execute(self, given):
@@ -2683,8 +2722,8 @@ class DrainServerCommand(ShellCommand):
                 #step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
 
-                drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
-                drainProcess.drain()
+                self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+                self.drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
