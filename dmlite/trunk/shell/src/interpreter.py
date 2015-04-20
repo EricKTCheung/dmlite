@@ -2121,7 +2121,7 @@ class DrainThread (threading.Thread):
 	
     def stop(self):
 	 self.stop.set()
-	 super(DrainThreadThread, self).join(None)
+	 super(DrainThread, self).join(None)
 
     def drain_replica(self,threadName):
         while not self.stop.isSet():
