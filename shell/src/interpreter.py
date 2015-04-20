@@ -2318,7 +2318,7 @@ class DrainReplicas():
 	if len(self.interpreter.drainErrors) > 0:
                         self.interpreter.ok("List of Drain Errors:\n")
         for (file, sfn, error) in self.interpreter.drainErrors:
-        	self.interpreter.ok("File:\t" + file+ " sfn:\t" +sfn +" Error:\t" +error)
+        	self.interpreter.ok("File: " + file+ "\tsfn: " +sfn +"\tError: " +error)
 
     def drain(self): 
 	gid = None
