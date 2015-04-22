@@ -186,7 +186,7 @@ namespace dmlite {
 
     std::deque<E>         free_;
     std::map<E, unsigned> used_;
-    unsigned freeSlots_;
+    int freeSlots_;
 
     boost::mutex              mutex_;
     boost::condition_variable available_;
