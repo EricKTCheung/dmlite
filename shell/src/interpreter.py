@@ -2114,17 +2114,17 @@ class DrainThread (threading.Thread):
         self.threadID = threadID
         self.interpreter = interpreter
         self.adminUserName = adminUserName
-	self.stop =  threading.Event()
+	self.stopEvent =  threading.Event()
 
     def run(self):
-        self.drain_replica(self.threadID)
+        self.drainReplica(self.threadID)
 	
     def stop(self):
-	 self.stop.set()
-	 super(DrainThread, self).join(None)
+	self.stopEvent.set()
+	super(DrainThread, self).join(None)
 
-    def drain_replica(self,threadName):
-        while not self.stop.isSet():
+    def drainReplica(self,threadName):
+        while not self.stopEvent.isSet():
 		replica = self.interpreter.replicaQueue.get()
         	self.interpreter.replicaQueue.task_done()
                 drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
