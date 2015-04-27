@@ -2399,10 +2399,12 @@ The drainpool command accepts the following parameters:
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
+	self.drainProcess = None
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
-        self.drainProcess.stopThreads()
+	if self.drainProcess:
+	        self.drainProcess.stopThreads()
         sys.exit(0)
 
 
@@ -2512,10 +2514,12 @@ The drainfs command accepts the following parameters:
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',	
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value' ] 
+	self.drainProcess = None
 	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
-        self.drainProcess.stopThreads()
+	if self.drainProcess:
+	        self.drainProcess.stopThreads()
         sys.exit(0)
 
     def _execute(self, given):
@@ -2626,11 +2630,12 @@ The drainserver command accepts the following parameters:
                                        '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 				       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
                                        '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
-			
+	self.drainProcess = None
     	signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self,signal, frame):
-	self.drainProcess.stopThreads()
+	if self.drainProcess:
+		self.drainProcess.stopThreads()
         sys.exit(0)
 
     def _execute(self, given):
