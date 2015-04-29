@@ -106,6 +106,23 @@ class DPMDB(object):
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
 
+	def getPoolFromReplica(self,sfn):
+		"""Method to get the pool name from a sfn"""
+		try:
+			self.nsdb_c.execute('''
+			SELECT r.poolname
+			FROM Cns_file_replica r
+			WHERE r.sfn= '%(sfn)s'
+			''' % {"sfn" : sfn})
+			ret = list()
+                        for row in self.nsdb_c.fetchall():
+                                ret.append(row[0])
+                        return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        sys.exit(1)
+
+
         def getFilesystems(self, poolname):
                 """get all filesystems in a pool"""
                 try:
