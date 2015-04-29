@@ -2173,9 +2173,53 @@ The replicate command accepts the following parameters:
 
 	try:
 		replicate = Replicate(self.interpreter,adminUserName,parameters)
-		replicate.run()
+		(replicated,destination, error) = replicate.run()
         except Exception, e:
-            return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+		self.error(e.__str__())
+             	self.error("Error Replicating file: " +given[0]+"\n")
+		if error:
+			self.error(error)
+             	if destination:
+             	#logging only need to clean pending replica
+                        self.error("Error while copying to SFN: " +destination+"\n")
+		
+                else:
+                        return 1
+
+        if not replicated:
+		if error:
+			self.error(error)
+                if destination:
+                        #logging only need to clean pending replica 
+                        self.error("Error while copying to SFN: " +destination+"\n")
+                else:
+                        self.error("Error Replicating file: " +given[0]+"\n")
+                        return 1
+
+        if replicated:
+                self.ok("The file has been correctly replicated to: "+ destination+"\n")
+
+        elif destination:
+                replica = self.interpreter.catalog.getReplicaByRFN(destination)
+                #TO DO: from replica object i don't know the pool hence the pooldriver, for the  moment i assume they are in the same pool
+                pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
+                try:
+                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
+                except Exception, e:
+                        self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
+			self.error('Please remove manually the replica with rfn ' + destination)
+			return 1
+
+	        try:
+        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
+                	poolHandler.removeReplica(replica)
+			self.interpreter.catalog.deleteReplica(replica)
+        	except Exception, e:
+                	self.error('Could not clean the replica.\n' + e.__str__())
+			self.error('Please remove manually the replica with rfn ' + destination)
+			return 1
+	return 0
+
 	
 class DrainFileReplica():
     """implement draining of a file replica"""
