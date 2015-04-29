@@ -2152,6 +2152,7 @@ The replicate command accepts the following parameters:
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
 
     def _execute(self, given):
+	db = None
 	if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
 
@@ -2171,7 +2172,7 @@ The replicate command accepts the following parameters:
 	for i in range(1, len(given),2):
 		parameters[given[i]] = given[i+1]
 
-	try:
+	try:	
 		replicate = Replicate(self.interpreter,adminUserName,parameters)
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
@@ -2201,22 +2202,27 @@ The replicate command accepts the following parameters:
 
         elif destination:
                 replica = self.interpreter.catalog.getReplicaByRFN(destination)
-                #TO DO: from replica object i don't know the pool hence the pooldriver, for the  moment i assume they are in the same pool
-                pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
                 try:
-                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
+                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
                 except Exception, e:
                         self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
-			self.error('Please remove manually the replica with rfn ' + destination)
+			self.error('Please remove manually the replica with rfn: ' + destination)
 			return 1
 
-	        try:
-        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
-                	poolHandler.removeReplica(replica)
-			self.interpreter.catalog.deleteReplica(replica)
+	        try:	
+			db = DPMDB()
+			poolname= db.getPoolFromReplica(replica.rfn)
+			if poolname:
+	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(poolname[0])
+        	        	poolHandler.removeReplica(replica)
+				self.interpreter.catalog.deleteReplica(replica)
+			else:
+				self.error('Could not clean the replica.\n' + e.__str__())
+        	                self.error('Please remove manually the replica with rfn: ' + destination)
+				return 1
         	except Exception, e:
                 	self.error('Could not clean the replica.\n' + e.__str__())
-			self.error('Please remove manually the replica with rfn ' + destination)
+			self.error('Please remove manually the replica with rfn: ' + destination)
 			return 1
 	return 0
 
