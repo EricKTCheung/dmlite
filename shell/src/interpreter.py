@@ -176,6 +176,12 @@ class ShellCommand:
   """
   An abstract class for deriving classes for supported shell commands.
   """
+  drainProcess = None
+
+  def signal_handler(self,signal, frame):
+     if self.drainProcess:
+               self.drainProcess.stopThreads()
+     sys.exit(0)
 
   # functions stubs to override:
   def _init(self):
@@ -318,6 +324,7 @@ class ShellCommand:
   
   def execute(self, given):
     """Executes the current command with the parameters in the given array."""
+    signal.signal(signal.SIGINT, self.signal_handler)
     
     # reset result flags
     self.interpreter.answered = False
@@ -1956,6 +1963,7 @@ class Response(object):
   """ utility class to collect the response """
   def __init__(self):
     self.chunks = []
+    self.markers = []
     self.header_dict = {}
   def callback(self, chunk):
     self.chunks.append(chunk)
@@ -1963,7 +1971,7 @@ class Response(object):
     return ''.join(self.chunks)
    ## Callback function invoked when body data is ready
   def body(self,buf):
-    pass
+    self.markers.append(buf)
   def headers(self):
     s = ''.join(self.chunks)
     for line in s.split('\r\n'):
@@ -1978,6 +1986,18 @@ class Response(object):
 	self.headers()
     for key, value in self.header_dict.iteritems():
 	print key+"="+ value
+  def checkMarkers(self):
+	for marker in self.markers:
+		if 'Success' in marker:
+			return 0
+		elif 'Failed' in marker:
+			return marker
+	return 0
+  def printMarkers(self):
+	for marker in self.markers:
+		print marker
+	
+			
 	
 
 class Replicate():
@@ -2094,14 +2114,13 @@ class Replicate():
         except Exception, e:
 		self.interpreter.error(e.__str__())
 		return (False,sfn, e.__str__())
-	#check http code
+	#check markers
 	try:
-		httpcode = str(c.getinfo(pycurl.HTTP_CODE))
-		if httpcode.startswith("2"):
+		outcome = res.checkMarkers()
+		if not outcome:
 			return (True,sfn, None)
 		else:
-			self.interpreter.error("HTTP Error Code "+ httpcode)
-			return (False,sfn, "HTTP Error Code "+ httpcode)
+			return (False,sfn, outcome)
  	except Exception, e:
 		self.interpreter.error(e.__str__())
                 return (False,sfn, e.__str__())
@@ -2215,7 +2234,6 @@ The replicate command accepts the following parameters:
 			if poolname:
 	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(poolname[0])
         	        	poolHandler.removeReplica(replica)
-				self.interpreter.catalog.deleteReplica(replica)
 			else:
 				self.error('Could not clean the replica.\n' + e.__str__())
         	                self.error('Please remove manually the replica with rfn: ' + destination)
@@ -2327,23 +2345,6 @@ class DrainFileReplica():
 	except Exception, e:
                	return self.logError('Could not remove replica from pool.\n' + e.__str__())
 
-        #step 7 : remove drained replica from catalog
-	if replicated:
-		try:
-		        self.interpreter.catalog.deleteReplica(replica)
-		        self.logOK("The original replica has been correctly drained from: "+ self.fileReplica.sfn+"\n")
-	        except Exception, e:
-        	        self.logError("Error Removing Replica for file: " +filename+"\n")
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error Removing Replica"))
-               		return self.logError(e.__str__())
-	#remove pending replica from catalog because of an error
-	elif destination:
-		try:
-                        self.interpreter.catalog.deleteReplica(replica)
-                except Exception, e:
-                        self.logError("Error Removing Pending Replica for file: " +filename+"\n")
-                	return self.logError(e.__str__())
-
 class DrainReplicas():
     """implement draining of a list of replicas"""
     def __init__(self, interpreter , db,fileReplicas,adminUserName, group,size, nthreads, dryrun):
@@ -2416,7 +2417,7 @@ class DrainReplicas():
         	if self.dryrun:
         		return
 		
-        	for i in range(0,self.nthreads-1):
+        	for i in range(0,self.nthreads):
                 	thread = DrainThread(self.interpreter, i, self.adminUserName)
                 	thread.setDaemon(True)
                 	thread.start()
@@ -2449,15 +2450,6 @@ The drainpool command accepts the following parameters:
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
-	self.drainProcess = None
-	signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-	if self.drainProcess:
-	        self.drainProcess.stopThreads()
-        sys.exit(0)
-
-
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
@@ -2564,14 +2556,6 @@ The drainfs command accepts the following parameters:
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',	
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value' ] 
-	self.drainProcess = None
-	signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-	if self.drainProcess:
-	        self.drainProcess.stopThreads()
-        sys.exit(0)
-
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
@@ -2680,13 +2664,6 @@ The drainserver command accepts the following parameters:
                                        '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 				       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
                                        '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
-	self.drainProcess = None
-    	signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self,signal, frame):
-	if self.drainProcess:
-		self.drainProcess.stopThreads()
-        sys.exit(0)
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
