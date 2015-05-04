@@ -1997,10 +1997,7 @@ class Response(object):
 	for marker in self.markers:
 		print marker
 	
-			
-	
-
-class Replicate():
+class Replicate(object):
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
     def __init__(self,interpreter,admin,parameters):
 	self.interpreter=interpreter
@@ -2245,7 +2242,7 @@ The replicate command accepts the following parameters:
 	return 0
 
 	
-class DrainFileReplica():
+class DrainFileReplica(object):
     """implement draining of a file replica"""
     def __init__(self, threadID,interpreter , fileReplica,adminUserName):
         self.threadID = threadID
@@ -2345,7 +2342,7 @@ class DrainFileReplica():
 	except Exception, e:
                	return self.logError('Could not remove replica from pool.\n' + e.__str__())
 
-class DrainReplicas():
+class DrainReplicas(object):
     """implement draining of a list of replicas"""
     def __init__(self, interpreter , db,fileReplicas,adminUserName, group,size, nthreads, dryrun):
        	self.interpreter= interpreter

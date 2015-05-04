@@ -245,7 +245,7 @@ class DPMDB(object):
 	                print "Error %d: %s" % (e.args[0], e.args[1])
                         print "Error in getLFNFromSFN with sfn " + sfn
 	                return 0
-	        except ValueError as v:
+	        except ValueError,v:
 	                print "Path %s does not exist" % sfn
                         return 0
 	        namelist.reverse() #put entries in "right" order for joining together
