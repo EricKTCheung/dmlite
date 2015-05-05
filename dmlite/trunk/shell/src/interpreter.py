@@ -2183,7 +2183,10 @@ The replicate command accepts the following parameters:
 	    return self.error("Incorrect number of parameters")
 	
 	parameters = {}
-	parameters['filename'] = given[0]
+	filename = given[0]
+	if not filename.startswith('/'):
+          filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
+	parameters['filename'] = filename
 
 	for i in range(1, len(given),2):
 		parameters[given[i]] = given[i+1]
@@ -2193,7 +2196,7 @@ The replicate command accepts the following parameters:
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.error(e.__str__())
-             	self.error("Error Replicating file: " +given[0]+"\n")
+             	self.error("Error Replicating file: " +filename+"\n")
 		if error:
 			self.error(error)
              	if destination:
@@ -2210,7 +2213,7 @@ The replicate command accepts the following parameters:
                         #logging only need to clean pending replica 
                         self.error("Error while copying to SFN: " +destination+"\n")
                 else:
-                        self.error("Error Replicating file: " +given[0]+"\n")
+                        self.error("Error Replicating file: " +filename+"\n")
                         return 1
 
         if replicated:
