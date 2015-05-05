@@ -2278,7 +2278,7 @@ class DrainFileReplica(object):
                         return 1
                 else:
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
-			self.interpreter.rainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
                         return 1
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
