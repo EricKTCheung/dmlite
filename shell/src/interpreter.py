@@ -34,7 +34,9 @@ class DMLiteInterpreter:
     self.lastCompleted = 0
     self.lastCompletedState = 0
     global replicaQueue
+    global replicaQueueLock
     global drainErrors
+    
 
     # collect all available commands into commands-array
     self.commands = []
@@ -2141,10 +2143,14 @@ class DrainThread (threading.Thread):
 
     def drainReplica(self,threadName):
         while not self.stopEvent.isSet():
-		replica = self.interpreter.replicaQueue.get()
-        	self.interpreter.replicaQueue.task_done()
-                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
-                drainreplica.drain();
+		self.interpreter.replicaQueueLock.acquire()
+		if not self.interpreter.replicaQueue.empty():
+			replica = self.interpreter.replicaQueue.get()
+			self.interpreter.replicaQueueLock.release()
+	                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
+        	        drainreplica.drain();
+		else:
+			self.interpreter.replicaQueueLock.release()
 			
 
 
@@ -2263,6 +2269,7 @@ class DrainFileReplica(object):
         return self.interpreter.ok(self.getThreadID()+msg)
 	
     def drain(self):
+	filename = self.fileReplica.lfn
         #step 4 : check the status, pinned  and see if they the replica can be drained
         if self.fileReplica.status != "-":
                 if self.fileReplica.status =="P":
@@ -2271,15 +2278,13 @@ class DrainFileReplica(object):
                         return 1
                 else:
                         self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
+			self.interpreter.rainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
                         return 1
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
                 self.logError("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored\n")
 		self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is pinned"))
                 return 1
-
-	filename = self.fileReplica.lfn
 
         #step 5 : replicate files
 	arguments = {}
@@ -2344,6 +2349,11 @@ class DrainFileReplica(object):
 		poolHandler.removeReplica(replica)
 	except Exception, e:
                	return self.logError('Could not remove replica from pool.\n' + e.__str__())
+	#cleaning catalog ( not throwing exception if fails though could it could be already cleaned by the poolhandler.removereplica
+	try:
+		self.interpreter.catalog.deleteReplica(replica)
+	except Exception:
+		pass
 
 class DrainReplicas(object):
     """implement draining of a list of replicas"""
@@ -2423,8 +2433,11 @@ class DrainReplicas(object):
                 	thread.start()
 			self.threadpool.append(thread)
 
-		# Wait for all threads to complete
-                self.interpreter.replicaQueue.join()
+		while not self.interpreter.replicaQueue.empty():
+			pass
+
+		for t in self.threadpool:
+			t.stop()
 
 		self.interpreter.ok("Drain Process completed\n")
                 
@@ -2533,6 +2546,7 @@ The drainpool command accepts the following parameters:
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+		self.interpreter.replicaQueueLock = threading.Lock()
 
 		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, adminUserName, group, size, nthreads, dryrun)
                 self.drainProcess.drain()
@@ -2641,6 +2655,7 @@ The drainfs command accepts the following parameters:
 
 		#step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+		self.interpreter.replicaQueueLock = threading.Lock()
 		
 		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
 		self.drainProcess.drain()
@@ -2752,7 +2767,8 @@ The drainserver command accepts the following parameters:
                 listFiles = db.getReplicasInServer(servername)
 
                 #step 3 : for each file call the drain method of DrainFileReplica
-                self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+		self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+                self.interpreter.replicaQueueLock = threading.Lock()
 
                 self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
                 self.drainProcess.drain()

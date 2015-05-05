@@ -230,7 +230,7 @@ class DPMDB(object):
 	                (name,) = self.nsdb_c.fetchall() #this gets the "head" of the name
 	                namelist.append(str(name[1]))
 	                parent_fileid = name[0]
-	                while parent_fileid > 1:
+	                while parent_fileid > 0:
 				try:
 					item = self.dirhash[str(parent_fileid)]
 					parent_fileid = item[1]
