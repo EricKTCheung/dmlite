@@ -99,10 +99,9 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
         cnsparentid = cnsfileid
       else:        
         # This is an error, we have found an entry whose parent is missing!
-        with printlock:
-          print "Error. Could not find one of the parents of fileid:", cnsfileid
-          print " The fileid looked for was: ", cnsparentid
-          print "Most likely the entry is orphan:", cnsname
+        print "Error. Could not find one of the parents of fileid:", cnsfileid
+        print " The fileid looked for was: ", cnsparentid
+        print "Most likely the entry is orphan:", cnsname
         return
   
   
