@@ -15,7 +15,8 @@ import urllib
 from dbutils import DPMDB
 import threading
 import Queue
-import signal 
+import signal
+import socket
 
 try:
     import dpm2
@@ -2106,7 +2107,7 @@ class Replicate(object):
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://'+os.environ['HOSTNAME']+':'+str(https_port)+'/'+self.parameters['filename'])
+        c.setopt(c.URL, 'https://'+socket.getfqdn()+':'+str(https_port)+'/'+self.parameters['filename'])
 
         try:
                 c.perform()
@@ -2151,7 +2152,7 @@ class DrainThread (threading.Thread):
         	        drainreplica.drain();
 		else:
 			self.interpreter.replicaQueueLock.release()
-			
+			self.stopEvent.set()
 
 
 class ReplicateCommand(ShellCommand):
