@@ -2014,6 +2014,14 @@ class Replicate(object):
         replicate = pydmlite.boost_any()
         replicate.setBool(True)
         self.interpreter.stackInstance.set("replicate",replicate)
+	try:
+                self.interpreter.stackInstance.erase("pool")
+                self.interpreter.stackInstance.erase("filesystem")
+                self.interpreter.stackInstance.erase("f_type")
+                self.interpreter.stackInstance.erase("lifetime")
+                self.interpreter.stackInstance.erase("SpaceToken")
+        except Exception,e:
+                pass
 	
     def run(self):
 
