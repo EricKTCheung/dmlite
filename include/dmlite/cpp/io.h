@@ -16,12 +16,12 @@
 #include <sys/uio.h>
 
 namespace dmlite {
-
+  
   // Forward declarations.
   class Location;
   class PluginManager;
   class StackInstance;
-
+  
   /// IO interface
   class IOHandler {
    public:
@@ -29,7 +29,7 @@ namespace dmlite {
                   kCur = SEEK_CUR, ///< Current position
                   kEnd = SEEK_END  ///< End of file
                 };
-
+     
     /// Virtual destructor
     virtual ~IOHandler();
 
@@ -40,9 +40,6 @@ namespace dmlite {
 
     /// Close
     virtual void close(void) throw (DmException);
-
-    /// Return internal file descriptor, if any
-    virtual int fileno(void) throw (DmException);
 
     /// Gets information about a file descriptor.
     /// @note Not all plug-ins will fill all the fields, but st_size is
@@ -135,7 +132,7 @@ namespace dmlite {
                                       int flags,
                                       const Extensible& extras,
                                       mode_t mode = 0660) throw (DmException);
-
+    
     /// Must be called when the front-end is done writing.
     /// @param pfn The file name.
     /// @param loc The Location object as returned by whereToWrite

@@ -111,21 +111,7 @@ namespace dmlite {
     /// @param meta The file at the end
     /// @note       Throws an exception if it is not possible.
     void traverseBackwards(const ExtendedStat& meta) throw (DmException);
-    
-    /// addFileSizeToParents
-    /// Add (or subtract) the size of the given file from
-    /// all its parent directories
-    /// @param fname The logical file name (SFN) of the file in question
-    /// @param subtract If true then subtract instead of adding
-    void addFileSizeToParents(const std::string &fname, bool subtract) throw (DmException);
-    
-    /// addFileSizeToParents
-    /// Add (or subtract) the size of the given file from
-    /// all its parent directories
-    /// @param st The stat information about the file in question
-    /// @param subtract If true then subtract instead of adding
-    void addFileSizeToParents(const ExtendedStat &statinfo, bool subtract) throw (DmException);
-    
+
    private:
     StackInstance*   si_;
 

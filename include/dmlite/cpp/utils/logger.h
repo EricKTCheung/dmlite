@@ -9,12 +9,13 @@
 #include <map>
 #include <vector>
 
+
 #define Log(lvl, mymask, where, what) 												\
 do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
 	{    																	\
 		std::ostringstream outs;                                   			\
-		outs << "[" << lvl << "] dmlite " << where << " " << __func__ << " : " << what;                      			\
+		outs << "dmlite " << where << " " << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
 	}                                                             			\
 }while(0)                                                               			\
@@ -40,7 +41,7 @@ public:
 	typedef std::string component;
 
 	static bitmask unregistered;
-        static char *unregisteredname;
+
     /**
      * Use the same values for log levels as syslog
      */
@@ -158,12 +159,6 @@ private:
 
 
 };
-
-
-// Specialized func to log configuration values. Filters out sensitive stuff.
-void LogCfgParm(int lvl, Logger::bitmask mymask, std::string where, std::string key, std::string value);
-
-
 
 
 #endif

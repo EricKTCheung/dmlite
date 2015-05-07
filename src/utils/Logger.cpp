@@ -7,36 +7,18 @@
 #include <string.h>
 
 Logger *Logger::instance = 0;
-Logger::bitmask Logger::unregistered = 0;
-char *Logger::unregisteredname = (char *)"unregistered";
+Logger::bitmask Logger::unregistered = ~0;
 
 
 
 
 
-// Specialized func to log configuration values. Filters out sensitive stuff.
-void LogCfgParm(int lvl, Logger::bitmask mymask, std::string where, std::string key, std::string value) {
-  
-  // At the highest log level we want to see everything anyway
-  if (lvl < Logger::Lvl4) {
-    
-    std::string upkey;
-    upkey.resize(key.length());
-    std::transform(key.begin(), key.end(), upkey.begin(), ::toupper);
-    //Log(Logger::Lvl4, mymask, where, " upkey: " << upkey);
-    
-    if (upkey.find("PASSWORD") != std::string::npos) {
-    
-      int n = value.length();
-      value = "";
-    
-      for (int i = 0; i < n; i++) value += "*";
-    }
-  }
-  
-  
-  Log(lvl, mymask, where, " Key: " << key << " Value: " << value);
-}
+
+
+
+
+
+
 
 
 
@@ -151,8 +133,8 @@ int Logger::getStackTrace(std::string &s)
 Logger::Logger() : level(Lvl4), size(0)
 {
     mask = 0;
-    registerComponent(unregisteredname);
-    mask = unregistered = getMask(unregisteredname);
+    registerComponent("unregistered");
+    mask = unregistered = getMask("unregistered");
     
     // log the process ID, connect to syslog without delay, log also to 'cerr'
     int options = LOG_PID | LOG_NDELAY;
@@ -216,8 +198,8 @@ void Logger::setLogged(component const &comp, bool tobelogged) {
       // Switch on the corresponsing bit
       mask |= b;
       // Setting ON some logging disables the unregistered category where everything else falls
-      if (comp != unregisteredname)
-	setLogged(unregisteredname, false);
+      if (comp != "unregistered")
+	setLogged("unregistered", false);
     }
     else
       // Switch off the corresponding bit

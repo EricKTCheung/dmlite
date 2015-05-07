@@ -52,9 +52,8 @@ namespace dmlite {
     StdRFIOHandler(const std::string& path,
                    int flags, mode_t mode) throw (DmException);
     virtual ~StdRFIOHandler();
-
+    
     void   close(void) throw (DmException);
-    int    fileno(void) throw (DmException);
     size_t read (char* buffer, size_t count) throw (DmException);
     size_t pread(void* buffer, size_t count, off_t offset) throw (DmException);
     size_t write(const char* buffer, size_t count) throw (DmException);

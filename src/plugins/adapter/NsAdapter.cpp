@@ -306,8 +306,6 @@ ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (
   xStat.stat.st_ino   = dpnsStat.fileid;
   xStat.stat.st_mode  = dpnsStat.filemode;
   xStat.stat.st_size  = dpnsStat.filesize;
-  xStat.csumtype      = dpnsStat.csumtype;
-  xStat.csumvalue     = dpnsStat.csumvalue;
   xStat.status  = static_cast<ExtendedStat::FileStatus>(dpnsStat.status);
   xStat["type"] = dpnsStat.fileclass;
 
@@ -501,7 +499,6 @@ void NsAdapterCatalog::unlink(const std::string& path) throw (DmException)
 void NsAdapterCatalog::create(const std::string& path, mode_t mode) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path );
-  setDpnsApiIdentity();
   FunctionWrapper<int, const char*, mode_t>(dpns_creat, path.c_str(), mode)();
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }

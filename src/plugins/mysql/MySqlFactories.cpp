@@ -15,22 +15,14 @@
 #include "DpmMySql.h"
 #include "AuthnMySql.h"
 #include "utils/logger.h"
-#include "MySqlIO.h"
 
 using namespace dmlite;
 
-// Logger stuff
-Logger::bitmask dmlite::mysqllogmask = ~0;
+Logger::bitmask dmlite::mysqllogmask = 0;
 Logger::component dmlite::mysqllogname = "Mysql";
-
-
-
-
 
 static pthread_once_t initialize_mysql_thread = PTHREAD_ONCE_INIT;
 static pthread_key_t  destructor_key;
-
-
 
 static void destroy_thread(void*)
 {
@@ -43,89 +35,25 @@ static void init_thread(void)
   pthread_key_create(&destructor_key, destroy_thread);
 }
 
-//------------------------------------------
-// MySqlHolder
-// Holder of mysql connections, base class singleton holding the mysql conn pool
-//
-
-// Static mysql-related stuff
-PoolContainer<MYSQL*> *MySqlHolder::connectionPool_ = 0;
-MySqlHolder *MySqlHolder::instance = 0;
-
-MySqlHolder *MySqlHolder::getInstance() {
-  if (!instance) {
-    instance = new MySqlHolder();
-  }
-  return instance;
-}
-
-MySqlHolder::MySqlHolder() {
-    mysql_library_init(0, NULL, NULL);  
-    poolsize = 0;
-    connectionPool_ = 0;
-}
-
-MySqlHolder::~MySqlHolder() {
-  if (connectionPool_) delete connectionPool_;
-  poolsize = 0;
-  connectionPool_ = 0;
-
-}
 
 
-PoolContainer<MYSQL*> &MySqlHolder::getMySqlPool()  throw(DmException){
-
-  MySqlHolder *h = getInstance();
+MySqlConnectionFactory::MySqlConnectionFactory(const std::string& host, unsigned int port,
+                                               const std::string& user, const std::string& passwd):
+  host(host), port(port), user(user), passwd(passwd)
+{
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
   
-  if (!h->connectionPool_) {
-    Log(Logger::Lvl1, mysqllogmask, mysqllogname, "Creating MySQL connection pool" << 
-	h->connectionFactory_.user << "@" << h->connectionFactory_.host << ":" <<h->connectionFactory_.port <<
-        " size: " << h->poolsize);
-    h->connectionPool_ = new PoolContainer<MYSQL*>(&h->connectionFactory_, h->poolsize);
-  }
-  
-  return *(h->connectionPool_);
-}
-
-bool MySqlHolder::configure(const std::string& key, const std::string& value) {
-  MySqlHolder *h = getInstance();
-  bool gotit = true;
-  
-  LogCfgParm(Logger::Lvl4, mysqllogmask, mysqllogname, key, value);
-  
-  if (key == "MySqlHost")
-    h->connectionFactory_.host = value;
-  else if (key == "MySqlUsername")
-    h->connectionFactory_.user = value;
-  else if (key == "MySqlPassword")
-    h->connectionFactory_.passwd = value;
-  else if (key == "MySqlPort")
-    h->connectionFactory_.port = atoi(value.c_str());
-  else if (key == "NsPoolSize") {
-    int n = atoi(value.c_str());
-      h->poolsize = (n < h->poolsize ? h->poolsize : n);
-      if (h->connectionPool_)
-	h->connectionPool_->resize(h->poolsize);
-    }
-  else if (key == "MySqlDirectorySpaceReportDepth")
-    h->connectionFactory_.dirspacereportdepth = atoi(value.c_str());
-  else gotit = false;
-  
-  if (gotit)
-    LogCfgParm(Logger::Lvl1,  mysqllogmask, mysqllogname, key, value);
-    
-  return gotit;
-}
-
-// -----------------------------------------
-// MySqlConnectionFactory
-//
-MySqlConnectionFactory::MySqlConnectionFactory() {
-  
-  dirspacereportdepth = 6;
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "MySqlConnectionFactory started");
+  Log(Logger::Lvl2, mysqllogmask, mysqllogname, user << "@" << host << ":" << port);
   // Nothing
 }
+
+
+
+MySqlConnectionFactory::~MySqlConnectionFactory()
+{
+  // Nothing
+}
+
 
 
 MYSQL* MySqlConnectionFactory::create()
@@ -158,12 +86,15 @@ MYSQL* MySqlConnectionFactory::create()
   return c;
 }
 
+
+
 void MySqlConnectionFactory::destroy(MYSQL* c)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Destroying... ");
   mysql_close(c);
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Destroyed. ");
 }
+
 
 bool MySqlConnectionFactory::isValid(MYSQL*)
 {
@@ -174,21 +105,16 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
 
 
 
-
-
-
-// --------------------------------------------------------
-// NsMySqlFactory
-//
-
-
-
 NsMySqlFactory::NsMySqlFactory() throw(DmException):
-  nsDb_("cns_db"),
+  connectionFactory_(std::string("localhost"), 0, std::string("root"), std::string()),
+  connectionPool_(&connectionFactory_, 25), nsDb_("cns_db"),
   mapFile_("/etc/lcgdm-mapfile"), hostDnIsRoot_(false), hostDn_("")
 {
-
-  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "NsMySqlFactory started");
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
+  mysql_library_init(0, NULL, NULL);  
+  pthread_key_create(&this->thread_mysql_conn_, NULL);
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
 }
 
 
@@ -198,7 +124,7 @@ NsMySqlFactory::~NsMySqlFactory()
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   mysql_library_end();
-  
+  pthread_key_delete(this->thread_mysql_conn_);
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
 }
 
@@ -206,23 +132,33 @@ NsMySqlFactory::~NsMySqlFactory()
 
 void NsMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
-  bool gotit = true;
-  LogCfgParm(Logger::Lvl4, mysqllogmask, mysqllogname, key, value);
   
-  if (key == "MapFile")
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
+  
+  if (key == "MySqlHost")
+    this->connectionFactory_.host = value;
+  else if (key == "MySqlUsername")
+    this->connectionFactory_.user = value;
+  else if (key == "MySqlPassword")
+    this->connectionFactory_.passwd = value;
+  else if (key == "MySqlPort")
+    this->connectionFactory_.port = atoi(value.c_str());
+  else if (key == "NsDatabase")
+    this->nsDb_ = value;
+  else if (key == "NsPoolSize") {
+      int i = atoi(value.c_str());
+      this->connectionPool_.resize(i);
+    }
+  else if (key == "MapFile")
     this->mapFile_ = value;
   else if (key == "HostDNIsRoot")
     this->hostDnIsRoot_ = (value != "no");
   else if (key == "HostCertificate")
     this->hostDn_ = getCertificateSubject(value);
-  else if (key == "NsDatabase")
-    this->nsDb_ = value;
   else
-    gotit = MySqlHolder::configure(key, value);
-  
-  if (gotit)
-    LogCfgParm(Logger::Lvl1,  mysqllogmask, mysqllogname, key, value);
-  
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      std::string("Unknown option ") + key);
 }
 
 
@@ -232,6 +168,8 @@ INode* NsMySqlFactory::createINode(PluginManager*) throw(DmException)
   pthread_once(&initialize_mysql_thread, init_thread);
   return new INodeMySql(this, this->nsDb_);
 }
+
+
 
 Authn* NsMySqlFactory::createAuthn(PluginManager*) throw (DmException)
 {
@@ -243,29 +181,30 @@ Authn* NsMySqlFactory::createAuthn(PluginManager*) throw (DmException)
 
 
 
-
-
-
-
-
-
-// ------------------------------------------------
-// DpmMySqlFactory
-//
+PoolContainer<MYSQL*>& NsMySqlFactory::getPool(void) throw ()
+{
+  return this->connectionPool_;
+}
 
 
 
 DpmMySqlFactory::DpmMySqlFactory() throw(DmException):
   NsMySqlFactory(), dpmDb_("dpm_db"), adminUsername_("root")
 {
-  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "DpmMySqlFactory started");
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Ctor");
+  // MySQL initialization done by NsMySqlFactory
 }
+
+
 
 DpmMySqlFactory::~DpmMySqlFactory()
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   // MySQL termination done by NsMySqlFactory
 }
+
+
 
 void DpmMySqlFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
@@ -279,6 +218,8 @@ void DpmMySqlFactory::configure(const std::string& key, const std::string& value
     NsMySqlFactory::configure(key, value);
 }
 
+
+
 PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
@@ -288,79 +229,19 @@ PoolManager* DpmMySqlFactory::createPoolManager(PluginManager*) throw (DmExcepti
 
 
 
-
-
-
-// ------------------------------------------------
-// MysqlIOPassthroughFactory
-//
-
-MysqlIOPassthroughFactory::MysqlIOPassthroughFactory(IODriverFactory *ioFactory) throw(DmException) {
-
-  this->nestedIODriverFactory_    = ioFactory;
-
-  dirspacereportdepth = 6;
-  Log(Logger::Lvl3, mysqllogmask, mysqllogmask, "MysqlIOPassthroughFactory started.");
-  
-}
-
-
-
-void MysqlIOPassthroughFactory::configure(const std::string& key, const std::string& value) throw(DmException)
-{
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Key: " << key << " Value: " << value);
-  bool gotit = true;
-  
-  
-  if (key == "MySqlDirectorySpaceReportDepth")
-    this->dirspacereportdepth = atoi(value.c_str());
-  else gotit = false;
-  
-  if (gotit)
-    Log(Logger::Lvl0, mysqllogmask, mysqllogname, "Setting mysql parms. Key: " << key << " Value: " << value);
-    
-  MySqlHolder::configure(key, value);
-}
-
-IODriver* MysqlIOPassthroughFactory::createIODriver(PluginManager* pm) throw (DmException) {
-  IODriver *nested;
-  if (this->nestedIODriverFactory_ != 0x00)
-    nested = IODriverFactory::createIODriver(this->nestedIODriverFactory_, pm);
-  else
-    return 0x00;
-  
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Creating mysql passthrough IODriver");
-  
-  
-  return new MysqlIOPassthroughDriver(nested, this->dirspacereportdepth);
-  
-}
-  
-  
-  
-  
-  
-  
-// -------------------------------------------------------
-// Static functions implementing hooks for the dynamic loading
-//
-
-// Register plugin item that gives name space functionalities
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
-  mysqllogmask = Logger::get()->getMask(mysqllogname);
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "registerPluginNs");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   NsMySqlFactory* nsFactory = new NsMySqlFactory();
   pm->registerINodeFactory(nsFactory);
   pm->registerAuthnFactory(nsFactory);
 }
 
 
-// Register plugin item that gives disk pool manager functionalities
+
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
 { 
-  mysqllogmask = Logger::get()->getMask(mysqllogname);
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "registerPluginDpm");
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   
   DpmMySqlFactory* dpmFactory = new DpmMySqlFactory();
   
@@ -369,16 +250,6 @@ static void registerPluginDpm(PluginManager* pm) throw(DmException)
   pm->registerPoolManagerFactory(dpmFactory);
 }
 
-// Register plugin item that gives IO stack passthrough functionalities
-// e.g. to intercept donewriting events and perform actions
-static void registerPluginMysqlIOPassthrough(PluginManager* pm) throw(DmException)
-{
-  mysqllogmask = Logger::get()->getMask(mysqllogname);
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "registerPluginMysqlIOPassthrough");
-  MysqlIOPassthroughFactory *pf = new MysqlIOPassthroughFactory(pm->getIODriverFactory());
-  
-  pm->registerIODriverFactory(pf);
-}
 
 
 /// This is what the PluginManager looks for
@@ -390,9 +261,4 @@ PluginIdCard plugin_mysql_ns = {
 PluginIdCard plugin_mysql_dpm = {
   PLUGIN_ID_HEADER,
   registerPluginDpm
-};
-
-PluginIdCard plugin_mysql_iopassthrough = {
-  PLUGIN_ID_HEADER,
-  registerPluginMysqlIOPassthrough
 };

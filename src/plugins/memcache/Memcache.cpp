@@ -168,54 +168,36 @@ MemcacheFactory::~MemcacheFactory()
 
 void MemcacheFactory::configure(const std::string& key, const std::string& value) throw(DmException)
 {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Key: " << key << " Value: " << value);
 
-  LogCfgParm(Logger::Lvl4,  memcachelogmask, memcachelogname, key, value);
-  
-  bool gotit = true;
-  
-  if (key == "MemcachedServer") {
-    
+  if (key == "MemcachedServer")
     this->connectionFactory_.hosts_.insert(value);
-    
-  }
-  else if (key == "SymLinkLimit") {
-    
+  else if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
-    
-  }
   else if (key == "MemcachedExpirationLimit") {
-    
     unsigned int expLimit = atoi(value.c_str());
     // 60*60*24*30 = 30 days from which on the expiration limit
     // will be treated as a timestamp by memcached
     // >= 0 is implicit because it's an unsigned value
-    if (expLimit < 60*60*24*30) {
-      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << expLimit);
+    if (expLimit < 60*60*24*30)
       this->memcachedExpirationLimit_ = expLimit;
-    }
-    else {
-      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << DEFAULT_MEMCACHED_EXPIRATION);
+    else
       this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
-    }
 
   } else if (key == "MemcachedHashDistribution") {
-    if (value == "consistent" || value == "default") {
-
+    if (value == "consistent" || value == "default")
       this->connectionFactory_.dist_ = value;
-    }
     else
       throw DmException(DMLITE_CFGERR(EINVAL),
           std::string("Unknown option value ") + value);
 
   } else if (key == "MemcachedProtocol") {
-
     if (value == "ascii")
       this->connectionFactory_.useBinaryProtocol_ = false;
     else
       this->connectionFactory_.useBinaryProtocol_ = true;
   }
   else if (key == "MemcachedPOSIX") {
-
     if (value == "on")
       this->memcachedPOSIX_ = true;
     else if (value == "off")
@@ -225,28 +207,19 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
           std::string("Unknown option value ") + value);
 
   } else if (key == "MemcachedFunctionCounter") {
-    
     if (value == "on") {
       this->doFuncCount_ = true;
     }
-    
   } else if (key == "MemcachedFunctionCounterLogFrequency") {
-    
     this->funcCounterLogFreq_ = atoi(value.c_str());
-    
   } else if (key == "MemcachedPoolSize") {
-    
     this->connectionPool_.resize(atoi(value.c_str()));
-    
   } else if (key == "LocalCacheSize") {
-
     MemcacheCommon::localCacheMaxSize = atoi(value.c_str());
-    
-  }
-  else gotit = false;
-  
-  if (gotit)
-    LogCfgParm(Logger::Lvl1,  memcachelogmask, memcachelogname, key, value);
+  } else
+    Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//        std::string("Unknown option ") + key);
 }
 
 

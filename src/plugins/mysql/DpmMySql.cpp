@@ -128,7 +128,7 @@ std::vector<Pool> MySqlPoolManager::getPoolsFromMySql() throw (DmException)
 
 
   // Get all
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_GET_POOLS);
 
   stmt.execute();
@@ -228,7 +228,7 @@ void MySqlPoolManager::newPool(const Pool& pool) throw (DmException)
   // since the running DPM daemon wouldn't see this until it is
   // restarted, let it do it itself.
   if (pool.type != "filesystem") {
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+    PoolGrabber<MYSQL*> conn(this->factory_->getPool());
     Statement stmt(conn, this->dpmDb_, STMT_INSERT_POOL);
 
     std::vector<boost::any> groups = pool.getVector("groups");
@@ -287,7 +287,7 @@ void MySqlPoolManager::updatePool(const Pool& pool) throw (DmException)
   PoolDriver* driver = this->stack_->getPoolDriver(pool.type);
 
   // Update the db
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_UPDATE_POOL);
 
   std::vector<boost::any> groups = pool.getVector("groups");
@@ -362,7 +362,7 @@ void MySqlPoolManager::deletePool(const Pool& pool) throw (DmException)
 
   // Remove from the database, ignoring if it does not exist, since
   // the handler may have done it (fs)
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->dpmDb_, STMT_DELETE_POOL);
   stmt.bindParam(0, pool.name);
   stmt.execute();

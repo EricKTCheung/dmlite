@@ -3,18 +3,9 @@
 
 %{!?dmlite_test: %global dmlite_tests 0}
 
-# systemd definition, to do the right thing if we need to restart daemons
-%if %{?fedora}%{!?fedora:0} >= 17 || %{?rhel}%{!?rhel:0} >= 7
-%global systemd 1
-%else
-%global systemd 0
-%endif
-
-
-
 Name:					dmlite
-Version:				0.7.3
-Release:				1%{?dist}
+Version:				0.7.2
+Release:				2%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
 License:				ASL 2.0
@@ -143,8 +134,6 @@ BuildArch:			noarch
 
 Requires:			python-dateutil
 Requires:			python-dmlite = %{version}
-Requires:                       MySQL-python
-Requires:                       python-pycurl
 
 Obsoletes:			dmlite-shell < 0.7.0-1
 
@@ -203,7 +192,7 @@ make install DESTDIR=%{buildroot}
 ## remote tests if not needed
 %if %{?dmlite_tests} == 0
 rm -rf %{buildroot}/%{_libdir}/dmlite/test
-%endif 
+%endif
 
 %clean
 rm -rf %{buildroot}
@@ -211,18 +200,6 @@ rm -rf %{buildroot}
 %post libs
 /sbin/ldconfig
 /sbin/service rsyslog condrestart || true
-%if %systemd
-        /bin/systemctl try-restart dpm.service || true
-        /bin/systemctl try-restart dpnsdaemon.service || true
-        /bin/systemctl try-restart httpd.service || true
-        /bin/systemctl try-restart dpm-gsiftp.service || true
-%else
-        /sbin/service dpm condrestart  || true
-        /sbin/service dpnsdaemon condrestart ||true
-        /sbin/service httpd condrestart || true
-        /sbin/service dpm-gsiftp condrestart ||true
-%endif
-
 
 %postun libs -p /sbin/ldconfig
 

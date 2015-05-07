@@ -5,7 +5,7 @@ project (dmlite)
 # Version
 set(dmlite_MAJOR 0)
 set(dmlite_MINOR 7)
-set(dmlite_PATCH 3)
+set(dmlite_PATCH 2)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
@@ -73,10 +73,10 @@ if (NOT DPM_FOUND OR NOT DPM_FOUND)
 endif()
 
 # Include path
-include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
-                     ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${Boost_INCLUDE_DIRS})
 
 # include the directory itself as a path to include directories

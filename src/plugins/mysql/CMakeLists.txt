@@ -13,7 +13,6 @@ add_library (mysql MODULE AuthnMySql.cpp
                           MySqlWrapper.cpp
                           NsMySql.cpp
                           Queries.cpp
-                          MySqlIO.cpp
             )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

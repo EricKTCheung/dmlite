@@ -16,8 +16,6 @@ AuthnMySql::AuthnMySql(NsMySqlFactory* factory,
   factory_(factory), nsDb_(db), mapFile_(mapfile), hostDnIsRoot_(hostDnIsRoot),
   hostDn_(hostDn)
 {
-  
-  mysqllogmask = Logger::get()->getMask(mysqllogname);
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ctor");
   
   // Nothing
@@ -83,7 +81,7 @@ GroupInfo AuthnMySql::newGroup(const std::string& gname) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "group:" << gname);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   if (mysql_query(conn, "BEGIN") != 0)
     throw DmException(DMLITE_DBERR(mysql_errno(conn)),
@@ -150,7 +148,7 @@ GroupInfo AuthnMySql::getGroup(const std::string& groupName) throw (DmException)
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "group:" << groupName);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   
   Statement stmt(conn, this->nsDb_, STMT_GET_GROUPINFO_BY_NAME);
 
@@ -192,7 +190,7 @@ GroupInfo AuthnMySql::getGroup(const std::string& key,
                       "AuthnMySql does not support querying by %s",
                       key.c_str());
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   gid = Extensible::anyToUnsigned(value);
   Statement stmt(conn, this->nsDb_, STMT_GET_GROUPINFO_BY_GID);
@@ -223,7 +221,7 @@ void AuthnMySql::updateGroup(const GroupInfo& group) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "grp:" << group.name);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_GROUP);
   
   stmt.bindParam(0, group.getLong("banned"));
@@ -243,7 +241,7 @@ void AuthnMySql::deleteGroup(const std::string& groupName) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "grp:" << groupName);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_GROUP);
   
   stmt.bindParam(0, groupName);
@@ -258,7 +256,7 @@ UserInfo AuthnMySql::newUser(const std::string& uname) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "usr:" << uname);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   if (mysql_query(conn, "BEGIN") != 0)
     throw DmException(mysql_errno(conn), mysql_error(conn));
@@ -335,7 +333,7 @@ UserInfo AuthnMySql::getUser(const std::string& userName) throw (DmException)
   }
   else {
     // Search in the DB
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+    PoolGrabber<MYSQL*> conn(this->factory_->getPool());
     Statement stmt(conn, this->nsDb_, STMT_GET_USERINFO_BY_NAME);
 
     stmt.bindParam(0, userName);
@@ -378,7 +376,7 @@ UserInfo AuthnMySql::getUser(const std::string& key,
                       key.c_str());
   
   uid = Extensible::anyToUnsigned(value);
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_USERINFO_BY_UID);
 
   stmt.bindParam(0, uid);
@@ -408,7 +406,7 @@ void AuthnMySql::updateUser(const UserInfo& user) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "usr:" << user.name);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_USER);
   
   stmt.bindParam(0, user.getLong("banned"));
@@ -430,7 +428,7 @@ void AuthnMySql::deleteUser(const std::string& userName) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "usr:" << userName);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_USER);
   
   stmt.bindParam(0, userName);
@@ -448,7 +446,7 @@ std::vector<GroupInfo> AuthnMySql::getGroups(void) throw (DmException)
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_ALL_GROUPS);
   stmt.execute();  
   
@@ -483,7 +481,7 @@ std::vector<UserInfo> AuthnMySql::getUsers(void) throw (DmException)
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_ALL_USERS);
   stmt.execute();
   
@@ -525,7 +523,7 @@ void AuthnMySql::getIdMap(const std::string& userName,
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "usr:" << userName);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   // Clear
   groups->clear();
@@ -541,13 +539,8 @@ void AuthnMySql::getIdMap(const std::string& userName,
       throw;
   }
 
-  //check if the user DN is the host DN and avoid getting the mapping
-  if (this->hostDnIsRoot_ && userName == this->hostDn_)  {
-    group.name   = "root";
-    group["gid"] = 0;
-    groups->push_back(group);
-  } // No VO information, so use the mapping file to get the group
-  else if (groupNames.empty()) {
+  // No VO information, so use the mapping file to get the group
+  if (groupNames.empty()) {
     vo = voFromDn(this->mapFile_, userName);
     try {
       group = this->getGroup(vo);

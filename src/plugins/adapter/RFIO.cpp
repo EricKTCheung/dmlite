@@ -20,8 +20,8 @@ Logger::component dmlite::adapterRFIOlogname = "AdapterRFIO";
 
 
 // Prototype of rfio method (in rfio_api.h header but only available for rfio kernel)
-extern "C" {
-int rfio_parse(char *, char **, char **);
+extern "C" { 
+int rfio_parse(char *, char **, char **); 
 }
 
 
@@ -30,9 +30,9 @@ int rfio_parse(char *, char **, char **);
 StdRFIOFactory::StdRFIOFactory(): passwd_("default"), useIp_(true)
 {
   adapterRFIOlogmask = Logger::get()->getMask(adapterRFIOlogname);
-
+  
   Cthread_init();
-
+  
   setenv("CSEC_MECH", "ID", 1);
 }
 
@@ -47,9 +47,8 @@ StdRFIOFactory::~StdRFIOFactory()
 
 void StdRFIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  bool gotit = true;
-  LogCfgParm(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, key, value);
-
+  Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname,  " Key: " << key << " Value: " << value);
+  
   if (key == "TokenPassword") {
     this->passwd_ = value;
   }
@@ -63,11 +62,10 @@ void StdRFIOFactory::configure(const std::string& key, const std::string& value)
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
   }
-  else gotit = false;
-  
-  if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "StdRFIOFactory", key, value);
-  
+  else
+    Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      key + " not known");
 }
 
 
@@ -121,10 +119,10 @@ IOHandler* StdRFIODriver::createIOHandler(const std::string& pfn,
                                           mode_t mode) throw (DmException)
 {
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "pfn: " << pfn);
-
+  
   if ( !(flags & IODriver::kInsecure) ) {
       if (!extras.hasField("token"))
-        throw DmException(EACCES, "Missing token on pfn: %s", pfn.c_str());
+        throw DmException(EACCES, "Missing token");
 
       std::string userId;
       if (this->useIp_)
@@ -137,11 +135,11 @@ IOHandler* StdRFIODriver::createIOHandler(const std::string& pfn,
             pfn, this->passwd_,
             flags != O_RDONLY) != kTokenOK)
 
-        throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
-            this->useIp_?"IP":"DN", pfn.c_str());
+        throw DmException(EACCES, "Token does not validate (using %s)",
+            this->useIp_?"IP":"DN");
 
   }
-
+  
   // Create
   return new StdRFIOHandler(pfn, flags, mode);
 }
@@ -150,16 +148,16 @@ StdRFIOHandler::pp::pp(int fd, bool *peof, off_t np):
   fd(fd), peof(peof)
 {
   if ((pos = rfio_lseek64(fd, 0, SEEK_CUR)) == -1)
-    throw DmException(serrno, "Could not seek on fd ", fd);
+    throw DmException(serrno, "Could not seek");
   if (rfio_lseek64(fd, np, SEEK_SET) == - 1)
-    throw DmException(serrno, "Could not seek on fd ", fd);
+    throw DmException(serrno, "Could not seek");
   eof = *peof; *peof = false;
 }
 
 StdRFIOHandler::pp::~pp()
 {
   if (rfio_lseek64(fd, pos, SEEK_SET) == - 1)
-    throw DmException(serrno, "Could not seek on fd ", fd);
+    throw DmException(serrno, "Could not seek");
   *peof = eof;
 }
 
@@ -168,28 +166,28 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
   struct dpm_filestatus     *statuses;
   int                        nReplies;
   std::string                sfn;
-
+  
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "loc: " << loc.toString());
-
+  
   if (loc.empty())
     throw DmException(EINVAL, "Empty location");
 
   // Need the sfn
   sfn = loc[0].url.query.getString("sfn");
   if (sfn.empty())
-    throw DmException(EINVAL, "sfn not specified. loc: %s", loc.toString().c_str());
+    throw DmException(EINVAL, "sfn not specified");
 
   // Need the dpm token
   std::string token = loc[0].url.query.getString("dpmtoken");
   if (token.empty())
-    throw DmException(EINVAL, "dpmtoken not specified. loc: %s", loc.toString().c_str()); 
+    throw DmException(EINVAL, "dpmtoken not specified"); 
 
   // Workaround... putdone in this context should be invoked by root
   // to make it work also in the cases when the client is unknown (nobody)
-
+  
   FunctionWrapper<int> reset(dpm_client_resetAuthorizationId);
   reset();
-
+  
   const char* sfnPtr[] = { sfn.c_str() };
   FunctionWrapper<int, char*, int, char**, int*, dpm_filestatus**>
     (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
@@ -202,13 +200,13 @@ void StdRFIODriver::doneWriting(const Location& loc) throw (DmException)
 StdRFIOHandler::StdRFIOHandler(const std::string& path,
                                int flags, mode_t mode) throw (DmException):
   eof_(false), islocal_(false)
-{
+{ 
   int err;
   char *host, *filename;
   std::string qpath = path;
 
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "path: " << path);
-
+  
   if (qpath[0] == '/')
       qpath = "localhost:" + qpath;
 
@@ -233,30 +231,24 @@ StdRFIOHandler::~StdRFIOHandler()
 }
 
 
+
 void StdRFIOHandler::close() throw (DmException)
 {
   rfio_close(this->fd_);
   this->fd_ = -1;
 }
 
-int StdRFIOHandler::fileno(void) throw (DmException)
-{
-  Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, " fd:" << this->fd_);
-  if (islocal_) {
-    return this->fd_;
-  }
-  throw DmException(EIO, "file not open or is accessed with rfio but not local, so file descriptor is unavailable");
-}
+
 
 size_t StdRFIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "count:" << count);
-
+  
   lk l(islocal_ ? 0 : &this->mtx_);
   size_t nbytes = rfio_read(this->fd_, buffer, count);
-
+  
   eof_  = (nbytes < count);
-
+  
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. count:" << count << " res:" << nbytes);
   return nbytes;
 }
@@ -268,7 +260,7 @@ size_t StdRFIOHandler::pread(void* buffer, size_t count, off_t offset) throw (Dm
     return static_cast<size_t>(::pread(this->fd_, buffer, count, offset));
   lk l(&this->mtx_);
   pp p(this->fd_, &this->eof_, offset);
-
+  
   size_t res = rfio_read(this->fd_, buffer, count);
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. offs:" << offset << " count:" << count << " res:" << res);
   return res;
@@ -290,7 +282,7 @@ size_t StdRFIOHandler::pwrite(const void* buffer, size_t count, off_t offset) th
     return static_cast<size_t>(::pwrite(this->fd_, buffer, count, offset));
   lk l(&this->mtx_);
   pp p(this->fd_, &this->eof_, offset);
-
+  
   size_t res = rfio_write(this->fd_, (char *)buffer, count);
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. offs:" << offset << " count:" << count << " res:" << res);
   return res;
@@ -298,13 +290,13 @@ size_t StdRFIOHandler::pwrite(const void* buffer, size_t count, off_t offset) th
 
 void StdRFIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 {
-
+  
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "offs:" << offset);
-
+  
   lk l(islocal_ ? 0 : &this->mtx_);
   if (rfio_lseek64(this->fd_, offset, whence) == -1)
-    throw DmException(serrno, "Could not seek fd %s", this->fd_);
-
+    throw DmException(serrno, "Could not seek");
+  
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. offs:" << offset);
 }
 
@@ -313,11 +305,11 @@ void StdRFIOHandler::seek(off_t offset, Whence whence) throw (DmException)
 off_t StdRFIOHandler::tell(void) throw (DmException)
 {
   Log(Logger::Lvl4, adapterRFIOlogmask, adapterRFIOlogname, "");
-
+  
   lk l(islocal_ ? 0 : &this->mtx_);
-
+  
   off_t o = rfio_lseek64(this->fd_, 0, SEEK_CUR);
-
+  
   Log(Logger::Lvl3, adapterRFIOlogmask, adapterRFIOlogname, "Exiting. offs:" << o);
   return o;
 }

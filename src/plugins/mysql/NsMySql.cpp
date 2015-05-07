@@ -3,7 +3,6 @@
 /// @author Alejandro Álvarez Ayllón <aalvarez@cern.ch>
 #include <mysql/mysql.h>
 #include <time.h>
-#include <dmlite/cpp/utils/checksums.h>
 #include <dmlite/cpp/utils/urls.h>
 #include <list>
 #include <string>
@@ -112,7 +111,7 @@ void INodeMySql::begin(void) throw (DmException)
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Starting transaction");
 
   if (!conn_) {
-    conn_ = MySqlHolder::getMySqlPool().acquire();
+    conn_ = factory_->getPool().acquire();
   }
 
   if (!conn_) {
@@ -123,7 +122,7 @@ void INodeMySql::begin(void) throw (DmException)
   if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0) {
     unsigned int merrno = mysql_errno(this->conn_);
     std::string merror = mysql_error(this->conn_);
-    MySqlHolder::getMySqlPool().release(conn_);
+    factory_->getPool().release(conn_);
     conn_ = 0;
     throw DmException(DMLITE_DBERR(merrno), merror);
   }
@@ -161,7 +160,7 @@ void INodeMySql::commit(void) throw (DmException)
       merrno = mysql_errno(this->conn_);
       merror = mysql_error(this->conn_);
     }
-    MySqlHolder::getMySqlPool().release(conn_);
+    factory_->getPool().release(conn_);
     conn_ = 0;
     if  (qret != 0) {
       throw DmException(DMLITE_DBERR(merrno), merror);
@@ -191,7 +190,7 @@ void INodeMySql::rollback(void) throw (DmException)
       merror = mysql_error(this->conn_);
     }
 
-    MySqlHolder::getMySqlPool().release(conn_);
+    factory_->getPool().release(conn_);
     conn_ = 0;
   
     if (qret != 0) {
@@ -340,7 +339,7 @@ void INodeMySql::symlink(ino_t inode, const std::string &link) throw (DmExceptio
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " lnk:" << link);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
 
   Statement stmt(conn, this->nsDb_, STMT_INSERT_SYMLINK);
 
@@ -405,7 +404,7 @@ void INodeMySql::unlink(ino_t inode) throw (DmException)
   
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Deleting symlinks, comments, replicas.  inode:" << inode);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   {
     // Scope to make sure that the local objects that involve mysql
     // are destroyed before the transaction is closed
@@ -449,7 +448,7 @@ void INodeMySql::move(ino_t inode, ino_t dest) throw (DmException)
     
     // Metadata
     ExtendedStat file = this->extendedStat(inode);
-        
+    
     // Make sure the destiny is a dir!
     ExtendedStat newParent = this->extendedStat(dest);
     if (!S_ISDIR(newParent.stat.st_mode))
@@ -521,7 +520,7 @@ void INodeMySql::rename(ino_t inode, const std::string& name) throw (DmException
 {
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, " inode:" << inode << " name:" << name);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement changeNameStmt(conn, this->nsDb_, STMT_CHANGE_NAME);
 
   changeNameStmt.bindParam(0, name);
@@ -540,7 +539,7 @@ ExtendedStat INodeMySql::extendedStat(ino_t inode) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_ID);
   ExtendedStat meta;
   CStat        cstat;
@@ -564,7 +563,7 @@ ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) thr
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " parent:" << parent << " name:" << name);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_NAME);
   ExtendedStat meta;
   CStat        cstat;
@@ -590,7 +589,7 @@ ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmExceptio
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " guid:" << guid);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_GUID);
   ExtendedStat meta;
   CStat        cstat;
@@ -615,7 +614,7 @@ SymLink INodeMySql::readLink(ino_t inode) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_SYMLINK);
   SymLink   link;
   char      clink[4096];
@@ -675,7 +674,7 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
   ctype   = static_cast<char>(replica.type);
 
   // Add it
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement statement(conn, this->nsDb_, STMT_ADD_REPLICA);
 
   statement.bindParam(0, replica.fileid);
@@ -700,7 +699,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
 {
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, " replica:" << replica.rfn);
   // Remove
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement statement(conn, this->nsDb_, STMT_DELETE_REPLICA);
   statement.bindParam(0, replica.fileid);
   statement.bindParam(1, replica.rfn);
@@ -723,7 +722,7 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
   
   // MySQL statement
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_FILE_REPLICAS);
 
   // Execute query
@@ -776,7 +775,7 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rid:" << rid);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_ID);
   stmt.bindParam(0, rid);
   
@@ -827,7 +826,7 @@ Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rfn:" << rfn);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
   stmt.bindParam(0, rfn);
   
@@ -881,7 +880,7 @@ void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
   char status = static_cast<char>(rdata.status);
   char type   = static_cast<char>(rdata.type);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_REPLICA);
   
   stmt.bindParam(0, rdata.nbaccesses);
@@ -917,7 +916,7 @@ void INodeMySql::utime(ino_t inode, const struct utimbuf* buf) throw (DmExceptio
   }
 
   // Change
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UTIME);
   stmt.bindParam(0, buf->actime);
   stmt.bindParam(1, buf->modtime);
@@ -939,7 +938,7 @@ void INodeMySql::setMode(ino_t inode, uid_t uid, gid_t gid,
   mode &= ~S_IFMT;
   
   // Update DB
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_UPDATE_PERMS);
   stmt.bindParam(0, uid);
   stmt.bindParam(1, uid);
@@ -960,7 +959,7 @@ void INodeMySql::setSize(ino_t inode, size_t size) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " size:" << size);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_CHANGE_SIZE);
   stmt.bindParam(0, size);
   stmt.bindParam(1, inode);
@@ -976,7 +975,7 @@ void INodeMySql::setChecksum(ino_t inode, const std::string& csumtype,
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_CHANGE_CHECKSUM);
   stmt.bindParam(0, csumtype);
   stmt.bindParam(1, csumvalue);
@@ -993,7 +992,7 @@ std::string INodeMySql::getComment(ino_t inode) throw (DmException)
 
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_GET_COMMENT);
 
   stmt.bindParam(0, inode);
@@ -1014,7 +1013,7 @@ void INodeMySql::setComment(ino_t inode, const std::string& comment) throw (DmEx
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " comment:'" << comment << "'");
   
   // Try to set first
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_SET_COMMENT);
 
   stmt.bindParam(0, comment);
@@ -1039,7 +1038,7 @@ void INodeMySql::deleteComment(ino_t inode) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode );
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_DELETE_COMMENT);
   stmt.bindParam(0, inode);
   stmt.execute();
@@ -1053,7 +1052,7 @@ void INodeMySql::setGuid(ino_t inode, const std::string& guid) throw (DmExceptio
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " guid:" << guid );
   
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  PoolGrabber<MYSQL*> conn(this->factory_->getPool());
   Statement stmt(conn, this->nsDb_, STMT_SET_GUID);
 
   stmt.bindParam(0, guid);
@@ -1070,36 +1069,13 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
                                           const Extensible& attr) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode << " nattrs:" << attr.size() );
-  {
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-    Statement stmt(conn, this->nsDb_, STMT_SET_XATTR);
+  PoolGrabber<MYSQL*> conn(factory_->getPool());
+  Statement stmt(conn, this->nsDb_, STMT_SET_XATTR);
   
-    stmt.bindParam(0, attr.serialize());
-    stmt.bindParam(1, inode);
+  stmt.bindParam(0, attr.serialize());
+  stmt.bindParam(1, inode);
   
-    stmt.execute();
-  }
-
-  // If there were any checksums in list of attributes which have a legacy short
-  // type name set the first of them in the legacy csumtype, csumvalue columns
-  std::vector<std::string> keys = attr.getKeys();
-  std::string shortCsumType;
-  std::string csumValue;
-
-  for (unsigned i = 0; i < keys.size(); ++i) {
-    if (keys[i].compare(0, 9, "checksum.") == 0) {
-      std::string csumXattr = keys[i];
-      shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
-      if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
-        csumValue     = attr.getString(csumXattr);
-        break;
-      }
-    }
-  }
-
-  if (!csumValue.empty()) {
-    this->setChecksum(inode, shortCsumType, csumValue);
-  }
+  stmt.execute();
   
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
 }
@@ -1123,7 +1099,7 @@ IDirectory* INodeMySql::openDir(ino_t inode) throw (DmException)
   dir->dir = meta;
    
   try {
-    conn_ = MySqlHolder::getMySqlPool().acquire();
+    conn_ = factory_->getPool().acquire();
     dir->stmt = new Statement(this->conn_, this->nsDb_, STMT_GET_LIST_FILES);
     dir->stmt->bindParam(0, inode);
     dir->stmt->execute();
@@ -1132,7 +1108,7 @@ IDirectory* INodeMySql::openDir(ino_t inode) throw (DmException)
     dir->eod = !dir->stmt->fetch();
   }
   catch (...) {
-    if (conn_) MySqlHolder::getMySqlPool().release(conn_);
+    if (conn_) factory_->getPool().release(conn_);
     conn_ = 0;
     delete dir;
     throw;
@@ -1150,7 +1126,7 @@ void INodeMySql::closeDir(IDirectory* dir) throw (DmException)
 
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
    
-  if (conn_) MySqlHolder::getMySqlPool().release(conn_);
+  if (conn_) factory_->getPool().release(conn_);
   conn_ = 0;
 
   if (dir == NULL)

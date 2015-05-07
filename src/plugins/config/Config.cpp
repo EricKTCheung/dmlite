@@ -8,7 +8,6 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include "Config.h"
-//#include "dmlite/common/config.h"
 #include "utils/logger.h"
 
 
@@ -45,8 +44,6 @@ static void initPatternGlobalKey(void)
 ConfigFactory::ConfigFactory(PluginManager* pm): manager(pm)
 {
   pthread_once(&patternGlobalOnce, initPatternGlobalKey);
-  Log(Logger::Lvl0, Logger::unregistered, "Config", "----------------- ConfigFactory started. Starting configuration phase. DMLite v" <<
-      DMLITE_MAJOR << "." << DMLITE_MINOR << "." << DMLITE_PATCH );
 }
 
 
@@ -108,10 +105,7 @@ void ConfigFactory::processIncludes(const std::string& path) throw (DmException)
   }
   
   for (int i = 0; i < nmatches; ++i) {
-    std::string cfgf = location + "/" + namelist[i]->d_name;
-    
-    Log(Logger::Lvl1, Logger::unregistered, "config", "Processing config file:" << cfgf);
-    this->manager->loadConfiguration(cfgf);
+    this->manager->loadConfiguration(location + "/" + namelist[i]->d_name);
     free(namelist[i]);
   }
   free(namelist);
@@ -122,17 +116,13 @@ void ConfigFactory::processIncludes(const std::string& path) throw (DmException)
 void ConfigFactory::configure(const std::string& key,
                               const std::string& value) throw (DmException)
 {
-  bool gotit = true;
-  LogCfgParm(Logger::Lvl4, Logger::unregistered, "ConfigFactory", key, value);
-  
-  
   if (key == "LogLevel" || key == "loglevel") {
     Log(Logger::Lvl0, Logger::unregistered, "config", "Setting global log level to :" << value);
     Logger::get()->setLevel((Logger::Level)atoi(value.c_str()));
   }
   else
   if (key == "Include" || key == "include") {
-    Log(Logger::Lvl0, Logger::unregistered, "config", "Processing config directory:" << value);
+    Log(Logger::Lvl0, Logger::unregistered, "config", "Processing config file:" << value);
     this->processIncludes(value);
   }
   else
@@ -141,12 +131,11 @@ void ConfigFactory::configure(const std::string& key,
     Logger::get()->setLogged(value, true);   
     
   }
-  else gotit = false;
-  
- 
-  if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "ConfigFactory", key, value);
-    
+  else {
+    Log(Logger::Lvl4, Logger::unregistered, "ConfigFactory", "Unrecognized option. Key: " << key << " Value: " << value);
+//    throw DmException(DMLITE_CFGERR(DMLITE_UNKNOWN_KEY),
+//                      "Unknown parameter %s", key.c_str());
+  }
 }
 
 
