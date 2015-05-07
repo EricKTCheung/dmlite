@@ -700,15 +700,66 @@ class UnlinkCommand(ShellCommand):
 class RmDirCommand(ShellCommand):
   """Delete a directory."""
   def _init(self):
-    self.parameters = ['Ddirectory']
+    self.parameters = ['Ddirectory','*O--recursive:-r']
     
   def _execute(self, given):
-    try:
-      self.interpreter.catalog.removeDir(given[0])
-    except Exception, e:
-      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-    return self.ok()
+    dirname = given[0]
+    if not dirname.startswith('/'):
+          dirname = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), dirname))
+    if not (len(given)>1 and given[1].lower() in ['-r', '--recursive']): 
+    	try:
+		self.interpreter.catalog.removeDir(dirname)
+	except Exception, e:
+	      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+    else:
+	#recursive mode
+	try:
+	    	f = self.interpreter.catalog.extendedStat(dirname, True)
+    		if f.stat.isDir():
+      			return  self._remove_recursive(dirname)
+	    	else:	
+      		 	self.error('The given parameter is not a folder: Parameter(s): ' + ', '.join(given))
+	except Exception, e:
+	      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+  def _remove_recursive(self, folder):
+    gfiles = self._list_folder(folder)
+    size = 0
+    for f in gfiles:
+      name = os.path.join(folder, f['name'])
+      if f['isDir']:
+        self._remove_recursive(name)
+      else:
+	self.interpreter.catalog.unlink(name)
+    self.interpreter.catalog.removeDir(folder)
+	
+  def _list_folder(self,folder):
+    try:
+    	  hDir = self.interpreter.catalog.openDir(folder)
+    except:
+    	  self.error("cannot open the folder: " + folder)
+    	  return -1
+   
+    flist = []
+
+    while True:
+      finfo = {}
+      try:
+        f = self.interpreter.catalog.readDirx(hDir)
+        if f.stat.isDir():
+          finfo['isDir'] = True
+        else:
+          finfo['isDir'] = False
+        finfo['name'] = f.name
+
+        flist.append(finfo)
+      except:
+        break
+
+    self.interpreter.catalog.closeDir(hDir)
+    return flist
+	
 
 class MvCommand(ShellCommand):
   """Move or rename a file."""
