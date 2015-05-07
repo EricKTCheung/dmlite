@@ -2007,10 +2007,11 @@ class Replicate(object):
 	self.adminUserName = admin
 	self.parameters =parameters
 
+	self.interpreter.replicaQueueLock.acquire()
         securityContext= self.interpreter.stackInstance.getSecurityContext()
         securityContext.user.name = self.adminUserName
         self.interpreter.stackInstance.setSecurityContext(securityContext)
-
+	
         replicate = pydmlite.boost_any()
         replicate.setBool(True)
         self.interpreter.stackInstance.set("replicate",replicate)
@@ -2021,9 +2022,11 @@ class Replicate(object):
                 self.interpreter.stackInstance.erase("lifetime")
                 self.interpreter.stackInstance.erase("SpaceToken")
         except Exception,e:
-                pass
+                self.interpreter.replicaQueueLock.release()
+	self.interpreter.replicaQueueLock.release()
 	
     def run(self):
+	self.interpreter.replicaQueueLock.acquire()
 
 	if 'poolname' in self.parameters:
                 poolname = pydmlite.boost_any()
@@ -2044,6 +2047,7 @@ class Replicate(object):
                         filetype.setString(self.parameters['filetype'])
                 else:
 			self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
+			self.interpreter.replicaQueueLock.release()	
 			return (False, None, 'Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
 
                 self.interpreter.stackInstance.set("f_type",filetype)
@@ -2074,6 +2078,8 @@ class Replicate(object):
                 spacetoken = pydmlite.boost_any()
                 spacetoken.setString(self.parameters['spacetoken'])
                 self.interpreter.stackInstance.set("SpaceToken",spacetoken)
+
+	self.interpreter.replicaQueueLock.release()
 
         try:
                 loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
@@ -2198,6 +2204,7 @@ The replicate command accepts the following parameters:
 	    return self.error("Incorrect number of parameters")
 	
 	parameters = {}
+	self.interpreter.replicaQueueLock = threading.Lock()
 	filename = given[0]
 	if not filename.startswith('/'):
           filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
