@@ -620,16 +620,14 @@ class CdCommand(ShellCommand):
     try:
       path = given[0]
       if given[0][0] == '/':
-        self.interpreter.catalog.changeDir('')
+	self.interpreter.catalog.changeDir('')
         path = path[1:]
-      """  workingDir = ''
+      f = self.interpreter.catalog.extendedStat(path, True)
+      if f.stat.isDir(): 
+      	self.interpreter.catalog.changeDir(path)
       else:
-        workingDir = os.path.normpath(self.interpreter.catalog.getWorkingDir())
-        if workingDir[-1] != '/':
-          workingDir += '/'
-      path = '.' + os.path.normpath(workingDir + given[0])
-      print path"""
-      self.interpreter.catalog.changeDir(path)
+	return self.error('The given path is not a Directory:\nParameter(s): ' + ', '.join(given))
+		
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
     return self.ok()
