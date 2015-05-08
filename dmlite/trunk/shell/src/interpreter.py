@@ -1431,7 +1431,15 @@ class ReplicaDelCommand(ShellCommand):
       for r in replicas:
         if given[1] in (str(r.replicaid), r.rfn):
           # found specified replica. delete it!
-          self.interpreter.catalog.deleteReplica(r)
+	  self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
+	  poolHandler = self.interpreter.poolDriver.createPoolHandler(r.getString('pool',''))
+	  poolHandler.removeReplica(r)
+	  try:
+		#remove also from catalog to clean memcache
+		self.interpreter.catalog.deleteReplica(r)
+	  except Exception:
+		#do nothing cause if it fails does not hurt
+		pass	
           break
       else:
         return self.error('The specified replica was not found.')
@@ -2238,7 +2246,6 @@ The replicate command accepts the following parameters:
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
 
     def _execute(self, given):
-	db = None
 	if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
 
@@ -2300,10 +2307,8 @@ The replicate command accepts the following parameters:
 			return 1
 
 	        try:	
-			db = DPMDB()
-			poolname= db.getPoolFromReplica(replica.rfn)
 			if poolname:
-	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(poolname[0])
+	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
         	        	poolHandler.removeReplica(replica)
 			else:
 				self.error('Could not clean the replica.\n' + e.__str__())
@@ -2402,8 +2407,7 @@ class DrainFileReplica(object):
 
         elif destination:
 		replica = self.interpreter.catalog.getReplicaByRFN(destination)
-		#TO DO: from replica object i don't know the pool hence the pooldriver, for the  moment i assume they are in the same pool
-		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
+		pool = self.interpreter.poolManager.getPool(replica.getString('pool',''))
                 try:
                         self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
                 except Exception, e:
