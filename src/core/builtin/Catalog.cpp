@@ -134,7 +134,7 @@ void BuiltInCatalog::changeDir(const std::string& path) throw (DmException)
     return;
   }
   
-  ExtendedStat cwd = this->extendedStat(path);
+  ExtendedStat cwd = this->extendedStat(path,true);
   this->cwd_       = cwd.stat.st_ino;
   if (path[0] == '/')
     this->cwdPath_ = path;
@@ -184,6 +184,11 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     }
     // Before-root is a word-readable directory
     meta.stat.st_mode = S_IFDIR | 0555;
+    //updating parent
+    parent = meta.stat.st_ino;
+    if (path[0] == '/') {
+	    components.erase(components.begin());
+    }
   }
   // Relative, and cwd set, so start there
   else {
@@ -1136,7 +1141,7 @@ Directory* BuiltInCatalog::openDir(const std::string& path) throw (DmException)
   dirp = new BuiltInDir;
   
   try {
-    dirp->dir = this->extendedStat(path);
+    dirp->dir = this->extendedStat(path,true);
 
     if (checkPermissions(this->secCtx_, dirp->dir.acl, dirp->dir.stat, S_IREAD) != 0)
       throw DmException(EACCES,
