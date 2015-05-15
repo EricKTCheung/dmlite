@@ -2345,9 +2345,10 @@ class DrainFileReplica(object):
 			self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is under population"))
                         return 1
                 else:
-                        self.logError("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, ignored\n")
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "The file is under deletion"))
-                        return 1
+			#new behaviour, in case the file is in status D we should remove the file and the replicas
+                        self.ok("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, it can be safely removed\n")
+                        self.interpreter.catalog.unlink(filename)
+                        return 0
         currenttime= int(time.time())
         if (self.fileReplica.pinnedtime > currenttime):
                 self.logError("The replica sfn: "+ self.fileReplica.sfn + " is currently pinned, ignored\n")
