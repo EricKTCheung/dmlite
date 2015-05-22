@@ -113,7 +113,7 @@ namespace dmlite {
     }
   };
 
-}
+  
 
 
 
@@ -162,7 +162,7 @@ namespace dmlite {
       //if (r < 0) ThrowExceptionFromSerrno(serrno);
       switch (r) {
         case ENOMEM:
-        case EINVAL
+        case EINVAL:
         case EFAULT:
         case E2BIG:
          ThrowExceptionFromSerrno(serrno);
