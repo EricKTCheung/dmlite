@@ -37,6 +37,7 @@ void dmlite::ThrowExceptionFromSerrno(int serr, const char* extra) throw(DmExcep
 
 
 
+
 static pthread_once_t createKeyOnce = PTHREAD_ONCE_INIT;
 static pthread_key_t bufferKey;
 static const size_t BUFFER_SIZE = 128;

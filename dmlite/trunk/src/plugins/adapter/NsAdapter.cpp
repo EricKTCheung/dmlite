@@ -623,7 +623,8 @@ std::string NsAdapterCatalog::getComment(const std::string& path) throw (DmExcep
   setDpnsApiIdentity();
 
   char comment[kCommentMax];
-  FunctionWrapper<int, const char*, char*>(dpns_getcomment, path.c_str(), comment)();
+  comment[0] = '\0';
+  FunctionWrapperLE<int, const char*, char*>(dpns_getcomment, path.c_str(), comment)();
   
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path << "comment:" << comment);
   
