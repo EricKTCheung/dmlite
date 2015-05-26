@@ -193,6 +193,7 @@ namespace dmlite {
                 mode_t mode, const Acl& acl) throw (DmException);
 
     void setSize    (ino_t inode, size_t size) throw (DmException);
+    void setChecksum(ino_t, const std::string&, const std::string&) throw (DmException);
     
     std::string getComment   (ino_t inode) throw (DmException);
     void        setComment   (ino_t inode, const std::string& comment) throw (DmException);
