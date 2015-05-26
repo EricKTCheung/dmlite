@@ -960,21 +960,6 @@ void BuiltInCatalog::setSize(const std::string& path, size_t newSize) throw (DmE
 
 
 
-void BuiltInCatalog::setChecksum(const std::string& path,
-                                    const std::string& csumtype,
-                                    const std::string& csumvalue) throw (DmException)
-{
-  ExtendedStat meta = this->extendedStat(path, false);
-  if (getUid(this->secCtx_) != meta.stat.st_uid &&
-      checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
-    throw DmException(EACCES,
-                      "Can not set the checksum of " + path);
-  
-  this->si_->getINode()->setChecksum(meta.stat.st_ino, csumtype, csumvalue);
-}
-
-
-
 void BuiltInCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path);

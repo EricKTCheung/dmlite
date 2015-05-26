@@ -1,5 +1,6 @@
 #include <dmlite/cpp/catalog.h>
 #include "NotImplemented.h"
+#include "utils/checksums.h"
 
 
 using namespace dmlite;
@@ -59,7 +60,19 @@ mode_t Catalog::umask(mode_t) throw () {
 NOT_IMPLEMENTED(void Catalog::setMode(const std::string&, mode_t) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::setOwner(const std::string&, uid_t, gid_t, bool) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::setSize(const std::string&, size_t) throw (DmException));
-NOT_IMPLEMENTED(void Catalog::setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException));
+
+void Catalog::setChecksum(const std::string &path, const std::string &csumtype, const std::string &csumvalue) throw (DmException) {
+  
+  // This is a convenience function, which could be overridden, but normally should not
+  // We translate the checksum into the proper extended xattrs to be set
+  
+  Extensible ckx;
+  ckx[checksums::fullChecksumName(csumtype)] = csumvalue;
+  updateExtendedAttributes(path, ckx);
+  
+}
+
+
 NOT_IMPLEMENTED(void Catalog::setAcl(const std::string&, const Acl&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::utime(const std::string&, const struct utimbuf*) throw (DmException));
 NOT_IMPLEMENTED(std::string Catalog::getComment(const std::string&) throw (DmException));

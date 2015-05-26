@@ -23,6 +23,9 @@ std::string fullChecksumName(const std::string& cs);
 /// full checksum names.
 std::string shortChecksumName(const std::string& cs);
 
+/// Tells if the given key looks like the name of a checksum
+bool isChecksumFullName(const std::string& ckey);
+
 /// Returns the MD5 checksum of the data contained on the IO handler
 /// in hexadecimal format.
 /// @param io     The IO handler to be digested. The read/write possition will be moved!

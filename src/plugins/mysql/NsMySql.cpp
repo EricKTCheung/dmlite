@@ -1087,7 +1087,7 @@ void INodeMySql::updateExtendedAttributes(ino_t inode,
   std::string csumValue;
 
   for (unsigned i = 0; i < keys.size(); ++i) {
-    if (keys[i].compare(0, 9, "checksum.") == 0) {
+    if (checksums::isChecksumFullName(keys[i])) {
       std::string csumXattr = keys[i];
       shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
       if (!shortCsumType.empty() && shortCsumType.length() <= 2) {

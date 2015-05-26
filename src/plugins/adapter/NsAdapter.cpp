@@ -665,27 +665,45 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
 
   std::vector<std::string> keys = attr.getKeys();
   std::string csumXattr;
+  std::string shortCsumType;
 
   for (unsigned i = 0; i < keys.size(); ++i) {
-    if (keys[i].compare("type") == 0)
+    
+    if (!checksums::isFullChecksumName(keys[i])) {
+      Log(Logger::Lvl2, adapterlogmask, adapterlogname,
+          "Adapter does not support custom extended attributes. Ignoring key: " << keys[i]);
       continue;
-    else if (keys[i].compare(0, 9, "checksum.") != 0)
-      throw DmException(EINVAL, "Adapter does not support custom extended attributes");
-    else if (!csumXattr.empty())
-      throw DmException(EINVAL, "Adapter only supports one single checksum type in the extended attributes");
-    else
-      csumXattr = keys[i];
+    }
+    
+    // We are here if the entry is a checksum. Check if it's one that adapter can support
+    shortCsumType = checksums::shortChecksumName(keys[i].substr(9));
+    if (shortCsumType.length() > 2) {
+      Log(Logger::Lvl2, adapterlogmask, adapterlogname,
+          "Adapter does not support checksums of type " << shortCsumType << " Ignoring.");
+    }
+    
+    // Write a warning if we already had one to write
+    if (!csumXattr.empty()) {
+      Log(Logger::Lvl2, adapterlogmask, adapterlogname,
+          "Adapter only supports one single checksum type in the extended attributes. Ignoring key: " << keys[i]);
+      continue;
+    }
+    
+    csumXattr = keys[i];
   }
 
-  std::string shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
+  shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
   std::string csumValue     = attr.getString(csumXattr);
+    
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << shortCsumType << " csumvalue:" << csumValue);
+  setDpnsApiIdentity();
 
-  if (shortCsumType.length() > 2)
-    throw DmException(EINVAL, "'%s' is an invalid checksum type",
-                      shortCsumType.c_str());
-
-  this->setChecksum(path, shortCsumType, csumValue);
+  ExtendedStat stat = this->extendedStat(path, false);
   
+  FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
+    (dpns_setfsizec, path.c_str(), NULL, xstat.stat.st_size,
+     csumtype.c_str(), (char*)csumvalue.c_str())();
+     
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
 

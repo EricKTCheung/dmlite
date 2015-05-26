@@ -70,8 +70,6 @@ namespace dmlite {
                       bool followSymLink = true) throw (DmException);
 
     void setSize    (const std::string& path, size_t newSize) throw (DmException);
-    void setChecksum(const std::string& path, const std::string& csumtype,
-                     const std::string& csumvalue) throw (DmException);
 
     void setAcl(const std::string& path, const Acl& acls) throw (DmException);
 

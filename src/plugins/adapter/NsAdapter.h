@@ -71,9 +71,7 @@ namespace dmlite {
     void   setOwner(const std::string&, uid_t, gid_t, bool) throw (DmException);
 
     void setSize    (const std::string&, size_t) throw (DmException);
-    void setChecksum(const std::string&,
-                    const std::string&, const std::string&) throw (DmException);
-
+    
     void setAcl(const std::string&, const Acl&) throw (DmException);
 
     void utime(const std::string&, const struct utimbuf*) throw (DmException);
@@ -195,8 +193,7 @@ namespace dmlite {
                 mode_t mode, const Acl& acl) throw (DmException);
 
     void setSize    (ino_t inode, size_t size) throw (DmException);
-    void setChecksum(ino_t inode, const std::string& csumtype, const std::string& csumvalue) throw (DmException);
-
+    
     std::string getComment   (ino_t inode) throw (DmException);
     void        setComment   (ino_t inode, const std::string& comment) throw (DmException);
     void        deleteComment(ino_t inode) throw (DmException);
