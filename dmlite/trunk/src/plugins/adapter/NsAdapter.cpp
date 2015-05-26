@@ -557,22 +557,6 @@ void NsAdapterCatalog::setSize(const std::string& path, size_t newSize) throw (D
 
 
 
-void NsAdapterCatalog::setChecksum(const std::string& path,
-                                   const std::string& csumtype,
-                                   const std::string& csumvalue) throw (DmException)
-{
-  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
-  setDpnsApiIdentity();
-
-  ExtendedStat stat = this->extendedStat(path, false);
-  
-  FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
-    (dpns_setfsizec, path.c_str(), NULL, stat.stat.st_size,
-     csumtype.c_str(), (char*)csumvalue.c_str())();
-     
-  Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Exiting. path: " << path << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
-}
-
 
 
 void NsAdapterCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException)
@@ -669,7 +653,7 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
 
   for (unsigned i = 0; i < keys.size(); ++i) {
     
-    if (!checksums::isFullChecksumName(keys[i])) {
+    if (!checksums::isChecksumFullName(keys[i])) {
       Log(Logger::Lvl2, adapterlogmask, adapterlogname,
           "Adapter does not support custom extended attributes. Ignoring key: " << keys[i]);
       continue;
@@ -702,7 +686,7 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
   
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
     (dpns_setfsizec, path.c_str(), NULL, xstat.stat.st_size,
-     csumtype.c_str(), (char*)csumvalue.c_str())();
+     shortCsumType.c_str(), (char*)csumValue.c_str())();
      
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
 }
