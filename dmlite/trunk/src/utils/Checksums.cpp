@@ -31,7 +31,10 @@ std::string dmlite::checksums::shortChecksumName(const std::string& cs)
     return cs;
 }
 
-
+bool dmlite::checksums::isChecksumFullName(const std::string& ckey)
+{
+  return (ckey.compare(0, 9, "checksum.") == 0);
+}
 
 typedef void (*UpdateCallback)(const unsigned char* buffer, size_t nbytes, void* udata);
 typedef void (*FinalCallback)(unsigned char* output, size_t* outputSize, void* udata);
