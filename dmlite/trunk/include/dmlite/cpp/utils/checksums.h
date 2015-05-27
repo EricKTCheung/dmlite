@@ -8,8 +8,12 @@
 #include <string>
 
 namespace dmlite {
+    class ExtendedStat;
+    
 namespace checksums {
 
+
+  
 /// To be used internally by the plug-ins that need to deal
 /// with the legacy-style stored checksums.
 /// @note AD => ADLER32
@@ -25,6 +29,11 @@ std::string shortChecksumName(const std::string& cs);
 
 /// Tells if the given key looks like the name of a checksum
 bool isChecksumFullName(const std::string& ckey);
+
+/// Makes sure that the extended attributes contain the legacy checksum.
+/// @param xstat  The stat information to be modified
+/// @return       Zero if the xattrs were not modified
+int fillChecksumInXattr(ExtendedStat& xstat);
 
 /// Returns the MD5 checksum of the data contained on the IO handler
 /// in hexadecimal format.

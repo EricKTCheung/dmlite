@@ -52,6 +52,12 @@ if (Boost_FOUND)
   message ("Boost libraries: ${Boost_LIBRARY_DIRS}")
 endif (Boost_FOUND)
 
+
+#--------------------------------
+# Find APR
+
+find_package(APR 1.2.7 REQUIRED)
+
 #--------------------------------
 # Find MySQL
 find_package (MySQL)
@@ -77,7 +83,8 @@ include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
-                     ${Boost_INCLUDE_DIRS})
+                     ${Boost_INCLUDE_DIRS}
+                     ${APR_INCLUDE_DIR})
 
 # include the directory itself as a path to include directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

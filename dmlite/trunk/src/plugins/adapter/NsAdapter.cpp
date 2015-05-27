@@ -19,17 +19,6 @@ using namespace dmlite;
 
 
 
-inline ExtendedStat& fillChecksumInXattr(ExtendedStat& xstat)
-{
-  if (!xstat.csumtype.empty()) {
-    std::string csumXattr("checksum.");
-    csumXattr += checksums::fullChecksumName(xstat.csumtype);
-    if (!xstat.hasField(csumXattr))
-      xstat[csumXattr] = xstat.csumvalue;
-  }
-  return xstat;
-}
-
 static void ns_init_routine()
 {
   typedef int (*set_selectsrvr_t)(int);
@@ -282,7 +271,8 @@ ExtendedStat NsAdapterCatalog::extendedStat(const std::string& path, bool follow
   std::vector<std::string> components = Url::splitPath(path);
   xStat.name = components.back();
 
-  return fillChecksumInXattr(xStat);
+  checksums::fillChecksumInXattr(xStat);
+  return xStat;
 }
 
 
@@ -318,7 +308,8 @@ ExtendedStat NsAdapterCatalog::extendedStatByRFN(const std::string& rfn) throw (
       " gid:" << xStat.stat.st_gid << " uid:" << xStat.stat.st_uid << " mode:" << xStat.stat.st_mode <<
       " csumtype:" << xStat.csumtype << " csumvalue:" << xStat.csumvalue);
   
-  return fillChecksumInXattr(xStat);
+  checksums::fillChecksumInXattr(xStat);
+  return xStat;
 }
 
 

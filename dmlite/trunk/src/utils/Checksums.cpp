@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <openssl/evp.h>
 #include <zlib.h>
+#include "inode.h"
 
 
 std::string dmlite::checksums::fullChecksumName(const std::string& cs)
@@ -17,6 +18,19 @@ std::string dmlite::checksums::fullChecksumName(const std::string& cs)
     return cs;
 }
 
+
+int dmlite::checksums::fillChecksumInXattr(ExtendedStat& xstat)
+{
+  if (!xstat.csumtype.empty()) {
+    std::string csumXattr("checksum.");
+    csumXattr += dmlite::checksums::fullChecksumName(xstat.csumtype);
+    if (!xstat.hasField(csumXattr)) {
+      xstat[csumXattr] = xstat.csumvalue;
+      return 1;
+    }
+  }
+  return 0;
+}
 
 
 std::string dmlite::checksums::shortChecksumName(const std::string& cs)

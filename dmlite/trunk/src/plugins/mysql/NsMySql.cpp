@@ -63,7 +63,11 @@ void INodeMySql::setSecurityContext(const SecurityContext* ctx) throw (DmExcepti
 }
 
 
-
+/// Takes the content of a CStat structure, as it comes from the queries
+/// and use it to fill the final ExtendedStat object
+/// We also take some corrective action on checksums, to make sure that
+/// the legacy chksum fields and the xattrs are somehow coherent, or at least
+/// not half empty
 static inline void dumpCStat(const CStat& cstat, ExtendedStat* xstat)
 {
   xstat->clear();
@@ -77,6 +81,9 @@ static inline void dumpCStat(const CStat& cstat, ExtendedStat* xstat)
   xstat->acl       = Acl(cstat.acl);
   xstat->clear();
   xstat->deserialize(cstat.xattr);
+  
+  // From LCGDM-1742
+  xstat->fixchecksums();
   
   (*xstat)["type"] = cstat.type;
 }
