@@ -53,10 +53,6 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 
-#--------------------------------
-# Find APR
-
-find_package(APR 1.2.7 REQUIRED)
 
 #--------------------------------
 # Find MySQL

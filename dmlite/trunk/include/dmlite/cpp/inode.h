@@ -15,7 +15,6 @@
 #include <utime.h>
 #include <string>
 #include <vector>
-#include <apr_poll.h>
 
 namespace dmlite {
   
