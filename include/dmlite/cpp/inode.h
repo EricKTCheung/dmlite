@@ -9,11 +9,13 @@
 #include "exceptions.h"
 #include "utils/extensible.h"
 #include "utils/security.h"
+#include "utils/checksums.h"
 
 #include <dirent.h>
 #include <utime.h>
 #include <string>
 #include <vector>
+#include <apr_poll.h>
 
 namespace dmlite {
   
@@ -24,25 +26,52 @@ namespace dmlite {
   struct IDirectory { virtual ~IDirectory(); };
   
   /// File/directory metadata.
-  struct ExtendedStat: public Extensible {
-    enum FileStatus { kOnline = '-',
-                      kMigrated = 'm'
-                    };
-    
-    ino_t         parent;
-    struct stat stat;
-    FileStatus    status;
-    std::string   name;
-    std::string   guid;
-    std::string   csumtype;
-    std::string   csumvalue;
-    Acl           acl;
-    
-    bool operator == (const ExtendedStat&) const;
-    bool operator != (const ExtendedStat&) const;
-    bool operator <  (const ExtendedStat&) const;
-    bool operator >  (const ExtendedStat&) const;
-  };
+    struct ExtendedStat: public Extensible {
+      enum FileStatus { kOnline = '-',
+                        kMigrated = 'm'
+                      };
+      
+      ino_t         parent;
+      struct stat stat;
+      FileStatus    status;
+      std::string   name;
+      std::string   guid;
+      std::string   csumtype;
+      std::string   csumvalue;
+      Acl           acl;
+      
+      bool operator == (const ExtendedStat&) const;
+      bool operator != (const ExtendedStat&) const;
+      bool operator <  (const ExtendedStat&) const;
+      bool operator >  (const ExtendedStat&) const;
+      
+      void fixchecksums() {
+        // If legacy fields are empty then fill them with a suitable chksum from the xattrs
+        if (!csumtype.length() || !csumvalue.length()) {
+          std::string shortCsumType;
+          std::vector<std::string> keys = getKeys();
+
+          for (unsigned i = 0; i < keys.size(); ++i) {
+            if (checksums::isChecksumFullName(keys[i])) {
+              std::string csumXattr = keys[i];
+              shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
+              if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
+                csumvalue     = getString(csumXattr);
+                csumtype      = shortCsumType;
+                break;
+              }
+            }
+          }
+
+        }
+        else {
+          // If legacy fields are not empty make sure that the same chksum is presented as an xattr too
+          checksums::fillChecksumInXattr(*this);
+        }
+      }
+      
+      
+    };
   
   /// Symbolic link
   struct SymLink: public Extensible {
