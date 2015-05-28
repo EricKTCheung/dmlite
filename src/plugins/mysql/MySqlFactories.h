@@ -84,6 +84,8 @@ public:
   virtual INode* createINode(PluginManager* pm) throw (DmException);
   virtual Authn* createAuthn(PluginManager* pm) throw (DmException);
   
+  
+  int dirspacereportdepth;
 protected:
 
   /// NS db.
@@ -97,6 +99,7 @@ protected:
 
   /// Host DN
   std::string hostDn_;
+  
 
 private:
 };

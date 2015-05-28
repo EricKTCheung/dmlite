@@ -216,7 +216,9 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
   else if (key == "HostCertificate")
     this->hostDn_ = getCertificateSubject(value);
   else if (key == "NsDatabase")
-    this->nsDb_ = value;
+    this->nsDb_ = value; 
+  else if (key == "MySqlDirectorySpaceReportDepth")
+    this->dirspacereportdepth = atoi(value.c_str());
   else
     gotit = MySqlHolder::configure(key, value);
   

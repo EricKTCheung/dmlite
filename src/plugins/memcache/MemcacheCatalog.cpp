@@ -16,17 +16,6 @@
 using namespace dmlite;
 
 
-inline ExtendedStat& fillChecksumInXattr(ExtendedStat& xstat)
-{
-  if (!xstat.csumtype.empty()) {
-    std::string csumXattr("checksum.");
-    csumXattr += checksums::fullChecksumName(xstat.csumtype);
-    if (!xstat.hasField(csumXattr))
-      xstat[csumXattr] = xstat.csumvalue;
-  }
-  return xstat;
-}
-
 
 MemcacheCatalog::MemcacheCatalog(PoolContainer<memcached_st*>& connPool,
     Catalog* decorates,
@@ -173,8 +162,10 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
   meta = this->extendedStatNoCheck(absPath, followSym);
   meta["normPath"] = absPath;
 
+  checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  return fillChecksumInXattr(meta);
+  
+  return meta;
 }
 
 
@@ -270,8 +261,11 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
     cwd = "/";
   meta["normPath"] = cwd;
 
+  checksums::fillChecksumInXattr(meta);
+  
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  return fillChecksumInXattr(meta);
+  
+  return meta;
 }
 
 
@@ -303,8 +297,10 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
   }
   meta["normPath"] = absPath;
 
+  checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  return fillChecksumInXattr(meta);
+  
+  return meta;
 }
 
 
@@ -365,8 +361,10 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
     }
   }
 
+  checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  return fillChecksumInXattr(meta);
+  
+  return meta;
 }
 
 
@@ -807,7 +805,7 @@ ExtendedStat* MemcacheCatalog::readDirx(Directory* dir) throw(DmException)
   if (pMeta == 0x00)
     return 0x00;
   else {
-    fillChecksumInXattr(*pMeta);
+    checksums::fillChecksumInXattr(*pMeta);
     return pMeta;
   }
 }

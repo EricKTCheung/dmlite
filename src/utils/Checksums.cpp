@@ -9,25 +9,28 @@
 std::string dmlite::checksums::fullChecksumName(const std::string& cs)
 {
   if (boost::iequals(cs, "AD"))
-    return "adler32";
-  else if (boost::iequals(cs, "CS"))
-    return "crc32";
-  else if (boost::iequals(cs, "MD"))
-    return "md5";
-  else
-    return cs;
+    return "checksum.adler32";
+  
+  if (boost::iequals(cs, "CS"))
+    return "checksum.crc32";
+  
+  if (boost::iequals(cs, "MD"))
+    return "checksum.md5";
+  
+  return "";
 }
 
 
 int dmlite::checksums::fillChecksumInXattr(ExtendedStat& xstat)
 {
   if (!xstat.csumtype.empty()) {
-    std::string csumXattr("checksum.");
-    csumXattr += dmlite::checksums::fullChecksumName(xstat.csumtype);
+    std::string csumXattr = dmlite::checksums::fullChecksumName(xstat.csumtype);
+    
     if (!xstat.hasField(csumXattr)) {
       xstat[csumXattr] = xstat.csumvalue;
       return 1;
     }
+    
   }
   return 0;
 }
@@ -35,14 +38,16 @@ int dmlite::checksums::fillChecksumInXattr(ExtendedStat& xstat)
 
 std::string dmlite::checksums::shortChecksumName(const std::string& cs)
 {
-  if (boost::iequals(cs, "ADLER32"))
+  if (boost::iequals(cs, "CHECKSUM.ADLER32"))
     return "AD";
-  else if (boost::iequals(cs, "CRC32"))
+  
+  if (boost::iequals(cs, "CHECKSUM.CRC32"))
     return "CS";
-  else if (boost::iequals(cs, "MD5"))
+  
+  if (boost::iequals(cs, "CHECKSUM.MD5"))
     return "MD";
-  else
-    return cs;
+  
+  return cs;
 }
 
 bool dmlite::checksums::isChecksumFullName(const std::string& ckey)
