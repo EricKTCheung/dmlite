@@ -123,29 +123,29 @@ public:
 
   void testTranslationToLong()
   {
-    CPPUNIT_ASSERT_EQUAL(std::string("md5"), dmlite::checksums::fullChecksumName("md"));
-    CPPUNIT_ASSERT_EQUAL(std::string("md5"), dmlite::checksums::fullChecksumName("MD"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.md5"), dmlite::checksums::fullChecksumName("md"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.md5"), dmlite::checksums::fullChecksumName("MD"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("adler32"), dmlite::checksums::fullChecksumName("AD"));
-    CPPUNIT_ASSERT_EQUAL(std::string("adler32"), dmlite::checksums::fullChecksumName("ad"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.adler32"), dmlite::checksums::fullChecksumName("AD"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.adler32"), dmlite::checksums::fullChecksumName("ad"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("crc32"), dmlite::checksums::fullChecksumName("CS"));
-    CPPUNIT_ASSERT_EQUAL(std::string("crc32"), dmlite::checksums::fullChecksumName("cs"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.crc32"), dmlite::checksums::fullChecksumName("CS"));
+    CPPUNIT_ASSERT_EQUAL(std::string("checksum.crc32"), dmlite::checksums::fullChecksumName("cs"));
   }
 
   void testTranslationToShort()
   {
-    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("MD5"));
-    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("md5"));
-    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("mD5"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("checksum.MD5"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("checksum.md5"));
+    CPPUNIT_ASSERT_EQUAL(std::string("MD"), dmlite::checksums::shortChecksumName("checksum.mD5"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("ADLER32"));
-    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("adler32"));
-    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("aDlEr32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("checksum.ADLER32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("checksum.adler32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("AD"), dmlite::checksums::shortChecksumName("checksum.aDlEr32"));
 
-    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("CRC32"));
-    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("crc32"));
-    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("crC32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("checksum.CRC32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("checksum.crc32"));
+    CPPUNIT_ASSERT_EQUAL(std::string("CS"), dmlite::checksums::shortChecksumName("checksum.crC32"));
   }
 
   void testHexPrinter()
