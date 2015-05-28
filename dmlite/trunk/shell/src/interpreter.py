@@ -1045,7 +1045,7 @@ class ChecksumCommand(ShellCommand):
     else:
       given.append('')
       try:
-        self.interpreter.catalog.setChecksum(given[0], given[1], given[2])
+        self.interpreter.catalog.setChecksum(given[0], given[2], given[1])
         return self.ok()
       except Exception, e:
         return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
