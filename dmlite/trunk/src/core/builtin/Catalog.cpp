@@ -33,19 +33,6 @@ inline gid_t getGid(const SecurityContext* ctx, unsigned index)
 
 
 
-inline ExtendedStat& fillChecksumInXattr(ExtendedStat& xstat)
-{
-  if (!xstat.csumtype.empty()) {
-    std::string csumXattr("checksum.");
-    csumXattr += checksums::fullChecksumName(xstat.csumtype);
-    if (!xstat.hasField(csumXattr))
-      xstat[csumXattr] = xstat.csumvalue;
-  }
-  return xstat;
-}
-
-
-
 BuiltInCatalogFactory::BuiltInCatalogFactory():
   updateATime_(true), symLinkLimit_(3)
 {
@@ -278,7 +265,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     ++i; // Next in array
   }
 
-  return fillChecksumInXattr(meta);
+  checksums::fillChecksumInXattr(meta);
+  return meta;
 }
 
 
@@ -287,7 +275,9 @@ ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (Dm
 {
   Replica replica   = this->getReplicaByRFN(rfn);
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
-  return fillChecksumInXattr(meta);
+  
+  checksums::fillChecksumInXattr(meta);
+  return meta;
 }
 
 
@@ -1168,7 +1158,7 @@ ExtendedStat* BuiltInCatalog::readDirx(Directory* dir) throw (DmException)
   BuiltInDir* dirp = (BuiltInDir*)dir;
   ExtendedStat* s = this->si_->getINode()->readDirx(dirp->idir);
   if (s)
-    fillChecksumInXattr(*s);
+    checksums::fillChecksumInXattr(*s);
   this->updateAccessTime(dirp->dir);
   return s;
 }

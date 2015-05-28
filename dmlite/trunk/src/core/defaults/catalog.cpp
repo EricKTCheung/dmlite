@@ -64,10 +64,24 @@ NOT_IMPLEMENTED(void Catalog::setSize(const std::string&, size_t) throw (DmExcep
 void Catalog::setChecksum(const std::string &path, const std::string &csumtype, const std::string &csumvalue) throw (DmException) {
   
   // This is a convenience function, which could be overridden, but normally should not
-  // We translate the checksum into the proper extended xattrs to be set
+  // We translate a legacy checksum (e.g. AD for adler32)  into the proper extended xattrs to be set
+  // (e.g. checksum.adler32)
+  // We can also pass a long checksum name (e.g. checksum.adler32)
   
   Extensible ckx;
-  ckx[checksums::fullChecksumName(csumtype)] = csumvalue;
+  std::string k;
+  
+  // If it looks like a legacy chksum then try to xlate its name
+  if (csumtype.length() == 2)
+    k = checksums::fullChecksumName(csumtype);
+  
+  if ((k.length() == 0) && !checksums::isChecksumFullName(csumtype))
+    throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
+    
+  if (csumvalue.length() == 0)
+    throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
+  
+  ckx[k] = csumvalue;
   updateExtendedAttributes(path, ckx);
   
 }

@@ -8,6 +8,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <sys/param.h>
 
 #include "MySqlWrapper.h"
 #include "NsMySql.h"
@@ -705,6 +706,7 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
 
 void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
 {
+
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, " replica:" << replica.rfn);
   // Remove
   PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
@@ -712,6 +714,73 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
   statement.bindParam(0, replica.fileid);
   statement.bindParam(1, replica.rfn);
   statement.execute();
+  
+  
+  ExtendedStat st;
+  
+  
+  // Stat the file to have the size of the file that was just touched
+  try {
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Looking up size of fileid " << replica.fileid << " : " << replica.rfn);
+    st = this->extendedStat(replica.fileid);
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Size of " << replica.rfn << " is " << st.stat.st_size);
+  }
+  catch (DmException& e) {
+    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve filesize for replica:" << replica.rfn);
+    return;
+  }
+      
+  // Subtract this filesize to the size of its parent dirs, only the first N levels
+  {
+
+    
+    // Start transaction
+    InodeMySqlTrans trans(this);
+    
+    off_t sz = st.stat.st_size;
+    
+    
+    ino_t hierarchy[128];
+    size_t hierarchysz[128];
+    int idx = 0;
+    while (st.parent) {
+      
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+      
+      try {
+        st = extendedStat(st.parent);
+      }
+      catch (DmException& e) {
+        Err( "INodeMySql::deleteReplica" , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+        return;
+      }
+      
+      hierarchy[idx] = st.stat.st_ino;
+      hierarchysz[idx] = st.stat.st_size;
+      
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Size of inode " << st.stat.st_ino <<
+      " is " << st.stat.st_size << " with idx " << idx);
+      
+      idx++;
+      
+      if (idx >= sizeof(hierarchy)) {
+        Err( "INodeMySql::deleteReplica" , " Too many parent directories for replica " << replica.rfn);
+        return;
+      }
+    }
+    
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    for (int i = MIN(factory_->dirspacereportdepth, idx-1); i >= 3; i--) {
+      setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
+    }
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+  }
+  
+  
   Log(Logger::Lvl2, mysqllogmask, mysqllogname, "Exiting. replica:" << replica.rfn);
 }
 
