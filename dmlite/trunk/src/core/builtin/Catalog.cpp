@@ -1069,6 +1069,9 @@ void BuiltInCatalog::setGuid(const std::string& path, const std::string &guid) t
 void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
                                               const Extensible& attr) throw (DmException)
 {
+  // The builtin catalog instance makes sure that the checksums contained in the xattrs
+  // fill the legacy checksum fields if they are compatible
+  
   ExtendedStat meta = this->extendedStat(path);
   
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
@@ -1081,23 +1084,22 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
     // Update regular extended attributes
     this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
 
-    // If there is a checksum xattr, and csumtype/value are empty,
-    // update them too
-    if (meta.csumtype.empty()) {
+    // If there is a checksum xattr, try to update the legacy fields
+    // The legacy fields will always hold the most recent legacy-compatible checksum
       static const char* csumXattr[3] = {"checksum.adler32",
                                          "checksum.crc32",
                                          "checksum.md5"};
 
       for (unsigned i = 0; i < 3; ++i) {
         if (attr.hasField(csumXattr[i])) {
-          meta.csumtype  = checksums::shortChecksumName(csumXattr[i] + 9);
+          
+          meta.csumtype  = checksums::shortChecksumName(csumXattr[i]);
           meta.csumvalue = attr.getString(csumXattr[i]);
 
           this->si_->getINode()->setChecksum(meta.stat.st_ino,
                                              meta.csumtype, meta.csumvalue);
         }
       }
-    }
 
     this->si_->getINode()->commit();
   }
