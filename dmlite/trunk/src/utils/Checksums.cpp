@@ -26,7 +26,7 @@ int dmlite::checksums::fillChecksumInXattr(ExtendedStat& xstat)
   if (!xstat.csumtype.empty()) {
     std::string csumXattr = dmlite::checksums::fullChecksumName(xstat.csumtype);
     
-    if (!xstat.hasField(csumXattr)) {
+    if (csumXattr.length() && !xstat.hasField(csumXattr)) {
       xstat[csumXattr] = xstat.csumvalue;
       return 1;
     }
