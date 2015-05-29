@@ -1,7 +1,7 @@
 #include <dmlite/cpp/catalog.h>
 #include "NotImplemented.h"
 #include "utils/checksums.h"
-
+#include "utils/logger.h"
 
 using namespace dmlite;
 
@@ -68,21 +68,27 @@ void Catalog::setChecksum(const std::string &path, const std::string &csumtype, 
   // (e.g. checksum.adler32)
   // We can also pass a long checksum name (e.g. checksum.adler32)
   
-  Extensible ckx;
-  std::string k;
+  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " csumtype:" << csumtype << " csumvalue:" << csumvalue);
+  
+  ExtendedStat ckx = this->extendedStat(path);
+  
+  std::string k = csumtype;
   
   // If it looks like a legacy chksum then try to xlate its name
   if (csumtype.length() == 2)
     k = checksums::fullChecksumName(csumtype);
   
-  if ((k.length() == 0) && !checksums::isChecksumFullName(csumtype))
+  if (!checksums::isChecksumFullName(k))
     throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
     
   if (csumvalue.length() == 0)
     throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
   
+  
   ckx[k] = csumvalue;
   updateExtendedAttributes(path, ckx);
+  
+  Log(Logger::Lvl3, Logger::unregistered, Logger::unregisteredname, "Exiting");
   
 }
 
