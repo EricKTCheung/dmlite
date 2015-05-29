@@ -951,6 +951,9 @@ class InfoCommand(ShellCommand):
       a=ACLCommand('/')
       self.ok('ACL:        ' + "\n            ".join(a.getACL(self.interpreter, filename)))
       
+      self.ok('Extended Attributes (Key, Value):')
+      for k in f.getKeys():
+	self.ok("            "+ k + ":\t\t" + f.getString(k,""))
       return self.ok(' ')
       
     except Exception, e:
