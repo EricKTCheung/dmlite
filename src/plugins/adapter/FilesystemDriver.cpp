@@ -435,7 +435,7 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn);
   
   if (replica.status != dmlite::Replica::kAvailable) {
-    Log(Logger::Lvl3, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " returns false");
+    Log(Logger::Lvl3, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " has status " << replica.status << " . returns false");
     return false;
   }
 
@@ -448,10 +448,12 @@ bool FilesystemPoolHandler::replicaIsAvailable(const Replica& replica) throw (Dm
   std::string filesystem = Extensible::anyToString(replica["filesystem"]);
   for (unsigned i = 0; i < dpmfs_[poolName_].dpmfs_.size(); ++i) {
     if (filesystem == dpmfs_[poolName_].dpmfs_[i].fs && replica.server == dpmfs_[poolName_].dpmfs_[i].server) {
+      bool r = (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED);
       
-      Log(Logger::Lvl3, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica: " << replica.rfn << " returns " <<
-	( (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED) ? "true" : "false") );
-      return (dpmfs_[poolName_].dpmfs_[i].status != FS_DISABLED);
+      Log(Logger::Lvl3, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " Replica filesystem check. replica: " << replica.rfn << " returns " <<
+	( r ? "true" : "false") );
+      
+      return r;
     }
     
   }
