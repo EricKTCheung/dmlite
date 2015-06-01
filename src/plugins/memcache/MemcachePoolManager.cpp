@@ -17,7 +17,7 @@ MemcachePoolManager::MemcachePoolManager(PoolContainer<memcached_st*>& connPool,
   MemcacheCommon(connPool, funcCounter, doFuncCount, memcachedExpirationLimit),
   si_(0x00)
 {
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "MemcacheCommon started.");
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "MemcachePoolManager started.");
 
   this->decorated_   = decorates;
   this->decoratedId_ = strdup( decorates->getImplId().c_str() );
@@ -211,10 +211,11 @@ Location MemcachePoolManager::whereToRead(ino_t inode) throw (DmException)
 Location MemcachePoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   incrementFunctionCounter(WHERETOWRITE_DELEGATE);
-  std::string absPath = getAbsolutePath(path);
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absPath));
-  DELEGATE_RETURN(whereToWrite, path);
+  
+  Location ret;
+  DELEGATE_ASSIGN(ret, whereToWrite, path);
+  
+  return ret;
 }
 
 
@@ -231,3 +232,11 @@ inline void MemcachePoolManager::incrementFunctionCounter(const int funcName)
 {
   if (this->funcCounter_ != 0x00) this->funcCounter_->incr(funcName, &this->randomSeed_);
 }
+
+
+
+
+
+
+
+

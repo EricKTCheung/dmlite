@@ -56,6 +56,7 @@ namespace dmlite {
       /// The function name is defined by an enum.
       /// @param funcName   The name of the function.
       inline void incrementFunctionCounter(const int funcName);
+      
 
   };
 
