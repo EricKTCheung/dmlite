@@ -211,6 +211,9 @@ Location MemcachePoolManager::whereToRead(ino_t inode) throw (DmException)
 Location MemcachePoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   incrementFunctionCounter(WHERETOWRITE_DELEGATE);
+  std::string absPath = getAbsolutePath(path);
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], absPath));
   DELEGATE_RETURN(whereToWrite, path);
 }
 
