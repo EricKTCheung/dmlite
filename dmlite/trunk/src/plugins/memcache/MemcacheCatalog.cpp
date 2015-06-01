@@ -408,8 +408,11 @@ void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
   //I need to get the replica ID;
   Replica newreplica;
   DELEGATE_ASSIGN(newreplica, getReplicaByRFN, replica.rfn);
-  valMemc = serializeReplica(newreplica);
-  safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],newreplica.rfn),valMemc);
+  
+  if (replica.status == dmlite::Replica::kAvailable) {
+    valMemc = serializeReplica(newreplica);
+    safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],newreplica.rfn),valMemc);
+  }
 
   //invalidating replica list
   std::string filepath = getFullPathByRFN(newreplica.rfn);
@@ -458,7 +461,7 @@ std::vector<Replica> MemcacheCatalog::getReplicas(const std::string& path) throw
     DELEGATE_ASSIGN(replicas, getReplicas, absPath);
 
     valMemc = serializeReplicaList(replicas);
-    safeSetMemcachedFromKeyValue(key, valMemc);
+    if (valMemc.length() > 0) safeSetMemcachedFromKeyValue(key, valMemc);
   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
@@ -950,8 +953,12 @@ Replica MemcacheCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcept
   {
     incrementFunctionCounter(GETREPLICABYRFN_DELEGATE);
     DELEGATE_ASSIGN(replica, getReplicaByRFN, rfn);
-    valMemc = serializeReplica(replica);
-    safeSetMemcachedFromKeyValue(key, valMemc);
+    
+    if (replica.status == dmlite::Replica::kAvailable) {
+      valMemc = serializeReplica(replica);
+      safeSetMemcachedFromKeyValue(key, valMemc);
+    }
+    
   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");

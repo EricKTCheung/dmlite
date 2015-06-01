@@ -447,6 +447,10 @@ std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vec
        itVecRepl != vecRepl.end();
        ++itVecRepl) {
 
+    // Files that have replicas that are under processing unfortunately cannot be cached at all
+    if (itVecRepl->status != dmlite::Replica::kAvailable)
+      return "";
+    
     pReplica = serialReplicaList.add_replica();
 
     pReplica->set_replicaid(itVecRepl->replicaid);
