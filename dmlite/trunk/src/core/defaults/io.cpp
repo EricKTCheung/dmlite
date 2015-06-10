@@ -1,6 +1,6 @@
 #include <dmlite/cpp/io.h>
 #include "NotImplemented.h"
-
+#include "utils/logger.h"
 
 using namespace dmlite;
 
@@ -59,7 +59,11 @@ IOHandler::~IOHandler()
 
 
 NOT_IMPLEMENTED_WITHOUT_ID(void IOHandler::close(void) throw (DmException));
-NOT_IMPLEMENTED_WITHOUT_ID(int IOHandler::fileno(void) throw (DmException));
+
+int IOHandler::fileno(void) throw (DmException) {
+  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "fileno is not implemented or available");
+  return -1;
+}
 
 
 struct stat IOHandler::fstat() throw (DmException)
