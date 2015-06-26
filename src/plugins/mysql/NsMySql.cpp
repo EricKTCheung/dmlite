@@ -1077,7 +1077,7 @@ std::string INodeMySql::getComment(ino_t inode) throw (DmException)
   
   stmt.bindResult(0, comment, sizeof(comment));
   if (!stmt.fetch())
-    throw DmException(DMLITE_NO_COMMENT, "There is no comment for inode %ld", inode);
+    comment[0] = '\0';
 
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. inode:" << inode << " comment:'" << comment << "'");
   return std::string(comment);
