@@ -59,6 +59,7 @@ Obsoletes:			dmlite-plugins-adapter-debuginfo < 0.7.0-1
 Obsoletes:			dmlite-plugins-mysql-debuginfo < 0.7.0-1
 Obsoletes:			dmlite-plugins-memcache-debuginfo < 0.7.0-1
 Obsoletes:			dmlite-plugins-profiler-debuginfo < 0.7.0-1
+Obsoletes:                      dmlite-plugins-librarian-debuginfo < 0.7.0-1
 Obsoletes:			dmlite-shell-debuginfo < 0.7.0-1
 
 %description libs
@@ -123,7 +124,7 @@ This package provides the memcached plug-in for dmlite. It provides a
 memcached based layer for the Lcgdm nameserver.
 
 %package plugins-profiler
-Summary:			Memcached plugin for dmlite
+Summary:			Monitoring plugin for dmlite
 Group:				Applications/Internet
 Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -133,6 +134,21 @@ Obsoletes:			dmlite-plugins-profiler < 0.7.0-1
 %description plugins-profiler
 This package provides the profiler plug-in for dmlite. This plug-in 
 provides multiple performance measurement tools for dmlite. 
+
+
+%package plugins-librarian
+Summary:                        Libarrian plugin for dmlite
+Group:                          Applications/Internet
+Requires:                       %{name}-libs%{?_isa} = %{version}-%{release}
+
+# Merge migration 
+Obsoletes:                      dmlite-plugins-librarian < 0.7.0-1
+
+%description plugins-librarian
+This package provides the librarian plug-in for dmlite. 
+
+
+
 
 %package shell
 Summary:			Shell environment for dmlite
@@ -276,6 +292,12 @@ rm -rf %{buildroot}
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf
 
+%files plugins-librarian
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_librarian.so
+%doc LICENSE README RELEASE-NOTES
+
+
 %files shell
 %defattr(-,root,root,-)
 %{_bindir}/*
@@ -295,6 +317,9 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Wed Jul 08 2015  Fabrizio Furano <furano@cern.ch> - 0.7.3-1
+- Add librarian to the core plugins
+
 * Mon Nov 17 2014  Fabrizio Furano <furano@cern.ch> - 0.7.2-1
 - Fix logname on RFIO.cpp
 - Fix logging issue in adapter
