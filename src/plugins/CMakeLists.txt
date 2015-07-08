@@ -21,3 +21,5 @@ if (BUILD_ADAPTER)
 else()
     message("-- The adapter plugin will NOT be built")
 endif()
+
+add_subdirectory(librarian)
