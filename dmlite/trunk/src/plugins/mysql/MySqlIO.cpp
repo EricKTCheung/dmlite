@@ -117,7 +117,7 @@ void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmExcepti
     
     // Update the filesize in the first levels
     // Avoid the contention on /dpm/voname/home
-    for (int i = MIN(dirspacereportdepth, idx-1); i >= 3; i--) {
+    for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-dirspacereportdepth); i--) {
       inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
     }
     
