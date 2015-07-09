@@ -1326,7 +1326,7 @@ class SetGuidCommand(ShellCommand):
 class ReplicaAddCommand(ShellCommand):
   """Add a new replica for a file."""
   def _init(self):
-    self.parameters = ['Dfile', 'Ostatus:available:beingPopulated:toBeDeleted', 'Otype:volatile:permanent', '?rfn', '*?server']
+    self.parameters = ['Dfile', 'Ostatus:available:beingPopulated:toBeDeleted', 'Otype:volatile:permanent', '?rfn', '*?server', '*?pool']
     
   def _execute(self, given):
     if given[1].lower() in ('a', 'available', '-'):
@@ -1355,12 +1355,19 @@ class ReplicaAddCommand(ShellCommand):
     myreplica.status = rstatus
     myreplica.type = rtype
     myreplica.rfn = given[3]
-    if len(given) == 5:
+    
+    if len(given) == 6:
       myreplica.server = given[4]
-    elif given[3].find(':/') != -1:
+    elif given[4].find(':/') != -1:
       myreplica.server = given[3].split(':/')[0]
     else:
       return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
+    
+    
+    if len(given) == 6:
+      myreplica.setString('pool', given[5])
+    
+    
     
     try:
       self.interpreter.catalog.addReplica(myreplica)
