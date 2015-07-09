@@ -69,12 +69,27 @@ void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmExcepti
     Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve filesize for loc:" << loc.toString());
     return;
   }
-  
+    
   INodeMySql *inodeintf = dynamic_cast<INodeMySql *>(this->stack_->getINode());
   if (!inodeintf) {
     Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
     return;
   }
+  
+  if (st.parent <= 0) {
+      
+    try {
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Looking up parent of inode " << st.stat.st_ino << " " << loc[0].url.query.getString("sfn"));
+      st = inodeintf->extendedStat(st.stat.st_ino);
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Parent of  inode " << st.stat.st_ino << " is " << st.stat.st_ino);
+    }
+    catch (DmException& e) {
+      Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve parent for loc:" << loc.toString());
+      return;
+    }
+      
+  }
+    
   
   // Add this filesize to the size of its parent dirs, only the first N levels
   {
@@ -117,9 +132,16 @@ void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmExcepti
     
     // Update the filesize in the first levels
     // Avoid the contention on /dpm/voname/home
-    for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-dirspacereportdepth); i--) {
-      inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
+    if (idx > 0) {
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-dirspacereportdepth); i--) {
+        inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
+      }
     }
+    else {
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Cannot set any size. Max depth found: " << idx);
+    }
+    
     
     // Commit the local trans object
     // This also releases the connection back to the pool
