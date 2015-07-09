@@ -81,7 +81,7 @@ void MysqlIOPassthroughDriver::doneWriting(const Location& loc) throw (DmExcepti
     try {
       Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Looking up parent of inode " << st.stat.st_ino << " " << loc[0].url.query.getString("sfn"));
       st = inodeintf->extendedStat(st.stat.st_ino);
-      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Parent of  inode " << st.stat.st_ino << " is " << st.stat.st_ino);
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Parent of  inode " << st.stat.st_ino << " is " << st.parent);
     }
     catch (DmException& e) {
       Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve parent for loc:" << loc.toString());
