@@ -771,8 +771,20 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
     
     // Update the filesize in the first levels
     // Avoid the contention on /dpm/voname/home
-    for (int i = MIN(factory_->dirspacereportdepth, idx-1); i >= 3; i--) {
-      setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
+    if (idx > 0) {
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-factory_->dirspacereportdepth); i--) {
+        try {
+          setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
+        }
+        catch (DmException& e) {
+          Err( "FilesystemPoolHandler::removeReplica" , " Cannot setSize inode " << hierarchy[i] << " to " << MAX(0, hierarchysz[i] - sz));
+          return;
+        }
+      }
+    }
+    else {
+      Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Cannot set any size. Max depth found: " << idx);
     }
     
     // Commit the local trans object

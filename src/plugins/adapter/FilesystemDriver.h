@@ -26,7 +26,7 @@ namespace dmlite {
   class FilesystemPoolDriver: public PoolDriver {
   public:
     FilesystemPoolDriver(const std::string&, bool, unsigned, unsigned,
-        const std::string&);
+        const std::string&, int);
     ~FilesystemPoolDriver();
 
     std::string getImplId() const throw();
@@ -40,6 +40,8 @@ namespace dmlite {
     void justCreated(const Pool& pool) throw (DmException);
     void update(const Pool& pool) throw (DmException);
     void toBeDeleted(const Pool& pool) throw (DmException);
+    
+    
 
   private:
     friend class FilesystemPoolHandler;
@@ -64,6 +66,8 @@ namespace dmlite {
 
     /// Admin username for replication.
     const std::string adminUsername_;
+    
+    int dirspacereportdepth;
   };
 
   class FilesystemPoolHandler: public PoolHandler {

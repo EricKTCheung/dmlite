@@ -130,6 +130,7 @@ DpmAdapterFactory::DpmAdapterFactory() throw (DmException):
   Cthread_init();
   setenv("CSEC_MECH", "ID", 1);
   
+  dirspacereportdepth = 6;
 }
 
 
@@ -167,6 +168,8 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
   }
   else if (key == "ConnPoolSize")
     this->connectionPool_.resize(atoi(value.c_str()));
+  else if (key == "AdapterDirectorySpaceReportDepth")
+    this->dirspacereportdepth = atoi(value.c_str());
   else {
     gotit = false;
     NsAdapterFactory::configure(key, value);
@@ -205,7 +208,7 @@ std::string DpmAdapterFactory::implementedPool() throw ()
 PoolDriver* DpmAdapterFactory::createPoolDriver() throw (DmException)
 {
   return new FilesystemPoolDriver(tokenPasswd_, tokenUseIp_, tokenLife_,
-                                  retryLimit_, adminUsername_);
+                                  retryLimit_, adminUsername_, dirspacereportdepth);
 }
 
 
