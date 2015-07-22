@@ -92,6 +92,8 @@ namespace dmlite {
     /// Connection pool.
     IntConnectionFactory connectionFactory_;
     PoolContainer<int> connectionPool_;
+    
+    int dirspacereportdepth;
   };
 
 };

@@ -11,7 +11,7 @@
 #include <string.h>
 #include <sys/select.h>
 #include <sys/time.h>
-
+#include <sys/param.h>
 
 #include "Adapter.h"
 #include "DpmAdapter.h"
@@ -30,13 +30,17 @@ boost::mutex                         FilesystemPoolHandler::mtx;
 
 FilesystemPoolDriver::FilesystemPoolDriver(const std::string& passwd, bool useIp,
                                            unsigned life, unsigned retryLimit,
-                                           const std::string& adminUsername):
+                                           const std::string& adminUsername,
+                                           int ddepth
+                                          ):
     secCtx_(NULL), tokenPasswd_(passwd), tokenUseIp_(useIp), tokenLife_(life),
     retryLimit_(retryLimit), fqans_(NULL), nFqans_(0), adminUsername_(adminUsername)
 {
+   
+  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " username: " << adminUsername << " dirspacereportdepth: " << ddepth);
   
-  Log(Logger::Lvl4, adapterlogmask, adapterlogname, " username: " << adminUsername);
-  // nothing to do
+  this->dirspacereportdepth = ddepth;
+    // nothing to do
 }
 
 
@@ -540,10 +544,106 @@ Location FilesystemPoolHandler::whereToRead(const Replica& replica) throw (DmExc
 void FilesystemPoolHandler::removeReplica(const Replica& replica) throw (DmException)
 {
   Log(Logger::Lvl2, adapterlogmask, adapterlogname, " poolname:" << poolName_ << " replica:" << replica.rfn);
+   
+  INode *inodeintf = this->driver_->si_->getINode();
+  if (!inodeintf) {
+    Err( "FilesystemPoolHandler::removeReplica" , " Cannot retrieve inode interface. Cannot set parent directory sizes.");
+  }
+  
+  ExtendedStat st;
+  
+  // Stat the file to have the size of the file that was just touched
+  if (inodeintf)
+    try {
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Looking up size of fileid " << replica.fileid << " : " << replica.rfn);
+      st = inodeintf->extendedStat(replica.fileid);
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Ok. Size of " << replica.rfn << " is " << st.stat.st_size);
+    }
+    catch (DmException& e) {
+      Err( "FilesystemPoolHandler::removeReplica" , " Cannot retrieve filesize for replica:" << replica.rfn);
+      inodeintf = 0;
+    }
+      
+  
+  
+  
+  
   driver_->setDpmApiIdentity();
 
   if (dpm_delreplica((char*)replica.rfn.c_str()) != 0)
     ThrowExceptionFromSerrno(serrno);
+  
+  
+  // Subtract this filesize to the size of its parent dirs, only the first N levels
+  if (inodeintf) {
+
+    
+    // Start transaction
+    try {
+      inodeintf->begin();
+    }
+    catch (dmlite::DmException e) {}
+    
+    off_t sz = st.stat.st_size;
+    
+    
+    ino_t hierarchy[128];
+    size_t hierarchysz[128];
+    int idx = 0;
+    while (st.parent) {
+      
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+      
+      try {
+        st = inodeintf->extendedStat(st.parent);
+      }
+      catch (DmException& e) {
+        Err( "FilesystemPoolHandler::removeReplica" , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+        inodeintf->commit();
+        return;
+      }
+      
+      hierarchy[idx] = st.stat.st_ino;
+      hierarchysz[idx] = st.stat.st_size;
+      
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Size of inode " << st.stat.st_ino <<
+      " is " << st.stat.st_size << " with idx " << idx);
+      
+      idx++;
+      
+      if (idx >= sizeof(hierarchy)) {
+        Err( "FilesystemPoolHandler::removeReplica" , " Too many parent directories for replica " << replica.rfn);
+        inodeintf->commit();
+        return;
+      }
+    }
+    
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    if (idx > 0) {
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-driver_->dirspacereportdepth); i--) {
+        try {
+          inodeintf->setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
+        }
+        catch (DmException& e) {
+          Err( "FilesystemPoolHandler::removeReplica" , " Cannot setSize inode " << hierarchy[i] << " to " << MAX(0, hierarchysz[i] - sz));
+          inodeintf->commit();
+          return;
+        }
+      }
+    }
+    else {
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, " Cannot set any size. Max depth found: " << idx);
+    }
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    inodeintf->commit();
+  }
+  
+  Log(Logger::Lvl2, adapterlogmask, adapterlogname, "Exiting. poolname:" << poolName_ << " replica:" << replica.rfn);
+  
 }
 
 
