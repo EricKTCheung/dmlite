@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+  <title>DMLite Tutorial - C++</title>
+  <script type="text/javascript" src="google-code-prettify/prettify.js"></script>
+  <link href="google-code-prettify/prettify.css" rel="stylesheet" type="text/css"/>
+  <link href="style.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body onload="prettyPrint()">
+<h1>
+  <a href="index.html">DMLite</a>: How to use it as a backend in C++ <img alt="LOGO" src="dmlite.png" style="float: right" height="150" />
+</h1>
+
+<h2>Introduction</h2>
+<p>
+These examples are the same as those explained using the C wrapper, but in this case, the C++ API is directly used.
+</p>
+
+<h2>Initialize the library</h2>
+<p>We will start with a simple appplication skeleton which does nothing.</p>
+
+<pre class="prettyprint">
+#include &lt;iostream&gt;
+
+int main(int argc, char *argv[])
+{
+  return 0;
+}
+</pre>
+
+<p>
+Now, we want to start using DMLite, so first of all we need to include the headers and
+instantiate a <code><a href="http://dmlite.web.cern.ch/dmlite/trunk/doc/html/classdmlite_1_1_plugin_manager.html">dmlite::PluginManager</a></code>,
+which controls the loading and instantiation process of a plugin stack. Then, we will request the manager
+to use the configuration file specified as the first parameter of the application.
+</p>
+
+<pre class="prettyprint">
+#include &lt;iostream&gt;
+#include &lt;dmlite/cpp/dmlite.h&gt;
+
+int main(int argc, char *argv[])
+{
+  dmlite::PluginManager manager;
+  
+  if (argc &lt; 2) {
+    std::cout &lt;&lt; "Need at least one parameter." std::endl;
+    return 1;
+  }
+  
+  try {
+    manager.loadConfiguration(argv[1]);
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not load the configuration file." &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return 1;
+  }
+
+  return 0;
+}
+
+</pre>
+
+<p>
+Now you can compile and try it.
+</p>
+
+<pre>
+# gcc main.cpp -ldmlite -o dmlite-init
+# ./dmlite-init /etc/init.conf
+</pre>
+
+<h2>Stat of a file</h2>
+<h3>Initialize a context</h3>
+<p>
+To actually start to perform actions on the namespace, we need to instantiate a
+<code><a href="http://dmlite.web.cern.ch/dmlite/trunk/doc/html/classdmlite_1_1_stack_instance.html">dmlite::StackInstance</a></code> before, and
+to set a security context, either directly, or passing some credentials first.
+</p>
+<a id="base">
+<pre class="prettyprint">
+#include &lt;iostream&gt;
+#include &lt;dmlite/cpp/authn.h&gt;
+#include &lt;dmlite/cpp/dmlite.h&gt;
+#include &lt;dmlite/cpp/catalog.h&gt;
+
+int main(int argc, char *argv[])
+{
+  dmlite::PluginManager manager;
+  
+  if (argc &lt; 3) {
+    std::cout &lt;&lt; "Usage: " &lt;&lt; argv[0]
+              &lt;&lt; " &lt;configuration file&gt; &lt;path&gt;" &lt;&lt; std::endl;
+    return 1;
+  }
+  
+  // Create manager
+  try {
+    manager.loadConfiguration(argv[1]);
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not load the configuration file." &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return 2;
+  }
+
+  // Create StackInstance
+  dmlite::StackInstance stack(&manager);
+
+  // Set security credentials
+  dmlite::SecurityCredentials creds;
+  creds.clientName = "/C=CH/O=CERN/OU=GD/CN=Test user 1";
+  creds.remoteAddress = "127.0.0.1";
+  try {
+    stack.setSecurityCredentials(creds);
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not set the credentials." &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt e.what() &lt;&lt; std::endl;
+    return 4;
+  }
+
+  // Action
+
+  // Done
+  return 0;
+}
+</pre>
+</a>
+
+<p>
+Please, note that the client name you are setting must be defined in the file
+/etc/lcgdm-mapfile, so a default group can be picked. You can always initialize the field
+fqans to contain at least one group (i.e. dteam)
+</p>
+<p>
+One advantage of the C++ API is that you don't need to take care of freeing resources everytime an error occurs.
+Since PluginManager and StackInstance can be used as objects, and not as pointers, they will be automatically destroyed as soon as they
+fall out of scope.
+</p>
+
+<h3>Perform the action</h3>
+<p>
+Let's add the code that is going to actually do something.
+</p>
+
+<pre class="prettyprint">
+  // Action
+  dmlite::Catalog* catalog = stack.getCatalog();
+
+  try {
+    dmlite::ExtendedStat xstat = catalog->extendedStat(argv[2]);
+    std::cout &lt;&lt; "File name:  " &lt;&lt; xstat.name &lt;&lt; std::endl
+              &lt;&lt; "File owner: " &lt;&lt; xstat.stat.st_uid &lt;&lt; std::endl
+              &lt;&lt; "File group: " &lt;&lt; xstat.stat.st_gid &lt;&lt; std::endl
+              &lt;&lt; "File mode:  " &lt;&lt; std::oct &lt;&lt; xstat.stat.st_mode &lt;&lt; std::endl;
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not stat the file." &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return e.code();
+  }
+</pre>
+
+<p>
+You should get this output now:
+</p>
+
+<pre>
+# ./dmlite-init /etc/dmlite.conf /
+File name:  /
+File owner: 0
+File group: 0
+File mode:  40755
+# ./dmlite-init /etc/dmlite.conf /xx
+Could not stat the file.
+Reason: [#00.000002] Entry 'xx' not found under ''
+</pre>
+
+<h2>List a directory</h2>
+<p>
+For this example, we will reuse the base code as shown just <a href="#base">before</a>.
+</p>
+
+<pre class="prettyprint">
+  // Action
+  dmlite::Catalog* catalog = stack.getCatalog();
+
+  try {
+    dmlite::Directory* dir = catalog-&gt;openDir(argv[2]);
+    dmlite::ExtendedStat* xstat;
+
+    std::cout &lt;&lt; "Content of the directory " &lt;&lt; argv[2] &lt;&lt; std::endl;
+    while ((xstat = catalog->readDirx(dir)) != NULL) {
+      std::cout &lt;&lt; '\t' &lt;&lt; xstat-&gt;name &lt;&lt; std::endl;
+    }
+
+    catalog-&gt;closeDir(dir);
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not open the directory." &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return e.code();
+  }
+</pre>
+
+<p>
+The output this time should be:
+</p>
+
+<pre>
+# ./dmlite-init /etc/dmlite.conf /xx
+Could not open the directory.
+Reason: [#00.000002] Entry 'xx' not found under ''
+# ./dmlite-init /etc/dmlite.conf /
+Content of the directory /
+	dpm
+</pre>
+
+<h2><a id="get"></a>Get a physical location where to read</h2>
+<p>
+This use case is a little bit trickier, since replicas do not necessarily point to a physical file somewhere. It may be the case, but you should
+not rely on it, since some translation may be needed (i.e. for Hadoop or S3 pools).
+</p>
+<p>
+For this example, you will need to include the header <code>dmlite/cpp/poolmanager.h</code>
+</p>
+
+<pre class="prettyprint">
+  dmlite::PoolManager* poolManager = stack.getPoolManager();
+
+  try {
+    dmlite::Location location = poolManager-&gt;whereToRead(argv[2]);
+    dmlite::Location::const_iterator i;
+    int n;
+    
+    for (i = location.begin(), n = 0; i != location.end(); ++i, ++n) {
+      std::cout &lt;&lt; "Chunk " &lt;&lt; n &lt;&lt; ": "
+                &lt;&lt; i-&gt;host &lt;&lt; ':' &lt;&lt; i-&gt;path &lt;&lt; " ("
+                &lt;&lt; i-&gt;offset &lt;&lt; '-' &lt;&lt; i-&gt;offset + i-&gt;size &lt;&lt; ")"
+                &lt;&lt; std::endl;
+
+      std::vector&lt;std::string&gt; keys = i-&gt;getKeys();
+      std::vector&lt;std::string&gt;::const_iterator j;
+
+      for (j = keys.begin(); j != keys.end(); ++j) {
+        std::cout &lt;&lt; '\t' &lt;&lt; *j &lt;&lt; ": " &lt;&lt; i-&gt;getString(*j) &lt;&lt; std::endl;
+      }
+    }
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not get the final location for "
+              &lt;&lt; argv[2] &lt;&lt; std::endl
+              &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return e.code();
+  }
+</pre>
+
+<p>
+The output will depend on what you have on your DPM server, but the output should
+look something like this:
+</p>
+
+<pre>
+# ./dmlite-init /etc/dmlite.conf /dpm/cern.ch/home/dteam/file.html
+Chunk 0: sl6vm.cern.ch:/dpm/cern.ch/home/dteam/dmlite03_test/test529.html (0-63214)
+	token: NwwcFOCZDUjPCccmrNulbyckWTQ=@1348067073@0
+</pre>
+
+<p>Now, this gives the physical location of the replica, but it is not tied to any protocol in particular.
+The front-end is the responsible of determining which protocol should be used to access the actual data.
+</p>
+<p>
+For writing, <code><a href="http://dmlite.web.cern.ch/dmlite/trunk/doc/html/classdmlite_1_1_pool_manager.html#3d4d11d8d5358872c1f014bb7c846fc4">whereToWrite</a></code>
+works in a similar manner, but a call to <code><a href="http://dmlite.web.cern.ch/dmlite/trunk/doc/html/classdmlite_1_1_i_o_driver.html#0dbadaf337607498d7a02c6be13a8c25">doneWriting</a></code>
+must be done when the writing finishes.
+</p>
+
+<h3>Read the file</h3>
+<p>
+There is one limitation of DMLite design, which is that only one I/O plugin can be used at a time. This is because in principle
+each node belongs to one single pool. This is, one node can not belong to a Hadoop pool and to a Filesytem pool at the same time.
+</p>
+<p>
+To open a file four things are needed: a stack instance, a <strong>physical</strong> path, an open mode (read, write, ...) and whatever extra information
+the corresponding pool plugin gave us. For instance, in the previous example we show that extra information, stored as key/value pairs. Usually
+this data includes the necessary information to validate the access (i.e. a token).
+<br/>
+Once the file is opened, usual read and/or write operations (and also seek/tell/eof/...) can be performed.
+</p>
+
+<p>
+The following example assumes you have already deserialized the additional information coming from the head node, and put it into an
+<code><a href="http://dmlite.web.cern.ch/dmlite/trunk/doc/html/structdmlite_1_1_extensible.html">dmlite::Extensible</a></code> object.  
+</p>
+
+<pre class="prettyprint">
+#include &lt;dmlite/cpp/io.h&gt;
+#include &lt;iostream&gt;
+
+int dump_data(dmlite::StackInstance& stack, const char *path,
+              const dmlite::Extensible& args, std::ostream& out)
+{
+  char buffer[1024];
+  size_t size;
+  dmlite::IODriver* iodriver;
+
+  iodriver = stack.getIODriver();
+  
+  try {
+    dmlite::IOHandler* in = iodriver-&gt;createIOHandler(path, O_RDONLY, args)
+    
+    while (!in-&gt;eof()) {
+      size = in-&gt;read(buffer, sizeof(buffer));
+      out.write(buffer, size);
+    }
+    
+    delete in;
+  }
+  catch (dmlite::DmException& e) {
+    std::cout &lt;&lt; "Could not open the input file: " &lt;&lt; path &lt;&lt; std::endl;
+    std::cout &lt;&lt; "Reason: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    return e.code();
+  }
+  
+  return 0;
+}
+</pre>
+
+</body>
+</html>
