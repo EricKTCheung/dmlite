@@ -18,6 +18,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <sstream>
+#include "utils/logger.h"
 
 using namespace dmlite;
 
@@ -348,16 +349,22 @@ int dmlite::checkPermissions(const SecurityContext* context,
   long banned = context->user.getLong("banned");
 
   // If user's primary group is banned, the user is also banned
-  if (context->groups.size() && context->groups[0].getLong("banned"))
+  if (context->groups.size() && context->groups[0].getLong("banned")) {
+    Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname, "Group" << context->groups[0].name << " is banned for user " << context->user.name);
     banned = 1;
+  }
 
   // Banned user, rejected
-  if (banned)
+  if (banned) {
+    Err("checkPermissions", "Banned user " << context->user.name);
     return 1;
+  }
 
   // Check user. If owner, straigh-forward.
-  if (stat.st_uid == uid)
+  if (stat.st_uid == uid) {
+    
     return ((stat.st_mode & mode) != mode);
+  }
 
   // There is no ACL's?
   if (acl.empty()) {
@@ -386,8 +393,11 @@ int dmlite::checkPermissions(const SecurityContext* context,
     if (acl[iacl].type < AclEntry::kUser)
       continue;
     aclId = acl[iacl].id;
-    if (uid == aclId)
+    if (uid == aclId) {
+      Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
+          "Matched user ACL entry id " << acl[iacl].id << "' (" << acl[iacl].perm << ") mask:" << aclMask << " mode:" << mode);
       return ((acl[iacl].perm & aclMask & mode) != mode);
+    }
     if (uid < aclId)
       break;
   }
@@ -409,6 +419,8 @@ int dmlite::checkPermissions(const SecurityContext* context,
       continue;
     aclId = acl[iacl].id;
     if (hasGroup(context->groups, aclId)) {
+      Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
+          "Matched group ACL entry: '" << acl[iacl].id << "' (" << acl[iacl].perm << ") mask:" << aclMask << " mode:" << mode);
       accPerm |= acl[iacl].perm;
       nGroups++;
     }
