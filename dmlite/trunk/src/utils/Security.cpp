@@ -180,10 +180,6 @@ std::string Acl::serialize() const throw ()
   Acl copy(*this);
   std::sort(copy.begin(), copy.end(), aclCompare);
 
-  // LCGDM-1790 debug
-  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
-        "Size of ACL list = " << copy.size());
-
   // Build the ACL string from the sorted
   std::stringstream aclStr;
   size_t            i;
@@ -195,15 +191,6 @@ std::string Acl::serialize() const throw ()
 
     if (i + 1 < copy.size())
       aclStr <<  ',';
-
-  // LCGDM-1790 debug
-  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
-        "copy[" << i << "] -> " << "type = " << copy[i].type << " perm = " << copy[i].perm << " id = " << copy[i].id);
-
-  // LCGDM-1790 debug
-  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
-        "Acl::serialize() -> aclStr: " << aclStr.str());
-
   }
 
   // Return
@@ -394,14 +381,8 @@ int dmlite::checkPermissions(const SecurityContext* context,
   // Adapted from Cns_acl.c
 
   // Get ACL_MASK if any
-  if ((iacl = acl.has(AclEntry::kMask) != -1)){
-    aclMask =  acl[iacl].perm; // I suspect this is getting from the other user ACL instead of the mask field
-
-  // LCGDM-1790 debug
-  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
-        "aclMask =  acl[iacl].perm: where iacl = " << iacl << " and mask = " << aclMask);
-    
-  }
+  if ((iacl = acl.has(AclEntry::kMask) != -1))
+    aclMask =  acl[iacl].perm;
   mode >>= 6;
 
   // check ACL_USER entries if any
