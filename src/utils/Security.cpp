@@ -180,6 +180,10 @@ std::string Acl::serialize() const throw ()
   Acl copy(*this);
   std::sort(copy.begin(), copy.end(), aclCompare);
 
+  // LCGDM-1790 debug
+  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
+        "Size of ACL list = " << copy.size());
+
   // Build the ACL string from the sorted
   std::stringstream aclStr;
   size_t            i;
@@ -191,6 +195,10 @@ std::string Acl::serialize() const throw ()
 
     if (i + 1 < copy.size())
       aclStr <<  ',';
+
+  // LCGDM-1790 debug
+  Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
+        "copy[" << i << "] -> " << "type = " << copy[i].type << " perm = " << copy[i].perm << " id = " << copy[i].id);
 
   // LCGDM-1790 debug
   Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
@@ -391,7 +399,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
 
   // LCGDM-1790 debug
   Log(Logger::Lvl2, Logger::unregistered, Logger::unregisteredname,
-        "aclMask =  acl[iacl].perm: where iacl = " << iacl << "and mask = " << aclMask);
+        "aclMask =  acl[iacl].perm: where iacl = " << iacl << " and mask = " << aclMask);
     
   }
   mode >>= 6;
