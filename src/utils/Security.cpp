@@ -381,7 +381,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
   // Adapted from Cns_acl.c
 
   // Get ACL_MASK if any
-  if ((iacl = acl.has(AclEntry::kMask) != -1))
+  if ((iacl = acl.has(AclEntry::kMask)) != -1)
     aclMask =  acl[iacl].perm;
   mode >>= 6;
 
