@@ -76,3 +76,5 @@ void export_authn()
         .def(vector_indexing_suite< std::vector< UserInfo > >()) // only works with operator== and != in UserInfo
         ;
 }
+
+
