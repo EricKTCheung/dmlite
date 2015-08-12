@@ -23,16 +23,16 @@ if (DOXYGEN_FOUND)
 
 
   install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/html
-           DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
+           DESTINATION ${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
            COMPONENT   dmlite-devel)
   install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/man
-           DESTINATION usr/share
+           DESTINATION ${INSTALL_PFX_USR}/share
            COMPONENT   dmlite-devel)
 
 endif (DOXYGEN_FOUND)
 
 # Tutorial
 install (DIRECTORY   tutorial
-         DESTINATION usr/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
+         DESTINATION ${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
          COMPONENT   dmlite-devel
          PATTERN ".svn" EXCLUDE)

@@ -35,7 +35,7 @@ target_link_libraries (test-pool-c dmlite utils)
 
 # Install
 install (DIRECTORY 		${CMAKE_CURRENT_BINARY_DIR}/
-         DESTINATION		usr/lib${LIB_SUFFIX}/dmlite/test/c
+         DESTINATION		${INSTALL_PFX_LIB}/dmlite/test/c
          FILE_PERMISSIONS	OWNER_EXECUTE OWNER_WRITE OWNER_READ
                       		GROUP_EXECUTE GROUP_READ
                       		WORLD_EXECUTE WORLD_READ

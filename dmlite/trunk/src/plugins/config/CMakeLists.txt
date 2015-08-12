@@ -6,5 +6,5 @@ target_link_libraries (config dmlite)
 set_target_properties (config PROPERTIES PREFIX "plugin_")
 
 install (TARGETS       config
-         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/
+         LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/
                        COMPONENT   dmlite-plugins)

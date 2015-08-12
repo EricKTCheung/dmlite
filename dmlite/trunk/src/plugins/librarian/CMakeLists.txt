@@ -8,4 +8,4 @@ target_link_libraries (librarian dmlite)
 set_target_properties (librarian PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       librarian
-        LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/)
+        LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/)

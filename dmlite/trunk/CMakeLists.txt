@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 
+set (CMAKE_INSTALL_PREFIX "/" CACHE PATH "Global installation prefix. Works for relocating the complete installation. Normally / ")
+
 project (dmlite)
 
 # Version
@@ -17,6 +19,8 @@ option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
 OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
 OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
 
+set(CMAKE_BUILD_TYPE CACHE "Debug")
+
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX ""
@@ -25,6 +29,19 @@ else (CMAKE_SIZEOF_VOID_P EQUAL 4)
   set (LIB_SUFFIX "64"
 		CACHE STRING "library directory suffix value")
 endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+
+
+# Installation paths. These are supposed to be relative to CMAKE_INSTALL_PREFIX,
+# which is normally supposed to be "/"
+
+
+
+set (INSTALL_PFX_ETC "etc/" CACHE STRING "relative path suffix to the etc directory where to install")
+set (INSTALL_PFX_LIB "usr/lib${LIB_SUFFIX}/" CACHE STRING "relative path suffix to the lib/lib64 directory where to install")
+set (INSTALL_PFX_USR "usr/" CACHE STRING "relative path suffix to the usr directory where to install (e.g. docs)")
+
+
+
 
 # Cmake module directory
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")

@@ -24,11 +24,11 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set_target_properties (memcache PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       memcache
-        LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/)
+        LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/)
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
                 ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
                 @ONLY)
 
 install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
-         DESTINATION etc/dmlite.conf.d)
+         DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)

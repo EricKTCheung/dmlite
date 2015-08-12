@@ -16,7 +16,7 @@ target_link_libraries (adapter ${DPM_LIBRARIES} pthread dmlite )
 set_target_properties (adapter PROPERTIES PREFIX "plugin_")
 
 install (TARGETS       adapter
-         LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/
+         LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/
                        COMPONENT   dmlite-plugins)
 
 
@@ -26,4 +26,4 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/adapter.conf.in
                 @ONLY)
 
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf
-         DESTINATION etc/dmlite.conf.d)
+         DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)

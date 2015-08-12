@@ -6,5 +6,5 @@ add_subdirectory (utils)
 # Install headers
 install (FILES		authn.h base.h catalog.h dmlite.h exceptions.h inode.h
 			io.h pooldriver.h poolmanager.h 
-         DESTINATION	usr/include/dmlite/cpp
+         DESTINATION	${INSTALL_PFX_USR}/include/dmlite/cpp
 )
