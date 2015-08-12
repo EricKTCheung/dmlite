@@ -25,6 +25,6 @@ set_target_properties(dmlite PROPERTIES
                              SOVERSION ${dmlite_MAJOR})
 
 install(TARGETS dmlite
-        LIBRARY DESTINATION usr/lib${LIB_SUFFIX})
+        LIBRARY DESTINATION ${INSTALL_PFX_LIB})
 
 add_subdirectory (plugins)

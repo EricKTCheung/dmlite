@@ -8,10 +8,10 @@ execute_process (COMMAND python -c "from distutils.sysconfig import get_python_l
 		 	OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 install(PROGRAMS      dmlite-shell
-        DESTINATION   usr/bin)
+        DESTINATION   ${INSTALL_PFX_USR}/bin)
 
 install(PROGRAMS      dmlite-mysql-dirspaces.py
-        DESTINATION   usr/bin)
+        DESTINATION   ${INSTALL_PFX_USR}/bin)
 
 install(FILES         __init__.py interpreter.py dbutils.py
 	DESTINATION   ${PYTHON_SITE_PACKAGES}/dmliteshell

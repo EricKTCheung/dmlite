@@ -24,7 +24,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set_target_properties (mysql PROPERTIES PREFIX "plugin_")
 
 install(TARGETS       mysql
-        LIBRARY       DESTINATION usr/lib${LIB_SUFFIX}/dmlite/)
+        LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/)
 
 
 # Configuration files
@@ -33,4 +33,4 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/mysql.conf.in
                 @ONLY)
 
 install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/mysql.conf
-         DESTINATION etc/dmlite.conf.d)
+         DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)

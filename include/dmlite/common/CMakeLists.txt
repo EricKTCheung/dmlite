@@ -6,5 +6,5 @@ configure_file (config.h.cmake
 
 # Install headers
 install (FILES		${CMAKE_CURRENT_BINARY_DIR}/config.h errno.h
-         DESTINATION	usr/include/dmlite/common
+         DESTINATION	${INSTALL_PFX_USR}/include/dmlite/common
 )
