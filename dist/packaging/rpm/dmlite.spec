@@ -301,7 +301,7 @@ rm -rf %{buildroot}
 %files shell
 %defattr(-,root,root,-)
 %{_bindir}/*
-%{python_sitelib}/dmliteshell
+%{python_sitearch}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
 %files plugins-mysql
