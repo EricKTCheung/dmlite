@@ -19,7 +19,7 @@ option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
 OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
 OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
 
-set(CMAKE_BUILD_TYPE CACHE "Debug")
+set(CMAKE_BUILD_TYPE "Debug" CACHE)
 
 # Lib suffix
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
