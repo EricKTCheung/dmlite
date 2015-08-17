@@ -85,10 +85,10 @@ Statement::~Statement() throw ()
 
 
 
-void Statement::bindParam(unsigned index, unsigned long value) throw (DmException)
+void Statement::bindParam(unsigned index, int64_t value) throw (DmException)
 {
   BIND_PARAM_SANITY();
-  params_[index].buffer_type   = MYSQL_TYPE_LONG;
+  params_[index].buffer_type   = MYSQL_TYPE_LONGLONG;
   params_[index].buffer        = std::malloc(sizeof(unsigned long));
   params_[index].is_unsigned   = true;
   params_[index].is_null_value = false;

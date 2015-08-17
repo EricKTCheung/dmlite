@@ -24,7 +24,7 @@ public:
   Statement(MYSQL* conn, const std::string& db, const char* query) throw (DmException);
   ~Statement() throw ();
 
-  void bindParam(unsigned index, unsigned long      value) throw (DmException);
+  void bindParam(unsigned index, int64_t) throw (DmException);
   void bindParam(unsigned index, const std::string& value) throw (DmException);
   void bindParam(unsigned index, const char* value, size_t size) throw (DmException);
 
