@@ -1,0 +1,12 @@
+# Load the profiler plugin
+LoadPlugin plugin_profiler /usr/lib@LIB_SUFFIX@/dmlite/plugin_profiler.so
+
+## Config parameters for the monitoring
+#Collector host[:port]
+#SendLFN lfn
+## SendAuth behaves like enabling the 'auth' option in xrootd, i.e.
+## sending detailed information about the client. Setting its value to
+## 'userdn' also discloses the client DN.
+#SendAuth userdn|NOuserdn
+#Ops enabled
+#Ssq enabled
