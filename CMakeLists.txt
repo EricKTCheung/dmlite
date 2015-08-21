@@ -4,6 +4,8 @@ set (CMAKE_INSTALL_PREFIX "/" CACHE PATH "Global installation prefix. Works for 
 
 project (dmlite)
 
+include(FindPkgConfig)
+
 # Version
 set(dmlite_MAJOR 0)
 set(dmlite_MINOR 7)
@@ -15,6 +17,7 @@ option (BUILD_SHELL "Build the dmlite shell" ON)
 option (BUILD_MYSQL "Build the mysql plugin" ON)
 option (BUILD_MEMCACHE "Build the memcache plugin" ON)
 option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
+option (BUILD_DPMREST "Build the dpmrest fastcgi component" ON)
 
 OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
 OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
@@ -76,7 +79,9 @@ endif (Boost_FOUND)
 find_package (MySQL)
 if (NOT MYSQL_FOUND)
   message("-- Mysql not found... disabling the MySQL plugin")
+  message("-- Mysql not found... disabling the dpmrest fastcgi component")
   set (BUILD_MYSQL OFF)
+  set (BUILD_DPMREST OFF)
 endif()
 
 #--------------------------------
@@ -91,14 +96,30 @@ if (NOT DPM_FOUND OR NOT DPM_FOUND)
   set (BUILD_ADAPTER OFF)
 endif()
 
+                     
+                     
+#--------------------------------
+# Find Davix
+pkg_check_modules(DAVIX_PKG davix)
+if (NOT DAVIX_PKG_FOUND)
+  message("-- Davix not found... disabling the dpmrest fastcgi component")
+  set (BUILD_DPMREST OFF)
+endif()
+                    
+                    
+
 # Include path
 include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
                      ${Boost_INCLUDE_DIRS}
-                     ${APR_INCLUDE_DIR})
-
+                     ${APR_INCLUDE_DIR}
+                     )
+                    
+                    
+                    
+                    
 # include the directory itself as a path to include directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -133,6 +154,7 @@ message(" -- BUILD_SHELL    : " ${BUILD_SHELL} )
 message(" -- BUILD_MYSQL    : " ${BUILD_MYSQL} )
 message(" -- BUILD_MEMCACHE : " ${BUILD_MEMCACHE} )
 message(" -- BUILD_ADAPTER  : " ${BUILD_ADAPTER} )
+message(" -- BUILD_DPMREST  : " ${BUILD_DPMREST} )
 message(" --" )
 message(" -- RSYSLOG CFG    : " ${RSYSLOG_SUPPORT} )
 message(" -- LOGROTATE CFG  : " ${LOGROTATE_SUPPORT} )

@@ -27,4 +27,14 @@ set_target_properties(dmlite PROPERTIES
 install(TARGETS dmlite
         LIBRARY DESTINATION ${INSTALL_PFX_LIB})
 
+        
+        
+        
+        
 add_subdirectory (plugins)
+
+if (BUILD_DPMREST)
+  add_subdirectory(dpmrest)
+else()
+    message("-- The dpmrest fastcgi component will NOT be built")
+endif()
