@@ -71,7 +71,15 @@ void INodeMySql::setSecurityContext(const SecurityContext* ctx) throw (DmExcepti
 /// not half empty
 static inline void dumpCStat(const CStat& cstat, ExtendedStat* xstat)
 {
+  
   xstat->clear();
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname,
+      " name: " << cstat.name <<
+      " parent: " << cstat.parent <<
+      " csumtype: " << cstat.csumtype <<
+      " csumvalue: " << cstat.csumvalue <<
+      " acl: " << cstat.acl);
+  
   xstat->stat      = cstat.stat;
   xstat->csumtype  = cstat.csumtype;
   xstat->csumvalue = cstat.csumvalue;
