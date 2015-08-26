@@ -368,6 +368,8 @@ int dmlite::checkPermissions(const SecurityContext* context,
 
   // There is no ACL's?
   if (acl.empty()) {
+    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Empty acl for " << stat.st_ino);
+    
     // The user is not the owner
     mode >>= 3;
     // Belong to the group?
@@ -377,6 +379,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
     return ((stat.st_mode & mode) != mode);
   }
 
+  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Acl for " << stat.st_ino << ": " << acl.serialize());
   // We have ACL's!
   // Adapted from Cns_acl.c
 
