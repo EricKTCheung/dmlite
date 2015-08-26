@@ -36,10 +36,10 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 
 
-set (INSTALL_PFX_ETC "etc/" CACHE STRING "relative path suffix to the etc directory where to install")
-set (INSTALL_PFX_LIB "usr/lib${LIB_SUFFIX}/" CACHE STRING "relative path suffix to the lib/lib64 directory where to install")
-set (INSTALL_PFX_USR "usr/" CACHE STRING "relative path suffix to the usr directory where to install (e.g. docs)")
-
+set (INSTALL_PFX_ETC "etc/" CACHE PATH "relative path suffix to the etc directory where to install")
+set (INSTALL_PFX_USR "usr/" CACHE PATH "relative path suffix to the usr directory where to install")
+set (INSTALL_PFX_LIB "${INSTALL_PFX_USR}/lib${LIB_SUFFIX}/" CACHE PATH "relative path suffix to the lib/lib64 directory where to install")
+set( INSTALL_PFX_DOC "${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}" CACHE PATH "relative path suffix to the docs directory where to install")
 
 
 

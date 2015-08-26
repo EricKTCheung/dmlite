@@ -21,9 +21,10 @@ if (DOXYGEN_FOUND)
                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                      COMMENT "Generating man documentation with Doxygen" VERBATIM)
 
+  
 
   install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/html
-           DESTINATION ${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}/api
+           DESTINATION ${INSTALL_PFX_DOC}/api
            COMPONENT   dmlite-devel)
   install (DIRECTORY   ${CMAKE_CURRENT_BINARY_DIR}/man
            DESTINATION ${INSTALL_PFX_USR}/share
@@ -33,6 +34,6 @@ endif (DOXYGEN_FOUND)
 
 # Tutorial
 install (DIRECTORY   tutorial
-         DESTINATION ${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
+         DESTINATION ${INSTALL_PFX_DOC}
          COMPONENT   dmlite-devel
          PATTERN ".svn" EXCLUDE)
