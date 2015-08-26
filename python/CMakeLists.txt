@@ -4,7 +4,7 @@ find_package(Boost COMPONENTS python REQUIRED)
 find_package(PythonLibs)
 
 if ( CMAKE_INSTALL_PREFIX STREQUAL "/" )
-  message(STATUS, "-- CMAKE_INSTALL_PREFIX points to system-wide: ${CMAKE_INSTALL_PREFIX} Will install the python stuff according to the python config")
+  message(STATUS "CMAKE_INSTALL_PREFIX points to system-wide: ${CMAKE_INSTALL_PREFIX} Will install the python stuff according to the python config")
   execute_process (COMMAND python -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)" 
 		 OUTPUT_VARIABLE INSTALL_PYTHON_SITE_PACKAGES
 		 OUTPUT_STRIP_TRAILING_WHITESPACE)
