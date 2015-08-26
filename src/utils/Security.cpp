@@ -169,6 +169,7 @@ int Acl::has(uint8_t type) const throw ()
 
 static bool aclCompare(const AclEntry& a, const AclEntry& b)
 {
+  if (a.type == b.type) return a.id < b.id;
   return a.type < b.type;
 }
 
