@@ -674,10 +674,20 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << shortCsumType << " csumvalue:" << csumValue);
   setDpnsApiIdentity();
 
-  ExtendedStat stat = this->extendedStat(path, false);
+
+  off_t sz = 0;
+  try {
+      // dpm-dsi is very kind and may offer to us a way to avoid yet one more stat request
+      // other plugins may follow one day the same suggestion by A.Kyrianov
+      attr.getU64("filesize");
+  }
+  catch (DMException e) {
+      ExtendedStat xstat = this->extendedStat(path, false);
+      sz = xstat.stat.st_size;
+  }
   
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
-    (dpns_setfsizec, path.c_str(), NULL, xstat.stat.st_size,
+    (dpns_setfsizec, path.c_str(), NULL, sz,
      shortCsumType.c_str(), (char*)csumValue.c_str())();
      
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );
