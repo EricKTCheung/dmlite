@@ -651,10 +651,11 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
     }
     
     // We are here if the entry is a checksum. Check if it's one that adapter can support
-    shortCsumType = checksums::shortChecksumName(keys[i].substr(9));
+    shortCsumType = checksums::shortChecksumName(keys[i]);
     if (shortCsumType.length() > 2) {
       Log(Logger::Lvl2, adapterlogmask, adapterlogname,
           "Adapter does not support checksums of type " << shortCsumType << " Ignoring.");
+      continue;
     }
     
     // Write a warning if we already had one to write
@@ -667,7 +668,7 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
     csumXattr = keys[i];
   }
 
-  shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
+  shortCsumType = checksums::shortChecksumName(csumXattr);
   std::string csumValue     = attr.getString(csumXattr);
     
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << shortCsumType << " csumvalue:" << csumValue);
