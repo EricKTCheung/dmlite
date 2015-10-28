@@ -679,13 +679,19 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
   try {
       // dpm-dsi is very kind and may offer to us a way to avoid yet one more stat request
       // other plugins may follow one day the same suggestion by A.Kyrianov
-      attr.getU64("filesize");
+      sz = attr.getU64("filesize");
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " filesize:" << sz << " got from the xattrs.");
   }
-  catch (...) {
+  catch (...) {  }
+  
+  if (sz == 0) {
       ExtendedStat xstat = this->extendedStat(path, false);
       sz = xstat.stat.st_size;
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " filesize:" << sz << " got from stat-ing the file.");
   }
-  
+      
+      
+      
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
     (dpns_setfsizec, path.c_str(), NULL, sz,
      shortCsumType.c_str(), (char*)csumValue.c_str())();
