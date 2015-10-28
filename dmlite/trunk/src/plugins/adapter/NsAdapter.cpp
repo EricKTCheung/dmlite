@@ -681,7 +681,7 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
       // other plugins may follow one day the same suggestion by A.Kyrianov
       attr.getU64("filesize");
   }
-  catch (DMException e) {
+  catch (...) {
       ExtendedStat xstat = this->extendedStat(path, false);
       sz = xstat.stat.st_size;
   }
