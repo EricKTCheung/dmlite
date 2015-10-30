@@ -347,7 +347,7 @@ void MemcacheCommon::serializeExtendedStat(const ExtendedStat& var, std::string&
 	SerialExtendedAttribute* pExtendedAttr;
         SerialExtendedAttributeList* serialExtendedAttributeList;
 	serialExtendedAttributeList = seStat.mutable_xattrlist();
-	
+	serialExtendedAttributeList->Clear();
   	std::vector<std::string> keys = var.getKeys();
         for (unsigned i = 0; i < keys.size(); ++i) { 
                  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
