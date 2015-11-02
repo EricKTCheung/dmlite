@@ -317,6 +317,10 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Mon Nov 02 2015  Andrea Manzi <amanzi@cern.ch> - 0.7.5-1
+- added xattr to Memcache plugin
+- fix for checksums store
+
 * Wed Jul 08 2015  Fabrizio Furano <furano@cern.ch> - 0.7.3-1
 - Add librarian to the core plugins
 
