@@ -2067,14 +2067,13 @@ class Response(object):
 	
 class Replicate(object):
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
-    def __init__(self,interpreter,admin,parameters):
+    def __init__(self,interpreter,parameters):
 	self.interpreter=interpreter
-	self.adminUserName = admin
 	self.parameters =parameters
 
 	self.interpreter.replicaQueueLock.acquire()
         securityContext= self.interpreter.stackInstance.getSecurityContext()
-        securityContext.user.name = self.adminUserName
+        securityContext.user.name = self.parameters['adminUserName']
         self.interpreter.stackInstance.setSecurityContext(securityContext)
 	
         replicate = pydmlite.boost_any()
@@ -2207,11 +2206,11 @@ class Replicate(object):
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter,threadID,adminUserName):
+    def __init__(self, interpreter,threadID,parameters):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
-        self.adminUserName = adminUserName
+	self.parameters = parameters
 	self.stopEvent =  threading.Event()
 
     def run(self):
@@ -2227,7 +2226,7 @@ class DrainThread (threading.Thread):
 		if not self.interpreter.replicaQueue.empty():
 			replica = self.interpreter.replicaQueue.get()
 			self.interpreter.replicaQueueLock.release()
-	                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName)
+	                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.parameters)
         	        drainreplica.drain();
 		else:
 			self.interpreter.replicaQueueLock.release()
@@ -2235,13 +2234,14 @@ class DrainThread (threading.Thread):
 
 
 class ReplicaMoveCommand(ShellCommand):
-    """Move a specified rfn/rfn folder to a new location(pool/filesystem)"""
+    """Move a specified rfn/rfn folder to a new filesystem location """
     def _init(self):
-	self.parameters = ['?rfn', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
-                                        '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
-                                        '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
-                                        '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
-                                        '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
+	self.parameters = ['?rfn', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value', 
+                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+					'*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value' ]
 
     def _execute(self,given):
 	if self.interpreter.stackInstance is None:
@@ -2256,36 +2256,75 @@ class ReplicaMoveCommand(ShellCommand):
             	return self.error("DPM configuration is not correct")
 
         if len(given)%2 == 0:
-            	return self.error("Incorrect number of parameters")
+            return self.error("Incorrect number of parameters")
 
+        #default
 	parameters = {}
-
-	rfn = given[0]
-	parameters['rfn'] = rfn
-	filename = DPMDB().getLFNFromSFN(rfn)
-	parameters['filename'] = filename
-
-	self.ok("The RFN correspond to file " + parameters['filename'])
-        self.interpreter.replicaQueueLock = threading.Lock()
-    
-	for i in range(1, len(given),2):
-                parameters[given[i]] = given[i+1]
+	parameters['nthreads'] = 5
+	parameters['dryrun'] = True
+        parameters['adminUserName'] = adminUserName
 
         try:
-                replicate = Replicate(self.interpreter,adminUserName,parameters)
-                (replicated,destination, error) = replicate.run()
+                rfnfolder = given[0]
+                for i in range(1, len(given),2):
+                        if given[i] == "filesystem":
+                                parameters['filesystem'] = int(given[i+1])
+			elif given[i] == "filetype":
+				parameters['filetype'] = given[i+1]
+			elif given[i] == "lifetime":
+				parameters['lifetime'] = given[i+1]
+			elif given[i] == "spacetoken":
+				parameters['specetoken'] = given[i+1]
+                        elif given[i] == "nthreads":
+                                nthreads = int(given[i+1])
+                                if nthreads < 1 or nthreads > 20:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
+				else:
+					parameters['nthreads'] = nthreads
+                        elif given[i] == "dryrun":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        parameters['dryrun']  = True
+				
         except Exception, e:
-                self.error(e.__str__())
-                self.error("Error Replicating RFN: " +rfn+"\n")
-                if error:
-                        self.error(error)
-                if destination:
-                #logging only need to clean pending replica
-                        self.error("Error while copying to SFN: " +destination+"\n")
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-                else:
-                        return 1
+        #instantiating DPMDB
+        try:
+                db = DPMDB()
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+
+        self.interpreter.replicaQueueLock = threading.Lock()
+
+	#set filesystem as readonly
+        try:
+
+                #step 1 : set as READONLY all FS in the pool to drain
+                if not parameters['dryrun']:
+                         for fs in listFStoDrain:
+                                if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
+                                        pass
+                                else:
+                                        self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
+                                        return
+                self.ok("Calculating Replicas to Move..")
+                self.ok()
+
+                #step 2 : get all FS associated to the pool to drain and get the list of replicas
+                listTotalFiles = db.getReplicasInPool(poolToDrain.name)
+
+                #step 3 : for each file call the drain method of DrainFileReplica
+                self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+                self.interpreter.replicaQueueLock = threading.Lock()
+
+                self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
+                self.drainProcess.drain()
+
+        except Exception, e:
+                return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+    	'''
         if not replicated:
                 if error:
                         self.error(error)
@@ -2333,7 +2372,7 @@ class ReplicaMoveCommand(ShellCommand):
 	
 	self.ok('The replica with rfn: ' + rfn + " has been correctly removed")
         return 0
-
+	'''
 	
 
 class ReplicateCommand(ShellCommand):
@@ -2375,12 +2414,13 @@ The replicate command accepts the following parameters:
 	if not filename.startswith('/'):
           filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
 	parameters['filename'] = filename
+	parameters['adminUserName'] = adminUserName
 
 	for i in range(1, len(given),2):
 		parameters[given[i]] = given[i+1]
 
 	try:	
-		replicate = Replicate(self.interpreter,adminUserName,parameters)
+		replicate = Replicate(self.interpreter,parameters)
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.error(e.__str__())
@@ -2433,11 +2473,11 @@ The replicate command accepts the following parameters:
 	
 class DrainFileReplica(object):
     """implement draining of a file replica"""
-    def __init__(self, threadID,interpreter , fileReplica,adminUserName):
+    def __init__(self, threadID,interpreter , fileReplica,parameters):
         self.threadID = threadID
 	self.interpreter= interpreter
-        self.fileReplica=fileReplica
-	self.adminUserName = adminUserName
+        self.parameters= parameters
+	self.fileReplica = fileReplica
 
     def getThreadID(self):
 	return "Thread " + str(self.threadID) +": "
@@ -2468,14 +2508,13 @@ class DrainFileReplica(object):
                 return 1
 
         #step 5 : replicate files
-	arguments = {}
-	arguments['filename']=filename
+	self.parameters['filename']=filename
 
 	#step 5-1: check spacetoken
         if self.fileReplica.setname is not "":
-		arguments['spacetoken']= self.fileReplica.setname
+		self.parameters['spacetoken']= self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
-        replicate = Replicate(self.interpreter,self.adminUserName,arguments)
+        replicate = Replicate(self.interpreter,self.parameters)
 
         self.logOK("Trying to replicate file: "+ filename+"\n");
 
@@ -2537,15 +2576,16 @@ class DrainFileReplica(object):
 
 class DrainReplicas(object):
     """implement draining of a list of replicas"""
-    def __init__(self, interpreter , db,fileReplicas,adminUserName, group,size, nthreads, dryrun):
+    def __init__(self, interpreter , db,fileReplicas, parameters):
        	self.interpreter= interpreter
        	self.fileReplicas=fileReplicas
-     	self.adminUserName = adminUserName
-	self.group = group
+     	self.adminUserName = parameters['adminUserName']
+	self.group = parameters['group']
 	self.db = db
-	self.size = size
-	self.nthreads= nthreads
-	self.dryrun = dryrun
+	self.size = parameters['size']
+	self.nthreads= parameters['nthreads']
+	self.dryrun = parameters['dryrun']
+	self.parameters = parameters
 	self.interpreter.drainErrors = []
 	self.threadpool = []
 
@@ -2608,7 +2648,7 @@ class DrainReplicas(object):
         		return
 		
         	for i in range(0,self.nthreads):
-                	thread = DrainThread(self.interpreter, i, self.adminUserName)
+                	thread = DrainThread(self.interpreter, i, self.parameters)
                 	thread.setDaemon(True)
                 	thread.start()
 			self.threadpool.append(thread)
@@ -2659,27 +2699,31 @@ The drainpool command accepts the following parameters:
             return self.error("Incorrect number of parameters")
 	
 	#default
-	group = "ALL"
-	size = 100
-	nthreads = 5
-	dryrun = False
+	parameters = {}
+	parameters['group'] = 'ALL'
+        parameters['size'] = 100
+        parameters['nthreads']= 5
+        parameters['dryrun'] = False
+        parameters['adminUserName'] = adminUserName
 	
     	try:
     		poolname = given[0]
 		for i in range(1, len(given),2):
 			if given[i] == "group":
-				group = given[i+1]
+				parameters['group'] = given[i+1]
 			elif given[i] == "size":
                                 size = int(given[i+1])
                                 if size > 100 or size < 1:
                                         return self.error("Incorrect Drain size: it must be between 1 and 100")
+				parameters['size']  = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
                                 if nthreads < 1 or nthreads > 20:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 20")
+				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-                                        dryrun = True
+                                        parameters['dryrun'] = True
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2711,7 +2755,7 @@ The drainpool command accepts the following parameters:
 
 		
 		#step 1 : set as READONLY all FS in the pool to drain
-		if not dryrun:
+		if not parameters['dryrun']:
 			 for fs in listFStoDrain:
 				if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
 					pass
@@ -2728,7 +2772,7 @@ The drainpool command accepts the following parameters:
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
 		self.interpreter.replicaQueueLock = threading.Lock()
 
-		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, adminUserName, group, size, nthreads, dryrun)
+		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
                 self.drainProcess.drain()
 
     	except Exception, e:
@@ -2766,28 +2810,32 @@ The drainfs command accepts the following parameters:
             return self.error("Incorrect number of parameters")
 
         #default
-	group = "ALL"
-        size = 100
-        nthreads = 5
-	dryrun = False
+        parameters = {}
+        parameters['group'] = 'ALL'
+        parameters['size'] = 100
+        parameters['nthreads']= 5
+        parameters['dryrun'] = False
+        parameters['adminUserName'] = adminUserName
 
         try:
 		servername = given[0]
 		filesystem = given[1]
                 for i in range(2, len(given),2):
                         if given[i] == "group":
-                                group = given[i+1]
+                                parameters['group']= given[i+1]
 			elif given[i] == "size":
                                 size = int(given[i+1])
                                 if size > 100 or size < 1:
                                         return self.error("Incorrect Drain size: it must be between 1 and 100")
+				parameters['size'] = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
                                 if nthreads < 1 or nthreads > 20:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 20")
+				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-                                        dryrun = True
+                                        parameters['dryrun'] = True
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2822,7 +2870,7 @@ The drainfs command accepts the following parameters:
 				return self.error("The specified filesystem has not been found in the DPM configuration")
 
 		#set as READONLY the FS  to drain
-		if not dryrun:
+		if not parameters['dryrun']:
 	                if not dpm2.dpm_modifyfs(fsToDrain.server, fsToDrain.name, 2, fsToDrain.weight):
         	                pass
                 	else:
@@ -2837,7 +2885,7 @@ The drainfs command accepts the following parameters:
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
 		self.interpreter.replicaQueueLock = threading.Lock()
 		
-		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
 		self.drainProcess.drain()
 
  	except Exception, e:
@@ -2876,27 +2924,31 @@ The drainserver command accepts the following parameters:
             return self.error("Incorrect number of parameters")
 
         #default
-        group = "ALL"
-        size = 100
-        nthreads = 5
-	dryrun = False
+        parameters = {}
+        parameters['group'] = 'ALL'
+        parameters['size'] = 100
+        parameters['nthreads']= 5
+        parameters['dryrun'] = False
+        parameters['adminUserName'] = adminUserName
 
         try:
                 servername = given[0]
                 for i in range(1, len(given),2):
                         if given[i] == "group":
-                                group = given[i+1]
+                                parameters['group']= given[i+1]
                         elif given[i] == "size":
                                 size = int(given[i+1])
 				if size > 100 or size < 1:
 					return self.error("Incorrect Drain size: it must be between 1 and 100")
+				parameters['size'] = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
 				if nthreads < 1 or nthreads > 20:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 20")
+				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
 				if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-	                                dryrun = True
+	                                parameters['dryrun'] = True
 			
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -2934,7 +2986,7 @@ The drainserver command accepts the following parameters:
                         if not serverToDrain:
                                 return self.error("The specified server has not been found in the DPM configuration")
 		#set as READONLY the FS  to drain
-                if not dryrun:
+                if not parameters['dryrun']:
 			for fs in db.getFilesystemsInServer(servername):
                         	if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
                                 	pass
@@ -2950,7 +3002,7 @@ The drainserver command accepts the following parameters:
 		self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
                 self.interpreter.replicaQueueLock = threading.Lock()
 
-                self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,adminUserName, group,size, nthreads, dryrun)
+                self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
                 self.drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
