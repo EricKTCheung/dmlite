@@ -91,7 +91,7 @@ class DPMDB(object):
 	def getReplicaInFSFolder(self,fsname,server,folder):
 		"""Method to get all the file replica for a FS folder"""
 		try:
-			folder = server+":"+fsname+"/"+folder
+			folder = server+":"+fsname+folder+"%"
 			self.nsdb_c.execute('''
                         SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname, r.ptime
                         FROM Cns_file_replica r
