@@ -2234,9 +2234,10 @@ class DrainThread (threading.Thread):
 
 
 class ReplicaMoveCommand(ShellCommand):
-    """Move a specified rfn/rfn folder to a new filesystem location """
+    """Move a specified rfn folder to a new filesystem location """
     def _init(self):
-	self.parameters = ['?rfn', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+	self.parameters = ['?sourceServer', '?sourceFilesystem', '?sourceFolder',
+					'*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
                                         '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value', 
                                         '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
                                         '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
@@ -2261,14 +2262,19 @@ class ReplicaMoveCommand(ShellCommand):
         #default
 	parameters = {}
 	parameters['nthreads'] = 5
-	parameters['dryrun'] = True
+	parameters['dryrun'] = False
         parameters['adminUserName'] = adminUserName
+	parameters['group'] = 'ALL'
+	parameters['size'] = 100 
+        parameters['move'] = True
 
         try:
-                rfnfolder = given[0]
+                sourceServer = given[0]
+		sourceFilesystem = given[1]
+		sourceFolder = given[2]
                 for i in range(1, len(given),2):
                         if given[i] == "filesystem":
-                                parameters['filesystem'] = int(given[i+1])
+                                parameters['filesystem'] = given[i+1]
 			elif given[i] == "filetype":
 				parameters['filetype'] = given[i+1]
 			elif given[i] == "lifetime":
@@ -2299,20 +2305,12 @@ class ReplicaMoveCommand(ShellCommand):
 
 	#set filesystem as readonly
         try:
-
-                #step 1 : set as READONLY all FS in the pool to drain
-                if not parameters['dryrun']:
-                         for fs in listFStoDrain:
-                                if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
-                                        pass
-                                else:
-                                        self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
-                                        return
+		
                 self.ok("Calculating Replicas to Move..")
                 self.ok()
 
                 #step 2 : get all FS associated to the pool to drain and get the list of replicas
-                listTotalFiles = db.getReplicasInPool(poolToDrain.name)
+                listTotalFiles = db.getReplicaInFSFolder(sourceFilesystem,sourceServer,sourceFolder)
 
                 #step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
@@ -2323,57 +2321,6 @@ class ReplicaMoveCommand(ShellCommand):
 
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
-    	'''
-        if not replicated:
-                if error:
-                        self.error(error)
-                if destination:
-                        #logging only need to clean pending replica 
-                        self.error("Error while copying to SFN: " +destination+"\n")
-                else:
-                        self.error("Error Replicating RFN: " +rfn+"\n")
-                        return 1
-
-        try:
-      	 	self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
-        except Exception, e:
-                self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
-
-        if replicated:
-                self.ok("The file has been correctly replicated to: "+ destination+"\n")
-
-		#removing the original replica
-		if not self.interpreter.poolDriver:
-			self.error('Please remove manually the replica with rfn: ' + rfn)
-			return 1
-
-		try:
-			replica = self.interpreter.catalog.getReplicaByRFN(rfn)
-              	        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
-                        poolHandler.removeReplica(replica)
-                except Exception, e:
-                        self.error('Could not clean the replica.\n' + e.__str__())
-                        self.error('Please remove manually the replica with rfn: ' + destination)
-                        return 1
-        elif destination:
-       	 	replica = self.interpreter.catalog.getReplicaByRFN(destination)
-		if not not self.interpreter.poolDriver:
-                        self.error('Please remove manually the replica with rfn: ' + destination)
-                        return 1
-
-                try:
-                        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
-                        poolHandler.removeReplica(replica)
-                except Exception, e:
-                        self.error('Could not clean the replica.\n' + e.__str__())
-                        self.error('Please remove manually the replica with rfn: ' + destination)
-                        return 1
-	
-	self.ok('The replica with rfn: ' + rfn + " has been correctly removed")
-        return 0
-	'''
-	
 
 class ReplicateCommand(ShellCommand):
     """Replicate a File to a specific pool/filesystem
