@@ -491,7 +491,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.5 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.7.6 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -2236,7 +2236,7 @@ class DrainThread (threading.Thread):
 class ReplicaMoveCommand(ShellCommand):
     """Move a specified rfn folder to a new filesystem location """
     def _init(self):
-	self.parameters = ['?sourceServer', '?sourceFilesystem', '?sourceFolder',
+	self.parameters = ['?sourceFilesystem', '?sourceFolder',
 					'*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
                                         '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value', 
                                         '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
@@ -2256,7 +2256,7 @@ class ReplicaMoveCommand(ShellCommand):
         if not adminUserName:
             	return self.error("DPM configuration is not correct")
 
-        if len(given)%2 == 0:
+        if len(given)%2 == 1:
             return self.error("Incorrect number of parameters")
 
         #default
@@ -2269,9 +2269,8 @@ class ReplicaMoveCommand(ShellCommand):
         parameters['move'] = True
 
         try:
-                sourceServer = given[0]
-		sourceFilesystem = given[1]
-		sourceFolder = given[2]
+                sourceServer,sourceFilesystem = given[0].split(':')
+		sourceFolder = given[1]
                 for i in range(1, len(given),2):
                         if given[i] == "filesystem":
                                 parameters['filesystem'] = given[i+1]
@@ -2544,7 +2543,7 @@ class DrainReplicas(object):
 
     def printDrainErrors(self):
 	if len(self.interpreter.drainErrors) > 0:
-                        self.interpreter.ok("List of Drain Errors:\n")
+                        self.interpreter.ok("List of Errors:\n")
         for (file, sfn, error) in self.interpreter.drainErrors:
         	self.interpreter.ok("File: " + file+ "\tsfn: " +sfn +"\tError: " +error)
 
@@ -2556,6 +2555,11 @@ class DrainReplicas(object):
         		gid = self.db.getGroupIdByName(self.group)
         	numFiles = 0
         	fileSize = 0
+		moveOperation = False
+		try:
+			moveOperation = self.parameters['move']
+		except:
+			pass
 
        	 	for file in self.fileReplicas:
         		#print "putting file " + file.sfn
@@ -2569,16 +2573,20 @@ class DrainReplicas(object):
                 	file.lfn = filename
                 	numFiles = numFiles+1
                 	fileSize = fileSize + file.size
-        	self.interpreter.ok("Total replicas installed in the FS to drain: " + str(numFiles))
-        	self.interpreter.ok("Total capacity installed in the FS to drain: " + str(fileSize/1024) + " KB")
+		if moveOperation:
+			self.interpreter.ok("Total replicas to move: " + str(numFiles))
+			self.interpreter.ok("Total capacity to move: " + str(fileSize/1024) + " KB")
+		else:
+	        	self.interpreter.ok("Total replicas installed in the FS to drain: " + str(numFiles))
+        		self.interpreter.ok("Total capacity installed in the FS to drain: " + str(fileSize/1024) + " KB")
 
         	#in case the size is != 100, we should limit the number of replicas to drain
         	sizeToDrain = fileSize
         	if self.size != 100:
         		sizeToDrain = sizeToDrain*self.size/100
-
-     	   	self.interpreter.ok("Percentage of capacity to drain: " + str(self.size)+ " %")
-        	self.interpreter.ok("Total capacity to drain: " + str(sizeToDrain/1024)+ " KB")
+		if not moveOperation:
+	     	   	self.interpreter.ok("Percentage of capacity to drain: " + str(self.size)+ " %")
+        		self.interpreter.ok("Total capacity to drain: " + str(sizeToDrain/1024)+ " KB")
 
         	for file in self.fileReplicas:
 			if (self.group != "ALL"):
@@ -2605,8 +2613,10 @@ class DrainReplicas(object):
 
 		for t in self.threadpool:
 			t.stop()
-
-		self.interpreter.ok("Drain Process completed\n")
+		if moveOperation:
+			self.interpreter.ok("Move Process completed\n")
+		else:
+			self.interpreter.ok("Drain Process completed\n")
                 
 		self.printDrainErrors()
 		
