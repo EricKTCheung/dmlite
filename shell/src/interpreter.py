@@ -2234,15 +2234,26 @@ class DrainThread (threading.Thread):
 
 
 class ReplicaMoveCommand(ShellCommand):
-    """Move a specified rfn folder to a new filesystem location """
+    """Move a specified rfn folder to a new filesystem location 
+
+The replicamove command accepts the following parameters:
+
+* sourceFileSystem              : the source fileystem where to move the replicas from ( in the form servername:fsname)
+* sourceFolder                  : the source folder
+* destfilesystem                : the filesystem where to move the file to ( in the form as servername:fsname)
+* filetype <filetype>           : the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
+* lifetime <lifetime>           : the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
+* spacetoken <spacetoken>       : the spacetoken to assign the new replica to (optional), by default the original spacetoken will be assigned if present
+* nthreads <threads>    	: the number of threads to use in the process (optional, default = 5)
+* dryrun <true/false>   	: if set to true just print the statistics (optional, default = false)"""
+
     def _init(self):
-	self.parameters = ['?sourceFilesystem', '?sourceFolder',
-					'*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value', 
-                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-					'*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filesystem:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value' ]
+	self.parameters = ['?sourceFilesystem', '?sourceFolder', '?destFilesystem',
+					'*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+					'*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value' ]
 
     def _execute(self,given):
 	if self.interpreter.stackInstance is None:
@@ -2256,7 +2267,7 @@ class ReplicaMoveCommand(ShellCommand):
         if not adminUserName:
             	return self.error("DPM configuration is not correct")
 
-        if len(given)%2 == 1:
+        if len(given)%2 == 0:
             return self.error("Incorrect number of parameters")
 
         #default
@@ -2271,10 +2282,9 @@ class ReplicaMoveCommand(ShellCommand):
         try:
                 sourceServer,sourceFilesystem = given[0].split(':')
 		sourceFolder = given[1]
+		parameters['filesystem']  =  given[2]
                 for i in range(1, len(given),2):
-                        if given[i] == "filesystem":
-                                parameters['filesystem'] = given[i+1]
-			elif given[i] == "filetype":
+			if given[i] == "filetype":
 				parameters['filetype'] = given[i+1]
 			elif given[i] == "lifetime":
 				parameters['lifetime'] = given[i+1]
@@ -2299,10 +2309,6 @@ class ReplicaMoveCommand(ShellCommand):
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-
-        self.interpreter.replicaQueueLock = threading.Lock()
-
-	#set filesystem as readonly
         try:
 		
                 self.ok("Calculating Replicas to Move..")
