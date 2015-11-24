@@ -2096,13 +2096,11 @@ class Replicate(object):
                 poolname = pydmlite.boost_any()
                 poolname.setString(self.parameters['poolname'])
                 self.interpreter.stackInstance.set("pool",poolname)
-		self.interpreter.ok("Trying to replicate to pool: " + self.parameters['poolname'])
         if 'filesystem' in self.parameters:
                 #filesystem
                 filesystem = pydmlite.boost_any()
                 filesystem.setString(self.parameters['filesystem'])
                 self.interpreter.stackInstance.set("filesystem",filesystem)
-		self.interpreter.ok("Trying to replicate to filesystem: " + self.parameters['filesystem'])
         if 'filetype' in self.parameters:
                 #filetype
                 filetype = pydmlite.boost_any()
@@ -2203,6 +2201,9 @@ class Replicate(object):
 		self.interpreter.error(e.__str__())
                 return (False,sfn, e.__str__())
 
+class LocalParams(threading.local):
+    def __init__(self, v):
+        self.parameters = v
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
@@ -2210,7 +2211,7 @@ class DrainThread (threading.Thread):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
-	self.parameters = parameters
+	self.parameters= parameters.parameters
 	self.stopEvent =  threading.Event()
 
     def run(self):
@@ -2238,14 +2239,14 @@ class ReplicaMoveCommand(ShellCommand):
 
 The replicamove command accepts the following parameters:
 
-* sourceFileSystem              : the source fileystem where to move the replicas from ( in the form servername:fsname)
-* sourceFolder                  : the source folder
-* destfilesystem                : the filesystem where to move the file to ( in the form as servername:fsname)
-* filetype <filetype>           : the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
-* lifetime <lifetime>           : the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
-* spacetoken <spacetoken>       : the spacetoken to assign the new replica to (optional), by default the original spacetoken will be assigned if present
-* nthreads <threads>    	: the number of threads to use in the process (optional, default = 5)
-* dryrun <true/false>   	: if set to true just print the statistics (optional, default = false)"""
+* sourceFileSystem		: the source fileystem where to move the replicas from ( in the form servername:fsname)
+* sourceFolder			: the source folder
+* destfilesystem		: the filesystem where to move the file to ( in the form as servername:fsname)
+* filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
+* lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
+* spacetoken <spacetoken>	: the spacetoken to assign the new replica to (optional), by default the original spacetoken will be assigned if present
+* nthreads <threads>		: the number of threads to use in the process (optional, default = 5)
+* dryrun <true/false>		: if set to true just print the statistics (optional, default = false)"""
 
     def _init(self):
 	self.parameters = ['?sourceFilesystem', '?sourceFolder', '?destFilesystem',
@@ -2289,7 +2290,7 @@ The replicamove command accepts the following parameters:
 			elif given[i] == "lifetime":
 				parameters['lifetime'] = given[i+1]
 			elif given[i] == "spacetoken":
-				parameters['specetoken'] = given[i+1]
+				parameters['spacetoken'] = given[i+1]
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
                                 if nthreads < 1 or nthreads > 20:
@@ -2461,11 +2462,22 @@ class DrainFileReplica(object):
 
         #step 5 : replicate files
 	self.parameters['filename']=filename
+	
+	#step 5-1: check spacetoken parameters,if set use that one 
+	spacetoken = None
+	try:
+		spacetoken =  self.parameters['spacetoken']
+		self.logOK("Assign the spacetoken " + spacetoken + " to the file with replica sfn: "+ self.fileReplica.sfn +"\n")
+	except:
+		pass
 
-	#step 5-1: check spacetoken
-        if self.fileReplica.setname is not "":
-		self.parameters['spacetoken']= self.fileReplica.setname
+	if spacetoken:
+		pass
+	elif self.fileReplica.setname is not "":
+		self.parameters['spacetoken'] = self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
+
+
         replicate = Replicate(self.interpreter,self.parameters)
 
         self.logOK("Trying to replicate file: "+ filename+"\n");
@@ -2609,7 +2621,7 @@ class DrainReplicas(object):
         		return
 		
         	for i in range(0,self.nthreads):
-                	thread = DrainThread(self.interpreter, i, self.parameters)
+                	thread = DrainThread(self.interpreter, i, LocalParams(self.parameters))
                 	thread.setDaemon(True)
                 	thread.start()
 			self.threadpool.append(thread)
