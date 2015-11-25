@@ -2236,9 +2236,9 @@ class ReplicaMoveCommand(ShellCommand):
 
 The replicamove command accepts the following parameters:
 
-* sourceFileSystem		: the source fileystem where to move the replicas from ( in the form servername:fsname)
-* sourceFolder		: the source folder
-* destFilesystem		: the filesystem where to move the file to ( in the form as servername:fsname)
+* <sourceFileSystem>		: the source fileystem where to move the replicas from ( in the form servername:fsname)
+* <sourceFolder>		: the source folder
+* <destFilesystem>		: the filesystem where to move the file to ( in the form as servername:fsname)
 * filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
 * lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
 * spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional), by default the original spacetoken will be assigned if present
