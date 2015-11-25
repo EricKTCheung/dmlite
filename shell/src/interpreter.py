@@ -2060,17 +2060,17 @@ class Response(object):
 			return 0
 		elif 'Failed' in marker:
 			return marker
-	return 0
+	return 1
   def printMarkers(self):
 	for marker in self.markers:
 		print marker
 	
 class Replicate(object):
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
-    def __init__(self,interpreter,parameters):
+    def __init__(self,interpreter,parameters,spacetoken=None):
 	self.interpreter=interpreter
 	self.parameters =parameters
-
+	self.spacetoken = spacetoken
 	self.interpreter.replicaQueueLock.acquire()
         securityContext= self.interpreter.stackInstance.getSecurityContext()
         securityContext.user.name = self.parameters['adminUserName']
@@ -2135,11 +2135,11 @@ class Replicate(object):
 
                 lifetime.setLong(_lifetime)
                 self.interpreter.stackInstance.set("lifetime",lifetime)
-        if 'spacetoken' in self.parameters:
+        if self.spacetoken:
                 #spacetoken
-                spacetoken = pydmlite.boost_any()
-                spacetoken.setString(self.parameters['spacetoken'])
-                self.interpreter.stackInstance.set("SpaceToken",spacetoken)
+                _spacetoken = pydmlite.boost_any()
+                _spacetoken.setString(self.spacetoken)
+                self.interpreter.stackInstance.set("SpaceToken",_spacetoken)
 
 	self.interpreter.replicaQueueLock.release()
 
@@ -2201,9 +2201,6 @@ class Replicate(object):
 		self.interpreter.error(e.__str__())
                 return (False,sfn, e.__str__())
 
-class LocalParams(threading.local):
-    def __init__(self, v):
-        self.parameters = v
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
@@ -2211,7 +2208,7 @@ class DrainThread (threading.Thread):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
-	self.parameters= parameters.parameters
+	self.parameters= parameters
 	self.stopEvent =  threading.Event()
 
     def run(self):
@@ -2240,13 +2237,17 @@ class ReplicaMoveCommand(ShellCommand):
 The replicamove command accepts the following parameters:
 
 * sourceFileSystem		: the source fileystem where to move the replicas from ( in the form servername:fsname)
-* sourceFolder			: the source folder
-* destfilesystem		: the filesystem where to move the file to ( in the form as servername:fsname)
+* sourceFolder		: the source folder
+* destFilesystem		: the filesystem where to move the file to ( in the form as servername:fsname)
 * filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
 * lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
-* spacetoken <spacetoken>	: the spacetoken to assign the new replica to (optional), by default the original spacetoken will be assigned if present
+* spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional), by default the original spacetoken will be assigned if present
 * nthreads <threads>		: the number of threads to use in the process (optional, default = 5)
-* dryrun <true/false>		: if set to true just print the statistics (optional, default = false)"""
+* dryrun <true/false>		: if set to true just print the statistics (optional, default = false)
+
+ex:
+	replicamove dpmdisk01.cern.ch:/srv/dpm/01 /dteam/2015-11-25/ dpmdisk02.cern.ch:/srv/dpm/01 spacetoken 5a2796d6-81e4-42f3-959a-e497ef40e604
+"""
 
     def _init(self):
 	self.parameters = ['?sourceFilesystem', '?sourceFolder', '?destFilesystem',
@@ -2333,12 +2334,12 @@ class ReplicateCommand(ShellCommand):
 
 The replicate command accepts the following parameters:
 
-* <filename> 			: the file to replicate (absolute path)
-* poolname  <poolname> 		: the pool where to replicate the file to (optional)
-* filesystem <filesystemname> 	: the filesystem where to replicate the file to, specified as servername:fsname (optional)
-* filetype <filetype> 		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
-* lifetime <lifetime> 		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
-* spacetoken <spacetoken>	: the spacetoken to assign the new replica to (optional)"""
+* <filename>			: the file to replicate (absolute path)
+* poolname  <poolname>		: the pool where to replicate the file to (optional)
+* filesystem <filesystemname>	: the filesystem where to replicate the file to, specified as servername:fsname (optional)
+* filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
+* lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
+* spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional)"""
 
     def _init(self):
         self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
@@ -2368,12 +2369,18 @@ The replicate command accepts the following parameters:
           filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
 	parameters['filename'] = filename
 	parameters['adminUserName'] = adminUserName
+	spacetoken = None
 
 	for i in range(1, len(given),2):
 		parameters[given[i]] = given[i+1]
 
+	try:
+		spacetoken= parameters['spacetoken']
+	except:
+		pass
+
 	try:	
-		replicate = Replicate(self.interpreter,parameters)
+		replicate = Replicate(self.interpreter,parameters,spacetoken=spacetoken)
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.error(e.__str__())
@@ -2474,11 +2481,11 @@ class DrainFileReplica(object):
 	if spacetoken:
 		pass
 	elif self.fileReplica.setname is not "":
-		self.parameters['spacetoken'] = self.fileReplica.setname
+		spacetoken = self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
 
 
-        replicate = Replicate(self.interpreter,self.parameters)
+        replicate = Replicate(self.interpreter,self.parameters, spacetoken=spacetoken)
 
         self.logOK("Trying to replicate file: "+ filename+"\n");
 
@@ -2621,7 +2628,7 @@ class DrainReplicas(object):
         		return
 		
         	for i in range(0,self.nthreads):
-                	thread = DrainThread(self.interpreter, i, LocalParams(self.parameters))
+                	thread = DrainThread(self.interpreter, i, self.parameters)
                 	thread.setDaemon(True)
                 	thread.start()
 			self.threadpool.append(thread)
@@ -2647,10 +2654,10 @@ class DrainPoolCommand(ShellCommand):
 
 The drainpool command accepts the following parameters:
 
-* <poolname> 		: the pool to drain 
-* group <groupname> 	: the group the files to drain belongs to  (optional, default = ALL)
-* size <size> 		: the percentage of size to drain (optional, default = 100)
-* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* <poolname>		: the pool to drain 
+* group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
+* size <size>		: the percentage of size to drain (optional, default = 100)
+* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
 * dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
     
     def _init(self):
@@ -2758,10 +2765,10 @@ class DrainFSCommand(ShellCommand):
 
 The drainfs command accepts the following parameters:
 
-* <servername> 	 	: the FQDN of the server to drain  
-* group <groupname> 	: the group the files to drain belongs to  (optional, default = ALL)
-* size <size> 		: the percentage of size to drain (optional, default = 100)
-* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* <servername>	: the FQDN of the server to drain  
+* group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
+* size <size>	: the percentage of size to drain (optional, default = 100)
+* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
 * dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
 
     def _init(self):
@@ -2871,10 +2878,10 @@ class DrainServerCommand(ShellCommand):
 
 The drainserver command accepts the following parameters:
 
-* <servername> 		: the FQDN of the server to drain  
-* group <groupname> 	: the group the files to drain belongs to (optional, default = ALL)
-* size <size> 		: the percentage of size to drain (optional, default = 100)
-* nthreads <threads> 	: the number of threads to use in the drain process (optional, default = 5)
+* <servername>	: the FQDN of the server to drain  
+* group <groupname>	: the group the files to drain belongs to (optional, default = ALL)
+* size <size>	: the percentage of size to drain (optional, default = 100)
+* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
 * dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
 
     def _init(self):
