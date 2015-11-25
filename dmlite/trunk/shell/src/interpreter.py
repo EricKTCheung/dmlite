@@ -2496,7 +2496,7 @@ class DrainFileReplica(object):
 	        (replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.logError(e.__str__())
-		self.logError("Error Draining Replica for file: " +filename+"\n")
+		self.logError("Error moving Replica for file: " +filename+"\n")
 		self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, e.__str__()))
 		if destination:
 			#logging only need to clean pending replica
@@ -2510,7 +2510,7 @@ class DrainFileReplica(object):
 			self.logError("Error while copying to SFN: " +destination+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +error))
 		else:	
-			self.logError("Error Draining Replica for file: " +filename+"\n")
+			self.logError("Error moving Replica for file: " +filename+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, error))
 			return 1
 
