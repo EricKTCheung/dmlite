@@ -63,26 +63,30 @@ std::vector<Pool> MySqlPoolManager::getPools(PoolAvailability availability) thro
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Poolavailability: " << availability);
 
-  std::vector<Pool> pools;
-  time_t timenow = time(0);
   {
     boost::shared_lock<boost::shared_mutex> l(poolmtx_);
-    if (pools_.pool_lastupd >= timenow - 60) {
+    time_t timenow = time(0);
+    if (pools_.pool_lastupd <= timenow + 60 && pools_.pool_lastupd >= timenow - 60) {
       Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
       return filterPools(pools_.pools, availability);
     }
   }
 
-  pools = getPoolsFromMySql();
-
+  std::vector<Pool> pools;
   {
     boost::unique_lock<boost::shared_mutex> l(poolmtx_);
-    pools_.pools.assign(pools.begin(), pools.end());
-    pools_.pool_lastupd = timenow;
+    time_t timenow = time(0);
+    if (pools_.pool_lastupd <= timenow + 60 && pools_.pool_lastupd >= timenow - 60) {
+      // updated in the meantime and valid again
+      pools = pools_.pools;
+    } else {
+      pools = getPoolsFromMySql();
+      pools_.pools.assign(pools.begin(), pools.end());
+      pools_.pool_lastupd = timenow;
+    }
   }
-
-  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools_.pools.size());
-  return filterPools(pools_.pools, availability);
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. npools:" << pools.size());
+  return filterPools(pools, availability);
 }
 
 
