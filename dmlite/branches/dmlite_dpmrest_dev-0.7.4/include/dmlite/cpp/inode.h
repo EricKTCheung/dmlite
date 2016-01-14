@@ -53,7 +53,7 @@ namespace dmlite {
           for (unsigned i = 0; i < keys.size(); ++i) {
             if (checksums::isChecksumFullName(keys[i])) {
               std::string csumXattr = keys[i];
-              shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
+              shortCsumType = checksums::shortChecksumName(csumXattr);
               if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
                 csumvalue     = getString(csumXattr);
                 csumtype      = shortCsumType;

@@ -17,7 +17,7 @@ option (BUILD_SHELL "Build the dmlite shell" ON)
 option (BUILD_MYSQL "Build the mysql plugin" ON)
 option (BUILD_MEMCACHE "Build the memcache plugin" ON)
 option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
-option (BUILD_DPMREST "Build the dpmrest fastcgi component" ON)
+option (BUILD_DPMREST "Build the dome fastcgi component" ON)
 
 OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
 OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
@@ -113,6 +113,7 @@ include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_SOURCE_DIR}/src
                      ${Boost_INCLUDE_DIRS}
                      ${APR_INCLUDE_DIR}
                      )
