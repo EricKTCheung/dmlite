@@ -4,71 +4,19 @@
 #ifndef MYSQL_H
 #define	MYSQL_H
 
-#include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/catalog.h>
-#include <dmlite/cpp/poolmanager.h>
-#include <dmlite/cpp/io.h>
-#include <dmlite/cpp/utils/poolcontainer.h>
+#include "dmlite/cpp/dmlite.h"
+#include "dmlite/cpp/catalog.h"
+#include "dmlite/cpp/poolmanager.h"
+#include "dmlite/cpp/io.h"
+#include "dmlite/cpp/utils/poolcontainer.h"
 #include <mysql/mysql.h>
-
+#include "utils/mysqlpools.h"
 
 namespace dmlite {
 
   
 extern Logger::bitmask mysqllogmask;
 extern Logger::component mysqllogname;
-
-
-/// Factory for mysql connections
-/// This is just mechanics of how the Poolcontainer class works
-/// and wraps the creation of the actual mysql conns
-class MySqlConnectionFactory: public PoolElementFactory<MYSQL*> {
-public:
-  MySqlConnectionFactory();
-
-  MYSQL* create();
-  void   destroy(MYSQL*);
-  bool   isValid(MYSQL*);
-
-  // Attributes
-  std::string  host;
-  unsigned int port;
-  std::string  user;
-  std::string  passwd;
-
-  
-  int dirspacereportdepth;
-protected:
-private:
-};
-
-/// Holder of mysql connections, base class singleton holding the mysql conn pool
-class MySqlHolder {
-public:
-  
-  static PoolContainer<MYSQL*> &getMySqlPool() throw(DmException);
-  static bool configure(const std::string& key, const std::string& value);
-  ~MySqlHolder();	 
-
-private:
-  int poolsize;
-  
-  // Ctor initializes the local mysql factory and
-  // creates the shared pool of mysql conns
-  MySqlHolder();	 
-
-  static MySqlHolder *getInstance();
-  static MySqlHolder *instance;
-  
-  /// Connection factory.
-  MySqlConnectionFactory connectionFactory_;
-
-  /// Connection pool.
-  static PoolContainer<MYSQL*> *connectionPool_;
-  
-};
-
-
 
 
 /// Concrete dmlite factory for name space stuff, e.g. DPNS/LFC.

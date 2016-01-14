@@ -34,7 +34,7 @@ install(TARGETS dmlite
 add_subdirectory (plugins)
 
 if (BUILD_DPMREST)
-  add_subdirectory(dpmrest)
+  add_subdirectory(dome)
 else()
     message("-- The dpmrest fastcgi component will NOT be built")
 endif()

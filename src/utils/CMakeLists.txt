@@ -6,5 +6,6 @@ set(DMLITE_UTILS_SOURCES utils/Checksums.cpp
                          utils/Extensible.cpp
                          utils/Security.cpp
                          utils/Urls.cpp
-                         utils/Logger.cpp
+                         utils/Logger.cpp                       
+                         
     PARENT_SCOPE)

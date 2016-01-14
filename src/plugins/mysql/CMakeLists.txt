@@ -14,7 +14,8 @@ add_library (mysql MODULE AuthnMySql.cpp
                           NsMySql.cpp
                           Queries.cpp
                           MySqlIO.cpp
-            )
+                          ../../utils/MySqlPools.cpp
+)
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries (mysql boost_system dmlite ${MYSQL_LIBRARIES})
