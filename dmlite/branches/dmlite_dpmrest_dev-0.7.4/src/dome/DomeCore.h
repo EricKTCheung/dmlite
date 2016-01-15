@@ -34,6 +34,7 @@
 #include <fcgiapp.h>
 #include <fcgio.h>
 #include "utils/Config.hh"
+#include "DomeMysql.h"
 
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
   
