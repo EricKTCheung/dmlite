@@ -6,7 +6,7 @@ include_directories(${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR} ${DAVIX_PKG_INCLUD
 set(Dome_SOURCES dpmrest.cpp DomeGenQueue.cpp DomeCore.cpp DomeLog.cpp DomeTaskExec.cpp DomeReq.cpp)
 
 add_executable        (dome ${Dome_SOURCES})
-target_link_libraries (dome fcgi ${DAVIX_PKG_LIBRARIES} ${MYSQL_LIBRARIES} ssl crypto dmlite pthread dl)
+target_link_libraries (dome fcgi ${DAVIX_PKG_LIBRARIES} ${MYSQL_LIBRARIES} ${Boost_LIBRARIES} crypto dmlite pthread dl)
 
 # Install
 install (TARGETS dome
