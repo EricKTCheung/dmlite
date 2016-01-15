@@ -20,7 +20,7 @@
 /** @file   DomeReq.h
  * @brief  A helper class that describes a request to dpmrest, with helpers to parse it
  * @author Fabrizio Furano
- * @date   Aug 2015
+ * @date   Dec 2015
  */
 
 
