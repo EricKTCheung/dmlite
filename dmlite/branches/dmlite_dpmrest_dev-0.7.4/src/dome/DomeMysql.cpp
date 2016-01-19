@@ -30,6 +30,8 @@
 #include "DomeStatus.h"
 #include "DomeLog.h"
 
+#include "boost/thread.hpp"
+
 using namespace dmlite;
 
 
@@ -146,7 +148,42 @@ int DomeMySql::getSpacesQuotas(DpmrStatus &st)
   
   // MySQL statement, we need no transaction here
   PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-  //Statement stmt(conn, this->nsDb_, STMT_GET_FILE_REPLICAS);
+  Statement stmt(conn, this->nsDb_, 
+    "SELECT rowid, u_token, t_space, assign_time, path\
+        FROM dpm_space_reserv"
+  );
+  stmt.execute();
   
-  // blah do the rest
+  DpmrQuotatoken qt;
+  char buf1[1024], buf2[1024];
+  
+  stmt.bindResult(0, &qt.rowid);
+  
+  memset(buf1, 0, sizeof(buf1));
+  stmt.bindResult(1, buf1, 256);
+  
+  stmt.bindResult(2, &qt.t_space);
+  
+  memset(buf2, 0, sizeof(buf2));
+  stmt.bindResult(3, buf2, 256);
+  
+  bool end = stmt.fetch();
+  int cnt = 0;
+  
+  while (!end) {
+    
+    boost::unique_lock<boost::recursive_mutex> l(st);
+    Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid <<
+      " u_token:" << buf1 << " t_space:" << qt.t_space << " path:" << qt.path);
+    
+    qt.u_token = buf1;
+    qt.path = buf2;
+    st.quotas[qt.path] = qt;
+  
+    
+    end = stmt.fetch();
+    cnt++;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
 }

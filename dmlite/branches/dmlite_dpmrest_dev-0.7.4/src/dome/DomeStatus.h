@@ -54,21 +54,15 @@ public:
 
 /// Information about a quota on a directory. This comes from the historical spacetoken information
 class DpmrQuotatoken {
-
+public:
   /// An ID
-  long long rowid;
-  
-  /// Spacetoken name
-  std::string s_token;
-  
-  /// Seems to be a description
+  int64_t rowid;
+    
+  /// Spacetoken human name
   std::string u_token;
 
   /// Total space of this quota or spacetoken
-  long long t_space;
-
-  /// Creation time of this spacetoken
-  time_t assign_time;
+  int64_t t_space;
   
   /// Path prefix this structure is assigned to, in the quotatoken use case
   /// No trailing slash !
