@@ -23,3 +23,69 @@
  * @date   Jan 2016
  */
 
+#include <string>
+#include <mysql/mysql.h>
+
+
+class DpmrStatus;
+
+
+
+
+class DomeMySql {
+public:
+  /// Acquires a mysql connection on creation
+  DomeMySql(std::string &dbconnstring);
+  
+  int begin();
+  int rollback();
+  int commit();
+  
+  /// Loads spaces and quotas into the status
+  int getSpacesQuotas(DpmrStatus &st);
+  
+  protected:
+    // The corresponding factory.
+    //NsMySqlFactory* factory_;
+
+    /// Transaction level, so begins and commits can be nested.
+    unsigned transactionLevel_;
+
+  private:
+    /// The db conn string we use
+    std::string nsDb_;
+
+    // Connection
+    MYSQL *conn_;
+
+};
+
+
+
+
+
+
+  /// Convenience class that releases a resource on destruction
+  class DomeMySqlTrans {
+  public:
+    DomeMySqlTrans(DomeMySql *o)
+    {
+      obj = o;
+      obj->begin();
+    }
+
+    ~DomeMySqlTrans() {
+      if (obj != 0) obj->rollback();
+      obj = 0;
+    }
+
+    void Commit() {
+      if (obj != 0) obj->commit();
+      obj = 0;
+    }
+
+  private:
+    DomeMySql *obj;
+
+  };
+

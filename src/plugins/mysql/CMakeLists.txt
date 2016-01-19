@@ -10,7 +10,7 @@ include_directories (${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR})
 add_library (mysql MODULE AuthnMySql.cpp
                           DpmMySql.cpp
                           MySqlFactories.cpp
-                          MySqlWrapper.cpp
+                          ../../utils/MySqlWrapper.cpp
                           NsMySql.cpp
                           Queries.cpp
                           MySqlIO.cpp

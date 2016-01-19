@@ -8,4 +8,5 @@ set(DMLITE_UTILS_SOURCES utils/Checksums.cpp
                          utils/Urls.cpp
                          utils/Logger.cpp                       
                          
+                         
     PARENT_SCOPE)

@@ -52,19 +52,29 @@ public:
 };
 
 
+/// Information about a quota on a directory. This comes from the historical spacetoken information
+class DpmrQuotatoken {
 
-
-
-
-
-/// Quotas are applied to directory prefixes
-/// NOTE: the prefix is always stored and treated WITHOUT trailing slash
-class DpmQuotaInfo {
+  /// An ID
+  long long rowid;
   
-  long long maxbytes;
+  /// Spacetoken name
+  std::string s_token;
+  
+  /// Seems to be a description
+  std::string u_token;
+
+  /// Total space of this quota or spacetoken
+  long long t_space;
+
+  /// Creation time of this spacetoken
+  time_t assign_time;
+  
+  /// Path prefix this structure is assigned to, in the quotatoken use case
+  /// No trailing slash !
+  std::string path;
+
 };
-
-
 
 
 
@@ -78,7 +88,7 @@ public:
   
   /// Simple keyvalue store for prefix-based quotas.
   /// The key is the prefix without trailing slashes
-  std::map <std::string, DpmQuotaInfo> quotas;
+  std::map <std::string, DpmrQuotatoken> quotas;
   
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems

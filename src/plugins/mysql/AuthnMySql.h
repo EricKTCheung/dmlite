@@ -7,7 +7,7 @@
 #include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/utils/poolcontainer.h>
 #include <mysql/mysql.h>
-#include "MySqlWrapper.h"
+#include "utils/MySqlWrapper.h"
 
 namespace dmlite {
   
