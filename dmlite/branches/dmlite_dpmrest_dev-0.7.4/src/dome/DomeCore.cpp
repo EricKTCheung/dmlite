@@ -57,7 +57,10 @@ int DpmrCore::tick() {
 
 
 
-  int DpmrCore::dpmr_put(DpmrReq &req, FCGX_Request &request) {};
+  int DpmrCore::dpmr_put(DpmrReq &req, FCGX_Request &request) {
+    
+    
+  };
   int DpmrCore::dpmr_putdone(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_getspaceinfo(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_getquotatoken(DpmrReq &req, FCGX_Request &request) {};

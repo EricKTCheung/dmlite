@@ -10,7 +10,7 @@
 #include <mysql/mysql.h>
 #include <vector>
 
-#include "MySqlWrapper.h"
+#include "utils/MySqlWrapper.h"
 
 namespace dmlite {
   
