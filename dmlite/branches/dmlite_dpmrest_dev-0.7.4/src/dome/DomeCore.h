@@ -51,7 +51,7 @@ public:
       initdone = false;
       
   }
-  
+  virtual ~DpmrCore() {};
 
   /// Reads the config file and initializes all the subsystems
   /// After this call everything has to be operative
@@ -103,10 +103,10 @@ protected:
 
   
   /// Send a notification to the head node about the completion of this task
-  virtual void onTaskCompleted(DpmrTask &task) {}
+  virtual void onTaskCompleted(DpmrTask &task);
   
   /// Send a notification to the head node about a task that is running
-  virtual void onTaskRunning(DpmrTask &task) {}
+  virtual void onTaskRunning(DpmrTask &task);
 };
 
 
