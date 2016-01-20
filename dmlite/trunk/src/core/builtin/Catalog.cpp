@@ -218,7 +218,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         while (i < components.size()) {
           components.pop_back();
         }
-        
+	//re-add / at the beginning
+	components.insert( components.begin(),std::string(1,'/'));        
         throw DmException(ENOENT, "Entry '%s' not found under '%s'",
                           c.c_str(), Url::joinPath(components).c_str());
       }
