@@ -25,7 +25,7 @@
 
 
 #include "DomeCore.h"
-
+#include "DomeLog.h"
 
 
 
@@ -34,35 +34,78 @@
 
 
 int DpmrCore::init(char *cfgfile) {
-  
-  // Read the config file
-  
-  // Allocate the mysql factory and configure it
-  
-  // The limits for the prio queues, get them from the cfg 
-  std::vector<int> limits;
-  limits.push_back(1);
-  
-  // Create the queues
-  status.checksumq = new GenPrioQueue(30, limits);
-  status.filepullq = new GenPrioQueue(30, limits);
-      
-  return 0;
+  const char *fname = "UgrConnector::init";
+  {
+    boost::lock_guard<boost::recursive_mutex> l(mtx);
+    if (initdone) return -1;
+    
+    Logger::get()->setLevel(Logger::Lvl4);
+    
+    // Process the config file
+    Log(Logger::Lvl1, domelogmask, domelogname, "------------------------------------------");
+    Log(Logger::Lvl1, domelogmask, domelogname, "------------ Starting. Config: " << cfgfile);
+    
+    if (!cfgfile || !strlen(cfgfile)) {
+      Err(fname, "No config file given." << cfgfile);
+      return -1;
+    }
+    
+    if (CFG->ProcessFile(cfgfile)) {
+      Err(fname, "Error processing config file." << cfgfile << std::endl);
+      return 1;
+    }
+    
+    // Initialize the logger
+    long debuglevel = CFG->GetLong("glb.debug", 1);
+    Logger::get()->setLevel((Logger::Level)debuglevel);
+    
+    
+    // The limits for the prio queues, get them from the cfg 
+    std::vector<int> limits;
+    limits.push_back( CFG->GetLong("head.maxchecksums", 10) );
+    limits.push_back( CFG->GetLong("head.maxchecksumspernode", 10) );
+    
+    // Create the chksum queue
+    status.checksumq = new GenPrioQueue(30, limits);
+    
+    // Create the queue for the callouts
+    limits.clear();
+    limits.push_back( CFG->GetLong("head.maxcallouts", 10) );
+    limits.push_back( CFG->GetLong("head.maxcalloutspernode", 10) );
+    status.filepullq = new GenPrioQueue(30, limits);
+    
+    // Allocate the mysql factory and configure it
+    DomeMySql::configure( CFG->GetString("glb.db.host",     (char *)"localhost"),
+                          CFG->GetString("glb.db.user",     (char *)"guest"),
+                          CFG->GetString("glb.db.password", (char *)"none"),
+                          CFG->GetLong  ("glb.db.port",     0),
+                          CFG->GetLong  ("glb.db.poolsz",   10) );
+    
+    // Try getting a db connection and use it. If it does not work
+    // an exception will just kill us, which is what we want
+    DomeMySql sql;
+    status.loadQuotatokens();
+    status.loadFilesystems();
+    
+    return 0;
+  }
 }
-
+  
 int DpmrCore::tick() {
-  status.reloadQuotas();
+
+  // At regular intervals, one minute or so,
+  // reloading the filesystems and the quotatokens is a good idea
+  status.loadQuotatokens();
+  status.loadFilesystems();
+
 }
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
   int DpmrCore::dpmr_put(DpmrReq &req, FCGX_Request &request) {
     
     
@@ -78,19 +121,20 @@ int DpmrCore::tick() {
   int DpmrCore::dpmr_get(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_pulldone(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_statpool(DpmrReq &req, FCGX_Request &request) {};
-
+  
   
   int DpmrCore::dpmr_pull(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_dochksum(DpmrReq &req, FCGX_Request &request) {};
   int DpmrCore::dpmr_statfs(DpmrReq &req, FCGX_Request &request) {};
-
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

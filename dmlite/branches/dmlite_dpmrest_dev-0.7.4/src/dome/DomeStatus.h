@@ -93,10 +93,10 @@ public:
   int addFilesystem(DpmrFsInfo &fs);
   
   /// Helper function that reloads all the filesystems from the DB
-  int reloadFilesystems();
+  int loadFilesystems();
   
   /// Helper function that reloads all the quotas from the DB
-  int reloadQuotas();
+  int loadQuotatokens();
   
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;

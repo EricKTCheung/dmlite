@@ -97,6 +97,7 @@ public:
   
 private:
   bool initdone;
+  boost::recursive_mutex mtx;
   
 protected:
 

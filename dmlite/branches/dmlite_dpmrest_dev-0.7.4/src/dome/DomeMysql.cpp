@@ -46,23 +46,15 @@ DomeMySql::~DomeMySql() {
 
 
 
-DomeMySql::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
-  MySqlHolder *h = getInstance();
+void DomeMySql::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
+  
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Configuring MySQL access. host:'" << host <<
   "' user:'" << username <<
   "' port:'" << port <<
   "' poolsz:" << poolsize);;
   
-  h->connectionFactory_.host = host;
-  h->connectionFactory_.user = user;
-  h->connectionFactory_.passwd = password;
-  h->connectionFactory_.port = port;
-  
-  int n = atoi(value.c_str());
-  h->poolsize = (poolsize < h->poolsize ? h->poolsize : poolsize);
-  if (h->connectionPool_)
-    h->connectionPool_->resize(h->poolsize);
+  MySqlHolder::configure(host, username, password, port, poolsize);
   
   
 }
@@ -181,7 +173,7 @@ int DomeMySql::getSpacesQuotas(DpmrStatus &st)
   
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   
-  Statement stmt(conn_, this->nsDb_, 
+  Statement stmt(conn_, "dpm_db", 
                  "SELECT rowid, u_token, t_space, assign_time, path\
                  FROM dpm_space_reserv"
   );
