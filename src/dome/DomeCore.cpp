@@ -128,7 +128,15 @@ int DpmrCore::tick() {
   int DpmrCore::dpmr_statfs(DpmrReq &req, FCGX_Request &request) {};
   
   
+/// Send a notification to the head node about the completion of this task
+void DpmrCore::onTaskCompleted(DpmrTask &task) {
   
+}
+  
+/// Send a notification to the head node about a task that is running
+void DpmrCore::onTaskRunning(DpmrTask &task) {
+  
+}
   
   
   
