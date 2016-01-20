@@ -23,6 +23,8 @@
  * @date   Dec 2015
  */
 
+#ifndef DOMETASKEXEC_H
+#define DOMETASKEXEC_H
 
 #include <boost/thread.hpp>
 
@@ -68,6 +70,9 @@ public:
 /// e.g. for running checksums or file copies and pulls
 class DpmrTaskExec {
 public:
+  DpmrTaskExec();
+  virtual ~DpmrTaskExec();
+  
   /// Executes a command. Returns a positive integer as a key to reference
   /// the execution status and the result
   /// The mechanics is that a detached thread is started. This guy invokes popen3
@@ -115,3 +120,6 @@ private:
   
   friend void taskfunc(DpmrTaskExec *, int);
 };
+
+
+#endif
