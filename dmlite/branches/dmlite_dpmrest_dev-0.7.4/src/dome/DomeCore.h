@@ -23,7 +23,8 @@
  * @date   Dec 2015
  */
 
-
+#ifndef DOMECORE_H
+#define DOMECORE_H
 
 
 #include "DomeStatus.h"
@@ -106,3 +107,12 @@ protected:
   /// Send a notification to the head node about a task that is running
   virtual void onTaskRunning(DpmrTask &task) {}
 };
+
+
+
+
+
+
+
+
+#endif

@@ -36,22 +36,57 @@ using namespace dmlite;
 
 
 
+DomeMySql::DomeMySql() {
+  conn_ = MySqlHolder::getMySqlPool().acquire();
+}
+
+DomeMySql::~DomeMySql() {
+  MySqlHolder::getMySqlPool().release(conn_);
+}
+
+
+
+DomeMySql::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
+  MySqlHolder *h = getInstance();
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Configuring MySQL access. host:'" << host <<
+  "' user:'" << username <<
+  "' port:'" << port <<
+  "' poolsz:" << poolsize);;
+  
+  h->connectionFactory_.host = host;
+  h->connectionFactory_.user = user;
+  h->connectionFactory_.passwd = password;
+  h->connectionFactory_.port = port;
+  
+  int n = atoi(value.c_str());
+  h->poolsize = (poolsize < h->poolsize ? h->poolsize : poolsize);
+  if (h->connectionPool_)
+    h->connectionPool_->resize(h->poolsize);
+  
+  
+}
+
+
+
+
+
 
 
 int DomeMySql::begin()
 {
   const char *fname = "DomeMySql::begin";
   Log(Logger::Lvl4, domelogmask, domelogname, "Starting transaction");
-
+  
   if (!conn_) {
     conn_ = MySqlHolder::getMySqlPool().acquire();
   }
-
+  
   if (!conn_) {
     Err(fname, "No MySQL connection handle");
     return -1;
   }
-
+  
   if (this->transactionLevel_ == 0 && mysql_query(this->conn_, "BEGIN") != 0) {
     unsigned int merrno = mysql_errno(this->conn_);
     std::string merror = mysql_error(this->conn_);
@@ -72,13 +107,13 @@ int DomeMySql::commit()
   const char *fname = "DomeMySql::commit";
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Commit transaction");
-
+  
   if (this->transactionLevel_ == 0) {
     Err(fname, "INodeMySql::commit Inconsistent state (Maybe there is a\
- commit without a begin, or a badly handled error sequence.)");
+    commit without a begin, or a badly handled error sequence.)");
     return -1;
   }
-
+  
   if (!conn_) {
     Err(fname, "No MySQL connection handle");
     return -1;
@@ -90,7 +125,7 @@ int DomeMySql::commit()
     int qret;
     unsigned int merrno = 0;
     std::string merror;
-
+    
     Log(Logger::Lvl4, domelogmask, domelogname, "Releasing transaction.");
     qret = mysql_query(conn_, "COMMIT");
     if (qret != 0) {
@@ -115,42 +150,40 @@ int DomeMySql::rollback()
   Log(Logger::Lvl4, domelogmask, domelogname, "");
   
   this->transactionLevel_ = 0;
-
+  
   if (conn_) {
     int qret;
     unsigned int merrno = 0;
     std::string merror;
-
+    
     qret = mysql_query(this->conn_, "ROLLBACK");
-
+    
     if (qret != 0) {
       merrno = mysql_errno(this->conn_);
       merror = mysql_error(this->conn_);
     }
-
+    
     MySqlHolder::getMySqlPool().release(conn_);
     conn_ = 0;
-  
+    
     if (qret != 0) {
       Err(domelogname, "Cannot rollback: " << DMLITE_DBERR(merrno) << " " << merror);
       return -1;
       
     }
   }
-
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
 }
 
 int DomeMySql::getSpacesQuotas(DpmrStatus &st)
 {
-
+  
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   
-  // MySQL statement, we need no transaction here
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-  Statement stmt(conn, this->nsDb_, 
-    "SELECT rowid, u_token, t_space, assign_time, path\
-        FROM dpm_space_reserv"
+  Statement stmt(conn_, this->nsDb_, 
+                 "SELECT rowid, u_token, t_space, assign_time, path\
+                 FROM dpm_space_reserv"
   );
   stmt.execute();
   
@@ -174,12 +207,12 @@ int DomeMySql::getSpacesQuotas(DpmrStatus &st)
     
     boost::unique_lock<boost::recursive_mutex> l(st);
     Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid <<
-      " u_token:" << buf1 << " t_space:" << qt.t_space << " path:" << qt.path);
+    " u_token:" << buf1 << " t_space:" << qt.t_space << " path:" << qt.path);
     
     qt.u_token = buf1;
     qt.path = buf2;
     st.quotas[qt.path] = qt;
-  
+    
     
     end = stmt.fetch();
     cnt++;

@@ -23,6 +23,9 @@
  * @date   Jan 2016
  */
 
+#ifndef DOMEMYSQL_H
+#define DOMEMYSQL_H
+
 #include <string>
 #include <mysql/mysql.h>
 
@@ -34,30 +37,38 @@ class DpmrStatus;
 
 class DomeMySql {
 public:
-  /// Acquires a mysql connection on creation
-  DomeMySql(std::string &dbconnstring);
   
+  /// The db conn string is not needed, as the mysqlholder should
+  /// be configured before this class 
+  /// Creating an instance of DomeMySql acquires a mysql connection and keeps it
+  /// until the destruction
+  DomeMySql();
+  virtual ~DomeMySql();
+  
+  static configure(std::string 
+  /// Transaction control.
+  /// To have the scoped behaviour the DomeMySqlTrans can be used
   int begin();
   int rollback();
   int commit();
   
-  /// Loads spaces and quotas into the status
-  int getSpacesQuotas(DpmrStatus &st);
+  // All the helper primitives are here, for quick usage
   
-  protected:
-    // The corresponding factory.
-    //NsMySqlFactory* factory_;
+  /// Loads spaces and quotas into the status
+  getSpacesQuotas(DpmrStatus &st);
+  
+protected:
+  // The corresponding factory.
+  //NsMySqlFactory* factory_;
+  
+  /// Transaction level, so begins and commits can be nested.
+  unsigned transactionLevel_;
+  
+private:
 
-    /// Transaction level, so begins and commits can be nested.
-    unsigned transactionLevel_;
-
-  private:
-    /// The db conn string we use
-    std::string nsDb_;
-
-    // Connection
-    MYSQL *conn_;
-
+  // Connection
+  MYSQL *conn_;
+  
 };
 
 
@@ -65,27 +76,28 @@ public:
 
 
 
-  /// Convenience class that releases a resource on destruction
-  class DomeMySqlTrans {
-  public:
-    DomeMySqlTrans(DomeMySql *o)
-    {
-      obj = o;
-      obj->begin();
-    }
+/// Convenience class that releases a transaction on destruction
+class DomeMySqlTrans {
+public:
+  DomeMySqlTrans(DomeMySql *o)
+  {
+    obj = o;
+    obj->begin();
+  }
+  
+  ~DomeMySqlTrans() {
+    if (obj != 0) obj->rollback();
+    obj = 0;
+  }
+  
+  void Commit() {
+    if (obj != 0) obj->commit();
+    obj = 0;
+  }
+  
+private:
+  DomeMySql *obj;
+  
+};
 
-    ~DomeMySqlTrans() {
-      if (obj != 0) obj->rollback();
-      obj = 0;
-    }
-
-    void Commit() {
-      if (obj != 0) obj->commit();
-      obj = 0;
-    }
-
-  private:
-    DomeMySql *obj;
-
-  };
-
+#endif
