@@ -35,9 +35,15 @@
 
 int DpmrCore::init(char *cfgfile) {
   
+  // Read the config file
+  
+  // Allocate the mysql factory and configure it
+  
+  // The limits for the prio queues, get them from the cfg 
   std::vector<int> limits;
   limits.push_back(1);
   
+  // Create the queues
   status.checksumq = new GenPrioQueue(30, limits);
   status.filepullq = new GenPrioQueue(30, limits);
       
@@ -45,7 +51,7 @@ int DpmrCore::init(char *cfgfile) {
 }
 
 int DpmrCore::tick() {
-  
+  status.reloadQuotas();
 }
 
 
