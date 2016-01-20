@@ -30,7 +30,16 @@ using namespace std;
 
 int main(int argc, char **argv) {
   
+  if (argc < 2) {
+    cerr << "Usage: dome <config file>" << endl;
+    return -1;
+  }
+  
+  cout << "Welcome to dome" << endl;
+  cout << "Cfg file: " << argv[1] << endl;
   DpmrCore core;
+  core.init(argv[1]);
+  
   cout << "yay" << endl;
   
 }

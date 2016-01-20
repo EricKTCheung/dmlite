@@ -123,7 +123,9 @@ int DpmrTask::waitFinished(int sectmout) {
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
 
-
+DpmrTaskExec::DpmrTaskExec() {};
+DpmrTaskExec::~DpmrTaskExec() {};
+  
 /// Taken from here and slightly modified.
 /// https://sites.google.com/site/williamedwardscoder/popen3
 int DpmrTaskExec::popen3(int fd[3], const char **const cmd) {
@@ -264,3 +266,4 @@ void DpmrTaskExec::tick() {}
 void DpmrTaskExec::onTaskRunning(DpmrTask &task) {}
 
 
+void DpmrTaskExec::onTaskCompleted(DpmrTask &task) {}
