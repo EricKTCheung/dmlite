@@ -45,7 +45,7 @@ public:
   DomeMySql();
   virtual ~DomeMySql();
   
-  static configure(std::string 
+  static void configure(std::string host, std::string username, std::string password, int port, int poolsize);
   /// Transaction control.
   /// To have the scoped behaviour the DomeMySqlTrans can be used
   int begin();
@@ -54,8 +54,8 @@ public:
   
   // All the helper primitives are here, for quick usage
   
-  /// Loads spaces and quotas into the status
-  getSpacesQuotas(DpmrStatus &st);
+  /// Loads spaces and quotas into a status. Thread safe.
+  int getSpacesQuotas(DpmrStatus &st);
   
 protected:
   // The corresponding factory.

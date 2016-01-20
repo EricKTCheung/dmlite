@@ -84,6 +84,8 @@ public:
   
   static dmlite::PoolContainer<MYSQL*> &getMySqlPool() throw(dmlite::DmException);
   static bool configure(const std::string& key, const std::string& value);
+  static bool configure(std::string host, std::string username, std::string password, int port, int poolsize);
+  
   ~MySqlHolder();        
 
 private:

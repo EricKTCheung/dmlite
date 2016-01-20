@@ -19,7 +19,7 @@
 
 
 #include "Config.hh"
-#include "SimpleDebug.hh"
+#include "utils/logger.h"
 
 #include <iostream>
 #include <fstream>
@@ -87,7 +87,7 @@ void DoSubst(string &s) {
 	  cont = true;
 	}
 	else
-	  Error("DoSubst", "Envvar not found: " << tok);
+	  Err("DoSubst", "Envvar not found: " << tok);
       }
     }
 
@@ -101,11 +101,11 @@ int Config::ProcessFile(char *filename) {
   // Do the parsing
   if (!filename || (strlen(filename) == 0)) {
     strcpy(fn, "/etc/ugr.conf");
-    Info(UgrLogger::Lvl1, "Config::ProcessFile", "Using default config file " << fn);
+    Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Using default config file " << fn);
   }
   else {
     strcpy(fn, filename);
-    Info(UgrLogger::Lvl1, "Config::ProcessFile", "Reading config file " << fn);
+    Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Reading config file " << fn);
   }
 
   string line, token, val;
@@ -120,7 +120,7 @@ int Config::ProcessFile(char *filename) {
 
           // Avoid comments
           if (line[0] == '#') continue;
-          Info(UgrLogger::Lvl3, "Config::ProcessFile", "fn: " << fn << " line: '" << line << "'");
+          Log(Logger::Lvl3, Logger::unregistered, Logger::unregisteredname, "fn: " << fn << " line: '" << line << "'");
 
           if( strncasecmp(line.c_str(), "include", 7) == 0) {
               // only interested in the path
@@ -128,7 +128,7 @@ int Config::ProcessFile(char *filename) {
               TrimSpaces(line);
               // check if path is absolute
               if(line[0] != '/') {
-                  Error("Config::ProcessFile", "Directory path must be absolute. fn: " << fn << " line: '" << line << "'");
+                  Err("Config::ProcessFile", "Directory path must be absolute. fn: " << fn << " line: '" << line << "'");
                   continue;
               }
               configfiles = ReadDirectory(line);
@@ -167,23 +167,23 @@ int Config::ProcessFile(char *filename) {
                     token = buf2;
                     // check if key already exist
                     if(arrdata.count(token) == 1) {
-                        Info(UgrLogger::Lvl1, "Config::ProcessFile", "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
+                        Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
                     }
-                    Info(UgrLogger::Lvl4, "Config::ProcessFile", token << "[" << arrdata[token].size() << "] <-" << val);
+                    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, token << "[" << arrdata[token].size() << "] <-" << val);
                 arrdata[token].push_back(val);
               }
                   else {
                     if(data.count(token) == 1) {
-                        Info(UgrLogger::Lvl1, "Config::ProcessFile", "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
+                        Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
                     }
-                    Info(UgrLogger::Lvl4, "Config::ProcessFile", token << "<-" << val);
+                    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, token << "<-" << val);
                     data[token] = val;
                   }
               }
           }
         }
     }catch(std::exception & e){
-        Error("Config::ProcessFile", "Error during configuration file processing " << fn << " "<< e.what());
+        Err("Config::ProcessFile", "Error during configuration file processing " << fn << " "<< e.what());
         return -1;
     }
 
@@ -194,7 +194,7 @@ int Config::ProcessFile(char *filename) {
     }
 
   }else {
-    Error("Config::ProcessFile", "Unable to open file " << fn); 
+    Err("Config::ProcessFile", "Unable to open file " << fn); 
     return -1;
   }
 
@@ -323,7 +323,7 @@ vector<string> ReadDirectory(const string& path) {
     dp = opendir(path.c_str() );
 
     if(!dp) {
-        Error("Config::ReadDirectory", "Failed to open directory: " << path);
+        Err("Config::ReadDirectory", "Failed to open directory: " << path);
         return filename_vec;
     }
     
