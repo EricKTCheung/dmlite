@@ -57,6 +57,9 @@ public:
   /// Loads spaces and quotas into a status. Thread safe.
   int getSpacesQuotas(DpmrStatus &st);
   
+  /// Loads the defined filesystems, parses them into server names, etc.
+  int getFilesystems(DpmrStatus &st);
+  
 protected:
   // The corresponding factory.
   //NsMySqlFactory* factory_;

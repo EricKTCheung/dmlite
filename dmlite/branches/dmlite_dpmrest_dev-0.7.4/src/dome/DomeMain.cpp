@@ -38,7 +38,11 @@ int main(int argc, char **argv) {
   cout << "Welcome to dome" << endl;
   cout << "Cfg file: " << argv[1] << endl;
   DpmrCore core;
-  core.init(argv[1]);
+  
+  if ( core.init(argv[1]) ) {
+    cout << "Cannot start :-(" << endl;
+    return -1;
+  }
   
   cout << "yay" << endl;
   

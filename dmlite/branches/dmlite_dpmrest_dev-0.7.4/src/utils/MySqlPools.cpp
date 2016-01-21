@@ -131,7 +131,7 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
 bool MySqlHolder::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
   MySqlHolder *h = MySqlHolder::getInstance();
   
-  Log(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogmask, "Configuring MySQL access. host:'" << host <<
+  Log(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogname, "Configuring MySQL access. host:'" << host <<
   "' user:'" << username <<
   "' port:'" << port <<
   "' poolsz:" << poolsize);;
