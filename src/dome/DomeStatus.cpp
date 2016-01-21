@@ -34,6 +34,9 @@ int DpmrStatus::addFilesystem(DpmrFsInfo &fs) {
 
 /// Helper function that reloads all the filesystems from the DB
 int DpmrStatus::loadFilesystems() {
+  DomeMySql sql;
+  
+  return sql.getFilesystems(*this);
 }
 
 /// Helper function that reloads all the quotas from the DB

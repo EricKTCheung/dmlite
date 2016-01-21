@@ -80,13 +80,14 @@ public:
   /// Trivial store for filesystems information
   std::vector <DpmrFsInfo> fslist;
   
-  /// Simple keyvalue store for prefix-based quotas.
+  /// Simple keyvalue store for prefix-based quotas, that
+  /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes
   std::map <std::string, DpmrQuotatoken> quotas;
   
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems
-  std::vector <std::string> servers;
+  std::set <std::string> servers;
   
   /// Helper function that adds a filesystem to the list and its corresponding server to the server list
   /// Filesystems so far can't be deleted without a restart
