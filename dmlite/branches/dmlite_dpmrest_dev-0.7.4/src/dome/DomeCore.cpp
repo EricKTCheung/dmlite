@@ -61,7 +61,7 @@ int DpmrCore::init(char *cfgfile) {
     
     
     // The limits for the prio queues, get them from the cfg 
-    std::vector<int> limits;
+    std::vector<size_t> limits;
     limits.push_back( CFG->GetLong("head.maxchecksums", 10) );
     limits.push_back( CFG->GetLong("head.maxchecksumspernode", 10) );
     
