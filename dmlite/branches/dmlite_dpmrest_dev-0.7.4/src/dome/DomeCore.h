@@ -40,7 +40,7 @@
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
   
 
-class DpmrCore: public DpmrTaskExec {
+class DpmrCore: public DomeTaskExec {
 
 public:
   
@@ -103,10 +103,10 @@ protected:
 
   
   /// Send a notification to the head node about the completion of this task
-  virtual void onTaskCompleted(DpmrTask &task);
+  virtual void onTaskCompleted(DomeTask &task);
   
   /// Send a notification to the head node about a task that is running
-  virtual void onTaskRunning(DpmrTask &task);
+  virtual void onTaskRunning(DomeTask &task);
 };
 
 

@@ -129,12 +129,12 @@ int DpmrCore::tick() {
   
   
 /// Send a notification to the head node about the completion of this task
-void DpmrCore::onTaskCompleted(DpmrTask &task) {
+void DpmrCore::onTaskCompleted(DomeTask &task) {
   
 }
   
 /// Send a notification to the head node about a task that is running
-void DpmrCore::onTaskRunning(DpmrTask &task) {
+void DpmrCore::onTaskRunning(DomeTask &task) {
   
 }
   
