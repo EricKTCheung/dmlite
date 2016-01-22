@@ -1,9 +1,29 @@
+/*
+ * Copyright 2015 CERN
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 #include "DomeGenQueue.h"
 #include <iostream>
 
 using namespace std;
 
+#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 #define DECLARE_TEST() std::cout << " ----- Performing test: " << __FUNCTION__ << std::endl
+#define ASSERT(assertion, msg) \
+    if((assertion) == false) throw std::runtime_error( SSTR(__FILE__ << ":" << __LINE__ << " (" << __func__ << "): Assertion " << #assertion << " failed.\n" << msg))
 
 void test1() {
   DECLARE_TEST();
@@ -13,6 +33,7 @@ void test1() {
   limits.push_back(1);
 
   GenPrioQueue queue(1, limits);
+
 
 }
 
