@@ -18,19 +18,12 @@
 
 
 
-/** @file   DpmrTaskExec.cpp
+/** @file   DomeTaskExec.cpp
  * @brief  A class that spawns commands that perform actions
  * @author Fabrizio Furano
+ * @author Andrea Manzi
  * @date   Dec 2015
  */
-
-
-
-
-
-
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,64 +40,56 @@ using namespace std;
 
 
 
-void taskfunc(DpmrTaskExec *inst, int key) {
+void taskfunc(DomeTaskExec *inst, int key) {
   
-  Log(Logger::Lvl4, domelogmask, "taskfunc", "Starting task " << key << " on instance " << inst);
+  Log(Logger::Lvl4, domelogmask, "taskfunc", "Starting task " << key << " on instance " << inst->instance);
   
   if (inst) {
-    map <int, DpmrTask >::iterator i = inst->tasks.find(key);
-  
+    map <int, DomeTask *>::iterator i = inst->tasks.find(key);
     if ( i != inst->tasks.end() ) {
-      inst->run( i->second );
-      Log(Logger::Lvl3, domelogmask, "taskfunc", "Finished task " << key << " on instance " << inst);
-      return;
-    }
-  
+	    Log(Logger::Lvl3, domelogmask, "taskfunc", "Found task " << key << " on instance " << inst->instance);
+	    inst->run(*i->second);
+	    Log(Logger::Lvl3, domelogmask, "taskfunc", "Finished task " << key << " on instance " << inst->instance);
+	    return;
+   }
     
   }  
-  Err("taskfunc", "Cannot start task " << key << " on instance " << inst);
+  Err("taskfunc", "Cannot start task " << key << " on instance " << inst->instance);
   
   
 }
 
-
-
-
-
-
-
-
-
-
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
 
-DpmrTask::DpmrTask(): finished(false) {
+DomeTask::DomeTask(): finished(false) {
   starttime = time(0);
   endtime = 0;
 }
 
-int DpmrTask::waitFinished(int sectmout) {
-  const char *fname = "DpmrTaskExec::waitFinished";
+DomeTask::~DomeTask() {
+}
+
+
+int DomeTask::waitFinished(int sectmout) {
+  const char *fname = "DomeTaskExec::waitFinished";
   
-  Log(Logger::Lvl4, domelogmask, fname, "Checking task termination. Key: " << key << " cmd: " << cmd);
+  Log(Logger::Lvl4, domelogmask, fname, "Checking task termination. Key: " << key << " cmd: " << cmd << " finished: " << finished);
   
   system_time const timelimit = get_system_time() + posix_time::seconds(sectmout);
+  Log(Logger::Lvl4, domelogmask, fname, "Time: " << get_system_time());
+  Log(Logger::Lvl4, domelogmask, fname, "TimeLimit: " << timelimit);
   
-  {
-    unique_lock<mutex> lck(*this);
-  while (get_system_time() < timelimit) {
-    system_time const timeout = get_system_time() + posix_time::seconds(1);
-    if (!condvar.timed_wait(lck, timelimit))
-      continue; // timeout
-      
-      break;
-  }
+  { 
+    scoped_lock lck (*this);
+    while(!finished && get_system_time() < timelimit) {
+         Log(Logger::Lvl4, domelogmask, fname, "Task not finished at time " << get_system_time());
+	condvar.wait(lck);
+	}
   }
   // We are here either if timeout or something happened
-  
   
   if (finished) {
     Log(Logger::Lvl3, domelogmask, fname, "Finished task. Key: " << key << " cmd: " << cmd);
@@ -122,17 +107,17 @@ int DpmrTask::waitFinished(int sectmout) {
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------
+DomeTaskExec::DomeTaskExec() {}
 
-DpmrTaskExec::DpmrTaskExec() {};
-DpmrTaskExec::~DpmrTaskExec() {};
-  
+DomeTaskExec::~DomeTaskExec() {}
+
 /// Taken from here and slightly modified.
 /// https://sites.google.com/site/williamedwardscoder/popen3
-int DpmrTaskExec::popen3(int fd[3], const char **const cmd) {
+int DomeTaskExec::popen3(int fd[3],  const char *cmd) {
   int i, e;
   int p[3][2];
   pid_t pid;
-  
+  //
   // set all the FDs to invalid
   for(i=0; i<3; i++)
     p[i][0] = p[i][1] = -1;
@@ -175,11 +160,12 @@ int DpmrTaskExec::popen3(int fd[3], const char **const cmd) {
     close(p[STDERR_FILENO][0]);
     
     // here we try and run it
-    execv(*cmd,const_cast<char*const*>(cmd));
+    char *const parmList[] = {strdup(cmd), NULL};
+    execv(cmd,parmList);
     
-    // if we are there, then we failed to launch our program
+    // if we are here, then we failed to launch our program
     Err("popen3", "Cannot launch cmd: " << cmd);
-    fprintf(stderr," \"%s\"\n",*cmd);
+    fprintf(stderr," \"%s\"\n",cmd);
     _exit(EXIT_FAILURE);
   }
   
@@ -196,10 +182,17 @@ int DpmrTaskExec::popen3(int fd[3], const char **const cmd) {
   return -1;
 }
 
-void DpmrTaskExec::run(DpmrTask &task) {
+void DomeTaskExec::run(DomeTask &task) {
   
   const char *c = task.cmd.c_str();
-  int r = popen3((int *)task.fd, &c);
+  Log(Logger::Lvl3, domelogmask, "run", "Starting command: " << c) ;
+  //start time
+  {
+     boost::lock_guard<DomeTask> l(task);
+     time(&task.starttime);
+  }
+  
+  int r = popen3((int *)task.fd, c);
   
   /// It is then possible for the parent process to read the output of the child process from file descriptor
   char buffer[4096];
@@ -209,28 +202,32 @@ void DpmrTaskExec::run(DpmrTask &task) {
       if (errno == EINTR) {
         continue;
       } else {
-        Err("popen3", "Cannot get output of cmd: " << task.cmd);
+        Err("popen3", "Cannot get output of cmd: " << task.cmd.c_str());
         break;
       }
       
     }
     
-    if (count == 0)
+    if (count == 0) {
+      Log(Logger::Lvl4, domelogmask, "run", "No Stdout") ;
       break;
+    }
     else {
-      boost::lock_guard<DpmrTask> l(task);
+      boost::lock_guard<DomeTask> l(task);
       task.stdout.append(buffer, count);
+      Log(Logger::Lvl4, domelogmask, "run", "Stdout: " << task.stdout.c_str()) ;
     }
       
   }
   
   for(int i=0; i<3; i++) 
     close(task.fd[i]);
-
   
   {
-    boost::lock_guard<DpmrTask> l(task);
+    boost::lock_guard<DomeTask> l(task);
     task.finished = true;
+    //endtime
+    time(&task.endtime);
     task.notifyAll();
   }
   
@@ -239,31 +236,41 @@ void DpmrTaskExec::run(DpmrTask &task) {
 }
 
 
-
-int DpmrTaskExec::submitCmd(const char *cmd) {
-  
+int DomeTaskExec::submitCmd(string cmd) {
+   DomeTask * task = new DomeTask();
+   task->cmd= cmd;
+   task->key = ++taskcnt;// TO DO concurrency check
+   tasks.insert( std::pair<int,DomeTask*>(task->key,task));
+   taskfunc(this,taskcnt);
+   return taskcnt;
 }
 
-int DpmrTaskExec::waitResult(DpmrTask &task, int tmout) {
-  const char *fname = "DpmrTaskExec::waitFinished";
-  
-  
+int DomeTaskExec::waitResult(int taskID, int tmout) {
+  const char *fname = "DomeTaskExec::waitFinished";
   
   {
-    boost::lock_guard<DpmrTask> l(task);
+    map <int, DomeTask *>::iterator i = tasks.find(taskID);
+    if ( i != tasks.end() ) {
+           Log(Logger::Lvl4, domelogmask, "waitResult", "Found task " << taskID);
+	   i->second->waitFinished(tmout);
+	   if (i->second->finished) return 0;
     
-    (task).waitFinished(tmout);
-    
-    if (task.finished) return 0;
-    
+    }else {
+ 	  Log(Logger::Lvl4, domelogmask, "waitResult", "Task with ID " << taskID << " not found");
+	  return 1;
+	}
   }
-  
   return 1;
 }
 
-void DpmrTaskExec::tick() {}
+void DomeTaskExec::tick() {
+   Log(Logger::Lvl4, domelogmask, "tick", "tick");
+   map <int, DomeTask *>::iterator i;
+    for( i = tasks.begin(); i != tasks.end(); ++i ) {
+            Log(Logger::Lvl3, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd.c_str());
+   }
+   //should clean the long lasting tasks and the one completed since more thant 24 
+}
 
-void DpmrTaskExec::onTaskRunning(DpmrTask &task) {}
-
-
-void DpmrTaskExec::onTaskCompleted(DpmrTask &task) {}
+void DomeTaskExec::onTaskRunning(DomeTask &task) {}
+void DomeTaskExec::onTaskCompleted(DomeTask &task) {}

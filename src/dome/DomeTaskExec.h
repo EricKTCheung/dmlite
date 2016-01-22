@@ -17,19 +17,17 @@
 
 
 
-/** @file   DpmrTaskExec.h
+/** @file   DomeTaskExec.h
  * @brief  A class that spawns commands that perform actions
  * @author Fabrizio Furano
  * @date   Dec 2015
  */
 
-#ifndef DOMETASKEXEC_H
-#define DOMETASKEXEC_H
 
 #include <boost/thread.hpp>
 
 
-class DpmrTask: public boost::mutex {
+class DomeTask: public boost::mutex {
 
 protected:
     /// Threads waiting for result about this task will wait and synchronize here
@@ -39,8 +37,8 @@ protected:
     boost::condition_variable condvar;
 
 public:
-  DpmrTask();
-  
+  DomeTask();
+  ~DomeTask();
   int key;
   
   std::string cmd;
@@ -68,23 +66,24 @@ public:
 /// know the list of commands that are still running.
 /// Objects belonging to this class in general are created in the disk nodes,
 /// e.g. for running checksums or file copies and pulls
-class DpmrTaskExec {
-public:
-  DpmrTaskExec();
-  virtual ~DpmrTaskExec();
+class DomeTaskExec {
   
+public:
+  DomeTaskExec();
+  ~DomeTaskExec(); 
+  std::string instance;
   /// Executes a command. Returns a positive integer as a key to reference
   /// the execution status and the result
   /// The mechanics is that a detached thread is started. This guy invokes popen3
   /// and blocks waiting for the process to end. Upon end it updates the corresponding
   /// instance of DpmrTask with the result and the stdout
-  int submitCmd(const char *cmd);
+  int submitCmd(std::string cmd);
   
   /// Get the results of a task.
   /// Wait at max tmout seconds until the task finishes
   /// Return 0 if the task has finished and there is a result
   /// Return nonzero if the task is still running
-  int waitResult(DpmrTask &task, int tmout=5);
+  int waitResult(int taskID, int tmout=5);
   
   /// Loops over all the tasks and:
   ///  - send a notification to the head node about all the processes that are running or that have finished
@@ -98,28 +97,26 @@ protected:
   /// event for immediate notifications when a task finishes
   /// Subclasses can specialize this and apply app-dependent behavior to
   /// perform actions when something has finished running
-  virtual void onTaskCompleted(DpmrTask &task);
+  virtual void onTaskCompleted(DomeTask &task);
   
   // event that notifies that a task is running
   // This event can be invoked multiple times during the life of a task
-  virtual void onTaskRunning(DpmrTask &task);
+  virtual void onTaskRunning(DomeTask &task);
 private:
 
-  int popen3(int fd[3], const char **const cmd);
+  int popen3(int fd[3],const char * cmd);
   
   /// Used to create keys to be inserted into the map. This has to be treated modulo MAXINT or similar big number
   int taskcnt;
   /// This map works like a sparse array :-)
-  std::map<int, DpmrTask> tasks;
+  std::map<int, DomeTask*> tasks;
   
   
   /// Here we invoke popen3
   /// and block waiting for the process to end. Upon end it updates the corresponding
-  /// instance of DpmrTask with the result and the stdout
-  virtual void run(DpmrTask &task);
+  /// instance of DomeTask with the result and the stdout
+  virtual void run(DomeTask &task);
   
-  friend void taskfunc(DpmrTaskExec *, int);
+  friend void taskfunc(DomeTaskExec *, int);
+
 };
-
-
-#endif
