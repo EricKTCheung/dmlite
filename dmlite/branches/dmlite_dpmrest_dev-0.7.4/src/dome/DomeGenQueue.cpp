@@ -54,9 +54,38 @@ GenPrioQueue::GenPrioQueue(int timeoutsecs, std::vector<size_t> qualifiercountli
 GenPrioQueue::~GenPrioQueue() {
 }
 
+void GenPrioQueue::addToTimesort(GenPrioQueueItem_ptr item) {
+  accesstimeKey key;
+  key.accesstime = item->accesstime;
+  key.namekey = item->namekey;
+  timesort[key] = item;
+}
+
+void GenPrioQueue::removeFromTimesort(GenPrioQueueItem_ptr item) {
+  accesstimeKey key;
+  key.accesstime = item->accesstime;
+  key.namekey = item->namekey;
+  timesort.erase(key);
+}
+
+void GenPrioQueue::updateAccessTime(GenPrioQueueItem_ptr item) {
+  struct timespec newtime;
+  clock_gettime(CLOCK_MONOTONIC, &newtime);
+
+  accesstimeKey key;
+  key.accesstime = item->accesstime;
+  key.namekey = item->namekey;
+  timesort.erase(key);
+
+  key.accesstime = newtime;
+  item->accesstime = newtime;
+  timesort[key] = item;
+}
+
 int GenPrioQueue::insertItem(GenPrioQueueItem_ptr item) {
   clock_gettime(CLOCK_MONOTONIC, &item->insertiontime);
   item->accesstime = item->insertiontime;
+  addToTimesort(item);
 
   if(item->status == GenPrioQueueItem::Waiting) {
     addToWaiting(item);
@@ -150,8 +179,7 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
   }
   // nope, but maybe I need to update it
   else {
-    // update access time
-    clock_gettime(CLOCK_MONOTONIC, &item->accesstime);
+    updateAccessTime(item);
 
     // is it finished? remove the item
     if(status == GenPrioQueueItem::Finished) {
@@ -161,6 +189,7 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
     // need to remove and re-insert
     else if(priority != item->priority || qualifiers != item->qualifiers) {
       removeItem(namekey);
+      item->update(namekey, status, priority, qualifiers);
       insertItem(item);
     }
     // easy update - only change status
@@ -190,6 +219,7 @@ GenPrioQueueItem_ptr GenPrioQueue::removeItem(std::string namekey) {
   if(item == NULL) return item;
 
   updateStatus(item, GenPrioQueueItem::Finished);
+  removeFromTimesort(item);
   items.erase(namekey);
 
   return item;
@@ -210,5 +240,24 @@ GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
 }
 
 int GenPrioQueue::tick() {
+  scoped_lock(*this);
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+
+  std::map<accesstimeKey, GenPrioQueueItem_ptr>::iterator it;
+
+  for(it = timesort.begin(); it != timesort.end(); it++) {
+    GenPrioQueueItem_ptr item = it->second;
+    if(now.tv_sec > item->accesstime.tv_sec + timeout) {
+
+      // don't modify status through removal
+      GenPrioQueueItem::QStatus status = item->status;
+      removeItem(item->namekey);
+      item->status = status;
+    }
+    else {
+      return 0; // the rest of the items are guaranteed to be newer
+    }
+  }
   return 0;
 }

@@ -109,17 +109,137 @@ void test3() {
   queue.touchItemOrCreateNew("2", GenPrioQueueItem::Waiting, 0, v2("srv", "pool"));
 
   GenPrioQueueItem_ptr item1 = queue.getNextToRun();
-  GenPrioQueueItem_ptr itemN = queue.getNextToRun(); // hits "pool" limit
+  ASSERT(queue.getNextToRun() == NULL); // hits "pool" limit
 
   ASSERT(item1 != NULL);
-  ASSERT(itemN == NULL);
   ASSERT(item1->namekey == "1");
+  ASSERT(queue.nWaiting() == 1);
+
+  queue.removeItem(item1->namekey);
+  GenPrioQueueItem_ptr item2 = queue.getNextToRun();
+
+  ASSERT(item2->namekey == "2");
+  ASSERT(queue.nWaiting() == 0);
 }
 
+void test4() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  queue.touchItemOrCreateNew("2", GenPrioQueueItem::Waiting, 2, v2("srv", "pool2"));
+  queue.touchItemOrCreateNew("3", GenPrioQueueItem::Waiting, 1, v2("srv", "pool3"));
+  queue.touchItemOrCreateNew("4", GenPrioQueueItem::Waiting, 2, v2("srv", "pool2"));
+
+  GenPrioQueueItem_ptr item2 = queue.getNextToRun();
+  ASSERT(item2->namekey == "2");
+
+  GenPrioQueueItem_ptr item3 = queue.getNextToRun(); // 4 has higher priority, but hits limit "pool2"
+  ASSERT(item3->namekey == "3");
+
+  ASSERT(queue.getNextToRun() == NULL); // hits limit "srv"
+
+  queue.removeItem(item3->namekey);
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun(); // 4 has higher priority, but hits limit "pool2"
+  ASSERT(item1->namekey == "1");
+
+  ASSERT(queue.getNextToRun() == NULL); // hits limit "srv"
+
+  queue.removeItem(item1->namekey);
+  ASSERT(queue.getNextToRun() == NULL); // only 4 left, hits limit "pool2"
+
+  queue.removeItem(item2->namekey);
+  GenPrioQueueItem_ptr item4 = queue.getNextToRun();
+  ASSERT(item4->namekey == "4");
+
+  ASSERT(queue.nWaiting() == 0);
+  ASSERT(queue.nTotal() == 1);
+
+  queue.removeItem(item4->namekey);
+  ASSERT(queue.nTotal() == 0);
+}
+
+void test5() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Running, 0, v2("srv", "pool1"));
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Running, 0, v2("srv", "pool1"));
+
+  ASSERT(queue.nWaiting() == 0);
+  ASSERT(queue.nTotal() == 1);
+
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  ASSERT(queue.nWaiting() == 1);
+  ASSERT(queue.nTotal() == 1);
+
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Finished, 0, v2("srv", "pool1")); // same as removeItem
+  ASSERT(queue.nWaiting() == 0);
+  ASSERT(queue.nTotal() == 0);
+
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Running, 0, v2("srv", "pool1"));
+  queue.touchItemOrCreateNew("2", GenPrioQueueItem::Running, 0, v2("srv", "pool2"));
+  queue.touchItemOrCreateNew("3", GenPrioQueueItem::Waiting, 0, v2("srv", "pool3"));
+
+  ASSERT(queue.getNextToRun() == NULL); // hits "srv" limit
+}
+
+void test6() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+
+  ASSERT(queue.removeItem("adf") == NULL);
+
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun();
+  ASSERT(item1->namekey == "1");
+
+  // do something unexpected, ie change priority
+  // make sure the change is reflected in our item
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 1, v2("srv", "pool1"));
+  ASSERT(item1->priority == 1);
+}
+
+void test7() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+
+  sleep(2);
+  queue.tick();
+  ASSERT(queue.nTotal() == 0);
+}
+
+void test8() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  queue.touchItemOrCreateNew("2", GenPrioQueueItem::Waiting, 1, v2("srv", "pool2"));
+
+  usleep(500000);
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  usleep(500000);
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
+  usleep(1000000);
+  queue.tick();
+
+  ASSERT(queue.nTotal() == 1);
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun();
+  ASSERT(item1->namekey == "1");
+}
 
 int main() {
   test1();
   test2();
   test3();
+  test4();
+  test5();
+  test6();
+  test7();
+  test8();
   return 0;
 }

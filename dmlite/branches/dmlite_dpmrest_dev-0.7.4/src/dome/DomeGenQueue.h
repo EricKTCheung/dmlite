@@ -34,10 +34,6 @@ typedef std::pair<int, int> GenPrioQueuePriority;
 class GenPrioQueue;
 
 class GenPrioQueueItem {
-private:
-  int priority;
-  struct timespec insertiontime;
-  struct timespec accesstime;
 public:
   std::string namekey;
   std::vector<std::string> qualifiers;
@@ -49,7 +45,13 @@ public:
   };
   QStatus status;
   GenPrioQueueItem() : status(Unknown) {}
+
+  int priority;
+private:
+  struct timespec insertiontime;
+  struct timespec accesstime;
   void update(std::string, QStatus, int, const std::vector<std::string>&);
+
   friend class GenPrioQueue;
 };
 
@@ -104,14 +106,20 @@ private:
   int insertItem(GenPrioQueueItem_ptr);
 
   void updateStatus(GenPrioQueueItem_ptr, GenPrioQueueItem::QStatus);
+
   void addToWaiting(GenPrioQueueItem_ptr);
   void addToRunning(GenPrioQueueItem_ptr);
+  void addToTimesort(GenPrioQueueItem_ptr);
 
   void removeFromWaiting(GenPrioQueueItem_ptr);
   void removeFromRunning(GenPrioQueueItem_ptr);
+  void removeFromTimesort(GenPrioQueueItem_ptr);
 
   /// verifies that adding this item doesn't violate a limit
   bool possibleToRun(GenPrioQueueItem_ptr);
+
+  /// updates access time to now
+  void updateAccessTime(GenPrioQueueItem_ptr);
 
   int timeout;
   std::vector<size_t> limits;
@@ -149,6 +157,22 @@ private:
   /// The map contains all different values currently in our queue, along with how many are active at this moment
   /// active[0]["hostname"] will give you how many active jobs have "hostname" as their first column, for example
   std::vector<std::map<std::string, size_t> > active;
+
+  /// A structure to sort items based on access time - oldest go first
+  struct accesstimeKey {
+    struct timespec accesstime;
+    std::string namekey;
+    bool operator<(const accesstimeKey& src) const {
+      if(accesstime.tv_sec != src.accesstime.tv_sec) {
+        return accesstime.tv_sec < src.accesstime.tv_sec;
+      }
+      if(accesstime.tv_nsec != src.accesstime.tv_nsec) {
+        return accesstime.tv_nsec < src.accesstime.tv_nsec;
+      }
+      return namekey < src.namekey;
+    }
+  };
+  std::map<accesstimeKey, GenPrioQueueItem_ptr> timesort;
 };
 
 #endif
