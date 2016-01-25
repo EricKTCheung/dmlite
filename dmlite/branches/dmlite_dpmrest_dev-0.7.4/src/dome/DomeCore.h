@@ -36,6 +36,12 @@
 #include <fcgio.h>
 #include "utils/Config.hh"
 #include "DomeMysql.h"
+#include <string>
+#include <vector>
+#include <map>
+#include <functional>
+#include <bitset>
+#include <boost/thread.hpp>
 
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
   
@@ -44,14 +50,8 @@ class DpmrCore: public DomeTaskExec {
 
 public:
   
-  DpmrCore() {
-      const char *fname = "DpmrCore::ctor";
-      domelogmask = Logger::get()->getMask(domelogname);
-      //Info(Logger::Lvl1, fname, "Ctor " << dmlite_MAJOR <<"." << dmlite_MINOR << "." << dmlite_PATCH);
-      initdone = false;
-      
-  }
-  virtual ~DpmrCore() {};
+  DpmrCore();
+  virtual ~DpmrCore();
 
   /// Reads the config file and initializes all the subsystems
   /// After this call everything has to be operative
@@ -65,7 +65,7 @@ public:
 
   /// Ticking this gives life to the objects belonging to this class
   /// This is useful for managing things that expire, pings or periodic checks
-  int tick();
+  virtual void tick(int parm);
   
   
   
@@ -98,6 +98,15 @@ public:
 private:
   bool initdone;
   boost::recursive_mutex mtx;
+  boost::mutex accept_mutex;
+  int fcgi_listenSocket;
+  
+  /// Easy way to get threaded life
+  std::vector< boost::thread * > workers;
+  friend void workerFunc(DpmrCore *core, int myidx);
+  
+  /// The thread that ticks
+  boost::thread *ticker;
   
 protected:
 
