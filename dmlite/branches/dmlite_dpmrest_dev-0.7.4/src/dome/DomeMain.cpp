@@ -26,20 +26,30 @@
 #include "DomeLog.h"
 #include "DomeCore.h"
 #include <iostream>
+#include <stdlib.h>
+
 using namespace std;
 
 int main(int argc, char **argv) {
+  std::string cfgfile;
   
   if (argc < 2) {
-    cerr << "Usage: dome <config file>" << endl;
-    return -1;
+    char *c = getenv("DOME_CFGFILE");
+    
+    if (!c) {
+      cerr << "Usage: dome <config file>" << endl;
+      cerr << "  or set the envvar $DOME_CFGFILE" << endl;
+      return -1;
+    }
+    cfgfile = c;
   }
+  else cfgfile = argv[1];
   
   cout << "Welcome to dome" << endl;
-  cout << "Cfg file: " << argv[1] << endl;
+  cout << "Cfg file: " << cfgfile << endl;
   DpmrCore core;
   
-  if ( core.init(argv[1]) ) {
+  if ( core.init(cfgfile.c_str()) ) {
     cout << "Cannot start :-(" << endl;
     return -1;
   }

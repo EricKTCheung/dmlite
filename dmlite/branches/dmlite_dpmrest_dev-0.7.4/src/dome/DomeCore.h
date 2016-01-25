@@ -57,7 +57,7 @@ public:
   /// After this call everything has to be operative
   /// To be called after the ctor to initialize the object.
   /// @param cfgfile Path to the config file to be loaded
-  int init(char *cfgfile = 0);
+  int init(const char *cfgfile = 0);
   
   /// The app status, plus functions that modify it
   DpmrStatus status;
@@ -96,7 +96,7 @@ public:
   int dpmr_statfs(DpmrReq &req, FCGX_Request &request);
   
 private:
-  bool initdone;
+  bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
   boost::mutex accept_mutex;
   int fcgi_listenSocket;

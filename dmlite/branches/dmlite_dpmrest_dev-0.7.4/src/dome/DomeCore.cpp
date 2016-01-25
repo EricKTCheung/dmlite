@@ -33,6 +33,7 @@ DpmrCore::DpmrCore() {
   domelogmask = Logger::get()->getMask(domelogname);
   //Info(Logger::Lvl1, fname, "Ctor " << dmlite_MAJOR <<"." << dmlite_MINOR << "." << dmlite_PATCH);
   initdone = false;
+  terminationrequested = false;
 }
 
 DpmrCore::~DpmrCore() {
@@ -78,7 +79,7 @@ void workerFunc(DpmrCore *core, int myidx) {
   FCGX_Request request;
   FCGX_InitRequest(&request, core->fcgi_listenSocket, 0);
   
-  while(true)
+  while( !core->terminationrequested )
   {
     // thread safety seems to be platform dependant... serialise the accept loop just in case
     // NOTE: although we are multithreaded, this is a very naive way of dealing with this. The future, proper
@@ -86,7 +87,7 @@ void workerFunc(DpmrCore *core, int myidx) {
     
     {
       boost::lock_guard<boost::mutex> l(core->accept_mutex);
-    
+      
       rc = FCGX_Accept_r(&request);
     }
     
@@ -95,8 +96,13 @@ void workerFunc(DpmrCore *core, int myidx) {
       break;
     }
     
+    if (Logger::get()->getLevel() >= Logger::Lvl4)
+      for (char **envp = request.envp ; *envp; ++envp) {
+        Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " FCGI env: " << *envp);
+      }
+    
     std::string request_method = FCGX_GetParam("REQUEST_METHOD", request.envp);
-    std::string query = FCGX_GetParam("QUERY_STRING", request.envp);
+    std::string query = FCGX_GetParam("PATH_INFO", request.envp);
     
     Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << request_method << " query:" << query);
     
@@ -106,11 +112,20 @@ void workerFunc(DpmrCore *core, int myidx) {
     
     if(request_method == "GET") {
       
-      FCGX_FPrintF(request.out, 
-                   "Content-type: text/html\r\n"
-                   "\r\n"
-                   "This is a GET\r\n");
       
+      if (query == "/info") {
+        FCGX_FPrintF(request.out, 
+                   "Content-type: text\r\n"
+                   "\r\n"
+                   "Hi, This is a GET\r\n");
+        
+        FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
+        for (char **envp = request.envp ; *envp; ++envp)
+        {
+          FCGX_FPrintF(request.out, "%s \r\n", *envp);
+        }
+        
+      }
       
     } else if(request_method == "HEAD"){ // meaningless placeholder
       FCGX_FPrintF(request.out, 
@@ -129,14 +144,14 @@ void workerFunc(DpmrCore *core, int myidx) {
   }
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " finished");
-
-
+  
+  
 }
 
 
 
 
-int DpmrCore::init(char *cfgfile) {
+int DpmrCore::init(const char *cfgfile) {
   const char *fname = "UgrConnector::init";
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
@@ -153,7 +168,7 @@ int DpmrCore::init(char *cfgfile) {
       return -1;
     }
     
-    if (CFG->ProcessFile(cfgfile)) {
+    if (CFG->ProcessFile((char *)cfgfile)) {
       Err(fname, "Error processing config file." << cfgfile << std::endl);
       return 1;
     }
@@ -194,18 +209,26 @@ int DpmrCore::init(char *cfgfile) {
     // Startup the FCGI mechanics
     // init must be called for multithreaded applications
     FCGX_Init();
-    int portnum = CFG->GetLong("glb.fcgi.listenport", 9000);
-    char buf[32];
-    sprintf(buf, ":%d", portnum);
-    Log(Logger::Lvl1, domelogmask, domelogname, "Setting fcgi listen port to '" << buf << "'");
-    fcgi_listenSocket = FCGX_OpenSocket( buf, 100 );
+    
+    // Standalone external servers have to specify a port number and must be run
+    // by a proper script (mod_fcgi provides one)
+    // If the port number is 0 then we assume that the lifetime of this daemon
+    // will be managed by Apache
+    int portnum = CFG->GetLong("glb.fcgi.listenport", 0);
+    fcgi_listenSocket = 0;
+    if (portnum) {
+      char buf[32];
+      sprintf(buf, ":%d", portnum);
+      Log(Logger::Lvl1, domelogmask, domelogname, "Setting fcgi listen port to '" << buf << "'");
+      fcgi_listenSocket = FCGX_OpenSocket( buf, 100 );
+    }
     
     if( fcgi_listenSocket < 0 ) {
       Err(fname, "FCGX_OpenSocket() error " << fcgi_listenSocket);
       
       return -1;
     }
-
+    
     // Create our pool of threads. Please note tha this approach may have some limitations.
     // Best would be a couple of threads that do only accept and enqueue
     // and a larger pool of workers
@@ -214,8 +237,6 @@ int DpmrCore::init(char *cfgfile) {
     for (int i = 0; i < CFG->GetLong("glb.workers", 300); i++) {
       workers.push_back(new boost::thread(workerFunc, this, i));
     }
-    
-    
     
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
@@ -227,13 +248,26 @@ int DpmrCore::init(char *cfgfile) {
 
 void DpmrCore::tick(int parm) {
   
-  // At regular intervals, one minute or so,
-  // reloading the filesystems and the quotatokens is a good idea
-  status.loadQuotatokens();
-  status.loadFilesystems();
+  time_t lastreload = time(0);
+  while (! this->terminationrequested ) {
+    time_t timenow = time(0);
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
   
+    if ( timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
+      // At regular intervals, one minute or so,
+      // reloading the filesystems and the quotatokens is a good idea
+      Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas and filesystems");
+      status.loadQuotatokens();
+      status.loadFilesystems();
+      lastreload = time(0);
+    }
   
-  status.tick();
+    status.tick();
+    
+    
+    sleep(CFG->GetLong("glb.tickfreq", 10));
+  }
   
 }
 
