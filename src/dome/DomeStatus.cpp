@@ -47,5 +47,8 @@ int DpmrStatus::loadQuotatokens() {
 }
 
 
-
+int DpmrStatus::tick() {
+  checksumq->tick();
+  filepullq->tick();
+}
 

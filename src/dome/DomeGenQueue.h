@@ -92,7 +92,7 @@ public:
 
 
   /// Queues are alive, and purge unused elements
-  int tick();
+  int tick() {};
 
 private:
   /// insert item into the internal data structures
