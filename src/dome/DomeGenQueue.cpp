@@ -74,7 +74,25 @@ int GenPrioQueue::insertItem(GenPrioQueueItem_ptr item) {
 }
 
 void GenPrioQueue::updateStatus(GenPrioQueueItem_ptr item, GenPrioQueueItem::QStatus status) {
-  std::cout << "nyi" << std::endl;
+  if(item->status == status) return;
+
+  if(item->status == GenPrioQueueItem::Waiting) {
+    removeFromWaiting(item);
+  }
+
+  if(item->status == GenPrioQueueItem::Running) {
+    removeFromRunning(item);
+  }
+
+  if(status == GenPrioQueueItem::Waiting) {
+    addToWaiting(item);
+  }
+
+  if(status == GenPrioQueueItem::Running) {
+    addToRunning(item);
+  }
+
+  item->status = status;
 }
 
 void GenPrioQueue::addToWaiting(GenPrioQueueItem_ptr item) {
@@ -106,7 +124,18 @@ void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr item) {
   }
 }
 
-int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, std::vector<std::string> &qualifiers) {
+bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
+  for(int i = 0; i < item->qualifiers.size(); i++) {
+    if(i >= limits.size()) break;
+
+    if(active[i][item->qualifiers[i]] >= limits[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers) {
   scoped_lock(*this);
   Log(Logger::Lvl4, domelogmask, domelogname, " Adding new item to the queue with name: " << namekey << ", status: " << status <<
       "priority: " << priority);
@@ -124,9 +153,13 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
     // update access time
     clock_gettime(CLOCK_MONOTONIC, &item->accesstime);
 
+    // is it finished? remove the item
+    if(status == GenPrioQueueItem::Finished) {
+      removeItem(namekey);
+    }
     // difficult updates with consequences on internal data structures
     // need to remove and re-insert
-    if(priority != item->priority || qualifiers != item->qualifiers) {
+    else if(priority != item->priority || qualifiers != item->qualifiers) {
       removeItem(namekey);
       insertItem(item);
     }
@@ -142,14 +175,40 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
   return 0;
 }
 
+size_t GenPrioQueue::nWaiting() {
+  return waiting.size();
+}
+
+size_t GenPrioQueue::nTotal() {
+  return items.size();
+}
+
 GenPrioQueueItem_ptr GenPrioQueue::removeItem(std::string namekey) {
   scoped_lock(*this);
 
   GenPrioQueueItem_ptr item = items[namekey];
   if(item == NULL) return item;
+
+  updateStatus(item, GenPrioQueueItem::Finished);
+  items.erase(namekey);
+
+  return item;
 }
 
 GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
   scoped_lock(*this);
+  std::map<waitingKey, GenPrioQueueItem_ptr>::iterator it;
+  for(it = waiting.begin(); it != waiting.end(); it++) {
+    GenPrioQueueItem_ptr item = it->second;
 
+    if(possibleToRun(item)) {
+      updateStatus(item, GenPrioQueueItem::Running);
+      return item;
+    }
+  }
+  return GenPrioQueueItem_ptr();
+}
+
+int GenPrioQueue::tick() {
+  return 0;
 }
