@@ -108,6 +108,11 @@ private:
   /// The thread that ticks
   boost::thread *ticker;
   
+  enum {
+    roleHead,
+    roleDisk
+  } role;
+  
 protected:
 
   

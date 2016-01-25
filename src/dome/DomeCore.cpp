@@ -177,6 +177,13 @@ int DpmrCore::init(const char *cfgfile) {
     long debuglevel = CFG->GetLong("glb.debug", 1);
     Logger::get()->setLevel((Logger::Level)debuglevel);
     
+    std::string r = CFG->GetString("glb.role", (char *)"head");
+    if (r == "head") role = roleHead;
+    else if (r == "disk") role = roleDisk;
+    else {
+      Err(fname, "Invalid role: '" << r << "'");
+      return -1;
+    }
     
     // The limits for the prio queues, get them from the cfg 
     std::vector<size_t> limits;
