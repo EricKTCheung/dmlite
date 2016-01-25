@@ -82,7 +82,7 @@ public:
 
   /// Touching an item needs all the parameters because the queue might have been list and needs to
   /// be reconstructed incrementally. New items will be typically in waiting state
-  int touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, std::vector<std::string> &qualifiers);
+  int touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers);
 
   /// Removes a specific item from the queue, whatever the status is. Gives back a reference to the item
   GenPrioQueueItem_ptr removeItem(std::string namekey);
@@ -90,9 +90,14 @@ public:
   /// Gets the next item that can transition to status running. Automatically sets it to running too if it can
   GenPrioQueueItem_ptr getNextToRun();
 
+  /// gives the number of jobs in the waiting queue
+  size_t nWaiting();
+
+  /// gives the total number of jobs in the queue
+  size_t nTotal();
 
   /// Queues are alive, and purge unused elements
-  int tick() {};
+  int tick();
 
 private:
   /// insert item into the internal data structures
@@ -104,6 +109,9 @@ private:
 
   void removeFromWaiting(GenPrioQueueItem_ptr);
   void removeFromRunning(GenPrioQueueItem_ptr);
+
+  /// verifies that adding this item doesn't violate a limit
+  bool possibleToRun(GenPrioQueueItem_ptr);
 
   int timeout;
   std::vector<size_t> limits;

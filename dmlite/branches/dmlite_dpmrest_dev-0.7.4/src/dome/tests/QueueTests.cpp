@@ -21,23 +21,105 @@
 using namespace std;
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
-#define DECLARE_TEST() std::cout << " ----- Performing test: " << __FUNCTION__ << std::endl
-#define ASSERT(assertion, msg) \
+#define DECLARE_TEST() TestDeclaration __test_declaration(__FUNCTION__)
+#define ASSERTm(assertion, msg) \
     if((assertion) == false) throw std::runtime_error( SSTR(__FILE__ << ":" << __LINE__ << " (" << __func__ << "): Assertion " << #assertion << " failed.\n" << msg))
+#define ASSERT(assertion) ASSERTm((assertion), "")
+
+class TestDeclaration {
+public:
+  TestDeclaration(std::string name) {
+    std::cout << " ----- Performing test: " << name << std::endl;
+  }
+
+  ~TestDeclaration() {
+    std::cout << " -- test successful" << std::endl;
+  }
+};
+
+std::vector<string> v2(string p1, string p2) {
+  std::vector<string> ret;
+  ret.push_back(p1);
+  ret.push_back(p2);
+  return ret;
+}
+
+std::vector<size_t> simpleLimits() {
+  std::vector<size_t> limits;
+  limits.push_back(2);
+  limits.push_back(1);
+  return limits;
+}
 
 void test1() {
   DECLARE_TEST();
 
-  std::vector<size_t> limits;
-  limits.push_back(2);
-  limits.push_back(1);
+  GenPrioQueue queue(1, simpleLimits());
+  ASSERT(queue.nTotal() == 0);
 
-  GenPrioQueue queue(1, limits);
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv1", "pool1"));
+  ASSERT(queue.nTotal() == 1);
+  ASSERT(queue.nWaiting() == 1);
 
+  GenPrioQueueItem_ptr item = queue.getNextToRun();
+  ASSERT(item->namekey == "1");
+  ASSERT(item->status == GenPrioQueueItem::Running);
+  ASSERT(queue.nTotal() == 1);
+  ASSERT(queue.nWaiting() == 0);
 
+  queue.removeItem(item->namekey);
+  ASSERT(queue.nTotal() == 0);
+  ASSERT(queue.nWaiting() == 0);
 }
+
+void test2() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv1", "pool1"));
+  queue.touchItemOrCreateNew("2", GenPrioQueueItem::Waiting, 1, v2("srv2", "pool2"));
+  queue.touchItemOrCreateNew("3", GenPrioQueueItem::Waiting, 1, v2("srv3", "pool3"));
+
+  GenPrioQueueItem_ptr item2 = queue.getNextToRun();
+  GenPrioQueueItem_ptr item3 = queue.getNextToRun();
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun();
+
+  ASSERT(item2->namekey == "2");
+  ASSERT(item3->namekey == "3");
+  ASSERT(item1->namekey == "1");
+
+  ASSERT(queue.nTotal() == 3);
+  ASSERT(queue.nWaiting() == 0);
+
+  queue.removeItem(item3->namekey);
+  ASSERT(queue.nTotal() == 2);
+
+  queue.removeItem(item1->namekey);
+  ASSERT(queue.nTotal() == 1);
+
+  queue.removeItem(item2->namekey);
+  ASSERT(queue.nTotal() == 0);
+}
+
+void test3() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool"));
+  queue.touchItemOrCreateNew("2", GenPrioQueueItem::Waiting, 0, v2("srv", "pool"));
+
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun();
+  GenPrioQueueItem_ptr itemN = queue.getNextToRun(); // hits "pool" limit
+
+  ASSERT(item1 != NULL);
+  ASSERT(itemN == NULL);
+  ASSERT(item1->namekey == "1");
+}
+
 
 int main() {
   test1();
+  test2();
+  test3();
   return 0;
 }
