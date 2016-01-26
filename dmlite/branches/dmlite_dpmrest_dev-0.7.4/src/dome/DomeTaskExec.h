@@ -76,7 +76,7 @@ public:
   /// the execution status and the result
   /// The mechanics is that a detached thread is started. This guy invokes popen3
   /// and blocks waiting for the process to end. Upon end it updates the corresponding
-  /// instance of DpmrTask with the result and the stdout
+  /// instance of DomeTask with the result and the stdout
   int submitCmd(std::string cmd);
   
   /// Get the results of a task.

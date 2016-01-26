@@ -17,7 +17,7 @@
 
 
 
-/** @file   DpmrCore.cpp
+/** @file   DomeCore.cpp
  * @brief  The main class where operation requests are applied to the status
  * @author Fabrizio Furano
  * @date   Dec 2015
@@ -28,15 +28,15 @@
 #include "DomeLog.h"
 
 
-DpmrCore::DpmrCore() {
-  const char *fname = "DpmrCore::ctor";
+DomeCore::DomeCore() {
+  const char *fname = "DomeCore::ctor";
   domelogmask = Logger::get()->getMask(domelogname);
   //Info(Logger::Lvl1, fname, "Ctor " << dmlite_MAJOR <<"." << dmlite_MINOR << "." << dmlite_PATCH);
   initdone = false;
   terminationrequested = false;
 }
 
-DpmrCore::~DpmrCore() {
+DomeCore::~DomeCore() {
   // Interrupt accept and worker threads
   for (int i = 0; i < workers.size(); i++) {
     workers[i]->interrupt();
@@ -69,7 +69,7 @@ DpmrCore::~DpmrCore() {
 
 // entry point for worker threads, endless loop that wait for requests from apache
 // pass on processing to handlers depends on (not yet) defined REST methods
-void workerFunc(DpmrCore *core, int myidx) {
+void workerFunc(DomeCore *core, int myidx) {
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " started");
   
@@ -101,19 +101,21 @@ void workerFunc(DpmrCore *core, int myidx) {
         Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " FCGI env: " << *envp);
       }
     
-    std::string request_method = FCGX_GetParam("REQUEST_METHOD", request.envp);
-    std::string query = FCGX_GetParam("PATH_INFO", request.envp);
-    
-    Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << request_method << " query:" << query);
+    DomeReq dreq(request);
+       
+    Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object);
     
     // split query string first before comparing
     //queryMap query_map;
     //queryToMap(query_map, query);       
     
-    if(request_method == "GET") {
+    if(dreq.verb == "GET") {
       
-      
-      if (query == "/info") {
+      if ( dreq.domecmd == "dome_getspaceinfo" ) {
+        core->dome_getspaceinfo(dreq, request);
+      }
+      else
+      if (dreq.object == "/info") {
         FCGX_FPrintF(request.out, 
                    "Content-type: text\r\n"
                    "\r\n"
@@ -127,13 +129,13 @@ void workerFunc(DpmrCore *core, int myidx) {
         
       }
       
-    } else if(request_method == "HEAD"){ // meaningless placeholder
+    } else if(dreq.verb == "HEAD"){ // meaningless placeholder
       FCGX_FPrintF(request.out, 
                    "Content-type: text/html\r\n"
                    "\r\n"
                    "This is a HEAD\r\n");
       
-    } else if(request_method == "PUT"){ // meaningless placeholder
+    } else if(dreq.verb == "PUT"){ // meaningless placeholder
       FCGX_FPrintF(request.out, 
                    "Content-type: text/html\r\n"
                    "\r\n"
@@ -151,7 +153,7 @@ void workerFunc(DpmrCore *core, int myidx) {
 
 
 
-int DpmrCore::init(const char *cfgfile) {
+int DomeCore::init(const char *cfgfile) {
   const char *fname = "UgrConnector::init";
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
@@ -247,13 +249,13 @@ int DpmrCore::init(const char *cfgfile) {
     
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
-    ticker = new boost::thread(boost::bind(&DpmrCore::tick, this, 0));
+    ticker = new boost::thread(boost::bind(&DomeCore::tick, this, 0));
     
     return 0;
   }
 }
 
-void DpmrCore::tick(int parm) {
+void DomeCore::tick(int parm) {
   
   time_t lastreload = time(0);
   while (! this->terminationrequested ) {
@@ -284,35 +286,54 @@ void DpmrCore::tick(int parm) {
 
 
 
-int DpmrCore::dpmr_put(DpmrReq &req, FCGX_Request &request) {
+int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
   
   
 };
-int DpmrCore::dpmr_putdone(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_getspaceinfo(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_getquotatoken(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_setquotatoken(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_delquotatoken(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_chksum(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_chksumdone(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_ispullable(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_get(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_pulldone(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_statpool(DpmrReq &req, FCGX_Request &request) {};
+int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
+  int rc = 0;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+
+          FCGX_PutS("Content-type: text\r\n"
+                   "\r\n"
+                   "Hi, This is a mock result\r\n",
+                   
+                    request.out
+                   );
+          
+  // This should be turned into trivial, flat-looking json
+  // I don't see the need for any library here, given the simplicity
+  for (int i = 0; i < status.fslist.size(); i++) {    
+    FCGX_FPrintF(request.out, "%s %s %s %lld %lld\r\n", status.fslist[i].poolname.c_str(), status.fslist[i].server.c_str(), status.fslist[i].fs.c_str(), status.fslist[i].freespace, status.fslist[i].physicalsize);
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  return rc;
+};
+int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_chksumdone(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_get(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {};
 
 
-int DpmrCore::dpmr_pull(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_dochksum(DpmrReq &req, FCGX_Request &request) {};
-int DpmrCore::dpmr_statfs(DpmrReq &req, FCGX_Request &request) {};
+int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_statfs(DomeReq &req, FCGX_Request &request) {};
 
 
 /// Send a notification to the head node about the completion of this task
-void DpmrCore::onTaskCompleted(DomeTask &task) {
+void DomeCore::onTaskCompleted(DomeTask &task) {
   
 }
 
 /// Send a notification to the head node about a task that is running
-void DpmrCore::onTaskRunning(DomeTask &task) {
+void DomeCore::onTaskRunning(DomeTask &task) {
   
 }
 
