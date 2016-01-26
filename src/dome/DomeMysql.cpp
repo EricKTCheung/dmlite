@@ -168,7 +168,7 @@ int DomeMySql::rollback()
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
 }
 
-int DomeMySql::getSpacesQuotas(DpmrStatus &st)
+int DomeMySql::getSpacesQuotas(DomeStatus &st)
 {
   
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
@@ -179,7 +179,7 @@ int DomeMySql::getSpacesQuotas(DpmrStatus &st)
   );
   stmt.execute();
   
-  DpmrQuotatoken qt;
+  DomeQuotatoken qt;
   char buf1[1024], buf2[1024];
   
   stmt.bindResult(0, &qt.rowid);
@@ -222,11 +222,11 @@ int DomeMySql::getSpacesQuotas(DpmrStatus &st)
 
 
 
-int DomeMySql::getFilesystems(DpmrStatus &st)
+int DomeMySql::getFilesystems(DomeStatus &st)
 {
   
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-  DpmrFsInfo fs;
+  DomeFsInfo fs;
   
   Statement stmt(conn_, "dpm_db", 
                  "SELECT poolname, server, fs, status, weight\

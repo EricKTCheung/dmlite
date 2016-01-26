@@ -31,39 +31,38 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-
+#include <fcgiapp.h>
 
 /// Class that describes a request
 /// Requests have some fields, that normally come from parsing a CGI request
 /// The CGI request can carry a payload in the BODY, which is assumed to be in JSON format
 /// This class can parse the input request into data structures that are easier to manage
 /// Please note that this class is used for all the dpmrest requests, also the inter-cluster ones
-class DpmrReq {
+class DomeReq {
 
 public:
-    /// The verb of the request, e.g. GET
+  
+    
+    DomeReq(FCGX_Request &request);
+    
+    /// The req method of the request, e.g. GET
     std::string verb;
     /// The object of the request, typically a filename or pathname
     std::string object;
-    
-    /// Parses the first line of an incoming HTTP req. This
-    /// fills the verb and object fields
-    int takeHTTPreq(std::string &req);
-    
+    /// The dome command got from the request, e.g dome_getspaceinfo
+    std::string domecmd;
+       
     /// Here we put the fields that come from the body of the request
     /// These are in the form of JSON keyvalue pairs
-    boost::property_tree::ptree fields;
+    boost::property_tree::ptree bodyfields;
     
     /// Fills the fields from a JSON representation, usually taken from the body of the incoming request
     /// Returns 0 if OK
-    int takeJSONfields(std::string &body);
+    int takeJSONbodyfields(std::string &body);
     
     /// Produces a JSON representation of the fields contained in the property tree
     /// Returns 0 if OK
-    int getJSONfields(std::string &body);
-    
-    /// Produces the HTTP header that encodes this request
-    int getHTTPRequest(std::string &header);
+    int getJSONbodyfields(std::string &body);
     
     /// The request also may carry information about the client that submitted it
     /// dpmrest can apply authorization schemes to this client. This is usually root

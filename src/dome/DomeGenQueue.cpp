@@ -17,7 +17,7 @@
 
 
 
-/** @file   DpmrGenQueue.cpp
+/** @file   DomeGenQueue.cpp
  * @brief  A helper class that implements a thread safe, generic task queue
  * @author Fabrizio Furano
  * @date   Dec 2015

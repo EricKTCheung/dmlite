@@ -24,27 +24,34 @@
  */
 
 #include "DomeReq.h"
+#include "DomeLog.h"
 
-int DpmrReq::takeHTTPreq(std::string &req) {
+
+DomeReq::DomeReq(FCGX_Request &request) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Ctor");
+  char *s;
+  
+  if ( (s = FCGX_GetParam("REQUEST_METHOD", request.envp)) )
+    verb = s;
+  if ( (s = FCGX_GetParam("PATH_INFO", request.envp)) )
+    object = s;
+  if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
+    domecmd = s;
+
+  
+  
+  //takeJSONbodyfields( request.what?! );
+}
+    
+
+int DomeReq::takeJSONbodyfields(std::string &body) {
   
   return 0;
 }
 
 
-
-int DpmrReq::takeJSONfields(std::string &body) {
+int DomeReq::getJSONbodyfields(std::string &body) {
   
   return 0;
 }
 
-
-int DpmrReq::getJSONfields(std::string &body) {
-  
-  return 0;
-}
-
-
-int DpmrReq::getHTTPRequest(std::string &header) {
-  
-  return 0;
-}

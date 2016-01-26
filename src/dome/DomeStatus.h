@@ -17,7 +17,7 @@
 
 
 
-/** @file   DpmrStatus.h
+/** @file   DomeStatus.h
  * @brief  A helper class that describes the internal status of the storage system, pools, disks, etc
  * @author Fabrizio Furano
  * @date   Dec 2015
@@ -29,7 +29,7 @@
 #include "DomeGenQueue.h"
 
 /// We describe a filesystem where to put data. We also keep dynamic information here, e.g. the free/used space
-class DpmrFsInfo {
+class DomeFsInfo {
 
 public:
 
@@ -54,7 +54,7 @@ public:
 
 
 /// Information about a quota on a directory. This comes from the historical spacetoken information
-class DpmrQuotatoken {
+class DomeQuotatoken {
 public:
   /// An ID
   int64_t rowid;
@@ -76,15 +76,15 @@ public:
 
 /// Class that contains the internal status of the storage system, pools, disks, etc
 /// Accesses must lock/unlock it for operations where other threads may write
-class DpmrStatus: public boost::recursive_mutex {
+class DomeStatus: public boost::recursive_mutex {
 public:
   /// Trivial store for filesystems information
-  std::vector <DpmrFsInfo> fslist;
+  std::vector <DomeFsInfo> fslist;
 
   /// Simple keyvalue store for prefix-based quotas, that
   /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes
-  std::map <std::string, DpmrQuotatoken> quotas;
+  std::map <std::string, DomeQuotatoken> quotas;
 
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems
@@ -92,7 +92,7 @@ public:
 
   /// Helper function that adds a filesystem to the list and its corresponding server to the server list
   /// Filesystems so far can't be deleted without a restart
-  int addFilesystem(DpmrFsInfo &fs);
+  int addFilesystem(DomeFsInfo &fs);
 
   /// Helper function that reloads all the filesystems from the DB
   int loadFilesystems();

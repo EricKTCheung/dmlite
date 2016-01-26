@@ -17,7 +17,7 @@
 
 
 
-/** @file   DpmrCore.h
+/** @file   DomeCore.h
  * @brief  The main class where operation requests are applied to the status
  * @author Fabrizio Furano
  * @date   Dec 2015
@@ -46,12 +46,12 @@
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
   
 
-class DpmrCore: public DomeTaskExec {
+class DomeCore: public DomeTaskExec {
 
 public:
   
-  DpmrCore();
-  virtual ~DpmrCore();
+  DomeCore();
+  virtual ~DomeCore();
 
   /// Reads the config file and initializes all the subsystems
   /// After this call everything has to be operative
@@ -60,7 +60,7 @@ public:
   int init(const char *cfgfile = 0);
   
   /// The app status, plus functions that modify it
-  DpmrStatus status;
+  DomeStatus status;
   
 
   /// Ticking this gives life to the objects belonging to this class
@@ -70,19 +70,19 @@ public:
   
   
   /// Requests calls. These parse the request, do actions and send the response, using the original fastcgi func
-  int dpmr_put(DpmrReq &req, FCGX_Request &request);
-  int dpmr_putdone(DpmrReq &req, FCGX_Request &request);
-  int dpmr_getspaceinfo(DpmrReq &req, FCGX_Request &request);
-  int dpmr_getquotatoken(DpmrReq &req, FCGX_Request &request);
-  int dpmr_setquotatoken(DpmrReq &req, FCGX_Request &request);
-  int dpmr_delquotatoken(DpmrReq &req, FCGX_Request &request);
-  int dpmr_chksum(DpmrReq &req, FCGX_Request &request);
-  int dpmr_chksumdone(DpmrReq &req, FCGX_Request &request);
-  int dpmr_ispullable(DpmrReq &req, FCGX_Request &request);
-  int dpmr_get(DpmrReq &req, FCGX_Request &request);
-  int dpmr_pulldone(DpmrReq &req, FCGX_Request &request);
-  int dpmr_statpool(DpmrReq &req, FCGX_Request &request);
-  int dpmr_ping(DpmrReq &req, FCGX_Request &request) {
+  int dome_put(DomeReq &req, FCGX_Request &request);
+  int dome_putdone(DomeReq &req, FCGX_Request &request);
+  int dome_getspaceinfo(DomeReq &req, FCGX_Request &request);
+  int dome_getquotatoken(DomeReq &req, FCGX_Request &request);
+  int dome_setquotatoken(DomeReq &req, FCGX_Request &request);
+  int dome_delquotatoken(DomeReq &req, FCGX_Request &request);
+  int dome_chksum(DomeReq &req, FCGX_Request &request);
+  int dome_chksumdone(DomeReq &req, FCGX_Request &request);
+  int dome_ispullable(DomeReq &req, FCGX_Request &request);
+  int dome_get(DomeReq &req, FCGX_Request &request);
+  int dome_pulldone(DomeReq &req, FCGX_Request &request);
+  int dome_statpool(DomeReq &req, FCGX_Request &request);
+  int dome_ping(DomeReq &req, FCGX_Request &request) {
     int r = FCGX_FPrintF(request.out, 
                  "Content-type: text/html\r\n"
                  "\r\n"
@@ -91,9 +91,9 @@ public:
     return (r);
   };
   
-  int dpmr_pull(DpmrReq &req, FCGX_Request &request);
-  int dpmr_dochksum(DpmrReq &req, FCGX_Request &request);
-  int dpmr_statfs(DpmrReq &req, FCGX_Request &request);
+  int dome_pull(DomeReq &req, FCGX_Request &request);
+  int dome_dochksum(DomeReq &req, FCGX_Request &request);
+  int dome_statfs(DomeReq &req, FCGX_Request &request);
   
 private:
   bool initdone, terminationrequested;
@@ -103,7 +103,7 @@ private:
   
   /// Easy way to get threaded life
   std::vector< boost::thread * > workers;
-  friend void workerFunc(DpmrCore *core, int myidx);
+  friend void workerFunc(DomeCore *core, int myidx);
   
   /// The thread that ticks
   boost::thread *ticker;

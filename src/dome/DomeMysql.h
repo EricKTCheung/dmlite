@@ -30,7 +30,7 @@
 #include <mysql/mysql.h>
 
 
-class DpmrStatus;
+class DomeStatus;
 
 
 
@@ -55,10 +55,10 @@ public:
   // All the helper primitives are here, for quick usage
   
   /// Loads spaces and quotas into a status. Thread safe.
-  int getSpacesQuotas(DpmrStatus &st);
+  int getSpacesQuotas(DomeStatus &st);
   
   /// Loads the defined filesystems, parses them into server names, etc.
-  int getFilesystems(DpmrStatus &st);
+  int getFilesystems(DomeStatus &st);
   
 protected:
   // The corresponding factory.

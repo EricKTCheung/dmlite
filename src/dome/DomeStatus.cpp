@@ -17,7 +17,7 @@
 
 
 
-/** @file   DpmrStatus.cpp
+/** @file   DomeStatus.cpp
  * @brief  A helper class that describes the internal status of the storage system, pools, disks, etc
  * @author Fabrizio Furano
  * @date   Jan 2016
@@ -29,25 +29,25 @@
 
 /// Helper function that adds a filesystem to the list and its corresponding server to the server list
 /// Filesystems so far can't be deleted without a restart
-int DpmrStatus::addFilesystem(DpmrFsInfo &fs) {
+int DomeStatus::addFilesystem(DomeFsInfo &fs) {
 }
 
 /// Helper function that reloads all the filesystems from the DB
-int DpmrStatus::loadFilesystems() {
+int DomeStatus::loadFilesystems() {
   DomeMySql sql;
   
   return sql.getFilesystems(*this);
 }
 
 /// Helper function that reloads all the quotas from the DB
-int DpmrStatus::loadQuotatokens() {
+int DomeStatus::loadQuotatokens() {
   DomeMySql sql;
   
   return sql.getSpacesQuotas(*this);
 }
 
 
-int DpmrStatus::tick() {
+int DomeStatus::tick() {
   checksumq->tick();
   filepullq->tick();
 }
