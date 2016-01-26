@@ -189,17 +189,17 @@ int DomeCore::init(const char *cfgfile) {
     
     // The limits for the prio queues, get them from the cfg 
     std::vector<size_t> limits;
-    limits.push_back( CFG->GetLong("head.maxchecksums", 10) );
-    limits.push_back( CFG->GetLong("head.maxchecksumspernode", 2) );
+    limits.push_back( CFG->GetLong("head.checksum.maxtotal", 10) );
+    limits.push_back( CFG->GetLong("head.checksum.maxpernode", 2) );
     
     // Create the chksum queue
-    status.checksumq = new GenPrioQueue(30, limits);
+    status.checksumq = new GenPrioQueue(CFG->GetLong("head.checksum.qtmout", 30), limits);
     
     // Create the queue for the callouts
     limits.clear();
-    limits.push_back( CFG->GetLong("head.maxcallouts", 10) );
-    limits.push_back( CFG->GetLong("head.maxcalloutspernode", 2) );
-    status.filepullq = new GenPrioQueue(30, limits);
+    limits.push_back( CFG->GetLong("head.filepulls.maxtotal", 10) );
+    limits.push_back( CFG->GetLong("head.filepulls.maxpernode", 2) );
+    status.filepullq = new GenPrioQueue(CFG->GetLong("head.filepulls.qtmout", 30), limits);
     
     // Allocate the mysql factory and configure it
     DomeMySql::configure( CFG->GetString("glb.db.host",     (char *)"localhost"),
@@ -315,7 +315,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_chksumdone(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_get(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request) {};

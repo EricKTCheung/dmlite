@@ -251,6 +251,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   stmt.bindResult(4, & fs.weight);
   
   int cnt = 0;
+  st.fslist.clear();
   try {
     bool end = false;
         
