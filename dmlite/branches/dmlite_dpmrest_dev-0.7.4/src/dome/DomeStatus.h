@@ -33,6 +33,13 @@ class DomeFsInfo {
 
 public:
 
+  DomeFsInfo() {
+    status = 0;
+    weight = 0;
+    freespace = 0LL;
+    physicalsize = 0LL;
+  };
+  
   /// The logical pool this fs belongs to. This is just a string tag. A pool does not need anything more.
   std::string poolname;
 
@@ -51,6 +58,9 @@ public:
   /// Total size of this filesystem
   long long physicalsize;
 };
+
+
+
 
 
 /// Information about a quota on a directory. This comes from the historical spacetoken information
@@ -80,7 +90,7 @@ class DomeStatus: public boost::recursive_mutex {
 public:
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;
-
+ 
   /// Simple keyvalue store for prefix-based quotas, that
   /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes
@@ -89,6 +99,8 @@ public:
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems
   std::set <std::string> servers;
+  
+  
 
   /// Helper function that adds a filesystem to the list and its corresponding server to the server list
   /// Filesystems so far can't be deleted without a restart
@@ -100,6 +112,8 @@ public:
   /// Helper function that reloads all the quotas from the DB
   int loadQuotatokens();
 
+  int getPoolSpaces(std::string &poolname, long long &total, long long &free);
+  
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;
 

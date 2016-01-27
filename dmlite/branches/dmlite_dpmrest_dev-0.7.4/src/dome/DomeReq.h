@@ -58,7 +58,7 @@ public:
     
     /// Fills the fields from a JSON representation, usually taken from the body of the incoming request
     /// Returns 0 if OK
-    int takeJSONbodyfields(std::string &body);
+    int takeJSONbodyfields(char *body);
     
     /// Produces a JSON representation of the fields contained in the property tree
     /// Returns 0 if OK

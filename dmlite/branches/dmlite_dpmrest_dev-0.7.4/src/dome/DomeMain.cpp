@@ -27,12 +27,32 @@
 #include "DomeCore.h"
 #include <iostream>
 #include <stdlib.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 using namespace std;
 
 int main(int argc, char **argv) {
   std::string cfgfile;
+    
   
+  
+  
+  
+  std::string response = "{\"title\":\"Foo\",\"items\":[{\"id\":123,\"name\":\"test1\"},{\"id\":456,\"name\":\"test2\"}]}";
+
+        boost::property_tree::ptree pt;
+        std::stringstream ss; ss << response;
+        boost::property_tree::read_json(ss, pt);
+        
+  
+        
+        
+        
+        
+        
+        
+        
   if (argc < 2) {
     char *c = getenv("DOME_CFGFILE");
     

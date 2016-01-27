@@ -26,7 +26,8 @@
 
 #include "DomeCore.h"
 #include "DomeLog.h"
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 DomeCore::DomeCore() {
   const char *fname = "DomeCore::ctor";
@@ -102,12 +103,9 @@ void workerFunc(DomeCore *core, int myidx) {
       }
     
     DomeReq dreq(request);
-       
-    Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object);
+
+    Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems:" << dreq.bodyfields.size());
     
-    // split query string first before comparing
-    //queryMap query_map;
-    //queryToMap(query_map, query);       
     
     if(dreq.verb == "GET") {
       
@@ -125,6 +123,7 @@ void workerFunc(DomeCore *core, int myidx) {
         for (char **envp = request.envp ; *envp; ++envp)
         {
           FCGX_FPrintF(request.out, "%s \r\n", *envp);
+          
         }
         
       }
@@ -291,26 +290,52 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
   
 };
 int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {};
+
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   int rc = 0;
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-
-          FCGX_PutS("Content-type: text\r\n"
-                   "\r\n"
-                   "Hi, This is a mock result\r\n",
-                   
-                    request.out
-                   );
-          
-  // This should be turned into trivial, flat-looking json
-  // I don't see the need for any library here, given the simplicity
-  for (int i = 0; i < status.fslist.size(); i++) {    
-    FCGX_FPrintF(request.out, "%s %s %s %lld %lld\r\n", status.fslist[i].poolname.c_str(), status.fslist[i].server.c_str(), status.fslist[i].fs.c_str(), status.fslist[i].freespace, status.fslist[i].physicalsize);
+  
+  
+  boost::property_tree::ptree jresp;      
+  for (int i = 0; i < status.fslist.size(); i++) {
+    std::string fsname, poolname;
+    
+    fsname = "fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
+    
+    if (role == roleHead) { //Only headnodes report about pools
+      jresp.put(boost::property_tree::ptree::path_type(fsname+"^poolname", '^'), status.fslist[i].poolname);
+      jresp.put(boost::property_tree::ptree::path_type(fsname+"^fsstatus", '^'), status.fslist[i].status);
+    }
+    jresp.put(boost::property_tree::ptree::path_type(fsname+"^freespace", '^'), status.fslist[i].freespace);
+    jresp.put(boost::property_tree::ptree::path_type(fsname+"^physicalsize", '^'), status.fslist[i].physicalsize);
+    
+    if (role == roleHead) { //Only headnodes report about pools
+      poolname = "poolinfo^" + status.fslist[i].poolname;
+      long long tot, free;
+      status.getPoolSpaces(status.fslist[i].poolname, tot, free);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
+      
+      poolname = "poolinfo^" + status.fslist[i].poolname + "^fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
+      
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^fsstatus", '^'), status.fslist[i].status);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), status.fslist[i].freespace);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), status.fslist[i].physicalsize);
+    }
   }
+  
+  
+  std::ostringstream os;
+  os << "Content-type: text\r\n\r\n";
+  boost::property_tree::write_json(os, jresp);
+  
+  FCGX_PutS(os.str().c_str(), request.out);
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
 };
+
 int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};

@@ -256,7 +256,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
     bool end = false;
         
     do {
-      end = stmt.fetch();
+      end = !stmt.fetch();
       boost::unique_lock<boost::recursive_mutex> l(st);
       
       
