@@ -259,6 +259,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       
       fs.poolname = bufpoolname;
       fs.server = bufserver;
+      st.servers.insert(bufserver);
       fs.fs = buffs;
       
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server:" << fs.server <<
