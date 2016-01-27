@@ -28,6 +28,8 @@
 #include "DomeLog.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <sys/vfs.h>
+#include <unistd.h>
 
 DomeCore::DomeCore() {
   const char *fname = "DomeCore::ctor";
@@ -179,8 +181,8 @@ int DomeCore::init(const char *cfgfile) {
     Logger::get()->setLevel((Logger::Level)debuglevel);
     
     std::string r = CFG->GetString("glb.role", (char *)"head");
-    if (r == "head") role = roleHead;
-    else if (r == "disk") role = roleDisk;
+    if (r == "head") status.role = status.roleHead;
+    else if (r == "disk") status.role = status.roleDisk;
     else {
       Err(fname, "Invalid role: '" << r << "'");
       return -1;
@@ -256,22 +258,14 @@ int DomeCore::init(const char *cfgfile) {
 
 void DomeCore::tick(int parm) {
   
-  time_t lastreload = time(0);
   while (! this->terminationrequested ) {
     time_t timenow = time(0);
     
     Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
   
-    if ( timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
-      // At regular intervals, one minute or so,
-      // reloading the filesystems and the quotatokens is a good idea
-      Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas and filesystems");
-      status.loadQuotatokens();
-      status.loadFilesystems();
-      lastreload = time(0);
-    }
+    
   
-    status.tick();
+    status.tick(timenow);
     
     
     sleep(CFG->GetLong("glb.tickfreq", 10));
@@ -302,14 +296,14 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
     
     fsname = "fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
     
-    if (role == roleHead) { //Only headnodes report about pools
+    if (status.role == status.roleHead) { //Only headnodes report about pools
       jresp.put(boost::property_tree::ptree::path_type(fsname+"^poolname", '^'), status.fslist[i].poolname);
       jresp.put(boost::property_tree::ptree::path_type(fsname+"^fsstatus", '^'), status.fslist[i].status);
     }
     jresp.put(boost::property_tree::ptree::path_type(fsname+"^freespace", '^'), status.fslist[i].freespace);
     jresp.put(boost::property_tree::ptree::path_type(fsname+"^physicalsize", '^'), status.fslist[i].physicalsize);
     
-    if (role == roleHead) { //Only headnodes report about pools
+    if (status.role == status.roleHead) { //Only headnodes report about pools
       poolname = "poolinfo^" + status.fslist[i].poolname;
       long long tot, free;
       status.getPoolSpaces(status.fslist[i].poolname, tot, free);

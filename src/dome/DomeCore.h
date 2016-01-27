@@ -108,14 +108,12 @@ private:
   /// The thread that ticks
   boost::thread *ticker;
   
-  enum {
-    roleHead,
-    roleDisk
-  } role;
   
 protected:
 
-  
+  // In the case of a disk server, checks the free/used space in the mountpoints
+  void checkDiskSpaces();
+
   /// Send a notification to the head node about the completion of this task
   virtual void onTaskCompleted(DomeTask &task);
   

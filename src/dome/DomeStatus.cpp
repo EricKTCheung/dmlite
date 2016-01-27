@@ -26,6 +26,14 @@
 
 #include "DomeStatus.h"
 #include "DomeMysql.h"
+#include "DomeLog.h"
+#include "utils/Config.hh"
+#include <sys/vfs.h>
+#include <unistd.h>
+
+
+
+
 
 /// Helper function that adds a filesystem to the list and its corresponding server to the server list
 /// Filesystems so far can't be deleted without a restart
@@ -49,6 +57,7 @@ int DomeStatus::loadQuotatokens() {
 int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free) {
   total = 0LL;
   free = 0LL;
+  boost::unique_lock<boost::recursive_mutex> l(*this);
   
   // Loop over the filesystems and just sum the numbers
   for (int i = 0; i < fslist.size(); i++)
@@ -59,8 +68,92 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
     
 }
 
-int DomeStatus::tick() {
+int DomeStatus::tick(time_t timenow) {
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
+  
+  // Give life to the queues
   checksumq->tick();
   filepullq->tick();
+  
+  
+  // -----------------------------------
+  // Actions to be performed less often...
+  // -----------------------------------
+  
+  
+  
+  
+  // Actions to be performed less often...
+  if ( timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
+    // At regular intervals, one minute or so,
+    // reloading the filesystems and the quotatokens is a good idea
+    Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas and filesystems");
+    loadQuotatokens();
+    loadFilesystems();   
+    
+    lastreload = timenow;
+  }
+  
+  if ( timenow - lastfscheck >= CFG->GetLong("glb.fscheckinterval", 60)) {
+    // At regular intervals, one minute or so,
+    // checking the filesystems is a good idea for a disk server
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking disk spaces.");
+    
+    checkDiskSpaces();
+    
+    lastfscheck = timenow;
+  }
+  
 }
 
+
+
+
+// In the case of a disk server, checks the free/used space in the mountpoints
+void DomeStatus::checkDiskSpaces() {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+  
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  if (role == roleDisk) {
+    
+    // Loop over the filesystems, and check those that match our hostname
+    // Give a horrible error if none is found
+    char myhostname[64];
+    gethostname(myhostname, 64);
+    int nfs = 0;
+    
+    for (int i = 0; i < fslist.size(); i++) {
+      
+      if ( !strcmp(fslist[i].server.c_str(), myhostname) ) {
+        struct statfs buf;
+        // this is supposed to be in this disk server. We statfs it, simply.
+        int rc = statfs(fslist[i].fs.c_str(), &buf);
+        if ( !rc ) {
+          fslist[i].freespace = buf.f_bavail * buf.f_bsize;
+          fslist[i].physicalsize = buf.f_blocks * buf.f_bsize;
+          Log(Logger::Lvl1, domelogmask, domelogname, "fs: " << fslist[i].fs << " phys: " << fslist[i].physicalsize << " free: " << fslist[i].freespace);
+          nfs++;
+        }
+        else {
+          Err("checkDiskSpaces", "statfs() on fs '" << fslist[i].fs << " returned " << rc << " errno:" << errno << ":" << strerror(errno));
+        }
+      }
+      
+    }
+    
+    if (!nfs) {
+      Err("checkDiskSpaces", "This server has no filesystems ?!?!?");
+    }
+    
+    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. Number of local filesystems: " << nfs);
+    
+  }
+  else { // TODO: Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
+    
+    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
+  }
+  
+  
+}
