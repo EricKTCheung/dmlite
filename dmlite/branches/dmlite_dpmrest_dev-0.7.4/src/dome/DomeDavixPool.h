@@ -37,8 +37,6 @@
 #include "utils/logger.h"
 #include "utils/poolcontainer.h"
 #include <davix.hpp>
-
-namespace dmlite {
   
   class DavixStuff {
   public:
@@ -117,7 +115,7 @@ namespace dmlite {
   
   
   
-}
+
 
 
 
