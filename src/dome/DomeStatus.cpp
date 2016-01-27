@@ -30,7 +30,7 @@
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>
-
+#include "DomeDavixPool.h"
 
 
 
@@ -151,6 +151,10 @@ void DomeStatus::checkDiskSpaces() {
     
   }
   else { // TODO: Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
+    
+    
+    DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+    
     
     Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
   }
