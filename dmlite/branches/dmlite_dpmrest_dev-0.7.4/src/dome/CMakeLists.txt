@@ -11,6 +11,7 @@ set(Dome_SOURCES #dpmrest.cpp
                  DomeReq.cpp
                  DomeMysql.cpp
                  DomeStatus.cpp
+                 DomeDavixPool.cpp
                  ../utils/MySqlPools.cpp
                  ../utils/MySqlWrapper.cpp
                  ../utils/Config.cc)
