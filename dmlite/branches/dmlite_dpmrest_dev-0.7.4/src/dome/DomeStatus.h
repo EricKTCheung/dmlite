@@ -40,6 +40,7 @@ public:
     physicalsize = 0LL;
   };
   
+  
   /// The logical pool this fs belongs to. This is just a string tag. A pool does not need anything more.
   std::string poolname;
 
@@ -88,6 +89,13 @@ public:
 /// Accesses must lock/unlock it for operations where other threads may write
 class DomeStatus: public boost::recursive_mutex {
 public:
+  
+  // Head node or disk server ?
+  enum {
+    roleHead,
+    roleDisk
+  } role;
+  
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;
  
@@ -114,6 +122,8 @@ public:
 
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
   
+  void checkDiskSpaces();
+  
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;
 
@@ -121,5 +131,9 @@ public:
   GenPrioQueue *filepullq;
 
   /// The status lives
-  int tick();
+  int tick(time_t timenow);
+  
+private:
+  time_t lastreload, lastfscheck;
+  
 };

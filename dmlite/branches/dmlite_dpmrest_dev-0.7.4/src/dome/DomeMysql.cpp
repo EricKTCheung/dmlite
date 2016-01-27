@@ -194,10 +194,9 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   
   int cnt = 0;
   try {
-    bool end = false;
         
-    do {
-      end = stmt.fetch();
+    while ( stmt.fetch() ) {
+  
       boost::unique_lock<boost::recursive_mutex> l(st);
       
       
@@ -210,7 +209,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       st.quotas[qt.path] = qt;
       
       cnt++;
-    } while (!end);
+    } 
   }
   catch ( ... ) {}
   
@@ -253,10 +252,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   int cnt = 0;
   st.fslist.clear();
   try {
-    bool end = false;
-        
-    do {
-      end = !stmt.fetch();
+           
+    while ( stmt.fetch() ) {
       boost::unique_lock<boost::recursive_mutex> l(st);
       
       
@@ -270,7 +267,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       st.fslist.push_back(fs);
       
       cnt++;
-    } while (!end);
+    }
   }
   catch ( ... ) {}
   
