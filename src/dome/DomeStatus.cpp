@@ -46,6 +46,18 @@ int DomeStatus::loadQuotatokens() {
   return sql.getSpacesQuotas(*this);
 }
 
+int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free) {
+  total = 0LL;
+  free = 0LL;
+  
+  // Loop over the filesystems and just sum the numbers
+  for (int i = 0; i < fslist.size(); i++)
+    if (fslist[i].poolname == poolname) {
+      total += fslist[i].physicalsize;
+      free += fslist[i].freespace;
+    }
+    
+}
 
 int DomeStatus::tick() {
   checksumq->tick();

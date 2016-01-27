@@ -25,7 +25,8 @@
 
 #include "DomeReq.h"
 #include "DomeLog.h"
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 DomeReq::DomeReq(FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Ctor");
@@ -38,20 +39,45 @@ DomeReq::DomeReq(FCGX_Request &request) {
   if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
     domecmd = s;
 
+  // We assume that the body fits in 4K, otherwise we ignore it ?!?
+  char buf[4096];
+  int nb = FCGX_GetStr(buf, sizeof(buf)-1, request.in);
+  if (nb < sizeof(buf)) {
+    buf[nb] = '\0';
+    Log(Logger::Lvl4, domelogmask, domelogname, "Body: '" << buf << "'");
+  }
   
-  
-  //takeJSONbodyfields( request.what?! );
+  takeJSONbodyfields( buf );
 }
     
 
-int DomeReq::takeJSONbodyfields(std::string &body) {
+int DomeReq::takeJSONbodyfields(char *body) {
   
+  // We assume that the body that we received is in JSON format
+  std::istringstream s(body);
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: '" << body << "'");
+  try {
+    boost::property_tree::read_json(s, bodyfields);
+  } catch (boost::property_tree::json_parser_error e) {
+    Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
+    return -1;
+  }
+  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }
 
 
 int DomeReq::getJSONbodyfields(std::string &body) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: '" << body << "'");
+  std::ostringstream s(body);
+  try {
+    boost::property_tree::write_json(s, bodyfields);
+  } catch (boost::property_tree::json_parser_error e) {
+    Err("getJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
+    return -1;
+  }
   
+  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }
 

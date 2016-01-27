@@ -77,7 +77,7 @@ public:
   int dome_setquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_delquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_chksum(DomeReq &req, FCGX_Request &request);
-  int dome_chksumdone(DomeReq &req, FCGX_Request &request);
+  int dome_chksumstatus(DomeReq &req, FCGX_Request &request);
   int dome_ispullable(DomeReq &req, FCGX_Request &request);
   int dome_get(DomeReq &req, FCGX_Request &request);
   int dome_pulldone(DomeReq &req, FCGX_Request &request);
