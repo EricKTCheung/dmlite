@@ -36,12 +36,53 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 DomeStatus::DomeStatus() {
-    char buf[64];
-    gethostname(buf, 64);
-    myhostname = buf;
-    Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
+  
+  
+  struct addrinfo hints, *info, *p;
+  int gai_result;
+  
+  char hostname[1024];
+  hostname[1023] = '\0';
+  gethostname(hostname, 1023);
+  
+  memset(&hints, 0, sizeof hints);
+  hints.ai_family = AF_UNSPEC; /*either IPV4 or IPV6*/
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_CANONNAME;
+  
+  if ((gai_result = getaddrinfo(hostname, "http", &hints, &info)) != 0) {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_result));
+    exit(1);
   }
+  
+  for(p = info; p != NULL; p = p->ai_next) {
+    if (p->ai_canonname && strlen(p->ai_canonname) > myhostname.size())
+      myhostname =  p->ai_canonname;
+  }
+  
+  freeaddrinfo(info);
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
+}
   
   
 /// Helper function that adds a filesystem to the list and its corresponding server to the server list
@@ -97,9 +138,8 @@ int DomeStatus::tick(time_t timenow) {
   if ( timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
     // At regular intervals, one minute or so,
     // reloading the filesystems and the quotatokens is a good idea
-    Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas and filesystems");
-    loadQuotatokens();
-    loadFilesystems();   
+    Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas.");
+    loadQuotatokens();   
     
     lastreload = timenow;
   }
@@ -168,7 +208,8 @@ void DomeStatus::checkDiskSpaces() {
       
       Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *i);
       int errcode = 0;
-      std::string url = CFG->GetString("head.diskdomeprotopfx", (char *)"http") + "://" + *i;
+      std::string url = CFG->GetString("head.diskdomeprotopfx", (char *)"http") + "://" + *i +
+                                      CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
       Davix::Uri uri(url);
       
       Davix::DavixError* tmp_err = NULL;
@@ -180,7 +221,7 @@ void DomeStatus::checkDiskSpaces() {
         continue;
       }
       
-      req.addHeaderField("cmd", "dpmr_getspaceinfo");
+      req.addHeaderField("cmd", "dome_getspaceinfo");
       
       // Set decent timeout values for the operation
       req.setParameters(ds->parms);
@@ -226,12 +267,17 @@ void DomeStatus::checkDiskSpaces() {
             // v.second is the child tree representing the server
             
             // Find the corresponding server:fs info in our array, and get the counters
+            Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
             for (int ii = 0; ii < fslist.size(); ii++) {
+              
+              Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
               if ((fslist[ii].server == srv.first) &&
                 (fslist[ii].fs == fs.first)) {
                 
-                fslist[ii].freespace = fs.second.get( "fsstatus", 0 );
-                fslist[ii].physicalsize = fs.second.get( "physicalsize", 0 );
+                Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
+                Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace" ) << " " << fs.second.get<long long>( "physicalsize" ));
+                fslist[ii].freespace = fs.second.get<long long>( "freespace" );
+                fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize" );
               
               
               }
