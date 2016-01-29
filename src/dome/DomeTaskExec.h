@@ -25,6 +25,7 @@
 
 
 #include <boost/thread.hpp>
+#include <signal.h>
 
 
 class DomeTask: public boost::mutex {
@@ -42,6 +43,8 @@ public:
   int key;
   
   std::string cmd;
+  const char *parms[64];
+
   int resultcode;
   
   time_t starttime, endtime;
@@ -50,6 +53,9 @@ public:
   int fd[3];
   pid_t pid;
   std::string stdout;
+
+  /// Split che command string into the single parms
+  void splitCmd();
 
   /// Wait until the task has finished or the timeout is expired
   int waitFinished(int tmout=5);
@@ -85,6 +91,9 @@ public:
   /// Return nonzero if the task is still running
   int waitResult(int taskID, int tmout=5);
   
+  //kill a specific task given the id
+  int killTask(int taskID);
+  
   /// Loops over all the tasks and:
   ///  - send a notification to the head node about all the processes that are running or that have finished
   ///  - garbage collect the task list.
@@ -104,7 +113,9 @@ protected:
   virtual void onTaskRunning(DomeTask &task);
 private:
 
-  int popen3(int fd[3],const char * cmd);
+  const char ** splitString(std::string str);
+
+  int popen3(int fd[3], pid_t *pid,  const char ** argv );
   
   /// Used to create keys to be inserted into the map. This has to be treated modulo MAXINT or similar big number
   int taskcnt;
