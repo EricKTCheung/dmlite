@@ -254,6 +254,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   try {
            
     while ( stmt.fetch() ) {
+      
+      if ( !strcmp(bufserver, st.myhostname.c_str()) || (st.role == DomeStatus::roleHead) ) {
       boost::unique_lock<boost::recursive_mutex> l(st);
       
       
@@ -268,6 +270,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       st.fslist.push_back(fs);
       
       cnt++;
+      }
     }
   }
   catch ( ... ) {}

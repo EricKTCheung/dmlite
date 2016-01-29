@@ -90,11 +90,15 @@ public:
 class DomeStatus: public boost::recursive_mutex {
 public:
   
+  DomeStatus();
+  
   // Head node or disk server ?
   enum {
     roleHead,
     roleDisk
   } role;
+  
+  std::string myhostname;
   
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;

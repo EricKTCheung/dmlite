@@ -32,9 +32,18 @@
 #include <unistd.h>
 #include "DomeDavixPool.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
 
-
-
+DomeStatus::DomeStatus() {
+    char buf[64];
+    gethostname(buf, 64);
+    myhostname = buf;
+    Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
+  }
+  
+  
 /// Helper function that adds a filesystem to the list and its corresponding server to the server list
 /// Filesystems so far can't be deleted without a restart
 int DomeStatus::addFilesystem(DomeFsInfo &fs) {
@@ -114,19 +123,17 @@ int DomeStatus::tick(time_t timenow) {
 void DomeStatus::checkDiskSpaces() {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
   
-  boost::unique_lock<boost::recursive_mutex> l(*this);
-  
   if (role == roleDisk) {
+    boost::unique_lock<boost::recursive_mutex> l(*this);
+    
     
     // Loop over the filesystems, and check those that match our hostname
-    // Give a horrible error if none is found
-    char myhostname[64];
-    gethostname(myhostname, 64);
+    
     int nfs = 0;
     
     for (int i = 0; i < fslist.size(); i++) {
       
-      if ( !strcmp(fslist[i].server.c_str(), myhostname) ) {
+      if ( fslist[i].server == myhostname ) {
         struct statfs buf;
         // this is supposed to be in this disk server. We statfs it, simply.
         int rc = statfs(fslist[i].fs.c_str(), &buf);
@@ -143,21 +150,101 @@ void DomeStatus::checkDiskSpaces() {
       
     }
     
-    if (!nfs) {
-      Err("checkDiskSpaces", "This server has no filesystems ?!?!?");
+    
+    Log(Logger::Lvl1, domelogmask, domelogname, "Number of local filesystems: " << nfs);
+  }
+  
+  if (role == roleHead) {
+    // Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
+    
+    std::set<std::string> srv;
+    {
+      // Let's work on a local copy, to avoid a longer locking
+      boost::unique_lock<boost::recursive_mutex> l(*this);
+      srv = servers;
     }
     
-    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. Number of local filesystems: " << nfs);
-    
-  }
-  else { // TODO: Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
-    
-    
-    DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
-    
-    
+    for (std::set<std::string>::iterator i = srv.begin(); i != srv.end(); i++) {
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *i);
+      int errcode = 0;
+      std::string url = CFG->GetString("head.diskdomeprotopfx", (char *)"http") + "://" + *i;
+      Davix::Uri uri(url);
+      
+      Davix::DavixError* tmp_err = NULL;
+      DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+      Davix::GetRequest req(*ds->ctx, url, &tmp_err);
+      
+      if( tmp_err ){
+        Err("checkDiskSpaces", "Cannot initialize Query to" << url << ", Error: "<< tmp_err->getErrMsg());
+        continue;
+      }
+      
+      req.addHeaderField("cmd", "dpmr_getspaceinfo");
+      
+      // Set decent timeout values for the operation
+      req.setParameters(ds->parms);
+      
+      if (req.executeRequest(&tmp_err) == 0)
+        errcode = req.getRequestCode();
+      
+      // Prepare the text status message to display
+      if (tmp_err) {
+        Err("checkDiskSpaces", "HTTP status error on" << url << ", Error: "<< tmp_err->getErrMsg());
+        continue;
+      }
+      
+      // Here we have the response... splat its body into a ptree to parse it
+      std::istringstream is(req.getAnswerContent());
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *i << " answered: '" << is.str() << "'");
+      
+      boost::property_tree::ptree myresp;
+      
+      try {
+        boost::property_tree::read_json(is, myresp);
+        
+      } catch (boost::property_tree::json_parser_error e) {
+        Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+        continue;
+      }
+      
+      
+      // Now process the values from the Json. Lock the status!
+      {
+        boost::unique_lock<boost::recursive_mutex> l(*this);
+        
+        // Loop through the server names, childs of fsinfo
+
+        BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
+          // v.first is the name of the server.
+          // v.second is the child tree representing the server
+          
+          // Now we loop through the filesystems of this server
+          BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+            // v.first is the name of the server.
+            // v.second is the child tree representing the server
+            
+            // Find the corresponding server:fs info in our array, and get the counters
+            for (int ii = 0; ii < fslist.size(); ii++) {
+              if ((fslist[ii].server == srv.first) &&
+                (fslist[ii].fs == fs.first)) {
+                
+                fslist[ii].freespace = fs.second.get( "fsstatus", 0 );
+                fslist[ii].physicalsize = fs.second.get( "physicalsize", 0 );
+              
+              
+              }
+            }
+            
+          }  
+        }
+        
+      } // lock
+      
+    } // for
     Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
-  }
+  } // if role head
   
   
 }
