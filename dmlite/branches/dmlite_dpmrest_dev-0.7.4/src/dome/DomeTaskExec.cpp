@@ -67,9 +67,34 @@ void taskfunc(DomeTaskExec *inst, int key) {
 DomeTask::DomeTask(): finished(false) {
   starttime = time(0);
   endtime = 0;
+  pid = -1;
+
+  // Initialize placeholders for individual parms for execv
+  for (int i =0; i < 64; i++)
+    parms[i] = NULL;
 }
 
 DomeTask::~DomeTask() {
+for (int i =0; i < 64; i++)
+    // Free the execv parms, if we need...
+    if (parms[i]) free((void *)parms[i]);
+    else break;
+}
+
+
+void DomeTask::splitCmd()
+{
+  const char *tok;
+  char *saveptr, *str = (char *)cmd.c_str();
+  int i = 0;
+  
+  while ( (tok = strtok_r(str, " ", &saveptr)) ) {
+    parms[i++] = strdup(tok);
+    str = 0;
+  }
+
+  return;
+
 }
 
 
@@ -113,10 +138,9 @@ DomeTaskExec::~DomeTaskExec() {}
 
 /// Taken from here and slightly modified.
 /// https://sites.google.com/site/williamedwardscoder/popen3
-int DomeTaskExec::popen3(int fd[3],  const char *cmd) {
+int DomeTaskExec::popen3(int fd[3], pid_t *pid,  const  char ** argv) {
   int i, e;
   int p[3][2];
-  pid_t pid;
   //
   // set all the FDs to invalid
   for(i=0; i<3; i++)
@@ -128,13 +152,13 @@ int DomeTaskExec::popen3(int fd[3],  const char *cmd) {
       goto error;
     
     // and fork
-    pid = fork();
+    *pid = fork();
   
-  if(-1 == pid)
+  if(-1 == *pid)
     goto error;
   
   // in the parent?
-  if(pid) {
+  if(*pid) {
     // parent
     fd[STDIN_FILENO] = p[STDIN_FILENO][1];
     close(p[STDIN_FILENO][0]);
@@ -158,14 +182,12 @@ int DomeTaskExec::popen3(int fd[3],  const char *cmd) {
     
     while ( (dup2(p[STDERR_FILENO][1],STDERR_FILENO) == -1) && (errno == EINTR) ) {};
     close(p[STDERR_FILENO][0]);
-    
-    // here we try and run it
-    char *const parmList[] = {strdup(cmd), NULL};
-    execv(cmd,parmList);
+ 
+    execv(argv[0],(char **)argv);
     
     // if we are here, then we failed to launch our program
-    Err("popen3", "Cannot launch cmd: " << cmd);
-    fprintf(stderr," \"%s\"\n",cmd);
+    Err("popen3", "Cannot launch cmd: " << argv[0]);
+    fprintf(stderr," \"%s\"\n",argv[0]);
     _exit(EXIT_FAILURE);
   }
   
@@ -182,17 +204,19 @@ int DomeTaskExec::popen3(int fd[3],  const char *cmd) {
   return -1;
 }
 
+
 void DomeTaskExec::run(DomeTask &task) {
   
-  const char *c = task.cmd.c_str();
-  Log(Logger::Lvl3, domelogmask, "run", "Starting command: " << c) ;
+  Log(Logger::Lvl3, domelogmask, "run", "Starting command: " << task.cmd) ;
   //start time
   {
      boost::lock_guard<DomeTask> l(task);
      time(&task.starttime);
   }
   
-  int r = popen3((int *)task.fd, c);
+  task.splitCmd();
+
+  task.resultcode = popen3((int *)task.fd, &task.pid, task.parms);
   
   /// It is then possible for the parent process to read the output of the child process from file descriptor
   char buffer[4096];
@@ -216,6 +240,7 @@ void DomeTaskExec::run(DomeTask &task) {
       boost::lock_guard<DomeTask> l(task);
       task.stdout.append(buffer, count);
       Log(Logger::Lvl4, domelogmask, "run", "Stdout: " << task.stdout.c_str()) ;
+      Log(Logger::Lvl4, domelogmask, "run", "Pid " << task.pid) ;
     }
       
   }
@@ -239,9 +264,12 @@ void DomeTaskExec::run(DomeTask &task) {
 int DomeTaskExec::submitCmd(string cmd) {
    DomeTask * task = new DomeTask();
    task->cmd= cmd;
-   task->key = ++taskcnt;// TO DO concurrency check
-   tasks.insert( std::pair<int,DomeTask*>(task->key,task));
-   taskfunc(this,taskcnt);
+   {  
+     boost::lock_guard<DomeTask> l(*task);
+     task->key = ++taskcnt; 
+     tasks.insert( std::pair<int,DomeTask*>(task->key,task));
+   }
+   boost::thread workerThread( taskfunc,this,taskcnt);
    return taskcnt;
 }
 
@@ -263,14 +291,76 @@ int DomeTaskExec::waitResult(int taskID, int tmout) {
   return 1;
 }
 
+int DomeTaskExec::killTask(int taskID){
+   map <int, DomeTask *>::iterator i = tasks.find(taskID);
+    if ( i != tasks.end() ) {
+           boost::lock_guard<DomeTask> l(*i->second);
+           Log(Logger::Lvl4, domelogmask, "killTask", "Found task " << taskID);
+	   if (i->second->finished){
+		Log(Logger::Lvl4, domelogmask, "killTask", "Task " << taskID << " already finished");
+		return 0;
+	   } else if ( i->second->pid == -1) {
+		Log(Logger::Lvl4, domelogmask, "killTask", "Task " << taskID << " not yet started");
+		return 0;
+	   } else {
+		kill(i->second->pid, SIGKILL);
+		Log(Logger::Lvl4, domelogmask, "killedTask", "Task " << taskID);
+		return 0;
+	   }
+		
+    }else {
+          Log(Logger::Lvl4, domelogmask, "waitTask", "Task with ID " << taskID << " not found");
+          return 1;
+        }
+  }
+
+
+
 void DomeTaskExec::tick() {
+   int maxruntime = CFG->GetLong("glb.task.maxrunningtime", 3600);
+   int purgetime = CFG->GetLong("glb.task.purgetime", 3600);
+
    Log(Logger::Lvl4, domelogmask, "tick", "tick");
    map <int, DomeTask *>::iterator i;
     for( i = tasks.begin(); i != tasks.end(); ++i ) {
-            Log(Logger::Lvl3, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd.c_str());
+            Log(Logger::Lvl3, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd);
+	    Log(Logger::Lvl3, domelogmask, "tick", "The status of the task is " << i->second->finished);
+	    Log(Logger::Lvl3, domelogmask, "tick", "StartTime " << i->second->starttime << " EndTime " << i->second->endtime);
+	    Log(Logger::Lvl3, domelogmask, "tick", "Pid " << i->second->pid << " resultcode " << i->second->resultcode);
+ 	    time_t timenow;
+	    time(&timenow);
+
+	    //lock
+	    {
+	       //boost::lock_guard<DomeTask> l(*i->second);
+               //cannot delete task when locked TO CHECK
+               
+               if (!i->second->finished && ( (i->second->endtime < (timenow - (maxruntime*1000))))) {
+			Log(Logger::Lvl3, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
+			//we kill the task
+			killTask(i->first);
+			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " exceed maxrunnngtime");
+			Log(Logger::Lvl3, domelogmask, "tick", "Task killed ");
+	       }
+	
+    	       //check if purgetime has exceeded and clean
+    	       if (i->second->finished && ( i->second->endtime < (timenow - (purgetime*1000)))) {
+			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " to purge");
+			//delete the task
+			delete i->second;
+			//remove from map
+			tasks.erase(i);
+			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " purged");
+		}
+	    }
+		
    }
-   //should clean the long lasting tasks and the one completed since more thant 24 
+
 }
 
-void DomeTaskExec::onTaskRunning(DomeTask &task) {}
-void DomeTaskExec::onTaskCompleted(DomeTask &task) {}
+void DomeTaskExec::onTaskRunning(DomeTask &task) {
+             Log(Logger::Lvl3, domelogmask, "onTaskRunning", "task " << task.key << " with command " << task.cmd);    
+	}
+void DomeTaskExec::onTaskCompleted(DomeTask &task) {
+	    Log(Logger::Lvl3, domelogmask, "onTaskCompleted", "task " << task.key << " with command " << task.cmd);
+	}
