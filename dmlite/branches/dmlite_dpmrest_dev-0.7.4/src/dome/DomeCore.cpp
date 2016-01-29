@@ -293,10 +293,15 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   boost::property_tree::ptree jresp;      
   for (int i = 0; i < status.fslist.size(); i++) {
     std::string fsname, poolname;
+    boost::property_tree::ptree top;
+    
+
     
     fsname = "fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
+       
+    // Add this server if not already there
     
-    if (status.role == status.roleHead) { //Only headnodes report about pools
+    if (status.role == status.roleHead) { // Only headnodes report about pools
       jresp.put(boost::property_tree::ptree::path_type(fsname+"^poolname", '^'), status.fslist[i].poolname);
       jresp.put(boost::property_tree::ptree::path_type(fsname+"^fsstatus", '^'), status.fslist[i].status);
     }
