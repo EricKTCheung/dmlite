@@ -6,6 +6,7 @@ set(Dome_SOURCES #dpmrest.cpp
                  # DomeMain.cpp
                  DomeGenQueue.cpp
                  DomeCore.cpp
+                 DomeCoreXeq.cpp
                  DomeLog.cpp
                  DomeTaskExec.cpp
                  DomeReq.cpp
