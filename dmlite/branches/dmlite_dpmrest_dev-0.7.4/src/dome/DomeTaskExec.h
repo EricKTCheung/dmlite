@@ -93,7 +93,10 @@ public:
   
   //kill a specific task given the id
   int killTask(int taskID);
-  
+ 
+  //get a DomeTask given the id ( mainly for testing)
+  DomeTask* getTask(int taskID);
+ 
   /// Loops over all the tasks and:
   ///  - send a notification to the head node about all the processes that are running or that have finished
   ///  - garbage collect the task list.
