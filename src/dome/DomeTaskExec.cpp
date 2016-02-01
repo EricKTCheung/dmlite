@@ -315,6 +315,15 @@ int DomeTaskExec::killTask(int taskID){
   }
 
 
+DomeTask* DomeTaskExec::getTask(int taskID) {
+   map <int, DomeTask *>::iterator i = tasks.find(taskID);
+   if ( i != tasks.end() ) 
+   	return i->second;
+   else 
+	return NULL;
+}
+
+
 
 void DomeTaskExec::tick() {
    int maxruntime = CFG->GetLong("glb.task.maxrunningtime", 3600);
@@ -335,7 +344,7 @@ void DomeTaskExec::tick() {
 	       //boost::lock_guard<DomeTask> l(*i->second);
                //cannot delete task when locked TO CHECK
                
-               if (!i->second->finished && ( (i->second->endtime < (timenow - (maxruntime*1000))))) {
+               if (!i->second->finished && ( (i->second->starttime< (timenow - (maxruntime*1000))))) {
 			Log(Logger::Lvl3, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
 			//we kill the task
 			killTask(i->first);
