@@ -72,6 +72,8 @@ public:
     std::vector<std::string> fqans;
     std::vector<std::string> authkeys;
     
+    /// Utility function to send a quick response
+    static int SendSimpleResp(FCGX_Request &request, int httpcode, std::ostringstream &body);
 private:
     
 };
