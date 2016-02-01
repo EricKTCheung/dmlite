@@ -109,8 +109,14 @@ void workerFunc(DomeCore *core, int myidx) {
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems:" << dreq.bodyfields.size());
 
+    // -------------------------
+    // Command dispatching
+    // -------------------------
+    
+    // First discriminate on the HTTP request: GET/POST, etc..
     if(dreq.verb == "GET") {
 
+      // Now dispatch based on the actual command name
       if ( dreq.domecmd == "dome_getspaceinfo" ) {
         core->dome_getspaceinfo(dreq, request);
       } else if(dreq.domecmd == "dome_chksum") {
@@ -121,11 +127,13 @@ void workerFunc(DomeCore *core, int myidx) {
         core->dome_statpool(dreq, request);
       }
       else
-      if (dreq.object == "/info") {
-        FCGX_FPrintF(request.out,
+        // Very useful sort of echo service for FastCGI.
+        // Will return to the client a detailed summary of his request
+        if (dreq.object == "/info") {
+          FCGX_FPrintF(request.out,
                    "Content-type: text\r\n"
                    "\r\n"
-                   "Hi, This is a GET\r\n");
+                   "Hi, This is a GET, and you may like it.\r\n");
 
         FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
         for (char **envp = request.envp ; *envp; ++envp)
@@ -140,7 +148,7 @@ void workerFunc(DomeCore *core, int myidx) {
       FCGX_FPrintF(request.out,
                    "Content-type: text/html\r\n"
                    "\r\n"
-                   "This is a HEAD\r\n");
+                   "You sent me a HEAD request. Nice, eh ?\r\n");
 
     } else if(dreq.verb == "PUT"){ // meaningless placeholder
       FCGX_FPrintF(request.out,
