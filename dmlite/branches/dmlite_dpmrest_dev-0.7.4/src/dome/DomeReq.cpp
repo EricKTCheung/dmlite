@@ -62,7 +62,7 @@ int DomeReq::takeJSONbodyfields(char *body) {
     Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
     return -1;
   }
-  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting: '" << body << "'");
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }
 
@@ -77,7 +77,26 @@ int DomeReq::getJSONbodyfields(std::string &body) {
     return -1;
   }
   
-  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting: '" << body << "'");
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }
+
+int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, std::ostringstream &body) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << body << "'");
+  int rc = 0;
+  
+  std::ostringstream hdr;
+  hdr << "Status: " << httpcode << "\r\n\r\n" <<
+    "Content-type: text\r\n\r\n";
+  
+  rc = FCGX_PutS(hdr.str().c_str(), request.out);
+  if (rc <= 0) return rc;
+  
+  FCGX_PutS(body.str().c_str(), request.out);
+  if (rc <= 0) return rc;
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << body << "'");
+}
+
+
 

@@ -117,6 +117,10 @@ void workerFunc(DomeCore *core, int myidx) {
         core->dome_chksum(dreq, request);
       }
       else
+      if ( dreq.domecmd == "dome_statpool" ) {
+        core->dome_statpool(dreq, request);
+      }
+      else
       if (dreq.object == "/info") {
         FCGX_FPrintF(request.out,
                    "Content-type: text\r\n"
@@ -370,7 +374,64 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_get(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
+  
+  int rc = 0;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+  
+  if (status.role == status.roleDisk) { // Only headnodes report about pools
+    std::ostringstream os;
+    os << "I am a disk node. Only head nodes know pools.";
+    return DomeReq::SendSimpleResp(request, 500, os);
+  }
+  
+  std::string pn = req.bodyfields.get("poolname", "");
+  if ( !pn.size() ) {
+    std::ostringstream os;
+    os << "Pool '" << pn << "' not found.";
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+
+  
+  
+  long long tot, free;
+  status.getPoolSpaces(pn, tot, free);
+      
+  boost::property_tree::ptree jresp;      
+  for (int i = 0; i < status.fslist.size(); i++)
+    if (status.fslist[i].poolname == pn) {
+      std::string fsname, poolname;
+      boost::property_tree::ptree top;
+      
+      
+     
+      poolname = "poolinfo^" + status.fslist[i].poolname;
+      
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
+      
+      poolname = "poolinfo^" + status.fslist[i].poolname + "^fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
+      
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^fsstatus", '^'), status.fslist[i].status);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), status.fslist[i].freespace);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), status.fslist[i].physicalsize);
+      
+    }
+  
+  
+  std::ostringstream os;
+  boost::property_tree::write_json(os, jresp);
+  rc = DomeReq::SendSimpleResp(request, 200, os);
+  
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  return rc;
+  
+  
+  
+};
 
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {};
