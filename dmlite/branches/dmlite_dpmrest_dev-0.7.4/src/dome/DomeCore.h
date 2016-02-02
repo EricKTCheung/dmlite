@@ -123,7 +123,7 @@ protected:
   virtual void onTaskRunning(DomeTask &task);
 
   // unconditionally schedule the calculation of a checksum
-  void calculateChecksum(std::string lfn, std::string pfn);
+  void calculateChecksum(std::string lfn, std::string pfn, bool replace);
 };
 
 
