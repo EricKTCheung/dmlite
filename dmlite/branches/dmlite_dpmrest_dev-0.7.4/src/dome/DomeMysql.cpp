@@ -174,13 +174,13 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT rowid, u_token, t_space, path\
+                 "SELECT rowid, u_token, t_space, poolname, path\
                  FROM dpm_space_reserv"
   );
   stmt.execute();
   
   DomeQuotatoken qt;
-  char buf1[1024], buf2[1024];
+  char buf1[1024], buf2[1024], buf3[1024];
   
   stmt.bindResult(0, &qt.rowid);
   
@@ -189,8 +189,11 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   
   stmt.bindResult(2, &qt.t_space);
   
+  memset(buf3, 0, sizeof(buf3));
+  stmt.bindResult(3, buf3, 16);
+  
   memset(buf2, 0, sizeof(buf2));
-  stmt.bindResult(3, buf2, 256);
+  stmt.bindResult(4, buf2, 256);
   
   int cnt = 0;
   try {
@@ -202,14 +205,29 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       
       qt.u_token = buf1;
       qt.path = buf2;
+      qt.poolname = buf3;
       
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid <<
-      " u_token:" << qt.u_token << " t_space:" << qt.t_space << " path:" << qt.path);
+      " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname << "' path:" << qt.path);
       
-      st.quotas[qt.path] = qt;
+      // Insert this quota, by overwriting any other quota that has the same path and same pool
+      std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+      myintv = st.quotas.equal_range(qt.path);
+      
+        for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
+              it!=myintv.second;
+              ++it) {
+          
+          if (it->second.poolname == qt.poolname) {
+            st.quotas.erase(it);
+            break;
+          }
+        }
+        
+      st.quotas.insert( std::pair<std::string, DomeQuotatoken>(qt.path, qt) );
       
       cnt++;
-    } 
+    }
   }
   catch ( ... ) {}
   

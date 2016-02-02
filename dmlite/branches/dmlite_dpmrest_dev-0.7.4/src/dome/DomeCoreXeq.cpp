@@ -36,6 +36,7 @@
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/catalog.h>
 
+
 using namespace dmlite;
 
 
@@ -250,6 +251,112 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
 };
 
+int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
+  
+  // Crawl upwards the directory hierarchy of the given path
+  // stopping when a matching one is found
+  // The result is a list, as more than one quotatoken can be
+  // assigned to a directory
+  // The quota tokens indicate the pools that host the files written into
+  // this directory subtree
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+  
+  std::string absPath =  req.bodyfields.get<std::string>("path", "");
+  if ( !absPath.size() ) {
+    std::ostringstream os;
+    os << "Path '" << absPath << "' not found.";
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+
+  // Make sure it's an absolute lfn path
+  if (absPath[0] != '/')  {
+    std::ostringstream os;
+    os << "Path '" << absPath << "' is not an absolute path.";
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  // Remove any trailing slash
+  while (absPath[ absPath.size()-1 ] == '/') {
+    absPath.erase(absPath.size() - 1);
+  }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Getting spaces for path: '" << absPath << "'");
+  long long totspace = 0LL;
+  long long usedspace = 0LL;
+  long long poolfree = 0LL;
+  // Crawl
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    while (absPath.length() > 0) {
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
+      // Check if any matching quotatoken exists
+      std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+      myintv = status.quotas.equal_range(absPath);
+      
+      if (myintv.first != status.quotas.end()) {
+        for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+          totspace += it->second.t_space;
+          
+          // Now find the free space in the mentioned pool
+          long long ptot, pfree;
+          status.getPoolSpaces(it->second.poolname, ptot, pfree);
+          poolfree += pfree;
+          
+          Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
+          it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);    
+        }
+        
+        
+        // Now get the size of this directory, using the dmlite catalog
+        usedspace = 0;
+        DmlitePoolHandler stack(dmpool);
+        try {
+          struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
+          usedspace = st.stat.st_size;
+        }
+        catch (dmlite::DmException e) {
+          Err(domelogname, "Ignore exception stat-ing '" << absPath << "'");
+        }
+        
+        break;
+      }
+      
+      // No match found, look upwards by trimming the last token from absPath
+      size_t pos = absPath.rfind("/");
+      absPath.erase(pos);
+    }
+  }
+  // Prepare the response
+  // NOTE:
+  //  A pool may be assigned to many dir subtrees at the same time, hence
+  //   the best value that we can publish for the pool is how much free space it has
+  //  The quotatotspace is the sum of all the quotatokens assigned to this subtree
+  //   In limit cases the tot quota can be less than the used space, hence it's better
+  //   to publish the tot space rather than the free space in the quota.
+  //   One of these cases could be when the sysadmin (with punitive mood) manually assigns
+  //   a quota that is lower than the occupied space. This is a legitimate attempt
+  //   to prevent clients from writing there until the space decreases...
+  boost::property_tree::ptree jresp;
+  jresp.put("quotatotspace", totspace);
+  long long sp = (totspace - usedspace);
+  jresp.put("quotafreespace", (sp < 0 ? 0 : sp));
+  jresp.put("poolfreespace", poolfree);
+  jresp.put("usedspace", usedspace);
+  
+  std::ostringstream os;
+  boost::property_tree::write_json(os, jresp);
+  int rc = DomeReq::SendSimpleResp(request, 200, os);
+  
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  return rc;
+  
+}
+  
+  
+  
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {};

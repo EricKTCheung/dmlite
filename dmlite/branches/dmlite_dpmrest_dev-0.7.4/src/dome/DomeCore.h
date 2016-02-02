@@ -96,6 +96,8 @@ public:
   int dome_dochksum(DomeReq &req, FCGX_Request &request);
   int dome_statfs(DomeReq &req, FCGX_Request &request);
 
+  int dome_getdirspaces(DomeReq &req, FCGX_Request &request);
+  
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
