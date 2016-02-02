@@ -72,6 +72,9 @@ public:
 
   /// Spacetoken human name
   std::string u_token;
+  
+  /// Pool referred to by this quotatoken
+  std::string poolname;
 
   /// Total space of this quota or spacetoken
   int64_t t_space;
@@ -106,7 +109,7 @@ public:
   /// Simple keyvalue store for prefix-based quotas, that
   /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes
-  std::map <std::string, DomeQuotatoken> quotas;
+  std::multimap <std::string, DomeQuotatoken> quotas;
 
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems

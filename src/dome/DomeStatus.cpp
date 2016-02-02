@@ -115,7 +115,8 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
       total += fslist[i].physicalsize;
       free += fslist[i].freespace;
     }
-    
+  
+  return 0;
 }
 
 int DomeStatus::tick(time_t timenow) {
@@ -246,7 +247,7 @@ void DomeStatus::checkDiskSpaces() {
         boost::property_tree::read_json(is, myresp);
         
       } catch (boost::property_tree::json_parser_error e) {
-        Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+        Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
         continue;
       }
       

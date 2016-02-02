@@ -126,6 +126,8 @@ void workerFunc(DomeCore *core, int myidx) {
         core->dome_getspaceinfo(dreq, request);
       } else if(dreq.domecmd == "dome_chksum") {
         core->dome_chksum(dreq, request);
+      } else if(dreq.domecmd == "dome_getdirspaces") {
+        core->dome_getdirspaces(dreq, request);
       }
       else
       if ( dreq.domecmd == "dome_statpool" ) {
@@ -267,7 +269,7 @@ int DomeCore::init(const char *cfgfile) {
       workers.push_back(new boost::thread(workerFunc, this, i));
     }
 
-    dmpool = new DmlitePool("/etc/dmlite.conf");
+    dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");

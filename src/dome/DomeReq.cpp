@@ -56,12 +56,17 @@ int DomeReq::takeJSONbodyfields(char *body) {
   // We assume that the body that we received is in JSON format
   std::istringstream s(body);
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering: '" << body << "'");
-  try {
-    boost::property_tree::read_json(s, bodyfields);
-  } catch (boost::property_tree::json_parser_error e) {
-    Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
-    return -1;
+  if ( strlen(body) > 2 ) {
+  
+    try {
+      boost::property_tree::read_json(s, bodyfields);
+    } catch (boost::property_tree::json_parser_error e) {
+      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
+      return -1;
+    }
+    
   }
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }
