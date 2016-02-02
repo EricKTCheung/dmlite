@@ -57,6 +57,11 @@ DomeCore::~DomeCore() {
 
   Log(Logger::Lvl1, domelogmask, domelogname, "Stopping ticker.");
 
+  if(dmpool) {
+    delete dmpool;
+    dmpool = NULL;
+  }
+
   if (ticker) {
     Log(Logger::Lvl1, domelogmask, domelogname, "Joining ticker.");
     ticker->interrupt();
@@ -112,7 +117,7 @@ void workerFunc(DomeCore *core, int myidx) {
     // -------------------------
     // Command dispatching
     // -------------------------
-    
+
     // First discriminate on the HTTP request: GET/POST, etc..
     if(dreq.verb == "GET") {
 
@@ -261,6 +266,8 @@ int DomeCore::init(const char *cfgfile) {
     for (int i = 0; i < CFG->GetLong("glb.workers", 300); i++) {
       workers.push_back(new boost::thread(workerFunc, this, i));
     }
+
+    dmpool = new DmlitePool("/etc/dmlite.conf");
 
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");

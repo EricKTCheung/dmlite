@@ -35,6 +35,29 @@
 #include "utils/poolcontainer.h"
 #include <dmlite/cpp/dmlite.h>
 
+class DmlitePool;
+
+class DmlitePoolHandler {
+private:
+  dmlite::StackInstance *inst;
+  DmlitePool *pool;
+
+  // disallow copy and assign
+  DmlitePoolHandler(const DmlitePoolHandler& that);
+  void operator=(const DmlitePoolHandler&);
+public:
+  DmlitePoolHandler(DmlitePool* _pool, bool cancreate = true);
+  ~DmlitePoolHandler();
+  dmlite::StackInstance* instance() {
+    return inst;
+  }
+
+  // overload operator->
+  dmlite::StackInstance* operator->() const {
+    return inst;
+  }
+};
+
 class DmlitePool {
 public:
   DmlitePool(std::string configfile) {
@@ -45,8 +68,7 @@ public:
     }
     catch(dmlite::DmException& e) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Error initializing dmlite StackInstance."
-          << std::cout << "Reason: " << e.what() << std::endl);
-
+          << "Reason: " << e.what() << std::endl);
       exit(1);
     }
   }
@@ -56,7 +78,7 @@ public:
     delete pluginManager;
   }
 
-  dmlite::StackInstance *GetStackInstance(bool cancreate = true);
+  dmlite::StackInstance* GetStackInstance(bool cancreate = true);
   void ReleaseStackInstance(dmlite::StackInstance *inst);
 private:
     dmlite::PluginManager *pluginManager;
