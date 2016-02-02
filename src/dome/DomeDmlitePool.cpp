@@ -38,7 +38,21 @@
 
 using namespace dmlite;
 
-StackInstance *DmlitePool::GetStackInstance(bool cancreate) {
+DmlitePoolHandler::~DmlitePoolHandler() {
+  if(pool) {
+    pool->ReleaseStackInstance(inst);
+  }
+
+  pool = NULL;
+  inst = NULL;
+}
+
+DmlitePoolHandler::DmlitePoolHandler(DmlitePool* _pool, bool cancreate) {
+  pool = _pool;
+  inst = pool->GetStackInstance(cancreate);
+}
+
+StackInstance* DmlitePool::GetStackInstance(bool cancreate) {
   dmlite::StackInstance *si = 0;
 
   {
@@ -50,6 +64,7 @@ StackInstance *DmlitePool::GetStackInstance(bool cancreate) {
   }
 
   if (!si && cancreate) {
+    boost::unique_lock< boost::mutex > l(dmlitemutex);
     try {
       Log(Logger::Lvl1, domelogmask, domelogname, "Creating new stack instance");
       si = new dmlite::StackInstance(pluginManager);
