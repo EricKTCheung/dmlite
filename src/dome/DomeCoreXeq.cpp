@@ -38,6 +38,7 @@
 
 using namespace dmlite;
 
+
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
 
 
@@ -98,22 +99,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};
 
-// std::string getChecksumFromExtensible(std::string chksumtype, Extensible *ext) {
-//   for(Extensible::const_iterator it = extensible->begin(); it != extensible->end(); it++) {
-//     if(checksums::isChecksumFullName(it->first)) {
-//       std::string key = it->first;
-//       std::string value = Extensible::anyToString(it->second);
-//
-//       if("checksum." + chksumtype == key) {
-//         std::ostringstream os;
-//         os << " { \"checksum\" : \"" << value << "\" }";
-//         return DomeReq::SendSimpleResp(request, 200, os);
-//       }
-//     }
-//   }
-// }
-
-void DomeCore::calculateChecksum(std::string lfn, std::string pfn) {
+void DomeCore::calculateChecksum(std::string lfn, std::string pfn, bool replace) {
   if(status.role == status.roleHead) {
     // add to the queue
   }
@@ -143,9 +129,8 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
 
     // unconditional calculation of checksum?
     if(status.role == status.roleDisk || forcerecalc) {
-      calculateChecksum(req.object, pfn);
-      std::ostringstream os("Checksum calculation initiated and is pending");
-      return DomeReq::SendSimpleResp(request, 202, os);
+      calculateChecksum(req.object, pfn, forcerecalc);
+      return DomeReq::SendSimpleResp(request, 202, "Checksum calculation initiated and is pending");
     }
 
     // i am a head node, and not forced to do a recalc
@@ -154,34 +139,49 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     // first the lfn checksum
     std::string lfnchecksum;
     ExtendedStat xstat = catalog->extendedStat(req.object);
-
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
     }
 
     // then the pfn
     std::string pfnchecksum;
+    if(pfn != "") {
+      bool pfnfound = false;
+      std::vector<Replica> replicas = catalog->getReplicas(req.object);
+      for(std::vector<Replica>::iterator it = replicas.begin(); it != replicas.end(); it++) {
+        if(it->rfn == pfn) {
+          pfnfound = true;
 
-    std::ostringstream os;
-    // if(pfn != "") {
-    //   std::vector<Replica> replicas = catalog->getReplicas(req.object);
-    //   for(std::vector<Replica>::iterator it = replicas.begin(); it != replicas.end(); it++) {
-    //     os << "Found replica with id " << it->replicaId << std::endl;
-    //   }
-    // }
-    //os << " { \"checksum\" : \"" << xstat.getString("checksum." + chksumtype) << "\" }";
-    return DomeReq::SendSimpleResp(request, 200, os);
+          if(it->hasField(fullchecksum)) {
+            pfnchecksum = it->getString(fullchecksum);
+          }
+          break;
+        }
+      }
+      if(!pfnfound) {
+        return DomeReq::SendSimpleResp(request, 404, "LFN found, but PFN was not");
+      }
+    }
+
+    // maybe I don't need to calculate anything and I can send the response right now
+    if(lfnchecksum != "" && (pfn == "" || pfnchecksum != "") ) {
+      boost::property_tree::ptree jresp;
+      jresp.put("checksum", lfnchecksum);
+      jresp.put("pfn-checksum", pfnchecksum);
+      return DomeReq::SendSimpleResp(request, 200, jresp);
+    }
+
+    // nope, something is missing
+    calculateChecksum(req.object, pfn, false);
+    return DomeReq::SendSimpleResp(request, 202, "Checksum calculation initiated and is pending");
   }
   catch (dmlite::DmException& e) {
-    std::ostringstream os;
-    os << "An error has occured - file not found?\r\n";
+    std::ostringstream os("An error has occured - file not found?\r\n");
     os << "Dmlite exception: " << e.what();
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
-  std::ostringstream os;
-  os << "Unknown error" << std::endl;
-  return DomeReq::SendSimpleResp(request, 404, os);
+  return DomeReq::SendSimpleResp(request, 404, "Unknown error");
 }
 
 int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
