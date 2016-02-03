@@ -68,7 +68,7 @@ public:
     /// dpmrest can apply authorization schemes to this client. This is usually root
     /// or dpmmgr in the historical dpm architecture. We should not be limited
     /// by that while keeping dev/maintenance cost low.
-    std::string userdn;
+    std::string clientdn;
     std::vector<std::string> fqans;
     std::vector<std::string> authkeys;
 

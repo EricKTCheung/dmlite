@@ -114,55 +114,98 @@ void workerFunc(DomeCore *core, int myidx) {
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems:" << dreq.bodyfields.size());
 
+    
+    // -------------------------
+    // Generic authorization
+    // Please note that authentication must be configured in the web server, not in DOME
+    // -------------------------
+    
+    int i = 0;
+    bool authorize;
+    while (true) {
+      
+      char buf[1024];
+      char *dn = buf;
+      CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
+      if ( !buf[0] ) {
+        // If there ar eno directives at all then this service is open to every dn
+        if (i == 0) authorize = true;
+        break;
+      }
+      
+      if (buf[0] == '"') {
+        
+        if (buf[strlen(buf)-1] != '"') {
+          Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
+        }
+        
+        buf[strlen(buf)-1] = '\0';
+        dn = buf+1;
+        
+      }
+      
+      if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
+        // Authorize if the client DN can be found in the config whitelist
+        authorize = true;
+        break;
+      }
+      
+      i++;
+    }
+    
+    
     // -------------------------
     // Command dispatching
     // -------------------------
 
-    // First discriminate on the HTTP request: GET/POST, etc..
-    if(dreq.verb == "GET") {
-
-      // Now dispatch based on the actual command name
-      if ( dreq.domecmd == "dome_getspaceinfo" ) {
-        core->dome_getspaceinfo(dreq, request);
-      } else if(dreq.domecmd == "dome_chksum") {
-        core->dome_chksum(dreq, request);
-      } else if(dreq.domecmd == "dome_getdirspaces") {
-        core->dome_getdirspaces(dreq, request);
-      }
-      else
-      if ( dreq.domecmd == "dome_statpool" ) {
-        core->dome_statpool(dreq, request);
-      }
-      else
-        // Very useful sort of echo service for FastCGI.
-        // Will return to the client a detailed summary of his request
-        if (dreq.object == "/info") {
-          FCGX_FPrintF(request.out,
-                   "Content-type: text\r\n"
-                   "\r\n"
-                   "Hi, This is a GET, and you may like it.\r\n");
-
-        FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
-        for (char **envp = request.envp ; *envp; ++envp)
-        {
-          FCGX_FPrintF(request.out, "%s \r\n", *envp);
-
+    if (authorize) {
+      // First discriminate on the HTTP request: GET/POST, etc..
+      if(dreq.verb == "GET") {
+        
+        // Now dispatch based on the actual command name
+        if ( dreq.domecmd == "dome_getspaceinfo" ) {
+          core->dome_getspaceinfo(dreq, request);
+        } else if(dreq.domecmd == "dome_chksum") {
+          core->dome_chksum(dreq, request);
+        } else if(dreq.domecmd == "dome_getdirspaces") {
+          core->dome_getdirspaces(dreq, request);
         }
-
+        else
+          if ( dreq.domecmd == "dome_statpool" ) {
+            core->dome_statpool(dreq, request);
+          }
+          else
+            // Very useful sort of echo service for FastCGI.
+            // Will return to the client a detailed summary of his request
+            if (dreq.object == "/info") {
+              FCGX_FPrintF(request.out,
+                           "Content-type: text\r\n"
+                           "\r\n"
+                           "Hi, This is a GET, and you may like it.\r\n");
+              
+              FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
+              for (char **envp = request.envp ; *envp; ++envp)
+              {
+                FCGX_FPrintF(request.out, "%s \r\n", *envp);
+                
+              }
+              
+            }
+            
+      } else if(dreq.verb == "HEAD"){ // meaningless placeholder
+        FCGX_FPrintF(request.out,
+                     "Content-type: text/html\r\n"
+                     "\r\n"
+                     "You sent me a HEAD request. Nice, eh ?\r\n");
+        
+      } else if(dreq.verb == "PUT"){ // meaningless placeholder
+        FCGX_FPrintF(request.out,
+                     "Content-type: text/html\r\n"
+                     "\r\n"
+                     "This is a PUT\r\n");
       }
-
-    } else if(dreq.verb == "HEAD"){ // meaningless placeholder
-      FCGX_FPrintF(request.out,
-                   "Content-type: text/html\r\n"
-                   "\r\n"
-                   "You sent me a HEAD request. Nice, eh ?\r\n");
-
-    } else if(dreq.verb == "PUT"){ // meaningless placeholder
-      FCGX_FPrintF(request.out,
-                   "Content-type: text/html\r\n"
-                   "\r\n"
-                   "This is a PUT\r\n");
-    }
+      
+  } // if authorized
 
     FCGX_Finish_r(&request);
   }
