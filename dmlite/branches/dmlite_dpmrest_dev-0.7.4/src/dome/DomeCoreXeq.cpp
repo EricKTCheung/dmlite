@@ -35,6 +35,7 @@
 #include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/catalog.h>
+#include <dmlite/cpp/utils/urls.h>
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
@@ -118,9 +119,9 @@ static std::string bool_to_str(bool b) {
   else return "false";
 }
 
-int DomeCore::calculateChecksum(std::string lfn, Replica replica, bool forcerecalc) {
+int DomeCore::calculateChecksum(FCGX_Request &request, std::string lfn, Replica replica, std::string checksumtype, bool updateLfnChecksum) {
   GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
-  std::string namekey = lfn + "###" + replica.rfn;
+  std::string namekey = lfn + "[#]" + replica.rfn + "[#]" + checksumtype;
   std::vector<std::string> qualifiers;
 
   qualifiers.push_back(""); // the first qualifier is common for all items,
@@ -129,15 +130,16 @@ int DomeCore::calculateChecksum(std::string lfn, Replica replica, bool forcereca
   qualifiers.push_back(replica.server); // server name as second qualifier, so
                                         // the per-node limit triggers
 
-  qualifiers.push_back(bool_to_str(forcerecalc));
+  qualifiers.push_back(bool_to_str(updateLfnChecksum));
 
-  //  status.checksumq->touchItemOrCreateNew(namekey, status, 0, qualifiers);
-  // return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
-                                                    //  << ", check back later"));
+  status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
+                                                     << ", check back later.\r\nTotal checksums in queue right now: "
+                                                     << status.checksumq->nTotal()));
 }
 
-int DomeCore::calculateChecksumDisk(std::string lfn, std::string pfn, bool forcerecalc) {
-  // return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
+int DomeCore::calculateChecksumDisk(FCGX_Request &request, std::string lfn, std::string pfn, std::string checksumtype, bool updateLfnChecksum) {
+  return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
 }
 
 static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
@@ -176,13 +178,13 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       if(pfn == "") {
         return DomeReq::SendSimpleResp(request, 404, "pfn is obligatory when issuing a dome_chksum to a disk node");
       }
-      return calculateChecksumDisk(req.object, pfn, forcerecalc);
+      return calculateChecksumDisk(request, req.object, pfn, chksumtype, forcerecalc);
     }
 
     // I am a head node
     if(forcerecalc) {
       Replica replica = pickReplica(req.object, pfn, stack);
-      return calculateChecksum(req.object, replica, forcerecalc);
+      return calculateChecksum(request, req.object, replica, chksumtype, forcerecalc);
     }
 
     // Not forced to do a recalc - maybe I can find the checksums in the db
@@ -218,7 +220,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     if(pfn == "") {
       replica = pickReplica(req.object, pfn, stack);
     }
-    return calculateChecksum(req.object, replica, forcerecalc);
+    return calculateChecksum(request, req.object, replica, chksumtype, forcerecalc);
   }
   catch(dmlite::DmException& e) {
     std::ostringstream os("An error has occured.\r\n");
@@ -234,12 +236,82 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, "chksumstatus only available on head nodes");
   }
 
-  std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "null");
-  std::string fullchecksum = "checksum." + chksumtype;
-  std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-  bool forcerecalc = str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
+  try {
+    DmlitePoolHandler stack(dmpool);
 
-  // return DomeReq::SendSimpleResp(request, 200);
+    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    std::string fullchecksum = "checksum." + chksumtype;
+    std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string str_status = req.bodyfields.get<std::string>("status", "");
+    std::string reason = req.bodyfields.get<std::string>("reason", "");
+    std::string checksum = req.bodyfields.get<std::string>("checksum", "");
+    bool updateLfnChecksum = str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
+
+    if(chksumtype == "") {
+      return DomeReq::SendSimpleResp(request, 400, "checksum-type cannot be empty.");
+    }
+    if(pfn == "") {
+      return DomeReq::SendSimpleResp(request, 400, "pfn cannot be empty.");
+    }
+
+    GenPrioQueueItem::QStatus qstatus;
+
+    if(str_status == "pending") {
+      qstatus = GenPrioQueueItem::Running;
+    }
+    else if(str_status == "done" || str_status == "aborted") {
+      qstatus = GenPrioQueueItem::Finished;
+    }
+    else {
+      return DomeReq::SendSimpleResp(request, 400, "The status provided is not recognized.");
+    }
+
+    // modify the queue as needed
+    std::string namekey = req.object + "[#]" + pfn + "[#]" + chksumtype;
+    std::vector<std::string> qualifiers;
+
+    Url u(pfn);
+    std::string server = u.domain;
+
+    qualifiers.push_back("");
+    qualifiers.push_back(server);
+    qualifiers.push_back(bool_to_str(updateLfnChecksum));
+    status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+
+    if(str_status == "aborted") {
+      Log(Logger::Lvl1, domelogmask, domelogname, "Checksum calculation failed. LFN: " << req.object
+      << "PFN: " << pfn << ". Reason: " << reason);
+      return DomeReq::SendSimpleResp(request, 200, "");
+    }
+
+    if(str_status == "pending") {
+      return DomeReq::SendSimpleResp(request, 200, "");
+    }
+
+    // status is done, checksum should not be empty
+    if(checksum == "") {
+      return DomeReq::SendSimpleResp(request, 400, "checksum cannot be empty when status is done.");
+    }
+
+    // replace pfn checksum
+    Replica replica = pickReplica(req.object, pfn, stack);
+    replica[fullchecksum] = checksum;
+    stack->getCatalog()->updateReplica(replica);
+
+    // replace lfn checksum?
+    if(updateLfnChecksum) {
+      stack->getCatalog()->setChecksum(req.object, fullchecksum, checksum);
+    }
+
+    return DomeReq::SendSimpleResp(request, 200, "");
+  }
+  catch(dmlite::DmException& e) {
+    std::ostringstream os("An error has occured.\r\n");
+    os << "Dmlite exception: " << e.what();
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+
+  return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
 }
 
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};

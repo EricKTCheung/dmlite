@@ -126,8 +126,8 @@ protected:
   virtual void onTaskRunning(DomeTask &task);
 
   // unconditionally schedule the calculation of a checksum
-  int calculateChecksum(std::string lfn, dmlite::Replica replica, bool replace);
-  int calculateChecksumDisk(std::string lfn, std::string pfn, bool replace);
+  int calculateChecksum(FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
+  int calculateChecksumDisk(FCGX_Request &request, std::string lfn, std::string pfn, std::string checksumtype, bool updateLfnChecksum);
 };
 
 
