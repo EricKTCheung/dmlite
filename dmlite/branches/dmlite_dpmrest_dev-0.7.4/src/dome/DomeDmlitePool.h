@@ -48,9 +48,6 @@ private:
 public:
   DmlitePoolHandler(DmlitePool* _pool, bool cancreate = true);
   ~DmlitePoolHandler();
-  dmlite::StackInstance* instance() {
-    return inst;
-  }
 
   // overload operator->
   dmlite::StackInstance* operator->() const {

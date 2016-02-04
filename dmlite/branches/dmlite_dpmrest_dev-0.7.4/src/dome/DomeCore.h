@@ -43,6 +43,7 @@
 #include <functional>
 #include <bitset>
 #include <boost/thread.hpp>
+#include <dmlite/cpp/catalog.h>
 
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
 
@@ -97,7 +98,7 @@ public:
   int dome_statfs(DomeReq &req, FCGX_Request &request);
 
   int dome_getdirspaces(DomeReq &req, FCGX_Request &request);
-  
+
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
@@ -125,7 +126,8 @@ protected:
   virtual void onTaskRunning(DomeTask &task);
 
   // unconditionally schedule the calculation of a checksum
-  void calculateChecksum(std::string lfn, std::string pfn, bool replace);
+  int calculateChecksum(std::string lfn, dmlite::Replica replica, bool replace);
+  int calculateChecksumDisk(std::string lfn, std::string pfn, bool replace);
 };
 
 

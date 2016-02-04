@@ -36,6 +36,8 @@
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/catalog.h>
 
+#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
+
 
 using namespace dmlite;
 
@@ -100,93 +102,139 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};
 
-void DomeCore::calculateChecksum(std::string lfn, std::string pfn, bool replace) {
-  if(status.role == status.roleHead) {
-    // add to the queue
+static bool str_to_bool(std::string str) {
+  bool value = false;
+
+  if(str == "false" || str == "0" || str == "no") {
+    value = false;
+  } else if(str == "true" || str == "1" || str == "yes") {
+    value = true;
   }
-  if(status.role == status.roleDisk) {
-    // start task executor
+  return value;
+}
+
+static std::string bool_to_str(bool b) {
+  if(b) return "true";
+  else return "false";
+}
+
+int DomeCore::calculateChecksum(std::string lfn, Replica replica, bool forcerecalc) {
+  GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
+  std::string namekey = lfn + "###" + replica.rfn;
+  std::vector<std::string> qualifiers;
+
+  qualifiers.push_back(""); // the first qualifier is common for all items,
+                            // so the global limit triggers
+
+  qualifiers.push_back(replica.server); // server name as second qualifier, so
+                                        // the per-node limit triggers
+
+  qualifiers.push_back(bool_to_str(forcerecalc));
+
+  status.chksum->touchItemOrCreateNew(namekey, status, 0, qualifiers);
+  return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
+                                                     << ", check back later"));
+}
+
+int DomeCore::calculateChecksumDisk(std::string lfn, std::string pfn, bool forcerecalc) {
+  return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
+}
+
+static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
+  std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+  if(replicas.size() == 0) {
+    throw DmException(DMLITE_CFGERR(ENOENT), "The provided LFN does not correspond to any replicas");
   }
+
+  if(pfn != "") {
+    for(std::vector<Replica>::iterator it = replicas.begin(); it != replicas.end(); it++) {
+      if(it->rfn == pfn) {
+        return *it;
+      }
+    }
+    throw DmException(DMLITE_CFGERR(ENOENT), "The provided PFN does not correspond to any of LFN's replicas");
+  }
+
+  // no explicit pfn? pick a random replica
+  int index = rand() % replicas.size();
+  return replicas[index];
 }
 
 int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  DmlitePoolHandler stack(dmpool);
 
   try {
-    dmlite::Catalog* catalog = stack->getCatalog();
+    DmlitePoolHandler stack(dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "null");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-    std::string forcerecalc_str = req.bodyfields.get<std::string>("force-recalc", "false");
+    bool forcerecalc = str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
 
-    bool forcerecalc = false;
-    if(forcerecalc_str == "false" || forcerecalc_str == "0" || forcerecalc_str == "no") {
-      forcerecalc = false;
-    } else if(forcerecalc_str == "true" || forcerecalc_str == "1" || forcerecalc_str == "yes") {
-      forcerecalc = true;
+    // If I am a disk node, I need to unconditionally start the calculation
+    if(status.role == status.roleDisk) {
+      if(pfn == "") {
+        return DomeReq::SendSimpleResp(request, 404, "pfn is obligatory when issuing a dome_chksum to a disk node");
+      }
+      return calculateChecksumDisk(req.object, pfn, forcerecalc);
     }
 
-    // unconditional calculation of checksum?
-    if(status.role == status.roleDisk || forcerecalc) {
-      calculateChecksum(req.object, pfn, forcerecalc);
-      return DomeReq::SendSimpleResp(request, 202, "Checksum calculation initiated and is pending");
+    // I am a head node
+    if(forcerecalc) {
+      Replica replica = pickReplica(req.object, pfn, stack);
+      return calculateChecksum(req.object, replica, forcerecalc);
     }
 
-    // i am a head node, and not forced to do a recalc
-    // check if the checksum exists in the db
-
-    // first the lfn checksum
+    // Not forced to do a recalc - maybe I can find the checksums in the db
     std::string lfnchecksum;
-    ExtendedStat xstat = catalog->extendedStat(req.object);
+    std::string pfnchecksum;
+    Replica replica;
+
+    // retrieve lfn checksum
+    ExtendedStat xstat = stack->getCatalog()->extendedStat(req.object);
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
     }
 
-    // then the pfn
-    std::string pfnchecksum;
+    // retrieve pfn checksum
     if(pfn != "") {
-      bool pfnfound = false;
-      std::vector<Replica> replicas = catalog->getReplicas(req.object);
-      for(std::vector<Replica>::iterator it = replicas.begin(); it != replicas.end(); it++) {
-        if(it->rfn == pfn) {
-          pfnfound = true;
-
-          if(it->hasField(fullchecksum)) {
-            pfnchecksum = it->getString(fullchecksum);
-          }
-          break;
-        }
-      }
-      if(!pfnfound) {
-        return DomeReq::SendSimpleResp(request, 404, "LFN found, but PFN was not");
+      replica = pickReplica(req.object, pfn, stack);
+      if(replica.hasField(fullchecksum)) {
+        pfnchecksum = replica.getString(fullchecksum);
       }
     }
 
-    // maybe I don't need to calculate anything and I can send the response right now
-    if(lfnchecksum != "" && (pfn == "" || pfnchecksum != "") ) {
+    // can I send a response right now?
+    if(lfnchecksum != "" && (pfn == "" || pfnchecksum != "")) {
       boost::property_tree::ptree jresp;
       jresp.put("checksum", lfnchecksum);
-      jresp.put("pfn-checksum", pfnchecksum);
+      if(pfn != "") {
+        jresp.put("pfn-checksum", pfnchecksum);
+      }
       return DomeReq::SendSimpleResp(request, 200, jresp);
     }
 
-    // nope, something is missing
-    calculateChecksum(req.object, pfn, false);
-    return DomeReq::SendSimpleResp(request, 202, "Checksum calculation initiated and is pending");
+    // something is missing, need to calculate
+    if(pfn == "") {
+      replica = pickReplica(req.object, pfn, stack);
+    }
+    return calculateChecksum(req.object, replica, forcerecalc);
   }
-  catch (dmlite::DmException& e) {
-    std::ostringstream os("An error has occured - file not found?\r\n");
+  catch(dmlite::DmException& e) {
+    std::ostringstream os("An error has occured.\r\n");
     os << "Dmlite exception: " << e.what();
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
-  return DomeReq::SendSimpleResp(request, 404, "Unknown error");
+  return DomeReq::SendSimpleResp(request, 500, "Something has gone terribly wrong.");
 }
 
 int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
+  if(status.role == status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "chksumstatus only available on head nodes");
+  }
 
+  return DomeReq::SendSimpleResp(request, 500, "Unknown error");
 }
 
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
@@ -252,16 +300,16 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 };
 
 int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
-  
+
   // Crawl upwards the directory hierarchy of the given path
   // stopping when a matching one is found
   // The result is a list, as more than one quotatoken can be
   // assigned to a directory
   // The quota tokens indicate the pools that host the files written into
   // this directory subtree
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  
+
   std::string absPath =  req.bodyfields.get<std::string>("path", "");
   if ( !absPath.size() ) {
     std::ostringstream os;
@@ -275,12 +323,12 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
     os << "Path '" << absPath << "' is not an absolute path.";
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   // Remove any trailing slash
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting spaces for path: '" << absPath << "'");
   long long totspace = 0LL;
   long long usedspace = 0LL;
@@ -289,26 +337,26 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
     while (absPath.length() > 0) {
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
       // Check if any matching quotatoken exists
       std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
       myintv = status.quotas.equal_range(absPath);
-      
+
       if (myintv.first != status.quotas.end()) {
         for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
           totspace += it->second.t_space;
-          
+
           // Now find the free space in the mentioned pool
           long long ptot, pfree;
           status.getPoolSpaces(it->second.poolname, ptot, pfree);
           poolfree += pfree;
-          
+
           Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
-          it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);    
+          it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);
         }
-        
-        
+
+
         // Now get the size of this directory, using the dmlite catalog
         usedspace = 0;
         DmlitePoolHandler stack(dmpool);
@@ -319,10 +367,10 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
         catch (dmlite::DmException e) {
           Err(domelogname, "Ignore exception stat-ing '" << absPath << "'");
         }
-        
+
         break;
       }
-      
+
       // No match found, look upwards by trimming the last token from absPath
       size_t pos = absPath.rfind("/");
       absPath.erase(pos);
@@ -344,19 +392,19 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("quotafreespace", (sp < 0 ? 0 : sp));
   jresp.put("poolfreespace", poolfree);
   jresp.put("usedspace", usedspace);
-  
+
   std::ostringstream os;
   boost::property_tree::write_json(os, jresp);
   int rc = DomeReq::SendSimpleResp(request, 200, os);
-  
-  
+
+
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
-  
+
 }
-  
-  
-  
+
+
+
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {};
