@@ -8,8 +8,8 @@ include(FindPkgConfig)
 
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 7)
-set(dmlite_PATCH 4)
+set(dmlite_MINOR 8)
+set(dmlite_PATCH 0)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
