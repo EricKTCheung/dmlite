@@ -131,13 +131,13 @@ int DomeCore::calculateChecksum(std::string lfn, Replica replica, bool forcereca
 
   qualifiers.push_back(bool_to_str(forcerecalc));
 
-  status.chksum->touchItemOrCreateNew(namekey, status, 0, qualifiers);
-  return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
-                                                     << ", check back later"));
+  //  status.checksumq->touchItemOrCreateNew(namekey, status, 0, qualifiers);
+  // return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
+                                                    //  << ", check back later"));
 }
 
 int DomeCore::calculateChecksumDisk(std::string lfn, std::string pfn, bool forcerecalc) {
-  return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
+  // return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
 }
 
 static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
@@ -234,7 +234,12 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, "chksumstatus only available on head nodes");
   }
 
-  return DomeReq::SendSimpleResp(request, 500, "Unknown error");
+  std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "null");
+  std::string fullchecksum = "checksum." + chksumtype;
+  std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+  bool forcerecalc = str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
+
+  // return DomeReq::SendSimpleResp(request, 200);
 }
 
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
