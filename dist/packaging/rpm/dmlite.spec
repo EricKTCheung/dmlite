@@ -253,6 +253,7 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 %{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
+/var/www/fcgi-bin/dome
 %doc README LICENSE RELEASE-NOTES
 
 %files devel
