@@ -13,7 +13,7 @@
 
 
 Name:					dmlite
-Version:				0.7.4
+Version:				0.8.0
 Release:				1%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
@@ -45,6 +45,8 @@ BuildRequires:			lcgdm-devel
 BuildRequires:			libmemcached-devel
 BuildRequires:			mysql-devel
 BuildRequires:			protobuf-devel
+BuildRequires:		        davix-devel
+BuildRequires:			fcgi-devel
 
 %description
 This package provides the dmlite framework that implements common
