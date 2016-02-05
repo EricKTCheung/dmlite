@@ -248,12 +248,13 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/dmlite.conf.d
 %dir %{_libdir}/dmlite
+%dir %{_localstatedir}/www/fcgi-bin
 %config(noreplace) %{_sysconfdir}/dmlite.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/dmlite
 %config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 %{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
-/var/www/fcgi-bin
+%{_localstatedir}/www/fcgi-bin/dome
 %doc README LICENSE RELEASE-NOTES
 
 %files devel
