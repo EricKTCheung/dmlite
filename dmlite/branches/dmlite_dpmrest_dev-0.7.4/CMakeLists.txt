@@ -42,7 +42,7 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 set (INSTALL_PFX_ETC "etc/" CACHE STRING "relative path suffix to the etc directory where to install")
 set (INSTALL_PFX_LIB "usr/lib${LIB_SUFFIX}/" CACHE STRING "relative path suffix to the lib/lib64 directory where to install")
 set (INSTALL_PFX_USR "usr/" CACHE STRING "relative path suffix to the usr directory where to install (e.g. docs)")
-
+set (INSTALL_PFX_VAR "var/www/" CACHE STRING "relative path suffix to the /var/www directory where to install fast-cgi")
 
 
 
@@ -102,7 +102,7 @@ endif()
 # Find Davix
 pkg_check_modules(DAVIX_PKG davix)
 if (NOT DAVIX_PKG_FOUND)
-  message("-- Davix not found... disabling tomee fastcgi component")
+  message("-- Davix not found... disabling dome fastcgi component")
   set (BUILD_DOME OFF)
 endif()
                     

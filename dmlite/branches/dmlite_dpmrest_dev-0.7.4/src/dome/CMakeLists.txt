@@ -27,7 +27,7 @@ target_link_libraries (dome libdome)
 
 # Install
 install (TARGETS dome
-         DESTINATION            /var/www/fcgi-bin/
+         DESTINATION            ${INSTALL_PFX_VAR}/fcgi-bin/
          PERMISSIONS            OWNER_EXECUTE OWNER_WRITE OWNER_READ
                                 GROUP_EXECUTE GROUP_READ
                                 WORLD_EXECUTE WORLD_READ )
