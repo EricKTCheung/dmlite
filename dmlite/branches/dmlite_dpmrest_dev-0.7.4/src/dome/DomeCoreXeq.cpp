@@ -145,7 +145,7 @@ int DomeCore::calculateChecksumDisk(FCGX_Request &request, std::string lfn, std:
 static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
   std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
   if(replicas.size() == 0) {
-    throw DmException(DMLITE_CFGERR(ENOENT), "The provided LFN does not correspond to any replicas");
+    throw DmException(DMLITE_CFGERR(ENOENT), "The provided LFN does not have any replicas");
   }
 
   if(pfn != "") {
@@ -172,6 +172,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     bool forcerecalc = str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
+    bool updateLfnChecksum = (pfn == "");
 
     // If I am a disk node, I need to unconditionally start the calculation
     if(status.role == status.roleDisk) {
@@ -228,7 +229,8 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
-  return DomeReq::SendSimpleResp(request, 500, "Something has gone terribly wrong.");
+  Log(Logger::Lvl1, domelogmask, domelogname, "Error - execution should never reach this point");
+  return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
 }
 
 int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
@@ -302,6 +304,13 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     if(updateLfnChecksum) {
       stack->getCatalog()->setChecksum(req.object, fullchecksum, checksum);
     }
+    // still update if it's empty, though
+    else {
+      ExtendedStat xstat = stack->getCatalog()->extendedStat(req.object);
+      if(!xstat.hasField(fullchecksum)) {
+        stack->getCatalog()->setChecksum(req.object, fullchecksum, checksum);
+      }
+    }
 
     return DomeReq::SendSimpleResp(request, 200, "");
   }
@@ -311,6 +320,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
+  Log(Logger::Lvl1, domelogmask, domelogname, "Error - execution should never reach this point");
   return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
 }
 
