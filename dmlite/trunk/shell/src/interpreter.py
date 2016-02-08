@@ -2458,7 +2458,7 @@ class DrainFileReplica(object):
                         return 1
                 else:
 			#new behaviour, in case the file is in status D we should remove the file and the replicas
-                        self.ok("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, it can be safely removed\n")
+                        self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " is under deletion, it can be safely removed\n")
                         self.interpreter.catalog.unlink(filename)
                         return 0
         currenttime= int(time.time())
@@ -2487,7 +2487,7 @@ class DrainFileReplica(object):
 
         replicate = Replicate(self.interpreter,self.parameters, spacetoken=spacetoken)
 
-        self.logOK("Trying to replicate file: "+ filename+"\n");
+	self.logOK("Trying to replicate file: %s\n" % self.parameters['filename']);
 
 	replicated = None
 	destination = None
