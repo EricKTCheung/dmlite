@@ -58,6 +58,16 @@ public:
   long long freespace;
   /// Total size of this filesystem
   long long physicalsize;
+  
+  
+  // Predicate for sorting filesystems by decreasing freespace
+  struct pred_decr_freespace {
+    bool operator()(DomeFsInfo const & a, DomeFsInfo const & b) const {
+        return a.freespace > b.freespace;
+    }
+    
+  };
+
 };
 
 
@@ -129,6 +139,10 @@ public:
 
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
   
+  /// Atomically increment and returns the number of put requests that this server saw since the last restart
+  /// Useful to compose damn unique replica pfns
+  long getGlobalputcount();
+  
   void checkDiskSpaces();
   
   /// The queue holding checksum requests
@@ -142,5 +156,5 @@ public:
   
 private:
   time_t lastreload, lastfscheck;
-  
+  long globalputcount;
 };

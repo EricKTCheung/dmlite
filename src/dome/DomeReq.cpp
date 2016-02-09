@@ -39,6 +39,18 @@ DomeReq::DomeReq(FCGX_Request &request) {
   if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
     domecmd = s;
 
+  // TODO: extract the authz info about the submitting client
+  
+  // Extract the authz info about the remote user
+  if ( (s = FCGX_GetParam("REMOTECLIENTDN", request.envp)) )
+    this->remoteclientdn = s;
+  if ( (s = FCGX_GetParam("REMOTECLIENTADDR", request.envp)) )
+    this->remoteclientaddr = s;
+  
+  
+  
+  
+  
   // We assume that the body fits in 4K, otherwise we ignore it ?!?
   char buf[4096];
   int nb = FCGX_GetStr(buf, sizeof(buf)-1, request.in);

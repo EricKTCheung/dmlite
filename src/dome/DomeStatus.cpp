@@ -31,7 +31,7 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 #include "DomeDavixPool.h"
-
+#include <values.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
@@ -60,6 +60,8 @@ DomeStatus::DomeStatus() {
   struct addrinfo hints, *info, *p;
   int gai_result;
   
+  globalputcount = 0;
+  
   char hostname[1024];
   hostname[1023] = '\0';
   gethostname(hostname, 1023);
@@ -84,7 +86,15 @@ DomeStatus::DomeStatus() {
   Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
 }
   
+long DomeStatus::getGlobalputcount() {
+  boost::unique_lock<boost::recursive_mutex> l(*this);
   
+  globalputcount = ++globalputcount % MAXINT;
+  
+  return (globalputcount);
+}
+
+
 /// Helper function that adds a filesystem to the list and its corresponding server to the server list
 /// Filesystems so far can't be deleted without a restart
 int DomeStatus::addFilesystem(DomeFsInfo &fs) {

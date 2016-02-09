@@ -64,13 +64,20 @@ public:
     /// Returns 0 if OK
     int getJSONbodyfields(std::string &body);
 
-    /// The request also may carry information about the client that submitted it
-    /// dpmrest can apply authorization schemes to this client. This is usually root
-    /// or dpmmgr in the historical dpm architecture. We should not be limited
-    /// by that while keeping dev/maintenance cost low.
+    /// The request also may carry information about the client that submitted it.
+    /// For example, these will be the credentials of a disk server.
+    /// ** These are NOT the credentials of the remote user **
+    /// dpmrest can apply authorization schemes to this information. The consequence
+    /// is that we can filter in a simple way the entities that can send commands.
     std::string clientdn;
-    std::vector<std::string> fqans;
-    std::vector<std::string> authkeys;
+    std::vector<std::string> clientfqans;
+    std::vector<std::string> clientauthkeys;
+    
+    /// And these are the identity of the remote user that originated the request,
+    /// for the cases where it applies.
+    std::string remoteclientdn;
+    std::string remoteclientaddr;
+    
 
     /// Utility function to send a quick response
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body);

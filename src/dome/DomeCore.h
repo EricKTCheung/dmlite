@@ -99,6 +99,10 @@ public:
 
   int dome_getdirspaces(DomeReq &req, FCGX_Request &request);
 
+  
+  // Utility
+  bool LfnMatchesPool(std::string lfn, std::string pool);
+  
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
@@ -113,7 +117,9 @@ private:
   /// The thread that ticks
   boost::thread *ticker;
 
-
+  /// Atomically increment and returns the number of put requests that this server saw since the last restart
+  long getGlobalputcount();
+  
 protected:
 
   // In the case of a disk server, checks the free/used space in the mountpoints
