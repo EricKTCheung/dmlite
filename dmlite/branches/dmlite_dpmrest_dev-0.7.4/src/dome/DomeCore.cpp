@@ -76,6 +76,40 @@ DomeCore::~DomeCore() {
 }
 
 
+
+bool DomeCore::LfnMatchesPool(std::string lfn, std::string pool) {
+  
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(status);
+  std::string lfn1(lfn);
+  
+  while (lfn1.length() > 0) {
+      
+    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
+    // Check if any matching quotatoken exists
+    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+    myintv = status.quotas.equal_range(lfn1);
+      
+    if (myintv.first != status.quotas.end()) {
+      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+        if (it->second.poolname == pool) {
+          
+          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
+          
+          return true;
+        }
+      }
+    }
+    
+    // No match found, look upwards by trimming the last token from absPath
+    size_t pos = lfn1.rfind("/");
+    lfn1.erase(pos);
+  }
+  return true;
+  
+}
+
+
 // entry point for worker threads, endless loop that wait for requests from apache
 // pass on processing to handlers depends on (not yet) defined REST methods
 void workerFunc(DomeCore *core, int myidx) {

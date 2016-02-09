@@ -31,6 +31,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <sys/vfs.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <dmlite/cpp/authn.h>
 #include <dmlite/cpp/dmlite.h>
@@ -42,11 +43,289 @@
 
 using namespace dmlite;
 
+// Creates a new logical file entry, and all its parent directories
+
+int mkdirminuspandcreate(dmlite::Catalog *catalog,
+                         const std::string& filepath,
+                         std::string  &parentpath,
+                         ExtendedStat &parentstat,
+                         ExtendedStat &statinfo) throw (DmException) {
+                           
+  if (filepath.empty())
+    throw DmException(EINVAL, "Empty path. Internal error ?");
+  
+  // Get the absolute path
+  std::string path;
+  if ( filepath[0] != '/' )
+    path = catalog->getWorkingDir() + "/" + filepath;
+  
+  if ( path[0] != '/' )
+    path.insert(0, "/");
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Absolute path: path");
+  
+  std::vector<std::string> components = Url::splitPath(path);
+  std::vector<std::string> todo;
+  std::string name;
+  bool parentok = false;
+  
+  components.pop_back();
+  
+  // Make sure that all the parent dirs exist
+  do {
+    
+    std::string ppath = Url::joinPath(components);
+    ExtendedStat st;
+    
+    // Try to get the stat of the parent
+    try {
+      st = catalog->extendedStat(ppath);
+      if (!parentok) {
+        parentstat = st;
+        parentpath = ppath;
+        // This means that we successfully processed at least the parent dir
+        // that we have to return
+        parentok = true;
+        break;
+      }
+      
+      
+    } catch (DmException e) {
+      // No parent means that we have to create it later
+      name = components.back();
+      components.pop_back();
+      
+      todo.push_back(ppath);
+    }
+    
+  } while ( !components.empty() );
+  
+  
+  // Here we have a todo list of directories that we have to create
+  // .... so we do it
+  while (!todo.empty()) {
+    std::string p = todo.back();
+    todo.pop_back();
+    
+    // Try to get the stat of the parent
+    try {
+      catalog->makeDir(p, 0664);
+    } catch (DmException e) {
+      // If we can't create the dir then this is a serious error
+      Err(domelogname, "Cannot create path '" << p << "'");
+      throw;
+    }
+    
+    
+  }
+  
+  // If a miracle took us here, we only miss to create the final file
+  try {
+    catalog->create(filepath, 0664);
+    statinfo = catalog->extendedStat(filepath);
+  } catch (DmException e) {
+    // If we can't create the file then this is a serious error
+    Err(domelogname, "Cannot create file '" << filepath << "'");
+    throw;
+  }
+ 
+  return 0;
+}
 
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
+  
+  // fetch the parameters, lfn and placement suggestions
+  std::string lfn = req.object;
+  std::string addreplica_ = req.bodyfields.get<std::string>("additionalreplica", "");
+  std::string pool = req.bodyfields.get<std::string>("pool", "");
+  std::string host = req.bodyfields.get<std::string>("host", "");
+  std::string fs = req.bodyfields.get<std::string>("fs", "");
+  
+  
+  
+  bool addreplica = false;
+  if ( (addreplica_ == "yes") || (addreplica_ == "1") || (addreplica_ == "on") )
+    addreplica = true;
+  
+  // Log the parameters, level 1
+  Log(Logger::Lvl1, domelogmask, domelogname, "Entering. lfn: '" << lfn <<
+    "' addreplica: " << addreplica << " pool: '" << pool <<
+    "' host: '" << host << "' fs: '" << fs << "'");
+  
+  // Give errors for combinations of the parameters that are obviously wrong
+  if ( (host != "") && (pool != "") ) {
+    // Error! Log it as such!, level1
+    return DomeReq::SendSimpleResp(request, 501, "The pool hint and the host hint are mutually exclusive.");
+  }
+ 
+  std::vector<DomeFsInfo> selectedfss;
+  {
+    // Lock!
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    // Build a list of the filesystems that match the suggestions
+    // Loop on the filesystems and take the ones that match
 
+    for (int i = 0; i < status.fslist.size(); i++) {
+      if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
+        
+        // Take only pools that are associated to the lfn parent dirs
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) ) 
+          selectedfss.push_back(status.fslist[i]);
+        
+        continue;
+      }
+      
+      if ( (host.size() > 0) && (fs.size() == 0) && (status.fslist[i].server == host) ) {
+        
+        // Take only pools that are associated to the lfn parent dirs
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+          selectedfss.push_back(status.fslist[i]);
+        
+        continue;
+      }
+      
+      if ( (host.size() > 0) && (fs.size() > 0) && (status.fslist[i].server == host) && (status.fslist[i].fs == fs) ) {
+        
+        // Take only pools that are associated to the lfn parent dirs through a quotatoken
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+          selectedfss.push_back(status.fslist[i]);
+        
+        continue;
+      }
+      
+      
+    }
+    
+    
+  } // end lock
+    
+    // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
+    if ( !selectedfss.size() ) {
+      // Error!
+      return DomeReq::SendSimpleResp(request, 501, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN.");
+    }
+    
+    // Remove the filesystems that have less then the minimum free space available
+    for (int i = selectedfss.size()-1; i >= 0; i) {
+      if (selectedfss[i].freespace / 1024 / 1024 < CFG->GetLong("glb.put.minfreespace_mb", 1024*4)) {// default is 4GB
+        Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
+          "' has less than " << CFG->GetLong("glb.put.minfreespace_mb", 1024*4) << "MB free");
+        selectedfss.erase(selectedfss.begin()+i);
+      }
+    }
+    
+    // If no filesystems remain, return error "filesystems full for path ..."
+    if ( !selectedfss.size() ) {
+      // Error!
+      return DomeReq::SendSimpleResp(request, 501, "All matching filesystems are full.");
+    }
+    
+    // Sort the selected filesystems by decreasing free space
+    std::sort(selectedfss.begin(), selectedfss.end(), DomeFsInfo::pred_decr_freespace());
+    
+    // Use the free space as weight for a random choice among the filesystems
+    // Nice algorithm taken from http://stackoverflow.com/questions/1761626/weighted-random-numbers#1761646
+    long sum_of_weight = 0;  
+    int fspos = 0;
+    for (int i = 0; i < selectedfss.size(); i++) {
+      sum_of_weight += (selectedfss[i].freespace >> 20);
+    }
+    // RAND_MAX is sufficiently big for this purpose
+    int rnd = random() % sum_of_weight;
+    for(int i=0; i < selectedfss.size(); i++) {
+      if(rnd < (selectedfss[i].freespace >> 20)) {
+        fspos = i;
+        break;
+      }
+      rnd -= (selectedfss[i].freespace >> 20);
+    }
+    
+    // We have the fs, build the final pfn for the file
+    //  fs/group/date/basename.r_ordinal.f_ordinal
+    Log(Logger::Lvl1, domelogmask, domelogname, "Selected fs: '" << selectedfss[fspos].server << ":" << selectedfss[fspos].fs <<
+          " from " << selectedfss.size() << " matchings for lfn: '" << lfn << "'");
+    
+    // Fetch the time
+    time_t rawtimenow = time(0);
+    struct tm tmstruc;
+    char timestr[16], suffix[32];
+    localtime_r(&rawtimenow, &tmstruc);
+    strftime (timestr, 11, "%F", &tmstruc);
+    
+    // Parse the lfn and pick the 4th token, likely the one with the VO name
+    std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
+    sprintf(suffix, "%ld.%ld", status.getGlobalputcount(), rawtimenow);
+    std::string pfn = "/" + vecurl[3] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << pfn << "'");
+    
+    // NOTE: differently from the historical dpmd, here we do not create the remote path/file
+    // of the replica in the disk. We jsut make sure that the LFN exists
+    // The replica in the catalog instead is created here
+    
+    // Create the logical catalog entry, if not already present. We also create the parent dirs
+    // if they are absent
+    
+    DmlitePoolHandler stack(dmpool);
+    ExtendedStat parentstat, lfnstat;
+    std::string parentpath;
+    
+    {
+      // Security credentials are mandatory, and they have to carry the identity of the remote client
+      SecurityCredentials cred;
+      cred.clientName = (std::string)req.remoteclientdn;
+      cred.remoteAddress = req.remoteclientaddr;
+      
+      try {
+        stack->setSecurityCredentials(cred);
+      } catch (DmException e) {
+        std::ostringstream os;
+        os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
+          req.remoteclientaddr << "' - " << e.code() << "-" << e.what();
+          
+        Err(domelogname, os);
+        return DomeReq::SendSimpleResp(request, 501, os);
+      }
+    }
 
+    try {
+      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os);
+      return DomeReq::SendSimpleResp(request, 501, os);
+    }
+    
+    // Create the replica in the catalog
+    dmlite::Replica r;
+    r.fileid = lfnstat.stat.st_inode;
+    r.replicaid = 0;
+    r.nbaccesses = 0;
+    r.atime = r.ptime = r.ltime = time(0);
+    r.status = dmlite::Replica::kBeingPopulated;
+    r.type = dmlite::Replica::kPermanent;
+    try {
+      stack->getCatalog()->addReplica(r);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot create replica '" << pfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os);
+      return DomeReq::SendSimpleResp(request, 501, os);
+    }
+    
+    // Here we are assuming that some frontend will soon start to write a new replica
+    //  with the name we chose here
+    
+    // Return the response, 
+    
+  
 };
+
+
 int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {};
 
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
