@@ -1,0 +1,1086 @@
+\documentclass[a4paper,10pt]{scrreprt}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx} % Required for including pictures
+\usepackage{listings}
+\usepackage{float} % Allows putting an [H] in \begin{figure} to specify the exact location of the figure
+\usepackage{wrapfig} % Allows in-line images such as the example fish picture
+\usepackage{color}
+\linespread{1.2} % Line spacing
+\setcounter{tocdepth}{4}
+
+\lstset{frame=tb,
+  language=perl,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  breaklines=true,
+  breakatwhitespace=true,
+  breaklines=true,
+  frame=none
+}
+
+
+% Title Page
+\title{DOME\\A rest-inspired engine for DPM}
+\author{}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This is a preliminary project document whose goal is to drive the development of DOME. Expect very pragmatic prose. Together with
+the development itself, the content of the document will converge to becoming a white paper containing the documentation of DOME.
+\end{abstract}
+
+
+
+\newpage % Begins the essay on a new page instead of on the same page as the table of contents 
+
+
+%----------------------------------------------------------------------------------------
+%	TABLE OF CONTENTS
+%----------------------------------------------------------------------------------------
+
+\tableofcontents % Include a table of contents
+
+\newpage % Begins the essay on a new page instead of on the same page as the table of contents 
+
+
+
+\chapter{Dome}
+
+This initiative aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
+implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. Among our goals we cite:
+
+\begin{itemize}
+ \item Making optional all the so-called legacy components that are provided by the \textit{lcg-dm} code tree, namely \textit{libshift}, \textit{rfiod},
+ \textit{dpm(daemon)}, \textit{dpnsdaemon}, \textit{CSec} and others.
+ \item provide a software infrastructure where adding new coordination features is easier than with \textit{lcg-dm}
+ \item provide full support for asynchronous calculation of file checksums of multiple types
+ \item provide support for checking the consistence of replicas through their checksums
+ \item provide structure, hooks and callouts that allow the usage of DPM as a fast and large \textit{file cache}
+ \item having a unified configuration file that is readable and synthetic, as opposed to the \textit{lcg-dm} approach of having several configuration
+ files here and there, all with differently over-simplified syntax rules (or no syntax at all, e.g. \textit{/etc/NSCONFIG})
+\end{itemize}
+
+The DOME component has the shape of a \textit{fastCGI} daemon, and has to be triggered by the Apache instances running in the DPM head node and
+in all the DPM disk servers. A configuration option defines whether it is running as head node or disk server.
+
+For simplicity of expression, in this document we may refer to these modalities as two different components, named \textit{DOMEhead} and \textit{DOMEdisk}.
+In practice, these are the same component which has been given a different command-line flag to enable/disable a different command set,
+implemented in the same software skeleton.
+
+DOME is a client of the \textit{dmlite} framework, in particular for the features that now are fulfilled by dpnsdaemon. It's also a
+service provider for the dmlite framework, through the dmlite plugin \textit{adapter\_rest}, described later.
+
+\section{DOME: Main features}
+DOME has two modalities: headnode and disknode, which respectively represent evolutions of the \textit{dpm} daemon and of \textit{rfiod}, together with \textit{libshift} and \textit{Csec}.
+The functionalities are roughly as follows:
+\begin{itemize}
+ \item headnode: general coordination function
+ \subitem spreads load (PUT, GET, checksums) towards the available disk nodes
+ \subitem keeps an in memory status of the DPM disk/pool topology with disk sizes and free space
+ \subitem keeps an in memory status of the ongoing asynchronous checksum calculations
+ \subitem keeps an in memory status of the ongoing asynchronous file callouts
+ \subitem queues and dispatches to disk nodes the requests for asynchronous checksum calculations that have to be delayed for load balancing reasons
+ \subitem queues and dispatches to disk nodes the requests for asynchronous file callouts that have to be delayed for load balancing reasons
+ \subitem uses the dmlite library to access logical information about pools/filesystems and name space content
+
+ \item disknode: local disk and space-related services
+ \subitem Allows to \textit{stat} individual physical paths
+ \subitem Allows to \textit{statfs} of filesystems to get size and free space
+ \subitem Allows the local submission of checksum calculations
+ \subitem Allows the local submission of file callouts
+\end{itemize}
+
+The main difference from the legacy components is that DOME does not apply authorization again for individual user file
+access, as this task is already accomplished by the dmlite frontends. DOME only checks that the sender of a request is authorized to
+send requests, in a way that is similar to the libshift "root mode". DOME applies strong authentication protocols to this task.\\
+
+\textbf{DOME is protocol-agnostic. Its concepts of logical file name and physical file name are not linked to a particular data/metadata transfer protocol.
+DOME manages paths and filenames, not URLs. URLs can be constructed by the DPM frontends starting from the pfn or lfn information given by DOME.}
+
+
+\subsection{From spacetokens to quota tokens}
+Historically, DPM does space accounting through a set of individual named space reservations, kept in the DB in the head node, and associated to
+pools. Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
+that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
+One of the weakest points in this schema is that the writer has to know technical details of the destination storage, to be able to write
+and be properly accounted for.\\
+
+The development direction of DOME is to evolve this mechanism towards \textit{subdirectory-based space accounting}, instead than pool-based.\\
+
+In the current production version of the dmlite framework (0.7.3, Sept 2015), space accounting on the first levels of directories
+is a feature that is already available. DOME has access to this information through the normal dmlite Catalog API.\\
+
+DOME uses the records describing spacetokens that are kept in the head node DB, with minimal modification. Their meaning is slightly changed,
+into semantically representing a quota on one and only one directory subtree.\\
+
+For simplicity of management, a quota token attached to a directory subtree \textbf{overrides others that may be attached to its parents}. This also helps reducing the complexity of the checks.\\
+If a directory content (counting all the replicas) exceeds the quota, then new PUT requests on that dir will be denied.\\
+
+In the most common DPM setups, legacy spacetokens are de facto used to assign space limits to a VO or to one of its service directories,
+named after space tokens.\\
+The described semantic evolution is supposed to be crafted in order not to interfere with the spacetoken support implemented by the legacy components in the cases
+where space tokens were used in that way.
+
+
+\subsection{Pools and filesystems}
+A pool is a logical group of mount points in individual disk servers that are used to store replicas.\\
+
+DOME uses the same concept of Pool than the historical DPM, hence the "Pool management" functionalities
+of the lcg-dm components will continue to work mostly as they are.\\
+
+DOME considers pools as referred to path prefixes, that is directory subtrees. A pool assigned to a directory
+completely overrides pool assignments that belong to its parent directories.\\
+
+A Pool assigned to a subtree acts as a sort of "replication domain". Replicas of files belonging to that subtree
+are stored in filesystems belonging to this pool. Multiple replicas are spread through different file systems.\\
+
+Multiple pools can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch). 
+Writes into this subtree will be space-balanced between all the filesystems composing the pools assigned to it. Some pools may also be
+used to host only replicas of content that is already available in other pools.\\
+
+\subsection{Open checksumming}
+DOME supports requests for checksums of arbitrary kind. It can:\\
+
+\begin{itemize}
+ \item return the corresponding checksum that is stored in the name space
+ \item choose an appropriate replica of the file and tell to the disk node managing it to calculate its checksum
+ \item force the recalculation of the checksum and store it into the name space
+\end{itemize}
+
+The checksum calculation request may be queued in the head node, in memory. The architecture is designed to be self-healing in the case the checksum
+calculations do not end correctly, or some machines are restarted.
+
+
+
+
+
+\section{Tech}
+
+The architecture of DOME has to be expandable, which does not necessarily mean that it's excessively plugin-based. Where to add the impl of a new request must be clear and simple to understand.\\
+DOME is a client of dmlite, i.e. it can invoke the dmlite catalogue, pool, etc. functions.\\
+
+\subsection{Architecture}
+Deployment diagram
+adapter\_rest
+take Eric's picture and comments
+
+\subsection{Security}
+The configuration file can specify criteria to accept requests that come to DOME. These criteria have the form
+of a list of allowed DNs (taken from X509 certificates).\\
+
+Main goals: strong security which can be disabled (for debugging purposes) in a way that is trivial for the sysadmin to understand, apply, disable, check, doublecheck.\\
+
+The typical configuration is that only the DN coming from the host certificate of the head node can interact with DOME.\\
+The typical configuration uses HTTPS in the frontend configuration, to enforce the usage of a valid certificate.\\
+
+\subsection{Checksum queuer}
+ DOME internally queues and schedules checksum calculation requests in the head node.\\
+ No more than N checksums will be run per disk mount\\
+ No more than L checksums will be run per disk server\\
+ No more than M checksums will be run in total\\
+
+ Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances constantly update the head node on the running checksums, hance there is no need for persistence,
+ and the system will self-heal on restarts of the head node. When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
+ Eventually memcached can be used for queue synchronization purposes, only if it turns out that even in SOME cases the code is not totally
+ preventing the spawning of new processes (which has never to happen!!!). This evenience would require more development effort, and would have the
+ advantage of making the dpm service able to scale horizontally. So far, we have no evidence that the dpm service needs that.\\
+
+\subsection{File pulls queuer}
+DOME internally on the head node queues and schedules requests for file pulls from external locations
+ No more than N pulls will be run per disk mount\\
+ No more than L pulls will be run per disk server\\
+ No more than M pulls will be run in total\\
+ 
+The pull itself is implemented as a simple callout in the disk server, that can invoke any file movement mechanism, from
+dd to create an empty file to a simple copy to uber-complex multi hop FTS xfers.
+The pull callout in the disk server is complemented by a stat callout, which is able to stat an external system for the presence of an offline file.\\
+This mechanism should be polished enough to support the construction of simple file caches,
+without necessarily needing external, complex components. Invoking FTS instead than \textit{dd} or \textit{davix-get} must be an option.\\
+
+
+Pull requests are queued in memory and dispatched to disk nodes that match the request and become available. Please note that stat requests are not queued. Please also note that the DOME API has no stat primitive.\\
+The disk nodes instances constantly update the head node on the running callouts, hance there is no need for persistence,
+and the system will self-heal on restarts of the head node. When finished pulling a file, a disk node will notify the head node and pass the result (or failure).\\
+
+Eventually memcached can be used for queue synchronization purposes, only if it turns out that even in SOME cases the code is not totally
+preventing the spawning of new processes (which has never to happen!!!). This evenience would require more development effort, and would have the
+advantage of making the dpm service able to scale horizontally. So far, we have no evidence that the dpm service needs to scale horizontally the head node.\\
+
+\subsection{Only one process}
+ The fastcgi app named DOME has only have one process and multiple internal thread pools. This simplifies a lot the development.\\
+ 
+ 
+ 
+ 
+ NB: lcg-dm contains generic utilities too, sql stuff, DB upgrade scripts, metapackages etc. These things should be moved somewhere else,
+ possibly a place that refers to a part of the project that is not optional and that has low maintenance needs.\\
+
+ 
+ 
+\section{Application programming interface}
+
+Historically DPM implements low level functionality that is used by frontends to coordinate
+their activities of exposing data access protocols to clients.\\
+In some cases, the historical DPM API has been also exposed to clients/users, eventually through a
+Storage Resource Manager (SRM) server.
+
+DOME is not supposed to be used by remote clients and users. Users interact with DPM through a suitable frontend (e.g. gridFTP, xrootd, Apache) that
+relies on the services of dmlite and DOME in the background.
+
+\subsection{DPM historical primitives}
+ The goal of this section is to present a quick list of the historical API of the DPM daemon, for subsequent reference.
+ For details about the various calls, the reader is encouraged to refer to the respective manpages or to the code.
+
+
+\begin{itemize}
+\item DPM\_ABORTFILES:
+
+\item DPM\_ABORTREQ:
+
+\item DPM\_ADDFS:
+
+\item DPM\_ADDPOOL:
+
+\item DPM\_COPY: copy from surl to surl. Bound to rfio.
+
+\item DPM\_DELREPLICA:
+
+\item DPM\_EXTENDLIFE: unclear, not manpage documented
+
+\item DPM\_GET:
+
+\item DPM\_GETPOOLFS: mgmt, already in dmlite
+
+\item DPM\_GETPOOLS: mgmt, already in dmlite
+
+\item DPM\_GETPROTO: unclear, not manpage documented
+
+\item DPM\_GETREQID: explicit async way to queue requests. Never used AFAIK ?
+
+\item DPM\_GETREQSUM:  unclear, not manpage documented
+
+\item DPM\_GETSPACEMD: get spacetoken info. Unclear why it's bulk request. Some of the fields are unnecessarily complex or with involuted definitions.
+
+\item DPM\_GETSPACETKN: unclear, not manpage documented
+
+\item DPM\_GETSTSCOPY:  unclear, not manpage documented. Seems related to the COPY command. Never used AFAIK ?
+
+\item DPM\_GETSTSGET: unclear, not manpage documented. Seems related to the status of GET command through SRM
+
+\item DPM\_GETSTSPUT: Not manpage documented. Polling mechanism to accommodate writes to disks or tapes. 
+
+\item DPM\_INCREQCTR: unclear, not manpage documented. Never used AFAIK ?
+
+\item DPM\_MODFS: mgmt, already in dmlite
+
+\item DPM\_MODPOOL: mgmt, already in dmlite
+
+\item DPM\_PING: the best!
+
+\item DPM\_PUT: main functionality that we miss
+\item DPM\_PUTX: do we really need to make it a bulk request ? Maybe yes if we define hooks and callouts
+
+\item DPM\_PUTDONE: sob
+
+\item DPM\_RLSSPACE: unclear, not manpage documented
+
+\item DPM\_RELFILES: documented as "release a set of files" . not clear if it makes sense
+
+\item DPM\_RSVSPACE: unclear, not manpage documented
+
+\item DPM\_RM: mgmt, already in dmlite
+
+\item DPM\_RMFS: mgmt, already in dmlite
+
+\item DPM\_RMPOOL: mgmt, already in dmlite
+
+\item DPM\_SHUTDOWN: OK, we get it
+
+\item DPM\_UPDSPACE: unclear, not manpage documented
+
+\item DPM\_UPDFILSTS: unclear, not manpage documented
+
+\item DPM\_ACCESSR: checks the existence  or  the  accessibility  of  the  file
+       replica  according to the dpm. The name server entry for the replica is
+       taken into account and that of the associated pool  and,  if  relevant,
+       the  status  of  an ongoing put request.  The physical file name pfn is
+       checked according to the bit pattern in amode
+       
+\end{itemize}
+
+NOTES:
+\begin{itemize}
+ \item chksum calculation/mgmt is incomplete, in the best cases it's inflexible
+ \item NOTE: the PUT polling mechanism is among the main responsibles for the latency of writes into DPM
+ \item NOTE: many of these requests have been exposed through the SRM layer. It's unclear what influenced what. We should feel free to be non-SRMish
+ \item The DPM daemon uses rfio as generic subsystem for inter-cluster communication and data sharing
+\end{itemize}
+
+
+
+\subsection{RFIO historical primitives}
+ 
+ These are used in the adapter, mainly for GridFTP tunnelling purposes:\\
+ 
+\begin{itemize}
+\item rfio\_lseek
+\item rfio\_parse
+\item rfio\_open
+\item rfio\_close
+\item rfio\_write
+\item rfio\_read
+\item rfio\_flush
+\item rfio\_stat64
+\end{itemize}
+
+ 
+ These are used in the DPM daemon, mainly for metadata and disk stats:\\
+ 
+\begin{itemize}
+\item rfio\_errno
+\item rfio\_serror
+\item rfio\_stat
+\item rfio\_mkdir
+\item rfio\_chown
+\item rfio\_stat64
+\item rfio\_allowed
+\item rfio\_statfs64
+\item rfio\_rcp (used to replicate files... maybe we don't need this)
+\end{itemize}
+
+ 
+\section{Command sets of DOME}
+Goals:
+
+\begin{itemize}
+\item keep the system architecture, databases, format of the physical file names
+\item coherent support for multiple types of checksums
+\item substitute dpmd, libshift and rfio, in favor of HTTP and REST
+\item simplify the semantics of the commands with respect to the SRM-ish one
+\end{itemize}
+
+
+Each command is encoded as a RESTful request, where only the command name is URL-encoded, and every other dpm-specific parameter is encoded in a JSON snippet supplied as BODY of the request.
+
+A legitimate response can be a 202-Accepted with or without a body field that gives a token to be used to retry.
+
+Each client request is implemented on a simplified client API based on davix.
+Each command is ALSO implemented on a command line tool that has the same name, the same parameters and prints the output in a pretty and readable way\\
+
+\subsection{Common header fields}
+
+
+\subsubsection{remoteclientdn}
+The DN of the original client that submitted the request. Typically, a Grid user with X509 credentials.\\
+
+\subsubsection{remoteclientaddr}
+The IP address of the original client that submitted the request.
+
+
+\subsection{Head node operation}
+
+\subsubsection{dome\_put}
+initiates a replica upload. The client is given a location where to write the replica (redirection)
+
+Command:
+\lstinline"PUT /dome/<logical file path>"\\
+Params:
+\begin{itemize}
+ \item lfn: logical file name of the entry
+ \item additionalreplica: true|yes|1   specify to upload one more replica to an lfn that already has
+ \item pool: suggested pool where to write (optional)
+ \item host: suggested host where to write to particular filesys (optional)
+ \item fs: filesystem prefix where to write the new file (optional). If specified, then host becomes mandatory. DOME will compute the remaining part of the full physical filename.
+\end{itemize}
+
+
+
+Returns:
+\begin{itemize}
+ \item 200 if OK. Other HTTP codes for the corresponding errors.
+ \item Pool: chosen pool
+ \item Host: chosen host:port
+ \item Pfn: physical filename to be used
+\end{itemize}
+
+\subsubsection{dome\_putdone}
+notifies that the upload of a replica finished successfully
+
+Command:
+\lstinline"POST /dome/<logical file path>"\\
+Request header:\\
+\lstinline"cmd=dome\_putdone"\\
+
+Params:
+\begin{itemize}
+ \item Pfn: Physical filename (doublecheck if it's the case not to use the vetust rfio syntax)
+ \item Size: size of the file
+ \item ChecksumType: Type of checksum (optional)
+ \item Checksum: Checksum value (optional)
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 200 if OK. Other HTTP codes for the corresponding errors.
+\end{itemize}
+
+\subsubsection{dome\_getspaceinfo}
+Returns total and free space information for all the pools and filesystems at once (the list is supposed to be in memory all the time)
+
+Command:
+\lstinline"GET /dome/"\\
+Request header:\\
+\lstinline"cmd=dome\_getspaceinfo"\\
+Params:
+\begin{itemize}
+ \item 
+\end{itemize}
+
+Returned information:
+\begin{itemize}
+ \item all the pools
+ \item \textbf{poolstatus}: the status of the pool. 0 means active.
+ \item \textbf{physicalsize}: the total space physically available for this pool
+ \item \textbf{freespace}: the free space
+ 
+ 
+ \item all the server and mountpoints that this pool contains
+ \subitem for each server:mountpoint, the total space, and the free space, and the status of the mountpoint (0 means active)
+\end{itemize}
+
+JSON example:\\
+\begin{lstlisting}
+{
+    "fsinfo": {
+        "fab-dpm-dev0.cern.ch": {
+            "\/testfsdata": {
+                "poolname": "fabpool",
+                "fsstatus": "0",
+                "freespace": "0",
+                "physicalsize": "0"
+            },
+            "\/yukyuk": {
+                "poolname": "fabpool",
+                "fsstatus": "0",
+                "freespace": "0",
+                "physicalsize": "0"
+            }
+        },
+        "pcitsdcfab.cern.ch": {
+            "\/tmp": {
+                "poolname": "fabpool",
+                "fsstatus": "0",
+                "freespace": "194393481216",
+                "physicalsize": "228677218304"
+            }
+        }
+    },
+    "poolinfo": {
+        "fabpool": {
+            "poolstatus": "0",
+            "freespace": "194393481216",
+            "physicalsize": "228677218304",
+            "fsinfo": {
+                "fab-dpm-dev0.cern.ch": {
+                    "\/testfsdata": {
+                        "fsstatus": "0",
+                        "freespace": "0",
+                        "physicalsize": "0"
+                    },
+                    "\/yukyuk": {
+                        "fsstatus": "0",
+                        "freespace": "0",
+                        "physicalsize": "0"
+                    }
+                },
+                "pcitsdcfab.cern.ch": {
+                    "\/tmp": {
+                        "fsstatus": "0",
+                        "freespace": "194393481216",
+                        "physicalsize": "228677218304"
+                    }
+                }
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\subsubsection{dome\_getquotatoken}
+Gets a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+If the path has an appended "*", the output will contain all the quota tokens that belong to the given directory subtree.
+It also returns the space that is still available for each of the quota tokens listed.
+
+Command:\\
+\lstinline"GET /dome/path[*]"\\
+Request header:\\
+\lstinline"cmd=dome\_getquotatoken"\\
+Params:\\
+\begin{itemize}
+ \item
+\end{itemize}
+
+Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
+\begin{itemize}
+ \item a sequence of :
+ \subitem Path: the logical path a quota token is referring to
+ \subitem NBytes: Value set for it
+ \subitem NBytes: Used space in that path
+\end{itemize}
+
+\subsubsection{dome\_setquotatoken}
+Sets or create a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+
+Command:
+\lstinline"POST /dome/path"\\
+Request header:\\
+\lstinline"cmd=dome\_getquotatoken"\\
+Params:
+\begin{itemize}
+ \item NBytes: Value set for it
+\end{itemize}
+
+Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota being set exceeds the size of the directory subtree it refers to, DOME will set the quota anyway, and give a warning in the body of the response. The result will be that noone will be able to write in that subtree until a sufficient number of files is removed.\\
+
+
+\subsubsection{dome\_delquotatoken}
+Deletes a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+
+Command:
+\lstinline"POST /dome/path"\\
+Request header:\\
+\lstinline"cmd=dome\_delquotatoken"\\
+Params:\\
+
+Returns:
+\begin{itemize}
+ \item 200 if OK. Other HTTP codes for the corresponding errors.
+\end{itemize}
+
+
+
+
+\subsubsection{dome\_getdirspaces}
+Computes used/free space for a path. The path must be an existing directory.
+
+Command:
+\lstinline"GET /dome/path"\\
+Request header:\\
+\lstinline"cmd=dome\_getdirspaces"\\
+Params:\\
+
+Returns:
+\begin{itemize}
+ \item 200 if OK. Other HTTP codes for the corresponding errors.
+\end{itemize}
+
+
+
+
+
+\subsubsection{dome\_chksum}
+ Checks, calculates or recalculates the checksum of files/replicas.
+ 
+
+Command:
+\lstinline"GET /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_chksum"\\
+Params:
+\begin{itemize}
+ \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
+ \item Pfn: Physical filename as it appears in the db (optional)
+ \item ForceRecalc: true|false|yes|no|0|1 (optional)
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item Checksum
+ \item PfnChecksum (optional for head node, mandatory for disk servers)
+\end{itemize}
+
+\textbf{Behavior with the ForceRecalc flag unset}\\
+
+If the \lstinline"ForceRecalc" flag is \textbf{not} set, then DOME will check
+the namespace for an already stored checksum of type X. If it's found in the namespace then it's returned in the body with a return code 200 'Ok'.\\
+
+If a pfn is provided, then DOME will return the private checksum of that replica \textbf{and the one of the lfn}. A client will be able to compare them.\\
+ 
+If the requested checksum is not found, then DOME will:\\
+\begin{itemize}
+ \item if checksum of type X is already being calculated for the given resource or one of its replicas, return 202 'pending'. 
+ \item if checksum of type X is not being calculated for the given resource or one of its replicas, enqueue the request for calculating it asynchronously, and return 202 'pending'
+\end{itemize}
+ 
+ 
+\textbf{Behavior with the ForceRecalc flag set}\\
+
+If the \lstinline"ForceRecalc" flag is set, then DOME will unconditionally recalculate one checksum, using a random replica or the one that is specified in the Pfn parameter.
+If a Pfn is not specified, then the result of the calculation will be set into the metadata associated to the lfn.\\
+A client sending this request with the  \lstinline"ForceRecalc" flag \textbf{set}, and getting a 202 'pending' response will have to retry the request with the \lstinline"ForceRecalc" flag \textbf{unset} in order to get the result.\\
+When the calculation task finishes, the database is 
+
+\subsubsection{dome\_chksumstatus}
+A disk node that has calculated a checksum (or failed) will invoke this function to store it and notify the head node that it has finished.
+This is also used as a sort of heartbeat to notify the head node about checksum calculations that are pending or running.
+
+Command:
+\lstinline"POST /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_chksumdone"\\
+Params:
+\begin{itemize}
+ \item ChecksumType: Kind of checksum that was requested (e.g. adler32, MD5, etc...)
+ \item ForceRecalc: tells if the original request was for a forced recalculation
+ \item Checksum: value of the computed checksum (optional if still being calculated)
+ \item Pfn: Physical filename that was used to calculate it
+ \item Status: Pending|Done|Aborted
+ \item Reason: Free string describing errors or similar (for logging)
+\end{itemize}
+
+Returns: 200, unconditionally
+No response body.
+
+\subsubsection{dome\_ispullable}
+Tells whether a file can be pulled from somewhere else, through an appropriate callout in the disk server
+
+Command:
+\lstinline"GET /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_ispullable"\\
+Params:
+\begin{itemize}
+ \item Params: Free string that can be passed to the callout that verifies the existence of the file
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item IsOffline: true|false|yes|no|0|1
+ \item Info: app-dependent free string that may be used to notify (or log) location information about the file (optional)
+\end{itemize}
+
+
+
+\subsubsection{dome\_get}
+Returns a pfn that can be used to read a file, usual stuff.\\
+
+If the CANPULL flag is set, the file puller callout may be invoked if the file is absent AND is not being already pulled.
+The result may be 'pending' if the file is being pulled.
+
+Command:
+\lstinline"GET /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_get"\\
+Params:
+\begin{itemize}
+ \item Canpull: true|false|yes|no|0|nonzero
+\end{itemize}
+
+Returns:
+Code: 200 or pending
+\begin{itemize}
+ \item Host: server name
+ \item Pfn: physical filename
+\end{itemize}
+
+\subsubsection{dome\_pulldone}
+Notifies that a file pull has finished. Until that moment it can be invoked to send a sort of progress report or heartbeat.
+This notification is usually sent by a disk server
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_pulldone"\\
+Params:
+\begin{itemize}
+ \item Host: server name
+ \item Pfn: physical filename
+ \item Lfn: Logical filename
+ \item Status: Pending|Done|Aborted
+ \item Reason: Free string describing errors or similar (for logging)
+\end{itemize}
+
+Returns:
+Code: 200 always
+No body is required
+
+\subsubsection{dome\_statpool}
+Gets total and free space information for one pool
+
+\lstinline"GET /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_statpool"\\
+Params:
+\begin{itemize}
+ \item \textbf{poolname}: pool name to stat
+\end{itemize}
+
+Returned information:
+\begin{itemize}
+ \item \textbf{poolstatus}: the status of the pool. 0 means active.
+ \item \textbf{physicalsize}: the total space physically available for this pool
+ \item \textbf{freespace}: the free space
+ 
+ 
+ \item all the server and mountpoints that this pool contains
+ \subitem for each server:mountpoint, the total space, and the free space, and the status of the mountpoint (0 means active)
+\end{itemize}
+
+JSON example:\\
+\begin{lstlisting}
+{
+    "poolinfo": {
+        "fabpool": {
+            "poolstatus": "0",
+            "freespace": "194394103808",
+            "physicalsize": "228677218304",
+            "fsinfo": {
+                "fab-dpm-dev0.cern.ch": {
+                    "\/testfsdata": {
+                        "fsstatus": "0",
+                        "freespace": "0",
+                        "physicalsize": "0"
+                    },
+                    "\/yukyuk": {
+                        "fsstatus": "0",
+                        "freespace": "0",
+                        "physicalsize": "0"
+                    }
+                },
+                "pcitsdcfab.cern.ch": {
+                    "\/tmp": {
+                        "fsstatus": "0",
+                        "freespace": "194394103808",
+                        "physicalsize": "228677218304"
+                    }
+                }
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Disk node operation}
+The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not
+given by WebDAV/HTTP, and to control the checksum calculations.\\
+The invokation of these primitives must be properly authenticated through URL tokens.\\
+
+\subsubsection{dome\_dochksum}
+ Immediately start an external process that calculates the checksum and returns it (or error).
+ Upon return (or error), the the disk node invokes dome\_checksumdone in the head node with the result.
+ 
+ The DOME disk node is responsible for keeping the head node
+ informed of the checksums being calculated at regular intervals,
+ through te dome\_checksumdone command.
+
+ Command:
+\lstinline"GET /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_dochksum"\\
+Params:
+\begin{itemize}
+ \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
+ \item ForceRecalc: tells if the original request was for a forced recalculation
+ \item Pfn: Physical filename (optional)
+\end{itemize}
+
+Returns: 200 or various errors if the calculation process cannot be started.
+
+
+\subsubsection{dome\_pull}
+ Invokes the file puller callout. At the end of the pull, the dome\_pulldone is invoked towards the head node.
+ The DOME disk node is responsible for keeping the head node
+ informed of the file pulls being performed at regular intervals,
+ through te dome\_pulldone command.\\
+ 
+ 
+ 
+Command:
+\lstinline"GET /dome/pathfile"\\
+Request header:\\
+\lstinline"cmd=dome\_pull"\\
+Params:
+\begin{itemize}
+ \item Pfn: Physical filename
+ \item Info: app-dependent free string that may be used to notify (or log) things
+\end{itemize}
+
+Returns: 200 or various errors if the pull process cannot be started.
+
+\subsubsection{dome\_statfs}
+
+Gets total and free space information for one filesystem in the local disks\\
+Command:
+\lstinline"GET /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_statfs"\\
+Params:
+\begin{itemize}
+ \item Fs: path prefix to statfs(). The prefix can be restricted by the config option statfs.restrictpfx[]
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 
+\end{itemize}
+ 
+ 
+ 
+ 
+ 
+\chapter{Configuration}
+Here we list all the directives and parameters of DOME for both disk and head modalities. This chapter will become the full configuration reference.\\
+
+\section{Command-line parameters}
+
+Coming soon\\
+
+\section{Configuration file: Structure and location}
+The path and filename of the main configuration file is specified as a command-line parameter in the command that starts DOME. A common
+choice for the configuration file is::\\
+
+\lstinline"/etc/dome.conf"\\
+
+The main configuration file may contain an INCLUDE directive, in order to allow a setup that contains multiple partial configuration files into a directory like:\\
+
+\lstinline"/etc/dome.conf.d/"\\
+
+At the time of writing this document, the low complexity of the configuration file does not necessarily impose such a structure.
+
+\section{Configuration file: Directives and parameters}
+The parameters are subdivided nito three sets, respectively global parameters, parameters that are honoured only by a head node, parameters that are recognized only by a disk server.
+
+
+
+\subsection{Configuration file: Common directives for head nodes and disk nodes}
+
+\subsubsection{INCLUDE}
+Interpret as configuration files all the files that are contained in the given directory.
+Only absolute paths are accepted.\\
+
+Syntax:\\
+
+\lstinline"INCLUDE: <path>"\\
+
+\lstinline"<path>" is a directory containing DOME configuration files.\\
+
+The configuration files are loaded and processed by the Ugr configuration subsystem
+in ascending alphabetic order. It's a good idea to create file names that start with a number,
+representing their loading priority.\\
+
+Example:\\
+Load all the configuration files that are contained in \lstinline"/etc/ugr.conf.d/"\\
+\lstinline"INCLUDE: /etc/dpm.conf.d/"
+
+\subsubsection{glb.debug}
+
+ Sets the DOME log verbosity.\\
+ 
+ Syntax:\\
+
+\lstinline"glb.debug: <level>"\\
+
+\lstinline"<level>" is the desired debug level, from 0 to 10.\\ \\
+ NOTE: DOME internally uses \lstinline"syslog" to log its activity, in the \lstinline"user" class. We refer to the \lstinline"syslog" documentation for the platform in use in order to configure its behavior, e.g. to output the log to a logfile.\\
+ 
+ NOTE: a debug level higher than 1 severely affects the performance of DOME. Never set it to a value higher than 1 in a production server.\\
+
+\subsubsection{glb.debug.components[]}
+
+ Allows selecting the internal components that produce log lines. By default all the internal components produce log activity. The presence of this directive in the configuration file allows only the named components to produce log lines.\\
+
+ Every \lstinline"glb.debug.components[]" line that appears in the configuration is considered as an individual component to enable log production for.
+
+ Syntax:\\
+
+\lstinline"glb.debug.components[]: log_component"\\
+
+ Example:\\
+\lstinline"glb.debug.components[]: queue.CKSUM"\\
+\lstinline"glb.debug.components[]: queue.PULLER"\\
+
+
+\subsubsection{glb.fcgi.listenport}
+If Dome is run in external server mode it must specify a TCP port number to bind to.\\
+Please note that a fastcgi server like Dome, when run as external server must be run using some custom init script. Please refer to the Fastcgi documentation for more information on these details.\\
+If the given port number is 0, or the directive is asent then Dome assumes that the lifetime of this daemon will be managed by Apache.\\
+
+Default value: 0\\
+
+\subsubsection{glb.db.host}
+The host where the MySQL service is available for the dpm\_db database.\\
+
+\subsubsection{glb.db.user}
+The username to be used to connect to MySQL.\\
+
+\subsubsection{glb.db.password}
+The password to be used to connect to MySQL.\\
+
+\subsubsection{glb.db.port}
+The port number of the MySQL service.\\
+Default value: 0\\
+
+\subsubsection{glb.db.poolsz}
+The size of the internal pool of MySQL clients.\\
+Default value: 10\\
+
+\subsubsection{glb.restclient.conn\_timeout}
+When contacting other servers with http/rest, use the provided timeout value.
+\subsubsection{glb.restclient.ops\_timeout}
+When contacting other servers with http/rest, use the provided timeout value.
+\subsubsection{cli\_type}
+Type of authentication to be used when contacting other servers
+\subsubsection{glb.restclient.cli\_certificate}
+When contacting other servers with http/rest, use the provided identity/certificate. Normally the host certificate or a service certificate.
+\subsubsection{glb.restclient.cli\_private\_key}
+When contacting other servers with http/rest, use the provided identity/certificate. Normally the host certificate or a service certificate.
+
+\subsubsection{glb.restclient.auth\_login}
+Set the username to use in the case of endpoints that support user/pasword login.\\
+Syntax:\\
+\lstinline"glb.restclient.auth_login: <username>"\\
+Default value: none\\
+\subsubsection{glb.restclient.auth\_passwd}
+Set the password to use in the case of endpoints that support user/password login.\\
+Syntax:\\
+\lstinline"glb.restclient.auth_passwd: <password>"\\
+Default value: none\\
+
+\subsubsection{glb.reloadfsquotas}
+Dome will automatically refresh its knowledge of quota tokens and file systems. This parameter is the number of seconds between two consecutive refreshes.\\
+Default value: 60\\
+
+\subsubsection{glb.role}
+Configures this instance as a head node or a disk node, respectively.
+Syntax:\\
+\lstinline"glb.role: head|disk"\\
+Default value: head\\
+
+\subsubsection{glb.auth.authorizeDN[]}
+Array containing DNs that are authorized to send commands. Commands sent by different senders will not be accepted.\\
+Used in a head node, this list includes all the DNs that are used by disk nodes to communicate with the head node. Among the possibilities, all the disk nodes can use the same certificate, in this case only one entry has to be put here.\\
+Used in a disk node, this list contains the DN that is used by the head node to communicate with the disk server.\\
+
+\subsubsection{glb.put.minfreespacemb}
+Specifies the minimum free space in megabytesbytes for a PUT requests to consider a filesystem for writing into.
+Default: 4194304
+
+\subsubsection{glb.dmlite.configfile}
+ 
+
+The full path to a DMLite configuration file. To configure DMLite, we refer the reader to the DMLite documentation.
+
+ Example:\\
+\lstinline"glb.dmlite.configfile: /etc/dmlite-DOME.conf"\\
+
+
+\subsubsection{glb.dmlite.poolsize}
+
+The number of dmlite instances that are pooled to give internal dmlite services. This number is likely to be in the order of 50-100 in the head node, and the order of 2-10 in the disk servers.
+
+ Example:\\
+\lstinline"glb.dmlite.poolsize: 10"\\
+
+\subsubsection{glb.workers}
+
+The number of worker threads that execute the requests.\\
+Default value: 300\\
+
+\subsection{Specific to head nodes}
+
+\subsubsection{head.chksumstatus.heartbeattimeout}
+Maximum time, in seconds, that an entry about a checksum that is being calculated will stay in memory.\\
+Checksums that have been dispatched and that do not send the heartbeat will be internally treated as failed for unknown reasons.\\
+Default: 60\\
+
+\subsubsection{head.maxchecksums}
+
+Maximum number of checksums that can be run concurrently in this DPM instance. Additional requests will be queued until the condition is met.\\
+
+\subsubsection{head.maxcallouts}
+
+Maximum number of file callouts that can be run concurrently in this DPM instance. Additional requests will be queued until the condition is met.\\
+
+\subsubsection{head.maxchecksumspernode}
+
+Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
+
+\subsubsection{head.maxcalloutspernode}
+
+Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
+
+\subsection{Specific to disk nodes}
+
+\subsubsection{disk.headnode.DOMEurl}
+Url prefix for the DOME service in the headnode\\
+
+Example:\\
+\lstinline"disk.headnode.DOMEurl: https://dpmhead-rc.cern.ch/DOME"\\
+
+\subsubsection{disk.cksummgr.heartbeatperiod}
+Number of seconds between notifications to the head node about the status of the checksum calculations that are being calculated.\\
+Default: 10\\
+
+\subsubsection{disk.statfs.restrictpfx[]}
+Array containing path prefixes. A statfs() request is allowed only if it is for a path prefix that is allowed.\\
+Absence of this option means that all paths are allowed.\\
+
+
+Example:\\
+\lstinline"disk.statfs.restrictpfx[]: /mnt/dpm_mountpoints"\\
+
+\chapter{subsystems and development tasks}
+This section will not be part of the official documentation. It's here for organization purposes.\\
+
+\begin{itemize}
+ \item server
+ \subitem server skeleton
+ \subitem db pools (borrowed from dmlite)
+ \subitem logger (borrowed from dmlite)
+ \subitem config subsystem copied from ugr
+ \subitem one class containing the internal status. Same ticker-alive objects approach like ugr. A singleton approach seems reasonable and will reduce the dev effort.
+ \subsubitem one class describing the status of pools and filesystems, able to gather it through dmlite, refreshing every N seconds
+ \subitem one class describing a request. Is boost::propertytree fine or over-engineered project poison ?
+ \subitem checksum queuer and manager for running chacksums
+  This class will need some unit tests, working locally with no setup\\
+  
+ \subitem file pull queuer, to queue callout requests and manage the running ones
+ This class will need some unit tests, working locally with no setup\\
+ 
+ The tech description of the chksum and filepull queuers is very similar. I am not convinced yet that it can be factorized into one class.
+ \subitem One class that manages a set of spawned commandlines, regularly checks if they are alive and sends the pending notifications to the head node
+ This class will need some unit tests, working locally with no setup\\
+ 
+ \subitem if DOME needs to talk to the db and do queries, it will do it directly, eventually using the same components used by dmlite-mysql
+ \subitem Question: do we still need to keep in the DB the log of all the PUTs ?
+ 
+ \item c++ client class
+ \subitem Maximum simplicity, just a set of calls wrapping requests and responses
+ \subitem Call signature must be synchronous. Result is always the error code.
+ \subitem New eventual purely async calls must be an easy addition if needed one day
+ 
+ \subitem \textit{Used in DOME\_adapter, avoid things that are not dmlite-friendly}
+ \subitem \textit{Used inside dopmrest to communicate between head and disknodes}
+ 
+ \subitem Uses davix to communicate
+ \subitem Investigate on advantage of libs to build/parse json. There are many, I like boost property tree. The advantagte over a 20 lines implementation is not clear to me.
+ 
+ \item DOME\_adapter, which uses the client class
+ \subitem implements the calls that are already there, using the current adapter as reference
+ 
+ \item command line interface, as a set of executables that also constitute a big part of the tests!!
+
+ \item scheduled tests that use the command line to do operations towards one of the testbeds
+ 
+\end{itemize}
+
+
+NOTE: investigate on possibility to add a list primitive that works on the physical namespace. An alternative could be to do it through Apache/webdav without passing for DOME.
+\end{document}          
