@@ -234,11 +234,21 @@ void workerFunc(DomeCore *core, int myidx) {
                      "\r\n"
                      "You sent me a HEAD request. Nice, eh ?\r\n");
 
-      } else if(dreq.verb == "PUT"){ // meaningless placeholder
-        FCGX_FPrintF(request.out,
+      } else if(dreq.verb == "PUT"){ 
+
+          core->dome_put(dreq, request);
+        
+        
+      } else if(dreq.verb == "POST"){ 
+        if ( dreq.domecmd == "dome_putdone" ) {
+          core->dome_putdone(dreq, request);
+        }
+        else {
+          FCGX_FPrintF(request.out,
                      "Content-type: text/html\r\n"
                      "\r\n"
-                     "This is a PUT\r\n");
+                     "You sent me a POST request without a DOME command. Nice, eh ?\r\n");
+        }
       }
 
   } // if authorized
