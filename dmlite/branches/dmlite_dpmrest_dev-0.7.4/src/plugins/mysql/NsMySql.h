@@ -128,7 +128,6 @@ namespace dmlite {
 
   };
 
-
   /// Convenience class that releases a resource on destruction
   class InodeMySqlTrans {
   public:
@@ -152,7 +151,6 @@ namespace dmlite {
     INodeMySql *obj;
 
   };
-
 
 
 };

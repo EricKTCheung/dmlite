@@ -406,13 +406,13 @@ Params:
 Returns:
 \begin{itemize}
  \item 200 if OK. Other HTTP codes for the corresponding errors.
- \item Pool: chosen pool
- \item Host: chosen host:port
- \item Pfn: physical filename to be used
+ \item pool: chosen pool
+ \item host: chosen host:port
+ \item pfn: physical filename to be used
 \end{itemize}
 
 \subsubsection{dome\_putdone}
-notifies that the upload of a replica finished successfully
+notifies that the upload of a replica finished successfully. It also can carry a checksum type/value that may have been calculated during the upload.
 
 Command:
 \lstinline"POST /dome/<logical file path>"\\
@@ -421,10 +421,10 @@ Request header:\\
 
 Params:
 \begin{itemize}
- \item Pfn: Physical filename (doublecheck if it's the case not to use the vetust rfio syntax)
- \item Size: size of the file
- \item ChecksumType: Type of checksum (optional)
- \item Checksum: Checksum value (optional)
+ \item pfn: Physical filename (doublecheck if it's the case not to use the vetust rfio syntax)
+ \item size: size of the file
+ \item checksumtype: Type of checksum (optional)
+ \item checksum: Checksum value (optional)
 \end{itemize}
 
 Returns:

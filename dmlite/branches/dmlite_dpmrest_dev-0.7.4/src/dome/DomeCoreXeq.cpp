@@ -32,11 +32,13 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/param.h>
 
-#include <dmlite/cpp/authn.h>
-#include <dmlite/cpp/dmlite.h>
-#include <dmlite/cpp/catalog.h>
-#include <dmlite/cpp/utils/urls.h>
+#include "cpp/authn.h"
+#include "cpp/dmlite.h"
+#include "cpp/catalog.h"
+#include "cpp/utils/urls.h"
+#include "utils/checksums.h"
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
@@ -111,9 +113,9 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     try {
       catalog->makeDir(p, 0664);
     } catch (DmException e) {
-      // If we can't create the dir then this is a serious error
-      Err(domelogname, "Cannot create path '" << p << "'");
-      throw;
+      // If we can't create the dir then this is a serious error, unless it already exists
+      Err(domelogname, "Cannot create path '" << p << "' err: " << e.code() << "-" << e.what());
+      if (e.code() != EEXIST) throw;
     }
     
     
@@ -256,7 +258,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // Parse the lfn and pick the 4th token, likely the one with the VO name
     std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
     sprintf(suffix, "%ld.%ld", status.getGlobalputcount(), rawtimenow);
-    std::string pfn = "/" + vecurl[3] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
+    std::string pfn = selectedfss[fspos].fs + "/" + vecurl[3] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
     
     Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << pfn << "'");
     
@@ -301,7 +303,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     
     // Create the replica in the catalog
     dmlite::Replica r;
-    r.fileid = lfnstat.stat.st_inode;
+    r.fileid = lfnstat.stat.st_ino;
     r.replicaid = 0;
     r.nbaccesses = 0;
     r.atime = r.ptime = r.ltime = time(0);
@@ -317,16 +319,218 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 501, os);
     }
     
-    // Here we are assuming that some frontend will soon start to write a new replica
-    //  with the name we chose here
+  // Here we are assuming that some frontend will soon start to write a new replica
+  //  with the name we chose here
     
-    // Return the response, 
+  // Return the response, 
     
   
+  std::ostringstream os;
+  boost::property_tree::ptree jresp;
+  jresp.put("pool", selectedfss[fspos].poolname);
+  jresp.put("host", selectedfss[fspos].server);
+  jresp.put("pfn", pfn);
+
+  boost::property_tree::write_json(os, jresp);
+  int rc = DomeReq::SendSimpleResp(request, 200, os);
+
+  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  return rc;
 };
 
 
-int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
+  if(status.role == status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "putdone is only available on head nodes");
+  }
+  
+  DmlitePoolHandler stack(dmpool);
+  INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
+  if (!inodeintf) {
+    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
+    return -1;
+  }
+  
+  // The command takes as input server and pfn, separated
+  // in order to put some distance from rfio concepts, at least in the api
+  std::string server = req.bodyfields.get<std::string>("server", "");
+  std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+  
+  size_t size = req.bodyfields.get<size_t>("size", 0);
+  std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
+  std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
+  
+  // Check for the mandatory arguments
+  if ( !pfn.length() ) {
+    std::ostringstream os;
+    os << "Invalid pfn: '" << pfn << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  if ( !server.length() ) {
+    std::ostringstream os;
+    os << "Invalid server: '" << server << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  if ( size <= 0 ) {
+    std::ostringstream os;
+    os << "Invalid size: " << size << " '" << pfn << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  // Now the optional ones for basic sanity
+  if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
+    std::ostringstream os;
+    os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
+    std::ostringstream os;
+    os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  
+  }
+  
+  // Here unfortunately, for backward compatibility we are forced to
+  // use the rfio syntax.
+  std::string rfn = server + ":" + pfn;
+  
+  
+  dmlite::Replica rep;
+  try {
+    rep = stack->getCatalog()->getReplicaByRFN(rfn);
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  
+  
+  dmlite::ExtendedStat st;
+  try {
+    st = inodeintf->extendedStat(rep.fileid);
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+
+  // Update the replica values, including the checksum
+  rep.ptime = rep.ltime = rep.atime = time(0);
+  rep.status = dmlite::Replica::kAvailable;
+  rep[chktype] = chkval;
+  
+  try {
+    stack->getCatalog()->updateReplica(rep);
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  // If the checksum of the main entry is different, just output a bad warning in the log
+  std::string ck;
+  if ( !st.getchecksum(chktype, ck) && (ck != chkval) ) {
+    Err(domelogname, SSTR("Replica checksum mismatch rfn:'"<< rfn << "' : " << chkval << " fileid: " << rep.fileid << " : " << ck));
+  }
+  
+  
+  
+  // Anyway propagate the checksum to the main stat
+  inodeintf->setChecksum(st.stat.st_ino, chktype, chkval);
+  
+  // Now update the space counters for the parent directories!
+  // Please note that this substitutes the IOPassthrough plugin in the disk's dmlite stack
+  if (st.parent <= 0) {
+      
+    try {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Looking up parent of inode " << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
+      st = inodeintf->extendedStat(st.stat.st_ino);
+      Log(Logger::Lvl4, domelogmask, domelogname, " Ok. Parent of  inode " << st.stat.st_ino << " is " << st.parent);
+    }
+    catch (DmException& e) {
+      Err( domelogname , " Cannot retrieve parent for inode:" << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
+      return -1;
+    }
+      
+  }
+    
+  
+  // Add this filesize to the size of its parent dirs, only the first N levels
+  {
+
+    
+    // Start transaction
+    InodeTrans trans(inodeintf);
+    
+    off_t sz = st.stat.st_size;
+    
+    
+    ino_t hierarchy[128];
+    size_t hierarchysz[128];
+    int idx = 0;
+    while (st.parent) {
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+      
+      try {
+        st = inodeintf->extendedStat(st.parent);
+      }
+      catch (DmException& e) {
+        Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+        return -1;
+      }
+      
+      hierarchy[idx] = st.stat.st_ino;
+      hierarchysz[idx] = st.stat.st_size;
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
+      " is " << st.stat.st_size << " with idx " << idx);
+      
+      idx++;
+      
+      if (idx >= sizeof(hierarchy)) {
+        Err( domelogname , " Too many parent directories for replica " << rfn);
+        return -1;
+      }
+    }
+    
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    if (idx > 0) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("glb.dirspacereportdepth", 6)); i--) {
+        inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
+      }
+    }
+    else {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
+    }
+    
+    
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+  }
+  
+  
+  
+  
+  
+  int rc = DomeReq::SendSimpleResp(request, 200, SSTR("dome_putdone successful."));
+
+  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  return rc;
+};
 
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   int rc = 0;
@@ -486,7 +690,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-    // can I send a response right now?
+    // can I send a response right now? Of course, sir !
     if(lfnchecksum != "" && (pfn == "" || pfnchecksum != "")) {
       boost::property_tree::ptree jresp;
       jresp.put("checksum", lfnchecksum);
