@@ -196,7 +196,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
         continue;
       }
       
-      
+      // No hints matched because there a re no hintss. Add the filesystem if its path is not empty
+      // and matches the put path
+      if ( !host.size() && !fs.size() )
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+          selectedfss.push_back(status.fslist[i]);
+        
     }
     
     
@@ -209,7 +214,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     }
     
     // Remove the filesystems that have less then the minimum free space available
-    for (int i = selectedfss.size()-1; i >= 0; i) {
+    for (int i = selectedfss.size()-1; i >= 0; i--) {
       if (selectedfss[i].freespace / 1024 / 1024 < CFG->GetLong("glb.put.minfreespace_mb", 1024*4)) {// default is 4GB
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
           "' has less than " << CFG->GetLong("glb.put.minfreespace_mb", 1024*4) << "MB free");
@@ -257,8 +262,18 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     
     // Parse the lfn and pick the 4th token, likely the one with the VO name
     std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
-    sprintf(suffix, "%ld.%ld", status.getGlobalputcount(), rawtimenow);
-    std::string pfn = selectedfss[fspos].fs + "/" + vecurl[3] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
+    sprintf(suffix, ".%ld.%ld", status.getGlobalputcount(), rawtimenow);
+    
+    if (vecurl.size() < 5) {
+      std::ostringstream os;
+      os << "Unable to get vo name from the lfn: " << lfn;
+          
+      Err(domelogname, os);
+      return DomeReq::SendSimpleResp(request, 501, os);      
+    }
+    
+    
+    std::string pfn = selectedfss[fspos].fs + "/" + vecurl[4] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
     
     Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << pfn << "'");
     
