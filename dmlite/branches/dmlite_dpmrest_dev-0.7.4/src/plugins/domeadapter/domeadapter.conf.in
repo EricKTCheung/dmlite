@@ -1,0 +1,21 @@
+# Uncomment to enable domeadapter
+# LoadPlugin plugin_domeadapter /usr/lib@LIB_SUFFIX@/dmlite/plugin_domeadapter.so
+
+# head node host
+Host localhost
+
+# Remote DPM/LFC host to connect to
+#NsHost localhost
+
+# Timeout when connection to the NsHost (in seconds)
+#ConnectionTimeout 15
+# Number of retries when connecting to NsHost (in seconds)
+#RetryLimit 3
+# Interval between retries when connecting to NsHost (in seconds)
+#RetryInterval 2
+
+# Token generation
+#TokenPassword change-this
+#TokenId ip
+#TokenLife 1000
+#
