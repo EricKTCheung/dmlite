@@ -794,6 +794,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
 
     // status is done, checksum should not be empty
     if(checksum == "") {
+      Log(Logger::Lvl2, domelogmask, domelogname, "Received 'done' checksum status without a checksum");
       return DomeReq::SendSimpleResp(request, 400, "checksum cannot be empty when status is done.");
     }
 

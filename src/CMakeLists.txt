@@ -4,10 +4,14 @@ add_subdirectory (c)
 add_subdirectory (core)
 add_subdirectory (utils)
 
-
 add_library(dmlite SHARED ${DMLITE_CAPI_SOURCES}
                           ${DMLITE_CORE_SOURCES}
                           ${DMLITE_UTILS_SOURCES})
+
+if(DAVIX_PKG_FOUND)
+  include_directories(${DAVIX_PKG_INCLUDE_DIRS})
+  target_link_libraries(dmlite ${DAVIX_PKG_LIBRARIES})
+endif()
 
                           
 set_target_properties(dmlite PROPERTIES COMPILE_FLAGS -rdynamic )

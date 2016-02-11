@@ -30,7 +30,7 @@
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>
-#include "DomeDavixPool.h"
+#include "utils/DavixPool.h"
 #include <values.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -40,18 +40,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-
-
-
-
-
-
-
-
-
-
-
-
+using namespace dmlite;
 
 
 DomeStatus::DomeStatus() {
