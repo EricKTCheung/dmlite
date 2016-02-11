@@ -275,7 +275,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     
     std::string pfn = selectedfss[fspos].fs + "/" + vecurl[4] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
     
-    Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << pfn << "'");
+    Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << selectedfss[fspos].server << ":" << pfn << "'");
     
     // NOTE: differently from the historical dpmd, here we do not create the remote path/file
     // of the replica in the disk. We jsut make sure that the LFN exists
