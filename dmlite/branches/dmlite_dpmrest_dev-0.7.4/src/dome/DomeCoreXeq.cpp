@@ -326,7 +326,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     r.type = dmlite::Replica::kPermanent;
     r.rfn = selectedfss[fspos].server + ":" + pfn;
     r["pool"] = selectedfss[fspos].poolname;
-    r["fs"] = selectedfss[fspos].fs;
+    r["filesystem"] = selectedfss[fspos].fs;
     try {
       stack->getCatalog()->addReplica(r);
     } catch (DmException e) {
