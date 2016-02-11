@@ -324,6 +324,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     r.atime = r.ptime = r.ltime = time(0);
     r.status = dmlite::Replica::kBeingPopulated;
     r.type = dmlite::Replica::kPermanent;
+    r.rfn = pfn;
     try {
       stack->getCatalog()->addReplica(r);
     } catch (DmException e) {
