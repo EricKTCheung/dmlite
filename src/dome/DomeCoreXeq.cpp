@@ -324,12 +324,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     r.atime = r.ptime = r.ltime = time(0);
     r.status = dmlite::Replica::kBeingPopulated;
     r.type = dmlite::Replica::kPermanent;
-    r.rfn = pfn;
+    r.rfn = selectedfss[fspos].server + ":" + pfn;
     try {
       stack->getCatalog()->addReplica(r);
     } catch (DmException e) {
       std::ostringstream os;
-      os << "Cannot create replica '" << pfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
       
       Err(domelogname, os);
       return DomeReq::SendSimpleResp(request, 501, os);
