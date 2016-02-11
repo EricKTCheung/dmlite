@@ -325,6 +325,8 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     r.status = dmlite::Replica::kBeingPopulated;
     r.type = dmlite::Replica::kPermanent;
     r.rfn = selectedfss[fspos].server + ":" + pfn;
+    r["pool"] = selectedfss[fspos].poolname;
+    r["fs"] = selectedfss[fspos].fs;
     try {
       stack->getCatalog()->addReplica(r);
     } catch (DmException e) {
@@ -463,6 +465,7 @@ int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
   
   // Anyway propagate the checksum to the main stat
   inodeintf->setChecksum(st.stat.st_ino, chktype, chkval);
+  inodeintf->setSize(st.stat.st_ino, size);
   
   // Now update the space counters for the parent directories!
   // Please note that this substitutes the IOPassthrough plugin in the disk's dmlite stack
