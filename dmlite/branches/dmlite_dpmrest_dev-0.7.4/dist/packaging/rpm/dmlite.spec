@@ -194,6 +194,14 @@ This package provides the adapter plug-in for dmlite. This plug-in provides both
 a name-space and pool management implementation which fallback to forwarding
 calls to the old LcgDM DPNS and DPM daemons.
 
+%package plugins-domeadapter
+Summary:      Adapter plugin for dmlite
+Group:        Applications/Internet
+Requires:     %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description plugins-domeadapter
+This package provides the next-generation adapter plug-in for dmlite, which uses
+dome and does not depend on the old LcgDM DPNS and DPM daemons.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -319,6 +327,12 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/plugin_adapter.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
+
+%files plugins-domeadapter
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_domeadapter.so
+%doc LICENSE README RELEASE-NOTES
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/domeadapter.conf
 
 %changelog
 * Wed Jul 08 2015  Fabrizio Furano <furano@cern.ch> - 0.7.3-1

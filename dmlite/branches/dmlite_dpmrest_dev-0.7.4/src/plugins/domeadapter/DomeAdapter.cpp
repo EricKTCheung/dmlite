@@ -2,9 +2,11 @@
 /// @brief  Dome adapter plugin entry point.
 /// @author Georgios Bitzes <georgios.bitzes@cern.ch>
 
+#include <iostream>
+
 #include "DomeAdapter.h"
 #include "DomeAdapterCatalog.h"
-#include <iostream>
+#include "DomeAdapterIO.h"
 
 using namespace dmlite;
 
@@ -47,10 +49,18 @@ static void registerPluginDomeAdapter(PluginManager* pm) throw(DmException)
   // pm->registerINodeFactory(nsFactory);
 }
 
-
+static void registerIOPlugin(PluginManager* pm) throw (DmException)
+{
+  pm->registerIODriverFactory(new DomeIOFactory());
+}
 
 
 PluginIdCard plugin_domeadapter = {
   PLUGIN_ID_HEADER,
   registerPluginDomeAdapter
+};
+
+PluginIdCard plugin_domeadapter_io = {
+  PLUGIN_ID_HEADER,
+  registerIOPlugin
 };
