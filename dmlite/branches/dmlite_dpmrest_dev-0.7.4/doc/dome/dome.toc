@@ -23,7 +23,7 @@
 \contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{19}
 \contentsline {subsubsection}{\nonumberline dome\_setquotatoken}{20}
 \contentsline {subsubsection}{\nonumberline dome\_delquotatoken}{20}
-\contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{20}
+\contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{21}
 \contentsline {subsubsection}{\nonumberline dome\_chksum}{21}
 \contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{22}
 \contentsline {subsubsection}{\nonumberline dome\_ispullable}{23}
@@ -33,7 +33,7 @@
 \contentsline {subsection}{\numberline {1.4.3}Disk node operation}{25}
 \contentsline {subsubsection}{\nonumberline dome\_dochksum}{25}
 \contentsline {subsubsection}{\nonumberline dome\_pull}{26}
-\contentsline {subsubsection}{\nonumberline dome\_statfs}{26}
+\contentsline {subsubsection}{\nonumberline dome\_statpfn}{26}
 \contentsline {chapter}{\numberline {2}Configuration}{28}
 \contentsline {section}{\numberline {2.1}Command-line parameters}{28}
 \contentsline {section}{\numberline {2.2}Configuration file: Structure and location}{28}

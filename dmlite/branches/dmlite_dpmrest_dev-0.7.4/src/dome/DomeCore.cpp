@@ -241,13 +241,18 @@ void workerFunc(DomeCore *core, int myidx) {
         
       } else if(dreq.verb == "POST"){ 
         if ( dreq.domecmd == "dome_putdone" ) {
-          core->dome_putdone(dreq, request);
+          
+          if(core->status.role == core->status.roleHead)
+            core->dome_putdone_head(dreq, request);
+          else
+            core->dome_putdone_disk(dreq, request);
+          
         }
         else {
           FCGX_FPrintF(request.out,
                      "Content-type: text/html\r\n"
                      "\r\n"
-                     "You sent me a POST request without a DOME command. Nice, eh ?\r\n");
+                     "A POST request without a DOME command. Nice joke, eh ?\r\n");
         }
       }
 

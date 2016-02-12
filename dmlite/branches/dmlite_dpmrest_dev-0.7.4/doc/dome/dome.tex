@@ -412,7 +412,14 @@ Returns:
 \end{itemize}
 
 \subsubsection{dome\_putdone}
-notifies that the upload of a replica finished successfully. It also can carry a checksum type/value that may have been calculated during the upload.
+Notifies that the upload of a replica finished successfully. It also can carry a checksum type/value that may have been calculated during the upload.\\
+
+\textbf{Workflow:}\\
+The notification from the data access frontend (e.g. GridFTP) always goes to the DOME instance that is running in the \textbf{disk node}. This means that
+generally the notification will be sent to \textit{localhost}.\\
+The DOME in the disk node doublechecks the existence of the file, the correctness of the path and the correctness of the file size that
+the frontend presumes.\\
+If the local checks are passed, the request is forwarded automatically to the instance of DOME running in the head node.
 
 Command:
 \lstinline"POST /dome/<logical file path>"\\
@@ -814,16 +821,16 @@ Params:
 
 Returns: 200 or various errors if the pull process cannot be started.
 
-\subsubsection{dome\_statfs}
+\subsubsection{dome\_statpfn}
 
-Gets total and free space information for one filesystem in the local disks\\
+Retrieves the stat information on a physical file\\
 Command:
 \lstinline"GET /dome"\\
 Request header:\\
-\lstinline"cmd=dome\_statfs"\\
+\lstinline"cmd=dome\_statpfn"\\
 Params:
 \begin{itemize}
- \item Fs: path prefix to statfs(). The prefix can be restricted by the config option statfs.restrictpfx[]
+ \item pfn: path to the physical file. The prefix must match an existing filesystem. The prefix can be restricted by the config option statfs.restrictpfx[]
 \end{itemize}
 
 Returns:
@@ -942,16 +949,6 @@ When contacting other servers with http/rest, use the provided identity/certific
 \subsubsection{glb.restclient.cli\_private\_key}
 When contacting other servers with http/rest, use the provided identity/certificate. Normally the host certificate or a service certificate.
 
-\subsubsection{glb.restclient.auth\_login}
-Set the username to use in the case of endpoints that support user/pasword login.\\
-Syntax:\\
-\lstinline"glb.restclient.auth_login: <username>"\\
-Default value: none\\
-\subsubsection{glb.restclient.auth\_passwd}
-Set the password to use in the case of endpoints that support user/password login.\\
-Syntax:\\
-\lstinline"glb.restclient.auth_passwd: <password>"\\
-Default value: none\\
 
 \subsubsection{glb.reloadfsquotas}
 Dome will automatically refresh its knowledge of quota tokens and file systems. This parameter is the number of seconds between two consecutive refreshes.\\
@@ -1018,7 +1015,7 @@ Maximum number of checksums that can be assigned to a single disk node. Addition
 
 \subsection{Specific to disk nodes}
 
-\subsubsection{disk.headnode.DOMEurl}
+\subsubsection{disk.headnode.domeurl}
 Url prefix for the DOME service in the headnode\\
 
 Example:\\

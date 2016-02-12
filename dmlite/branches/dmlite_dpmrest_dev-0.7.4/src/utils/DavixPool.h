@@ -66,6 +66,18 @@ extern Logger::component davixpoollogname;
       parms->setOperationTimeout(&spec_timeout);
       Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "Operation timeout is set to : " << timeout);
     
+      Davix::X509Credential cred;
+      Davix::DavixError* tmp_err = NULL;
+      cred.loadFromFilePEM(CFG->GetString("glb.restclient.cli_certificate", (char *)""), CFG->GetString("glb.restclient.cli_private_key", (char *)""), "", &tmp_err);
+      if( tmp_err ){
+        std::ostringstream os;
+        os << "Cannot load cert/privkey" << CFG->GetString("glb.restclient.cli_certificate", (char *)"") <<
+          CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
+        
+        throw DmException(EPERM, os.str());
+      }
+  
+      parms->setClientCertX509(cred);
     }
     
     ~DavixStuff() {
@@ -120,5 +132,36 @@ extern Logger::component davixpoollogname;
     
   };
   
+
+
+
+
+
+
+/// Convenience class that releases a Davix instance on destruction
+class DavixScopedGetter {
+public:
+  DavixScopedGetter()
+  {
+    obj = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+  }
+  
+  ~DavixScopedGetter() {
+    DavixCtxPoolHolder::getDavixCtxPool().release(obj);
+    
+  }
+  
+  DavixStuff *get() {
+    return obj;
+  }
+  
+private:
+  DavixStuff *obj;
+  
+};
+
+
 }
+
+
 #endif
