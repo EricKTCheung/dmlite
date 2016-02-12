@@ -1,11 +1,12 @@
 cmake_minimum_required (VERSION 2.6)
 
 add_library (domeadapter MODULE DomeAdapter.cpp
-								DomeAdapterCatalog.cpp)
+								DomeAdapterCatalog.cpp
+                DomeAdapterIO.cpp)
 
-include_directories ( ${DPM_INCLUDE_DIR}/dpm ${DAVIX_PKG_INCLUDE_DIRS})
+include_directories (${DAVIX_PKG_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 
-target_link_libraries (domeadapter ${DPM_LIBRARIES} ${DAVIX_PKG_LIBRARIES} pthread dmlite )
+target_link_libraries (domeadapter ${Boost_LIBRARIES} ${DAVIX_PKG_LIBRARIES} pthread dmlite )
 set_target_properties (domeadapter PROPERTIES PREFIX "plugin_")
 
 install (TARGETS       domeadapter
