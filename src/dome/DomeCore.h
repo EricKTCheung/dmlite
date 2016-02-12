@@ -73,7 +73,8 @@ public:
 
   /// Requests calls. These parse the request, do actions and send the response, using the original fastcgi func
   int dome_put(DomeReq &req, FCGX_Request &request);
-  int dome_putdone(DomeReq &req, FCGX_Request &request);
+  int dome_putdone_head(DomeReq &req, FCGX_Request &request);
+  int dome_putdone_disk(DomeReq &req, FCGX_Request &request);
   int dome_getspaceinfo(DomeReq &req, FCGX_Request &request);
   int dome_getquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_setquotatoken(DomeReq &req, FCGX_Request &request);
@@ -95,13 +96,14 @@ public:
 
   int dome_pull(DomeReq &req, FCGX_Request &request);
   int dome_dochksum(DomeReq &req, FCGX_Request &request);
-  int dome_statfs(DomeReq &req, FCGX_Request &request);
+  int dome_statpfn(DomeReq &req, FCGX_Request &request);
 
   int dome_getdirspaces(DomeReq &req, FCGX_Request &request);
 
   
   // Utility
   bool LfnMatchesPool(std::string lfn, std::string pool);
+
   
 private:
   bool initdone, terminationrequested;

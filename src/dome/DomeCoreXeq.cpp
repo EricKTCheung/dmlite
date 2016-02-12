@@ -39,6 +39,7 @@
 #include "cpp/catalog.h"
 #include "cpp/utils/urls.h"
 #include "utils/checksums.h"
+#include "utils/DavixPool.h"
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
@@ -356,16 +357,138 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
   return rc;
 };
 
-
-int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
-  if(status.role == status.roleDisk) {
-    return DomeReq::SendSimpleResp(request, 500, "putdone is only available on head nodes");
+int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
+  
+  
+  // The command takes as input server and pfn, separated
+  // in order to put some distance from rfio concepts, at least in the api
+  std::string server = req.bodyfields.get<std::string>("server", "");
+  std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+  
+  size_t size = req.bodyfields.get<size_t>("size", 0);
+  std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
+  std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' "
+    " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
+  
+  // Check for the mandatory arguments
+  if ( !pfn.length() ) {
+    std::ostringstream os;
+    os << "Invalid pfn: '" << pfn << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
   }
+  if ( !server.length() ) {
+    std::ostringstream os;
+    os << "Invalid server: '" << server << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  if ( size <= 0 ) {
+    std::ostringstream os;
+    os << "Invalid size: " << size << " '" << pfn << "'";
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  // Now the optional ones for basic sanity
+  if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
+    std::ostringstream os;
+    os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
+    std::ostringstream os;
+    os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  
+  }
+  
+  
+  // We are in the disk server, hence we check only things that reside here
+  // and then forward the request to the head
+  // Head node stuff will be checked by the headnode
+  
+  // We check the stat information of the file.
+  struct stat st;
+  int rc;
+  if ( stat(pfn.c_str(), &st) ) {
+    std::ostringstream os;
+    char errbuf[1024];
+    strerror_r(errno, errbuf, 1023);
+    os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << errbuf;
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  
+  if ( size != st.st_size ) {
+    std::ostringstream os;
+    os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  // Now forward the request to the head node
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+  Davix::Uri url(domeurl);
+
+  Davix::DavixError* tmp_err = NULL;
+  DavixScopedGetter hdavix;
+  
+  Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
+  if( tmp_err ) {
+    std::ostringstream os;
+    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  } 
+  
+  req2.addHeaderField("cmd", "dome_putdone");
+  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+  req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
+  
+  // Copy the same body fields as the original one, except for the server field,
+  // where we write this machine's hostname (we are a disk server here)
+  req.bodyfields.put("server", status.myhostname);
+  std::ostringstream os;
+  boost::property_tree::write_json(os, req.bodyfields);
+  req2.setRequestBody(os.str());
+      
+  // Set the dome timeout values for the operation
+  req2.setParameters(hdavix.get()->parms);
+      
+  if (req2.executeRequest(&tmp_err) != 0) {
+    // The error must be propagated to the response, in clear readable text
+    std::ostringstream os;
+    int errcode = req2.getRequestCode();
+    if (tmp_err)
+      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+    else
+      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode;
+    
+    Err(domelogname, os);
+    
+    
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  // The request has been successfully forwarded to the headnode
+  os.clear();
+  if (req2.getAnswerContent()) os << req2.getAnswerContent();
+  return DomeReq::SendSimpleResp(request, 200, os);
+  
+      
+}
+
+int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
+  
   
   DmlitePoolHandler stack(dmpool);
   INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
   if (!inodeintf) {
-    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
+    Err( domelogname , " Cannot retrieve inode interface. Fatal.");
     return -1;
   }
   
@@ -378,6 +501,9 @@ int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
   std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
   std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
   
+  Log(Logger::Lvl1, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' "
+    " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
+    
   // Check for the mandatory arguments
   if ( !pfn.length() ) {
     std::ostringstream os;
@@ -427,7 +553,15 @@ int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
-  
+  if (rep.status != dmlite::Replica::kBeingPopulated) {
+    
+    std::ostringstream os;
+    os << "Invalid status for replica '"<< rfn << "'";
+      
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+    
+  }
   
   dmlite::ExtendedStat st;
   try {
@@ -440,6 +574,62 @@ int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 501, os);
   }
 
+  // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+  Davix::Uri url(domeurl);
+
+  Davix::DavixError* tmp_err = NULL;
+  DavixScopedGetter hdavix;
+  
+  Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
+  if( tmp_err ) {
+    std::ostringstream os;
+    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
+    Err(domelogname, os);
+    return DomeReq::SendSimpleResp(request, 501, os);
+  } 
+  
+  req2.addHeaderField("cmd", "dome_putdone");
+  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+  req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
+  
+  // Copy the same body fields as the original one
+  std::ostringstream os;
+  boost::property_tree::write_json(os, req.bodyfields);
+  req2.setRequestBody(os.str());
+      
+  // Set the dome timeout values for the operation
+  req2.setParameters(hdavix.get()->parms);
+      
+  if (req2.executeRequest(&tmp_err) != 0) {
+    // The error must be propagated to the response, in clear readable text
+    std::ostringstream os;
+    int errcode = req2.getRequestCode();
+    if (tmp_err)
+      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+    else
+      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode;
+    
+    Err(domelogname, os);
+    
+    
+    return DomeReq::SendSimpleResp(request, 501, os);
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   // Update the replica values, including the checksum
   rep.ptime = rep.ltime = rep.atime = time(0);
   rep.status = dmlite::Replica::kAvailable;
@@ -480,7 +670,7 @@ int DomeCore::dome_putdone(DomeReq &req, FCGX_Request &request) {
       Err( domelogname , " Cannot retrieve parent for inode:" << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
       return -1;
     }
-      
+
   }
     
   
@@ -996,6 +1186,21 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
 
 
-int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_statfs(DomeReq &req, FCGX_Request &request) {};
+int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
+int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
+int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
+  
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+  
+  
+};
