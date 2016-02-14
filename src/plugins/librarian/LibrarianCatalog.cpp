@@ -28,7 +28,7 @@ LibrarianCatalog::LibrarianCatalog(Catalog* decorates) throw (DmException):
 
 
 
-LibrarianCatalog::~LibrarianCatalog() throw (DmException)
+LibrarianCatalog::~LibrarianCatalog() 
 {
   // Nothing
 }

@@ -14,7 +14,7 @@ LibrarianFactory::LibrarianFactory(CatalogFactory* catalogFactory) throw(DmExcep
 
 
 
-LibrarianFactory::~LibrarianFactory() throw(DmException)
+LibrarianFactory::~LibrarianFactory()
 {
   // Nothing
 }
