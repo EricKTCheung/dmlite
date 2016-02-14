@@ -317,6 +317,12 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %changelog
+* Mon Feb 15 2016  Andrea Manzi <amanzi@cern.ch> - 0.7.6-1
+- Added move replicat to dmlite-shell
+- fix crash in dmlite-plugins-mysql
+- some fixes in dmlite-shell drain
+ 
+
 * Mon Nov 02 2015  Andrea Manzi <amanzi@cern.ch> - 0.7.5-1
 - added xattr to Memcache plugin
 - fix for checksums store
