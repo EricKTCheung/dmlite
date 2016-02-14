@@ -18,7 +18,7 @@ namespace dmlite {
     LibrarianCatalog(Catalog* decorates) throw (DmException);
 
     /// Destructor
-    ~LibrarianCatalog() throw (DmException);
+    ~LibrarianCatalog();
 
     // Overloading
     std::string getImplId(void) const throw ();
@@ -37,7 +37,7 @@ namespace dmlite {
     /// Constructor
     LibrarianFactory(CatalogFactory* catalogFactory) throw (DmException);
     /// Destructor
-    ~LibrarianFactory() throw (DmException);
+    ~LibrarianFactory() ;
 
     void configure(const std::string& key, const std::string& value) throw (DmException);
     Catalog* createCatalog(PluginManager* pm) throw (DmException);
