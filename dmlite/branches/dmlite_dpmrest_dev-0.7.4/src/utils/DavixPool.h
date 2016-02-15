@@ -38,7 +38,7 @@
 #include "utils/poolcontainer.h"
 #include "utils/Config.hh"
  
-#include <davix.hpp>
+#include <davix/davix.hpp>
 
 namespace dmlite {
 
@@ -54,13 +54,13 @@ extern Logger::component davixpoollogname;
       // set timeouts, etc
       long timeout;
       struct timespec spec_timeout;
-      timeout = CFG->GetLong("glb.davix.conn_timeout", 15);
+      timeout = CFG->GetLong("glb.restclient.conn_timeout", 15);
       Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "Connection timeout is set to : " << timeout);
       spec_timeout.tv_sec = timeout;
       spec_timeout.tv_nsec =0;
       parms->setConnectionTimeout(&spec_timeout);
     
-      timeout = CFG->GetLong("glb.davix.ops_timeout", 15);
+      timeout = CFG->GetLong("glb.restclient.ops_timeout", 15);
       spec_timeout.tv_sec = timeout;
       spec_timeout.tv_nsec = 0;
       parms->setOperationTimeout(&spec_timeout);
@@ -68,10 +68,25 @@ extern Logger::component davixpoollogname;
     
       Davix::X509Credential cred;
       Davix::DavixError* tmp_err = NULL;
-      cred.loadFromFilePEM(CFG->GetString("glb.restclient.cli_certificate", (char *)""), CFG->GetString("glb.restclient.cli_private_key", (char *)""), "", &tmp_err);
+      
+      
+      
+      // get ssl check
+      bool ssl_check = CFG->GetBool("glb.davix.ssl_check", true);
+      Log(Logger::Lvl1, davixpoollogmask, davixpoollogname,"SSL CA check for davix is set to  " + std::string((ssl_check) ? "TRUE" : "FALSE"));
+      parms->setSSLCAcheck(ssl_check);
+      // ca check
+      std::string ca_path = CFG->GetString("glb.restclient.ca_path", (char *)"/etc/grid/security/certificates");
+      if( ca_path.size() > 0){
+        Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "CA Path :  " << ca_path);
+        parms->addCertificateAuthorityPath(ca_path);
+      }
+      
+      
+      cred.loadFromFilePEM(CFG->GetString("glb.restclient.cli_private_key", (char *)""), CFG->GetString("glb.restclient.cli_certificate", (char *)""), "", &tmp_err);
       if( tmp_err ){
         std::ostringstream os;
-        os << "Cannot load cert/privkey" << CFG->GetString("glb.restclient.cli_certificate", (char *)"") <<
+        os << "Cannot load cert-privkey " << CFG->GetString("glb.restclient.cli_certificate", (char *)"") << "-" <<
           CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
         
         throw DmException(EPERM, os.str());
