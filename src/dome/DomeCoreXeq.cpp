@@ -442,7 +442,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
   
   
-  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + req.object;
   Davix::Uri url(domeurl);
 
   Davix::DavixError* tmp_err = NULL;
