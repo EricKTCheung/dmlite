@@ -42,13 +42,17 @@ DomeReq::DomeReq(FCGX_Request &request) {
   // TODO: extract the authz info about the submitting client
   
   // Extract the authz info about the remote user
-  if ( (s = FCGX_GetParam("SSL_CLIENT_S_DN", request.envp)) )
+  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) )
     this->remoteclientdn = s;
+  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTHOST", request.envp)) )
+    this->remoteclienthost = s;
+  
+  
+  // We also must know the info on the client that is contacting us
+  if ( (s = FCGX_GetParam("SSL_CLIENT_S_DN", request.envp)) )
+    this->clientdn = s;
   if ( (s = FCGX_GetParam("REMOTE_HOST", request.envp)) )
-    this->remoteclientaddr = s;
-  
-  
-  
+    this->clienthost = s;
   
   
   // We assume that the body fits in 4K, otherwise we ignore it ?!?

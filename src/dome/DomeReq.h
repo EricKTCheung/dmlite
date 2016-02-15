@@ -69,14 +69,14 @@ public:
     /// ** These are NOT the credentials of the remote user **
     /// dpmrest can apply authorization schemes to this information. The consequence
     /// is that we can filter in a simple way the entities that can send commands.
-    std::string clientdn;
+    std::string clientdn, clienthost;
     std::vector<std::string> clientfqans;
     std::vector<std::string> clientauthkeys;
     
     /// And these are the identity of the remote user that originated the request,
     /// for the cases where it applies.
     std::string remoteclientdn;
-    std::string remoteclientaddr;
+    std::string remoteclienthost;
     
 
     /// Utility function to send a quick response
