@@ -42,9 +42,9 @@ DomeReq::DomeReq(FCGX_Request &request) {
   // TODO: extract the authz info about the submitting client
   
   // Extract the authz info about the remote user
-  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) )
+  if ( (s = FCGX_GetParam("SSL_CLIENT_S_DN", request.envp)) )
     this->remoteclientdn = s;
-  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTADDR", request.envp)) )
+  if ( (s = FCGX_GetParam("REMOTE_HOST", request.envp)) )
     this->remoteclientaddr = s;
   
   
