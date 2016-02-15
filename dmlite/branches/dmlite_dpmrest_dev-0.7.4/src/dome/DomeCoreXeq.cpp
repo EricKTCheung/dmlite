@@ -293,14 +293,14 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       // Security credentials are mandatory, and they have to carry the identity of the remote client
       SecurityCredentials cred;
       cred.clientName = (std::string)req.remoteclientdn;
-      cred.remoteAddress = req.remoteclientaddr;
+      cred.remoteAddress = req.remoteclienthost;
       
       try {
         stack->setSecurityCredentials(cred);
       } catch (DmException e) {
         std::ostringstream os;
         os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
-          req.remoteclientaddr << "' - " << e.code() << "-" << e.what();
+          req.remoteclienthost << "' - " << e.code() << "-" << e.what();
           
         Err(domelogname, os);
         return DomeReq::SendSimpleResp(request, 501, os);
@@ -458,7 +458,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   
   req2.addHeaderField("cmd", "dome_putdone");
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
+  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
   
   // Copy the same body fields as the original one, except for some fields,
   // where we write this machine's hostname (we are a disk server here) and the validated size
@@ -604,7 +604,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   
     req2.addHeaderField("cmd", "dome_stat");
     req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-    req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
+    req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
   
     std::ostringstream os;
     boost::property_tree::ptree jstat;

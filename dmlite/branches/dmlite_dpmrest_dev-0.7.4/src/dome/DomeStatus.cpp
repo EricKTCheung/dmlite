@@ -208,8 +208,11 @@ void DomeStatus::checkDiskSpaces() {
       
       Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *i);
       int errcode = 0;
-      std::string url = CFG->GetString("head.diskdomeprotopfx", (char *)"http") + "://" + *i +
-                                      CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
+      
+      // https is mandatory to contact disk nodes, as they must be able to apply
+      // decent authorization rules
+      std::string url = "https://" + *i +
+                        CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
       Davix::Uri uri(url);
       
       Davix::DavixError* tmp_err = NULL;
