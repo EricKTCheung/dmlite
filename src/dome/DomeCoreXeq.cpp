@@ -383,7 +383,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     os << "Invalid server: '" << server << "'";
     return DomeReq::SendSimpleResp(request, 501, os);
   }
-  if ( size <= 0 ) {
+  if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
     return DomeReq::SendSimpleResp(request, 501, os);
@@ -411,6 +411,9 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   // Head node stuff will be checked by the headnode
   
   // We check the stat information of the file.
+  Log(Logger::Lvl2, domelogmask, domelogname, " Stat-ing pfn: '" << pfn << "' "
+    " on disk.");
+  
   struct stat st;
   int rc;
   if ( stat(pfn.c_str(), &st) ) {
@@ -422,6 +425,10 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
+  Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
+    " disksize: " << st.st_size);
+  
+  if (size == 0) size = st.st_size;
   
   if ( size != st.st_size ) {
     std::ostringstream os;
@@ -431,6 +438,10 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   }
   
   // Now forward the request to the head node
+  Log(Logger::Lvl1, domelogmask, domelogname, " Forwarding to headnode. server: '" << server << "' pfn: '" << pfn << "' "
+    " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
+  
+  
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
   Davix::Uri url(domeurl);
 
@@ -449,9 +460,10 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
   req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
   
-  // Copy the same body fields as the original one, except for the server field,
-  // where we write this machine's hostname (we are a disk server here)
+  // Copy the same body fields as the original one, except for some fields,
+  // where we write this machine's hostname (we are a disk server here) and the validated size
   req.bodyfields.put("server", status.myhostname);
+  req.bodyfields.put("size", size);
   std::ostringstream os;
   boost::property_tree::write_json(os, req.bodyfields);
   req2.setRequestBody(os.str());
