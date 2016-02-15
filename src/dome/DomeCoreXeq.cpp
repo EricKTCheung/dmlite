@@ -378,11 +378,9 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     os << "Invalid pfn: '" << pfn << "'";
     return DomeReq::SendSimpleResp(request, 501, os);
   }
-  if ( !server.length() ) {
-    std::ostringstream os;
-    os << "Invalid server: '" << server << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
-  }
+
+  // Please note that the server field can be empty
+  
   if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
