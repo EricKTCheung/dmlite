@@ -171,6 +171,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
         if (buf[strlen(buf)-1] != '"') {
           Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
+          continue;
         }
 
         buf[strlen(buf)-1] = '\0';
