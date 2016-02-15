@@ -575,48 +575,76 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   }
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
-  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
-  Davix::Uri url(domeurl);
+  if (size == 0) {
+    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+    Davix::Uri url(domeurl);
 
-  Davix::DavixError* tmp_err = NULL;
-  DavixScopedGetter hdavix;
+    Davix::DavixError* tmp_err = NULL;
+    DavixScopedGetter hdavix;
   
-  Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
-  if( tmp_err ) {
+    Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
+    if( tmp_err ) {
+      std::ostringstream os;
+      os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
+      Err(domelogname, os);
+      return DomeReq::SendSimpleResp(request, 501, os);
+    } 
+  
+    req2.addHeaderField("cmd", "dome_stat");
+    req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+    req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
+  
     std::ostringstream os;
-    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-    Err(domelogname, os);
-    return DomeReq::SendSimpleResp(request, 501, os);
-  } 
-  
-  req2.addHeaderField("cmd", "dome_putdone");
-  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclientaddr", req.remoteclientaddr);
-  
-  // Copy the same body fields as the original one
-  std::ostringstream os;
-  boost::property_tree::write_json(os, req.bodyfields);
-  req2.setRequestBody(os.str());
+    boost::property_tree::ptree jstat;
+    jstat.put("pfn", pfn);
+    boost::property_tree::write_json(os, jstat);
+    req2.setRequestBody(os.str());
+    
+    // Set the dome timeout values for the operation
+    req2.setParameters(hdavix.get()->parms);
       
-  // Set the dome timeout values for the operation
-  req2.setParameters(hdavix.get()->parms);
-      
-  if (req2.executeRequest(&tmp_err) != 0) {
-    // The error must be propagated to the response, in clear readable text
-    std::ostringstream os;
-    int errcode = req2.getRequestCode();
-    if (tmp_err)
-      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
-    else
-      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode;
+    if (req2.executeRequest(&tmp_err) != 0) {
+      // The error must be propagated to the response, in clear readable text
+      std::ostringstream os;
+      int errcode = req2.getRequestCode();
+      if (tmp_err)
+        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+      else
+        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode;
     
-    Err(domelogname, os);
+      Err(domelogname, os);
     
     
-    return DomeReq::SendSimpleResp(request, 501, os);
-  }
+      return DomeReq::SendSimpleResp(request, 501, os);
+    }
+    
+    if (!req2.getAnswerContent()) {
+      std::ostringstream os;
+      os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
+      Err(domelogname, os);
+      return DomeReq::SendSimpleResp(request, 501, os);
+    }
+    
+    // The stat towards the dsk server was successful. Take the size
+    jstat.clear();
+    std::istringstream s(req2.getAnswerContent());
+    try {
+      boost::property_tree::read_json(s, jstat);
+    } catch (boost::property_tree::json_parser_error e) {
+      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s << "'");
+      return -1;
+    }
+    
+    size = jstat.get<size_t>("size", 0L);
+
+    
+  } // if size == 0
+
   
-  
+  // -------------------------------------------------------
+  // If a miracle took us here, the size has been confirmed
+  Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
+    
   
   
   
