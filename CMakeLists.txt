@@ -56,6 +56,9 @@ set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
 set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
 set (Boost_ADDITIONAL_VERSIONS "1.41" "1.41.0")
 
+#needed for GCC6
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
+
 find_package (Boost 1.41 COMPONENTS date_time system thread regex REQUIRED)
 
 if (Boost_FOUND)
