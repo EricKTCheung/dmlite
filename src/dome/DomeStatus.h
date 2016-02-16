@@ -34,8 +34,11 @@ class DomeFsInfo {
 public:
 
   DomeFsInfo() {
-    status = 0;
-    weight = 0;
+    
+    // A filesystem starts internally disabled
+    // It will be anabled by the first good answer of the
+    // server that holds it
+    status = FsStaticDisabled;
     freespace = 0LL;
     physicalsize = 0LL;
   };
@@ -50,15 +53,33 @@ public:
   /// The private path of the filesystem inside its server
   std::string fs;
 
-  /// Status of the filesystem
-  int status;
-  int weight;
-
+  /// Static status about this filesystem (could be disabled or read only as set in the DB)
+  /// I know, these values are ugly, because 0 should not be 'active'
+  /// we cannot change them, as they come from the DB and are shared with the dpm daemon
+  enum DomeFsStatus {
+    FsStaticActive = 0,
+    FsStaticDisabled,
+    FsStaticReadOnly
+  } status;
+  
+  /// Internal status of the filesystem. It can be broken or its server may be broken
+  enum DomeFsActivityStatus {
+    FsUnknown = 0, // Just after start
+    FsOnline,      // Fs belongs to working server
+    FsBroken       // The server that owns this fs seems to be broken.
+  } activitystatus;
+  
   /// Free space, in bytes
   long long freespace;
   /// Total size of this filesystem
   long long physicalsize;
   
+  bool isGoodForWrite() {
+    return ( (status == FsStaticActive) && (activitystatus == FsOnline) );
+  }
+  bool isGoodForRead() {
+    return ( (status != FsStaticDisabled) && (activitystatus == FsOnline) );
+  }
   
   // Predicate for sorting filesystems by decreasing freespace
   struct pred_decr_freespace {
@@ -110,8 +131,12 @@ public:
     roleHead,
     roleDisk
   } role;
-  
+
+  // The hostname of this machine
   std::string myhostname;
+  
+  // The hostname of the head node we refer to
+  std::string headnodename;
   
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;

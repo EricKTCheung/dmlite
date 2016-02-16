@@ -51,6 +51,7 @@ DomeStatus::DomeStatus() {
   
   globalputcount = 0;
   
+  // Horrible kludge to get our hostname
   char hostname[1024];
   hostname[1023] = '\0';
   gethostname(hostname, 1023);
@@ -73,8 +74,13 @@ DomeStatus::DomeStatus() {
   freeaddrinfo(info);
   
   Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
-}
   
+  // Now get the host name of the head node
+  Davix::Uri uri(CFG->GetString("disk.headnode.domeurl", (char *)""));
+  headnodename = uri.getHost();
+  Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << myhostname);
+  
+}
 long DomeStatus::getGlobalputcount() {
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
@@ -180,11 +186,16 @@ void DomeStatus::checkDiskSpaces() {
         if ( !rc ) {
           fslist[i].freespace = buf.f_bavail * buf.f_bsize;
           fslist[i].physicalsize = buf.f_blocks * buf.f_bsize;
+          fslist[i].activitystatus = DomeFsInfo::FsOnline;
           Log(Logger::Lvl1, domelogmask, domelogname, "fs: " << fslist[i].fs << " phys: " << fslist[i].physicalsize << " free: " << fslist[i].freespace);
+          
           nfs++;
         }
         else {
           Err("checkDiskSpaces", "statfs() on fs '" << fslist[i].fs << " returned " << rc << " errno:" << errno << ":" << strerror(errno));
+          fslist[i].freespace = 0LL;
+          fslist[i].physicalsize = 0LL;
+          fslist[i].activitystatus = DomeFsInfo::FsBroken;
         }
       }
       
@@ -196,6 +207,7 @@ void DomeStatus::checkDiskSpaces() {
   
   if (role == roleHead) {
     // Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
+    // If a server does not reply, mark as disabled all its filesystems
     
     std::set<std::string> srv;
     {
@@ -204,6 +216,7 @@ void DomeStatus::checkDiskSpaces() {
       srv = servers;
     }
     
+    // Contact all the servers, sequentially
     for (std::set<std::string>::iterator i = srv.begin(); i != srv.end(); i++) {
       
       Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *i);
@@ -233,38 +246,39 @@ void DomeStatus::checkDiskSpaces() {
         errcode = req.getRequestCode();
       
       // Prepare the text status message to display
-      if (tmp_err) {
-        Err("checkDiskSpaces", "HTTP status error on" << url << ", Error: "<< tmp_err->getErrMsg());
-        continue;
-      }
-      
-      // Here we have the response... splat its body into a ptree to parse it
-      std::istringstream is(req.getAnswerContent());
-      
-      Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *i << " answered: '" << is.str() << "'");
-      
       boost::property_tree::ptree myresp;
       
-      try {
-        boost::property_tree::read_json(is, myresp);
+      if (tmp_err) {
+        Err("checkDiskSpaces", "HTTP status error on" << url << ", Error: "<< tmp_err->getErrMsg());
+        // Here we had an error of some kind while trying to contact the disk server
+        // We don't distinguish between TCP and HTTP errors, in any case we will disable the filesystems
+      } else {
+      
+        // Here we have the response... splat its body into a ptree to parse it
+        std::istringstream is(req.getAnswerContent());
+      
+        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *i << " answered: '" << is.str() << "'");
+      
+        try {
+          boost::property_tree::read_json(is, myresp);
         
-      } catch (boost::property_tree::json_parser_error e) {
-        Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
-        continue;
+        } catch (boost::property_tree::json_parser_error e) {
+          Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+          continue;
+        }
       }
       
-      
-      // Now process the values from the Json. Lock the status!
+      // Now process the values from the Json, or just disable the filesystems. Lock the status!
       {
         boost::unique_lock<boost::recursive_mutex> l(*this);
         
         // Loop through the server names, childs of fsinfo
-
+        
         BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
           // v.first is the name of the server.
           // v.second is the child tree representing the server
           
-          // Now we loop through the filesystems of this server
+          // Now we loop through the filesystems reported by this server
           BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
             // v.first is the name of the server.
             // v.second is the child tree representing the server
@@ -272,24 +286,41 @@ void DomeStatus::checkDiskSpaces() {
             // Find the corresponding server:fs info in our array, and get the counters
             Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
             for (int ii = 0; ii < fslist.size(); ii++) {
-              
-              Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
-              if ((fslist[ii].server == srv.first) &&
-                (fslist[ii].fs == fs.first)) {
-                
-                Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
+              if (!tmp_err) {
+                Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
+                if ((fslist[ii].server == srv.first) &&
+                  (fslist[ii].fs == fs.first)) {
+                  
+                  Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
                 Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace" ) << " " << fs.second.get<long long>( "physicalsize" ));
                 fslist[ii].freespace = fs.second.get<long long>( "freespace" );
                 fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize" );
-              
-              
+                int actst = fs.second.get<int>( "activitystatus" );
+                fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
+                  } else {
+                    // If there was some error, disable the filesystem and give a clear warning
+                    fslist[ii].activitystatus = DomeFsInfo::FsBroken;
+                    
+                  }
+                  
+                  
               }
             }
+            
+            
+            
             
           }  
         }
         
       } // lock
+      
+      
+      
+      // Here we should disable all the filesystems that belong to the given server
+      // that were absent in the successful server's response.
+      // Not critical by now, may be useful in the future
+      
       
     } // for
     Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");

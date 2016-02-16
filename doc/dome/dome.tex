@@ -1018,7 +1018,9 @@ Maximum number of checksums that can be assigned to a single disk node. Addition
 \subsection{Specific to disk nodes}
 
 \subsubsection{disk.headnode.domeurl}
-Url prefix for the DOME service in the headnode\\
+Url prefix for the DOME service in the headnode. This is used to contact the head node.\\
+
+\textit{Internally, this URL is also used to determine the hostname of the head node, and authorize its attempts to connect.}\\
 
 Example:\\
 \lstinline"disk.headnode.DOMEurl: https://dpmhead-rc.cern.ch/DOME"\\

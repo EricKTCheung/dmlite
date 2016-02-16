@@ -168,6 +168,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     
     // Build a list of the filesystems that match the suggestions
     // Loop on the filesystems and take the ones that match
+    // The filesystems must be writable and working
 
     for (int i = 0; i < status.fslist.size(); i++) {
       if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
@@ -182,7 +183,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (host.size() > 0) && (fs.size() == 0) && (status.fslist[i].server == host) ) {
         
         // Take only pools that are associated to the lfn parent dirs
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -191,7 +192,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (host.size() > 0) && (fs.size() > 0) && (status.fslist[i].server == host) && (status.fslist[i].fs == fs) ) {
         
         // Take only pools that are associated to the lfn parent dirs through a quotatoken
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -200,7 +201,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       // No hints matched because there a re no hintss. Add the filesystem if its path is not empty
       // and matches the put path
       if ( !host.size() && !fs.size() )
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) )
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
     }

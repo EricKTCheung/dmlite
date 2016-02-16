@@ -67,6 +67,8 @@ int main(int argc, char **argv) {
   
   cout << "Welcome to dome" << endl;
   cout << "Cfg file: " << cfgfile << endl;
+  
+  domelogmask = Logger::get()->getMask(domelogname);
   DomeCore core;
   
   if ( core.init(cfgfile.c_str()) ) {
