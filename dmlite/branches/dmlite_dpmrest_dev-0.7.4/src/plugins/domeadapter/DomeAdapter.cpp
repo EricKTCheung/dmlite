@@ -10,7 +10,7 @@
 
 using namespace dmlite;
 
-Logger::bitmask dmlite::domeadapterlogmask = 0;
+Logger::bitmask dmlite::domeadapterlogmask = ~0;
 Logger::component dmlite::domeadapterlogname = "DomeAdapter";
 
 
@@ -33,7 +33,7 @@ Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException)
 
 DomeAdapterFactory::DomeAdapterFactory() throw (DmException) 
 {
-
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
 }
 
 DomeAdapterFactory::~DomeAdapterFactory() {

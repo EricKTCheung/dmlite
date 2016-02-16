@@ -44,7 +44,7 @@ using namespace dmlite;
 
 
 DomeStatus::DomeStatus() {
-  
+  davixPool = NULL;
   
   struct addrinfo hints, *info, *p;
   int gai_result;
@@ -162,7 +162,9 @@ int DomeStatus::tick(time_t timenow) {
   
 }
 
-
+void DomeStatus::setDavixPool(dmlite::DavixCtxPool *pool) {
+  davixPool = pool;
+}
 
 
 // In the case of a disk server, checks the free/used space in the mountpoints
@@ -229,7 +231,8 @@ void DomeStatus::checkDiskSpaces() {
       Davix::Uri uri(url);
       
       Davix::DavixError* tmp_err = NULL;
-      DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+      DavixGrabber hdavix(*davixPool);
+      DavixStuff *ds(hdavix);
       Davix::GetRequest req(*ds->ctx, url, &tmp_err);
       
       if( tmp_err ){

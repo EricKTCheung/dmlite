@@ -56,10 +56,10 @@ struct dirent* DomeAdapterCatalog::readDir(Directory* dir) throw (DmException) {
 ExtendedStat* DomeAdapterCatalog::readDirx(Directory* dir) throw (DmException) {
   DomeDir *domedir = dynamic_cast<DomeDir*>(dir);
 
-  Davix::Uri uri("https://domehead-trunk.cern.ch");
-  Davix::DavixError* tmp_err = NULL;
-  DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
-  Davix::GetRequest req(*ds->ctx, uri, &tmp_err);
+  // Davix::Uri uri("https://domehead-trunk.cern.ch");
+  // Davix::DavixError* tmp_err = NULL;
+  // DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+  // Davix::GetRequest req(*ds->ctx, uri, &tmp_err);
 
   std::cout << "readDirx called on " << domedir->path_ << std::endl;
   return NULL;

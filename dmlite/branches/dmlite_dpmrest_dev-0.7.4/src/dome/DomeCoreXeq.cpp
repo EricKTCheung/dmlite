@@ -270,7 +270,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       std::ostringstream os;
       os << "Unable to get vo name from the lfn: " << lfn;
           
-      Err(domelogname, os);
+      Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 501, os);      
     }
     
@@ -303,7 +303,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
         os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
           req.remoteclienthost << "' - " << e.code() << "-" << e.what();
           
-        Err(domelogname, os);
+        Err(domelogname, os.str());
         return DomeReq::SendSimpleResp(request, 501, os);
       }
     }
@@ -314,7 +314,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       std::ostringstream os;
       os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
       
-      Err(domelogname, os);
+      Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 501, os);
     }
     
@@ -335,7 +335,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       std::ostringstream os;
       os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
       
-      Err(domelogname, os);
+      Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 501, os);
     }
     
@@ -392,14 +392,14 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   
   }
@@ -420,7 +420,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     char errbuf[1024];
     strerror_r(errno, errbuf, 1023);
     os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << errbuf;
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
@@ -432,7 +432,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( size != st.st_size ) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
@@ -445,13 +445,14 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   Davix::Uri url(domeurl);
 
   Davix::DavixError* tmp_err = NULL;
-  DavixScopedGetter hdavix;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
   
-  Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
+  Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
   if( tmp_err ) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   } 
   
@@ -468,7 +469,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   req2.setRequestBody(os.str());
       
   // Set the dome timeout values for the operation
-  req2.setParameters(hdavix.get()->parms);
+  req2.setParameters(*(ds->parms));
       
   if (req2.executeRequest(&tmp_err) != 0) {
     // The error must be propagated to the response, in clear readable text
@@ -479,7 +480,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     else
       os << "Cannot forward cmd_putdone to head node. errcode: " << errcode;
     
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     
     
     return DomeReq::SendSimpleResp(request, 501, os);
@@ -536,14 +537,14 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   
   }
@@ -560,7 +561,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   
@@ -569,7 +570,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Invalid status for replica '"<< rfn << "'";
       
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
     
   }
@@ -581,7 +582,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
 
@@ -591,13 +592,14 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Davix::Uri url(domeurl);
 
     Davix::DavixError* tmp_err = NULL;
-    DavixScopedGetter hdavix;
+    DavixGrabber hdavix(*davixPool);
+    DavixStuff *ds(hdavix);
   
-    Davix::PostRequest req2(* (hdavix.get()->ctx), url, &tmp_err);
+    Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
     if( tmp_err ) {
       std::ostringstream os;
       os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-      Err(domelogname, os);
+      Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 501, os);
     } 
   
@@ -612,7 +614,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     req2.setRequestBody(os.str());
     
     // Set the dome timeout values for the operation
-    req2.setParameters(hdavix.get()->parms);
+    req2.setParameters(*(ds->parms));
       
     if (req2.executeRequest(&tmp_err) != 0) {
       // The error must be propagated to the response, in clear readable text
@@ -623,7 +625,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       else
         os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode;
     
-      Err(domelogname, os);
+      Err(domelogname, os.str());
     
     
       return DomeReq::SendSimpleResp(request, 501, os);
@@ -632,7 +634,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     if (!req2.getAnswerContent()) {
       std::ostringstream os;
       os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
-      Err(domelogname, os);
+      Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 501, os);
     }
     
@@ -642,7 +644,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     try {
       boost::property_tree::read_json(s, jstat);
     } catch (boost::property_tree::json_parser_error e) {
-      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s << "'");
+      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s.str() << "'");
       return -1;
     }
     
@@ -680,7 +682,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
-    Err(domelogname, os);
+    Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
   

@@ -33,6 +33,7 @@
 #include "DomeLog.h"
 #include "DomeDmlitePool.h"
 #include "utils/mysqlpools.h"
+#include "utils/DavixPool.h"
 #include <fcgiapp.h>
 #include <fcgio.h>
 #include "utils/Config.hh"
@@ -115,6 +116,9 @@ private:
   boost::mutex accept_mutex;
   int fcgi_listenSocket;
   DmlitePool *dmpool;
+
+  dmlite::DavixCtxFactory *davixFactory;
+  dmlite::DavixCtxPool *davixPool;
 
   /// Easy way to get threaded life
   std::vector< boost::thread * > workers;

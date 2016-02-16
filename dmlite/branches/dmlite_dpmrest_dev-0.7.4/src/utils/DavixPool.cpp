@@ -42,62 +42,75 @@ using namespace dmlite;
 // Logger stuff
 Logger::bitmask dmlite::davixpoollogmask = 0;
 Logger::component dmlite::davixpoollogname = "DavixPool";
-  
-//------------------------------------------
-// DavixCtxPoolHolder
-// Holder of mysql connections, base class singleton holding the mysql conn pool
-//
-
-// Static  stuff
-PoolContainer<DavixStuff *> *DavixCtxPoolHolder::connectionPool_ = 0;
-DavixCtxPoolHolder *DavixCtxPoolHolder::instance = 0;
-
-DavixCtxPoolHolder *DavixCtxPoolHolder::getInstance() {
-  if (!instance) {
-    instance = new DavixCtxPoolHolder();
-  }
-  return instance;
-}
-
-DavixCtxPoolHolder::DavixCtxPoolHolder() {
-  poolsize = CFG->GetLong("glb.davix.poolsize", 10);
-    
-    connectionPool_ = 0;
-}
-
-DavixCtxPoolHolder::~DavixCtxPoolHolder() {
-  if (connectionPool_) delete connectionPool_;
-  poolsize = 0;
-  connectionPool_ = 0;
-
-}
-
-
-PoolContainer<DavixStuff*> &DavixCtxPoolHolder::getDavixCtxPool()  throw(DmException){
-
-  DavixCtxPoolHolder *h = getInstance();
-  
-  if (!h->connectionPool_) {
-    Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "Creating Davix::Context connection pool. size: " << h->poolsize);
-    
-    
-    h->connectionPool_ = new PoolContainer<DavixStuff*>(&h->connectionFactory_, h->poolsize);
-  }
-  
-  return *(h->connectionPool_);
-}
-
-
-
 
 // -----------------------------------------
 // DavixCtxFactory
 //
 DavixCtxFactory::DavixCtxFactory() {
-  
-
   Log(Logger::Lvl4, davixpoollogmask, davixpoollogname, "DavixCtxFactory started");
+
+  // initialize default parameters
+  struct timespec spec_timeout;
+  spec_timeout.tv_sec = 15;
+  spec_timeout.tv_nsec = 0;
+  params_.setConnectionTimeout(&spec_timeout);
+  params_.setOperationTimeout(&spec_timeout);
+
   // Nothing
+}
+
+void DavixCtxFactory::configure(const std::string &key, const std::string &value) {
+  if (key == "DavixConnTimeout") {
+    long conn_timeout = atoi(value.c_str());
+    struct timespec spec_timeout;
+    spec_timeout.tv_sec = conn_timeout;
+    spec_timeout.tv_nsec = 0;
+    params_.setConnectionTimeout(&spec_timeout);
+  }
+  else if(key == "DavixOpsTimeout") {
+    long ops_timeout = atoi(value.c_str());
+    struct timespec spec_timeout;
+    spec_timeout.tv_sec = ops_timeout;
+    spec_timeout.tv_nsec =0;
+    params_.setOperationTimeout(&spec_timeout);
+  }
+  else if(key == "DavixSSLCheck") {
+    long v = true;
+    if(value == "False") v = false;
+    params_.setSSLCAcheck(v);
+  }
+  else if(key == "DavixCAPath") {
+    if(!value.empty()) {
+      params_.addCertificateAuthorityPath(value);
+    }
+  }
+  else if(key == "DavixCertPath") {
+    davix_cert_path = value;
+  }
+  else if(key == "DavixPrivateKeyPath") {
+    davix_privkey_path = value;
+  }
+
+  // should I load certificate and key?
+  if(key == "DavixCertPath" || key == "DavixPrivateKeyPath" &&
+     !davix_cert_path.empty() && !davix_privkey_path.empty()) {
+
+     Davix::X509Credential cred;
+     Davix::DavixError* tmp_err = NULL;
+      
+     cred.loadFromFilePEM(davix_privkey_path, davix_cert_path, "", &tmp_err);
+     if( tmp_err ){
+       std::ostringstream os;
+       os << "Cannot load cert-privkey " << davix_cert_path << "-" << davix_privkey_path << ", Error: " << tmp_err->getErrMsg();
+       throw DmException(EPERM, os.str());
+     }
+     params_.setClientCertX509(cred);
+  }
+}
+
+void DavixCtxFactory::setRequestParams(const Davix::RequestParams &params)
+{
+  params_ = params;
 }
 
 
@@ -107,7 +120,7 @@ DavixStuff* DavixCtxFactory::create()
   
   Log(Logger::Lvl4, davixpoollogmask, davixpoollogname, "Creating DavixStuff... ");
 
-  c = new DavixStuff();
+  c = new DavixStuff(params_);
   
   Log(Logger::Lvl3, davixpoollogmask, davixpoollogname, "Ok.");
   return c;
@@ -128,6 +141,3 @@ bool DavixCtxFactory::isValid(DavixStuff*)
   // it will reconnect.
   return true;
 }
-
-
-
