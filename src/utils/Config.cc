@@ -100,7 +100,7 @@ int Config::ProcessFile(char *filename) {
 
   // Do the parsing
   if (!filename || (strlen(filename) == 0)) {
-    strcpy(fn, "/etc/ugr.conf");
+    strcpy(fn, "/etc/dome.conf");
     Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Using default config file " << fn);
   }
   else {

@@ -27,6 +27,7 @@
 #include <boost/thread.hpp>
 #include <set>
 #include "DomeGenQueue.h"
+#include "utils/DavixPool.h"
 
 /// We describe a filesystem where to put data. We also keep dynamic information here, e.g. the free/used space
 class DomeFsInfo {
@@ -175,6 +176,10 @@ public:
 
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;
+
+  /// The davix pool
+  dmlite::DavixCtxPool *davixPool;
+  void setDavixPool(dmlite::DavixCtxPool *pool);
 
   /// The status lives
   int tick(time_t timenow);

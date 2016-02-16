@@ -44,55 +44,12 @@ namespace dmlite {
 
 extern Logger::bitmask davixpoollogmask;
 extern Logger::component davixpoollogname;
-  
+
   class DavixStuff {
   public:
-    DavixStuff() {
+    DavixStuff(Davix::RequestParams params) {
       ctx = new Davix::Context();
-      parms = new Davix::RequestParams();
-     
-      // set timeouts, etc
-      long timeout;
-      struct timespec spec_timeout;
-      timeout = CFG->GetLong("glb.restclient.conn_timeout", 15);
-      Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "Connection timeout is set to : " << timeout);
-      spec_timeout.tv_sec = timeout;
-      spec_timeout.tv_nsec =0;
-      parms->setConnectionTimeout(&spec_timeout);
-    
-      timeout = CFG->GetLong("glb.restclient.ops_timeout", 15);
-      spec_timeout.tv_sec = timeout;
-      spec_timeout.tv_nsec = 0;
-      parms->setOperationTimeout(&spec_timeout);
-      Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "Operation timeout is set to : " << timeout);
-    
-      Davix::X509Credential cred;
-      Davix::DavixError* tmp_err = NULL;
-      
-      
-      
-      // get ssl check
-      bool ssl_check = CFG->GetBool("glb.davix.ssl_check", true);
-      Log(Logger::Lvl1, davixpoollogmask, davixpoollogname,"SSL CA check for davix is set to  " + std::string((ssl_check) ? "TRUE" : "FALSE"));
-      parms->setSSLCAcheck(ssl_check);
-      // ca check
-      std::string ca_path = CFG->GetString("glb.restclient.ca_path", (char *)"/etc/grid/security/certificates");
-      if( ca_path.size() > 0){
-        Log(Logger::Lvl1, davixpoollogmask, davixpoollogname, "CA Path :  " << ca_path);
-        parms->addCertificateAuthorityPath(ca_path);
-      }
-      
-      
-      cred.loadFromFilePEM(CFG->GetString("glb.restclient.cli_private_key", (char *)""), CFG->GetString("glb.restclient.cli_certificate", (char *)""), "", &tmp_err);
-      if( tmp_err ){
-        std::ostringstream os;
-        os << "Cannot load cert-privkey " << CFG->GetString("glb.restclient.cli_certificate", (char *)"") << "-" <<
-          CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
-        
-        throw DmException(EPERM, os.str());
-      }
-  
-      parms->setClientCertX509(cred);
+      parms = new Davix::RequestParams(params);
     }
     
     ~DavixStuff() {
@@ -116,65 +73,29 @@ extern Logger::component davixpoollogname;
     DavixStuff* create();
     void   destroy(DavixStuff*);
     bool   isValid(DavixStuff*);
-    
+
+    void configure(const std::string &key, const std::string &value);
+    void setRequestParams(const Davix::RequestParams &params);
   protected:
   private:
+    Davix::RequestParams params_;
+
+    std::string davix_cert_path;
+    std::string davix_privkey_path;
   };
-  
-  /// Holder of mysql connections, base class singleton holding the mysql conn pool
-  class DavixCtxPoolHolder {
+
+  class DavixCtxPool : public dmlite::PoolContainer<DavixStuff *> {
   public:
-    
-    static dmlite::PoolContainer<DavixStuff*> &getDavixCtxPool() throw(dmlite::DmException);
-    
-    ~DavixCtxPoolHolder();        
-    
-  private:
-    int poolsize;
-    
-    // Ctor initializes the local factory and
-    // creates the shared pool of conns
-    DavixCtxPoolHolder();         
-    
-    static DavixCtxPoolHolder *getInstance();
-    static DavixCtxPoolHolder *instance;
-    
-    /// Connection factory.
-    DavixCtxFactory connectionFactory_;
-    
-    /// Connection pool.
-    static dmlite::PoolContainer<DavixStuff *> *connectionPool_;
-    
+    DavixCtxPool(PoolElementFactory<DavixStuff *> *factory, int n) :
+    dmlite::PoolContainer<DavixStuff *>(factory, n) { }
   };
   
 
-
-
-
-
-
-/// Convenience class that releases a Davix instance on destruction
-class DavixScopedGetter {
+class DavixGrabber : public PoolGrabber<DavixStuff*> {
 public:
-  DavixScopedGetter()
-  {
-    obj = DavixCtxPoolHolder::getDavixCtxPool().acquire();
-  }
-  
-  ~DavixScopedGetter() {
-    DavixCtxPoolHolder::getDavixCtxPool().release(obj);
-    
-  }
-  
-  DavixStuff *get() {
-    return obj;
-  }
-  
-private:
-  DavixStuff *obj;
-  
+  DavixGrabber(DavixCtxPool &pool, bool block = true) : 
+  PoolGrabber<DavixStuff *>(pool, block) {}
 };
-
 
 }
 

@@ -62,6 +62,16 @@ DomeCore::~DomeCore() {
     dmpool = NULL;
   }
   
+  if(davixPool) {
+    delete davixPool;
+    davixPool = NULL;
+  }
+
+  if(davixFactory) {
+    delete davixFactory;
+    davixFactory = NULL;
+  }
+
   if (ticker) {
     Log(Logger::Lvl1, domelogmask, domelogname, "Joining ticker.");
     ticker->interrupt();
@@ -286,8 +296,50 @@ void workerFunc(DomeCore *core, int myidx) {
   
 }
 
+static Davix::RequestParams getDavixParams() {
+  Davix::RequestParams params;
 
+  // set timeouts, etc
+  long conn_timeout = CFG->GetLong("glb.restclient.conn_timeout", 15);
+  struct timespec spec_timeout;
+  spec_timeout.tv_sec = conn_timeout;
+  spec_timeout.tv_nsec = 0;
+  params.setConnectionTimeout(&spec_timeout);
+  Log(Logger::Lvl1, domelogmask, domelogname, "Davix: Connection timeout is set to : " << conn_timeout);
 
+  long ops_timeout = CFG->GetLong("glb.restclient.ops_timeout", 15);
+  spec_timeout.tv_sec = ops_timeout;
+  spec_timeout.tv_nsec = 0;
+  params.setOperationTimeout(&spec_timeout);
+  Log(Logger::Lvl1, domelogmask, domelogname, "Davix: Operation timeout is set to : " << ops_timeout);
+    
+  // get ssl check
+  bool ssl_check = CFG->GetBool("glb.restclient.ssl_check", true);
+  params.setSSLCAcheck(ssl_check);
+  Log(Logger::Lvl1, domelogmask, domelogname, "SSL CA check for davix is set to  " + std::string((ssl_check) ? "TRUE" : "FALSE"));
+
+  // ca check
+  std::string ca_path = CFG->GetString("glb.restclient.ca_path", (char *)"/etc/grid/security/certificates");
+  if( !ca_path.empty()) {
+    Log(Logger::Lvl1, domelogmask, domelogname, "CA Path :  " << ca_path);
+    params.addCertificateAuthorityPath(ca_path);
+  }
+
+  // credentials
+  Davix::X509Credential cred;
+  Davix::DavixError* tmp_err = NULL;
+
+  cred.loadFromFilePEM(CFG->GetString("glb.restclient.cli_private_key", (char *)""), CFG->GetString("glb.restclient.cli_certificate", (char *)""), "", &tmp_err);
+  if( tmp_err ){
+      std::ostringstream os;
+      os << "Cannot load cert-privkey " << CFG->GetString("glb.restclient.cli_certificate", (char *)"") << "-" <<
+            CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
+        
+      throw dmlite::DmException(EPERM, os.str());
+  }
+  params.setClientCertX509(cred);
+  return params;
+}
 
 int DomeCore::init(const char *cfgfile) {
   const char *fname = "UgrConnector::init";
@@ -385,6 +437,12 @@ int DomeCore::init(const char *cfgfile) {
     
     dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
     
+    // Configure the davix pool
+    davixFactory = new dmlite::DavixCtxFactory();
+    davixFactory->setRequestParams(getDavixParams());
+    davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 15));
+    status.setDavixPool(davixPool);
+
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
     ticker = new boost::thread(boost::bind(&DomeCore::tick, this, 0));

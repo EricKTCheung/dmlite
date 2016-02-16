@@ -7,6 +7,7 @@
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/io.h>
 #include <fstream>
+#include "utils/DavixPool.h"
 
 namespace dmlite {
 
@@ -21,11 +22,14 @@ namespace dmlite {
   private:
     std::string passwd_;
     bool        useIp_;
+
+    DavixCtxFactory davixFactory_;
+    DavixCtxPool davixPool_;
   };
 
  class DomeIODriver: public IODriver {
    public:
-    DomeIODriver(std::string passwd, bool useIp);
+    DomeIODriver(std::string passwd, bool useIp, DavixCtxPool &davixPool);
     virtual ~DomeIODriver();
 
     std::string getImplId() const throw();
@@ -40,14 +44,12 @@ namespace dmlite {
 
    private:
     const SecurityContext* secCtx_;
-
-
     StackInstance* si_;
-
-
 
     std::string passwd_;
     bool        useIp_;
+
+    DavixCtxPool &davixPool_;
   };
 
 

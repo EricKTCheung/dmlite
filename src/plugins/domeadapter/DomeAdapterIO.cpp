@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include <iostream>
+#include <stdio.h>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -17,10 +18,11 @@
 
 using namespace dmlite;
 
-DomeIOFactory::DomeIOFactory(): passwd_("default"), useIp_(true)
+DomeIOFactory::DomeIOFactory(): passwd_("default"), useIp_(true), davixPool_(&davixFactory_, 10)
 {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
   setenv("CSEC_MECH", "ID", 1);
+
 }
 
 DomeIOFactory::~DomeIOFactory()
@@ -30,7 +32,6 @@ DomeIOFactory::~DomeIOFactory()
 
 void DomeIOFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
-  std::cout << "configuring DomeIOFactory: " << key << ": " << value << std::endl;
   bool gotit = true;
   LogCfgParm(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, key, value);
 
@@ -47,20 +48,23 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
   }
+  // if parameter starts with "Davix", pass it on to the factory
+  else if( key.find("Davix") != std::string::npos) {
+    davixFactory_.configure(key, value);
+  }
   else gotit = false;
   
   if (gotit)
     LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
-   
 }
 
 IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)
 {
-  return new DomeIODriver(this->passwd_, this->useIp_);
+  return new DomeIODriver(this->passwd_, this->useIp_, davixPool_);
 }
 
-DomeIODriver::DomeIODriver(std::string passwd, bool useIp):
-  secCtx_(0), passwd_(passwd), useIp_(useIp)
+DomeIODriver::DomeIODriver(std::string passwd, bool useIp, DavixCtxPool &davixPool):
+  secCtx_(0), passwd_(passwd), useIp_(useIp), davixPool_(davixPool)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
@@ -110,7 +114,6 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
 
         throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
             this->useIp_?"IP":"DN", pfn.c_str());
-
   }
 
   // Create
@@ -133,44 +136,34 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   if (sfn.empty())
     throw DmException(EINVAL, "sfn not specified loc: %s", loc.toString().c_str());
 
-  // Need the dpm token
-  // std::string token = loc[0].url.query.getString("dpmtoken");
-  // if (token.empty())
-  //   throw DmException(EINVAL, "dpmtoken not specified loc: %s", loc.toString().c_str());
-
   // send a put done to the local dome instance
-  std::cout << "I am in doneWriting, about to send putdone to dome" << std::endl;
-  Davix::Uri uri("https://localhost/domedisk/" + sfn);
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
+  Davix::Uri uri("http://localhost/domedisk/" + sfn);
   Davix::DavixError* err = NULL;
-  DavixStuff *ds = DavixCtxPoolHolder::getDavixCtxPool().acquire();
+
+  DavixGrabber grabber(davixPool_);
+  DavixStuff *ds(grabber);
 
   Davix::PostRequest req(*ds->ctx, uri, &err);
+  req.addHeaderField("cmd", "dome_putdone");
   req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
   req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
 
   boost::property_tree::ptree jresp;
   jresp.put("pfn", loc[0].url.path);
+  jresp.put("size", loc[0].size);
 
   std::ostringstream os;
   boost::property_tree::write_json(os, jresp);
   req.setRequestBody(os.str());
+  req.executeRequest(&err);
 
-  // Workaround... putdone in this context should be invoked by root
-  // to make it work also in the cases when the client is unknown (nobody)
-
-  // FunctionWrapper<int> reset(dpm_client_resetAuthorizationId);
-  // reset();
-
-  // const char* sfnPtr[] = { sfn.c_str() };
-  // FunctionWrapper<int, char*, int, char**, int*, dpm_filestatus**>
-  //   (dpm_putdone, (char*)token.c_str(), 1, (char**)&sfnPtr, &nReplies, &statuses)(3);
-
-  // Log(Logger::Lvl2, adapterlogmask, adapterlogname, " loc:" << loc.toString() <<
-  //    " status[0]:" << (nReplies > 0 ? statuses->status : -1) <<
-  //    " errstring: '" << (statuses->errstring != NULL ? statuses->errstring : "") << "'"
-  //   );
-
-  // dpm_free_filest(nReplies, statuses);
+  if(err) {
+    throw DmException(EINVAL, "Error when talking to dome: %s", err->getErrMsg().c_str());
+  }
+  else {
+    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " request to dome successful - whoooo");
+  }
 }
 
 
@@ -180,7 +173,7 @@ DomeIOHandler::DomeIOHandler(const std::string& path,
                            int flags, mode_t mode) throw (DmException):
   eof_(false)
 {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " path:" << path);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " path:" << path << ", mode: " << mode);
 
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1) {
