@@ -802,6 +802,7 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
     }
     jresp.put(boost::property_tree::ptree::path_type(fsname+"^freespace", '^'), status.fslist[i].freespace);
     jresp.put(boost::property_tree::ptree::path_type(fsname+"^physicalsize", '^'), status.fslist[i].physicalsize);
+    jresp.put(boost::property_tree::ptree::path_type(fsname+"^activitystatus", '^'), status.fslist[i].activitystatus);
 
     if (status.role == status.roleHead) { //Only headnodes report about pools
       poolname = "poolinfo^" + status.fslist[i].poolname;

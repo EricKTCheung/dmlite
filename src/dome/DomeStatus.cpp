@@ -291,10 +291,10 @@ void DomeStatus::checkDiskSpaces() {
                 if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
                   
                   Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
-                  Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace" ) << " " << fs.second.get<long long>( "physicalsize" ));
-                  fslist[ii].freespace = fs.second.get<long long>( "freespace" );
-                  fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize" );
-                  int actst = fs.second.get<int>( "activitystatus" );
+                  Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace", 0 ) << " " << fs.second.get<long long>( "physicalsize", 0 ));
+                  fslist[ii].freespace = fs.second.get<long long>( "freespace", 0 );
+                  fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize", 0 );
+                  int actst = fs.second.get<int>( "activitystatus", 0 );
                   
                   // Clearly log the state transitions if there is one
                   if ((fslist[ii].activitystatus != (DomeFsInfo::DomeFsActivityStatus)actst) &&
