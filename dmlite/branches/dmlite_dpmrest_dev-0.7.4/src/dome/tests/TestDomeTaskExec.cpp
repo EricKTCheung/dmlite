@@ -52,4 +52,5 @@ int main () {
   testSubmitCmd(core);
   testKill(core);
   testParallel(core);
+  while(1);
 } 
