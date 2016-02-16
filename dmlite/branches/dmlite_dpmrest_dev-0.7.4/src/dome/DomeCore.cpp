@@ -193,6 +193,13 @@ void workerFunc(DomeCore *core, int myidx) {
       i++;
     }
 
+    if (!authorize) {
+      // The whitelist in the config file did not authorize
+      // Anyway this call may come from a server that was implicitly known, e.g.
+      // head node trusts all the disk nodes that are registered in the filesystem table
+      // disk node trusts head node as defined in the config file
+      authorize = core->isDNaKnownServer(dreq.clientdn);
+    }
 
     // -------------------------
     // Command dispatching
@@ -379,6 +386,8 @@ int DomeCore::init(const char *cfgfile) {
   }
 }
 
+
+
 void DomeCore::tick(int parm) {
 
   while (! this->terminationrequested ) {
@@ -386,18 +395,37 @@ void DomeCore::tick(int parm) {
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
 
-
-
     status.tick(timenow);
-
 
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
 
 }
 
+bool DNMatchesHost(std::string dn, std::string host) {
+  std::string s = "/CN="+host;
+  
+  // Simple version, if the common name appears in the dn then we are right
+  if (dn.find(s) != std::string::npos) return true;
+  
+  return false;
+}
 
-
+bool DomeCore::isDNaKnownServer(std::string dn) {
+  // We know this server if its DN matches our own hostname, it's us !
+  if (DNMatchesHost(dn, status.myhostname)) return true;
+  
+  // We know this server if its DN matches the DN of the head node
+  if (DNMatchesHost(dn, CFG->GetString("disk.headnode.domeurl", (char *)""))) return true;
+  
+  // We know this server if its DN matches the hostname of a disk server
+  for (std::set<std::string>::iterator i = status.servers.begin() ; i != status.servers.end(); i++) {
+    if (DNMatchesHost(dn, *i)) return true;
+  }
+  
+  // We don't know this server
+  return false;
+}
 
 
 

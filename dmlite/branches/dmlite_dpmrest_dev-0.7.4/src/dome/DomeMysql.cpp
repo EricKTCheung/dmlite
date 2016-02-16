@@ -246,8 +246,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   DomeFsInfo fs;
   
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT poolname, server, fs, status, weight\
-                 FROM dpm_fs"
+                 "SELECT poolname, server, fs, status FROM dpm_fs"
   );
   stmt.execute();
   
@@ -263,9 +262,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   memset(buffs, 0, sizeof(buffs));
   stmt.bindResult(2, buffs, 80);
   
-  stmt.bindResult(3, & fs.status);
-  
-  stmt.bindResult(4, & fs.weight);
+  stmt.bindResult(3, (int *)&fs.status);
   
   int cnt = 0;
   st.fslist.clear();
@@ -283,7 +280,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       fs.fs = buffs;
       
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server:" << fs.server <<
-      " fs:" << fs.fs << " st:" << fs.status << " weight:" << fs.weight << " pool:" << fs.poolname);
+      " fs:" << fs.fs << " st:" << fs.status << " pool:" << fs.poolname);
       
       st.fslist.push_back(fs);
       

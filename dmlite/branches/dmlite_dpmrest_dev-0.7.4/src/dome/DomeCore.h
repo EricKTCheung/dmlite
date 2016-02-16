@@ -105,6 +105,10 @@ public:
   bool LfnMatchesPool(std::string lfn, std::string pool);
 
   
+  // head node trusts all the disk nodes that are registered in the filesystem table
+  // disk node trusts head node as defined in the config file
+  bool isDNaKnownServer(std::string dn);
+  
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
