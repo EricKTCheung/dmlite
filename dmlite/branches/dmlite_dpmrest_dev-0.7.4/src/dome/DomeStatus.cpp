@@ -45,6 +45,7 @@ using namespace dmlite;
 
 DomeStatus::DomeStatus() {
   davixPool = NULL;
+  lastfscheck = lastreload = 0;
   
   struct addrinfo hints, *info, *p;
   int gai_result;
