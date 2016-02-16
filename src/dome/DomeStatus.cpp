@@ -78,7 +78,7 @@ DomeStatus::DomeStatus() {
   // Now get the host name of the head node
   Davix::Uri uri(CFG->GetString("disk.headnode.domeurl", (char *)""));
   headnodename = uri.getHost();
-  Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << myhostname);
+  Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << headnodename);
   
 }
 long DomeStatus::getGlobalputcount() {
@@ -120,8 +120,8 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
       total += fslist[i].physicalsize;
       free += fslist[i].freespace;
     }
-  
-  return 0;
+    
+    return 0;
 }
 
 int DomeStatus::tick(time_t timenow) {
@@ -225,7 +225,7 @@ void DomeStatus::checkDiskSpaces() {
       // https is mandatory to contact disk nodes, as they must be able to apply
       // decent authorization rules
       std::string url = "https://" + *i +
-                        CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
+      CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
       Davix::Uri uri(url);
       
       Davix::DavixError* tmp_err = NULL;
@@ -253,15 +253,15 @@ void DomeStatus::checkDiskSpaces() {
         // Here we had an error of some kind while trying to contact the disk server
         // We don't distinguish between TCP and HTTP errors, in any case we will disable the filesystems
       } else {
-      
+        
         // Here we have the response... splat its body into a ptree to parse it
         std::istringstream is(req.getAnswerContent());
-      
+        
         Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *i << " answered: '" << is.str() << "'");
-      
+        
         try {
           boost::property_tree::read_json(is, myresp);
-        
+          
         } catch (boost::property_tree::json_parser_error e) {
           Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
           continue;
@@ -288,30 +288,37 @@ void DomeStatus::checkDiskSpaces() {
             for (int ii = 0; ii < fslist.size(); ii++) {
               if (!tmp_err) {
                 Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
-                if ((fslist[ii].server == srv.first) &&
-                  (fslist[ii].fs == fs.first)) {
+                if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
                   
                   Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
-                Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace" ) << " " << fs.second.get<long long>( "physicalsize" ));
-                fslist[ii].freespace = fs.second.get<long long>( "freespace" );
-                fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize" );
-                int actst = fs.second.get<int>( "activitystatus" );
-                fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
-                  } else {
-                    // If there was some error, disable the filesystem and give a clear warning
-                    fslist[ii].activitystatus = DomeFsInfo::FsBroken;
+                  Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace" ) << " " << fs.second.get<long long>( "physicalsize" ));
+                  fslist[ii].freespace = fs.second.get<long long>( "freespace" );
+                  fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize" );
+                  int actst = fs.second.get<int>( "activitystatus" );
+                  
+                  // Clearly log the state transitions if there is one
+                  if ((fslist[ii].activitystatus != (DomeFsInfo::DomeFsActivityStatus)actst) &&
+                    ((DomeFsInfo::DomeFsActivityStatus)actst == DomeFsInfo::FsOnline) ) {
                     
-                  }
+                    Log(Logger::Lvl1, domelogmask, domelogname, "Enabling filesystem: " << fslist[ii].server << " " << fslist[ii].fs);
                   
-                  
+                    }
+                    fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
+                }
+                
+                
+              } else {
+                // If there was some error, disable the filesystem and give a clear warning
+                Err(domelogname, "Server down or other trouble. Disabling filesystem: '" << fslist[ii].server << " " << fslist[ii].fs << "'");
+                fslist[ii].activitystatus = DomeFsInfo::FsBroken;
+                
               }
-            }
-            
-            
-            
-            
-          }  
-        }
+              
+              
+            } // loop fs
+          } // foreach
+          } // foreach  
+        
         
       } // lock
       
