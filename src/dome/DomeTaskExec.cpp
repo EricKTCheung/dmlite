@@ -304,6 +304,9 @@ int DomeTaskExec::killTask(int taskID){
 		return 0;
 	   } else {
 		kill(i->second->pid, SIGKILL);
+		//close fd related to the task
+		for(int k=0; k<3; k++) 
+		    close(i->second->fd[k]);
 		Log(Logger::Lvl4, domelogmask, "killedTask", "Task " << taskID);
 		return 0;
 	   }
@@ -332,20 +335,17 @@ void DomeTaskExec::tick() {
    Log(Logger::Lvl4, domelogmask, "tick", "tick");
    map <int, DomeTask *>::iterator i;
     for( i = tasks.begin(); i != tasks.end(); ++i ) {
-            Log(Logger::Lvl3, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd);
-	    Log(Logger::Lvl3, domelogmask, "tick", "The status of the task is " << i->second->finished);
-	    Log(Logger::Lvl3, domelogmask, "tick", "StartTime " << i->second->starttime << " EndTime " << i->second->endtime);
-	    Log(Logger::Lvl3, domelogmask, "tick", "Pid " << i->second->pid << " resultcode " << i->second->resultcode);
+            Log(Logger::Lvl4, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd);
+	    Log(Logger::Lvl4, domelogmask, "tick", "The status of the task is " << i->second->finished);
+	    Log(Logger::Lvl4, domelogmask, "tick", "StartTime " << i->second->starttime << " EndTime " << i->second->endtime);
+	    Log(Logger::Lvl4, domelogmask, "tick", "Pid " << i->second->pid << " resultcode " << i->second->resultcode);
  	    time_t timenow;
 	    time(&timenow);
 
 	    //lock
 	    {
-	       //boost::lock_guard<DomeTask> l(*i->second);
-               //cannot delete task when locked TO CHECK
-               
                if (!i->second->finished && ( (i->second->starttime< (timenow - (maxruntime*1000))))) {
-			Log(Logger::Lvl3, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
+			Log(Logger::Lvl4, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
 			//we kill the task
 			killTask(i->first);
 			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " exceed maxrunnngtime");
@@ -354,7 +354,7 @@ void DomeTaskExec::tick() {
 	
     	       //check if purgetime has exceeded and clean
     	       if (i->second->finished && ( i->second->endtime < (timenow - (purgetime*1000)))) {
-			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " to purge");
+			Log(Logger::Lvl4, domelogmask, "tick", "Task with id  " << i->first << " to purge");
 			//delete the task
 			delete i->second;
 			//remove from map
