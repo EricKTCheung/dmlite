@@ -375,6 +375,13 @@ int DomeCore::init(const char *cfgfile) {
       return -1;
     }
     
+    
+    // Now get the host name of the head node
+    Davix::Uri uri(CFG->GetString("disk.headnode.domeurl", (char *)""));
+    status.headnodename = uri.getHost();
+    Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << status.headnodename);
+  
+  
     // The limits for the prio queues, get them from the cfg
     std::vector<size_t> limits;
     limits.push_back( CFG->GetLong("head.checksum.maxtotal", 10) );
