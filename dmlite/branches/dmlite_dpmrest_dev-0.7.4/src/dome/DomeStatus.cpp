@@ -215,14 +215,14 @@ void DomeStatus::checkDiskSpaces() {
     }
     
     // Contact all the servers, sequentially
-    for (std::set<std::string>::iterator i = srv.begin(); i != srv.end(); i++) {
+    for (std::set<std::string>::iterator servername = srv.begin(); servername != srv.end(); servername++) {
       
-      Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *i);
+      Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *servername);
       int errcode = 0;
       
       // https is mandatory to contact disk nodes, as they must be able to apply
       // decent authorization rules
-      std::string url = "https://" + *i +
+      std::string url = "https://" + *servername +
       CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
       Davix::Uri uri(url);
       
@@ -256,7 +256,7 @@ void DomeStatus::checkDiskSpaces() {
         // Here we have the response... splat its body into a ptree to parse it
         std::istringstream is(req.getAnswerContent());
         
-        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *i << " answered: '" << is.str() << "'");
+        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *servername << " answered: '" << is.str() << "'");
         
         try {
           boost::property_tree::read_json(is, myresp);
@@ -273,19 +273,20 @@ void DomeStatus::checkDiskSpaces() {
         
         // Loop through the server names, childs of fsinfo
         
-        BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
-          // v.first is the name of the server.
-          // v.second is the child tree representing the server
-          
-          // Now we loop through the filesystems reported by this server
-          BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+        if (!tmp_err) {
+          BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
             // v.first is the name of the server.
             // v.second is the child tree representing the server
             
-            // Find the corresponding server:fs info in our array, and get the counters
-            Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
-            for (int ii = 0; ii < fslist.size(); ii++) {
-              if (!tmp_err) {
+            // Now we loop through the filesystems reported by this server
+            BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+              // v.first is the name of the server.
+              // v.second is the child tree representing the server
+              
+              // Find the corresponding server:fs info in our array, and get the counters
+              Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
+              for (int ii = 0; ii < fslist.size(); ii++) {
+                
                 Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
                 if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
                   
@@ -306,17 +307,27 @@ void DomeStatus::checkDiskSpaces() {
                 }
                 
                 
-              } else {
-                // If there was some error, disable the filesystem and give a clear warning
-                Err(domelogname, "Server down or other trouble. Disabling filesystem: '" << fslist[ii].server << " " << fslist[ii].fs << "'");
-                fslist[ii].activitystatus = DomeFsInfo::FsBroken;
                 
-              }
-              
-              
-            } // loop fs
-          } // foreach
+                
+              } // loop fs
+            } // foreach
           } // foreach  
+        } // if tmp_err
+        
+        else {
+          // The communication with the server had problems
+          // Disable all the filesystems belonging to that server
+          Log(Logger::Lvl4, domelogmask, domelogname, "Disabling filesystems for server '" << *servername << "'");
+          for (int ii = 0; ii < fslist.size(); ii++) {
+            if (fslist[ii].server == *servername) {
+              // If there was some error, disable the filesystem and give a clear warning
+              Err(domelogname, "Server down or other trouble. Disabling filesystem: '" << fslist[ii].server << " " << fslist[ii].fs << "'");
+              fslist[ii].activitystatus = DomeFsInfo::FsBroken;
+            }
+            
+          } // loop fs
+          
+        } // if tmp_err
         
         
       } // lock
