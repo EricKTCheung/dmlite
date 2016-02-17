@@ -174,7 +174,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
         
         // Take only pools that are associated to the lfn parent dirs
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) ) 
+        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() ) 
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -212,7 +212,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
     if ( !selectedfss.size() ) {
       // Error!
-      return DomeReq::SendSimpleResp(request, 501, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN.");
+      return DomeReq::SendSimpleResp(request, 501, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
     }
     
     // Remove the filesystems that have less then the minimum free space available
