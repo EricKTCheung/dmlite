@@ -76,11 +76,6 @@ DomeStatus::DomeStatus() {
   
   Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
   
-  // Now get the host name of the head node
-  Davix::Uri uri(CFG->GetString("disk.headnode.domeurl", (char *)""));
-  headnodename = uri.getHost();
-  Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << headnodename);
-  
 }
 long DomeStatus::getGlobalputcount() {
   boost::unique_lock<boost::recursive_mutex> l(*this);
