@@ -170,7 +170,7 @@ void workerFunc(DomeCore *core, int myidx) {
     // -------------------------
     
     int i = 0;
-    bool authorize;
+    bool authorize = false;
     while (true) {
       
       char buf[1024];
