@@ -163,6 +163,7 @@ public:
   /// Helper function that reloads all the quotas from the DB
   int loadQuotatokens();
 
+  /// Calculates the total space for the given pool and the free space on the disks that belong to it
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
   
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
