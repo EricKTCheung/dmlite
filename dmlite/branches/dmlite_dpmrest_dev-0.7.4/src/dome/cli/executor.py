@@ -7,11 +7,12 @@ class DomeExecutor(object):
 	'''It invokes the method via Davix CLI'''
 	def __init__(self):
 		self.baseArgs = ["davix-http", "-k","--cert", "/etc/grid-security/hostcert.pem","--key", "/etc/grid-security/hostkey.pem"]
-	def putdone(self, lfn, clientDN, clientAddress,pfn,server):
+	def putDone(self, url,lfn, clientDN, clientAddress,pfn,server):
         	args = self.baseArgs
                 args.append("-X")
                 args.append("POST")
-		args.append(lfn)
+		url = url + lfn
+		args.append(url)
 		args = self.addClient(args,clientDN ,clientAddress)
 		args.append("-H")
 		args.append(quote('cmd: dome_putdone'))
@@ -21,15 +22,41 @@ class DomeExecutor(object):
 		data['server'] = server
 		args.append(quote(json.dumps(data)))
 		self.executeDavix(args)
-	def put(self, lfn, clientDN, clientAddress):
+	def put(self,url,lfn, clientDN, clientAddress):
 		args = self.baseArgs
 		args.append("-X")
 		args.append("PUT")
-		args.append(lfn)
+		url = url + lfn
+		args.append(url)
 		args = self.addClient(args,clientDN ,clientAddress)
 		args.append("--data")
 		args.append(quote("{}"))
 		self.executeDavix(args)
+	def getSpaceInfo(self,url, clientDN, clientAddress):
+		args = self.baseArgs
+		args.append("-X")
+		args.append("GET")
+		args.append(url+"/dome")
+		args = self.addClient(args,clientDN ,clientAddress)
+		args.append("-H")
+	 	args.append(quote('cmd: dome_getspaceinfo'))
+		args.append("--data")
+                args.append(quote("{}"))
+                self.executeDavix(args)
+	def statPool(self,url, pool, clientDN, clientAddress):
+		args = self.baseArgs
+                args.append("-X")
+                args.append("GET")
+                args.append(url+"/dome")
+                args = self.addClient(args,clientDN ,clientAddress)
+                args.append("-H")
+                args.append(quote('cmd: dome_statpool'))
+                args.append("--data")
+		data = {}
+		data['poolname']=pool
+                args.append(quote(json.dumps(data)))
+                self.executeDavix(args)
+
 	def executeDavix(self,args):
 		args = (' ').join(args)
 		print args

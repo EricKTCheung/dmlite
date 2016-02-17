@@ -1,0 +1,14 @@
+PUT:
+./dome.py -e put --url https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/andrea12
+
+PUTDONE:
+./dome.py -e putdone --url https://domedisk-trunk.cern.ch/domedisk --lfn /dpm/cern.ch/home/dteam/andrea9 --pfn  /data/dteam/2016-02-17/andrea9.45.1455722844 --server domedisk-trunk.cern.ch
+
+GETSPACEINFO:
+./dome.py -e getspaceinfo -u https://domehead-trunk.cern.ch/domehead
+
+./dome.py -e getspaceinfo -u https://domedisk-trunk.cern.ch/domedisk
+
+STATPOOL
+./dome.py -e statpool -u https://domehead-trunk.cern.ch/domehead --pool pool01
+
