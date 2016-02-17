@@ -232,6 +232,8 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_chksumstatus(dreq, request);
         } else if(dreq.domecmd == "dome_getdirspaces") {
           core->dome_getdirspaces(dreq, request);
+        }else if(dreq.domecmd == "dome_getquotatoken") {
+          core->dome_getquotatoken(dreq, request);
         }
         else
           if ( dreq.domecmd == "dome_statpool" ) {
