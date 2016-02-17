@@ -418,8 +418,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( stat(pfn.c_str(), &st) ) {
     std::ostringstream os;
     char errbuf[1024];
-    strerror_r(errno, errbuf, 1023);
-    os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << errbuf;
+    os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 501, os);
   }
