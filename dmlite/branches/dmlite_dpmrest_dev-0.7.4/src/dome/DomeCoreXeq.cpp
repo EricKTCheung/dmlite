@@ -271,7 +271,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       os << "Unable to get vo name from the lfn: " << lfn;
           
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 501, os);      
+      return DomeReq::SendSimpleResp(request, 422, os);      
     }
     
     
@@ -1271,7 +1271,20 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   // Get the used space for this path
   long long pathused = 0LL;
   long long pathfree = 0L;
-  
+  DmlitePoolHandler stack(dmpool);
+  try {
+    struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
+    pathused = st.stat.st_size;
+  }
+  catch (dmlite::DmException e) {
+    std::ostringstream os;
+    os << "Cannot find logical path: " << absPath;
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os); 
+    
+  }
+
   // Get the ones that match the object of the query
   
   boost::property_tree::ptree jresp;
