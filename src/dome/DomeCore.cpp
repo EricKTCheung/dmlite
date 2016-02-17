@@ -491,7 +491,7 @@ bool DomeCore::isDNaKnownServer(std::string dn) {
   if (DNMatchesHost(dn, status.myhostname)) return true;
   
   // We know this server if its DN matches the DN of the head node
-  if (DNMatchesHost(dn, CFG->GetString("disk.headnode.domeurl", (char *)""))) return true;
+  if (DNMatchesHost(dn, status.headnodename)) return true;
   
   // We know this server if its DN matches the hostname of a disk server
   for (std::set<std::string>::iterator i = status.servers.begin() ; i != status.servers.end(); i++) {
