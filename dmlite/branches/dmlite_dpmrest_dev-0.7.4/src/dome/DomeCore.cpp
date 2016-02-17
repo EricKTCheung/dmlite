@@ -177,8 +177,8 @@ void workerFunc(DomeCore *core, int myidx) {
       char *dn = buf;
       CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
       if ( !buf[0] ) {
-        // If there ar eno directives at all then this service is open to every dn
-        if (i == 0) authorize = true;
+        // If there ar eno directives at all then this service is closed
+        if (i == 0) authorize = false;
         break;
       }
       
