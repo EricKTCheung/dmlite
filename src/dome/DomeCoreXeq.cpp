@@ -377,7 +377,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( !pfn.length() ) {
     std::ostringstream os;
     os << "Invalid pfn: '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
 
   // Please note that the server field can be empty
@@ -385,7 +385,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   
   // Now the optional ones for basic sanity
@@ -393,14 +393,14 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   
   }
   
@@ -420,7 +420,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     char errbuf[1024];
     os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 404, os);
   }
   
   Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
@@ -432,13 +432,12 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   
   // Now forward the request to the head node
   Log(Logger::Lvl1, domelogmask, domelogname, " Forwarding to headnode. server: '" << server << "' pfn: '" << pfn << "' "
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
-  
   
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + req.object;
   Davix::Uri url(domeurl);
@@ -452,7 +451,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 500, os);
   } 
   
   req2.addHeaderField("cmd", "dome_putdone");
@@ -482,7 +481,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     
     
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 500, os);
   }
   
   // The request has been successfully forwarded to the headnode
@@ -519,17 +518,17 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   if ( !pfn.length() ) {
     std::ostringstream os;
     os << "Invalid pfn: '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   if ( !server.length() ) {
     std::ostringstream os;
     os << "Invalid server: '" << server << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   if ( size <= 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   
   // Now the optional ones for basic sanity
@@ -537,14 +536,14 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
   
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   
   }
   
@@ -561,7 +560,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 404, os);
   }
   
   if (rep.status != dmlite::Replica::kBeingPopulated) {
@@ -570,7 +569,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Invalid status for replica '"<< rfn << "'";
       
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
     
   }
   
@@ -582,7 +581,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
@@ -599,7 +598,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       std::ostringstream os;
       os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 501, os);
+      return DomeReq::SendSimpleResp(request, 500, os);
     } 
   
     req2.addHeaderField("cmd", "dome_stat");
@@ -627,14 +626,14 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       Err(domelogname, os.str());
     
     
-      return DomeReq::SendSimpleResp(request, 501, os);
+      return DomeReq::SendSimpleResp(request, errcode, os);
     }
     
     if (!req2.getAnswerContent()) {
       std::ostringstream os;
       os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 501, os);
+      return DomeReq::SendSimpleResp(request, 404, os);
     }
     
     // The stat towards the dsk server was successful. Take the size
@@ -682,7 +681,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
       
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 501, os);
+    return DomeReq::SendSimpleResp(request, 500, os);
   }
   
   // If the checksum of the main entry is different, just output a bad warning in the log
@@ -832,9 +831,6 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   return rc;
 };
 
-int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {};
 
 static bool str_to_bool(std::string str) {
   bool value = false;
@@ -983,10 +979,10 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     bool updateLfnChecksum = str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
 
     if(chksumtype == "") {
-      return DomeReq::SendSimpleResp(request, 400, "checksum-type cannot be empty.");
+      return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
     }
     if(pfn == "") {
-      return DomeReq::SendSimpleResp(request, 400, "pfn cannot be empty.");
+      return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
     }
 
     GenPrioQueueItem::QStatus qstatus;
@@ -998,7 +994,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
       qstatus = GenPrioQueueItem::Finished;
     }
     else {
-      return DomeReq::SendSimpleResp(request, 400, "The status provided is not recognized.");
+      return DomeReq::SendSimpleResp(request, 422, "The status provided is not recognized.");
     }
 
     // modify the queue as needed
@@ -1058,9 +1054,6 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
 }
 
-int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_get(DomeReq &req, FCGX_Request &request) {};
-int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request) {};
 int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
   int rc = 0;
@@ -1068,8 +1061,8 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
   if (status.role == status.roleDisk) { // Only headnodes report about pools
     std::ostringstream os;
-    os << "I am a disk node. Only head nodes know pools.";
-    return DomeReq::SendSimpleResp(request, 500, os);
+    os << "I am a disk node and don't know what a pool is. Only head nodes know pools.";
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
 
   std::string pn = req.bodyfields.get("poolname", "");
@@ -1134,8 +1127,8 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   std::string absPath =  req.bodyfields.get<std::string>("path", "");
   if ( !absPath.size() ) {
     std::ostringstream os;
-    os << "Path '" << absPath << "' not found.";
-    return DomeReq::SendSimpleResp(request, 404, os);
+    os << "Path '" << absPath << "' is empty.";
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
 
   // Make sure it's an absolute lfn path
@@ -1226,6 +1219,22 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
 
 
+int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
+int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
+
+int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request)  {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
   
@@ -1243,5 +1252,82 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
   
+  
+};
+
+
+int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
+  
+  
+  // Remove any trailing slash
+  std::string absPath = req.object;
+  while (absPath[ absPath.size()-1 ] == '/') {
+    absPath.erase(absPath.size() - 1);
+  }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
+  bool getsubdirs = req.bodyfields.get<bool>("getsubdirs", false);
+  
+  // Get the used space for this path
+  long long pathused = 0LL;
+  long long pathfree = 0L;
+  
+  // Get the ones that match the object of the query
+  
+  boost::property_tree::ptree jresp;
+  int cnt = 0;
+  
+  
+  for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
+    
+    // If the path of this quotatoken matches...
+    size_t pos = req.object.find(it->second.path);
+    if ( (pos != std::string::npos) && (pos == 0) && (req.object[it->second.path.length()-1] == '/')) {
+      
+      if ( !getsubdirs && (it->second.path.length() <  req.object.length()) ) continue;
+      
+      // Now find the free space in the mentioned pool
+      long long ptot, pfree;
+      status.getPoolSpaces(it->second.poolname, ptot, pfree);
+      
+      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : pathused < ptot - pathused );
+      if (pathfree < 0) pathfree = 0;
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
+      it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
+      " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
+      
+      boost::property_tree::ptree pt;
+      pt.put("path", it->second.path);
+      pt.put("quotatkname", it->second.u_token);
+      pt.put("quotatkpoolname", it->second.poolname);
+      pt.put("quotatktotspace", it->second.t_space);
+      pt.put("pooltotspace", ptot);
+      pt.put("pathusedspace", pathused);
+      pt.put("pathfreespace", pathfree);
+      
+      jresp.push_back(std::make_pair("", pt));
+      cnt++;
+    } // if
+  } // for
+  
+  
+  if (cnt > 0) {
+    std::ostringstream os;
+    boost::property_tree::write_json(os, jresp);
+    return DomeReq::SendSimpleResp(request, 200, os);
+  }
+  
+  return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << req.object << "'"));
+  
+};
+int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+};
+int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
+  
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
 };
