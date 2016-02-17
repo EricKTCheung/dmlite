@@ -212,7 +212,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
     if ( !selectedfss.size() ) {
       // Error!
-      return DomeReq::SendSimpleResp(request, 501, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
+      return DomeReq::SendSimpleResp(request, 400, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
     }
     
     // Remove the filesystems that have less then the minimum free space available
@@ -227,7 +227,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // If no filesystems remain, return error "filesystems full for path ..."
     if ( !selectedfss.size() ) {
       // Error!
-      return DomeReq::SendSimpleResp(request, 501, "All matching filesystems are full.");
+      return DomeReq::SendSimpleResp(request, 400, "All matching filesystems are full.");
     }
     
     // Sort the selected filesystems by decreasing free space
@@ -1294,10 +1294,10 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
     
     // If the path of this quotatoken matches...
-    size_t pos = req.object.find(it->second.path);
-    if ( (pos != std::string::npos) && (pos == 0) && (req.object[it->second.path.length()-1] == '/')) {
+    size_t pos = it->second.path.find(req.object);
+    if ( pos == 0 ) {
       
-      if ( !getsubdirs && (it->second.path.length() <  req.object.length()) ) continue;
+      if ( !getsubdirs && (it->second.path.length() < req.object.length()) ) continue;
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
