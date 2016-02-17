@@ -9,8 +9,7 @@ class DomeExecutor(object):
 		self.baseArgs = ["davix-http", "-k","--cert", "/etc/grid-security/hostcert.pem","--key", "/etc/grid-security/hostkey.pem"]
 	def putDone(self, url,lfn, clientDN, clientAddress,pfn,server):
         	args = self.baseArgs
-                args.append("-X")
-                args.append("POST")
+                args.append("-X POST")
 		url = url + lfn
 		args.append(url)
 		args = self.addClient(args,clientDN ,clientAddress)
@@ -24,8 +23,7 @@ class DomeExecutor(object):
 		self.executeDavix(args)
 	def put(self,url,lfn, clientDN, clientAddress):
 		args = self.baseArgs
-		args.append("-X")
-		args.append("PUT")
+		args.append("-X PUT")
 		url = url + lfn
 		args.append(url)
 		args = self.addClient(args,clientDN ,clientAddress)
@@ -34,8 +32,7 @@ class DomeExecutor(object):
 		self.executeDavix(args)
 	def getSpaceInfo(self,url, clientDN, clientAddress):
 		args = self.baseArgs
-		args.append("-X")
-		args.append("GET")
+		args.append("-X GET")
 		args.append(url+"/dome")
 		args = self.addClient(args,clientDN ,clientAddress)
 		args.append("-H")
@@ -45,8 +42,7 @@ class DomeExecutor(object):
                 self.executeDavix(args)
 	def statPool(self,url, pool, clientDN, clientAddress):
 		args = self.baseArgs
-                args.append("-X")
-                args.append("GET")
+                args.append("-X GET")
                 args.append(url+"/dome")
                 args = self.addClient(args,clientDN ,clientAddress)
                 args.append("-H")
@@ -56,7 +52,6 @@ class DomeExecutor(object):
 		data['poolname']=pool
                 args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
-
 	def executeDavix(self,args):
 		args = (' ').join(args)
 		print args

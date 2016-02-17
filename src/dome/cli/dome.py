@@ -14,7 +14,7 @@ def main():
     # parse options
     parser = OptionParser("%prog [options]")
     parser.add_option("-e", "--execute", dest="execute", help="execute the given command", default = False)
-    parser.add_option("-u", "--url", dest="url", help="the base url to contact", default = False)
+    parser.add_option("-u", "--url", dest="url", help="the base url to contact", default = '')
     parser.add_option("--lfn", dest="lfn", help="the lfn", default = '')
     parser.add_option("--pfn", dest="pfn", help="the pfn", default = '')
     parser.add_option("--pool", dest="pool", help="the pool", default = '')
@@ -33,12 +33,6 @@ def main():
                         sys.exit(1)
 		if not options.lfn:
 			print "Please specify the LFN  via --lfn option"
-			sys.exit(1)
-		if not options.clientDN:
-			print "Please specify the client DN via the --clientDN option"
-			sys.exit(1)
-		if not options.clientAddr:
-        	        print "Please specify the client Address via the --clientAddr option"
 			sys.exit(1)
 		executor.put(options.url,options.lfn, options.clientDN, options.clientAddr)
 	elif options.execute == 'putdone':
