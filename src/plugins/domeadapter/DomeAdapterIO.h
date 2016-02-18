@@ -22,6 +22,7 @@ namespace dmlite {
   private:
     std::string passwd_;
     bool        useIp_;
+    std::string domedisk_;
 
     DavixCtxFactory davixFactory_;
     DavixCtxPool davixPool_;
@@ -29,7 +30,7 @@ namespace dmlite {
 
  class DomeIODriver: public IODriver {
    public:
-    DomeIODriver(std::string passwd, bool useIp, DavixCtxPool &davixPool);
+    DomeIODriver(std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool);
     virtual ~DomeIODriver();
 
     std::string getImplId() const throw();
@@ -50,6 +51,7 @@ namespace dmlite {
     bool        useIp_;
 
     DavixCtxPool &davixPool_;
+    std::string domedisk_;
   };
 
 
