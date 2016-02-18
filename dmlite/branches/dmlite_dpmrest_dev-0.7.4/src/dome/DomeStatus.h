@@ -163,6 +163,9 @@ public:
   /// Helper function that reloads all the quotas from the DB
   int loadQuotatokens();
 
+  /// Helper function that inserts a quotatoken or overwrites an existing one
+  int insertQuotatoken(DomeQuotatoken &tk);
+  
   /// Calculates the total space for the given pool and the free space on the disks that belong to it
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
   

@@ -31,7 +31,7 @@
 
 
 class DomeStatus;
-
+class DomeQuotatoken;
 
 
 
@@ -59,6 +59,9 @@ public:
   
   /// Loads the defined filesystems, parses them into server names, etc.
   int getFilesystems(DomeStatus &st);
+  
+  /// Adds or overwrites a quotatoken
+  int setQuotatoken(DomeQuotatoken &qtk);
   
 protected:
   // The corresponding factory.

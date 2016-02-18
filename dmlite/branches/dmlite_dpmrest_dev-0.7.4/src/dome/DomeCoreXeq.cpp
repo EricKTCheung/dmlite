@@ -1343,9 +1343,34 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
 };
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  DomeQuotatoken mytk;
   
+  mytk.path = req.bodyfields.get("path", "");
+  // Remove any trailing slash
+  while (mytk.path[ mytk.path.size()-1 ] == '/') {
+    mytk.path.erase(mytk.path.size() - 1);
+  }
+  
+  mytk.poolname = req.bodyfields.get("poolname", "");
+  mytk.rowid = 0;
+  mytk.t_space = req.bodyfields.get("t_space", 0LL);
+  mytk.u_token = req.bodyfields.get("u_token", "");
+  
+  // First we write into the db, if it goes well then we update the internal map
+  DomeMySql sql;
+  int rc =  sql.setQuotatoken(mytk);
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot write quotatoken into the DB. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+    return 1;
+  }
+  
+  status.insertQuotatoken(mytk);
+  return 0;    
 };
+
+
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
   
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
