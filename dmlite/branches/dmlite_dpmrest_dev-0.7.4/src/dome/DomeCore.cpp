@@ -277,6 +277,9 @@ void workerFunc(DomeCore *core, int myidx) {
             core->dome_putdone_disk(dreq, request);
           
         }
+        else if ( dreq.domecmd == "dome_setquotatoken" ) {
+          core->dome_setquotatoken(dreq, request);
+        }
         else {
           FCGX_FPrintF(request.out,
                        "Content-type: text/html\r\n"
