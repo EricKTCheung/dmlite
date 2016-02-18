@@ -1292,7 +1292,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
-    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << req.object << "' getsubdirs: " << getsubdirs);
     // If the path of this quotatoken matches...
     size_t pos = it->second.path.find(req.object);
     if ( pos == 0 ) {
