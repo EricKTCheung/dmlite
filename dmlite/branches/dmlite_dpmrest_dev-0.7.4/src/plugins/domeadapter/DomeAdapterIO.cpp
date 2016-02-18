@@ -48,8 +48,12 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
     setenv("DPM_HOST", value.c_str(), 1);
     setenv("DPNS_HOST", value.c_str(), 1);
   }
+  else if (key == "DomeDisk") {
+    domedisk_ = value;
+  }
   // if parameter starts with "Davix", pass it on to the factory
   else if( key.find("Davix") != std::string::npos) {
+    Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Received davix pool parameter: " << key << "," << value);
     davixFactory_.configure(key, value);
   }
   else gotit = false;
@@ -60,11 +64,11 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
 
 IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)
 {
-  return new DomeIODriver(this->passwd_, this->useIp_, davixPool_);
+  return new DomeIODriver(passwd_, useIp_, domedisk_, davixPool_);
 }
 
-DomeIODriver::DomeIODriver(std::string passwd, bool useIp, DavixCtxPool &davixPool):
-  secCtx_(0), passwd_(passwd), useIp_(useIp), davixPool_(davixPool)
+DomeIODriver::DomeIODriver(std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool):
+  secCtx_(0), passwd_(passwd), useIp_(useIp), domedisk_(domedisk), davixPool_(davixPool)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
@@ -138,8 +142,8 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 
   // send a put done to the local dome instance
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
-  Davix::Uri uri("http://localhost/domedisk/" + sfn);
-  Davix::DavixError* err = NULL;
+  Davix::Uri uri(domedisk_ + sfn);
+  Davix::DavixError *err = NULL;
 
   DavixGrabber grabber(davixPool_);
   DavixStuff *ds(grabber);
@@ -155,11 +159,12 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 
   std::ostringstream os;
   boost::property_tree::write_json(os, jresp);
+  req.setParameters(*ds->parms);
   req.setRequestBody(os.str());
   req.executeRequest(&err);
 
   if(err) {
-    throw DmException(EINVAL, "Error when talking to dome: %s", err->getErrMsg().c_str());
+    throw DmException(EINVAL, "Error when forwarding putdone to headnode: %s", err->getErrMsg().c_str());
   }
   else {
     Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " request to dome successful - whoooo");

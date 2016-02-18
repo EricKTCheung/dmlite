@@ -40,7 +40,7 @@
 using namespace dmlite;
 
 // Logger stuff
-Logger::bitmask dmlite::davixpoollogmask = 0;
+Logger::bitmask dmlite::davixpoollogmask = ~0;
 Logger::component dmlite::davixpoollogname = "DavixPool";
 
 // -----------------------------------------
@@ -92,8 +92,8 @@ void DavixCtxFactory::configure(const std::string &key, const std::string &value
   }
 
   // should I load certificate and key?
-  if(key == "DavixCertPath" || key == "DavixPrivateKeyPath" &&
-     !davix_cert_path.empty() && !davix_privkey_path.empty()) {
+  if( (key == "DavixCertPath" || key == "DavixPrivateKeyPath") &&
+     (!davix_cert_path.empty() && !davix_privkey_path.empty()) ) {
 
      Davix::X509Credential cred;
      Davix::DavixError* tmp_err = NULL;
