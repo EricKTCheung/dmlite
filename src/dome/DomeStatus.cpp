@@ -105,6 +105,29 @@ int DomeStatus::loadQuotatokens() {
   return sql.getSpacesQuotas(*this);
 }
 
+
+int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
+
+   boost::unique_lock<boost::recursive_mutex> l(*this);
+    
+    // Insert this quota, by overwriting any other quota that has the same path and same pool
+    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+    myintv = quotas.equal_range(mytk.path);
+      
+    for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
+       it != myintv.second;
+       ++it) {   
+          if (it->second.poolname == mytk.poolname) {
+            quotas.erase(it);
+            break;
+          }
+        }
+        
+    quotas.insert( std::pair<std::string, DomeQuotatoken>(mytk.path, mytk) );
+    
+    return 0;
+}
+
 int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free) {
   total = 0LL;
   free = 0LL;

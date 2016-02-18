@@ -201,8 +201,6 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
         
     while ( stmt.fetch() ) {
   
-      boost::unique_lock<boost::recursive_mutex> l(st);
-      
       
       qt.u_token = buf1;
       qt.path = buf2;
@@ -211,21 +209,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid <<
       " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname << "' path:" << qt.path);
       
-      // Insert this quota, by overwriting any other quota that has the same path and same pool
-      std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
-      myintv = st.quotas.equal_range(qt.path);
-      
-        for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
-              it!=myintv.second;
-              ++it) {
-          
-          if (it->second.poolname == qt.poolname) {
-            st.quotas.erase(it);
-            break;
-          }
-        }
-        
-      st.quotas.insert( std::pair<std::string, DomeQuotatoken>(qt.path, qt) );
+      st.insertQuotatoken(qt);
       
       cnt++;
     }
@@ -237,6 +221,62 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
 }
 
 
+int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+    " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+  
+  // First try updating it. Makes sense just to overwrite description, space and pool
+  Statement stmt(conn_, "dpm_db", 
+                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? , poolname = ? \
+                  WHERE path = ?");
+  
+  bool ok = true;
+  try {
+    stmt.execute();
+  }
+  catch ( ... ) { ok = false; }
+  
+  // If updating the spacetk failed then we try adding a brand new one
+  if (!ok) {
+    
+    Statement stmt(conn_, "dpm_db", 
+       "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
+        ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
+        poolname, assign_time, expire_time, groups, path\
+        VALUES (\
+        uuid(), ?, 0, 0,\
+        '_', 0, '-', ?, ?, ?, ?,\
+        ?, ?, ?, '', ?\
+        )" );
+        
+    time_t timenow, exptime;
+    timenow = time(0);
+    exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
+    
+    stmt.bindParam(0, "rightfullyunknown");
+    stmt.bindParam(1, qtk.u_token);
+    stmt.bindParam(2, qtk.t_space);
+    stmt.bindParam(3, qtk.t_space);
+    stmt.bindParam(4, qtk.t_space);
+    stmt.bindParam(5, qtk.poolname);
+    stmt.bindParam(6, timenow);
+    stmt.bindParam(7, exptime);
+    stmt.bindParam(8, qtk.path);
+    
+    try {
+      stmt.execute();
+    }
+    catch ( dmlite::DmException e ) {
+      Err( domelogname, "Could not set quotatoken u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' err:" << e.code() << " what: " << e.what() );
+      return 1;
+    }
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+  
+}
 
 
 
