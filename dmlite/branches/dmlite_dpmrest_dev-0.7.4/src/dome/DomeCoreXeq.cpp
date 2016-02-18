@@ -1292,12 +1292,19 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
-    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << req.object << "' getsubdirs: " << getsubdirs);
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getsubdirs: " << getsubdirs);
     // If the path of this quotatoken matches...
-    size_t pos = it->second.path.find(req.object);
+    size_t pos = it->second.path.find(absPath);
     if ( pos == 0 ) {
       
-      if ( !getsubdirs && (it->second.path.length() < req.object.length()) ) continue;
+      // If the query is longer than the tk then it's obviously not matching
+      if (absPath.length() > it->second.path.length()) continue;
+      
+      // If we don't want to list the subdirs then proceed only if the tk we are checking is longer or equal than the query
+      if ( !getsubdirs && (it->second.path.length() < absPath.length()) ) continue;
+      
+      // If the lengths are the same, then there should be a slash in the right place in the tk for it to be a subdir
+      if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()-1] != '/') ) continue;
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
@@ -1331,7 +1338,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 200, os);
   }
   
-  return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << req.object << "'"));
+  return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << absPath << "'"));
   
 };
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
