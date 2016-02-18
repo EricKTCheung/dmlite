@@ -195,6 +195,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   memset(buf2, 0, sizeof(buf2));
   stmt.bindResult(4, buf2, 256);
   
+
   int cnt = 0;
   try {
         

@@ -1304,7 +1304,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       if ( !getsubdirs && (it->second.path.length() < absPath.length()) ) continue;
       
       // If the lengths are the same, then there should be a slash in the right place in the tk for it to be a subdir
-      if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()-1] != '/') ) continue;
+      if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
