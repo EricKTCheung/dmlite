@@ -131,6 +131,7 @@ int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
 int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free) {
   total = 0LL;
   free = 0LL;
+  bool rc = 1;
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
   // Loop over the filesystems and just sum the numbers
@@ -138,10 +139,25 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
     if (fslist[i].poolname == poolname) {
       total += fslist[i].physicalsize;
       free += fslist[i].freespace;
+      rc = 0;
     }
     
-    return 0;
+  return rc;
 }
+
+bool DomeStatus::existsPool(std::string &poolname) {
+  
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  // Loop over the filesystems and just sum the numbers
+  for (int i = 0; i < fslist.size(); i++)
+    if (fslist[i].poolname == poolname) {
+      return true;
+    }
+    
+  return false;
+}
+
 
 int DomeStatus::tick(time_t timenow) {
   

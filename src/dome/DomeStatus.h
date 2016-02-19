@@ -170,7 +170,11 @@ public:
   int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
   
   /// Calculates the total space for the given pool and the free space on the disks that belong to it
+  /// Returns zero if pool was found, nonzero otherwise
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
+  
+  /// Tells if a pool with the given name exists
+  bool existsPool(std::string &poolname);
   
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns

@@ -1349,6 +1349,16 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   mytk.path = req.bodyfields.get("path", "");
   mytk.poolname = req.bodyfields.get("poolname", "");
   
+  if (!status.existsPool(mytk.poolname)) {
+    std::ostringstream os;
+    os << "Cannot find pool: '" << mytk.poolname << "'";
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os); 
+    
+  }
+    
+  
   // Remove any trailing slash
   while (mytk.path[ mytk.path.size()-1 ] == '/') {
     mytk.path.erase(mytk.path.size() - 1);
