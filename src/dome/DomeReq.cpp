@@ -126,5 +126,5 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   FCGX_PutS(body.c_str(), request.out);
   if (rc <= 0) return rc;
 
-  Log(Logger::Lvl3, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << body << "'");
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
 }

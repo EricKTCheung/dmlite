@@ -282,17 +282,22 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
   
   // First try updating it. Makes sense just to overwrite description, space and pool
   Statement stmt(conn_, "dpm_db", 
-                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? \
+                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? , g_space = ? , u_space = ?\
                   WHERE path = ? AND poolname = ?");
   
   stmt.bindParam(0, qtk.u_token);
   stmt.bindParam(1, qtk.t_space);
-  stmt.bindParam(2, qtk.path);
-  stmt.bindParam(3, qtk.poolname);
+  stmt.bindParam(2, qtk.t_space);
+  stmt.bindParam(3, qtk.t_space);
+  stmt.bindParam(4, qtk.path);
+  stmt.bindParam(5, qtk.poolname);
   
   bool ok = true;
+  long unsigned int nrows;
   try {
-    stmt.execute();
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
   }
   catch ( ... ) { ok = false; }
   
@@ -324,7 +329,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
     stmt.bindParam(8, qtk.path);
     
     try {
-      stmt.execute();
+      nrows = stmt.execute();
     }
     catch ( dmlite::DmException e ) {
       Err( domelogname, "Could not set quotatoken u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
@@ -334,7 +339,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
-      " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
   
   return 0;
 }
