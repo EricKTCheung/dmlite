@@ -1235,8 +1235,13 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     ptree jresp;
 
     for(size_t i = 0; i < replicas.size(); i++) {
+      // give only path as pfn
+      std::string rfn = replicas[i].rfn;
+      std::string pfn = rfn.substr(rfn.find(":"), rfn.size());
+
       jresp.put(ptree::path_type(SSTR(i << "^host"), '^'), replicas[i].server);
-      jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), replicas[i].rfn);
+      jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), pfn);
+      jresp.put(ptree::path_type(SSTR(i << "^filesystem"), '^'), replicas[i].getString("filesystem"));
     }
 
     return DomeReq::SendSimpleResp(request, 200, jresp);
