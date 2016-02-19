@@ -90,6 +90,8 @@ int DomeMySql::begin()
   
   this->transactionLevel_++;
   Log(Logger::Lvl3, domelogmask, fname, "Transaction started");
+  
+  return 0;
 }
 
 
@@ -133,6 +135,7 @@ int DomeMySql::commit()
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
+  return 0;
 }
 
 
@@ -166,6 +169,7 @@ int DomeMySql::rollback()
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
+  return 0;
 }
 
 
@@ -276,11 +280,11 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
 }
 
 
-int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
+int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
   
-  // First try updating it. Makes sense just to overwrite description, space and pool
+  // First try updating it. Makes sense just to overwrite only description, space and pool
   Statement stmt(conn_, "dpm_db", 
                  "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? , g_space = ? , u_space = ?\
                   WHERE path = ? AND poolname = ?");
@@ -301,7 +305,8 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
   }
   catch ( ... ) { ok = false; }
   
-  // If updating the spacetk failed then we try adding a brand new one
+  // If updating the spacetk failed then we try adding a brand new one. In this case we also write the clientid,
+  // and we initialize the other fields with default values.
   if (!ok) {
     
     Statement stmt(conn_, "dpm_db", 
@@ -318,7 +323,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
     timenow = time(0);
     exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
     
-    stmt.bindParam(0, "rightfullyunknown");
+    stmt.bindParam(0, clientid);
     stmt.bindParam(1, qtk.u_token);
     stmt.bindParam(2, qtk.t_space);
     stmt.bindParam(3, qtk.t_space);
@@ -328,17 +333,27 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
     stmt.bindParam(7, exptime);
     stmt.bindParam(8, qtk.path);
     
+    ok = true;
+    nrows = 0;
     try {
-      nrows = stmt.execute();
+      // If no rows are affected then we should insert
+      if ( (nrows = stmt.execute() == 0) )
+        ok = false;
+      
     }
     catch ( dmlite::DmException e ) {
-      Err( domelogname, "Could not set quotatoken u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
-      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' err:" << e.code() << " what: " << e.what() );
-      return 1;
+      ok = false;
+      
     }
   }
   
-  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+  if (!ok) {
+    Err( domelogname, "Could not set quotatoken u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows );
+      return 1;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
       " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
   
   return 0;
@@ -358,7 +373,6 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   stmt.execute();
   
   char bufpoolname[1024], bufserver[1024], buffs[1024];
-  int status;
   
   memset(bufpoolname, 0, sizeof(bufpoolname));
   stmt.bindResult(0, bufpoolname, 16);

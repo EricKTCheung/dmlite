@@ -64,7 +64,7 @@ public:
   int getFilesystems(DomeStatus &st);
   
   /// Adds or overwrites a quotatoken
-  int setQuotatoken(DomeQuotatoken &qtk);
+  int setQuotatoken(DomeQuotatoken &qtk, std::string clientid);
   
 protected:
   // The corresponding factory.
