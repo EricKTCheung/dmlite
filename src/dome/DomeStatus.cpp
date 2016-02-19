@@ -395,8 +395,8 @@ int DomeStatus::getQuotatoken(const std::string &path, const std::string &poolna
   myintv = quotas.equal_range(path);
   
   
-  for (std::multimap<std::string, DomeQuotatoken>::iterator it = quotas.begin();
-       it != quotas.end();
+  for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
+       it != myintv.second;
        ++it) {
     
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << path );
