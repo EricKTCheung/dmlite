@@ -1409,7 +1409,10 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   {
   DomeMySql sql;
   DomeMySqlTrans  t(&sql);
-  rc =  sql.setQuotatoken(mytk);
+  std::string clientid = req.remoteclientdn;
+  if (clientid.size() == 0) clientid = req.clientdn;
+  if (clientid.size() == 0) clientid = "(unknown)";
+  rc =  sql.setQuotatoken(mytk, clientid);
   if (!rc) t.Commit();
   }
   
