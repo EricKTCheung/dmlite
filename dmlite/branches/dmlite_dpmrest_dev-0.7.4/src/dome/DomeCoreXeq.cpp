@@ -1367,6 +1367,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
     
   }
   
+
   // We fetch the values that we may have in the internal map, using the keys
   if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
@@ -1378,8 +1379,12 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   mytk.u_token = req.bodyfields.get("u_token", "(unnamed)");
   
   // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
   DomeMySql sql;
-  int rc =  sql.setQuotatoken(mytk);
+  DomeMySqlTrans  t(&sql);
+  rc =  sql.setQuotatoken(mytk);
+  }
   
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot write quotatoken into the DB. poolname: '" << mytk.poolname
