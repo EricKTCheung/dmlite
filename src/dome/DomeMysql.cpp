@@ -285,8 +285,10 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
                  "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? \
                   WHERE path = ? AND poolname = ?");
   
-  stmt.bindParam(0, qtk.path);
-  stmt.bindParam(1, qtk.poolname);
+  stmt.bindParam(0, qtk.u_token);
+  stmt.bindParam(1, qtk.t_space);
+  stmt.bindParam(2, qtk.path);
+  stmt.bindParam(3, qtk.poolname);
   
   bool ok = true;
   try {
