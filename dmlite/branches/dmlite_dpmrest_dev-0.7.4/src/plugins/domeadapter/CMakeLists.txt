@@ -2,7 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 
 add_library (domeadapter MODULE DomeAdapter.cpp
 								DomeAdapterCatalog.cpp
-                DomeAdapterIO.cpp)
+                DomeAdapterIO.cpp
+                DomeAdapterPools.cpp)
 
 include_directories (${DAVIX_PKG_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 

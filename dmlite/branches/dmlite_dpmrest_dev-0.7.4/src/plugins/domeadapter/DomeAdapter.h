@@ -25,6 +25,7 @@ namespace dmlite {
     Authn*   createAuthn  (PluginManager*)  throw (DmException);
     //PoolContainer<int> *getPool() {return &connectionPool_;}
   };
+
 }
 
 
