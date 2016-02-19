@@ -302,7 +302,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
     Statement stmt(conn_, "dpm_db", 
        "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
         ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
-        poolname, assign_time, expire_time, groups, path\
+        poolname, assign_time, expire_time, groups, path)\
         VALUES (\
         uuid(), ?, 0, 0,\
         '_', 0, '-', ?, ?, ?, ?,\

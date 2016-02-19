@@ -1394,7 +1394,9 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   }
   
   status.insertQuotatoken(mytk);
-  return 0;
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken written. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+
 };
 
 
