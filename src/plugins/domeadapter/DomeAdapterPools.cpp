@@ -196,13 +196,14 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
 
 // }
 
-Location DomeAdapterPoolManager::whereToRead (const std::string& path) throw (DmException) {
+Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
+{
 
 }
 
-Location DomeAdapterPoolManager::whereToRead (ino_t inode)             throw (DmException) {
+// Location DomeAdapterPoolManager::whereToRead (ino_t inode)             throw (DmException) {
 
-}
+// }
 
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException) 
 {
@@ -211,7 +212,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 
   Davix::DavixError *err = NULL;
   Davix::Uri uri(factory_->domehead + "/" + path);
-  Davix::GetRequest req(*ds->ctx, uri, &err);
+  Davix::PostRequest req(*ds->ctx, uri, &err);
   req.addHeaderField("cmd", "dome_put");
   req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
   req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
@@ -230,9 +231,24 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
     throw DmException(EINVAL, "Error when sending dome_put to headnode: %s", err->getErrMsg().c_str());
    }
 
+  // parse json response
   std::vector<char> body = req.getAnswerContentVec();
-  std::cout << &body[0] << std::endl;
+  boost::property_tree::ptree jresp = parseJSON(&body[0]);
 
+  try {
+    std::string host = jresp.get<std::string>("host");
+    std::string pfn = jresp.get<std::string>("pfn");
+    std::string url = host + ":" + pfn;
+
+    Chunk chunk(url, 0, 0);
+    Location loc;
+    loc.push_back(chunk);
+    return loc;
+  }
+  catch(boost::property_tree::ptree_bad_path &e) {
+    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Unable to interpret dome_put response:" << &body[0]);
+    throw DmException(EINVAL, " Unable to interpret dome_put response: %s", &body[0]);
+  }
 }
 
 // void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException) {
