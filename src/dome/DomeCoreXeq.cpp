@@ -1384,6 +1384,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   DomeMySql sql;
   DomeMySqlTrans  t(&sql);
   rc =  sql.setQuotatoken(mytk);
+  if (!rc) t.Commit();
   }
   
   if (rc) {
