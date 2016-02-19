@@ -17,6 +17,7 @@ set(Dome_SOURCES #dpmrest.cpp
                  ../utils/MySqlWrapper.cpp
                  ../utils/Config.cc)
 
+set ( CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX__FLAGS}" )
 add_library           (libdome STATIC ${Dome_SOURCES})
 target_link_libraries (libdome fcgi ${DAVIX_PKG_LIBRARIES} ${MYSQL_LIBRARIES} ${Boost_LIBRARIES} crypto dmlite pthread dl)
 set_target_properties (libdome PROPERTIES PREFIX "") # fixes liblib issue

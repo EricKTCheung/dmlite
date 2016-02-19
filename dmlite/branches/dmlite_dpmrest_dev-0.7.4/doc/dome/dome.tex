@@ -538,21 +538,28 @@ Params:\\
 Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 \begin{itemize}
  \item a sequence of :
- \subitem Path: the logical path a quota token is referring to
- \subitem NBytes: Value set for it
- \subitem NBytes: Used space in that path
+ \subitem path: the logical path a quota token is referring to
+ \subitem quotatkname: Human readable name for the quota
+ \subitem quotatkpoolname: The pool that serves this quotatoken
+ \subitem quotatktotspace: The max number of bytes that anyone will
+ be allowed to write into this path if there is enough free space in the pool.
+ \subitem pooltotspace: total space on the assigned pool
+ \subitem pathusedspace: how much space is occupied by files in that path
+ \subitem pathfreespace: how much data one could still write into that path
 \end{itemize}
 
 \subsubsection{dome\_setquotatoken}
-Sets or create a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+Sets or create a quota token, using the path prefix and the poolname as a key. The path prefix must be an existing directory, the poolname should be the name of an existing pool.
 
 Command:
 \lstinline"POST /dome/path"\\
 Request header:\\
-\lstinline"cmd=dome\_getquotatoken"\\
+\lstinline"cmd=dome\_setquotatoken"\\
 Params:
 \begin{itemize}
+ \item path:
  \item NBytes: Value set for it
+ \item 
 \end{itemize}
 
 Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota being set exceeds the size of the directory subtree it refers to, DOME will set the quota anyway, and give a warning in the body of the response. The result will be that noone will be able to write in that subtree until a sufficient number of files is removed.\\
