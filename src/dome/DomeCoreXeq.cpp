@@ -170,7 +170,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // Loop on the filesystems and take the ones that match
     // The filesystems must be writable and working
 
-    for (int i = 0; i < status.fslist.size(); i++) {
+    for (unsigned int i = 0; i < status.fslist.size(); i++) {
       if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
         
         // Take only pools that are associated to the lfn parent dirs
@@ -237,12 +237,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
     // Nice algorithm taken from http://stackoverflow.com/questions/1761626/weighted-random-numbers#1761646
     long sum_of_weight = 0;  
     int fspos = 0;
-    for (int i = 0; i < selectedfss.size(); i++) {
+    for (unsigned int i = 0; i < selectedfss.size(); i++) {
       sum_of_weight += (selectedfss[i].freespace >> 20);
     }
     // RAND_MAX is sufficiently big for this purpose
     int rnd = random() % sum_of_weight;
-    for(int i=0; i < selectedfss.size(); i++) {
+    for(unsigned int i=0; i < selectedfss.size(); i++) {
       if(rnd < (selectedfss[i].freespace >> 20)) {
         fspos = i;
         break;
@@ -414,7 +414,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     " on disk.");
   
   struct stat st;
-  int rc;
+
   if ( stat(pfn.c_str(), &st) ) {
     std::ostringstream os;
     char errbuf[1024];
@@ -428,7 +428,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   
   if (size == 0) size = st.st_size;
   
-  if ( size != st.st_size ) {
+  if ( (unsigned)size != st.st_size ) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
     Err(domelogname, os.str());
@@ -725,7 +725,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     
     ino_t hierarchy[128];
     size_t hierarchysz[128];
-    int idx = 0;
+    unsigned int idx = 0;
     while (st.parent) {
       
       Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
@@ -786,7 +786,7 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
 
 
   boost::property_tree::ptree jresp;
-  for (int i = 0; i < status.fslist.size(); i++) {
+  for (unsigned int i = 0; i < status.fslist.size(); i++) {
     std::string fsname, poolname;
     boost::property_tree::ptree top;
 
@@ -1079,7 +1079,7 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
   status.getPoolSpaces(pn, tot, free);
 
   boost::property_tree::ptree jresp;
-  for (int i = 0; i < status.fslist.size(); i++)
+  for (unsigned int i = 0; i < status.fslist.size(); i++)
     if (status.fslist[i].poolname == pn) {
       std::string fsname, poolname;
       boost::property_tree::ptree top;
@@ -1346,15 +1346,39 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   DomeQuotatoken mytk;
   
   mytk.path = req.bodyfields.get("path", "");
+  mytk.poolname = req.bodyfields.get("poolname", "");
+  
   // Remove any trailing slash
   while (mytk.path[ mytk.path.size()-1 ] == '/') {
     mytk.path.erase(mytk.path.size() - 1);
   }
   
-  mytk.poolname = req.bodyfields.get("poolname", "");
-  mytk.rowid = 0;
+  DmlitePoolHandler stack(dmpool);
+  try {
+    struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(mytk.path);
+  }
+  catch (dmlite::DmException e) {
+    std::ostringstream os;
+    os << "Cannot find logical path: '" << mytk.path << "'";
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os); 
+    
+  }
+  
+  // We fetch the values that we may have in the internal map, using the keys
+  if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
+    std::ostringstream os;
+    os << "No quotatoken found for pool: '" <<
+      mytk.path << "' path '" << mytk.path << "'";
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 422, os);
+    
+  }
+  
   mytk.t_space = req.bodyfields.get("t_space", 0LL);
-  mytk.u_token = req.bodyfields.get("u_token", "");
+  mytk.u_token = req.bodyfields.get("u_token", "(unnamed)");
   
   // First we write into the db, if it goes well then we update the internal map
   DomeMySql sql;

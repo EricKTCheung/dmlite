@@ -33,7 +33,6 @@
 #include <unistd.h>
 
 DomeCore::DomeCore() {
-  const char *fname = "DomeCore::ctor";
   domelogmask = Logger::get()->getMask(domelogname);
   //Info(Logger::Lvl1, fname, "Ctor " << dmlite_MAJOR <<"." << dmlite_MINOR << "." << dmlite_PATCH);
   initdone = false;
@@ -42,7 +41,7 @@ DomeCore::DomeCore() {
 
 DomeCore::~DomeCore() {
   // Interrupt accept and worker threads
-  for (int i = 0; i < workers.size(); i++) {
+  for (unsigned int i = 0; i < workers.size(); i++) {
     workers[i]->interrupt();
   }
   
@@ -50,7 +49,7 @@ DomeCore::~DomeCore() {
   FCGX_ShutdownPending();
   
   // Join workers
-  for (int i = 0; i < workers.size(); i++) {
+  for (unsigned int i = 0; i < workers.size(); i++) {
     Log(Logger::Lvl1, domelogmask, domelogname, "Joining worker " << i);
     workers[i]->join();
   }
@@ -126,7 +125,7 @@ void workerFunc(DomeCore *core, int myidx) {
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " started");
   
-  int rc, i = 0;
+  int rc;
   
   
   FCGX_Request request;

@@ -168,6 +168,61 @@ int DomeMySql::rollback()
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
 }
 
+
+
+int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
+{
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
+  char buf1[1024], buf2[1024], buf3[1024];
+  
+  // Get it from the DB, using path and poolname as keys
+  Statement stmt(conn_, "dpm_db", 
+                 "SELECT rowid, u_token, t_space, poolname, path\
+                 FROM dpm_space_reserv WHERE path = ? AND poolname = ?"
+  );
+  
+  stmt.bindParam(0, qtk.path);
+  stmt.bindParam(1, qtk.poolname);
+  stmt.execute();
+  
+  stmt.bindResult(0, &qtk.rowid);
+  
+  memset(buf1, 0, sizeof(buf1));
+  stmt.bindResult(1, buf1, 256);
+  
+  stmt.bindResult(2, &qtk.t_space);
+  
+  memset(buf3, 0, sizeof(buf3));
+  stmt.bindResult(3, buf3, 16);
+  
+  memset(buf2, 0, sizeof(buf2));
+  stmt.bindResult(4, buf2, 256);
+
+  int cnt = 0;
+  try {
+        
+    while ( stmt.fetch() ) {
+  
+      
+      qtk.u_token = buf1;
+      qtk.path = buf2;
+      qtk.poolname = buf3;
+      
+      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid <<
+      " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path);
+      
+      cnt++;
+    }
+  }
+  catch ( ... ) {}
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
+  return cnt;
+}
+
+
+
 int DomeMySql::getSpacesQuotas(DomeStatus &st)
 {
   
@@ -200,7 +255,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   try {
         
     while ( stmt.fetch() ) {
-  
+      boost::unique_lock<boost::recursive_mutex> l(st);
       
       qt.u_token = buf1;
       qt.path = buf2;
@@ -227,8 +282,11 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
   
   // First try updating it. Makes sense just to overwrite description, space and pool
   Statement stmt(conn_, "dpm_db", 
-                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? , poolname = ? \
-                  WHERE path = ?");
+                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? \
+                  WHERE path = ? AND poolname = ?");
+  
+  stmt.bindParam(0, qtk.path);
+  stmt.bindParam(1, qtk.poolname);
   
   bool ok = true;
   try {
