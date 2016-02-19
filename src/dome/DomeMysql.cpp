@@ -276,6 +276,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk) {
   Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
       " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
   
+  return 0;
 }
 
 
