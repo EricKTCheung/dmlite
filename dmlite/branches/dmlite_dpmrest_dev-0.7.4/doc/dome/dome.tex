@@ -391,7 +391,9 @@ The IP address of the original client that submitted the request.
 initiates a replica upload. The client is given a location where to write the replica (redirection)
 
 Command:
-\lstinline"PUT /dome/<logical file path>"\\
+\lstinline"POST /dome/<logical file path>"\\
+Request header:\\
+\lstinline"cmd=dome_put"\\
 Params:
 \begin{itemize}
  \item lfn: logical file name of the entry
@@ -424,7 +426,7 @@ If the local checks are passed, the request is forwarded automatically to the in
 Command:
 \lstinline"POST /dome/<logical file path>"\\
 Request header:\\
-\lstinline"cmd=dome\_putdone"\\
+\lstinline"cmd=dome_putdone"\\
 
 Params:
 \begin{itemize}
@@ -445,7 +447,7 @@ Returns total and free space information for all the pools and filesystems at on
 Command:
 \lstinline"GET /dome/"\\
 Request header:\\
-\lstinline"cmd=dome\_getspaceinfo"\\
+\lstinline"cmd=dome_getspaceinfo"\\
 Params:
 \begin{itemize}
  \item 
@@ -529,7 +531,7 @@ It also returns the space that is still available for each of the quota tokens l
 Command:\\
 \lstinline"GET /dome/path[*]"\\
 Request header:\\
-\lstinline"cmd=dome\_getquotatoken"\\
+\lstinline"cmd=dome_getquotatoken"\\
 Params:\\
 \begin{itemize}
  \item
@@ -554,7 +556,7 @@ Sets or create a quota token, using the path prefix and the poolname as a key. T
 Command:
 \lstinline"POST /dome/path"\\
 Request header:\\
-\lstinline"cmd=dome\_setquotatoken"\\
+\lstinline"cmd=dome_setquotatoken"\\
 Params:
 \begin{itemize}
  \item path: the logical path a quota token is referring to
@@ -574,7 +576,7 @@ Deletes a quota token, using the path prefix as a key. The path prefix must be a
 Command:
 \lstinline"POST /dome/path"\\
 Request header:\\
-\lstinline"cmd=dome\_delquotatoken"\\
+\lstinline"cmd=dome_delquotatoken"\\
 Params:\\
 
 Returns:
@@ -591,7 +593,7 @@ Computes used/free space for a path. The path must be an existing directory.
 Command:
 \lstinline"GET /dome/path"\\
 Request header:\\
-\lstinline"cmd=dome\_getdirspaces"\\
+\lstinline"cmd=dome_getdirspaces"\\
 Params:\\
 
 Returns:
@@ -610,7 +612,7 @@ Returns:
 Command:
 \lstinline"GET /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome\_chksum"\\
+\lstinline"cmd=dome_chksum"\\
 Params:
 \begin{itemize}
  \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
@@ -652,7 +654,7 @@ This is also used as a sort of heartbeat to notify the head node about checksum 
 Command:
 \lstinline"POST /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome\_chksumdone"\\
+\lstinline"cmd=dome_chksumdone"\\
 Params:
 \begin{itemize}
  \item ChecksumType: Kind of checksum that was requested (e.g. adler32, MD5, etc...)
@@ -695,7 +697,7 @@ The result may be 'pending' if the file is being pulled.
 Command:
 \lstinline"GET /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome\_get"\\
+\lstinline"cmd=dome_get"\\
 Params:
 \begin{itemize}
  \item Canpull: true|false|yes|no|0|nonzero
@@ -714,7 +716,7 @@ This notification is usually sent by a disk server
 Command:
 \lstinline"POST /dome"\\
 Request header:\\
-\lstinline"cmd=dome\_pulldone"\\
+\lstinline"cmd=dome_pulldone"\\
 Params:
 \begin{itemize}
  \item Host: server name
@@ -733,7 +735,7 @@ Gets total and free space information for one pool
 
 \lstinline"GET /dome"\\
 Request header:\\
-\lstinline"cmd=dome\_statpool"\\
+\lstinline"cmd=dome_statpool"\\
 Params:
 \begin{itemize}
  \item \textbf{poolname}: pool name to stat
@@ -800,7 +802,7 @@ The invokation of these primitives must be properly authenticated through URL to
  Command:
 \lstinline"GET /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome\_dochksum"\\
+\lstinline"cmd=dome_dochksum"\\
 Params:
 \begin{itemize}
  \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
@@ -822,7 +824,7 @@ Returns: 200 or various errors if the calculation process cannot be started.
 Command:
 \lstinline"GET /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome\_pull"\\
+\lstinline"cmd=dome_pull"\\
 Params:
 \begin{itemize}
  \item Pfn: Physical filename
@@ -837,7 +839,7 @@ Retrieves the stat information on a physical file\\
 Command:
 \lstinline"GET /dome"\\
 Request header:\\
-\lstinline"cmd=dome\_statpfn"\\
+\lstinline"cmd=dome_statpfn"\\
 Params:
 \begin{itemize}
  \item pfn: path to the physical file. The prefix must match an existing filesystem. The prefix can be restricted by the config option statfs.restrictpfx[]

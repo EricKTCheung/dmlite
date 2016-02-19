@@ -1217,17 +1217,33 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
 }
 
-
-
 int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {
   
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
 };
 int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
-  
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
-  
+  // Currently just returns a list of all replicas
+  // TODO Implement support for CANPULL once we get into file pulls
+
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+
+  DmlitePoolHandler stack(dmpool);
+  try {
+    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
+    using boost::property_tree::ptree;
+    ptree jresp;
+
+    for(size_t i = 0; i < replicas.size(); i++) {
+      jresp.put(ptree::path_type(SSTR(i << "^host"), '^'), replicas[i].server);
+      jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), replicas[i].rfn);
+    }
+
+    return DomeReq::SendSimpleResp(request, 200, jresp);
+  }
+  catch (dmlite::DmException e) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("dmlite exception, file not found? -- " << e.what()));
+  }
 };
 
 int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request)  {
