@@ -557,13 +557,16 @@ Request header:\\
 \lstinline"cmd=dome\_setquotatoken"\\
 Params:
 \begin{itemize}
- \item path:
- \item NBytes: Value set for it
- \item 
+ \item path: the logical path a quota token is referring to
+ \item poolname: the pool that will host the replicas that are written into paths associated to this quotatoken
+ \item quotaspace: the maximum number of bytes that the subtree rooted at path can acquire through write operations
+ \item description: a human readable description, e.g. ATLASSCRATCH
 \end{itemize}
 
 Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota being set exceeds the size of the directory subtree it refers to, DOME will set the quota anyway, and give a warning in the body of the response. The result will be that noone will be able to write in that subtree until a sufficient number of files is removed.\\
 
+A file write is accounted in the directory tree that contains the logical file name. A quotatoken must be assigned to one of the parent directories to tell DOME which pool the physical write should be directed to.
+At the same time, the quotatoken will also set a limit (quota) to the maximum number of bytes that can be written.
 
 \subsubsection{dome\_delquotatoken}
 Deletes a quota token, using the path prefix as a key. The path prefix must be an existing directory.
@@ -949,9 +952,9 @@ Default value: 10\\
 When contacting other servers with http/rest, use the provided timeout value.
 \subsubsection{glb.restclient.ops\_timeout}
 When contacting other servers with http/rest, use the provided timeout value.
-\subsubsection{glb.restclient.ssl_check}
+\subsubsection{glb.restclient.ssl\_check}
 If false, the ssl certificate authority check is not enforced.
-\subsubsection{glb.restclient.ca_path}
+\subsubsection{glb.restclient.ca\_path}
 Path containing the certificate authority files
 \subsubsection{glb.restclient.cli\_certificate}
 When contacting other servers with http/rest, use the provided identity/certificate. Normally the host certificate or a service certificate.
