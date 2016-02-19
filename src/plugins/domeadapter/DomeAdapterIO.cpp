@@ -164,11 +164,10 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   req.executeRequest(&err);
 
   if(err) {
-    throw DmException(EINVAL, "Error when forwarding putdone to headnode: %s", err->getErrMsg().c_str());
+    throw DmException(EINVAL, "Error when sending putdone to disknode: %s", err->getErrMsg().c_str());
   }
-  else {
-    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " request to dome successful - whoooo");
-  }
+
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "doneWriting was successful - putdone sent to domedisk");
 }
 
 
@@ -178,7 +177,7 @@ DomeIOHandler::DomeIOHandler(const std::string& path,
                            int flags, mode_t mode) throw (DmException):
   eof_(false)
 {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " path:" << path << ", mode: " << mode);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " path:" << path << ", flags: " << flags << ", mode: " << mode);
 
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1) {
