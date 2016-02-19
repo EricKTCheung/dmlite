@@ -1370,7 +1370,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
     os << "No quotatoken found for pool: '" <<
-      mytk.path << "' path '" << mytk.path << "'";
+      mytk.poolname << "' path '" << mytk.path << "'";
     
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 422, os);
