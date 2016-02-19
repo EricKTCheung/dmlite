@@ -263,13 +263,11 @@ void workerFunc(DomeCore *core, int myidx) {
                      "\r\n"
                      "You sent me a HEAD request. Nice, eh ?\r\n");
         
-      } else if(dreq.verb == "PUT"){ 
-        
-        core->dome_put(dreq, request);
-        
-        
       } else if(dreq.verb == "POST"){ 
-        if ( dreq.domecmd == "dome_putdone" ) {
+        if ( dreq.domecmd == "dome_put" ) {
+          core->dome_put(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_putdone" ) {
           
           if(core->status.role == core->status.roleHead)
             core->dome_putdone_head(dreq, request);
