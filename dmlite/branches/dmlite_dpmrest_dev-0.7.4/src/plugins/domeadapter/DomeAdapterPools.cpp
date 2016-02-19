@@ -198,11 +198,52 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
+  DavixGrabber grabber(factory_->davixPool_);
+  DavixStuff *ds(grabber);
 
+  Davix::DavixError *err = NULL;
+  Davix::Uri uri(factory_->domehead + "/" + path);
+  Davix::GetRequest req(*ds->ctx, uri, &err);
+  req.addHeaderField("cmd", "dome_get");
+  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
+  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+
+  req.setParameters(*ds->parms);
+  req.executeRequest(&err);
+
+  if(err) {
+    throw DmException(EINVAL, "Error when sending dome_get to headnode: %s", err->getErrMsg().c_str());
+   }
+
+  // parse json response
+  std::vector<char> body = req.getAnswerContentVec();
+  boost::property_tree::ptree jresp = parseJSON(&body[0]);
+  std::cout << &body[0] << std::endl;
+
+  try {
+    Location loc;
+
+    // extract pools
+    using boost::property_tree::ptree;
+
+    ptree::const_iterator begin = jresp.begin();
+    ptree::const_iterator end = jresp.end();
+    for(ptree::const_iterator it = begin; it != end; it++) {
+      std::string host = it->second.get<std::string>("host");
+      std::string pfn = it->second.get<std::string>("pfn");
+
+      Chunk chunk(host + ":" + pfn, 0, 0);
+      loc.push_back(chunk);
+    }
+    return loc;
+  }
+  catch(boost::property_tree::ptree_bad_path &e) {
+    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Unable to interpret dome_get response:" << &body[0]);
+    throw DmException(EINVAL, " Unable to interpret dome_get response: %s", &body[0]);
+  }
 }
 
 // Location DomeAdapterPoolManager::whereToRead (ino_t inode)             throw (DmException) {
-
 // }
 
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException) 
