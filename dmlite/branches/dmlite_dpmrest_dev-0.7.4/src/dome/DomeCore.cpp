@@ -114,7 +114,7 @@ bool DomeCore::LfnMatchesPool(std::string lfn, std::string pool) {
     size_t pos = lfn1.rfind("/");
     lfn1.erase(pos);
   }
-  return true;
+  return false;
   
 }
 
