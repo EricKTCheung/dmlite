@@ -1331,7 +1331,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       long long ptot, pfree;
       status.getPoolSpaces(it->second.poolname, ptot, pfree);
       
-      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : pathused < ptot - pathused );
+      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
       if (pathfree < 0) pathfree = 0;
       
       Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
