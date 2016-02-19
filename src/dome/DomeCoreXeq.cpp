@@ -41,7 +41,7 @@
 #include "utils/checksums.h"
 #include "utils/DavixPool.h"
 
-#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
+
 
 
 using namespace dmlite;
