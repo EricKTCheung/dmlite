@@ -1375,8 +1375,8 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
       mytk.poolname << "' path '" << mytk.path << "'. Creating new one.");   
   }
   
-  mytk.t_space = req.bodyfields.get("t_space", 0LL);
-  mytk.u_token = req.bodyfields.get("u_token", "(unnamed)");
+  mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
+  mytk.u_token = req.bodyfields.get("description", "(unnamed)");
   
   // First we write into the db, if it goes well then we update the internal map
   int rc;
