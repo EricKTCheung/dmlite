@@ -254,7 +254,8 @@ void workerFunc(DomeCore *core, int myidx) {
                 
               }
               
-            }
+            } else
+              DomeReq::SendSimpleResp(request, 418, SSTR("Yeah, I like your style."));
             
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
         FCGX_FPrintF(request.out,
