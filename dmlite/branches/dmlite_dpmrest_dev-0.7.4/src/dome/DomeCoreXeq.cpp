@@ -1342,6 +1342,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
 };
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
   
   DomeQuotatoken mytk;
   
@@ -1369,12 +1370,8 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   // We fetch the values that we may have in the internal map, using the keys
   if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
-    os << "No quotatoken found for pool: '" <<
-      mytk.poolname << "' path '" << mytk.path << "'";
-    
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 422, os);
-    
+    Log(Logger::Lvl1, domelogmask, domelogname, "No quotatoken found for pool: '" <<
+      mytk.poolname << "' path '" << mytk.path << "'. Creating new one.");   
   }
   
   mytk.t_space = req.bodyfields.get("t_space", 0LL);
@@ -1391,7 +1388,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   }
   
   status.insertQuotatoken(mytk);
-  return 0;    
+  return 0;
 };
 
 
