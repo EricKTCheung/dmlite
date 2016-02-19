@@ -166,6 +166,9 @@ public:
   /// Helper function that inserts a quotatoken or overwrites an existing one
   int insertQuotatoken(DomeQuotatoken &tk);
   
+  /// Helper function that gets a quotatoken given the keys
+  int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
+  
   /// Calculates the total space for the given pool and the free space on the disks that belong to it
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
   

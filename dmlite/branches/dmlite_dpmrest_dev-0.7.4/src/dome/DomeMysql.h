@@ -54,10 +54,13 @@ public:
   
   // All the helper primitives are here, for quick usage
   
-  /// Loads spaces and quotas into a status. Thread safe.
+  /// Loads spaces and quotas into the given status. Thread safe.
   int getSpacesQuotas(DomeStatus &st);
   
-  /// Loads the defined filesystems, parses them into server names, etc.
+  /// Load from the DB, matching the given poolname and path
+  int getQuotaTokenByKeys(DomeQuotatoken &qtk);
+  
+  /// Loads the defined filesystems, parses them into server names, etc. into the status
   int getFilesystems(DomeStatus &st);
   
   /// Adds or overwrites a quotatoken
