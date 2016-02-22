@@ -1135,7 +1135,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   if (absPath[0] != '/')  {
     std::ostringstream os;
     os << "Path '" << absPath << "' is not an absolute path.";
-    return DomeReq::SendSimpleResp(request, 404, os);
+    return DomeReq::SendSimpleResp(request, 422, os);
   }
 
   // Remove any trailing slash
@@ -1439,3 +1439,160 @@ int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
 };
+
+int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
+  
+  if (status.role != status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "pfnrm only available on disk nodes");
+  }
+  
+  std::string absPath =  req.bodyfields.get<std::string>("pfn", "");
+  if (!absPath.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is empty."));
+  }
+  
+  if (absPath[0] != '/') {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not an absolute path."));
+  }
+  
+  // Remove any trailing slash
+  while (absPath[ absPath.size()-1 ] == '/') {
+    absPath.erase(absPath.size() - 1);
+  }
+  
+  if (!PfnMatchesAnyFS(status.myhostname, absPath)) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is not avalid pfn."));
+  }
+  
+  // OK, remove directly on disk
+  
+  // This is not a high perf function, so we can afford one stat call
+  struct stat st;
+  int rc = stat(absPath.c_str(), &st);
+  if (rc) {
+    if (errno == ENOENT) {
+      return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful. The file or dir was not there anyway."));
+    }
+    
+    char errbuf[1024];
+    return DomeReq::SendSimpleResp(request, 224, SSTR("Rm failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+  }
+  
+  if (S_ISDIR(st.st_mode)) {
+    int rc = rmdir(absPath.c_str());
+    if (rc) {
+      char errbuf[1024];
+      return DomeReq::SendSimpleResp(request, 224, SSTR("Rm of a directory failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+    }
+  
+  }
+  else {
+  int rc = unlink(absPath.c_str());
+  if (rc) {
+      char errbuf[1024];
+      return DomeReq::SendSimpleResp(request, 224, SSTR("Rm of a file failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+    }
+  }
+  
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful."));
+}
+
+int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_delreplica only available on head nodes.");
+  }
+   
+  std::string absPath =  req.bodyfields.get<std::string>("pfn", "");
+  std::string srv =  req.bodyfields.get<std::string>("server", "");
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " srv: '" << srv << "' pfn: '" << absPath << "' ");
+  
+  if (!absPath.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is empty."));
+  }
+  if (!srv.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Server name '" << srv << "' is empty."));
+  }
+  
+  if (absPath[0] != '/') {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not an absolute path."));
+  }
+  
+  // Remove any trailing slash
+  while (absPath[ absPath.size()-1 ] == '/') {
+    absPath.erase(absPath.size() - 1);
+  }
+  
+  if (!PfnMatchesAnyFS(srv, absPath)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not a valid pfn for server '" << srv << "'"));
+  }
+  
+  
+  // Get the replica. Unfortunately to delete it we must first fetch it
+  DmlitePoolHandler stack(dmpool);
+  std::string rfiopath = srv + ":" + absPath;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Getting replica: '" << rfiopath);
+  dmlite::Replica rep;
+  try {
+    rep = stack->getCatalog()->getReplicaByRFN(absPath);
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();  
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  // We fetched it, which means that many things are fine.
+  // Now delete the physical file
+  std::string diskurl = "https://" + srv + "/domedisk/";
+  Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching to disk node: '" << diskurl);
+  Davix::Uri durl(diskurl);
+
+  Davix::DavixError* tmp_err = NULL;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
+  Davix::PostRequest req2(*(ds->ctx), durl, &tmp_err);
+  if( tmp_err ) {
+    std::ostringstream os;
+    os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 500, os);
+  }
+  req2.addHeaderField("cmd", "dome_pfnrm");
+  req2.addHeaderField("pfn", absPath);
+  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+  std::ostringstream os;
+  boost::property_tree::write_json(os, req.bodyfields);
+  req2.setRequestBody(os.str());
+      
+  // Set the dome timeout values for the operation
+  req2.setParameters(*(ds->parms));
+      
+  if (req2.executeRequest(&tmp_err) != 0) {
+    // The error must be propagated to the response, in clear readable text
+    std::ostringstream os;
+    int errcode = req2.getRequestCode();
+    if (tmp_err)
+      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+    else
+      os << "Cannot execute cmd_pfnrm to head node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode;
+    
+    Err(domelogname, os.str());    
+    return DomeReq::SendSimpleResp(request, 500, os);
+  }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
+  // And now remove the replica
+  try {
+    stack->getCatalog()->deleteReplica(rep);
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();  
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
+}
+
