@@ -279,7 +279,6 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   return cnt;
 }
 
-
 int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
@@ -354,6 +353,41 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
+  
+  return 0;
+}
+
+
+
+int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+    " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+  
+  // First try updating it. Makes sense just to overwrite only description, space and pool
+  Statement stmt(conn_, "dpm_db", 
+                 "DELETE FROM dpm_space_reserv\
+                  WHERE path = ? AND poolname = ?");
+  stmt.bindParam(0, qtk.path);
+  stmt.bindParam(1, qtk.poolname);
+  
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  
+  if (!ok) {
+    Err( domelogname, "Could not delete quotatoken from DB. u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows );
+      return 1;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken deleted. u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
       " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
   
   return 0;

@@ -169,6 +169,9 @@ public:
   /// Helper function that gets a quotatoken given the keys
   int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
   
+  /// Helper function that deletes a quotatoken given the keys
+  int delQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
+  
   /// Calculates the total space for the given pool and the free space on the disks that belong to it
   /// Returns zero if pool was found, nonzero otherwise
   int getPoolSpaces(std::string &poolname, long long &total, long long &free);
