@@ -46,7 +46,7 @@ void GenPrioQueueItem::update(std::string name, GenPrioQueueItem::QStatus st, in
 
 GenPrioQueue::GenPrioQueue(int timeoutsecs, std::vector<size_t> qualifiercountlimits): timeout(timeoutsecs),limits(qualifiercountlimits) {
   // populate the active structure
-  for(int i = 0; i < limits.size(); i++) {
+  for(unsigned int i = 0; i < limits.size(); i++) {
     active.push_back(std::map<std::string, size_t>());
   }
 }
@@ -136,14 +136,14 @@ void GenPrioQueue::removeFromWaiting(GenPrioQueueItem_ptr item) {
 
 // this function makes no checks if the limits are violated - it is intentional
 void GenPrioQueue::addToRunning(GenPrioQueueItem_ptr item) {
-  for(int i = 0; i < item->qualifiers.size(); i++) {
+  for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
     active[i][item->qualifiers[i]]++;
   }
 }
 
 void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr item) {
-  for(int i = 0; i < item->qualifiers.size(); i++) {
+  for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
     active[i][item->qualifiers[i]]--;
 
@@ -154,7 +154,7 @@ void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr item) {
 }
 
 bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
-  for(int i = 0; i < item->qualifiers.size(); i++) {
+  for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
 
     if(active[i][item->qualifiers[i]] >= limits[i]) {

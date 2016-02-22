@@ -417,3 +417,33 @@ int DomeStatus::getQuotatoken(const std::string &path, const std::string &poolna
 }
   
   
+
+int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk) {
+  
+  std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+  myintv = quotas.equal_range(path);
+  
+  
+  for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
+       it != myintv.second;
+       ++it) {
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << path );
+    // If the path of this quotatoken matches...
+    if ( it->second.poolname == poolname ) {
+      tk = it->second;
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Deleting quotatoken '" << it->second.u_token << "' of pool: '" <<
+      it->second.poolname << "' matches path '" << path << "' quotatktotspace: " << it->second.t_space);
+      
+      quotas.erase(it);
+      return 0;
+    }
+  }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "No quotatoken found for pool: '" <<
+      poolname << "' path '" << path << "'");
+  return 1;
+}
+  
+  

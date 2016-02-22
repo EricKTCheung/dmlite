@@ -66,6 +66,9 @@ public:
   /// Adds or overwrites a quotatoken
   int setQuotatoken(DomeQuotatoken &qtk, std::string clientid);
   
+  /// Deletes a quotatoken
+  int delQuotatoken(DomeQuotatoken &qtk, std::string clientid);
+  
 protected:
   // The corresponding factory.
   //NsMySqlFactory* factory_;

@@ -1288,6 +1288,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
   bool getsubdirs = req.bodyfields.get<bool>("getsubdirs", false);
+  bool getparentdirs = req.bodyfields.get<bool>("getparentdirs", false);
   
   // Get the used space for this path
   long long pathused = 0LL;
@@ -1313,18 +1314,52 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getparentdirs: " << getparentdirs);
+    // If we can find the quotatoken path into the query...
+    size_t pos = absPath.find(it->second.path);
+    if ( pos == 0 ) {
+      
+      // If the query is longer than the tk then it's not matching if getsubdirs is false
+      if ((absPath.length() > it->second.path.length()) && (!getparentdirs)) continue;
+      
+      // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
+      if ( (absPath.length() != it->second.path.length()) && (absPath[it->second.path.length()] != '/') ) continue;
+      
+      // Now find the free space in the mentioned pool
+      long long ptot, pfree;
+      status.getPoolSpaces(it->second.poolname, ptot, pfree);
+      
+      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
+      if (pathfree < 0) pathfree = 0;
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
+      it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
+      " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
+      
+      boost::property_tree::ptree pt;
+      pt.put("path", it->second.path);
+      pt.put("quotatkname", it->second.u_token);
+      pt.put("quotatkpoolname", it->second.poolname);
+      pt.put("quotatktotspace", it->second.t_space);
+      pt.put("pooltotspace", ptot);
+      pt.put("pathusedspace", pathused);
+      pt.put("pathfreespace", pathfree);
+      
+      jresp.push_back(std::make_pair("", pt));
+      cnt++;
+    } // if
+  } // for
+  
+  
+  if (getsubdirs) {
+    // Here we want to match abspaths that are shorter than the quotatokens
+      for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getsubdirs: " << getsubdirs);
-    // If the path of this quotatoken matches...
+    // If we can find the abspath into the token then we are selecting tokens that are equal or longer
     size_t pos = it->second.path.find(absPath);
     if ( pos == 0 ) {
       
-      // If the query is longer than the tk then it's obviously not matching
-      if (absPath.length() > it->second.path.length()) continue;
-      
-      // If we don't want to list the subdirs then proceed only if the tk we are checking is longer or equal than the query
-      if ( !getsubdirs && (it->second.path.length() < absPath.length()) ) continue;
-      
-      // If the lengths are the same, then there should be a slash in the right place in the tk for it to be a subdir
+      // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
       
       // Now find the free space in the mentioned pool
@@ -1351,6 +1386,8 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       cnt++;
     } // if
   } // for
+  }
+  
   
   
   if (cnt > 0) {
@@ -1435,9 +1472,59 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
 
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_delreplica only available on head nodes.");
+  }
+  DomeQuotatoken mytk;
   
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  mytk.path = req.bodyfields.get("path", "");
+  mytk.poolname = req.bodyfields.get("poolname", "");
   
+  if (!status.existsPool(mytk.poolname)) {
+    std::ostringstream os;
+    os << "Cannot find pool: '" << mytk.poolname << "'";
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os); 
+  }
+  
+  
+  // We fetch the values that we may have in the internal map, using the keys, and remove it
+  if ( status.delQuotatoken(mytk.path, mytk.poolname, mytk) ) {
+    std::ostringstream os;
+    os << "No quotatoken found for pool: '" <<
+      mytk.poolname << "' path '" << mytk.path << "'.";
+    
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os); 
+    
+  }
+  
+  // If everything was ok, we delete it from the db too
+  // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+  std::string clientid = req.remoteclientdn;
+  if (clientid.size() == 0) clientid = req.clientdn;
+  if (clientid.size() == 0) clientid = "(unknown)";
+  rc =  sql.delQuotatoken(mytk, clientid);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot delete quotatoken from the DB. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+    return 1;
+  }
+  
+  // To avoid race conditions without locking, we have to make sure that it's not in memory
+  status.delQuotatoken(mytk.path, mytk.poolname, mytk);
+  
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken deleted. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+
 };
 
 int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
