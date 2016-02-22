@@ -58,7 +58,7 @@ DomeReq::DomeReq(FCGX_Request &request) {
   // We assume that the body fits in 4K, otherwise we ignore it ?!?
   char buf[4096];
   int nb = FCGX_GetStr(buf, sizeof(buf)-1, request.in);
-  if (nb < sizeof(buf)) {
+  if (nb < (int)sizeof(buf)) {
     buf[nb] = '\0';
     Log(Logger::Lvl4, domelogmask, domelogname, "Body: '" << buf << "'");
   }
@@ -126,5 +126,7 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   FCGX_PutS(body.c_str(), request.out);
   if (rc <= 0) return rc;
 
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
+  // We prefer to log all the responses
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
+  return 0;
 }

@@ -101,10 +101,15 @@ public:
 
   int dome_getdirspaces(DomeReq &req, FCGX_Request &request);
 
+  /// Disk server only. Removes a physical file
+  int dome_pfnrm(DomeReq &req, FCGX_Request &request);
+  /// Disk server only. Removes a replica, both from the catalog and the disk
+  int dome_delreplica(DomeReq &req, FCGX_Request &request);
   
   // Utility
   bool LfnMatchesPool(std::string lfn, std::string pool);
-
+  bool PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs);
+  bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
   
   // head node trusts all the disk nodes that are registered in the filesystem table
   // disk node trusts head node as defined in the config file

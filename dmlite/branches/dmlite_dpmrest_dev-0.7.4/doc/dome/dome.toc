@@ -19,12 +19,12 @@
 \contentsline {subsection}{\numberline {1.4.2}Head node operation}{16}
 \contentsline {subsubsection}{\nonumberline dome\_put}{16}
 \contentsline {subsubsection}{\nonumberline dome\_putdone}{17}
-\contentsline {subsubsection}{\nonumberline dome\_getspaceinfo}{17}
-\contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{19}
+\contentsline {subsubsection}{\nonumberline dome\_getspaceinfo}{18}
+\contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{20}
 \contentsline {subsubsection}{\nonumberline dome\_setquotatoken}{20}
 \contentsline {subsubsection}{\nonumberline dome\_delquotatoken}{21}
 \contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{21}
-\contentsline {subsubsection}{\nonumberline dome\_chksum}{21}
+\contentsline {subsubsection}{\nonumberline dome\_chksum}{22}
 \contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{23}
 \contentsline {subsubsection}{\nonumberline dome\_ispullable}{23}
 \contentsline {subsubsection}{\nonumberline dome\_get}{24}
@@ -33,42 +33,43 @@
 \contentsline {subsection}{\numberline {1.4.3}Disk node operation}{26}
 \contentsline {subsubsection}{\nonumberline dome\_dochksum}{26}
 \contentsline {subsubsection}{\nonumberline dome\_pull}{27}
-\contentsline {subsubsection}{\nonumberline dome\_statpfn}{27}
-\contentsline {chapter}{\numberline {2}Configuration}{28}
-\contentsline {section}{\numberline {2.1}Command-line parameters}{28}
-\contentsline {section}{\numberline {2.2}Configuration file: Structure and location}{28}
-\contentsline {section}{\numberline {2.3}Configuration file: Directives and parameters}{28}
-\contentsline {subsection}{\numberline {2.3.1}Configuration file: Common directives for head nodes and disk nodes}{29}
-\contentsline {subsubsection}{\nonumberline INCLUDE}{29}
-\contentsline {subsubsection}{\nonumberline glb.debug}{29}
-\contentsline {subsubsection}{\nonumberline glb.debug.components[]}{30}
-\contentsline {subsubsection}{\nonumberline glb.fcgi.listenport}{30}
-\contentsline {subsubsection}{\nonumberline glb.db.host}{30}
-\contentsline {subsubsection}{\nonumberline glb.db.user}{30}
-\contentsline {subsubsection}{\nonumberline glb.db.password}{31}
-\contentsline {subsubsection}{\nonumberline glb.db.port}{31}
-\contentsline {subsubsection}{\nonumberline glb.db.poolsz}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.ops\_timeout}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.ca\_path}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_certificate}{31}
-\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_private\_key}{31}
-\contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{32}
-\contentsline {subsubsection}{\nonumberline glb.role}{32}
-\contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{32}
-\contentsline {subsubsection}{\nonumberline glb.put.minfreespacemb}{32}
-\contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{32}
-\contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{33}
-\contentsline {subsubsection}{\nonumberline glb.workers}{33}
-\contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{33}
-\contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{33}
-\contentsline {subsubsection}{\nonumberline head.maxchecksums}{33}
-\contentsline {subsubsection}{\nonumberline head.maxcallouts}{33}
-\contentsline {subsubsection}{\nonumberline head.maxchecksumspernode}{34}
-\contentsline {subsubsection}{\nonumberline head.maxcalloutspernode}{34}
-\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{34}
-\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{34}
-\contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{34}
-\contentsline {subsubsection}{\nonumberline disk.statfs.restrictpfx[]}{34}
-\contentsline {chapter}{\numberline {3}subsystems and development tasks}{36}
+\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{27}
+\contentsline {subsubsection}{\nonumberline dome\_replicadel}{27}
+\contentsline {chapter}{\numberline {2}Configuration}{29}
+\contentsline {section}{\numberline {2.1}Command-line parameters}{29}
+\contentsline {section}{\numberline {2.2}Configuration file: Structure and location}{29}
+\contentsline {section}{\numberline {2.3}Configuration file: Directives and parameters}{29}
+\contentsline {subsection}{\numberline {2.3.1}Configuration file: Common directives for head nodes and disk nodes}{30}
+\contentsline {subsubsection}{\nonumberline INCLUDE}{30}
+\contentsline {subsubsection}{\nonumberline glb.debug}{30}
+\contentsline {subsubsection}{\nonumberline glb.debug.components[]}{31}
+\contentsline {subsubsection}{\nonumberline glb.fcgi.listenport}{31}
+\contentsline {subsubsection}{\nonumberline glb.db.host}{31}
+\contentsline {subsubsection}{\nonumberline glb.db.user}{31}
+\contentsline {subsubsection}{\nonumberline glb.db.password}{32}
+\contentsline {subsubsection}{\nonumberline glb.db.port}{32}
+\contentsline {subsubsection}{\nonumberline glb.db.poolsz}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.ops\_timeout}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.ca\_path}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_certificate}{32}
+\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_private\_key}{32}
+\contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{33}
+\contentsline {subsubsection}{\nonumberline glb.role}{33}
+\contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{33}
+\contentsline {subsubsection}{\nonumberline glb.put.minfreespacemb}{33}
+\contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{33}
+\contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{34}
+\contentsline {subsubsection}{\nonumberline glb.workers}{34}
+\contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{34}
+\contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{34}
+\contentsline {subsubsection}{\nonumberline head.maxchecksums}{34}
+\contentsline {subsubsection}{\nonumberline head.maxcallouts}{34}
+\contentsline {subsubsection}{\nonumberline head.maxchecksumspernode}{35}
+\contentsline {subsubsection}{\nonumberline head.maxcalloutspernode}{35}
+\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{35}
+\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{35}
+\contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{35}
+\contentsline {subsubsection}{\nonumberline disk.statfs.restrictpfx[]}{35}
+\contentsline {chapter}{\numberline {3}subsystems and development tasks}{37}

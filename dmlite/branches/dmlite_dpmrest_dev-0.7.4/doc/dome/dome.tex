@@ -833,25 +833,43 @@ Params:
 
 Returns: 200 or various errors if the pull process cannot be started.
 
-\subsubsection{dome\_statpfn}
+ 
+\subsubsection{dome\_pfnrm}
 
-Retrieves the stat information on a physical file\\
+Removes a physical file or directory from the disks. Valid only in disk nodes.\\
 Command:
-\lstinline"GET /dome"\\
+\lstinline"POST /dome"\\
 Request header:\\
-\lstinline"cmd=dome_statpfn"\\
+\lstinline"cmd=dome\_pfnrm"\\
 Params:
 \begin{itemize}
- \item pfn: path to the physical file. The prefix must match an existing filesystem. The prefix can be restricted by the config option statfs.restrictpfx[]
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
 \end{itemize}
 
 Returns:
 \begin{itemize}
  \item 
 \end{itemize}
- 
- 
- 
+
+
+\subsubsection{dome\_replicadel}
+
+Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_replicadel"\\
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 
+\end{itemize}
+
  
  
 \chapter{Configuration}

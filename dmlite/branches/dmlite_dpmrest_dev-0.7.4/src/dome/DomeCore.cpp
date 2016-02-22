@@ -85,6 +85,38 @@ DomeCore::~DomeCore() {
 }
 
 
+bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
+  
+  
+    // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(status);
+  
+  // Loop on the filesystems, looking for one that is a proper substring of the pfn
+  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+    
+    if (PfnMatchesFS(srv, pfn, *fs)) return true;
+    
+  }
+    
+  return false;
+  
+}
+
+bool DomeCore::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
+
+  if (server != fs.server) return false;
+  
+  size_t pos = fs.fs.find(pfn);
+    if (pos == 0) {
+      // Here, a filesystem is a substring of the pfn. To be its parent filesystem,
+      // either the string sizes are the same, or there is a slash in the pfn where the fs ends
+      if (fs.server.size() == pfn.size()) return true;
+      if (fs.server[pfn.size()] == '/') return true;
+    }
+    
+  return false;
+  
+}
 
 bool DomeCore::LfnMatchesPool(std::string lfn, std::string pool) {
   
