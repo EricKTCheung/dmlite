@@ -312,6 +312,15 @@ void workerFunc(DomeCore *core, int myidx) {
         else if ( dreq.domecmd == "dome_setquotatoken" ) {
           core->dome_setquotatoken(dreq, request);
         }
+        else if ( dreq.domecmd == "dome_delreplica" ) {
+          core->dome_delreplica(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_pfnrm" ) {
+          core->dome_pfnrm(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_delquotatoken" ) {
+          core->dome_delquotatoken(dreq, request);
+        }
         else {
           FCGX_FPrintF(request.out,
                        "Content-type: text/html\r\n"
