@@ -12,3 +12,8 @@ GETSPACEINFO:
 STATPOOL
 ./dome.py -e statpool -u https://domehead-trunk.cern.ch/domehead --pool pool01
 
+GETQUOTATOKEN
+./dome.py -e getquotatoken -u  https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam
+
+SETQUOTATOKEN
+./dome.py -e setquotatoken -u  https://domehead-trunk.cern.ch/domehead   --lfn /dpm/cern.ch/home/dteam/andrea --pool pool01 --space 10000000000000 --desc TEST_TOKEN
