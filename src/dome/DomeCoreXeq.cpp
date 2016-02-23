@@ -1558,18 +1558,18 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
   int rc = stat(absPath.c_str(), &st);
   if (rc) {
     if (errno == ENOENT) {
-      return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful. The file or dir was not there anyway."));
+      return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful. The file or dir '" << absPath << "' not there anyway."));
     }
     
     char errbuf[1024];
-    return DomeReq::SendSimpleResp(request, 224, SSTR("Rm failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Rm of '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
   }
   
   if (S_ISDIR(st.st_mode)) {
     int rc = rmdir(absPath.c_str());
     if (rc) {
       char errbuf[1024];
-      return DomeReq::SendSimpleResp(request, 224, SSTR("Rm of a directory failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Rmdir of directory '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
     }
   
   }
@@ -1577,7 +1577,7 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
   int rc = unlink(absPath.c_str());
   if (rc) {
       char errbuf[1024];
-      return DomeReq::SendSimpleResp(request, 224, SSTR("Rm of a file failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Rm of file '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
     }
   }
   
