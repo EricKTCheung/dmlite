@@ -23,10 +23,10 @@
 \contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{20}
 \contentsline {subsubsection}{\nonumberline dome\_setquotatoken}{20}
 \contentsline {subsubsection}{\nonumberline dome\_delquotatoken}{21}
-\contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{21}
+\contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{22}
 \contentsline {subsubsection}{\nonumberline dome\_chksum}{22}
 \contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{23}
-\contentsline {subsubsection}{\nonumberline dome\_ispullable}{23}
+\contentsline {subsubsection}{\nonumberline dome\_ispullable}{24}
 \contentsline {subsubsection}{\nonumberline dome\_get}{24}
 \contentsline {subsubsection}{\nonumberline dome\_pulldone}{24}
 \contentsline {subsubsection}{\nonumberline dome\_statpool}{25}
@@ -34,7 +34,7 @@
 \contentsline {subsubsection}{\nonumberline dome\_dochksum}{26}
 \contentsline {subsubsection}{\nonumberline dome\_pull}{27}
 \contentsline {subsubsection}{\nonumberline dome\_pfnrm}{27}
-\contentsline {subsubsection}{\nonumberline dome\_replicadel}{27}
+\contentsline {subsubsection}{\nonumberline dome\_delreplica}{28}
 \contentsline {chapter}{\numberline {2}Configuration}{29}
 \contentsline {section}{\numberline {2.1}Command-line parameters}{29}
 \contentsline {section}{\numberline {2.2}Configuration file: Structure and location}{29}
