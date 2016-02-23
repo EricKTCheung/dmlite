@@ -1548,7 +1548,7 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
   }
   
   if (!PfnMatchesAnyFS(status.myhostname, absPath)) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is not avalid pfn."));
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is not a valid pfn."));
   }
   
   // OK, remove directly on disk
@@ -1632,7 +1632,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
   std::string diskurl = "https://" + srv + "/domedisk/";
-  Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching to disk node: '" << diskurl);
+  Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << absPath << "' to disk node: '" << diskurl);
   Davix::Uri durl(diskurl);
 
   Davix::DavixError* tmp_err = NULL;
@@ -1656,7 +1656,8 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   // Set the dome timeout values for the operation
   req2.setParameters(*(ds->parms));
       
-  if (req2.executeRequest(&tmp_err) || tmp_err) {
+  int rc = req2.executeRequest(&tmp_err);
+  if ( rc || tmp_err) {
     // The error must be propagated to the response, in clear readable text
     std::ostringstream os;
     int errcode = req2.getRequestCode();
