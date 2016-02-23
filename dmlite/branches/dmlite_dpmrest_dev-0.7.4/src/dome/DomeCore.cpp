@@ -106,12 +106,12 @@ bool DomeCore::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &f
 
   if (server != fs.server) return false;
   
-  size_t pos = fs.fs.find(pfn);
+  size_t pos = pfn.find(fs.fs);
     if (pos == 0) {
       // Here, a filesystem is a substring of the pfn. To be its parent filesystem,
       // either the string sizes are the same, or there is a slash in the pfn where the fs ends
-      if (fs.server.size() == pfn.size()) return true;
-      if (fs.server[pfn.size()] == '/') return true;
+      if (fs.fs.size() == pfn.size()) return true;
+      if (pfn[fs.fs.size()] == '/') return true;
     }
     
   return false;
@@ -289,7 +289,7 @@ void workerFunc(DomeCore *core, int myidx) {
               }
               
             } else
-              DomeReq::SendSimpleResp(request, 418, SSTR("Yeah, I like your style."));
+              DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
             
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
         FCGX_FPrintF(request.out,
@@ -322,10 +322,8 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_delquotatoken(dreq, request);
         }
         else {
-          FCGX_FPrintF(request.out,
-                       "Content-type: text/html\r\n"
-                       "\r\n"
-                       "A POST request without a DOME command. Nice joke, eh ?\r\n");
+          DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a POST request.  Nice joke, eh ?"));
+          
         }
       }
       
