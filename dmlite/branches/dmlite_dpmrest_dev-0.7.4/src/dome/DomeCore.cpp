@@ -85,6 +85,7 @@ DomeCore::~DomeCore() {
 }
 
 
+
 bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
   
   
@@ -94,7 +95,29 @@ bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
   // Loop on the filesystems, looking for one that is a proper substring of the pfn
   for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
     
-    if (PfnMatchesFS(srv, pfn, *fs)) return true;
+    if (PfnMatchesFS(srv, pfn, *fs))
+      return true;
+    
+  }
+    
+  return false;
+  
+}
+
+
+bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo) {
+  
+  
+    // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(status);
+  
+  // Loop on the filesystems, looking for one that is a proper substring of the pfn
+  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+    
+    if (PfnMatchesFS(srv, pfn, *fs)) {
+      fsinfo = *fs;
+      return true;
+    }
     
   }
     

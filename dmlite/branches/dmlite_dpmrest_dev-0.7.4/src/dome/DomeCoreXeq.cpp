@@ -1237,12 +1237,26 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     for(size_t i = 0; i < replicas.size(); i++) {
       // give only path as pfn
       std::string rfn = replicas[i].rfn;
-      std::string pfn = rfn.substr(rfn.find(":"), rfn.size());
+      std::string pfn;
+      size_t pos = rfn.find(":");
+      if (pos == std::string::npos) pfn = rfn;
+      else
+        pfn = rfn.substr(rfn.find(":")+1, rfn.size());
 
+      // Check if the replica makes sense and whether its filesystem is enabled
+      DomeFsInfo fsinfo;
+      if (!PfnMatchesAnyFS(replicas[i].server, pfn, fsinfo)) {
+        Err(domelogname, SSTR("Replica '" << rfn << "' in server '" << replicas[i].server << "' cannot be matched to any working filesystem. A configuration check is needed."));
+        continue;
+      }
+      if (!fsinfo.isGoodForRead()) continue;
+      
       jresp.put(ptree::path_type(SSTR(i << "^host"), '^'), replicas[i].server);
       jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), pfn);
       jresp.put(ptree::path_type(SSTR(i << "^filesystem"), '^'), replicas[i].getString("filesystem"));
     }
+    
+    
 
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
