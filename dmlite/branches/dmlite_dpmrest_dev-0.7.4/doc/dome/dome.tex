@@ -529,12 +529,13 @@ If the path has an appended "*", the output will contain all the quota tokens th
 It also returns the space that is still available for each of the quota tokens listed.
 
 Command:\\
-\lstinline"GET /dome/path[*]"\\
+\lstinline"GET /dome/path"\\
 Request header:\\
 \lstinline"cmd=dome_getquotatoken"\\
 Params:\\
 \begin{itemize}
- \item
+ \item getsubdirs: if true, the output will include quotatokens that refer to the parent directories of the query
+ \item getparentdirs: if true, the output will include quotatokens that refer to the subdirectories of the query
 \end{itemize}
 
 Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
@@ -554,7 +555,7 @@ Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 Sets or create a quota token, using the path prefix and the poolname as a key. The path prefix must be an existing directory, the poolname should be the name of an existing pool.
 
 Command:
-\lstinline"POST /dome/path"\\
+\lstinline"POST /dome"\\
 Request header:\\
 \lstinline"cmd=dome_setquotatoken"\\
 Params:
@@ -571,20 +572,22 @@ A file write is accounted in the directory tree that contains the logical file n
 At the same time, the quotatoken will also set a limit (quota) to the maximum number of bytes that can be written.
 
 \subsubsection{dome\_delquotatoken}
-Deletes a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+Deletes a quota token, using the path prefix and a poolname as a key. The path prefix must be an existing directory.
 
 Command:
-\lstinline"POST /dome/path"\\
+\lstinline"POST /dome"\\
 Request header:\\
 \lstinline"cmd=dome_delquotatoken"\\
 Params:\\
+\begin{itemize}
+ \item path: the logical path a quota token is referring to
+ \item poolname: the pool that will host the replicas that are written into paths associated to this quotatoken
+\end{itemize}
 
 Returns:
 \begin{itemize}
  \item 200 if OK. Other HTTP codes for the corresponding errors.
 \end{itemize}
-
-
 
 
 \subsubsection{dome\_getdirspaces}
@@ -852,13 +855,13 @@ Returns:
 \end{itemize}
 
 
-\subsubsection{dome\_replicadel}
+\subsubsection{dome\_delreplica}
 
 Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
 Command:
 \lstinline"POST /dome"\\
 Request header:\\
-\lstinline"cmd=dome\_replicadel"\\
+\lstinline"cmd=dome\_delreplica"\\
 Params:
 \begin{itemize}
  \item server: server hosting the replica
