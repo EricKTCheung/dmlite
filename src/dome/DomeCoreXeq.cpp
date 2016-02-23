@@ -1662,9 +1662,9 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     int errcode = req2.getRequestCode();
     if (tmp_err)
-      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "' response body: '" << req2.getAnswerContent();
     else
-      os << "Cannot execute cmd_pfnrm to head node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode;
+      os << "Cannot execute cmd_pfnrm to head node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
     
     Err(domelogname, os.str());    
     return DomeReq::SendSimpleResp(request, 500, os);
