@@ -1621,7 +1621,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting replica: '" << rfiopath);
   dmlite::Replica rep;
   try {
-    rep = stack->getCatalog()->getReplicaByRFN(absPath);
+    rep = stack->getCatalog()->getReplicaByRFN(rfiopath);
   } catch (DmException e) {
     std::ostringstream os;
     os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();  
