@@ -102,17 +102,17 @@ int DomeReq::getJSONbodyfields(std::string &body) {
   return 0;
 }
 
-int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body) {
+int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam) {
   return SendSimpleResp(request, httpcode, body.str());
 }
 
-int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body) {
+int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body, const char *logwhereiam) {
   std::ostringstream os;
   boost::property_tree::write_json(os, body);
   return SendSimpleResp(request, httpcode, os.str());
 }
 
-int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body) {
+int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body, const char *logwhereiam) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << body << "'");
   int rc = 0;
 
@@ -127,6 +127,9 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   if (rc <= 0) return rc;
 
   // We prefer to log all the responses
-  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
+  if (logwhereiam)
+    Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << body << "'");
+  else
+    Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
   return 0;
 }

@@ -1656,7 +1656,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   // Set the dome timeout values for the operation
   req2.setParameters(*(ds->parms));
       
-  if (req2.executeRequest(&tmp_err) != 0) {
+  if (req2.executeRequest(&tmp_err) || tmp_err) {
     // The error must be propagated to the response, in clear readable text
     std::ostringstream os;
     int errcode = req2.getRequestCode();

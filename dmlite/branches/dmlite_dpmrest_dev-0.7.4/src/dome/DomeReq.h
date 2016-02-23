@@ -80,9 +80,9 @@ public:
     
 
     /// Utility function to send a quick response
-    static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body);
-    static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body);
-    static int SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body);
+    static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam = 0);
+    static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body, const char *logwhereiam = 0);
+    static int SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body, const char *logwhereiam = 0);
 private:
 
 };
