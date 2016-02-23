@@ -188,11 +188,11 @@ void workerFunc(DomeCore *core, int myidx) {
     }
     
     DomeReq dreq(request);
-    Log(Logger::Lvl4, domelogmask, domelogname, "--------- New request. Worker: " << myidx <<
+    Log(Logger::Lvl1, domelogmask, domelogname, "--------- New request. Worker: " << myidx <<
     " clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
     "' remoteclient: '" << dreq.remoteclientdn << "' remoteclienthost: '" << dreq.remoteclienthost);
     
-    Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems:" << dreq.bodyfields.size());
+    Log(Logger::Lvl1, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
     
     
     // -------------------------
