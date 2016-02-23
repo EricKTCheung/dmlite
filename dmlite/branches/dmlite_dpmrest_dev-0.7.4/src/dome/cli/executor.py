@@ -32,6 +32,31 @@ class DomeExecutor(object):
 		args.append("--data")
 		args.append(quote("{}"))
 		self.executeDavix(args)
+	def get(self,url,lfn):
+		args = self.baseArgs
+                args.append("-X GET")
+		url = url + lfn
+		args.append(url)
+		args = self.addClient(args)
+		args.append("-H")
+                args.append(quote('cmd: dome_get'))
+		args.append("--data")
+		data = {}
+                data['canpull']=True
+                args.append(quote(json.dumps(data)))
+                self.executeDavix(args)
+	def pnfrm(self,url,pfn):
+		args = self.baseArgs
+                args.append("-X POST")
+		args.append(url)
+		args = self.addClient(args)
+		args.append("-H")
+                args.append(quote('cmd: dome_pnfrm'))
+		args.append("--data")
+                data = {}
+                data['pfn']=pfn
+		args.append(quote(json.dumps(data)))
+                self.executeDavix(args)
 	def getSpaceInfo(self,url):
 		args = self.baseArgs
 		args.append("-X GET")
@@ -81,7 +106,33 @@ class DomeExecutor(object):
 		data['description']=desc
                 args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
-
+	def delquotatoken(self,url,lfn,pool):
+		args = self.baseArgs
+                args.append("-X POST")
+		url = url+"/dome"
+		args.append(url)
+		args = self.addClient(args)
+		args.append("-H")
+		args.append(quote('cmd: dome_delquotatoken'))
+		args.append("--data")
+		data = {}
+		data['path']=lfn
+		data['poolname'] = pool
+		args.append(quote(json.dumps(data)))
+		self.executeDavix(args)
+	def delreplica(self,url,pfn,server):
+		args = self.baseArgs
+		args.append("-X POST")
+		args.append(url)
+		args = self.addClient(args)
+		args.append("-H")
+                args.append(quote('cmd: dome_delreplica'))
+		args.append("--data")
+                data = {}
+                data['server']=server
+                data['pfn'] = pfn
+		args.append(quote(json.dumps(data)))
+                self.executeDavix(args)
 	def executeDavix(self,args):
 		args = (' ').join(args)
 		print args

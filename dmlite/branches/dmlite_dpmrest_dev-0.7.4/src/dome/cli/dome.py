@@ -32,6 +32,11 @@ def main():
                 print "Please specify the url  via --url option"
                 sys.exit(1)
 	executor = DomeExecutor(options.clientDN, options.clientAddr)
+        if options.execute == 'get':
+		if not options.lfn:
+			print "Please specify the LFN  via --lfn option"
+                        sys.exit(1)
+		executor.get(options.url,options.lfn)
 	if options.execute == 'put':
 		if not options.lfn:
 			print "Please specify the LFN  via --lfn option"
@@ -74,7 +79,27 @@ def main():
                         print "Please specify the Space for the quota token description  via --desc option"
                         sys.exit(1)
 		executor.setquotatoken(options.url,options.lfn,options.pool, options.space,options.desc)
-
+	elif options.execute == 'delquotatoken':
+		if not options.lfn:
+                        print "Please specify the LFN  via --lfn option"
+                        sys.exit(1)
+                if not options.pool:
+                        print "Please specify the Pool to set the quota  token  via --pool option"
+                        sys.exit(1)
+		executor.delquotatoken(options.url,options.lfn,options.pool)
+	elif options.execute == "pfnrm":
+		if not options.pfn:
+                        print "Please specify the PFN  via --pfn option"
+                        sys.exit(1)
+		executor.pnfrm(options.url,options.pfn)
+	elif options.execute == "delreplica":
+		if not options.pfn:
+                        print "Please specify the PFN  via --pfn option"
+                        sys.exit(1)
+		if not options.server:
+                        print "Please specify the Server  via --server option"
+                        sys.exit(1)
+		executor.delreplica(options.url,options.pfn,options.server)	
 
 
 
