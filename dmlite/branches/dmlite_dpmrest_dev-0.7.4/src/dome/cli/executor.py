@@ -45,13 +45,13 @@ class DomeExecutor(object):
                 data['canpull']=True
                 args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
-	def pnfrm(self,url,pfn):
+	def pfnrm(self,url,pfn):
 		args = self.baseArgs
                 args.append("-X POST")
-		args.append(url)
+		args.append(url+"/")
 		args = self.addClient(args)
 		args.append("-H")
-                args.append(quote('cmd: dome_pnfrm'))
+                args.append(quote('cmd: dome_pfnrm'))
 		args.append("--data")
                 data = {}
                 data['pfn']=pfn
@@ -123,7 +123,7 @@ class DomeExecutor(object):
 	def delreplica(self,url,pfn,server):
 		args = self.baseArgs
 		args.append("-X POST")
-		args.append(url)
+		args.append(url+"/")
 		args = self.addClient(args)
 		args.append("-H")
                 args.append(quote('cmd: dome_delreplica'))
