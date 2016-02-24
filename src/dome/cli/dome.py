@@ -91,7 +91,7 @@ def main():
 		if not options.pfn:
                         print "Please specify the PFN  via --pfn option"
                         sys.exit(1)
-		executor.pnfrm(options.url,options.pfn)
+		executor.pfnrm(options.url,options.pfn)
 	elif options.execute == "delreplica":
 		if not options.pfn:
                         print "Please specify the PFN  via --pfn option"

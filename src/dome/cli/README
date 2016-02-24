@@ -28,4 +28,4 @@ DELREPLICA
 ./dome.py -e delreplica -u  https://domehead-trunk.cern.ch/domehead --pfn /srv/dpm/01/dteam/2016-02-15/catarro8.1.1455555502 --server domedisk-trunk.cern.ch
 
 PFNRM
-./dome.py -e pfnrm -u  https://domedisk-trunk.cern.ch/domedisk --pfn /dpm/cern.ch/home/dteam/catarro8
+./dome.py -e pfnrm -u  https://domedisk-trunk.cern.ch/domedisk --pfn/srv/dpm/01/dteam/2016-02-15/catarro8.1.1455555502
