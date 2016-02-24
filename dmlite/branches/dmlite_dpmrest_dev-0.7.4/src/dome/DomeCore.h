@@ -106,9 +106,18 @@ public:
   /// Disk server only. Removes a replica, both from the catalog and the disk
   int dome_delreplica(DomeReq &req, FCGX_Request &request);
   
-  // Utility
+  /// Removes a pool and all the related filesystems
+  int dome_rmpool(DomeReq &req, FCGX_Request &request);
+  /// Adds a filesystem to an existing pool. This implicitly creates a pool, which by now has no parameters
+  int dome_addfstopool(DomeReq &req, FCGX_Request &request);
+  /// Removes a filesystem, no matter to which pool it was attached
+  int dome_rmfs(DomeReq &req, FCGX_Request &request);
+  
+  
+  
+  // --------------------------------------------------------
+  // ---------------------------- Utility
   bool LfnMatchesPool(std::string lfn, std::string pool);
-  bool PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo);
   

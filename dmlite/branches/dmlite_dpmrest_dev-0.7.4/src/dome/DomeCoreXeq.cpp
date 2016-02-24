@@ -1281,14 +1281,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
 };
-int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
-  
-  
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
-  
-  
-  
-};
+
 
 
 int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
@@ -1643,8 +1636,10 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 404, os);
   }
   
+  
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
+  {
   std::string diskurl = "https://" + srv + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << absPath << "' to disk node: '" << diskurl);
   Davix::Uri durl(diskurl);
@@ -1683,6 +1678,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());    
     return DomeReq::SendSimpleResp(request, 500, os);
   }
+  }
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
   // And now remove the replica
@@ -1698,3 +1694,140 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
 }
 
+
+  /// Removes a pool and all the related filesystems
+int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_rmpool only available on head nodes.");
+  }
+    
+  std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
+    
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+
+  // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+
+  rc =  sql.rmPool(poolname);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot delete pool: '" << poolname << "'"));
+    return 1;
+  }
+  
+  status.rmPoolfs(poolname);
+  return 0;  
+}
+
+int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
+  
+  
+return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+  
+  
+};
+
+/// Adds a filesystem to an existing pool
+int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on head nodes.");
+  }
+    
+  std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
+  std::string server =  req.bodyfields.get<std::string>("server", "");
+  std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+
+
+  // Make sure it's not already there or that we are not adding a parent/child of an existing fs
+  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+    if ( status.PfnMatchesFS(server, newfs, *fs) )
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Filesystem '" << server << ":" << fs->fs << "' already exists or overlaps an existing filesystem."));
+  }
+  
+  {
+  // Stat the remote path, to make sure it exists and it makes sense
+  std::string diskurl = "https://" + server + "/domedisk/";
+  Log(Logger::Lvl4, domelogmask, domelogname, "Stat-ing new filesystem '" << newfs << "' in disk node: '" << server);
+  Davix::Uri durl(diskurl);
+
+  Davix::DavixError* tmp_err = NULL;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
+  Davix::PostRequest req2(*(ds->ctx), durl, &tmp_err);
+  if( tmp_err ) {
+    std::ostringstream os;
+    os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 500, os);
+  }
+  req2.addHeaderField("cmd", "dome_statpfn");
+  req2.addHeaderField("pfn", newfs);
+  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+  std::ostringstream os;
+  boost::property_tree::write_json(os, req.bodyfields);
+  req2.setRequestBody(os.str());
+      
+  // Set the dome timeout values for the operation
+  req2.setParameters(*(ds->parms));
+      
+  int rc = req2.executeRequest(&tmp_err);
+  if ( rc || tmp_err) {
+    // The error must be propagated to the response, in clear readable text
+    std::ostringstream os;
+    int errcode = req2.getRequestCode();
+    if (tmp_err)
+      os << "Cannot execute cmd_statpfn to disk node. pfn: '" << newfs << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "' response body: '" << req2.getAnswerContent();
+    else
+      os << "Cannot execute cmd_statrm to head node. pfn: '" << newfs << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
+    
+    Err(domelogname, os.str());    
+    return DomeReq::SendSimpleResp(request, 500, os);
+  }
+  }
+  
+  // Everything seems OK here, like UFOs invading Earth. We can start updating values.
+  // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+
+  DomeFsInfo fsfs;
+  fsfs.poolname = poolname;
+  fsfs.server = server;
+  fsfs.fs = newfs;
+  rc =  sql.addFsPool(fsfs);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not insert new fs: '" << newfs << "' It likely already exists."));
+    return 1;
+  }
+  
+  status.addPoolfs(server, newfs, poolname);
+  return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
+}
+
+/// Removes a filesystem, no matter to which pool it was attached
+int dome_rmfs(DomeReq &req, FCGX_Request &request) {
+  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+}
+  

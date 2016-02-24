@@ -95,7 +95,7 @@ bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
   // Loop on the filesystems, looking for one that is a proper substring of the pfn
   for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
     
-    if (PfnMatchesFS(srv, pfn, *fs))
+    if (status.PfnMatchesFS(srv, pfn, *fs))
       return true;
     
   }
@@ -114,7 +114,7 @@ bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &f
   // Loop on the filesystems, looking for one that is a proper substring of the pfn
   for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
     
-    if (PfnMatchesFS(srv, pfn, *fs)) {
+    if (status.PfnMatchesFS(srv, pfn, *fs)) {
       fsinfo = *fs;
       return true;
     }
@@ -125,21 +125,7 @@ bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &f
   
 }
 
-bool DomeCore::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
 
-  if (server != fs.server) return false;
-  
-  size_t pos = pfn.find(fs.fs);
-    if (pos == 0) {
-      // Here, a filesystem is a substring of the pfn. To be its parent filesystem,
-      // either the string sizes are the same, or there is a slash in the pfn where the fs ends
-      if (fs.fs.size() == pfn.size()) return true;
-      if (pfn[fs.fs.size()] == '/') return true;
-    }
-    
-  return false;
-  
-}
 
 bool DomeCore::LfnMatchesPool(std::string lfn, std::string pool) {
   
@@ -345,7 +331,7 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_delquotatoken(dreq, request);
         }
         else {
-          DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a POST request.  Nice joke, eh ?"));
+          DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
           
         }
       }
