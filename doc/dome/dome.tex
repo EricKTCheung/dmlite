@@ -618,15 +618,15 @@ Request header:\\
 \lstinline"cmd=dome_chksum"\\
 Params:
 \begin{itemize}
- \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
- \item Pfn: Physical filename as it appears in the db (optional)
- \item ForceRecalc: true|false|yes|no|0|1 (optional)
+ \item checksum-type: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
+ \item pfn: Physical filename as it appears in the db (optional)
+ \item force-recalc: true|false|yes|no|0|1 (optional)
 \end{itemize}
 
 Returns:
 \begin{itemize}
  \item Checksum
- \item PfnChecksum (optional for head node, mandatory for disk servers)
+ \item PfnChecksum (optional)
 \end{itemize}
 
 \textbf{Behavior with the ForceRecalc flag unset}\\
@@ -657,15 +657,16 @@ This is also used as a sort of heartbeat to notify the head node about checksum 
 Command:
 \lstinline"POST /dome/pathfile"\\
 Request header:\\
-\lstinline"cmd=dome_chksumdone"\\
+\lstinline"cmd=dome_chksumstatus"\\
 Params:
 \begin{itemize}
- \item ChecksumType: Kind of checksum that was requested (e.g. adler32, MD5, etc...)
- \item ForceRecalc: tells if the original request was for a forced recalculation
- \item Checksum: value of the computed checksum (optional if still being calculated)
- \item Pfn: Physical filename that was used to calculate it
- \item Status: Pending|Done|Aborted
- \item Reason: Free string describing errors or similar (for logging)
+ \item checksum-type: Kind of checksum that was requested (e.g. adler32, MD5, etc...)
+ \item force-recalc: tells if the original request was for a forced recalculation
+ \item checksum: value of the computed checksum (optional if still being calculated)
+ \item update-lfn-checksum: true | false. Tells the head node whether it also needs to update the lfn checksum. (optional if still being calculated)
+ \item pfn: Physical filename that was used to calculate it
+ \item status: Pending|Done|Aborted
+ \item reason: Free string describing errors or similar (for logging)
 \end{itemize}
 
 Returns: 200, unconditionally
@@ -803,14 +804,14 @@ The invokation of these primitives must be properly authenticated through URL to
  through te dome\_checksumdone command.
 
  Command:
-\lstinline"GET /dome/pathfile"\\
+\lstinline"POST /dome/pathfile"\\
 Request header:\\
 \lstinline"cmd=dome_dochksum"\\
 Params:
 \begin{itemize}
- \item ChecksumType: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
- \item ForceRecalc: tells if the original request was for a forced recalculation
- \item Pfn: Physical filename (optional)
+ \item checksum-type: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
+ \item update-lfn-checksum: tells if this request also needs to update the lfn checksum. To be passed later on to the head node.
+ \item pfn: Physical filename
 \end{itemize}
 
 Returns: 200 or various errors if the calculation process cannot be started.

@@ -46,8 +46,20 @@
 #include <boost/thread.hpp>
 #include <dmlite/cpp/catalog.h>
 
-// Remember: A DMLite connection pool to the db is just a singleton, always accessible
 
+struct PendingChecksum {
+  std::string lfn;
+  std::string pfn;
+  std::string chksumtype;
+  bool updateLfnChecksum;
+
+  PendingChecksum(std::string _lfn, std::string _pfn, std::string _chksumtype, bool _updateLfnChecksum)
+  : lfn(_lfn), pfn(_pfn), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {} 
+
+  PendingChecksum() {}
+};
+
+// Remember: A DMLite connection pool to the db is just a singleton, always accessible
 
 class DomeCore: public DomeTaskExec {
 
@@ -144,6 +156,9 @@ private:
 
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   long getGlobalputcount();
+
+  /// Pending disknode checksums
+  std::map<int, PendingChecksum> diskPendingChecksums;
   
 protected:
 
@@ -156,9 +171,9 @@ protected:
   /// Send a notification to the head node about a task that is running
   virtual void onTaskRunning(DomeTask &task);
 
-  // unconditionally schedule the calculation of a checksum
-  int calculateChecksum(FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
-  int calculateChecksumDisk(FCGX_Request &request, std::string lfn, std::string pfn, std::string checksumtype, bool updateLfnChecksum);
+  // helper functions for checksums
+
+  int calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
 };
 
 

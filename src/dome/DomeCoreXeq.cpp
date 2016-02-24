@@ -26,6 +26,7 @@
 
 #include "DomeCore.h"
 #include "DomeLog.h"
+#include "DomeUtils.h"
 #include "DomeDmlitePool.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -832,23 +833,8 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
 };
 
 
-static bool str_to_bool(std::string str) {
-  bool value = false;
-
-  if(str == "false" || str == "0" || str == "no") {
-    value = false;
-  } else if(str == "true" || str == "1" || str == "yes") {
-    value = true;
-  }
-  return value;
-}
-
-static std::string bool_to_str(bool b) {
-  if(b) return "true";
-  else return "false";
-}
-
-int DomeCore::calculateChecksum(FCGX_Request &request, std::string lfn, Replica replica, std::string checksumtype, bool updateLfnChecksum) {
+int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, Replica replica, std::string checksumtype, bool updateLfnChecksum) {
+  // create queue entry
   GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
   std::string namekey = lfn + "[#]" + replica.rfn + "[#]" + checksumtype;
   std::vector<std::string> qualifiers;
@@ -859,16 +845,17 @@ int DomeCore::calculateChecksum(FCGX_Request &request, std::string lfn, Replica 
   qualifiers.push_back(replica.server); // server name as second qualifier, so
                                         // the per-node limit triggers
 
-  qualifiers.push_back(bool_to_str(updateLfnChecksum));
+  // necessary information to keep when sending dochksum - order is important
+  qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
+  qualifiers.push_back(req.remoteclientdn);
+  qualifiers.push_back(req.remoteclienthost);
 
   status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
-  return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << replica.rfn
+  
+  return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued checksum calculation for server " << replica.server
+                                                     << ", path " << DomeUtils::pfn_from_rfio_syntax(replica.rfn)
                                                      << ", check back later.\r\nTotal checksums in queue right now: "
                                                      << status.checksumq->nTotal()));
-}
-
-int DomeCore::calculateChecksumDisk(FCGX_Request &request, std::string lfn, std::string pfn, std::string checksumtype, bool updateLfnChecksum) {
-  return DomeReq::SendSimpleResp(request, 202, "Initiated checksum calculation on disk node");
 }
 
 static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
@@ -893,28 +880,26 @@ static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &
 
 int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+  if(status.role == status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "chksum only available on head nodes");
+  }
 
   try {
     DmlitePoolHandler stack(dmpool);
 
-    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "null");
+    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-    bool forcerecalc = str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
+    bool forcerecalc = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
     bool updateLfnChecksum = (pfn == "");
 
-    // If I am a disk node, I need to unconditionally start the calculation
-    if(status.role == status.roleDisk) {
-      if(pfn == "") {
-        return DomeReq::SendSimpleResp(request, 404, "pfn is obligatory when issuing a dome_chksum to a disk node");
-      }
-      return calculateChecksumDisk(request, req.object, pfn, chksumtype, forcerecalc);
+    if(chksumtype == "") {
+      return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
     }
 
-    // I am a head node
     if(forcerecalc) {
       Replica replica = pickReplica(req.object, pfn, stack);
-      return calculateChecksum(request, req.object, replica, chksumtype, forcerecalc);
+      return calculateChecksum(req, request, req.object, replica, chksumtype, updateLfnChecksum);
     }
 
     // Not forced to do a recalc - maybe I can find the checksums in the db
@@ -950,7 +935,8 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     if(pfn == "") {
       replica = pickReplica(req.object, pfn, stack);
     }
-    return calculateChecksum(request, req.object, replica, chksumtype, forcerecalc);
+
+    return calculateChecksum(req, request, req.object, replica, chksumtype, updateLfnChecksum);
   }
   catch(dmlite::DmException& e) {
     std::ostringstream os("An error has occured.\r\n");
@@ -976,7 +962,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     std::string str_status = req.bodyfields.get<std::string>("status", "");
     std::string reason = req.bodyfields.get<std::string>("reason", "");
     std::string checksum = req.bodyfields.get<std::string>("checksum", "");
-    bool updateLfnChecksum = str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
+    bool updateLfnChecksum = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
 
     if(chksumtype == "") {
       return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
@@ -1006,7 +992,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
 
     qualifiers.push_back("");
     qualifiers.push_back(server);
-    qualifiers.push_back(bool_to_str(updateLfnChecksum));
+    qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
     status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
 
     if(str_status == "aborted") {
@@ -1053,6 +1039,44 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl1, domelogmask, domelogname, "Error - execution should never reach this point");
   return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
 }
+
+int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
+  if(status.role == status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dochksum only available on disk nodes");
+  }
+
+  try {
+    DmlitePoolHandler stack(dmpool);
+
+    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string lfn = req.object;
+    bool updateLfnChecksum = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
+
+    if(chksumtype == "") {
+      return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
+    }
+    if(pfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
+    }
+    if(lfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
+    }
+
+    PendingChecksum pending(lfn, pfn, chksumtype, updateLfnChecksum);
+    int id = this->submitCmd("echo hello world!");
+    diskPendingChecksums[id] = pending; 
+
+    return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << pfn << ", task executor ID: " << id));
+  }
+  catch(dmlite::DmException& e) {
+    std::ostringstream os("An error has occured.\r\n");
+    os << "Dmlite exception: " << e.what();
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  return DomeReq::SendSimpleResp(request, 500, SSTR("Not implemented, dude."));
+};
 
 int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
@@ -1272,11 +1296,6 @@ int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request)  {
 };
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
-  
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
-  
-};
-int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
