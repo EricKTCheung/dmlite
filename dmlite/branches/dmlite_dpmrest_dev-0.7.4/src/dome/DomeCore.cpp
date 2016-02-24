@@ -268,8 +268,6 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_getspaceinfo(dreq, request);
         } else if(dreq.domecmd == "dome_chksum") {
           core->dome_chksum(dreq, request);
-        } else if(dreq.domecmd == "dome_chksumstatus") {
-          core->dome_chksumstatus(dreq, request);
         } else if(dreq.domecmd == "dome_getdirspaces") {
           core->dome_getdirspaces(dreq, request);
         }else if(dreq.domecmd == "dome_getquotatoken") {
@@ -329,6 +327,12 @@ void workerFunc(DomeCore *core, int myidx) {
         }
         else if ( dreq.domecmd == "dome_delquotatoken" ) {
           core->dome_delquotatoken(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_chksumstatus") {
+          core->dome_chksumstatus(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_dochksum") {
+          core->dome_dochksum(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));

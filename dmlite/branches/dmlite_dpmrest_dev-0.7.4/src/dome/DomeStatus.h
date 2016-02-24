@@ -198,6 +198,8 @@ public:
   
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;
+  /// Checks if I can send a checksum request to the disk
+  void tickChecksums();
 
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;

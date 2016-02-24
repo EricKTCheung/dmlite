@@ -28,12 +28,12 @@
 \contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{23}
 \contentsline {subsubsection}{\nonumberline dome\_ispullable}{24}
 \contentsline {subsubsection}{\nonumberline dome\_get}{24}
-\contentsline {subsubsection}{\nonumberline dome\_pulldone}{24}
+\contentsline {subsubsection}{\nonumberline dome\_pulldone}{25}
 \contentsline {subsubsection}{\nonumberline dome\_statpool}{25}
 \contentsline {subsection}{\numberline {1.4.3}Disk node operation}{26}
-\contentsline {subsubsection}{\nonumberline dome\_dochksum}{26}
+\contentsline {subsubsection}{\nonumberline dome\_dochksum}{27}
 \contentsline {subsubsection}{\nonumberline dome\_pull}{27}
-\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{27}
+\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{28}
 \contentsline {subsubsection}{\nonumberline dome\_delreplica}{28}
 \contentsline {chapter}{\numberline {2}Configuration}{29}
 \contentsline {section}{\numberline {2.1}Command-line parameters}{29}

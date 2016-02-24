@@ -27,6 +27,7 @@
 #include "DomeStatus.h"
 #include "DomeMysql.h"
 #include "DomeLog.h"
+#include "DomeUtils.h"
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>
@@ -163,6 +164,7 @@ int DomeStatus::tick(time_t timenow) {
   checksumq->tick();
   filepullq->tick();
   
+  this->tickChecksums();
   
   // -----------------------------------
   // Actions to be performed less often...
@@ -192,6 +194,78 @@ int DomeStatus::tick(time_t timenow) {
   }
 
   return 0;
+}
+
+void DomeStatus::tickChecksums() {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+
+  GenPrioQueueItem_ptr next;
+  while((next = checksumq->getNextToRun()) != NULL) {
+    Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling calculation of checksum: " << next->namekey);
+
+    // parse queue item contents
+    std::vector<std::string> qualifiers = next->qualifiers;
+    std::vector<std::string> namekey = DomeUtils::split(next->namekey, "[#]");
+
+    if(namekey.size() != 3) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "INCONCISTENCY in the internal checksum queue. Invalid namekey: " << next->namekey);
+      continue;
+    }
+
+    if(qualifiers.size() != 5) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "INCONCISTENCY in the internal checksum queue. Invalid size of qualifiers: " << qualifiers.size());
+      continue;
+    }
+
+    std::string lfn = namekey[0];
+    std::string rfn = namekey[1];
+    std::string checksumtype = namekey[2];
+
+    std::string server = qualifiers[1];
+    bool updateLfnChecksum = DomeUtils::str_to_bool(qualifiers[2]);
+    std::string remoteclientdn = qualifiers[3];
+    std::string remoteclienthost = qualifiers[4];
+
+    // send dochksum to the disk to initiate calculation
+    Log(Logger::Lvl3, domelogmask, domelogname, "Contacting disk server " << server << " for checksum calculation.");
+    std::string diskurl = "https://" + server + "/domedisk/" + lfn;
+    Davix::Uri durl(diskurl);
+    Davix::DavixError *err = NULL;
+
+    DavixGrabber hdavix(*davixPool);
+    DavixStuff *ds(hdavix);
+    Davix::PostRequest req(*(ds->ctx), durl, &err);
+
+    if(err) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "ERROR when initializing a post request for dochksum: " << err->getErrMsg() );
+      Davix::DavixError::clearError(&err);
+      continue;
+    }
+
+    req.addHeaderField("cmd", "dome_dochksum");
+    req.addHeaderField("remoteclientdn", remoteclientdn);
+    req.addHeaderField("remoteclientaddr", remoteclienthost);
+
+    boost::property_tree::ptree params;
+    params.put("checksum-type", checksumtype);
+    params.put("update-lfn-checksum", DomeUtils::bool_to_str(updateLfnChecksum));
+    params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
+
+    std::ostringstream os;
+    boost::property_tree::write_json(os, params);
+
+    req.setParameters(*ds->parms);
+    req.setRequestBody(os.str());
+    req.executeRequest(&err);
+
+    if(err) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "ERROR when sending a dochksum: " << err->getErrMsg() );
+      Davix::DavixError::clearError(&err);
+      continue;
+    }
+  }
+  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting.");
 }
 
 void DomeStatus::setDavixPool(dmlite::DavixCtxPool *pool) {
