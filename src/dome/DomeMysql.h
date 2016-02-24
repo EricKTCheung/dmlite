@@ -32,7 +32,7 @@
 
 class DomeStatus;
 class DomeQuotatoken;
-
+class DomeFsInfo;
 
 
 class DomeMySql {
@@ -64,10 +64,16 @@ public:
   int getFilesystems(DomeStatus &st);
   
   /// Adds or overwrites a quotatoken
-  int setQuotatoken(DomeQuotatoken &qtk, std::string clientid);
+  int setQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
   
   /// Deletes a quotatoken
-  int delQuotatoken(DomeQuotatoken &qtk, std::string clientid);
+  int delQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
+  
+  /// Removes a pool and all the related filesystems
+  int rmPool(std::string &poolname);
+  
+  /// Adds a new filesystem to a pool that may or may not exist
+  int addFsPool(DomeFsInfo &newfs);
   
 protected:
   // The corresponding factory.

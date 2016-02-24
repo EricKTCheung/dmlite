@@ -279,7 +279,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   return cnt;
 }
 
-int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
+int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
   
@@ -360,7 +360,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
 
 
 
-int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
+int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
   
@@ -393,7 +393,53 @@ int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string clientid) {
   return 0;
 }
 
-
+/// Removes a pool and all the related filesystems
+int DomeMySql::rmPool(std::string &poolname)  {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
+  
+  
+  // Delete the pool itself
+  Statement stmt(conn_, "dpm_db", 
+                 "DELETE FROM dpm_pool\
+                  WHERE poolname = ?");
+  
+  stmt.bindParam(0, poolname);
+  
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Err( domelogname, "Could not delete pool: '" << poolname << "' from DB. Proceeding anyway to delete the filesystems. nrows: " << nrows );
+  }
+  
+  // Now remove all the filesystems it had
+  Statement stmt2(conn_, "dpm_db", 
+                 "DELETE FROM dpm_fs\
+                  WHERE poolname = ?");
+  
+  stmt2.bindParam(0, poolname);
+  
+  ok = true;
+  try {
+    if ( (nrows = stmt2.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Err( domelogname, "Could not delete filesystems of pool: '" << poolname << "' from DB." << nrows );
+  }
+  
+  // Let's log this at level 1, as it's particularly destructive
+  Log(Logger::Lvl1, domelogmask, domelogname, "Pool '" << poolname << "' removed. Removed filesystems: " << nrows; );
+  
+  return 0;
+}
 
 int DomeMySql::getFilesystems(DomeStatus &st)
 {
@@ -448,3 +494,59 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
   return cnt;
 }
+
+
+int DomeMySql::addFsPool(DomeFsInfo &newfs) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
+  
+  // Insert the pool, in the case it did not exist
+  Statement stmt(conn_, "dpm_db", 
+                 "INSERT INTO dpm_pool\
+                 (poolname, defsize, gc_start_thresh, gc_stop_thresh,\
+                 def_lifetime, defpintime, max_lifetime, maxpintime,\
+                 fss_policy, gc_policy, mig_policy, rs_policy,\
+                 groups, ret_policy, s_type)\
+                 VALUES \
+                 (?, 104857600, 0, 0,\
+                 604800, 7200, 2592000, 43200,\
+                 'maxfreespace', 'lru', 'none', 'fifo',\
+                 '', 'R', '-')");
+  
+  stmt.bindParam(0, newfs.poolname);
+  
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << newfs.poolname << "' It likely already exists. nrows: " << nrows );
+  }
+
+  // Now insert the filesystem, using poolname
+  Statement stmt2(conn_, "dpm_db", 
+                 "INSERT INTO dpm_fs\
+                 (poolname, server, fs, status, weight)\
+                 VALUES \
+                 (?, ?, ?, 0, 0)");
+  
+  stmt2.bindParam(0, newfs.poolname);
+  stmt2.bindParam(1, newfs.server);
+  stmt2.bindParam(2, newfs.fs);
+  
+  ok = true;
+  try {
+    if ( (nrows = stmt2.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Err(domelogname, "Could not insert new filesystem: '" << newfs.server << ":" << newfs.fs << "' for pool: '" << newfs.poolname << "' It likely already exists. nrows: " << nrows );
+    return 1;
+  }
+}
+

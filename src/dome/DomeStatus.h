@@ -153,10 +153,6 @@ public:
   
   
 
-  /// Helper function that adds a filesystem to the list and its corresponding server to the server list
-  /// Filesystems so far can't be deleted without a restart
-  int addFilesystem(DomeFsInfo &fs);
-
   /// Helper function that reloads all the filesystems from the DB
   int loadFilesystems();
 
@@ -179,11 +175,26 @@ public:
   /// Tells if a pool with the given name exists
   bool existsPool(std::string &poolname);
   
+  /// Removes a pool and all its filesystems
+  int rmPoolfs(std::string &poolname);
+  
+  /// Adds a filesystem to an existing pool
+  int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
+  
+  
+  
+  
+  
+  // Utility ------------------------------------
+  
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
   long getGlobalputcount();
   
   void checkDiskSpaces();
+  
+  // Tells if the given pfn belongs to the given filesystem root path
+  bool PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs);
   
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;

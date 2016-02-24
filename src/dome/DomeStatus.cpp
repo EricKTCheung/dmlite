@@ -80,16 +80,12 @@ DomeStatus::DomeStatus() {
 long DomeStatus::getGlobalputcount() {
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
-  globalputcount = ++globalputcount % MAXINT;
+  globalputcount++;
+  globalputcount %= MAXINT;
   
   return (globalputcount);
 }
 
-
-/// Helper function that adds a filesystem to the list and its corresponding server to the server list
-/// Filesystems so far can't be deleted without a restart
-int DomeStatus::addFilesystem(DomeFsInfo &fs) {
-}
 
 /// Helper function that reloads all the filesystems from the DB
 int DomeStatus::loadFilesystems() {
@@ -135,7 +131,7 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
   // Loop over the filesystems and just sum the numbers
-  for (int i = 0; i < fslist.size(); i++)
+  for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
       total += fslist[i].physicalsize;
       free += fslist[i].freespace;
@@ -150,7 +146,7 @@ bool DomeStatus::existsPool(std::string &poolname) {
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
   // Loop over the filesystems and just sum the numbers
-  for (int i = 0; i < fslist.size(); i++)
+  for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
       return true;
     }
@@ -194,7 +190,8 @@ int DomeStatus::tick(time_t timenow) {
     
     lastfscheck = timenow;
   }
-  
+
+  return 0;
 }
 
 void DomeStatus::setDavixPool(dmlite::DavixCtxPool *pool) {
@@ -214,7 +211,7 @@ void DomeStatus::checkDiskSpaces() {
     
     int nfs = 0;
     
-    for (int i = 0; i < fslist.size(); i++) {
+    for (unsigned int i = 0; i < fslist.size(); i++) {
       
       if ( fslist[i].server == myhostname ) {
         struct statfs buf;
@@ -257,7 +254,7 @@ void DomeStatus::checkDiskSpaces() {
     for (std::set<std::string>::iterator servername = srv.begin(); servername != srv.end(); servername++) {
       
       Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *servername);
-      int errcode = 0;
+      int errcode;
       
       // https is mandatory to contact disk nodes, as they must be able to apply
       // decent authorization rules
@@ -324,7 +321,7 @@ void DomeStatus::checkDiskSpaces() {
               
               // Find the corresponding server:fs info in our array, and get the counters
               Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
-              for (int ii = 0; ii < fslist.size(); ii++) {
+              for (unsigned int ii = 0; ii < fslist.size(); ii++) {
                 
                 Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
                 if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
@@ -357,7 +354,7 @@ void DomeStatus::checkDiskSpaces() {
           // The communication with the server had problems
           // Disable all the filesystems belonging to that server
           Log(Logger::Lvl4, domelogmask, domelogname, "Disabling filesystems for server '" << *servername << "'");
-          for (int ii = 0; ii < fslist.size(); ii++) {
+          for (unsigned int ii = 0; ii < fslist.size(); ii++) {
             if (fslist[ii].server == *servername) {
               // If there was some error, disable the filesystem and give a clear warning
               Err(domelogname, "Server down or other trouble. Disabling filesystem: '" << fslist[ii].server << " " << fslist[ii].fs << "'");
@@ -446,4 +443,60 @@ int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolna
   return 1;
 }
   
+
+static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
+    return ( fsi.poolname == pool );
+}
+
+int DomeStatus::rmPoolfs(std::string &poolname) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Removing filesystems of pool: '" << poolname << "'");
   
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  std::vector<DomeFsInfo>::iterator new_end;
+  
+  new_end = std::remove_if(fslist.begin(), fslist.end(), boost::bind(&predFsMatchesPool, _1, poolname));
+  fslist.erase(new_end, fslist.end()); 
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Removed filesystems of pool: '" << poolname << "'");
+  return 0;
+  
+}
+
+bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
+
+  if (server != fs.server) return false;
+  
+  size_t pos = pfn.find(fs.fs);
+    if (pos == 0) {
+      // Here, a filesystem is a substring of the pfn. To be its parent filesystem,
+      // either the string sizes are the same, or there is a slash in the pfn where the fs ends
+      if (fs.fs.size() == pfn.size()) return true;
+      if (pfn[fs.fs.size()] == '/') return true;
+    }
+    
+  return false;
+  
+}
+
+int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poolname) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Adding filesystem. srv: '" << srv << "' fs: '" << newfs << "' pool: '" << poolname << "'");
+  
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  DomeFsInfo fsi;
+  fsi.poolname = poolname;
+  fsi.server = srv;
+  fsi.fs = newfs;
+  
+  // Make sure it's not already there or that we are not adding a parent/child of an existing fs
+  for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
+    if ( PfnMatchesFS(srv, newfs, *fs) )
+      return 1;
+  }
+  
+  fslist.push_back(fsi);
+  return 0;
+}
