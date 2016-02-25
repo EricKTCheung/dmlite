@@ -1064,7 +1064,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
     }
 
     PendingChecksum pending(lfn, pfn, chksumtype, updateLfnChecksum);
-    int id = this->submitCmd("echo hello world!");
+    int id = this->submitCmd("/usr/bin/md5sum /etc/services");
     diskPendingChecksums[id] = pending; 
 
     return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << pfn << ", task executor ID: " << id));
