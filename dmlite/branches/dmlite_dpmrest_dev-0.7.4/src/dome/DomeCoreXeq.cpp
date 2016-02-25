@@ -1692,7 +1692,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     if (tmp_err)
       os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "' response body: '" << req2.getAnswerContent();
     else
-      os << "Cannot execute cmd_pfnrm to head node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
+      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
     
     Err(domelogname, os.str());    
     return DomeReq::SendSimpleResp(request, 500, os);
@@ -1709,6 +1709,41 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
+  dmlite::INode *ino;
+  std::vector<Replica> repls;
+  try {
+    ino = stack->getINode();
+    if (ino)
+      repls = ino->getReplicas(rep.fileid);
+      else
+        Err(domelogname, "Cannot retrieve inode interface.");
+  } catch (DmException e) {
+    std::ostringstream os;
+    os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+    Err(domelogname, os.str());
+    //return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  if (repls.size() == 0) {
+    // Delete the logical entry if this was the last replica
+    try {
+      
+      if (ino)
+        ino->unlink(rep.fileid);
+      else
+        Err(domelogname, "Cannot retrieve inode interface.");
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+      Err(domelogname, os.str());
+      //return DomeReq::SendSimpleResp(request, 404, os);
+    }
+  }
+    
+  
+  
   
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
 }
