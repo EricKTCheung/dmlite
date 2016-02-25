@@ -86,79 +86,6 @@ DomeCore::~DomeCore() {
 
 
 
-bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
-  
-  
-    // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(status);
-  
-  // Loop on the filesystems, looking for one that is a proper substring of the pfn
-  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-    
-    if (status.PfnMatchesFS(srv, pfn, *fs))
-      return true;
-    
-  }
-    
-  return false;
-  
-}
-
-
-bool DomeCore::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo) {
-  
-  
-    // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(status);
-  
-  // Loop on the filesystems, looking for one that is a proper substring of the pfn
-  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-    
-    if (status.PfnMatchesFS(srv, pfn, *fs)) {
-      fsinfo = *fs;
-      return true;
-    }
-    
-  }
-    
-  return false;
-  
-}
-
-
-
-bool DomeCore::LfnMatchesPool(std::string lfn, std::string pool) {
-  
-  // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(status);
-  std::string lfn1(lfn);
-  
-  while (lfn1.length() > 0) {
-    
-    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
-    // Check if any matching quotatoken exists
-    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
-    myintv = status.quotas.equal_range(lfn1);
-    
-    if (myintv.first != status.quotas.end()) {
-      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
-        if (it->second.poolname == pool) {
-          
-          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
-          
-          return true;
-        }
-      }
-    }
-    
-    // No match found, look upwards by trimming the last token from absPath
-    size_t pos = lfn1.rfind("/");
-    lfn1.erase(pos);
-  }
-  return false;
-  
-}
-
 
 // entry point for worker threads, endless loop that wait for requests from apache
 // pass on processing to handlers depends on (not yet) defined REST methods
@@ -250,7 +177,7 @@ void workerFunc(DomeCore *core, int myidx) {
       // head node trusts all the disk nodes that are registered in the filesystem table
       // disk node trusts head node as defined in the config file
       
-      authorize = core->isDNaKnownServer(dreq.clientdn);
+      authorize = core->status.isDNaKnownServer(dreq.clientdn);
       if (authorize)
         Log(Logger::Lvl1, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
     }
@@ -533,32 +460,6 @@ void DomeCore::tick(int parm) {
   }
   
 }
-
-bool DNMatchesHost(std::string dn, std::string host) {
-  std::string s = "/CN="+host;
-  
-  // Simple version, if the common name appears in the dn then we are right
-  if (dn.find(s) != std::string::npos) return true;
-  
-  return false;
-}
-
-bool DomeCore::isDNaKnownServer(std::string dn) {
-  // We know this server if its DN matches our own hostname, it's us !
-  if (DNMatchesHost(dn, status.myhostname)) return true;
-  
-  // We know this server if its DN matches the DN of the head node
-  if (DNMatchesHost(dn, status.headnodename)) return true;
-  
-  // We know this server if its DN matches the hostname of a disk server
-  for (std::set<std::string>::iterator i = status.servers.begin() ; i != status.servers.end(); i++) {
-    if (DNMatchesHost(dn, *i)) return true;
-  }
-  
-  // We don't know this server
-  return false;
-}
-
 
 
 /// Send a notification to the head node about the completion of this task

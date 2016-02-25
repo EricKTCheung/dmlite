@@ -574,3 +574,113 @@ int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poo
   fslist.push_back(fsi);
   return 0;
 }
+
+
+
+
+
+bool DomeStatus::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
+  
+  
+    // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  // Loop on the filesystems, looking for one that is a proper substring of the pfn
+  for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
+    
+    if (PfnMatchesFS(srv, pfn, *fs))
+      return true;
+    
+  }
+    
+  return false;
+  
+}
+
+
+bool DomeStatus::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo) {
+  
+  
+    // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  // Loop on the filesystems, looking for one that is a proper substring of the pfn
+  for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
+    
+    if (PfnMatchesFS(srv, pfn, *fs)) {
+      fsinfo = *fs;
+      return true;
+    }
+    
+  }
+    
+  return false;
+  
+}
+
+
+
+bool DomeStatus::LfnMatchesPool(std::string lfn, std::string pool) {
+  
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  std::string lfn1(lfn);
+  
+  while (lfn1.length() > 0) {
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
+    // Check if any matching quotatoken exists
+    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+    myintv = quotas.equal_range(lfn1);
+    
+    if (myintv.first != quotas.end()) {
+      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+        if (it->second.poolname == pool) {
+          
+          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
+          
+          return true;
+        }
+      }
+    }
+    
+    // No match found, look upwards by trimming the last token from absPath
+    size_t pos = lfn1.rfind("/");
+    lfn1.erase(pos);
+  }
+  return false;
+  
+}
+
+
+
+bool DNMatchesHost(std::string dn, std::string host) {
+  std::string s = "/CN="+host;
+  
+  // Simple version, if the common name appears in the dn then we are right
+  if (dn.find(s) != std::string::npos) return true;
+  
+  return false;
+}
+
+
+
+
+bool DomeStatus::isDNaKnownServer(std::string dn) {
+  // We know this server if its DN matches our own hostname, it's us !
+  if (DNMatchesHost(dn, myhostname)) return true;
+  
+  // We know this server if its DN matches the DN of the head node
+  if (DNMatchesHost(dn, headnodename)) return true;
+  
+  // We know this server if its DN matches the hostname of a disk server
+  for (std::set<std::string>::iterator i = servers.begin() ; i != servers.end(); i++) {
+    if (DNMatchesHost(dn, *i)) return true;
+  }
+  
+  // We don't know this server
+  return false;
+}
+
+
+

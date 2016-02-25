@@ -175,7 +175,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
         
         // Take only pools that are associated to the lfn parent dirs
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() ) 
+        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() ) 
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -184,7 +184,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (host.size() > 0) && (fs.size() == 0) && (status.fslist[i].server == host) ) {
         
         // Take only pools that are associated to the lfn parent dirs
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
+        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -193,7 +193,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       if ( (host.size() > 0) && (fs.size() > 0) && (status.fslist[i].server == host) && (status.fslist[i].fs == fs) ) {
         
         // Take only pools that are associated to the lfn parent dirs through a quotatoken
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
+        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
         continue;
@@ -202,7 +202,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       // No hints matched because there a re no hintss. Add the filesystem if its path is not empty
       // and matches the put path
       if ( !host.size() && !fs.size() )
-        if ( LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
+        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
           selectedfss.push_back(status.fslist[i]);
         
     }
@@ -1269,7 +1269,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
       // Check if the replica makes sense and whether its filesystem is enabled
       DomeFsInfo fsinfo;
-      if (!PfnMatchesAnyFS(replicas[i].server, pfn, fsinfo)) {
+      if (!status.PfnMatchesAnyFS(replicas[i].server, pfn, fsinfo)) {
         Err(domelogname, SSTR("Replica '" << rfn << "' in server '" << replicas[i].server << "' cannot be matched to any working filesystem. A configuration check is needed."));
         continue;
       }
@@ -1573,7 +1573,7 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
     absPath.erase(absPath.size() - 1);
   }
   
-  if (!PfnMatchesAnyFS(status.myhostname, absPath)) {
+  if (!status.PfnMatchesAnyFS(status.myhostname, absPath)) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is not a valid pfn."));
   }
   
@@ -1636,7 +1636,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     absPath.erase(absPath.size() - 1);
   }
   
-  if (!PfnMatchesAnyFS(srv, absPath)) {
+  if (!status.PfnMatchesAnyFS(srv, absPath)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not a valid pfn for server '" << srv << "'"));
   }
   
@@ -1712,13 +1712,10 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
   dmlite::INode *ino;
-  std::vector<Replica> repls;
   try {
     ino = stack->getINode();
-    if (ino)
-      repls = ino->getReplicas(rep.fileid);
-      else
-        Err(domelogname, "Cannot retrieve inode interface.");
+    if (!ino) 
+      Err(domelogname, "Cannot retrieve inode interface.");
   } catch (DmException e) {
     std::ostringstream os;
     os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
@@ -1726,23 +1723,36 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
   
-  if (repls.size() == 0) {
-    // Delete the logical entry if this was the last replica
+  if (ino) {
+    InodeTrans trans(ino);
+    
+    std::vector<Replica> repls;
     try {
       
-      if (ino)
-        ino->unlink(rep.fileid);
-      else
-        Err(domelogname, "Cannot retrieve inode interface.");
+      repls = ino->getReplicas(rep.fileid);
+      
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
       Err(domelogname, os.str());
       //return DomeReq::SendSimpleResp(request, 404, os);
     }
-  }
     
-  
+    if (repls.size() == 0) {
+      // Delete the logical entry if this was the last replica
+      try {
+        
+        ino->unlink(rep.fileid);
+        
+      } catch (DmException e) {
+        std::ostringstream os;
+        os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+        Err(domelogname, os.str());
+        //return DomeReq::SendSimpleResp(request, 404, os);
+      }
+    }
+    
+  }
   
   
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
@@ -1783,10 +1793,49 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
 }
 
 int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on disk nodes.");
+  }
   
   
-return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+  std::string server = req.bodyfields.get<std::string>("server", "");
   
+  Log(Logger::Lvl4, domelogmask, domelogname, " pfn: '" << pfn << "'");
+  
+  
+  if (!pfn.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
+  }
+  if (!server.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
+  }
+  
+  if (!status.PfnMatchesAnyFS(server, pfn)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << server << "'"));
+  }
+  
+  struct stat st;
+
+  if ( stat(pfn.c_str(), &st) ) {
+    std::ostringstream os;
+    char errbuf[1024];
+    os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+  
+  Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
+    " disksize: " << st.st_size << " flags: " << st.st_mode);
+  
+
+  boost::property_tree::ptree jresp;
+  jresp.put("size", st.st_size);
+  jresp.put("mode", st.st_mode);
+  jresp.put("isdir", ( S_ISDIR(st.st_mode) ));
+  
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+   
   
   
 };
@@ -1880,8 +1929,33 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
 }
 
+
 /// Removes a filesystem, no matter to which pool it was attached
-int dome_rmfs(DomeReq &req, FCGX_Request &request) {
+int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on head nodes.");
+  }
+  
+  std::string server =  req.bodyfields.get<std::string>("server", "");
+  std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  
+  if (status.PfnMatchesAnyFS(server, newfs)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
+  }
+  
+  {
+    // Lock status!
+    boost::unique_lock<boost::recursive_mutex> l(status);
+  
+    // Loop on the filesystems, looking for one that is a proper substring of the pfn
+    for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+      if (status.PfnMatchesFS(server, newfs, *fs)) {
+        status.fslist.erase(fs);
+        break;
+      }
+    }
+  }
+  
   return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
 }
   

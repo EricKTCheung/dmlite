@@ -182,10 +182,15 @@ public:
   int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
   
   
-  
-  
-  
   // Utility ------------------------------------
+  bool LfnMatchesPool(std::string lfn, std::string pool);
+  bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
+  bool PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo);
+  
+  // head node trusts all the disk nodes that are registered in the filesystem table
+  // disk node trusts head node as defined in the config file
+  bool isDNaKnownServer(std::string dn);
+  
   
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
@@ -195,6 +200,8 @@ public:
   
   // Tells if the given pfn belongs to the given filesystem root path
   bool PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs);
+  // ---------------------------------
+  
   
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;
