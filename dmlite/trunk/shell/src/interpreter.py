@@ -2060,7 +2060,7 @@ class Response(object):
 			return 0
 		elif 'Failed' in marker:
 			return marker
-	return 1
+	return "Error Contacting the remote disknode"
   def printMarkers(self):
 	for marker in self.markers:
 		print marker
@@ -2508,7 +2508,7 @@ class DrainFileReplica(object):
 		if destination:
 			#logging only need to clean pending replica 
 			self.logError("Error while copying to SFN: " +destination+"\n")
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +error))
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +str(error)))
 		else:	
 			self.logError("Error moving Replica for file: " +filename+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, error))
