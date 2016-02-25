@@ -2417,7 +2417,7 @@ The replicate command accepts the following parameters:
 			return 1
 
 	        try:	
-			if poolname:
+			if replica.getString('pool',''):
 	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
         	        	poolHandler.removeReplica(replica)
 			else:
