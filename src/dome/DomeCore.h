@@ -126,7 +126,6 @@ public:
   int dome_rmfs(DomeReq &req, FCGX_Request &request);
   
   
-  
   // --------------------------------------------------------
   // ---------------------------- Utility
   bool LfnMatchesPool(std::string lfn, std::string pool);
