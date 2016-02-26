@@ -44,6 +44,7 @@ set (INSTALL_PFX_ETC "etc/" CACHE STRING "relative path suffix to the etc direct
 set (INSTALL_PFX_LIB "usr/lib${LIB_SUFFIX}/" CACHE STRING "relative path suffix to the lib/lib64 directory where to install")
 set (INSTALL_PFX_USR "usr/" CACHE STRING "relative path suffix to the usr directory where to install (e.g. docs)")
 set (INSTALL_PFX_VAR "var/www/" CACHE STRING "relative path suffix to the /var/www directory where to install fast-cgi")
+set (INSTALL_PFX_BIN "usr/bin/" CACHE STRING "relative path suffix to the /usr/bin directory where to install dome-checksum")
 
 
 
