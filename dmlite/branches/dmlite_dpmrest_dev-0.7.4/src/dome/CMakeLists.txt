@@ -25,6 +25,9 @@ set_target_properties (libdome PROPERTIES PREFIX "") # fixes liblib issue
 add_executable        (dome DomeMain.cpp)
 target_link_libraries (dome libdome)
 
+add_executable        (dome-checksums DomeChecksum.cpp)
+target_link_libraries (dome-checksums z ssl)
+
 # Install
 install (TARGETS dome
          DESTINATION            ${INSTALL_PFX_VAR}/fcgi-bin/
