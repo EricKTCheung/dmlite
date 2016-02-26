@@ -25,8 +25,8 @@ set_target_properties (libdome PROPERTIES PREFIX "") # fixes liblib issue
 add_executable        (dome DomeMain.cpp)
 target_link_libraries (dome libdome)
 
-add_executable        (dome-checksums DomeChecksum.cpp)
-target_link_libraries (dome-checksums z ssl)
+add_executable        (dome-checksum DomeChecksum.cpp)
+target_link_libraries (dome-checksum z ssl)
 
 # Install
 install (TARGETS dome
@@ -35,5 +35,10 @@ install (TARGETS dome
                                 GROUP_EXECUTE GROUP_READ
                                 WORLD_EXECUTE WORLD_READ )
 
+install (TARGETS dome-checksum
+         DESTINATION            ${INSTALL_PFX_BIN}
+         PERMISSIONS            OWNER_EXECUTE OWNER_WRITE OWNER_READ
+                                GROUP_EXECUTE GROUP_READ
+                                WORLD_EXECUTE WORLD_READ )
 # tests
 add_subdirectory(tests)
