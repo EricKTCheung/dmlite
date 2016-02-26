@@ -35,10 +35,10 @@ install (TARGETS dome
                                 GROUP_EXECUTE GROUP_READ
                                 WORLD_EXECUTE WORLD_READ )
 
-install (TARGETS dome-checksum
-         DESTINATION            ${INSTALL_PFX_BIN}
-         PERMISSIONS            OWNER_EXECUTE OWNER_WRITE OWNER_READ
-                                GROUP_EXECUTE GROUP_READ
-                                WORLD_EXECUTE WORLD_READ )
+# install (TARGETS dome-checksum
+#          DESTINATION            ${INSTALL_PFX_BIN}
+#          PERMISSIONS            OWNER_EXECUTE OWNER_WRITE OWNER_READ
+#                                 GROUP_EXECUTE GROUP_READ
+#                                 WORLD_EXECUTE WORLD_READ )
 # tests
 add_subdirectory(tests)
