@@ -262,7 +262,7 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 %{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
-# %{_bindir}/dome-checksum
+%{_bindir}/dome-checksum
 %{_localstatedir}/www/fcgi-bin/dome
 %doc README LICENSE RELEASE-NOTES
 
@@ -313,7 +313,8 @@ rm -rf %{buildroot}
 
 %files shell
 %defattr(-,root,root,-)
-%{_bindir}/*
+%{_bindir}/dmlite-shell 
+%{_bindir}/dmlite-mysql-dirspaces.py
 %{python_sitearch}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
