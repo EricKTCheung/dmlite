@@ -2527,7 +2527,7 @@ class DrainFileReplica(object):
                 replica = self.interpreter.catalog.getReplicaByRFN(destination)
                 if replica.status != pydmlite.ReplicaStatus.kAvailable:
 			cleanReplica = True
-			self.error("Error while updating the replica status\n")
+			self.logError("Error while updating the replica status\n")
 		else:
 			self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
