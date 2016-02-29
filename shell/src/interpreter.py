@@ -2216,7 +2216,6 @@ class DrainThread (threading.Thread):
 	
     def stop(self):
 	self.stopEvent.set()
-	super(DrainThread, self).join(None)
 
     def drainReplica(self,threadName):
         while not self.stopEvent.isSet():
@@ -2393,22 +2392,30 @@ The replicate command accepts the following parameters:
 		
                 else:
                         return 1
-
+	cleanReplica = False
         if not replicated:
 		if error:
 			self.error(error)
                 if destination:
                         #logging only need to clean pending replica 
                         self.error("Error while copying to SFN: " +destination+"\n")
+			cleanReplica = True
                 else:
                         self.error("Error Replicating file: " +filename+"\n")
                         return 1
-
+	replica = None
         if replicated:
-                self.ok("The file has been correctly replicated to: "+ destination+"\n")
+		#check replica status
+		replica = self.interpreter.catalog.getReplicaByRFN(destination)
+		if replica.status != pydmlite.ReplicaStatus.kAvailable:
+			cleanReplica = True
+			self.error("Error while updating the replica status\n")
+		else:
+	                self.ok("The file has been correctly replicated to: "+ destination+"\n")
 
-        elif destination:
-                replica = self.interpreter.catalog.getReplicaByRFN(destination)
+        if cleanReplica:
+		if not replica:
+	                replica = self.interpreter.catalog.getReplicaByRFN(destination)
                 try:
                         self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
                 except Exception, e:
@@ -2503,22 +2510,29 @@ class DrainFileReplica(object):
 			self.logError("Error while copying to SFN: " +destination+"\n")
 		else:
 			return 1
-			
+	cleanReplica = False			
 	if not replicated:
 		if destination:
 			#logging only need to clean pending replica 
 			self.logError("Error while copying to SFN: " +destination+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +str(error)))
+			cleanReplica = True
 		else:	
 			self.logError("Error moving Replica for file: " +filename+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, error))
 			return 1
-
+	replica = None
         if replicated:
-		self.logOK("The file has been correctly replicated to: "+ destination+"\n")
+		#check replica status
+                replica = self.interpreter.catalog.getReplicaByRFN(destination)
+                if replica.status != pydmlite.ReplicaStatus.kAvailable:
+			cleanReplica = True
+			self.error("Error while updating the replica status\n")
+		else:
+			self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
 	#step 6 : remove drained replica file if correctly replicated or erroneus drained file
-	if replicated:
+	if not cleanReplica:
 		replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
 		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
 	        try:
@@ -2526,7 +2540,7 @@ class DrainFileReplica(object):
 	        except Exception, e:
         	        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
 
-        elif destination:
+        else:
 		replica = self.interpreter.catalog.getReplicaByRFN(destination)
 		pool = self.interpreter.poolManager.getPool(replica.getString('pool',''))
                 try:
