@@ -7,7 +7,7 @@ using namespace std;
 
 void testSubmitCmd(TestDomeTaskExec& core) {
     std::cout << "Test testSubmitCmd" << std::endl;
-    int key = core.submitCmd("/bin/sleep 5");
+    int key = core.submitCmd("/bin/echo Andrea");
     core.waitResult(key);
     ASSERT(core.getTask(key)->finished == 1);
  }
@@ -45,6 +45,27 @@ void testParallel(TestDomeTaskExec& core) {
    
 }
 
+void testParallelVectorArgs(TestDomeTaskExec& core) {
+    std::cout << "Test Parallel" << std::endl;
+    std::vector<std::string> args;
+    args.push_back("/bin/sleep");
+    args.push_back("100");
+    int i = 0;
+    int key[100];
+    for (i=0; i< 100;i++) {
+        key[i] = core.submitCmd(args);
+     }
+    sleep(5);
+    for (i=0; i< 100;i++) {
+        core.killTask(key[i]);
+        core.waitResult(key[i]);
+    }
+    for (i=0; i< 100;i++) {
+        ASSERT(core.getTask(key[i])->finished == 1);
+    }
+
+}
+
 
 int main () {
   TestDomeTaskExec core ;
@@ -52,5 +73,5 @@ int main () {
   testSubmitCmd(core);
   testKill(core);
   testParallel(core);
-  while(1);
+  testParallelVectorArgs(core);  
 } 

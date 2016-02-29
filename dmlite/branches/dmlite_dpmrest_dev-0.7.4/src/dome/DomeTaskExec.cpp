@@ -214,8 +214,6 @@ void DomeTaskExec::run(DomeTask &task) {
      time(&task.starttime);
   }
   
-  task.splitCmd();
-
   task.resultcode = popen3((int *)task.fd, &task.pid, task.parms);
   
   /// It is then possible for the parent process to read the output of the child process from file descriptor
@@ -261,9 +259,10 @@ void DomeTaskExec::run(DomeTask &task) {
 }
 
 
-int DomeTaskExec::submitCmd(string cmd) {
+int DomeTaskExec::submitCmd(std::string cmd) {
    DomeTask * task = new DomeTask();
    task->cmd= cmd;
+   task->splitCmd();
    {  
      boost::lock_guard<DomeTask> l(*task);
      task->key = ++taskcnt; 
@@ -273,7 +272,42 @@ int DomeTaskExec::submitCmd(string cmd) {
    return taskcnt;
 }
 
+int DomeTaskExec::submitCmd(std::vector<std::string> &args) {
+   DomeTask * task = NULL;
+   std::ostringstream oss;
+
+   if (!args.empty())
+   {
+	task =  new DomeTask();
+    	// Convert all but the last element to avoid a trailing ","
+         std::copy(args.begin(), args.end()-1,
+    	     std::ostream_iterator<string>(oss, " "));
+          oss << args.back();
+	task->cmd= oss.str();
+   } else return -1;
+
+   assignCmd(task,args);
+   {
+     boost::lock_guard<DomeTask> l(*task);
+     task->key = ++taskcnt;
+     tasks.insert( std::pair<int,DomeTask*>(task->key,task));
+   }
+   boost::thread workerThread( taskfunc,this,taskcnt);
+   return taskcnt;
+
+
+
+}
+  /// Split che command string into the single parms
+void DomeTaskExec::assignCmd(DomeTask *task, std::vector<std::string> &args) {
+  int i = 0;
+  for(std::vector<string>::iterator it = args.begin() ; it != args.end(); ++it) {
+    task->parms[i++] = strdup((*it).c_str());
+  }
+}
+
 int DomeTaskExec::waitResult(int taskID, int tmout) {
+
   const char *fname = "DomeTaskExec::waitFinished";
   
   {
