@@ -26,6 +26,12 @@
 
 #include <boost/thread.hpp>
 #include <signal.h>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <sstream>
+#include <iterator>
+#include <iostream>
 
 
 class DomeTask: public boost::mutex {
@@ -84,6 +90,18 @@ public:
   /// and blocks waiting for the process to end. Upon end it updates the corresponding
   /// instance of DomeTask with the result and the stdout
   int submitCmd(std::string cmd);
+	
+	
+  /// Executes a command. Returns a positive integer as a key to reference
+  //  the execution status and the result
+  //  The mechanics is that a detached thread is started. This guy invokes popen3
+  //  and blocks waiting for the process to end. Upon end it updates the corresponding
+  //   instance of DomeTask with the result and the stdout
+  //   -1 is returned in case of error in the submission
+  int submitCmd(std::vector<std::string> &args);
+
+  /// Split che command string into the single parms
+  void assignCmd(DomeTask *task, std::vector<std::string> &args);
   
   /// Get the results of a task.
   /// Wait at max tmout seconds until the task finishes
@@ -115,8 +133,6 @@ protected:
   // This event can be invoked multiple times during the life of a task
   virtual void onTaskRunning(DomeTask &task);
 private:
-
-  const char ** splitString(std::string str);
 
   int popen3(int fd[3], pid_t *pid,  const char ** argv );
   
