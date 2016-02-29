@@ -464,10 +464,38 @@ void DomeCore::tick(int parm) {
 
 /// Send a notification to the head node about the completion of this task
 void DomeCore::onTaskCompleted(DomeTask &task) {
-  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
+  int key = task.key;
+
+  PendingChecksum pending;
+  {
+    boost::lock_guard<boost::recursive_mutex> l(mtx);
+    std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
+
+    if(it == diskPendingChecksums.end()) {
+      return;
+    }
+
+    pending = it->second;
+    diskPendingChecksums.erase(it);
+  }
+  sendChecksumStatus(pending, task, true);
 }
 
 /// Send a notification to the head node about a task that is running
 void DomeCore::onTaskRunning(DomeTask &task) {
-  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
+  int key = task.key;
+  PendingChecksum pending;
+  {
+    boost::lock_guard<boost::recursive_mutex> l(mtx);
+    std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
+
+    if(it == diskPendingChecksums.end()) {
+      return;
+    }
+
+    pending = it->second;
+  }
+  sendChecksumStatus(pending, task, false);
 }

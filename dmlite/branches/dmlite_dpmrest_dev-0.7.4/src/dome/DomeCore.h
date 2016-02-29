@@ -49,12 +49,15 @@
 
 struct PendingChecksum {
   std::string lfn;
+  std::string server;
   std::string pfn;
   std::string chksumtype;
   bool updateLfnChecksum;
+  std::string remoteclientdn;
+  std::string remoteclienthost;
 
-  PendingChecksum(std::string _lfn, std::string _pfn, std::string _chksumtype, bool _updateLfnChecksum)
-  : lfn(_lfn), pfn(_pfn), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {} 
+  PendingChecksum(std::string _lfn, std::string _server, std::string _pfn, std::string _chksumtype, bool _updateLfnChecksum)
+  : lfn(_lfn), server(_server), pfn(_pfn), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {} 
 
   PendingChecksum() {}
 };
@@ -161,8 +164,8 @@ protected:
   virtual void onTaskRunning(DomeTask &task);
 
   // helper functions for checksums
-
   int calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
+  void sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed);
 };
 
 
