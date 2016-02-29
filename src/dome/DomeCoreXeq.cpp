@@ -858,15 +858,15 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
                                                      << status.checksumq->nTotal()));
 }
 
-static Replica pickReplica(std::string lfn, std::string pfn, DmlitePoolHandler &stack) {
+static Replica pickReplica(std::string lfn, std::string rfn, DmlitePoolHandler &stack) {
   std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
   if(replicas.size() == 0) {
     throw DmException(DMLITE_CFGERR(ENOENT), "The provided LFN does not have any replicas");
   }
 
-  if(pfn != "") {
+  if(rfn != "") {
     for(std::vector<Replica>::iterator it = replicas.begin(); it != replicas.end(); it++) {
-      if(it->rfn == pfn) {
+      if(it->rfn == rfn) {
         return *it;
       }
     }
@@ -1063,9 +1063,14 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
 
-    PendingChecksum pending(lfn, pfn, chksumtype, updateLfnChecksum);
-    int id = this->submitCmd("/usr/bin/dome-checksum " + chksumtype + " " + pfn);
-    diskPendingChecksums[id] = pending; 
+    PendingChecksum pending(lfn, status.myhostname, pfn, chksumtype, updateLfnChecksum);
+
+    std::vector<std::string> params;
+    params.push_back("/usr/bin/dome-checksum");
+    params.push_back(chksumtype);
+    params.push_back(pfn);
+    int id = this->submitCmd(params);
+    diskPendingChecksums[id] = pending;
 
     return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << pfn << ", task executor ID: " << id));
   }
@@ -1077,6 +1082,95 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   
   return DomeReq::SendSimpleResp(request, 500, SSTR("Not implemented, dude."));
 };
+
+static std::string extract_checksum(std::string stdout, std::string &err) {
+  // were there any errors?
+  std::string magic = ">>>>> HASH ";
+  size_t pos = stdout.find(magic);
+
+  if(pos == std::string::npos) {
+    err = "Could not find magic string, unable to extract checksum. ";
+    return "";
+  }
+
+  size_t pos2 = stdout.find("\n", pos);
+  if(pos2 == std::string::npos) {
+    err = "Could not find newline after magic string, unable to extract checksum. ";
+    return "";
+  }
+
+  return stdout.substr(pos+magic.size(), pos2-pos-magic.size());
+}
+
+void DomeCore::sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed);
+
+  std::string checksum, extract_error;
+  bool failed = false;
+
+  if(completed) {
+    checksum = extract_checksum(task.stdout, extract_error);
+    if( ! extract_error.empty()) {
+      Err(domelogname, extract_error << task.stdout);
+      failed = true;
+    }
+  }
+
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
+  Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
+  Davix::Uri url(domeurl);
+
+  Davix::DavixError* err = NULL;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
+  Davix::PostRequest req2(*(ds->ctx), url, &err);
+
+  if(err) {
+    std::string msg = SSTR("Cannot initialize davix query to " << url << ", error: " << err->getErrMsg());
+    Err(domelogname, msg);
+    return;
+  }
+
+  req2.addHeaderField("cmd", "dome_chksumstatus");
+  req2.addHeaderField("remoteclientdn", pending.remoteclientdn);
+  req2.addHeaderField("remoteclienthost", pending.remoteclienthost);
+
+  // set chksumstatus params
+  boost::property_tree::ptree jresp;
+  std::string rfn = pending.server + ":" + pending.pfn;
+
+  jresp.put("pfn", rfn);
+  Log(Logger::Lvl4, domelogmask, domelogname, "rfn: " << rfn);
+
+  jresp.put("checksum-type", pending.chksumtype);
+
+  if(completed) {
+    if(failed) {
+      jresp.put("status", "aborted");
+      jresp.put("reason", SSTR(extract_error << task.stdout));
+    }
+    else {
+      jresp.put("status", "done");
+      jresp.put("checksum", checksum);
+      jresp.put("update-lfn-checksum", DomeUtils::bool_to_str(pending.updateLfnChecksum));
+    }
+  }
+  else {
+    jresp.put("status", "pending");
+  }
+
+  std::ostringstream os;
+  boost::property_tree::write_json(os, jresp);
+  req2.setRequestBody(os.str());
+
+  req2.setParameters(*(ds->parms));
+  req2.executeRequest(&err);
+
+  if(err) {
+    Err(domelogname, "Error after sending a dome_chksumstatus: " << err->getErrMsg());
+    Davix::DavixError::clearError(&err);
+  }
+}
 
 int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
