@@ -26,7 +26,7 @@ add_executable        (dome DomeMain.cpp)
 target_link_libraries (dome libdome)
 
 add_executable        (dome-checksum DomeChecksum.cpp)
-target_link_libraries (dome-checksum z ssl)
+target_link_libraries (dome-checksum z crypto ssl)
 
 # Install
 install (TARGETS dome
