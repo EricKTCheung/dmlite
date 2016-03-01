@@ -6,10 +6,11 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
     
-
 #include "DomeAdapterPools.h"
+#include "DomeAdapterDriver.h"
 
 using namespace dmlite;
+#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
 void DomeAdapterPoolsFactory::configure(const std::string& key, const std::string& value) throw (DmException) 
 {
@@ -32,7 +33,7 @@ PoolManager* DomeAdapterPoolsFactory::createPoolManager(PluginManager*) throw (D
 
 PoolDriver* DomeAdapterPoolsFactory::createPoolDriver(PluginManager*) throw (DmException)
 {
-  return NULL;
+  return new DomeAdapterPoolDriver(this);
 }
 
 DomeAdapterPoolsFactory::DomeAdapterPoolsFactory() throw (DmException) : davixPool_(&davixFactory_, 10)
@@ -66,7 +67,7 @@ void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) t
 }
 
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
-  return PoolManager::kNone;
+  return PoolManager::kNone; // TODO
 }
 
 static Pool deserializePool(boost::property_tree::ptree::const_iterator it) {
@@ -168,7 +169,6 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
    }
 
   std::vector<char> body = req.getAnswerContentVec();
-  std::cout << &body[0] << std::endl;
 
   // parse json response
   boost::property_tree::ptree jresp = parseJSON(&body[0]);
@@ -192,9 +192,36 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
 
 // }
   
-// void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
+void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
+  Davix::setLogScope("header");
+  Davix::setLogLevel(DAVIX_LOG_TRACE);
 
-// }
+  DavixGrabber grabber(factory_->davixPool_);
+  DavixStuff *ds(grabber);
+
+  Davix::DavixError *err = NULL;
+  Davix::Uri uri(factory_->domehead + "/");
+  Davix::PostRequest req(*ds->ctx, uri, &err);
+  req.addHeaderField("cmd", "dome_rmpool");
+  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
+  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+
+  boost::property_tree::ptree params;
+  params.put("poolname", pool.name);
+
+  std::ostringstream os;
+  boost::property_tree::write_json(os, params);
+
+  req.setParameters(*ds->parms);
+  req.setRequestBody(os.str());
+  int rc = req.executeRequest(&err);
+
+  if(rc || err) {
+     std::string msg = SSTR("Error when sending dome_rmpool to headnode: " << err->getErrMsg());
+     Davix::DavixError::clearError(&err);
+     throw DmException(EINVAL, msg);
+   }
+}
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
@@ -299,6 +326,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 static void registerDomeAdapterPools(PluginManager* pm) throw (DmException)
 {
   pm->registerPoolManagerFactory(new DomeAdapterPoolsFactory());
+  pm->registerPoolDriverFactory(new DomeAdapterPoolsFactory());
 }
 
 

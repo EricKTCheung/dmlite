@@ -1888,7 +1888,7 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
   }
   
   status.rmPoolfs(poolname);
-  return 0;  
+  return DomeReq::SendSimpleResp(request, 200, "Pool deleted.");
 }
 
 int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
