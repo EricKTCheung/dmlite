@@ -28,12 +28,13 @@
 #include "DomeLog.h"
 #include "DomeUtils.h"
 #include "DomeDmlitePool.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <sys/vfs.h>
 #include <unistd.h>
 #include <time.h>
 #include <sys/param.h>
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include "cpp/authn.h"
 #include "cpp/dmlite.h"
@@ -144,9 +145,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
   std::string pool = req.bodyfields.get<std::string>("pool", "");
   std::string host = req.bodyfields.get<std::string>("host", "");
   std::string fs = req.bodyfields.get<std::string>("fs", "");
-  
-  
-  
+
   bool addreplica = false;
   if ( (addreplica_ == "yes") || (addreplica_ == "1") || (addreplica_ == "on") )
     addreplica = true;
@@ -1893,7 +1892,7 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
 
 int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleDisk) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on disk nodes.");
+    return DomeReq::SendSimpleResp(request, 500, "dome_statpfn only available on disk nodes.");
   }
   
   
@@ -1907,12 +1906,12 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
   }
   if (!server.size()) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
+    return DomeReq::SendSimpleResp(request, 422, SSTR("server '" << pfn << "' is empty."));
   }
   
-  if (!status.PfnMatchesAnyFS(server, pfn)) {
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << server << "'"));
-  }
+  // if (!status.PfnMatchesAnyFS(server, pfn)) {
+  //   return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << server << "'"));
+  // }
   
   struct stat st;
 
@@ -1938,6 +1937,40 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   
   
 };
+
+int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_addpool only available on head nodes.");
+  }
+
+  std::string poolname = req.bodyfields.get<std::string>("poolname", "");
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+
+  // make sure it doesn't already exist
+  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+    if(fs->poolname == poolname) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists."));
+    }
+  }
+
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+  rc =  sql.addPool(poolname);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
+  }
+
+  return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
+}
 
 /// Adds a filesystem to an existing pool
 int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
@@ -1971,7 +2004,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   Davix::DavixError* tmp_err = NULL;
   DavixGrabber hdavix(*davixPool);
   DavixStuff *ds(hdavix);
-  Davix::PostRequest req2(*(ds->ctx), durl, &tmp_err);
+  Davix::GetRequest req2(*(ds->ctx), durl, &tmp_err);
   if( tmp_err ) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
@@ -1979,13 +2012,17 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   req2.addHeaderField("cmd", "dome_statpfn");
-  req2.addHeaderField("pfn", newfs);
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
   req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+
+  boost::property_tree::ptree jresp;
+  jresp.put("pfn", newfs);
+  jresp.put("server", server);
+
   std::ostringstream os;
-  boost::property_tree::write_json(os, req.bodyfields);
+  boost::property_tree::write_json(os, jresp);
+
   req2.setRequestBody(os.str());
-      
   // Set the dome timeout values for the operation
   req2.setParameters(*(ds->parms));
       
@@ -2032,7 +2069,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
 /// Removes a filesystem, no matter to which pool it was attached
 int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, 500, "dome_rmfs only available on head nodes.");
   }
   
   std::string server =  req.bodyfields.get<std::string>("server", "");

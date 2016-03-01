@@ -51,7 +51,7 @@ namespace dmlite {
     std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException);
     Pool getPool(const std::string&) throw (DmException);
 
-    // void newPool(const Pool& pool) throw (DmException);
+    void newPool(const Pool& pool) throw (DmException);
     // void updatePool(const Pool& pool) throw (DmException);
     void deletePool(const Pool& pool) throw (DmException);
 

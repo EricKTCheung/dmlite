@@ -180,8 +180,7 @@ public:
   
   /// Adds a filesystem to an existing pool
   int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
-  
-  
+
   // Utility ------------------------------------
   bool LfnMatchesPool(std::string lfn, std::string pool);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
