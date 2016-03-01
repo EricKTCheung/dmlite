@@ -911,6 +911,10 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     ExtendedStat xstat = stack->getCatalog()->extendedStat(req.object);
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
+      Log(Logger::Lvl3, domelogmask, domelogname, "Found lfn checksum in the db: " << lfnchecksum);
+    }
+    else {
+      Log(Logger::Lvl3, domelogmask, domelogname, "Lfn checksum not in the db");
     }
 
     // retrieve pfn checksum
@@ -918,6 +922,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       replica = pickReplica(req.object, pfn, stack);
       if(replica.hasField(fullchecksum)) {
         pfnchecksum = replica.getString(fullchecksum);
+        Log(Logger::Lvl3, domelogmask, domelogname, "Found pfn checksum in the db: " << pfnchecksum);
       }
     }
 

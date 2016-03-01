@@ -1,21 +1,15 @@
-# Uncomment to enable domeadapter
-# LoadPlugin plugin_domeadapter /usr/lib@LIB_SUFFIX@/dmlite/plugin_domeadapter.so
+# Uncomment to enable dome adapter
+LoadPlugin plugin_domeadapter_io /usr/lib64/dmlite/plugin_domeadapter.so
+LoadPlugin plugin_domeadapter_pools /usr/lib64/dmlite/plugin_domeadapter.so
 
-# head node host
-Host localhost
+DavixCAPath /etc/grid-security/certificates
+DavixCertPath /etc/grid-security/dpmmgr/dpmcert.pem
+DavixPrivateKeyPath /etc/grid-security/dpmmgr/dpmkey.pem
 
-# Remote DPM/LFC host to connect to
-#NsHost localhost
-
-# Timeout when connection to the NsHost (in seconds)
-#ConnectionTimeout 15
-# Number of retries when connecting to NsHost (in seconds)
-#RetryLimit 3
-# Interval between retries when connecting to NsHost (in seconds)
-#RetryInterval 2
+DomeDisk https://domedisk-trunk.cern.ch/domedisk
+DomeHead https://domehead-trunk.cern.ch/domehead
 
 # Token generation
-#TokenPassword change-this
-#TokenId ip
-#TokenLife 1000
-#
+TokenPassword change-this
+TokenId ip
+TokenLife 1000
