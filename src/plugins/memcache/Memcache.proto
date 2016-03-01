@@ -10,6 +10,7 @@ message SerialExtendedStat {
   optional string csumtype = 7;
   optional string csumvalue = 8;
   optional string acl = 9;
+  optional SerialExtendedAttributeList xattrlist = 10;
 }
 
 message SerialStat {
@@ -69,6 +70,8 @@ message SerialReplica {
   optional string server = 10;
   optional string filesystem = 11;
   optional string url = 12;
+  optional SerialExtendedAttributeList xattrlist = 13;
+
 }
 
 message SerialPoolList {
@@ -108,4 +111,13 @@ message SerialChunk {
   optional int64 offset = 1;
   optional int64 size = 2;
   optional SerialUrl url = 3;
+}
+
+message SerialExtendedAttributeList {
+  repeated SerialExtendedAttribute xattr = 1;
+}
+
+message SerialExtendedAttribute {
+  optional string name = 1;
+  optional string value = 2;
 }

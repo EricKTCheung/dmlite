@@ -342,6 +342,22 @@ void MemcacheCommon::serializeExtendedStat(const ExtendedStat& var, std::string&
   seStat.set_csumvalue(var.csumvalue);
   seStat.set_acl(var.acl.serialize());
 
+  //serialize xtended attributes
+  if (var.getKeys().size() > 0) {
+	SerialExtendedAttribute* pExtendedAttr;
+        SerialExtendedAttributeList* serialExtendedAttributeList;
+	serialExtendedAttributeList = seStat.mutable_xattrlist();
+	serialExtendedAttributeList->Clear();
+  	std::vector<std::string> keys = var.getKeys();
+        for (unsigned i = 0; i < keys.size(); ++i) { 
+                 Log(Logger::Lvl4, memcachelogmask, memcachelogname,
+		      "serialize xattr to memcache: key: " << keys[i] << " value: " << var.getString(keys[i]));
+		 pExtendedAttr = serialExtendedAttributeList->add_xattr();
+		 pExtendedAttr->set_name(keys[i]);
+		 pExtendedAttr->set_value(var.getString(keys[i]));
+	}
+  }
+
   pntSerialStat->set_st_dev(var.stat.st_dev);
   pntSerialStat->set_st_ino(var.stat.st_ino);
   pntSerialStat->set_st_mode(var.stat.st_mode);
@@ -395,6 +411,20 @@ void MemcacheCommon::deserializeExtendedStat(const std::string& serial_str, Exte
   var.csumtype  = seStat.csumtype();
   var.csumvalue = seStat.csumvalue();
   var.acl       = Acl(seStat.acl());
+
+  //deserialize xattr
+  if (seStat.has_xattrlist()) {
+	  const SerialExtendedAttributeList* serialExtendedAttributeList;
+	  serialExtendedAttributeList = &seStat.xattrlist();
+	  SerialExtendedAttribute xattr;  
+	  Log(Logger::Lvl4, memcachelogmask, memcachelogname,"Found xattr on memcache");
+
+	  for (int i = 0; i < serialExtendedAttributeList->xattr_size(); ++i) {
+	      Log(Logger::Lvl4, memcachelogmask, memcachelogname,"deserialize xattr to memcache: key: " << xattr.name() <<  " value: " << xattr.value());
+	      xattr = serialExtendedAttributeList->xattr(i);
+	      var[xattr.name()] = xattr.value();
+	  } 
+  	}
 }
 
 
@@ -412,6 +442,22 @@ std::string MemcacheCommon::serializeReplica(const Replica& replica)
   serialReplica.set_server(replica.server);
   serialReplica.set_filesystem(replica.getString("filesystem"));
   serialReplica.set_url(replica.rfn);
+  //serialize xtended attributes
+  if (replica.getKeys().size() > 0) {
+        SerialExtendedAttribute* pExtendedAttr;
+        SerialExtendedAttributeList* serialExtendedAttributeList;
+        serialExtendedAttributeList = serialReplica.mutable_xattrlist();
+        serialExtendedAttributeList->Clear();
+        std::vector<std::string> keys = replica.getKeys();
+        for (unsigned i = 0; i < keys.size(); ++i) { 
+                 Log(Logger::Lvl4, memcachelogmask, memcachelogname,
+                      "serialize xattr to memcache: key: " << keys[i] << " value: " << replica.getString(keys[i]));
+                 pExtendedAttr = serialExtendedAttributeList->add_xattr();
+                 pExtendedAttr->set_name(keys[i]);
+                 pExtendedAttr->set_value(replica.getString(keys[i]));
+        }
+  }
+
 
   return serialReplica.SerializeAsString();
 }
@@ -434,6 +480,20 @@ void MemcacheCommon::deserializeReplica(const std::string& serial_str, Replica& 
 
   replica["pool"]       = serialReplica.pool();
   replica["filesystem"] = serialReplica.filesystem();
+  //deserialize xattr
+  if (serialReplica.has_xattrlist()) {
+          const SerialExtendedAttributeList* serialExtendedAttributeList;
+          serialExtendedAttributeList = &serialReplica.xattrlist();
+          SerialExtendedAttribute xattr;
+          Log(Logger::Lvl4, memcachelogmask, memcachelogname,"Found xattr on memcache");
+
+          for (int i = 0; i < serialExtendedAttributeList->xattr_size(); ++i) {
+              Log(Logger::Lvl4, memcachelogmask, memcachelogname,"deserialize xattr to memcache: key: " << xattr.name() <<  " value: " << xattr.value());
+              xattr = serialExtendedAttributeList->xattr(i);
+              replica[xattr.name()] = xattr.value();
+          }
+        }
+
 }
 
 
@@ -465,11 +525,24 @@ std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vec
     pReplica->set_server(itVecRepl->server);
     pReplica->set_filesystem(itVecRepl->getString("filesystem"));
     pReplica->set_url(itVecRepl->rfn);
-
+    if (itVecRepl->getKeys().size() > 0) {
+        SerialExtendedAttribute* pExtendedAttr;
+        SerialExtendedAttributeList* serialExtendedAttributeList;
+        serialExtendedAttributeList = pReplica->mutable_xattrlist();
+        serialExtendedAttributeList->Clear();
+        std::vector<std::string> keys = itVecRepl->getKeys();
+        for (unsigned i = 0; i < keys.size(); ++i) {
+                 Log(Logger::Lvl4, memcachelogmask, memcachelogname,
+                      "serialize xattr to memcache: key: " << keys[i] << " value: " << itVecRepl->getString(keys[i]));
+                 pExtendedAttr = serialExtendedAttributeList->add_xattr();
+                 pExtendedAttr->set_name(keys[i]);
+                 pExtendedAttr->set_value(itVecRepl->getString(keys[i]));
+        }
+    }
   }
-
   return serialReplicaList.SerializeAsString();
 }
+
 
 
 void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::vector<Replica>& vecRepl)
@@ -493,7 +566,20 @@ void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::
 
     replica["pool"]       = serialReplica.pool();
     replica["filesystem"] = serialReplica.filesystem();
+	
+    //deserialize xattr
+    if (serialReplica.has_xattrlist()) {
+          const SerialExtendedAttributeList* serialExtendedAttributeList;
+          serialExtendedAttributeList = &serialReplica.xattrlist();
+          SerialExtendedAttribute xattr;
+          Log(Logger::Lvl4, memcachelogmask, memcachelogname,"Found xattr on memcache");
 
+          for (int i = 0; i < serialExtendedAttributeList->xattr_size(); ++i) {
+              Log(Logger::Lvl4, memcachelogmask, memcachelogname,"deserialize xattr to memcache: key: " << xattr.name() <<  " value: " << xattr.value());
+              xattr = serialExtendedAttributeList->xattr(i);
+              replica[xattr.name()] = xattr.value();
+          }
+        }
     vecRepl.push_back(replica);
   }
 }
