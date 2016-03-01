@@ -53,7 +53,7 @@ namespace dmlite {
 
     // void newPool(const Pool& pool) throw (DmException);
     // void updatePool(const Pool& pool) throw (DmException);
-    // void deletePool(const Pool& pool) throw (DmException);
+    void deletePool(const Pool& pool) throw (DmException);
 
     Location whereToRead (const std::string& path) throw (DmException);
     // Location whereToRead (ino_t inode)             throw (DmException);
@@ -66,10 +66,7 @@ namespace dmlite {
 
     /// The corresponding factory.
     DomeAdapterPoolsFactory* factory_;
-
-
   };
-
 }
 
 #endif
