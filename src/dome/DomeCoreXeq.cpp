@@ -1935,6 +1935,40 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   
 };
 
+int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_addpool only available on head nodes.");
+  }
+
+  std::string poolname = req.bodyfields.get<std::string>("poolname", "");
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+
+  // make sure it doesn't already exist
+  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+    if(fs->poolname == poolname) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists."));
+    }
+  }
+
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+  rc =  sql.addPool(poolname);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
+  }
+
+  return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
+}
+
 /// Adds a filesystem to a pool
 int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
