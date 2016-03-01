@@ -942,11 +942,14 @@ class InfoCommand(ShellCommand):
         self.ok('Replicas:   None') 
       else:
         for r in replicas:
-          self.ok('Replica:    ID:     ' + str(r.replicaid) )
-          self.ok('            Server: ' + r.server)
-          self.ok('            Rfn:    ' + r.rfn)
-          self.ok('            Status: ' + str(r.status))
-          self.ok('            Type:   ' + str(r.type))
+          self.ok('Replica:	ID:     ' + str(r.replicaid) )
+          self.ok('		Server: ' + r.server)
+          self.ok('		Rfn:    ' + r.rfn)
+          self.ok('		Status: ' + str(r.status))
+          self.ok('		Type:   ' + str(r.type))
+	  self.ok('		Replica Extended Attributes (Key, Value):')
+	  for k in r.getKeys():
+            self.ok("			"+ k + ":\t" + r.getString(k,""))
       
       a=ACLCommand('/')
       self.ok('ACL:        ' + "\n            ".join(a.getACL(self.interpreter, filename)))
