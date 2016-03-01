@@ -70,6 +70,8 @@ message SerialReplica {
   optional string server = 10;
   optional string filesystem = 11;
   optional string url = 12;
+  optional SerialExtendedAttributeList xattrlist = 13;
+
 }
 
 message SerialPoolList {
