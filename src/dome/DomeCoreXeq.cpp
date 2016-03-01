@@ -2135,7 +2135,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   if (lfn.size()) {
     DmlitePoolHandler stack(dmpool);
     try {
-        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(lfn);
+        st = stack->getCatalog()->extendedStat(lfn);
       }
       catch (dmlite::DmException e) {
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
@@ -2159,7 +2159,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
       rfn = server + ":" + pfn;
       DmlitePoolHandler stack(dmpool);
       try {
-        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStatByRFN(rfn);
+        st = stack->getCatalog()->extendedStatByRFN(rfn);
         
       }
       catch (dmlite::DmException e) {
