@@ -78,6 +78,9 @@ public:
   /// Add a new, empty pool
   int addPool(std::string &poolname);
   
+  /// Removes a fs
+  int rmFs(std::string &server, std::string &fs);
+  
 protected:
   // The corresponding factory.
   //NsMySqlFactory* factory_;

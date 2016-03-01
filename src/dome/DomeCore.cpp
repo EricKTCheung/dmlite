@@ -201,31 +201,33 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_getquotatoken(dreq, request);
         }else if(dreq.domecmd == "dome_get") {
           core->dome_get(dreq, request);
-        }else if(dreq.domecmd == "dome_statpfn") {
-          core->dome_statpfn(dreq, request);
+        } else if ( dreq.domecmd == "dome_statpool" ) {
+            core->dome_statpool(dreq, request);
+        } else if ( dreq.domecmd == "dome_statpfn" ) {
+            core->dome_statpfn(dreq, request);
+        } else if ( dreq.domecmd == "dome_getstatinfo" ) {
+            core->dome_getstatinfo(dreq, request);
+        } else if ( dreq.domecmd == "dome_getdir" ) {
+            core->dome_statpool(dreq, request);
         }
         else
-          if ( dreq.domecmd == "dome_statpool" ) {
-            core->dome_statpool(dreq, request);
-          }
-          else
-            // Very useful sort of echo service for FastCGI.
-            // Will return to the client a detailed summary of his request
-            if (dreq.object == "/info") {
-              FCGX_FPrintF(request.out,
-                           "Content-type: text\r\n"
-                           "\r\n"
-                           "Hi, This is a GET, and you may like it.\r\n");
+          // Very useful sort of echo service for FastCGI.
+          // Will return to the client a detailed summary of his request
+          if (dreq.object == "/info") {
+            FCGX_FPrintF(request.out,
+                         "Content-type: text\r\n"
+                         "\r\n"
+                         "Hi, This is a GET, and you may like it.\r\n");
+            
+            FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
+            for (char **envp = request.envp ; *envp; ++envp)
+            {
+              FCGX_FPrintF(request.out, "%s \r\n", *envp);
               
-              FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
-              for (char **envp = request.envp ; *envp; ++envp)
-              {
-                FCGX_FPrintF(request.out, "%s \r\n", *envp);
-                
-              }
-              
-            } else
-              DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
+            }
+            
+          } else
+            DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
             
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
         FCGX_FPrintF(request.out,
@@ -253,6 +255,12 @@ void workerFunc(DomeCore *core, int myidx) {
         }
         else if ( dreq.domecmd == "dome_pfnrm" ) {
           core->dome_pfnrm(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_addfstopool" ) {
+          core->dome_addfstopool(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_rmfs" ) {
+          core->dome_rmfs(dreq, request);
         }
         else if ( dreq.domecmd == "dome_delquotatoken" ) {
           core->dome_delquotatoken(dreq, request);
