@@ -790,6 +790,59 @@ JSON example:\\
 }
 \end{lstlisting}
 
+
+\subsubsection{dome\_getstatinfo}
+Returns stat information about a logical or physical file managed by DPM. 
+Command:
+\lstinline"GET /dome/"\\
+Request header:\\
+\lstinline"cmd=dome_getstatinfo"\\
+Params:
+\begin{itemize}
+ \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
+ \item server: the server part of a physical file name. Can be omitted if a logical file name is provided.
+ \item pfn: the path/filename part of a physical file name. Can be omitted if a logical file name is provided.
+ \item rfn: a physical file name in the rfio syntax. Can be omitted if a logical file name is provided.
+\end{itemize}
+
+Returns:
+Code: 200 or pending
+\begin{itemize}
+ \item fileid: private DPM core information
+ \item parentfileid: private DPM core information
+ \item size: file size
+ \item mode: unix flags
+ \item isdir: tells if it's a directory
+\end{itemize}
+
+
+\subsubsection{dome\_getdir}
+
+Lists the content of a logical directory
+Command:
+\lstinline"GET /dome/"\\
+Request header:\\
+\lstinline"cmd=dome_getdir"\\
+Params:
+\begin{itemize}
+ \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
+ \item server: the server part of a physical file name. Can be omitted if a logical file name is provided.
+ \item pfn: the path/filename part of a physical file name. Can be omitted if a logical file name is provided.
+ \item rfn: a physical file name in the rfio syntax. Can be omitted if a logical file name is provided.
+\end{itemize}
+
+Returns:
+Code: 200 or pending
+\begin{itemize}
+ \item fileid: private DPM core information
+ \item parentfileid: private DPM core information
+ \item size: file size
+ \item mode: unix flags
+ \item isdir: tells if it's a directory
+\end{itemize}
+
+
+
 \subsection{Disk node operation}
 The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not
 given by WebDAV/HTTP, and to control the checksum calculations.\\
@@ -874,6 +927,105 @@ Returns:
  \item 
 \end{itemize}
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+\subsubsection{dome\_statpfn}
+Return information about a physical file or directory. Valid only in disk nodes.\\
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_statpfn"\\
+Params:
+\begin{itemize}
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item size: the size of the file
+ \item mode: the unix mode bits of the file
+ \item isdir: tells if it's a file or directory
+\end{itemize}
+ 
+ 
+ 
+ 
+\subsubsection{dome\_rmpool}
+Remove from DPM control all the filesystems that are related to the same pool. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_rmpool"\\
+Params:
+\begin{itemize}
+ \item poolname: the name of the pool to remove
+\end{itemize}
+
+ 
+\subsubsection{dome\_addfstopool}
+Adds a filesystem for DPM to manage. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_addfstopool"\\
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
+ \item poolname: name of the DPM pool this filesystem will be used for
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 
+\end{itemize}
+ 
+\subsubsection{dome\_rmfs}
+
+Removes a filesystem, no matter to which pool it was attached. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome"\\
+Request header:\\
+\lstinline"cmd=dome\_rmfs"\\
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 
+\end{itemize}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
 \chapter{Configuration}

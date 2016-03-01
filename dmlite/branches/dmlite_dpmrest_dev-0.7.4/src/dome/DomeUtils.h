@@ -57,14 +57,14 @@ inline bool str_to_bool(std::string str) {
   return value;
 }
 
-inline std::string pfn_from_rfio_syntax(std::string rfn) {
+inline std::string pfn_from_rfio_syntax(std::string &rfn) {
   size_t pos = rfn.find(":");
   if(pos == std::string::npos)
     return rfn;
   return rfn.substr(pos+1, rfn.size());
 }
 
-inline std::string server_from_rfio_syntax(std::string rfn) {
+inline std::string server_from_rfio_syntax(std::string &rfn) {
   size_t pos = rfn.find(":");
   if(pos == std::string::npos)
     return rfn;

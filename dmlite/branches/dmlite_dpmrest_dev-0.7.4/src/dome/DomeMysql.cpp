@@ -553,5 +553,38 @@ int DomeMySql::addFsPool(DomeFsInfo &newfs) {
     Err(domelogname, "Could not insert new filesystem: '" << newfs.server << ":" << newfs.fs << "' for pool: '" << newfs.poolname << "' It likely already exists. nrows: " << nrows );
     return 1;
   }
+  
+  return 0;
+}
+
+
+  
+int DomeMySql::rmFs(std::string& server, std::string& fs) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. server: '" << server << "' fs: '" << fs << "'" );
+  
+  // First try updating it. Makes sense just to overwrite only description, space and pool
+  Statement stmt(conn_, "dpm_db", 
+                 "DELETE FROM dpm_fs\
+                  WHERE server = ? AND fs = ?");
+  stmt.bindParam(0, server);
+  stmt.bindParam(1, fs);
+  
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Err( domelogname, "Failed deleting filesystem '" << fs << "' of server '" << server << "'");
+    return 1;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Deleted filesystem '" << fs << "' of server '" << server << "'");
+  
+  return 0;
 }
 

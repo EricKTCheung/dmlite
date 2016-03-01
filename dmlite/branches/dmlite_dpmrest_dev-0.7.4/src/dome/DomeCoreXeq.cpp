@@ -1050,7 +1050,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    DmlitePoolHandler stack(dmpool);
+    //DmlitePoolHandler stack(dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
@@ -1597,7 +1597,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
 int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_delreplica only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, 500, "dome_delquotatoken only available on head nodes.");
   }
   DomeQuotatoken mytk;
   
@@ -1897,7 +1897,7 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   
   
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-  std::string server = req.bodyfields.get<std::string>("server", "");
+ 
   
   Log(Logger::Lvl4, domelogmask, domelogname, " pfn: '" << pfn << "'");
   
@@ -1905,13 +1905,10 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   if (!pfn.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
   }
-  if (!server.size()) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("server '" << pfn << "' is empty."));
-  }
   
-  // if (!status.PfnMatchesAnyFS(server, pfn)) {
-  //   return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << server << "'"));
-  // }
+  if (!status.PfnMatchesAnyFS(status.myhostname, pfn)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << status.myhostname << "'"));
+  }
   
   struct stat st;
 
@@ -1938,41 +1935,7 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   
 };
 
-int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
-  if(status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_addpool only available on head nodes.");
-  }
-
-  std::string poolname = req.bodyfields.get<std::string>("poolname", "");
-  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
-  
-  if (!poolname.size()) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
-  }
-
-  // make sure it doesn't already exist
-  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-    if(fs->poolname == poolname) {
-      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists."));
-    }
-  }
-
-  int rc;
-  {
-  DomeMySql sql;
-  DomeMySqlTrans  t(&sql);
-  rc =  sql.addPool(poolname);
-  if (!rc) t.Commit();
-  }
-  
-  if (rc) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
-  }
-
-  return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
-}
-
-/// Adds a filesystem to an existing pool
+/// Adds a filesystem to a pool
 int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on head nodes.");
@@ -2079,19 +2042,159 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
   }
   
+  int ndel = 0;
   {
     // Lock status!
     boost::unique_lock<boost::recursive_mutex> l(status);
-  
+    
     // Loop on the filesystems, looking for one that is a proper substring of the pfn
     for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
       if (status.PfnMatchesFS(server, newfs, *fs)) {
         status.fslist.erase(fs);
+        ndel++;
         break;
       }
     }
   }
   
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+  // No matter how many deletions happened in the data structure,
+  // propagate anyway the deletion to the db
+    int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+  std::string clientid = req.remoteclientdn;
+  if (clientid.size() == 0) clientid = req.clientdn;
+  if (clientid.size() == 0) clientid = "(unknown)";
+  rc =  sql.rmFs(server, newfs);
+  if (!rc) t.Commit();
+  }
+  
+  if (rc) 
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Failed deleting filesystem '" << newfs << "' of server '" << server << "'"));
+  
+  
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted " << ndel << "filesystems matching '" << newfs << "' of server '" << server << "'"));
 }
+
+
+
+
+
+
+/// Fecthes logical stat information for an LFN or file ID or a pfn
+int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getstatinfo only available on head nodes.");
+  }
+  
+  std::string server =  req.bodyfields.get<std::string>("server", "");
+  std::string pfn =  req.bodyfields.get<std::string>("pfn", "");
+  std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
+  
+  std::string lfn =  req.bodyfields.get<std::string>("lfn", "");
+  
+  struct dmlite::ExtendedStat st;
+  
+  // If lfn is filled then we stat the logical file
+  if (lfn.size()) {
+    DmlitePoolHandler stack(dmpool);
+    try {
+        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(lfn);
+      }
+      catch (dmlite::DmException e) {
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
+      }
+  
+  }
+  else {
+    
+    // Let's be kind with the client and also accept the rfio syntax
+    if ( rfn.size() )  {
+      pfn = DomeUtils::pfn_from_rfio_syntax(rfn);
+      server = DomeUtils::server_from_rfio_syntax(rfn);
+    }
+    
+    // If no stat happened so far, we check if we can stat the pfn
+    if ( (!server.size() || !pfn.size() ) )
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Not enough parameters."));
+    
+    // Else we stat the replica, recomposing the rfioname (sob)
+
+      rfn = server + ":" + pfn;
+      DmlitePoolHandler stack(dmpool);
+      try {
+        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStatByRFN(rfn);
+        
+      }
+      catch (dmlite::DmException e) {
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
+        
+      }
+      
+  }
+  
+  boost::property_tree::ptree jresp;
+    
+  jresp.put("fileid", st.stat.st_ino);
+  jresp.put("parentfileid", st.parent);
+  jresp.put("size", st.stat.st_size);
+  jresp.put("mode", st.stat.st_mode);
+  jresp.put("isdir", ( S_ISDIR(st.stat.st_mode) ));
+  
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+  
+}
+
+
+/// Like an HTTP GET on a directory, gets all the content
+int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getstatinfo only available on head nodes.");
+  }
+  
+  std::string path =  req.bodyfields.get<std::string>("path", "");
+  bool statentries = req.bodyfields.get<bool>("statentries", false);
+  
+  if (!path.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot list an empty path"));
+  }
+  
+  DmlitePoolHandler stack(dmpool);
+  boost::property_tree::ptree jresp;
+  
+  Directory *d;
+  try {
+    
+    d = stack->getCatalog()->openDir(path);
+    stack->getCatalog()->changeDir(path);
+    
+    struct dirent *dent;
+    while ( (dent = stack->getCatalog()->readDir(d)) ) {
+      
+      boost::property_tree::ptree pt;
+      pt.put("path", dent->d_name);
+      pt.put("path", dent->d_type);
+      
+      if (statentries) {
+        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(dent->d_name);
+        pt.put("size", st.stat.st_size);
+        pt.put("flags", st.stat.st_mode);
+      }  
+  
+      
+      
+      jresp.push_back(std::make_pair("", pt));
+    }
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get directory content: '" << path << "' err: " << e.code() << " what: '" << e.what() << "'"));
+  }
+  
+  
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+  
+}
+
   
