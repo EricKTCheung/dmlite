@@ -201,6 +201,8 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_getquotatoken(dreq, request);
         }else if(dreq.domecmd == "dome_get") {
           core->dome_get(dreq, request);
+        }else if(dreq.domecmd == "dome_statpfn") {
+          core->dome_statpfn(dreq, request);
         }
         else
           if ( dreq.domecmd == "dome_statpool" ) {
@@ -266,6 +268,9 @@ void workerFunc(DomeCore *core, int myidx) {
         }
         else if(dreq.domecmd == "dome_rmpool") {
           core->dome_rmpool(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_addpool") {
+          core->dome_addpool(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));

@@ -35,7 +35,6 @@
 using namespace dmlite;
 
 
-
 DomeMySql::DomeMySql() {
   conn_ = MySqlHolder::getMySqlPool().acquire();
 }
@@ -495,11 +494,9 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   return cnt;
 }
 
+int DomeMySql::addPool(std::string& poolname) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
 
-int DomeMySql::addFsPool(DomeFsInfo &newfs) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
-  
-  // Insert the pool, in the case it did not exist
   Statement stmt(conn_, "dpm_db", 
                  "INSERT INTO dpm_pool\
                  (poolname, defsize, gc_start_thresh, gc_stop_thresh,\
@@ -512,8 +509,8 @@ int DomeMySql::addFsPool(DomeFsInfo &newfs) {
                  'maxfreespace', 'lru', 'none', 'fifo',\
                  '', 'R', '-')");
   
-  stmt.bindParam(0, newfs.poolname);
-  
+  stmt.bindParam(0, poolname);
+
   bool ok = true;
   long unsigned int nrows;
   try {
@@ -523,23 +520,31 @@ int DomeMySql::addFsPool(DomeFsInfo &newfs) {
   catch ( ... ) { ok = false; }
   
   if (!ok) {
-    Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << newfs.poolname << "' It likely already exists. nrows: " << nrows );
+    Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << poolname << "' It likely already exists. nrows: " << nrows );
+    return 1;
   }
+  return 0;
+}
 
+int DomeMySql::addFsPool(DomeFsInfo &newfs) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
+  this->addPool(newfs.poolname);
+  
   // Now insert the filesystem, using poolname
-  Statement stmt2(conn_, "dpm_db", 
+  Statement stmt(conn_, "dpm_db", 
                  "INSERT INTO dpm_fs\
                  (poolname, server, fs, status, weight)\
                  VALUES \
                  (?, ?, ?, 0, 0)");
   
-  stmt2.bindParam(0, newfs.poolname);
-  stmt2.bindParam(1, newfs.server);
-  stmt2.bindParam(2, newfs.fs);
+  stmt.bindParam(0, newfs.poolname);
+  stmt.bindParam(1, newfs.server);
+  stmt.bindParam(2, newfs.fs);
   
-  ok = true;
+  long unsigned int nrows;
+  bool ok = true;
   try {
-    if ( (nrows = stmt2.execute() == 0) )
+    if ( (nrows = stmt.execute() == 0) )
       ok = false;
   }
   catch ( ... ) { ok = false; }

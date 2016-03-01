@@ -121,13 +121,15 @@ public:
   /// Disk server only. Removes a replica, both from the catalog and the disk
   int dome_delreplica(DomeReq &req, FCGX_Request &request);
   
+  /// Adds a new pool
+  int dome_addpool(DomeReq &req, FCGX_Request &request);
   /// Removes a pool and all the related filesystems
   int dome_rmpool(DomeReq &req, FCGX_Request &request);
   /// Adds a filesystem to an existing pool. This implicitly creates a pool, which by now has no parameters
   int dome_addfstopool(DomeReq &req, FCGX_Request &request);
   /// Removes a filesystem, no matter to which pool it was attached
   int dome_rmfs(DomeReq &req, FCGX_Request &request);
-  
+
    
 private:
   bool initdone, terminationrequested;

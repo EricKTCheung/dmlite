@@ -184,18 +184,39 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
   }
 }
 
-// void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
+void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
+  DavixGrabber grabber(factory_->davixPool_);
+  DavixStuff *ds(grabber);
 
-// }
+  Davix::DavixError *err = NULL;
+  Davix::Uri uri(factory_->domehead + "/");
+  Davix::PostRequest req(*ds->ctx, uri, &err);
+  req.addHeaderField("cmd", "dome_addpool");
+  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
+  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+
+  boost::property_tree::ptree params;
+  params.put("poolname", pool.name);
+
+  std::ostringstream os;
+  boost::property_tree::write_json(os, params);
+
+  req.setParameters(*ds->parms);
+  req.setRequestBody(os.str());
+  int rc = req.executeRequest(&err);
+
+  if(rc || err) {
+     std::string msg = SSTR("Error when sending dome_addpool to headnode: " << err->getErrMsg());
+     Davix::DavixError::clearError(&err);
+     throw DmException(EINVAL, msg);
+   }
+}
 
 // void DomeAdapterPoolManager::updatePool(const Pool& pool) throw (DmException) {
 
 // }
   
 void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
-  Davix::setLogScope("header");
-  Davix::setLogLevel(DAVIX_LOG_TRACE);
-
   DavixGrabber grabber(factory_->davixPool_);
   DavixStuff *ds(grabber);
 

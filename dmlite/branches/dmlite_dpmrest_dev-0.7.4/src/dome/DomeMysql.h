@@ -74,6 +74,9 @@ public:
   
   /// Adds a new filesystem to a pool that may or may not exist
   int addFsPool(DomeFsInfo &newfs);
+
+  /// Add a new, empty pool
+  int addPool(std::string &poolname);
   
 protected:
   // The corresponding factory.
