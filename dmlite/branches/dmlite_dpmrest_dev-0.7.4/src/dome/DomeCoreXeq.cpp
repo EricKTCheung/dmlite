@@ -2196,7 +2196,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   }
   
   DmlitePoolHandler stack(dmpool);
-  boost::property_tree::ptree jresp;
+  boost::property_tree::ptree jresp, jresp2;
   
   Directory *d;
   try {
@@ -2209,24 +2209,25 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
       
       boost::property_tree::ptree pt;
       pt.put("path", dent->d_name);
-      pt.put("path", dent->d_type);
+      pt.put("type", dent->d_type);
       
       if (statentries) {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(dent->d_name);
         pt.put("size", st.stat.st_size);
         pt.put("flags", st.stat.st_mode);
+        pt.put("isdir", S_ISDIR(st.stat.st_mode));
       }  
   
       
       
-      jresp.push_back(std::make_pair("", pt));
+      jresp2.push_back(std::make_pair("", pt));
     }
   }
   catch (DmException e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get directory content: '" << path << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
   
-  
+  jresp.push_back(std::make_pair("entries", jresp2));
   return DomeReq::SendSimpleResp(request, 200, jresp);
   
 }
