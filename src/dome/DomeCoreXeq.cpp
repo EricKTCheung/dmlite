@@ -2208,7 +2208,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
     while ( (dent = stack->getCatalog()->readDir(d)) ) {
       
       boost::property_tree::ptree pt;
-      pt.put("path", dent->d_name);
+      pt.put("name", dent->d_name);
       pt.put("type", dent->d_type);
       
       if (statentries) {
