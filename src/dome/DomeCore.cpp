@@ -208,7 +208,7 @@ void workerFunc(DomeCore *core, int myidx) {
         } else if ( dreq.domecmd == "dome_getstatinfo" ) {
             core->dome_getstatinfo(dreq, request);
         } else if ( dreq.domecmd == "dome_getdir" ) {
-            core->dome_statpool(dreq, request);
+            core->dome_getdir(dreq, request);
         }
         else
           // Very useful sort of echo service for FastCGI.
