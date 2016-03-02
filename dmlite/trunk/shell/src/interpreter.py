@@ -2414,12 +2414,11 @@ The replicate command accepts the following parameters:
 			if replica.status != pydmlite.ReplicaStatus.kAvailable:
 				cleanReplica = True
 				self.error("Error while updating the replica status\n")
+			else:
+	                        self.ok("The file has been correctly replicated to: "+ destination+"\n")
 		except Exception, e:
 			self.error("Error while checking the replica status\n")
 			cleanReplica = True
-			
-		else:
-	                self.ok("The file has been correctly replicated to: "+ destination+"\n")
 
         if cleanReplica:
 		if not replica:
@@ -2540,15 +2539,15 @@ class DrainFileReplica(object):
 			replica = self.interpreter.catalog.getReplicaByRFN(destination)
 			if replica.status != pydmlite.ReplicaStatus.kAvailable:
                                 cleanReplica = True
-                                self.logError("Error while updating the replica status\n")
+                                self.logError("Error while updating the replica status for file: "+ filename+"\n")
 				self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while updating the replica status"))
+			else:
+				self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 		except Exception, e:
-                        self.logError("Error while checking the replica status\n")
+                        self.logError("Error while checking the replica status for file  "+ filename+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the replica status"))
                         cleanReplica = True
 
-		else:
-			self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
 	#step 6 : remove drained replica file if correctly replicated or erroneus drained file
 	if not cleanReplica:
@@ -2557,8 +2556,8 @@ class DrainFileReplica(object):
 			pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
         	        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
 	        except Exception, e:
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the original replica"))
-        	        return self.logError('Error while checking the original replica.\n' + e.__str__())
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while getting the original replica from the catalog, cannot drain"))
+        	        return self.logError('Error while getting the original replica from the catalog for file: '+ filename+', cannot drain.\n' + e.__str__())
 
         else:
 		try:
@@ -2566,8 +2565,8 @@ class DrainFileReplica(object):
 			pool = self.interpreter.poolManager.getPool(replica.getString('pool',''))
                         self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
                 except Exception, e:
-			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the new replica"))
-                        return self.logError('Error while checking the new replica.\n' + e.__str__())
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while getting the new replica from the catalog, cannot clean"))
+                        return self.logError('Error while getting the new replica from the catalog for file: '+ filename+', cannot clean.\n' + e.__str__())
 	#retry 3 times:
 	for i in range(0,3):
 		try:
@@ -2575,8 +2574,12 @@ class DrainFileReplica(object):
 			poolHandler.removeReplica(replica)
 		except Exception, e:
 			if i == 2:
-				self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Could not remove the replica from pool"))
-        	       		return self.logError('Could not remove the eplica from pool.\n' + e.__str__())
+				if not cleanReplica:
+					self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Could not remove the original replica"))
+        		       		return self.logError('Could not remove the original replica for file: '+ filename+'\n' + e.__str__())
+				else:
+					self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Could not clean the new replica"))
+					return self.logError('Could not remove the new replica for file: '+ filename+'\n' + e.__str__())
 			else:
 				 continue
 		#cleaning catalog ( not throwing exception if fails though could it could be already cleaned by the poolhandler.removereplica
@@ -2602,11 +2605,11 @@ class DrainReplicas(object):
 	self.threadpool = []
 
     def stopThreads(self):
-	self.interpreter.ok('Drain process Stopped, Waiting max 100 seconds for each running thread to end...')
+	self.interpreter.ok('Drain process Stopped, Waiting max 10 seconds for each running thread to end...')
 	for t in self.threadpool:
 		t.stop()
 	for t in self.threadpool:
-		t.join(100)
+		t.join(10)
 	self.printDrainErrors()
 
 
