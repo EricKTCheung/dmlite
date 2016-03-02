@@ -2296,8 +2296,8 @@ ex:
 				parameters['spacetoken'] = given[i+1]
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 20:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
+                                if nthreads < 1 or nthreads > 10:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				else:
 					parameters['nthreads'] = nthreads
                         elif given[i] == "dryrun":
@@ -2409,23 +2409,32 @@ The replicate command accepts the following parameters:
 	replica = None
         if replicated:
 		#check replica status
-		replica = self.interpreter.catalog.getReplicaByRFN(destination)
-		if replica.status != pydmlite.ReplicaStatus.kAvailable:
+		try:
+			replica = self.interpreter.catalog.getReplicaByRFN(destination)
+			if replica.status != pydmlite.ReplicaStatus.kAvailable:
+				cleanReplica = True
+				self.error("Error while updating the replica status\n")
+		except Exception, e:
+			self.error("Error while checking the replica status\n")
 			cleanReplica = True
-			self.error("Error while updating the replica status\n")
+			
 		else:
 	                self.ok("The file has been correctly replicated to: "+ destination+"\n")
 
         if cleanReplica:
 		if not replica:
-	                replica = self.interpreter.catalog.getReplicaByRFN(destination)
-                try:
-                        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
-                except Exception, e:
-                        self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
+			try:		
+		                replica = self.interpreter.catalog.getReplicaByRFN(destination)
+			except Exception, e:
+				self.error("Error while checking the replica status\n")
+				self.error('Please remove manually the replica with rfn: ' + destination) 
+				return 1
+		try:
+	                self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
+	        except Exception, e:
+        		self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
 			self.error('Please remove manually the replica with rfn: ' + destination)
 			return 1
-
 	        try:	
 			if replica.getString('pool',''):
 	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
@@ -2527,40 +2536,55 @@ class DrainFileReplica(object):
 	replica = None
         if replicated:
 		#check replica status
-                replica = self.interpreter.catalog.getReplicaByRFN(destination)
-                if replica.status != pydmlite.ReplicaStatus.kAvailable:
-			cleanReplica = True
-			self.logError("Error while updating the replica status\n")
+		try:
+			replica = self.interpreter.catalog.getReplicaByRFN(destination)
+			if replica.status != pydmlite.ReplicaStatus.kAvailable:
+                                cleanReplica = True
+                                self.logError("Error while updating the replica status\n")
+				self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while updating the replica status"))
+		except Exception, e:
+                        self.logError("Error while checking the replica status\n")
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the replica status"))
+                        cleanReplica = True
+
 		else:
 			self.logOK("The file has been correctly replicated to: "+ destination+"\n")
 
 	#step 6 : remove drained replica file if correctly replicated or erroneus drained file
 	if not cleanReplica:
-		replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
-		pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
-	        try:
+		try:
+			replica = self.interpreter.catalog.getReplicaByRFN(self.fileReplica.sfn)
+			pool = self.interpreter.poolManager.getPool(self.fileReplica.poolname)
         	        self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
 	        except Exception, e:
-        	        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the original replica"))
+        	        return self.logError('Error while checking the original replica.\n' + e.__str__())
 
         else:
-		replica = self.interpreter.catalog.getReplicaByRFN(destination)
-		pool = self.interpreter.poolManager.getPool(replica.getString('pool',''))
-                try:
+		try:
+			replica = self.interpreter.catalog.getReplicaByRFN(destination)
+			pool = self.interpreter.poolManager.getPool(replica.getString('pool',''))
                         self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver(pool.type)
                 except Exception, e:
-                        return self.logError('Could not initialise the pool driver.\n' + e.__str__())
-
-	try:
-		poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
-		poolHandler.removeReplica(replica)
-	except Exception, e:
-               	return self.logError('Could not remove replica from pool.\n' + e.__str__())
-	#cleaning catalog ( not throwing exception if fails though could it could be already cleaned by the poolhandler.removereplica
-	try:
-		self.interpreter.catalog.deleteReplica(replica)
-	except Exception:
-		pass
+			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while checking the new replica"))
+                        return self.logError('Error while checking the new replica.\n' + e.__str__())
+	#retry 3 times:
+	for i in range(0,3):
+		try:
+			poolHandler = self.interpreter.poolDriver.createPoolHandler(pool.name)
+			poolHandler.removeReplica(replica)
+		except Exception, e:
+			if i == 2:
+				self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Could not remove the replica from pool"))
+        	       		return self.logError('Could not remove the eplica from pool.\n' + e.__str__())
+			else:
+				 continue
+		#cleaning catalog ( not throwing exception if fails though could it could be already cleaned by the poolhandler.removereplica
+		try:
+			self.interpreter.catalog.deleteReplica(replica)
+		except Exception:
+			pass
+		break
 
 class DrainReplicas(object):
     """implement draining of a list of replicas"""
@@ -2578,8 +2602,11 @@ class DrainReplicas(object):
 	self.threadpool = []
 
     def stopThreads(self):
+	self.interpreter.ok('Drain process Stopped, Waiting max 100 seconds for each running thread to end...')
 	for t in self.threadpool:
 		t.stop()
+	for t in self.threadpool:
+		t.join(100)
 	self.printDrainErrors()
 
 
@@ -2717,8 +2744,8 @@ The drainpool command accepts the following parameters:
 				parameters['size']  = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 20:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
+                                if nthreads < 1 or nthreads > 10:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
@@ -2829,8 +2856,8 @@ The drainfs command accepts the following parameters:
 				parameters['size'] = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 20:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
+                                if nthreads < 1 or nthreads > 10:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
                                 if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
@@ -2942,8 +2969,8 @@ The drainserver command accepts the following parameters:
 				parameters['size'] = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
-				if nthreads < 1 or nthreads > 20:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 20")
+				if nthreads < 1 or nthreads > 10:
+                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
 				if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
