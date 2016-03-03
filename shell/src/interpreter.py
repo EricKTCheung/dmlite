@@ -2314,7 +2314,34 @@ ex:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
         try:
-		
+		#check if destination FS exists and it's not disabled/readonly
+                availability = pydmlite.PoolAvailability.kAny
+                pools = self.interpreter.poolManager.getPools(availability)
+
+		destServer,destFS =  parameters['filesystem'].split(':')
+		doMove = False
+		sourceFS = None
+                for pool in pools:
+                        listFS = db.getFilesystems(pool.name)
+                        for fs in listFS:
+                                if fs.name == destFS and fs.server == destServer and  fs.status == 0:
+                                                doMove = True
+				if fs.name == sourceFilesystem and fs.server == sourceServer:
+						sourceFS = fs
+
+                if not doMove:
+                	return self.error("The specified destination filesystem has not been found in the DPM configuration or it's not available for writing")
+		if not sourceFS:
+		 	return self.error("The specified source filesystem has not been found in the DPM configuration")
+
+                #set as READONLY the FS  to drain
+                if not parameters['dryrun']:
+                        if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
+                                pass
+                        else:
+                                self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
+                                return
+
                 self.ok("Calculating Replicas to Move..")
                 self.ok()
 
