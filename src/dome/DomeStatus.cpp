@@ -192,6 +192,8 @@ int DomeStatus::loadFilesystems() {
           newfs.server = myhostname;
           servers.insert(myhostname);
           newfs.fs = fs.first;
+          
+          fslist.push_back(newfs);
         }
         
       } // foreach
