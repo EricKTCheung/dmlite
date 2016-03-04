@@ -493,51 +493,61 @@ void DomeStatus::checkDiskSpaces() {
       // Now process the values from the Json, or just disable the filesystems. Lock the status!
       {
         boost::unique_lock<boost::recursive_mutex> l(*this);
-        
+        bool someerror = true;
         // Loop through the server names, childs of fsinfo
         
         if (!tmp_err) {
-          BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
-            // v.first is the name of the server.
-            // v.second is the child tree representing the server
-            
-            // Now we loop through the filesystems reported by this server
-            BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+          
+          try {
+            BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
               // v.first is the name of the server.
               // v.second is the child tree representing the server
               
-              // Find the corresponding server:fs info in our array, and get the counters
-              Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
-              for (unsigned int ii = 0; ii < fslist.size(); ii++) {
+              // Now we loop through the filesystems reported by this server
+              BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+                // v.first is the name of the server.
+                // v.second is the child tree representing the server
                 
-                Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
-                if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
+                // Find the corresponding server:fs info in our array, and get the counters
+                Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
+                for (unsigned int ii = 0; ii < fslist.size(); ii++) {
                   
-                  Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
-                  Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace", 0 ) << " " << fs.second.get<long long>( "physicalsize", 0 ));
-                  fslist[ii].freespace = fs.second.get<long long>( "freespace", 0 );
-                  fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize", 0 );
-                  int actst = fs.second.get<int>( "activitystatus", 0 );
-                  
-                  // Clearly log the state transitions if there is one
-                  if ((fslist[ii].activitystatus != (DomeFsInfo::DomeFsActivityStatus)actst) &&
-                    ((DomeFsInfo::DomeFsActivityStatus)actst == DomeFsInfo::FsOnline) ) {
+                  Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
+                  if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
                     
-                    Log(Logger::Lvl1, domelogmask, domelogname, "Enabling filesystem: " << fslist[ii].server << " " << fslist[ii].fs);
+                    Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
+                    Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace", 0 ) << " " << fs.second.get<long long>( "physicalsize", 0 ));
+                    fslist[ii].freespace = fs.second.get<long long>( "freespace", 0 );
+                    fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize", 0 );
+                    int actst = fs.second.get<int>( "activitystatus", 0 );
+                    
+                    // Clearly log the state transitions if there is one
+                    if ((fslist[ii].activitystatus != (DomeFsInfo::DomeFsActivityStatus)actst) &&
+                      ((DomeFsInfo::DomeFsActivityStatus)actst == DomeFsInfo::FsOnline) ) {
+                      
+                      Log(Logger::Lvl1, domelogmask, domelogname, "Enabling filesystem: " << fslist[ii].server << " " << fslist[ii].fs);
+                    
+                      }
+                      fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
+                  }
                   
-                    }
-                    fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
-                }
-                
-                
-                
-                
-              } // loop fs
-            } // foreach
-          } // foreach  
-        } // if tmp_err
+                  
+                  
+                  
+                } // loop fs
+              } // foreach
+            } // foreach  
+            
+            someerror = false;
+            
+          }  catch (boost::property_tree::ptree_error e) {
+            Err("checkDiskSpaces", "Error processing JSON response: " << e.what());
+            continue;
+          }
+          
+        } // if !tmp_err
         
-        else {
+        if (someerror) {
           // The communication with the server had problems
           // Disable all the filesystems belonging to that server
           Log(Logger::Lvl4, domelogmask, domelogname, "Disabling filesystems for server '" << *servername << "'");
@@ -551,7 +561,7 @@ void DomeStatus::checkDiskSpaces() {
           } // loop fs
           
           Davix::DavixError::clearError(&tmp_err);
-        } // if tmp_err
+        } // if someerror
         
         
       } // lock
