@@ -451,6 +451,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
     Err(domelogname, os.str());
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   } 
   
@@ -480,7 +481,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     
     Err(domelogname, os.str());
     
-    
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   
@@ -598,6 +599,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       std::ostringstream os;
       os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
       Err(domelogname, os.str());
+      Davix::DavixError::clearError(&tmp_err);
       return DomeReq::SendSimpleResp(request, 500, os);
     } 
   
@@ -625,7 +627,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     
       Err(domelogname, os.str());
     
-    
+      Davix::DavixError::clearError(&tmp_err);
       return DomeReq::SendSimpleResp(request, errcode, os);
     }
     
@@ -1769,6 +1771,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
     Err(domelogname, os.str());
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   req2.addHeaderField("cmd", "dome_pfnrm");
@@ -1792,7 +1795,8 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     else
       os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
     
-    Err(domelogname, os.str());    
+    Err(domelogname, os.str());   
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   }
@@ -2006,6 +2010,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
     Err(domelogname, os.str());
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   req2.addHeaderField("cmd", "dome_statpfn");
@@ -2033,7 +2038,8 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     else
       os << "Cannot execute cmd_statrm to head node. pfn: '" << newfs << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
     
-    Err(domelogname, os.str());    
+    Err(domelogname, os.str()); 
+    Davix::DavixError::clearError(&tmp_err);
     return DomeReq::SendSimpleResp(request, 500, os);
   }
   }

@@ -337,7 +337,8 @@ static Davix::RequestParams getDavixParams() {
       std::ostringstream os;
       os << "Cannot load cert-privkey " << CFG->GetString("glb.restclient.cli_certificate", (char *)"") << "-" <<
             CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
-        
+      
+      Davix::DavixError::clearError(&tmp_err);
       throw dmlite::DmException(EPERM, os.str());
   }
   params.setClientCertX509(cred);
