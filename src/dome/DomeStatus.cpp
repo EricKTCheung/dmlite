@@ -88,11 +88,117 @@ long DomeStatus::getGlobalputcount() {
 }
 
 
-/// Helper function that reloads all the filesystems from the DB
+/// Helper function that reloads all the filesystems from the DB or asking the head node
 int DomeStatus::loadFilesystems() {
-  DomeMySql sql;
   
-  return sql.getFilesystems(*this);
+  if (role == roleHead) {
+    DomeMySql sql;
+    return sql.getFilesystems(*this);
+  }
+  
+  // Disk node case. We ask the head node and match the
+  // filesystems against the local server name  
+  Davix::Uri url(CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/"));
+  Davix::DavixError* tmp_err = NULL;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
+  
+  Davix::GetRequest req2(*(ds->ctx), url, &tmp_err);
+  if( tmp_err ) {
+    std::ostringstream os;
+    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
+    Davix::DavixError::clearError(&tmp_err);
+    Err(domelogname, os.str());
+    return -1;
+  }
+  
+  req2.addHeaderField("cmd", "dome_getspaceinfo");
+  
+  // Set the dome timeout values for the operation
+  req2.setParameters(*(ds->parms));
+      
+  if (req2.executeRequest(&tmp_err) != 0) {
+    // The error must be ignored, hoping for better times ahead
+    std::ostringstream os;
+    int errcode = req2.getRequestCode();
+    if (tmp_err)
+      os << "Cannot query headnode for filesystems. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+    else
+      os << "Cannot query headnode for filesystems. errcode: " << errcode;
+    
+    Err(domelogname, os.str());
+    
+    Davix::DavixError::clearError(&tmp_err);
+    return -1;
+  }
+  
+  // Here we have a positive response from the headnode. We use it to loop through
+  // the servers that match our hostname
+  const char *resp = req2.getAnswerContent();
+  
+  if (!resp || !resp[0]) {
+    Err(domelogname, "Cannot query headnode for filesystems. Empty response.");
+    return -1;
+  }
+  
+  // Here we have the response... splat its body into a ptree to parse it
+  std::istringstream is(resp);
+  boost::property_tree::ptree myresp;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << is.str() << "'");
+  try {
+    boost::property_tree::read_json(is, myresp);
+          
+  } catch (boost::property_tree::json_parser_error e) {
+    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+    return -1;
+  }
+  
+  // Now overwrite the fs entries we have with the ones we got
+  {
+    boost::unique_lock<boost::recursive_mutex> l(*this);
+    
+    // Loop on the servers of the response, looking for one that matches this server
+    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo.")) {
+      // v.first is the name of the server.
+      // v.second is the child tree representing the server
+      if (srv.first != this->myhostname) continue;
+                 
+      // Now loop on the filesystems of the response
+      // Now we loop through the filesystems reported by this server
+      BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
+        // v.first is the name of the server.
+        // v.second is the child tree representing the server
+              
+
+        // Find the corresponding server:fs info in our array, and get the counters
+        bool found = false;
+        Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
+        for (unsigned int ii = 0; ii < fslist.size(); ii++) {
+                
+          Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
+          if (fslist[ii].fs == fs.first) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          Log(Logger::Lvl1, domelogmask, domelogname, "Learning new fs from head node: " << srv.first << ":" << fs.first <<
+            " poolname: '" << fs.second.get<std::string>("poolname") << "'" );
+          
+          DomeFsInfo newfs;
+          newfs.poolname = fs.second.get<std::string>("poolname");;
+          newfs.server = myhostname;
+          servers.insert(myhostname);
+          newfs.fs = fs.first;
+        }
+        
+      } // foreach
+    
+    
+    } // foreach
+  } // lock
+  
+  return 0;
 }
 
 /// Helper function that reloads all the quotas from the DB
@@ -343,6 +449,7 @@ void DomeStatus::checkDiskSpaces() {
       
       if( tmp_err ){
         Err("checkDiskSpaces", "Cannot initialize Query to" << url << ", Error: "<< tmp_err->getErrMsg());
+        Davix::DavixError::clearError(&tmp_err);
         continue;
       }
       
@@ -437,6 +544,7 @@ void DomeStatus::checkDiskSpaces() {
             
           } // loop fs
           
+          Davix::DavixError::clearError(&tmp_err);
         } // if tmp_err
         
         
