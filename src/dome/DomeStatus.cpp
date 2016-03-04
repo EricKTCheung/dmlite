@@ -98,7 +98,9 @@ int DomeStatus::loadFilesystems() {
   
   // Disk node case. We ask the head node and match the
   // filesystems against the local server name  
-  Davix::Uri url(CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/"));
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
+  domeurl += "/";
+  Davix::Uri url(domeurl);
   Davix::DavixError* tmp_err = NULL;
   DavixGrabber hdavix(*davixPool);
   DavixStuff *ds(hdavix);
@@ -293,12 +295,16 @@ int DomeStatus::tick(time_t timenow) {
     // At regular intervals, one minute or so,
     // checking the filesystems is a good idea for a disk server
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking disk spaces.");
-    
+
+    if (role == roleDisk)
+      loadFilesystems();
+      
     checkDiskSpaces();
     
     lastfscheck = timenow;
   }
 
+  if (role == roleHead)
   return 0;
 }
 
