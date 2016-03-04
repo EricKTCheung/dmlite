@@ -410,6 +410,15 @@ int DomeCore::init(const char *cfgfile) {
                           CFG->GetLong  ("glb.db.port",     0),
                           CFG->GetLong  ("glb.db.poolsz",   10) );
     
+    // Create a dmlite pool
+    dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
+    
+    // Configure the davix pool
+    davixFactory = new dmlite::DavixCtxFactory();
+    davixFactory->setRequestParams(getDavixParams());
+    davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 15));
+    status.setDavixPool(davixPool);
+    
     // Try getting a db connection and use it. If it does not work
     // an exception will just kill us, which is what we want
     DomeMySql sql;
@@ -449,13 +458,7 @@ int DomeCore::init(const char *cfgfile) {
       workers.push_back(new boost::thread(workerFunc, this, i));
     }
     
-    dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
     
-    // Configure the davix pool
-    davixFactory = new dmlite::DavixCtxFactory();
-    davixFactory->setRequestParams(getDavixParams());
-    davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 15));
-    status.setDavixPool(davixPool);
 
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
