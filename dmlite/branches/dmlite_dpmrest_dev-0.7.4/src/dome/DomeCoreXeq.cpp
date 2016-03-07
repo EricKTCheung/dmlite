@@ -26,7 +26,7 @@
 
 #include "DomeCore.h"
 #include "DomeLog.h"
-#include "DomeUtils.h"
+#include "utils/DomeUtils.h"
 #include "DomeDmlitePool.h"
 #include <sys/vfs.h>
 #include <unistd.h>
@@ -304,7 +304,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
           req.remoteclienthost << "' - " << e.code() << "-" << e.what();
           
         Err(domelogname, os.str());
-        return DomeReq::SendSimpleResp(request, 501, os);
+        return DomeReq::SendSimpleResp(request, 422, os);
       }
     }
 
@@ -315,7 +315,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
       os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
       
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 501, os);
+      return DomeReq::SendSimpleResp(request, 422, os);
     }
     
     // Create the replica in the catalog

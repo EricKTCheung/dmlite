@@ -27,7 +27,7 @@
 #include "DomeStatus.h"
 #include "DomeMysql.h"
 #include "DomeLog.h"
-#include "DomeUtils.h"
+#include "utils/DomeUtils.h"
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>

@@ -3,7 +3,8 @@ cmake_minimum_required (VERSION 2.6)
 find_package(Boost COMPONENTS regex REQUIRED)
 
 if(DAVIX_PKG_FOUND)
-  set(DMLITE_DAVIX_POOL_SOURCES utils/DavixPool.cpp)
+  set(DMLITE_DAVIX_POOL_SOURCES utils/DavixPool.cpp
+                                utils/DomeTalker.cpp)
 endif()
 
 set(DMLITE_UTILS_SOURCES utils/Checksums.cpp
