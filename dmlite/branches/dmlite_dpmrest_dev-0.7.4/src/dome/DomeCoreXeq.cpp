@@ -809,7 +809,8 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
     if (status.role == status.roleHead) { //Only headnodes report about pools
       poolname = "poolinfo^" + status.fslist[i].poolname;
       long long tot, free;
-      status.getPoolSpaces(status.fslist[i].poolname, tot, free);
+      int pool_st;
+      status.getPoolSpaces(status.fslist[i].poolname, tot, free, pool_st);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
@@ -1200,7 +1201,8 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
 
   long long tot, free;
-  status.getPoolSpaces(pn, tot, free);
+  int poolst;
+  status.getPoolSpaces(pn, tot, free, poolst);
 
   boost::property_tree::ptree jresp;
   for (unsigned int i = 0; i < status.fslist.size(); i++)
@@ -1212,7 +1214,7 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
       poolname = "poolinfo^" + status.fslist[i].poolname;
 
-      jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), poolst);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
 
@@ -1287,7 +1289,8 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
           // Now find the free space in the mentioned pool
           long long ptot, pfree;
-          status.getPoolSpaces(it->second.poolname, ptot, pfree);
+          int poolst;
+          status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
           poolfree += pfree;
 
           Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
@@ -1453,7 +1456,8 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
-      status.getPoolSpaces(it->second.poolname, ptot, pfree);
+      int poolst;
+      status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
       
       pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
       if (pathfree < 0) pathfree = 0;
@@ -1490,7 +1494,8 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
-      status.getPoolSpaces(it->second.poolname, ptot, pfree);
+      int poolst;
+      status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
       
       pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
       if (pathfree < 0) pathfree = 0;
