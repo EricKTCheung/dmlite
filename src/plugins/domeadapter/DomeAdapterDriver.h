@@ -57,14 +57,20 @@ namespace dmlite {
     uint64_t    getFreeSpace   (void) throw (DmException);
     bool        poolIsAvailable(bool) throw (DmException);
 
-    // bool     replicaIsAvailable(const Replica& replica) throw (DmException);
+    bool     replicaIsAvailable(const Replica& replica) throw (DmException);
     Location whereToRead       (const Replica& replica) throw (DmException);
 
     void removeReplica(const Replica&) throw (DmException);
     Location whereToWrite(const std::string&) throw (DmException);
-    // void cancelWrite(const Location& loc) throw (DmException);
+    void cancelWrite(const Location& loc) throw (DmException);
 
   private:
+    enum DomeFsStatus {
+      FsStaticActive = 0,
+      FsStaticDisabled,
+      FsStaticReadOnly
+    };
+
     std::string poolname_;
     DomeAdapterPoolDriver *driver_;
 

@@ -93,12 +93,6 @@ uint64_t DomeAdapterPoolHandler::getFreeSpace(void) throw (DmException) {
 bool DomeAdapterPoolHandler::poolIsAvailable(bool write) throw (DmException) {
   uint64_t poolstatus = this->getPoolField("poolstatus");
 
-  enum DomeFsStatus {
-    FsStaticActive = 0,
-    FsStaticDisabled,
-    FsStaticReadOnly
-  };
-
   if(poolstatus == FsStaticActive) {
     return true;
   }
@@ -110,6 +104,46 @@ bool DomeAdapterPoolHandler::poolIsAvailable(bool write) throw (DmException) {
   }
 
   throw DmException(EINVAL, SSTR("Received invalid value from Dome for poolstatus: " << poolstatus));
+}
+
+bool DomeAdapterPoolHandler::replicaIsAvailable(const Replica& replica) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " rfn: " << replica.rfn);
+
+  if (replica.status != dmlite::Replica::kAvailable) {
+    Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " poolname:" << poolname_ << " replica: " << replica.rfn << " has status " << replica.status << " . returns false");
+    return false;
+  }
+
+  Davix::Uri uri(driver_->factory_->domehead_ + "/");
+  DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_,
+                    "GET", uri, "dome_statpool");
+
+  if(!talker.execute("poolname", poolname_)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
+  try {
+    using namespace boost::property_tree;
+    std::string filesystem = Extensible::anyToString(replica["filesystem"]);
+    ptree fsinfo = talker.jresp().get_child("poolinfo").get_child(poolname_).get_child("fsinfo");
+
+    ptree::const_iterator begin = fsinfo.begin();
+    ptree::const_iterator end = fsinfo.end();
+    for(ptree::const_iterator it = begin; it != end; it++) {
+      if(it->first == replica.server) {
+        for(ptree::const_iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+          if(it2->first == filesystem) {
+            bool active = it2->second.get<int>("fsstatus") != FsStaticDisabled;
+            return active;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+  }
 }
 
 void DomeAdapterPoolHandler::removeReplica(const Replica& replica) throw (DmException) {
@@ -125,6 +159,13 @@ void DomeAdapterPoolHandler::removeReplica(const Replica& replica) throw (DmExce
   if(!talker.execute(params)) {
     throw DmException(EINVAL, talker.err());
   }
+}
+
+void DomeAdapterPoolHandler::cancelWrite(const Location& loc) throw (DmException) {
+  Replica replica;
+  replica.rfn = loc[0].url.domain + ":" + loc[0].url.path;
+  std::cout << "reconstructed rfn: " << replica.rfn << std::endl;
+  this->removeReplica(replica);
 }
 
 Location DomeAdapterPoolHandler::whereToWrite(const std::string& lfn) throw (DmException) {
