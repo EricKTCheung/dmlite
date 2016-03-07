@@ -17,6 +17,7 @@ namespace dmlite {
   extern Logger::component domeadapterlogname;
 
   class DomeAdapterPoolsFactory;
+  class DomeAdapterPoolHandler;
 
   class DomeAdapterPoolDriver : public PoolDriver {
   public:
@@ -37,9 +38,12 @@ namespace dmlite {
   private:
     StackInstance* si_;
     const SecurityContext* secCtx_;
+    std::string userId_;
 
     /// The corresponding factory.
     DomeAdapterPoolsFactory* factory_;
+
+    friend class DomeAdapterPoolHandler;
   };
 
   class DomeAdapterPoolHandler: public PoolHandler {
@@ -47,10 +51,24 @@ namespace dmlite {
     DomeAdapterPoolHandler(DomeAdapterPoolDriver *driver, const std::string& poolname);
     ~DomeAdapterPoolHandler();
 
+    std::string getPoolType    (void) throw (DmException);
+    std::string getPoolName    (void) throw (DmException);
+    uint64_t    getTotalSpace  (void) throw (DmException);
+    uint64_t    getFreeSpace   (void) throw (DmException);
+    bool        poolIsAvailable(bool) throw (DmException);
+
+    // bool     replicaIsAvailable(const Replica& replica) throw (DmException);
+    Location whereToRead       (const Replica& replica) throw (DmException);
+
+    void removeReplica(const Replica&) throw (DmException);
+    Location whereToWrite(const std::string&) throw (DmException);
+    // void cancelWrite(const Location& loc) throw (DmException);
+
   private:
     std::string poolname_;
     DomeAdapterPoolDriver *driver_;
 
+    uint64_t getPoolField(std::string field) throw (DmException);
   };
 }
 

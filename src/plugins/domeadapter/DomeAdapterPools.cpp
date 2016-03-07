@@ -9,6 +9,8 @@
 #include "DomeAdapterPools.h"
 #include "DomeAdapterDriver.h"
 
+#include "utils/DomeTalker.h"
+
 using namespace dmlite;
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
@@ -18,7 +20,19 @@ void DomeAdapterPoolsFactory::configure(const std::string& key, const std::strin
   LogCfgParm(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, key, value);
 
   if(key == "DomeHead") {
-    domehead = value;
+    domehead_ = value;
+  }
+  else if(key == "TokenPassword") {
+    tokenPasswd_ = value;
+  }
+  else if (key == "TokenId") {
+    if (strcasecmp(value.c_str(), "ip") == 0)
+      this->tokenUseIp_ = true;
+    else
+      this->tokenUseIp_ = false;
+  }
+  else if (key == "TokenLife") {
+    this->tokenLife_ = (unsigned)atoi(value.c_str());
   }
   else if( key.find("Davix") != std::string::npos) {
     std::cout << "sending param to davix" << std::endl;
@@ -26,13 +40,18 @@ void DomeAdapterPoolsFactory::configure(const std::string& key, const std::strin
   }
 }
 
+std::string DomeAdapterPoolsFactory::implementedPool() throw() {
+  return "filesystem";
+}
+
 PoolManager* DomeAdapterPoolsFactory::createPoolManager(PluginManager*) throw (DmException)
 {
   return new DomeAdapterPoolManager(this);
 }
 
-PoolDriver* DomeAdapterPoolsFactory::createPoolDriver(PluginManager*) throw (DmException)
+PoolDriver* DomeAdapterPoolsFactory::createPoolDriver() throw (DmException)
 {
+  std::cout << "in create pool driver" << std::endl;
   return new DomeAdapterPoolDriver(this);
 }
 
@@ -110,7 +129,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
   DavixStuff *ds(grabber);
 
   Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/");
+  Davix::Uri uri(factory_->domehead_ + "/");
   Davix::GetRequest req(*ds->ctx, uri, &err);
   req.addHeaderField("cmd", "dome_getspaceinfo");
   req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
@@ -144,72 +163,30 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
 }
 
 Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmException) {
-  DavixGrabber grabber(factory_->davixPool_);
-  DavixStuff *ds(grabber);
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "GET", uri, "dome_statpool");
 
-  Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/");
-  Davix::GetRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_statpool");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
-
-  boost::property_tree::ptree params;
-  params.put("poolname", poolname);
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, params);
-
-  req.setParameters(*ds->parms);
-  req.setRequestBody(os.str());
-  req.executeRequest(&err);
-
-   if(err) {
-     throw DmException(EINVAL, "Error when sending dome_getstatpool to headnode: %s", err->getErrMsg().c_str());
-   }
-
-  std::vector<char> body = req.getAnswerContentVec();
-
-  // parse json response
-  boost::property_tree::ptree jresp = parseJSON(&body[0]);
+  if(!talker.execute("poolname", poolname)) {
+    throw DmException(EINVAL, talker.err());
+  }
 
   try {
-    boost::property_tree::ptree poolinfo = jresp.get_child("poolinfo");
-    Pool p = deserializePool(poolinfo.begin());
-    return p;
+    return deserializePool(talker.jresp().get_child("poolinfo").begin());
   }
-  catch(boost::property_tree::ptree_bad_path &e) {
-    Err(domeadapterlogname, " Pool poolname: " << poolname << " not found.");
-    throw DmException(DMLITE_NO_SUCH_POOL, "Pool " + poolname + " not found");
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(DMLITE_NO_SUCH_POOL, SSTR("Pool " + poolname + " not found. (" << e.what() << ")"));
   }
 }
 
 void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
-  DavixGrabber grabber(factory_->davixPool_);
-  DavixStuff *ds(grabber);
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "POST", uri, "dome_addpool");
 
-  Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/");
-  Davix::PostRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_addpool");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
-
-  boost::property_tree::ptree params;
-  params.put("poolname", pool.name);
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, params);
-
-  req.setParameters(*ds->parms);
-  req.setRequestBody(os.str());
-  int rc = req.executeRequest(&err);
-
-  if(rc || err) {
-     std::string msg = SSTR("Error when sending dome_addpool to headnode: " << err->getErrMsg());
-     Davix::DavixError::clearError(&err);
-     throw DmException(EINVAL, msg);
-   }
+  if(!talker.execute("poolname", pool.name)) {
+    throw DmException(EINVAL, talker.err());
+  }
 }
 
 // void DomeAdapterPoolManager::updatePool(const Pool& pool) throw (DmException) {
@@ -217,31 +194,13 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
 // }
   
 void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
-  DavixGrabber grabber(factory_->davixPool_);
-  DavixStuff *ds(grabber);
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "POST", uri, "dome_rmpool");
 
-  Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/");
-  Davix::PostRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_rmpool");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
-
-  boost::property_tree::ptree params;
-  params.put("poolname", pool.name);
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, params);
-
-  req.setParameters(*ds->parms);
-  req.setRequestBody(os.str());
-  int rc = req.executeRequest(&err);
-
-  if(rc || err) {
-     std::string msg = SSTR("Error when sending dome_rmpool to headnode: " << err->getErrMsg());
-     Davix::DavixError::clearError(&err);
-     throw DmException(EINVAL, msg);
-   }
+  if(!talker.execute("poolname", pool.name)) {
+    throw DmException(EINVAL, talker.err());
+  }
 }
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
@@ -250,7 +209,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
   DavixStuff *ds(grabber);
 
   Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/" + path);
+  Davix::Uri uri(factory_->domehead_ + "/" + path);
   Davix::GetRequest req(*ds->ctx, uri, &err);
   req.addHeaderField("cmd", "dome_get");
   req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
@@ -300,7 +259,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
   DavixStuff *ds(grabber);
 
   Davix::DavixError *err = NULL;
-  Davix::Uri uri(factory_->domehead + "/" + path);
+  Davix::Uri uri(factory_->domehead_ + "/" + path);
   Davix::PostRequest req(*ds->ctx, uri, &err);
   req.addHeaderField("cmd", "dome_put");
   req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
