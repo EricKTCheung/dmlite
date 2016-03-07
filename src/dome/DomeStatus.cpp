@@ -235,17 +235,32 @@ int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
     return 0;
 }
 
-int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free) {
+int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free, int &poolstatus) {
   total = 0LL;
   free = 0LL;
   bool rc = 1;
+  poolstatus = DomeFsInfo::FsStaticDisabled;
   boost::unique_lock<boost::recursive_mutex> l(*this);
   
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
-      total += fslist[i].physicalsize;
-      free += fslist[i].freespace;
+      
+      if (fslist[i].isGoodForRead()) {
+        
+        if (poolstatus == DomeFsInfo::FsStaticDisabled)
+          poolstatus = DomeFsInfo::FsStaticReadOnly;
+        
+        if (fslist[i].isGoodForWrite()) {
+          free += fslist[i].freespace;
+          poolstatus = DomeFsInfo::FsStaticActive;
+        }
+        
+        total += fslist[i].physicalsize;
+      }
+      
+      
+
       rc = 0;
     }
     
@@ -407,6 +422,7 @@ void DomeStatus::checkDiskSpaces() {
         int rc = statfs(fslist[i].fs.c_str(), &buf);
         if ( !rc ) {
           fslist[i].freespace = buf.f_bavail * buf.f_bsize;
+          
           fslist[i].physicalsize = buf.f_blocks * buf.f_bsize;
           fslist[i].activitystatus = DomeFsInfo::FsOnline;
           Log(Logger::Lvl1, domelogmask, domelogname, "fs: " << fslist[i].fs << " phys: " << fslist[i].physicalsize << " free: " << fslist[i].freespace);
