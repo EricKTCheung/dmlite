@@ -31,7 +31,7 @@ namespace dmlite {
 
     PoolHandler* createPoolHandler(const std::string& poolName) throw (DmException);
 
-    // void toBeCreated(const Pool& pool) throw (DmException);
+    void toBeCreated(const Pool& pool) throw (DmException);
     // void justCreated(const Pool& pool) throw (DmException);
     // void update(const Pool& pool) throw (DmException);
     // void toBeDeleted(const Pool& pool) throw (DmException);
