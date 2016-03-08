@@ -1117,6 +1117,91 @@ static std::string extract_checksum(std::string stdout, std::string &err) {
   return stdout.substr(pos+magic.size(), pos2-pos-magic.size());
 }
 
+
+
+
+
+
+
+
+void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed);
+
+  std::string checksum, extract_error;
+  bool failed = false;
+
+  if(completed) {
+    checksum = extract_checksum(task.stdout, extract_error);
+    if( ! extract_error.empty()) {
+      Err(domelogname, extract_error << task.stdout);
+      failed = true;
+    }
+  }
+
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
+  Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
+  Davix::Uri url(domeurl);
+
+  Davix::DavixError* err = NULL;
+  DavixGrabber hdavix(*davixPool);
+  DavixStuff *ds(hdavix);
+  Davix::PostRequest req2(*(ds->ctx), url, &err);
+
+  if(err) {
+    std::string msg = SSTR("Cannot initialize davix query to " << url << ", error: " << err->getErrMsg());
+    Err(domelogname, msg);
+    return;
+  }
+
+  req2.addHeaderField("cmd", "dome_pullstatus");
+  req2.addHeaderField("remoteclientdn", pending.remoteclientdn);
+  req2.addHeaderField("remoteclienthost", pending.remoteclienthost);
+
+  // set chksumstatus params
+  boost::property_tree::ptree jresp;
+  std::string rfn = pending.server + ":" + pending.pfn;
+
+  jresp.put("pfn", rfn);
+  Log(Logger::Lvl4, domelogmask, domelogname, "rfn: " << rfn);
+
+  jresp.put("checksum-type", pending.chksumtype);
+
+  if(completed) {
+    if(failed) {
+      jresp.put("status", "aborted");
+      jresp.put("reason", SSTR(extract_error << task.stdout));
+    }
+    else {
+      jresp.put("status", "done");
+      jresp.put("checksum", checksum);
+    }
+  }
+  else {
+    jresp.put("status", "pending");
+  }
+
+  std::ostringstream os;
+  boost::property_tree::write_json(os, jresp);
+  req2.setRequestBody(os.str());
+
+  req2.setParameters(*(ds->parms));
+  req2.executeRequest(&err);
+
+  if(err) {
+    Err(domelogname, "Error after sending a dome_pullstatus: " << err->getErrMsg());
+    Davix::DavixError::clearError(&err);
+  }
+}
+
+
+
+
+
+
+
+
+
+
 void DomeCore::sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed);
 
@@ -1407,8 +1492,53 @@ int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request)  {
 };
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
+    if(status.role == status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_pull only available on disk nodes");
+  }
+
+  try {
+    //DmlitePoolHandler stack(dmpool);
+    
+    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string lfn = req.object;
+    
+    // Checksumtype in this case can be empty, as it's just a suggestion...
+    if(pfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
+    }
+    if(lfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
+    }
+    if (!CFG->GetString("glb.filepuller", "").size()) {
+      return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
+    }
+    
+    // Let's just execute the external hook, passing the obvious parameters
+    
+    PendingPull pending(lfn, status.myhostname, pfn, chksumtype);
+
+    std::vector<std::string> params;
+    params.push_back(CFG->GetString("glb.filepuller", ""));
+    params.push_back(lfn);
+    params.push_back(pfn);
+    int id = this->submitCmd(params);
+    
+    if (id < 0)
+      return DomeReq::SendSimpleResp(request, 500, "Could not invoke file puller.");
+    
+    diskPendingPulls[id] = pending;
+    
+    // Now exit, the file pull is hopefully ongoing
+
+    return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated file pull. lfn: '" << lfn << "' pfn: '"<< pfn << "', task executor ID: " << id));
+  }
+  catch(dmlite::DmException& e) {
+    std::ostringstream os("An error has occured.\r\n");
+    os << "Dmlite exception: " << e.what();
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
   
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
   
 };
 
