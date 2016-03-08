@@ -1159,10 +1159,10 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
 
   // set chksumstatus params
   boost::property_tree::ptree jresp;
-  std::string rfn = pending.server + ":" + pending.pfn;
 
-  jresp.put("pfn", rfn);
-  Log(Logger::Lvl4, domelogmask, domelogname, "rfn: " << rfn);
+  jresp.put("pfn", pending.pfn);
+  jresp.put("server", status.myhostname);
+  Log(Logger::Lvl4, domelogmask, domelogname, "pfn: " << pending.pfn);
 
   jresp.put("checksum-type", pending.chksumtype);
 
@@ -1485,9 +1485,237 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   }
 };
 
-int DomeCore::dome_pulldone(DomeReq &req, FCGX_Request &request)  {
+int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
+  if(status.role == status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "chksumstatus only available on head nodes");
+  }
   
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
+  
+  try {
+    DmlitePoolHandler stack(dmpool);
+    INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
+    if (!inodeintf) {
+      Err( domelogname , " Cannot retrieve inode interface. Fatal.");
+      return -1;
+    }
+  
+    std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    std::string fullchecksum = "checksum." + chksumtype;
+    std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string server = req.bodyfields.get<std::string>("server", "");
+    std::string str_status = req.bodyfields.get<std::string>("status", "");
+    std::string reason = req.bodyfields.get<std::string>("reason", "");
+    std::string checksum = req.bodyfields.get<std::string>("checksum", "");
+    long size = 0L;
+    
+    if(pfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
+    }
+
+    GenPrioQueueItem::QStatus qstatus;
+
+    if(str_status == "pending") {
+      qstatus = GenPrioQueueItem::Running;
+    }
+    else if(str_status == "done" || str_status == "aborted") {
+      qstatus = GenPrioQueueItem::Finished;
+    }
+    else {
+      return DomeReq::SendSimpleResp(request, 422, "The status provided is not recognized.");
+    }
+
+    // modify the queue as needed
+    std::string namekey = req.object;
+    std::vector<std::string> qualifiers;
+
+    qualifiers.push_back("");
+    qualifiers.push_back(server);
+    status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+
+    if(str_status == "aborted") {
+      Log(Logger::Lvl1, domelogmask, domelogname, "File pull failed. LFN: " << req.object
+      << "PFN: " << pfn << ". Reason: " << reason);
+      return DomeReq::SendSimpleResp(request, 200, "");
+    }
+
+    if(str_status == "pending") {
+      Log(Logger::Lvl2, domelogmask, domelogname, "File pull pending... LFN: " << req.object
+      << "PFN: " << pfn << ". Reason: " << reason);
+      return DomeReq::SendSimpleResp(request, 200, "");
+    }
+
+    // status is done, checksum can be empty
+    Log(Logger::Lvl2, domelogmask, domelogname, "File pull finished. LFN: " << req.object
+        << "PFN: " << pfn << ". Reason: " << reason);
+    
+    // In practice it's like a putdone request, unfortunately we have to
+    // apparently duplicate some code
+    
+    
+    // Here unfortunately, for backward compatibility we are forced to
+    // use the rfio syntax.
+    std::string rfn = server + ":" + pfn;
+    
+    
+    dmlite::Replica rep;
+    try {
+      rep = stack->getCatalog()->getReplicaByRFN(rfn);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 404, os);
+    }
+    
+    if (rep.status != dmlite::Replica::kBeingPopulated) {
+      
+      std::ostringstream os;
+      os << "Invalid status for replica '"<< rfn << "'";
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 422, os);
+      
+    }
+    
+    dmlite::ExtendedStat st;
+    try {
+      st = inodeintf->extendedStat(rep.fileid);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 422, os);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // We are in the headnode, and the only filesize we can trust is the real one, old style
+    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+    Davix::Uri url(domeurl);
+    
+    Davix::DavixError* tmp_err = NULL;
+    DavixGrabber hdavix(*davixPool);
+    DavixStuff *ds(hdavix);
+    
+    Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
+    if( tmp_err ) {
+      std::ostringstream os;
+      os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
+      Err(domelogname, os.str());
+      Davix::DavixError::clearError(&tmp_err);
+      return DomeReq::SendSimpleResp(request, 500, os);
+    } 
+    
+    req2.addHeaderField("cmd", "dome_stat");
+    req2.addHeaderField("remoteclientdn", req.remoteclientdn);
+    req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+    
+    std::ostringstream os;
+    boost::property_tree::ptree jstat;
+    jstat.put("pfn", pfn);
+    boost::property_tree::write_json(os, jstat);
+    req2.setRequestBody(os.str());
+    
+    // Set the dome timeout values for the operation
+    req2.setParameters(*(ds->parms));
+    
+    if (req2.executeRequest(&tmp_err) != 0) {
+      // The error must be propagated to the response, in clear readable text
+      std::ostringstream os;
+      int errcode = req2.getRequestCode();
+      if (tmp_err)
+        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
+      else
+        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode;
+      
+      Err(domelogname, os.str());
+      
+      Davix::DavixError::clearError(&tmp_err);
+      return DomeReq::SendSimpleResp(request, errcode, os);
+    }
+    
+    if (!req2.getAnswerContent()) {
+      std::ostringstream os;
+      os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 404, os);
+    }
+    
+    // The stat towards the dsk server was successful. Take the size
+    jstat.clear();
+    std::istringstream s(req2.getAnswerContent());
+    try {
+      boost::property_tree::read_json(s, jstat);
+    } catch (boost::property_tree::json_parser_error e) {
+      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s.str() << "'");
+      return -1;
+    }
+    
+    size = jstat.get<size_t>("size", 0L);
+      
+      
+    
+    // -------------------------------------------------------
+    // If a miracle took us here, the size has been confirmed
+    Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // Update the replica values, including the checksum, if present
+    rep.ptime = rep.ltime = rep.atime = time(0);
+    rep.status = dmlite::Replica::kAvailable;
+    if (checksum.size() && chksumtype.size())
+      rep[fullchecksum] = checksum;
+    
+    try {
+      stack->getCatalog()->updateReplica(rep);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 500, os);
+    }
+    
+    // If the checksum of the main entry is different, just output a bad warning in the log
+    std::string ck;
+    if ( !st.getchecksum(fullchecksum, ck) && (ck != checksum) ) {
+      Err(domelogname, SSTR("Replica checksum mismatch rfn:'"<< rfn << "' : " << checksum << " fileid: " << rep.fileid << " : " << ck));
+    }
+    
+    
+    return DomeReq::SendSimpleResp(request, 200, "");
+  }
+  catch(dmlite::DmException& e) {
+    std::ostringstream os("An error has occured.\r\n");
+    os << "Dmlite exception: " << e.what();
+    return DomeReq::SendSimpleResp(request, 404, os);
+  }
+
+  Log(Logger::Lvl1, domelogmask, domelogname, "Error - execution should never reach this point");
+  return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
+  
+  
   
 };
 
