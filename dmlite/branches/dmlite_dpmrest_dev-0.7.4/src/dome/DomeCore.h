@@ -114,7 +114,7 @@ public:
   int dome_chksumstatus(DomeReq &req, FCGX_Request &request);
   int dome_ispullable(DomeReq &req, FCGX_Request &request);
   int dome_get(DomeReq &req, FCGX_Request &request);
-  int dome_pulldone(DomeReq &req, FCGX_Request &request);
+  int dome_pullstatus(DomeReq &req, FCGX_Request &request);
   int dome_statpool(DomeReq &req, FCGX_Request &request);
   int dome_ping(DomeReq &req, FCGX_Request &request) {
     int r = FCGX_FPrintF(request.out,
