@@ -491,18 +491,30 @@ void DomeCore::onTaskCompleted(DomeTask &task) {
   int key = task.key;
 
   PendingChecksum pending;
+  PendingPull pendingpull;
+  
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
 
-    if(it == diskPendingChecksums.end()) {
+    if(it != diskPendingChecksums.end()) {
+      pending = it->second;
+      diskPendingChecksums.erase(it);
+      sendChecksumStatus(pending, task, true);
       return;
     }
 
-    pending = it->second;
-    diskPendingChecksums.erase(it);
+    std::map<int, PendingPull>::iterator pit = diskPendingPulls.find(key);
+    if(pit != diskPendingPulls.end()) {
+      pendingpull = pit->second;
+      diskPendingPulls.erase(pit);
+      sendFilepullStatus(pendingpull, task, true);
+      return;
+    }
   }
-  sendChecksumStatus(pending, task, true);
+  
+  // This would be an internal error!!!!
+  Err(domelogname, "Cannot match task notification. key: " << task.key);
 }
 
 /// Send a notification to the head node about a task that is running
@@ -510,15 +522,29 @@ void DomeCore::onTaskRunning(DomeTask &task) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
   int key = task.key;
   PendingChecksum pending;
+  PendingPull pendingpull;
+  
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
 
-    if(it == diskPendingChecksums.end()) {
+    if(it != diskPendingChecksums.end()) {
+      pending = it->second;
+      Log(Logger::Lvl4, domelogmask, domelogname, "Found pending checksum. key: " << task.key);
+      sendChecksumStatus(pending, task, false);
       return;
     }
 
-    pending = it->second;
+    std::map<int, PendingPull>::iterator pit = diskPendingPulls.find(key);
+
+    if(pit != diskPendingPulls.end()) {
+      pendingpull = pit->second;
+      Log(Logger::Lvl4, domelogmask, domelogname, "Found pending file pull. key: " << task.key);
+      sendFilepullStatus(pendingpull, task, false);
+      return;
+    }
   }
-  sendChecksumStatus(pending, task, false);
+  
+  // This would be an internal error!!!!
+  Err(domelogname, "Cannot match task notification. key: " << task.key);
 }

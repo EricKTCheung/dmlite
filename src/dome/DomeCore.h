@@ -46,7 +46,7 @@
 #include <boost/thread.hpp>
 #include <dmlite/cpp/catalog.h>
 
-
+/// Data associated to a running checksum calculation
 struct PendingChecksum {
   std::string lfn;
   std::string server;
@@ -62,6 +62,21 @@ struct PendingChecksum {
   PendingChecksum() {}
 };
 
+/// Data associated to a pending file pull
+struct PendingPull {
+  std::string lfn;
+  std::string server;
+  std::string pfn;
+  std::string chksumtype;
+
+  std::string remoteclientdn;
+  std::string remoteclienthost;
+
+  PendingPull(std::string _lfn, std::string _server, std::string _pfn, std::string _chksumtype)
+  : lfn(_lfn), server(_server), pfn(_pfn), chksumtype(_chksumtype) {} 
+
+  PendingPull() {}
+};
 // Remember: A DMLite connection pool to the db is just a singleton, always accessible
 
 class DomeCore: public DomeTaskExec {
@@ -160,6 +175,8 @@ private:
   /// Pending disknode checksums
   std::map<int, PendingChecksum> diskPendingChecksums;
   
+    /// Pending disknode file pulls
+  std::map<int, PendingPull> diskPendingPulls;
 protected:
 
   // In the case of a disk server, checks the free/used space in the mountpoints
@@ -174,6 +191,9 @@ protected:
   // helper functions for checksums
   int calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
   void sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed);
+  
+  // Helper for file pulls
+  void sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed);
 };
 
 
