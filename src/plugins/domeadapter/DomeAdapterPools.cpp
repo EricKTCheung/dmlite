@@ -10,6 +10,7 @@
 #include "DomeAdapterDriver.h"
 
 #include "utils/DomeTalker.h"
+#include "DomeAdapterUtils.h"
 
 using namespace dmlite;
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
@@ -87,23 +88,6 @@ void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) t
 
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
   return PoolManager::kNone; // TODO
-}
-
-static Pool deserializePool(boost::property_tree::ptree::const_iterator it) {
-    Pool p;
-    p.name = it->first;
-    p.type = "filesystem";
-    p["freespace"] = it->second.get<std::string>("freespace", "-1").c_str();
-    p["physicalsize"] = it->second.get<std::string>("physicalsize", "-1").c_str();
-
-    std::stringstream ss;
-    boost::property_tree::write_json(ss, it->second.get_child("fsinfo"));
-
-    Extensible fsinfo;
-    fsinfo.deserialize(ss.str());
-    p["fsinfo"] = fsinfo;
-
-    return p;
 }
 
 static boost::property_tree::ptree parseJSON(const char *s) {

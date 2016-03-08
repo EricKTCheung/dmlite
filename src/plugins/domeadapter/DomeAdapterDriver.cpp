@@ -11,6 +11,7 @@
 #include "utils/DomeTalker.h"
 #include "utils/DomeUtils.h"
 
+#include "DomeAdapterUtils.h"
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace dmlite;
@@ -93,7 +94,97 @@ void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
       throw DmException(EINVAL, talker.err());
     }
   }
+}
 
+void DomeAdapterPoolDriver::justCreated(const Pool& pool) throw (DmException) {
+  // nothing to do here
+}
+
+bool contains_filesystem(std::vector<boost::any> filesystems, std::string server, std::string filesystem) {
+  for(unsigned i = 0; i < filesystems.size(); ++i) {
+    Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
+    if(fs.getString("server") == server && fs.getString("fs") == filesystem) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "GET", uri, "dome_statpool");
+
+  if(!talker.execute("poolname", pool.name)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
+  try {
+    Pool oldpool = deserializePool(talker.jresp().get_child("poolinfo").begin());
+    std::vector<boost::any> oldfilesystems = oldpool.getVector("filesystems");
+    std::vector<boost::any> filesystems = pool.getVector("filesystems");
+
+    // detect which filesystems have been removed
+    for(unsigned i = 0; i < oldfilesystems.size(); i++) {
+      Extensible ext = boost::any_cast<Extensible>(oldfilesystems[i]);
+      std::string server = ext.getString("server");
+      std::string fs = ext.getString("fs");
+      if(!contains_filesystem(filesystems, server, fs)) {
+        // send rmfs to dome to remove this filesystem
+        Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Removing filesystem '" << fs << "' on server '" << server << "'");
+
+        DomeTalker rmfs(factory_->davixPool_, secCtx_,
+                        "POST", uri, "dome_rmfs");
+
+        boost::property_tree::ptree params;
+        params.put("server", server);
+        params.put("fs", fs);
+
+        if(!rmfs.execute(params)) {
+          throw DmException(EINVAL, rmfs.err());
+        }
+      }
+    }
+
+    // detect which filesystems need to be added
+    for(unsigned i = 0; i < filesystems.size(); i++) {
+      Extensible ext = boost::any_cast<Extensible>(filesystems[i]);
+      std::string server = ext.getString("server");
+      std::string fs = ext.getString("fs");
+
+      std::cout << "checking " << server << " - " << fs << std::endl;
+      if(!contains_filesystem(oldfilesystems, server, fs)) {
+        // send addfs to dome to add this filesystem
+        Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Adding filesystem '" << fs << "' on server '" << server << "'");
+        DomeTalker addfs(factory_->davixPool_, secCtx_,
+                         "POST", uri, "dome_addfstopool");
+
+        boost::property_tree::ptree params;
+        params.put("server", server);
+        params.put("fs", fs);
+        params.put("poolname", pool.name);
+
+        std::cout << "ADDING fs: " << server << " - " << fs << std::endl;
+
+        if(!addfs.execute(params)) {
+          throw DmException(EINVAL, addfs.err());
+        }
+      }
+    }
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+  }
+}
+
+void DomeAdapterPoolDriver::toBeDeleted(const Pool& pool) throw (DmException) {
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "POST", uri, "dome_rmpool");
+
+  if(!talker.execute("poolname", pool.name)) {
+    throw DmException(EINVAL, talker.err());
+  }
 }
 
 uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmException) {
