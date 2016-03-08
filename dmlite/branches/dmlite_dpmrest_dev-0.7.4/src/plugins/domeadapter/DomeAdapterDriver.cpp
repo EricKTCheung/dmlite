@@ -78,9 +78,7 @@ void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
   }
 
   std::vector<boost::any> filesystems = pool.getVector("filesystems");
-
   for(unsigned i = 0; i < filesystems.size(); ++i) {
-    std::cout << "adding filesystem" << std::endl;
     Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
 
     DomeTalker talker(factory_->davixPool_, secCtx_,
