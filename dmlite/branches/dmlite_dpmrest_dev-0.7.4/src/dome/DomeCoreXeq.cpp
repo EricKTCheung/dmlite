@@ -2221,7 +2221,7 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
   
-  if (status.PfnMatchesAnyFS(server, newfs)) {
+  if (!status.PfnMatchesAnyFS(server, newfs)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
   }
   
