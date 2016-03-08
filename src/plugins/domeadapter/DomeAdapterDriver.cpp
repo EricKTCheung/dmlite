@@ -65,6 +65,39 @@ std::string DomeAdapterPoolHandler::getPoolName(void) throw (DmException) {
   return this->poolname_;
 }
 
+void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
+  Davix::Uri uri(factory_->domehead_ + "/");
+
+  {
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "POST", uri, "dome_addpool");
+
+  if(!talker.execute("poolname", pool.name)) {
+    throw DmException(EINVAL, talker.err());
+  }
+  }
+
+  std::vector<boost::any> filesystems = pool.getVector("filesystems");
+
+  for(unsigned i = 0; i < filesystems.size(); ++i) {
+    std::cout << "adding filesystem" << std::endl;
+    Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
+
+    DomeTalker talker(factory_->davixPool_, secCtx_,
+                      "POST", uri, "dome_addfstopool");
+
+    boost::property_tree::ptree params;
+    params.put("server", fs.getString("server"));
+    params.put("fs", fs.getString("fs"));
+    params.put("poolname", pool.name);
+
+    if(!talker.execute(params)) {
+      throw DmException(EINVAL, talker.err());
+    }
+  }
+
+}
+
 uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmException) {
   Davix::Uri uri(driver_->factory_->domehead_ + "/");
   DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_,

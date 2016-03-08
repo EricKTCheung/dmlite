@@ -61,9 +61,9 @@ bool DomeTalker::execute(const std::string &str) {
   req.setRequestBody(str);
 
   int rc = req.executeRequest(&err_);
-  if(rc || err_) return false;
-
   response_ = req.getAnswerContentVec();
+
+  if(rc || err_) return false;
   return true;
 }
 
@@ -93,6 +93,9 @@ bool DomeTalker::execute(const std::string &key, const std::string &value) {
 }
 
 std::string DomeTalker::err() {
-  if(err_) return err_->getErrMsg();
+  if(err_) {
+    if(response_.size() != 0) return err_->getErrMsg() + " - " + &response_[0];
+    return err_->getErrMsg();
+  }
   return "";
 }

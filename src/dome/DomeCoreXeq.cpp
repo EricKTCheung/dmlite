@@ -1077,8 +1077,16 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
     params.push_back(chksumtype);
     params.push_back(pfn);
     int id = this->submitCmd(params);
-    diskPendingChecksums[id] = pending;
 
+    if(id < 0) {
+      return DomeReq::SendSimpleResp(request, 500, SSTR("An error occured - unable to initiate checksum calculation"));
+    }
+
+    {
+    boost::lock_guard<boost::recursive_mutex> l(mtx);
+    diskPendingChecksums[id] = pending;
+    }
+    
     return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << pfn << ", task executor ID: " << id));
   }
   catch(dmlite::DmException& e) {
@@ -1906,17 +1914,16 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   
   
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
- 
+  bool matchesfs = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("matchfs", "true"));
   
   Log(Logger::Lvl4, domelogmask, domelogname, " pfn: '" << pfn << "'");
-  
   
   if (!pfn.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
   }
   
-  if (!status.PfnMatchesAnyFS(status.myhostname, pfn)) {
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' is not a valid pfn for this server '" << status.myhostname << "'"));
+  if (matchesfs && !status.PfnMatchesAnyFS(status.myhostname, pfn)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' does not match any existing filesystems in disk server '" << status.myhostname << "'"));
   }
   
   struct stat st;
@@ -2024,6 +2031,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
 
   boost::property_tree::ptree jresp;
   jresp.put("pfn", newfs);
+  jresp.put("matchfs", "false");
   jresp.put("server", server);
 
   std::ostringstream os;
