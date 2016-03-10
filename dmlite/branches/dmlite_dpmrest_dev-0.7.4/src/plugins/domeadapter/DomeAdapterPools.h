@@ -9,47 +9,18 @@
 #include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/pooldriver.h>
 #include <fstream>
-#include "utils/DavixPool.h"
+
 
 namespace dmlite {
+
+  class DomeAdapterFactory;
 
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  class DomeAdapterPoolManager;
-  class DomeAdapterPoolDriver;
-  class DomeAdapterPoolHandler;
-
-  class DomeAdapterPoolsFactory : public PoolManagerFactory, public PoolDriverFactory {
-  public:
-    /// Constructor
-    DomeAdapterPoolsFactory() throw (DmException);
-    /// Destructor
-    virtual ~DomeAdapterPoolsFactory();
-
-    void configure(const std::string &key, const std::string &value) throw (DmException);
-
-    PoolManager* createPoolManager(PluginManager*) throw (DmException);
-    PoolDriver* createPoolDriver() throw (DmException);
-
-    std::string implementedPool() throw();
-  private:
-    DavixCtxFactory davixFactory_;
-    DavixCtxPool davixPool_;
-
-    std::string domehead_;
-    bool tokenUseIp_;
-    std::string tokenPasswd_;
-    unsigned tokenLife_;
-  
-  friend class DomeAdapterPoolManager;
-  friend class DomeAdapterPoolDriver;
-  friend class DomeAdapterPoolHandler;
-  };
-
   class DomeAdapterPoolManager : public PoolManager {
   public:
-    DomeAdapterPoolManager(DomeAdapterPoolsFactory *factory);
+    DomeAdapterPoolManager(DomeAdapterFactory *factory);
     ~DomeAdapterPoolManager();
 
     std::string getImplId() const throw ();
@@ -74,7 +45,7 @@ namespace dmlite {
     const SecurityContext* secCtx_;
 
     /// The corresponding factory.
-    DomeAdapterPoolsFactory* factory_;
+    DomeAdapterFactory* factory_;
   };
 }
 

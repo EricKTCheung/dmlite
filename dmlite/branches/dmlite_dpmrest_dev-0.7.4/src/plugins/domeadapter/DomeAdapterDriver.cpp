@@ -6,6 +6,7 @@
 #include <dmlite/cpp/catalog.h>
 #include <iostream>
 
+#include "DomeAdapter.h"
 #include "DomeAdapterDriver.h"
 #include "DomeAdapterPools.h"
 #include "utils/DomeTalker.h"
@@ -17,7 +18,7 @@
 using namespace dmlite;
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
-DomeAdapterPoolDriver::DomeAdapterPoolDriver(DomeAdapterPoolsFactory *factory) {
+DomeAdapterPoolDriver::DomeAdapterPoolDriver(DomeAdapterFactory *factory) {
   factory_ = factory;
 }
 

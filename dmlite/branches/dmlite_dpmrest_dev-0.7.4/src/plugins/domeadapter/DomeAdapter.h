@@ -6,24 +6,47 @@
 
 #include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
+#include <dmlite/cpp/poolmanager.h>
+#include <dmlite/cpp/pooldriver.h>
+#include "utils/DavixPool.h"
 
 namespace dmlite {
 
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  class DomeAdapterFactory: public CatalogFactory, public AuthnFactory {
+  class DomeAdapterPoolManager;
+  class DomeAdapterPoolDriver;
+  class DomeAdapterPoolHandler;
+
+  class DomeAdapterFactory : public CatalogFactory, public AuthnFactory,
+                             public PoolManagerFactory, public PoolDriverFactory {
   public:
-	  /// Constructor
+    /// Constructor
     DomeAdapterFactory() throw (DmException);
-	  /// Destructor
+    /// Destructor
     virtual ~DomeAdapterFactory();
 
-    void configure(const std::string& key, const std::string& value) throw (DmException);
+    void configure(const std::string &key, const std::string &value) throw (DmException);
 
+    PoolManager* createPoolManager(PluginManager*) throw (DmException);
+    PoolDriver* createPoolDriver() throw (DmException);
     Catalog* createCatalog(PluginManager*)  throw (DmException);
     Authn*   createAuthn  (PluginManager*)  throw (DmException);
-    //PoolContainer<int> *getPool() {return &connectionPool_;}
+
+    std::string implementedPool() throw();
+  private:
+    DavixCtxFactory davixFactory_;
+    DavixCtxPool davixPool_;
+
+    std::string domehead_;
+    bool tokenUseIp_;
+    std::string tokenPasswd_;
+    unsigned tokenLife_;
+  
+  friend class DomeAdapterPoolManager;
+  friend class DomeAdapterPoolDriver;
+  friend class DomeAdapterPoolHandler;
   };
 
 }

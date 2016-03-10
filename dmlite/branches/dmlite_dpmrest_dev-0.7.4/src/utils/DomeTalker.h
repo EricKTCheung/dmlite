@@ -48,6 +48,9 @@ public:
   // get error message, if it exists
   std::string err();
 
+  // get response status
+  int status();
+
   const boost::property_tree::ptree& jresp();
   const std::vector<char>& response();
 private:
@@ -63,7 +66,8 @@ private:
   Davix::DavixError *err_;
   std::vector<char> response_;
   boost::property_tree::ptree json_;
-  bool parsedJson;
+  bool parsedJson_;
+  int status_;
 };
 
 }
