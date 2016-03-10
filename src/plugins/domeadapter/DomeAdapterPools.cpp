@@ -6,6 +6,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
     
+#include "DomeAdapter.h"
 #include "DomeAdapterPools.h"
 #include "DomeAdapterDriver.h"
 
@@ -15,75 +16,13 @@
 using namespace dmlite;
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
-void DomeAdapterPoolsFactory::configure(const std::string& key, const std::string& value) throw (DmException) 
-{
-  std::cout << "in DomeAdapterFactory::configure with " << key << " = " << value << std::endl;
-  LogCfgParm(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, key, value);
 
-  if(key == "DomeHead") {
-    domehead_ = value;
-  }
-  else if(key == "TokenPassword") {
-    tokenPasswd_ = value;
-  }
-  else if (key == "TokenId") {
-    if (strcasecmp(value.c_str(), "ip") == 0)
-      this->tokenUseIp_ = true;
-    else
-      this->tokenUseIp_ = false;
-  }
-  else if (key == "TokenLife") {
-    this->tokenLife_ = (unsigned)atoi(value.c_str());
-  }
-  else if( key.find("Davix") != std::string::npos) {
-    std::cout << "sending param to davix" << std::endl;
-    davixFactory_.configure(key, value);
-  }
-}
-
-std::string DomeAdapterPoolsFactory::implementedPool() throw() {
-  return "filesystem";
-}
-
-PoolManager* DomeAdapterPoolsFactory::createPoolManager(PluginManager*) throw (DmException)
-{
-  return new DomeAdapterPoolManager(this);
-}
-
-PoolDriver* DomeAdapterPoolsFactory::createPoolDriver() throw (DmException)
-{
-  std::cout << "in create pool driver" << std::endl;
-  return new DomeAdapterPoolDriver(this);
-}
-
-DomeAdapterPoolsFactory::DomeAdapterPoolsFactory() throw (DmException) : davixPool_(&davixFactory_, 10)
-{
-
-}
-
-DomeAdapterPoolsFactory::~DomeAdapterPoolsFactory()
-{
-  
-}
-
-DomeAdapterPoolManager::DomeAdapterPoolManager(DomeAdapterPoolsFactory *factory) {
+DomeAdapterPoolManager::DomeAdapterPoolManager(DomeAdapterFactory *factory) {
   factory_ = factory;
 }
 
 DomeAdapterPoolManager::~DomeAdapterPoolManager() {
 
-}
-
-std::string DomeAdapterPoolManager::getImplId() const throw () {
-  return "DomeAdapterPoolManager";
-}
-
-void DomeAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmException) {
-  si_ = si;
-}
-
-void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
-  secCtx_ = secCtx;
 }
 
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
@@ -189,27 +128,17 @@ void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  DavixGrabber grabber(factory_->davixPool_);
-  DavixStuff *ds(grabber);
-
-  Davix::DavixError *err = NULL;
   Davix::Uri uri(factory_->domehead_ + "/" + path);
-  Davix::GetRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_get");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "GET", uri, "dome_get");
 
-  req.setParameters(*ds->parms);
-  req.executeRequest(&err);
+  if(!talker.execute()) {
+    throw DmException(EINVAL, talker.err());
+  }
 
-  if(err) {
-    throw DmException(EINVAL, "Error when sending dome_get to headnode: %s", err->getErrMsg().c_str());
-   }
-
-  // parse json response
-  std::vector<char> body = req.getAnswerContentVec();
-  boost::property_tree::ptree jresp = parseJSON(&body[0]);
-  std::cout << &body[0] << std::endl;
+  if(talker.status() == 202) {
+    throw DmException(EINPROGRESS, &talker.response()[0]);
+  }
 
   try {
     Location loc;
@@ -217,8 +146,8 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
     // extract pools
     using boost::property_tree::ptree;
 
-    ptree::const_iterator begin = jresp.begin();
-    ptree::const_iterator end = jresp.end();
+    ptree::const_iterator begin = talker.jresp().begin();
+    ptree::const_iterator end = talker.jresp().end();
     for(ptree::const_iterator it = begin; it != end; it++) {
       std::string host = it->second.get<std::string>("host");
       std::string pfn = it->second.get<std::string>("pfn");
@@ -228,9 +157,8 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
     }
     return loc;
   }
-  catch(boost::property_tree::ptree_bad_path &e) {
-    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Unable to interpret dome_get response:" << &body[0]);
-    throw DmException(EINVAL, " Unable to interpret dome_get response: %s", &body[0]);
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
   }
 }
 
@@ -287,14 +215,3 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 
 // }
 
-static void registerDomeAdapterPools(PluginManager* pm) throw (DmException)
-{
-  pm->registerPoolManagerFactory(new DomeAdapterPoolsFactory());
-  pm->registerPoolDriverFactory(new DomeAdapterPoolsFactory());
-}
-
-
-PluginIdCard plugin_domeadapter_pools = {
-  PLUGIN_ID_HEADER,
-  registerDomeAdapterPools
-};

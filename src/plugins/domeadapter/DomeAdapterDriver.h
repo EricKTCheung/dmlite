@@ -16,12 +16,12 @@ namespace dmlite {
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  class DomeAdapterPoolsFactory;
+  class DomeAdapterFactory;
   class DomeAdapterPoolHandler;
 
   class DomeAdapterPoolDriver : public PoolDriver {
   public:
-    DomeAdapterPoolDriver(DomeAdapterPoolsFactory* factory);
+    DomeAdapterPoolDriver(DomeAdapterFactory* factory);
     ~DomeAdapterPoolDriver();
 
     std::string getImplId() const throw();
@@ -41,7 +41,7 @@ namespace dmlite {
     std::string userId_;
 
     /// The corresponding factory.
-    DomeAdapterPoolsFactory* factory_;
+    DomeAdapterFactory* factory_;
 
     friend class DomeAdapterPoolHandler;
   };

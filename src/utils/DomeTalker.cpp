@@ -31,7 +31,7 @@ DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::stri
     grabber_(pool_), ds_(grabber_) {
 
   err_ = NULL;
-  parsedJson = false;
+  parsedJson_ = false;
 }
 
 DomeTalker::~DomeTalker() {
@@ -62,6 +62,7 @@ bool DomeTalker::execute(const std::string &str) {
 
   int rc = req.executeRequest(&err_);
   response_ = req.getAnswerContentVec();
+  status_ = req.getRequestCode();
 
   if(rc || err_) return false;
   return true;
@@ -72,11 +73,11 @@ const std::vector<char>& DomeTalker::response() {
 }
 
 const boost::property_tree::ptree& DomeTalker::jresp() {
-  if(parsedJson) return json_;
+  if(parsedJson_) return json_;
 
   std::istringstream iss(&response_[0]);
   boost::property_tree::read_json(iss, json_);
-  parsedJson = true;
+  parsedJson_ = true;
   return json_;
 }
 
@@ -98,4 +99,8 @@ std::string DomeTalker::err() {
     return err_->getErrMsg();
   }
   return "";
+}
+
+int DomeTalker::status() {
+  return status_;
 }
