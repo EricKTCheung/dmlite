@@ -325,6 +325,78 @@ int DomeStatus::tick(time_t timenow) {
   return 0;
 }
 
+
+
+
+/// Dispatch the running of file pulls to disk servers
+void DomeStatus::tickFilepulls() {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+
+  GenPrioQueueItem_ptr next;
+  while((next = filepullq->getNextToRun()) != NULL) {
+    Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling file pull: " << next->namekey);
+
+    // parse queue item contents
+    std::vector<std::string> qualifiers = next->qualifiers;
+    
+    if(qualifiers.size() != 6) {
+      Err(domelogname, "INCONCISTENCY in the internal file pull queue. Invalid size of qualifiers: " << qualifiers.size());
+      continue;
+    }
+
+    std::string lfn = next->namekey;
+    std::string server = next->qualifiers[2];
+    std::string fs = next->qualifiers[3];
+    std::string rfn = next->qualifiers[4];
+    
+    std::string remoteclientdn = qualifiers[5];
+    std::string remoteclienthost = qualifiers[6];
+
+    // send dochksum to the disk to initiate calculation
+    Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
+    std::string diskurl = "https://" + server + "/domedisk/" + lfn;
+    Davix::Uri durl(diskurl);
+    Davix::DavixError *err = NULL;
+
+    DavixGrabber hdavix(*davixPool);
+    DavixStuff *ds(hdavix);
+    Davix::PostRequest req(*(ds->ctx), durl, &err);
+
+    if(err) {
+      Err(domelogname, "ERROR when initializing a post request for pulling: '" << rfn << "' : " << err->getErrMsg() );
+      Davix::DavixError::clearError(&err);
+      continue;
+    }
+
+    req.addHeaderField("cmd", "dome_pull");
+    req.addHeaderField("remoteclientdn", remoteclientdn);
+    req.addHeaderField("remoteclientaddr", remoteclienthost);
+
+    boost::property_tree::ptree params;
+    params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
+
+    std::ostringstream os;
+    boost::property_tree::write_json(os, params);
+
+    req.setParameters(*ds->parms);
+    req.setRequestBody(os.str());
+    req.executeRequest(&err);
+
+    if(err) {
+      Err(domelogname, "ERROR when requesting file pull: '" << rfn << "' : " << err->getErrMsg() );
+      Davix::DavixError::clearError(&err);
+      continue;
+    }
+  }
+  Log(Logger::Lvl4, domelogmask, domelogname, "Exiting.");
+}
+
+
+
+
+
+
 void DomeStatus::tickChecksums() {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
   boost::unique_lock<boost::recursive_mutex> l(*this);

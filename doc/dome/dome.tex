@@ -850,11 +850,11 @@ The invokation of these primitives must be properly authenticated through URL to
 
 \subsubsection{dome\_dochksum}
  Immediately start an external process that calculates the checksum and returns it (or error).
- Upon return (or error), the the disk node invokes dome\_checksumdone in the head node with the result.
+ Upon return (or error), the the disk node invokes dome\_checksumstatus in the head node with the result.
  
  The DOME disk node is responsible for keeping the head node
  informed of the checksums being calculated at regular intervals,
- through te dome\_checksumdone command.
+ through te dome\_checksumstatus command.
 
  Command:
 \lstinline"POST /dome/pathfile"\\
@@ -884,8 +884,8 @@ Request header:\\
 \lstinline"cmd=dome_pull"\\
 Params:
 \begin{itemize}
- \item Pfn: Physical filename
- \item Info: app-dependent free string that may be used to notify (or log) things
+ \item pfn: Physical filename
+ \item info: app-dependent free string that may be used to notify (or log) things
 \end{itemize}
 
 Returns: 200 or various errors if the pull process cannot be started.

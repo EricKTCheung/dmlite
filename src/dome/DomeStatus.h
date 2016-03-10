@@ -206,6 +206,8 @@ public:
   GenPrioQueue *checksumq;
   /// Checks if I can send a checksum request to the disk
   void tickChecksums();
+  /// Gives life to file pulls
+  void tickFilepulls();
 
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;
