@@ -1482,11 +1482,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
 }
 
-int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {
-  
-  return DomeReq::SendSimpleResp(request, 501, SSTR("Not implemented, dude."));
-  
-};
+
 int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   // Currently just returns a list of all replicas
 
@@ -1809,7 +1805,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     PendingPull pending(lfn, status.myhostname, pfn, chksumtype);
 
     std::vector<std::string> params;
-    params.push_back(CFG->GetString("glb.filepuller", ""));
+    params.push_back(CFG->GetString("glb.filepuller.puller", ""));
     params.push_back(lfn);
     params.push_back(pfn);
     int id = this->submitCmd(params);
