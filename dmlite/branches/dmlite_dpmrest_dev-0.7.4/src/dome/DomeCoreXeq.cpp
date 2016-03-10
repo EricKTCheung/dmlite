@@ -137,7 +137,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   return 0;
 }
 
-int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
+int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
   
   // fetch the parameters, lfn and placement suggestions
   std::string lfn = req.object;
@@ -342,13 +342,21 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request) {
   // Here we are assuming that some frontend will soon start to write a new replica
   //  with the name we chose here
     
-  // Return the response, 
+  // Return the response
     
+  // This function may have been invoked to know
+  // details about the placement without telling the client
+  if (dest && destrfn) {
+    *dest = selectedfss[fspos];
+    *destrfn = r.rfn;
+    return 0;
+  }
   
   std::ostringstream os;
   boost::property_tree::ptree jresp;
   jresp.put("pool", selectedfss[fspos].poolname);
   jresp.put("host", selectedfss[fspos].server);
+  jresp.put("filesystem", selectedfss[fspos].fs);
   jresp.put("pfn", pfn);
 
   boost::property_tree::write_json(os, jresp);
@@ -858,6 +866,43 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
                                                      << ", path " << DomeUtils::pfn_from_rfio_syntax(replica.rfn)
                                                      << ", check back later.\r\nTotal checksums in queue right now: "
                                                      << status.checksumq->nTotal()));
+}
+
+
+
+int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) {
+  
+  // This simple implementation is like a put
+  DomeFsInfo destfs;
+  std::string destrfn;
+  int rc = dome_put(req, request, &destfs, &destrfn);
+  if (rc != 0)
+    return rc; // means that a response has already been sent in the context of dome_put, btw it can only be an error
+  
+  // create queue entry
+  GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
+  std::string namekey = lfn;
+  std::vector<std::string> qualifiers;
+
+  qualifiers.push_back(""); // the first qualifier is common for all items,
+                            // so the global limit triggers
+
+  qualifiers.push_back(lfn); // lfn as second qualifier
+  qualifiers.push_back(destfs.server);
+  qualifiers.push_back(destfs.fs);
+  
+  // necessary information to keep - order is important
+  
+  qualifiers.push_back(destrfn);
+  qualifiers.push_back(req.remoteclientdn);
+  qualifiers.push_back(req.remoteclienthost);
+
+  status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  
+  return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued file pull request " << destfs.server
+                                                     << ", path " << lfn
+                                                     << ", check back later.\r\nTotal pulls in queue right now: "
+                                                     << status.filepullq->nTotal()));
 }
 
 static Replica pickReplica(std::string lfn, std::string rfn, DmlitePoolHandler &stack) {
@@ -1444,15 +1489,16 @@ int DomeCore::dome_ispullable(DomeReq &req, FCGX_Request &request) {
 };
 int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   // Currently just returns a list of all replicas
-  // TODO Implement support for CANPULL once we get into file pulls
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-
+  bool canpull = DomeUtils::str_to_bool(req.bodyfields.get("canpull", "false"));
   DmlitePoolHandler stack(dmpool);
   try {
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
     using boost::property_tree::ptree;
     ptree jresp;
+    bool found = false;
+    bool foundpending = false;
 
     for(size_t i = 0; i < replicas.size(); i++) {
       // give only path as pfn
@@ -1471,6 +1517,12 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
       }
       if (!fsinfo.isGoodForRead()) continue;
       
+      if (replicas[i].status == Replica::kBeingPopulated) {
+        foundpending = true;
+        continue;
+      }
+      
+      found = true;
       jresp.put(ptree::path_type(SSTR(i << "^host"), '^'), replicas[i].server);
       jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), pfn);
       jresp.put(ptree::path_type(SSTR(i << "^filesystem"), '^'), replicas[i].getString("filesystem"));
@@ -1478,12 +1530,22 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     
     
 
-    return DomeReq::SendSimpleResp(request, 200, jresp);
+    if (found)
+      return DomeReq::SendSimpleResp(request, 200, jresp);
+    if (foundpending)
+      return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
   }
   catch (dmlite::DmException e) {
-    return DomeReq::SendSimpleResp(request, 404, SSTR("dmlite exception, file not found? -- " << e.what()));
+    if ((e.code() != ENOENT) || !canpull)
+      return DomeReq::SendSimpleResp(request, 404, SSTR("dmlite exception code: " << " err:'" << e.what() << "'"));
   }
-};
+  
+  // Here we have to trigger the file pull and tell to the client to come back later
+  if (canpull)
+    return enqfilepull(req, request, req.object);
+  return DomeReq::SendSimpleResp(request, 404, SSTR("No available replicas for '" << req.object << "'"));
+  
+}
 
 int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
   if(status.role == status.roleDisk) {
