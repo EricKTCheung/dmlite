@@ -112,7 +112,7 @@ public:
   int dome_delquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_chksum(DomeReq &req, FCGX_Request &request);
   int dome_chksumstatus(DomeReq &req, FCGX_Request &request);
-  int dome_ispullable(DomeReq &req, FCGX_Request &request);
+
   int dome_get(DomeReq &req, FCGX_Request &request);
   int dome_pullstatus(DomeReq &req, FCGX_Request &request);
   int dome_statpool(DomeReq &req, FCGX_Request &request);

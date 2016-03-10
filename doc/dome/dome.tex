@@ -792,7 +792,10 @@ JSON example:\\
 
 
 \subsubsection{dome\_getstatinfo}
-Returns stat information about a logical or physical file managed by DPM. 
+Returns stat information about a logical or physical file managed by DPM.
+If a lfn is provided and the associated pools allow file pulling, then the external stat hook will be invoked (if provided)
+to produce the stat information by contacting an external system.
+
 Command:
 \lstinline"GET /dome/"\\
 Request header:\\
@@ -1179,6 +1182,9 @@ The number of dmlite instances that are pooled to give internal dmlite services.
 The number of worker threads that execute the requests.\\
 Default value: 300\\
 
+
+
+
 \subsection{Specific to head nodes}
 
 \subsubsection{head.chksumstatus.heartbeattimeout}
@@ -1202,6 +1208,22 @@ Maximum number of checksums that can be assigned to a single disk node. Addition
 
 Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
 
+
+
+\subsubsection{head.filepuller.stathook}
+
+Absolute path to an executable that can produce stat information for a logical file name by contacting an external system. This exacutable
+will be invoked passing the LFN as the only parameter.\\
+The stat information has to be produced as a text line in the standard output, prefixed by the string \lstinline">>>>>"
+Example:
+\lstinline"glb.filepuller.stathook: /usr/bin/externalstat.py"\\
+Example output:\\
+\lstinline">>>>> Size:898945"
+
+DOME does not provide any such executable.\\
+
+
+
 \subsection{Specific to disk nodes}
 
 \subsubsection{disk.headnode.domeurl}
@@ -1216,13 +1238,16 @@ Example:\\
 Number of seconds between notifications to the head node about the status of the checksum calculations that are being calculated.\\
 Default: 10\\
 
-\subsubsection{disk.statfs.restrictpfx[]}
-Array containing path prefixes. A statfs() request is allowed only if it is for a path prefix that is allowed.\\
-Absence of this option means that all paths are allowed.\\
 
+\subsubsection{disk.filepuller.pullhook}
+
+Absolute path to an executable that can ppull a file identified by a logical file name by contacting an external system. This exacutable
+will be invoked passing the LFN as the first parameter, and the PFN as second parameter.\\
 
 Example:\\
-\lstinline"disk.statfs.restrictpfx[]: /mnt/dpm_mountpoints"\\
+\lstinline"glb.filepuller.pullhook: /usr/bin/externalpull.py"\\
+
+DOME does not provide any such executable.\\
 
 \chapter{subsystems and development tasks}
 This section will not be part of the official documentation. It's here for organization purposes.\\
