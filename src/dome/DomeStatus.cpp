@@ -321,7 +321,6 @@ int DomeStatus::tick(time_t timenow) {
     lastfscheck = timenow;
   }
 
-  if (role == roleHead)
   return 0;
 }
 
@@ -353,7 +352,7 @@ void DomeStatus::tickFilepulls() {
     std::string remoteclientdn = qualifiers[5];
     std::string remoteclienthost = qualifiers[6];
 
-    // send dochksum to the disk to initiate calculation
+    // send pull command to the disk to initiate calculation
     Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
     std::string diskurl = "https://" + server + "/domedisk/" + lfn;
     Davix::Uri durl(diskurl);
@@ -832,6 +831,44 @@ bool DomeStatus::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo 
   
 }
 
+bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
+  
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  std::string lfn1(lfn);
+  
+  while (lfn1.length() > 0) {
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
+    // Check if any matching quotatoken exists
+    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+    myintv = quotas.equal_range(lfn1);
+    
+    if (myintv.first != quotas.end()) {
+      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+          
+          Log(Logger::Lvl4, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
+          
+          // Now loop on the FSs belonging to this pool
+          // and check if at least one of them can pull files in from external sources
+          for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
+            if ((fs->poolname == it->second.poolname) && fs->canPullFile()) {
+              Log(Logger::Lvl1, domelogmask, domelogname, "CanPull pool: '" << it->second.poolname << "' matches path '" << lfn);    
+              fsinfo = *fs;
+              return true;
+            }
+          } // for
+          
+      } // for
+    }
+    
+    // No match found, look upwards by trimming the last token from absPath
+    size_t pos = lfn1.rfind("/");
+    lfn1.erase(pos);
+  }
+  return false;
+  
+}
 
 
 bool DomeStatus::LfnMatchesPool(std::string lfn, std::string pool) {

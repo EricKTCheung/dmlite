@@ -447,8 +447,9 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   DomeFsInfo fs;
   
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT poolname, server, fs, status FROM dpm_fs"
-  );
+                 "SELECT f.poolname, f.server, f.fs, f.status, "
+                 "p.defsize, p.s_type FROM dpm_fs f, dpm_pool p"
+                 "WHERE f.poolname = p.poolname" );
   stmt.execute();
   
   char bufpoolname[1024], bufserver[1024], buffs[1024];
@@ -463,6 +464,10 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   stmt.bindResult(2, buffs, 80);
   
   stmt.bindResult(3, (int *)&fs.status);
+  
+  stmt.bindResult(3, (int *)&fs.pool_defsize);
+  
+  stmt.bindResult(3, (int *)&fs.pool_stype);
   
   int cnt = 0;
   st.fslist.clear();
@@ -494,7 +499,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   return cnt;
 }
 
-int DomeMySql::addPool(std::string& poolname) {
+int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
 
   Statement stmt(conn_, "dpm_db", 
@@ -504,12 +509,14 @@ int DomeMySql::addPool(std::string& poolname) {
                  fss_policy, gc_policy, mig_policy, rs_policy,\
                  groups, ret_policy, s_type)\
                  VALUES \
-                 (?, 104857600, 0, 0,\
+                 (?, ?, 0, 0,\
                  604800, 7200, 2592000, 43200,\
                  'maxfreespace', 'lru', 'none', 'fifo',\
-                 '', 'R', '-')");
+                 '', 'R', ?)");
   
   stmt.bindParam(0, poolname);
+  stmt.bindParam(1, defsize);
+  stmt.bindParam(2, stype);
 
   bool ok = true;
   long unsigned int nrows;
@@ -528,7 +535,7 @@ int DomeMySql::addPool(std::string& poolname) {
 
 int DomeMySql::addFsPool(DomeFsInfo &newfs) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
-  this->addPool(newfs.poolname);
+  this->addPool(newfs.poolname, newfs.pool_defsize, newfs.pool_stype);
   
   // Now insert the filesystem, using poolname
   Statement stmt(conn_, "dpm_db", 
