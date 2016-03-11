@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/param.h>
+#include <stdio.h>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -1163,7 +1164,25 @@ static std::string extract_checksum(std::string stdout, std::string &err) {
 }
 
 
+static int extract_stat(std::string stdout, std::string &err, struct dmlite::ExtendedStat &st) {
+  // were there any errors?
+  std::string magic = ">>>>> STAT ";
+  size_t pos = stdout.find(magic);
 
+  if(pos == std::string::npos) {
+    err = "Could not find magic string, unable to extract stat information. ";
+    return -1;
+  }
+
+  size_t pos2 = stdout.find("\n", pos);
+  if(pos2 == std::string::npos) {
+    err = "Could not find newline after magic string, unable to extract stat information. ";
+    return -1;
+  }
+
+  std::string s = stdout.substr(pos+magic.size(), pos2-pos-magic.size());
+  return sscanf(s.c_str(), "%ld %d", &st.stat.st_size, &st.stat.st_mode);
+}
 
 
 
@@ -1519,7 +1538,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
       }
       
       found = true;
-      jresp.put(ptree::path_type(SSTR(i << "^host"), '^'), replicas[i].server);
+      jresp.put(ptree::path_type(SSTR(i << "^server"), '^'), replicas[i].server);
       jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), pfn);
       jresp.put(ptree::path_type(SSTR(i << "^filesystem"), '^'), replicas[i].getString("filesystem"));
     }
@@ -2596,6 +2615,31 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
       catch (dmlite::DmException e) {
         // If the lfn maps to a pool that can pull files then we want to invoke
         // the external stat hook before concluding that the file is not available
+        DomeFsInfo fsnfo;
+        if (status.LfnMatchesAnyCanPullFS(lfn, fsnfo)) {
+          // problem... for an external file there's no damn inode yet, let's set it to 0
+
+          std::string hook = CFG->GetString("head.filepuller.stathook", (char *)"");
+          
+          if ((hook.size() < 5) || (hook[0] != '/'))
+            return DomeReq::SendSimpleResp(request, 500, "Invalid stat hook.");
+                    
+          std::vector<std::string> params;
+          params.push_back(hook);
+          params.push_back(lfn);
+    
+          int id = this->submitCmd(params);
+    
+          if (id < 0)
+            return DomeReq::SendSimpleResp(request, 500, "Could not invoke stat hook.");
+    
+          // Now wait for the process to have finished
+          int taskrc = waitResult(id, CFG->GetLong("head.filepuller.stathooktimeout", 10));
+          if (taskrc)
+            return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
+          
+          
+        }
         
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
       }

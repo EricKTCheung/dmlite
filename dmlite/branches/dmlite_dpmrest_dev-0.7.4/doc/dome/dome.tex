@@ -695,23 +695,22 @@ Returns:
 \subsubsection{dome\_get}
 Returns a pfn that can be used to read a file, usual stuff.\\
 
-If the CANPULL flag is set, the file puller callout may be invoked if the file is absent AND is not being already pulled.
+If the given lfn belongs to a directory subtree that is associated to pools marked as "V" (volatile), then the file puller callout
+may be invoked if the file is absent AND is not being already pulled.\\
 The result may be 'pending' if the file is being pulled.
 
 Command:
 \lstinline"GET /dome/pathfile"\\
 Request header:\\
 \lstinline"cmd=dome_get"\\
-Params:
-\begin{itemize}
- \item Canpull: true|false|yes|no|0|nonzero
-\end{itemize}
+
 
 Returns:
 Code: 200 or pending
 \begin{itemize}
- \item Host: server name
- \item Pfn: physical filename
+ \item server: name of the server that hosts the file
+ \item pfn: full physical filename of the file
+ \item filesystem: filesystem that is hosting the file
 \end{itemize}
 
 \subsubsection{dome\_pulldone}
@@ -1236,7 +1235,9 @@ Example output:\\
 
 DOME does not provide any such executable.\\
 
-
+\subsubsection{head.filepuller.stathooktimeout}
+Timeout in seconds for an external stathook call.\\
+Default: 10\\
 
 \subsection{Specific to disk nodes}
 

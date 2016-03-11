@@ -513,6 +513,7 @@ void DomeCore::onTaskCompleted(DomeTask &task) {
     }
   }
   
+  // This may be a stat 
   // This would be an internal error!!!!
   Err(domelogname, "Cannot match task notification. key: " << task.key);
 }
@@ -545,6 +546,6 @@ void DomeCore::onTaskRunning(DomeTask &task) {
     }
   }
   
-  // This would be an internal error!!!!
+  // This would be an internal error or just a stat request.
   Err(domelogname, "Cannot match task notification. key: " << task.key);
 }
