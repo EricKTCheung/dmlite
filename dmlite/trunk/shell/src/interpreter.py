@@ -2030,6 +2030,25 @@ class Util(object):
 
 		return adminUserName
 
+	@staticmethod
+	def printComments(interpreter):
+		interpreter.ok('')
+		interpreter.ok('===================================================================================================================================================================================')
+        	interpreter.ok("The process is running in dryrun mode, please add the option 'dryrun false' to effectively perform the drain process")
+                interpreter.ok('\n')
+                interpreter.ok("Make sure to have LCGDM-Dav properly setup on your infrastructure. The process contacts the Headnode by default via https on the 443 port and the disknodes via http on the 80 port")
+		interpreter.ok('\n')
+		interpreter.ok("If your infrastructure has different ports configured please use the DPM_HTTPS_PORT and DPM_HTTP_PORT env variabile to configure the drain process accordingly")
+		interpreter.ok('\n')
+		interpreter.ok("The disknodes should have ALL the same port configured")
+		interpreter.ok('\n')
+		interpreter.ok("Please also monitor the draining logs, and in case of errors due to timoeuts/daemons overloaded please adjust accordingly the number of draining threads( Default = 5)")
+		interpreter.ok('===================================================================================================================================================================================')
+		interpreter.ok('\n')
+
+		
+		
+
 class Response(object):
   """ utility class to collect the response """
   def __init__(self):
@@ -2245,7 +2264,7 @@ The replicamove command accepts the following parameters:
 * lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
 * spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional), by default the original spacetoken will be assigned if present
 * nthreads <threads>		: the number of threads to use in the process (optional, default = 5)
-* dryrun <true/false>		: if set to true just print the statistics (optional, default = false)
+* dryrun <true/false>		: if set to true just print the statistics (optional, default = true)
 
 ex:
 	replicamove dpmdisk01.cern.ch:/srv/dpm/01 /dteam/2015-11-25/ dpmdisk02.cern.ch:/srv/dpm/01 spacetoken 5a2796d6-81e4-42f3-959a-e497ef40e604
@@ -2277,7 +2296,7 @@ ex:
         #default
 	parameters = {}
 	parameters['nthreads'] = 5
-	parameters['dryrun'] = False
+	parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
 	parameters['group'] = 'ALL'
 	parameters['size'] = 100 
@@ -2301,8 +2320,8 @@ ex:
 				else:
 					parameters['nthreads'] = nthreads
                         elif given[i] == "dryrun":
-                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-                                        parameters['dryrun']  = True
+                                if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
+                                        parameters['dryrun']  = False
 				
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -2341,6 +2360,9 @@ ex:
                         else:
                                 self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
                                 return
+		else:
+			Util.printComments(self.interpreter)
+	
 
                 self.ok("Calculating Replicas to Move..")
                 self.ok()
@@ -2474,6 +2496,8 @@ The replicate command accepts the following parameters:
 			self.error('Please remove manually the replica with rfn: ' + destination)
 			return 1
 	return 0
+
+
 
 	
 class DrainFileReplica(object):
@@ -2732,7 +2756,7 @@ The drainpool command accepts the following parameters:
 * group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
 * size <size>		: the percentage of size to drain (optional, default = 100)
 * nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
     
     def _init(self):
         self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2759,7 +2783,7 @@ The drainpool command accepts the following parameters:
 	parameters['group'] = 'ALL'
         parameters['size'] = 100
         parameters['nthreads']= 5
-        parameters['dryrun'] = False
+        parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
 	
     	try:
@@ -2778,8 +2802,8 @@ The drainpool command accepts the following parameters:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
-                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-                                        parameters['dryrun'] = True
+                                if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
+                                        parameters['dryrun'] = False
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 	
@@ -2818,6 +2842,8 @@ The drainpool command accepts the following parameters:
             			else:
                 			self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
 					return
+		else:
+			Util.printComments(self.interpreter)
 		self.ok("Calculating Replicas to Drain..")
                 self.ok()
 				
@@ -2843,7 +2869,7 @@ The drainfs command accepts the following parameters:
 * group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
 * size <size>	: the percentage of size to drain (optional, default = 100)
 * nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
 
     def _init(self):
         self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2870,7 +2896,7 @@ The drainfs command accepts the following parameters:
         parameters['group'] = 'ALL'
         parameters['size'] = 100
         parameters['nthreads']= 5
-        parameters['dryrun'] = False
+        parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
 
         try:
@@ -2890,8 +2916,8 @@ The drainfs command accepts the following parameters:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
-                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-                                        parameters['dryrun'] = True
+                                if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
+                                        parameters['dryrun'] = False
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2931,7 +2957,9 @@ The drainfs command accepts the following parameters:
         	                pass
                 	else:
                         	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
-                        	return
+                        	return	
+		else:
+			Util.printComments(self.interpreter)
 		self.ok("Calculating Replicas to Drain..")
                 self.ok()
 		#get all files to drain
@@ -2956,7 +2984,7 @@ The drainserver command accepts the following parameters:
 * group <groupname>	: the group the files to drain belongs to (optional, default = ALL)
 * size <size>	: the percentage of size to drain (optional, default = 100)
 * nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = false)"""
+* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
 
     def _init(self):
         self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2984,7 +3012,7 @@ The drainserver command accepts the following parameters:
         parameters['group'] = 'ALL'
         parameters['size'] = 100
         parameters['nthreads']= 5
-        parameters['dryrun'] = False
+        parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
 
         try:
@@ -3003,8 +3031,8 @@ The drainserver command accepts the following parameters:
                                         return self.error("Incorrect number of Threads: it must be between 1 and 10")
 				parameters['nthreads'] = nthreads
 			elif given[i] == "dryrun":
-				if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
-	                                parameters['dryrun'] = True
+				if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
+	                                parameters['dryrun'] = False
 			
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -3049,6 +3077,8 @@ The drainserver command accepts the following parameters:
                         	else:
                                 	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
                                 	return
+		else:
+			Util.printComments(self.interpreter)
                 self.ok("Calculating Replicas to Drain..")
                 self.ok()
                 #get all files to drain
