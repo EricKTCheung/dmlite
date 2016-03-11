@@ -1487,7 +1487,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   // Currently just returns a list of all replicas
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  bool canpull = DomeUtils::str_to_bool(req.bodyfields.get("canpull", "false"));
+  bool canpull = false;
   DmlitePoolHandler stack(dmpool);
   try {
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
@@ -1532,13 +1532,21 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
       return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
   }
   catch (dmlite::DmException e) {
-    if ((e.code() != ENOENT) || !canpull)
-      return DomeReq::SendSimpleResp(request, 404, SSTR("dmlite exception code: " << " err:'" << e.what() << "'"));
+    
+    // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
+    if (e.code() == ENOENT) {
+      
+      DomeFsInfo fs;
+      canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
+    }
   }
   
   // Here we have to trigger the file pull and tell to the client to come back later
-  if (canpull)
+  if (canpull) {
+    Log(Logger::Lvl1, domelogmask, domelogname, "Volatile filesystem detected. Seems we can try pulling the file: '" << req.object << "'");
     return enqfilepull(req, request, req.object);
+  }
+  
   return DomeReq::SendSimpleResp(request, 404, SSTR("No available replicas for '" << req.object << "'"));
   
 }
@@ -1796,7 +1804,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(lfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
-    if (!CFG->GetString("glb.filepuller", "").size()) {
+    if (!CFG->GetString("glb.filepuller", (char *)"").size()) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
     
@@ -1805,7 +1813,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     PendingPull pending(lfn, status.myhostname, pfn, chksumtype);
 
     std::vector<std::string> params;
-    params.push_back(CFG->GetString("glb.filepuller.puller", ""));
+    params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
     params.push_back(lfn);
     params.push_back(pfn);
     int id = this->submitCmd(params);
@@ -2373,10 +2381,19 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   }
 
   std::string poolname = req.bodyfields.get<std::string>("poolname", "");
+  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
+  std::string pool_stype = req.bodyfields.get("pool_stype", "P");
+  
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
   
   if (!poolname.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+  if (pool_defsize < 1024*1024) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid defsize: " << pool_defsize));
+  }
+  if (!pool_stype.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("pool_stype '" << pool_stype << "' is empty."));
   }
 
   // make sure it doesn't already exist
@@ -2390,7 +2407,7 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   {
   DomeMySql sql;
   DomeMySqlTrans  t(&sql);
-  rc =  sql.addPool(poolname);
+  rc =  sql.addPool(poolname, pool_defsize, pool_stype[0]);
   if (!rc) t.Commit();
   }
   
@@ -2410,6 +2427,8 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
+  char pool_stype = req.bodyfields.get("pool_stype", 'P');
   
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
   
@@ -2484,6 +2503,8 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   fsfs.poolname = poolname;
   fsfs.server = server;
   fsfs.fs = newfs;
+  fsfs.pool_defsize = pool_defsize;
+  fsfs.pool_stype = pool_stype;
   rc =  sql.addFsPool(fsfs);
   if (!rc) t.Commit();
   }
@@ -2573,9 +2594,13 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         st = stack->getCatalog()->extendedStat(lfn);
       }
       catch (dmlite::DmException e) {
+        // If the lfn maps to a pool that can pull files then we want to invoke
+        // the external stat hook before concluding that the file is not available
+        
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
       }
   
+
   }
   else {
     

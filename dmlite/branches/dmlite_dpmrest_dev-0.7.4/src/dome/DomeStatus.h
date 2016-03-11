@@ -45,7 +45,7 @@ public:
   };
   
   
-  /// The logical pool this fs belongs to. This is just a string tag. A pool does not need anything more.
+  /// The logical pool this fs belongs to.
   std::string poolname;
 
   /// The server that hosts this filesystem
@@ -81,6 +81,16 @@ public:
   bool isGoodForRead() {
     return ( (status != FsStaticDisabled) && (activitystatus == FsOnline) );
   }
+  
+  bool canPullFile() {
+    return ( ((pool_stype == 'V') || (pool_stype == 'v')) && (freespace > pool_defsize) );
+  }
+  
+  // Default file size for blindly allocating a new file
+  long pool_defsize;
+  
+  // Space type. V=Volatile, (P or anything else)=Permanent
+  char pool_stype;
   
   // Predicate for sorting filesystems by decreasing freespace
   struct pred_decr_freespace {
@@ -183,6 +193,7 @@ public:
 
   // Utility ------------------------------------
   bool LfnMatchesPool(std::string lfn, std::string pool);
+  bool LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo);
   

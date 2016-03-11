@@ -140,7 +140,7 @@ public:
   int dome_addpool(DomeReq &req, FCGX_Request &request);
   /// Removes a pool and all the related filesystems
   int dome_rmpool(DomeReq &req, FCGX_Request &request);
-  /// Adds a filesystem to an existing pool. This implicitly creates a pool, which by now has no parameters
+  /// Adds a filesystem to an existing pool. This implicitly creates a pool
   int dome_addfstopool(DomeReq &req, FCGX_Request &request);
   /// Removes a filesystem, no matter to which pool it was attached
   int dome_rmfs(DomeReq &req, FCGX_Request &request);

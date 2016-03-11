@@ -76,7 +76,7 @@ public:
   int addFsPool(DomeFsInfo &newfs);
 
   /// Add a new, empty pool
-  int addPool(std::string &poolname);
+  int addPool(std::string &poolname, long defsize, char stype);
   
   /// Removes a fs
   int rmFs(std::string &server, std::string &fs);
