@@ -103,13 +103,13 @@ int DomeReq::getJSONbodyfields(std::string &body) {
 }
 
 int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam) {
-  return SendSimpleResp(request, httpcode, body.str());
+  return SendSimpleResp(request, httpcode, body.str(), logwhereiam);
 }
 
 int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body, const char *logwhereiam) {
   std::ostringstream os;
   boost::property_tree::write_json(os, body);
-  return SendSimpleResp(request, httpcode, os.str());
+  return SendSimpleResp(request, httpcode, os.str(), logwhereiam);
 }
 
 int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body, const char *logwhereiam) {

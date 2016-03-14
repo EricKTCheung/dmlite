@@ -42,9 +42,20 @@ protected:
     /// boost::lock_guard< boost::mutex > l(workmutex);
     /// 
     boost::condition_variable condvar;
-
 public:
   DomeTask();
+  DomeTask(const DomeTask &o) {
+    key = o.key;
+    cmd = o.cmd;
+    for(unsigned int i = 0; i < sizeof(parms); i++) parms[i] = o.parms[i];
+    resultcode = o.resultcode;
+    starttime = o.starttime;
+    endtime = o.endtime;
+    finished = o.finished;
+    fd[0] = 0; fd[1] = 0; fd[2] = 0;
+    stdout = o.stdout;
+  }
+    
   ~DomeTask();
   int key;
   
@@ -69,6 +80,7 @@ public:
   void notifyAll() {
     condvar.notify_all();
   }
+
   
 };
 
@@ -78,7 +90,7 @@ public:
 /// know the list of commands that are still running.
 /// Objects belonging to this class in general are created in the disk nodes,
 /// e.g. for running checksums or file copies and pulls
-class DomeTaskExec {
+class DomeTaskExec: public boost::recursive_mutex {
   
 public:
   DomeTaskExec();
@@ -127,11 +139,13 @@ protected:
   /// event for immediate notifications when a task finishes
   /// Subclasses can specialize this and apply app-dependent behavior to
   /// perform actions when something has finished running
-  virtual void onTaskCompleted(DomeTask &task);
+  /// NOTE the signature. This passes copies of Task objects, not the originals
+  virtual void onTaskCompleted(DomeTask task);
   
   // event that notifies that a task is running
   // This event can be invoked multiple times during the life of a task
-  virtual void onTaskRunning(DomeTask &task);
+  /// NOTE the signature. This passes copies of Task objects, not the originals
+  virtual void onTaskRunning(DomeTask task);
 private:
 
   int popen3(int fd[3], pid_t *pid,  const char ** argv );
@@ -149,4 +163,6 @@ private:
   
   friend void taskfunc(DomeTaskExec *, int);
 
+  //kill a specific task
+  int killTask(DomeTask *task);
 };

@@ -34,6 +34,7 @@
 #include "DomeTaskExec.h"
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
+#include <queue>
 
 using namespace boost;
 using namespace std;
@@ -75,7 +76,8 @@ DomeTask::DomeTask(): finished(false) {
 }
 
 DomeTask::~DomeTask() {
-for (int i =0; i < 64; i++)
+  boost::unique_lock <boost::mutex> lck (*this);
+  for (int i =0; i < 64; i++)
     // Free the execv parms, if we need...
     if (parms[i]) free((void *)parms[i]);
     else break;
@@ -108,7 +110,7 @@ int DomeTask::waitFinished(int sectmout) {
   Log(Logger::Lvl4, domelogmask, fname, "TimeLimit: " << timelimit);
   
   { 
-    scoped_lock lck (*this);
+    boost::unique_lock <boost::mutex>  lck (*this);
     while(!finished && get_system_time() < timelimit) {
          Log(Logger::Lvl4, domelogmask, fname, "Task not finished at time " << get_system_time());
 	condvar.wait(lck);
@@ -212,7 +214,7 @@ void DomeTaskExec::run(DomeTask &task) {
   Log(Logger::Lvl3, domelogmask, "run", "Starting command: " << task.cmd) ;
   //start time
   {
-     boost::lock_guard<DomeTask> l(task);
+     boost::unique_lock <boost::mutex>  l(task);
      time(&task.starttime);
   }
   
@@ -237,7 +239,7 @@ void DomeTaskExec::run(DomeTask &task) {
       break;
     }
     else {
-      boost::lock_guard<DomeTask> l(task);
+      boost::unique_lock <boost::mutex>   l(task);
       task.stdout.append(buffer, count);
       Log(Logger::Lvl4, domelogmask, "run", "Stdout: " << task.stdout.c_str()) ;
       Log(Logger::Lvl4, domelogmask, "run", "Pid " << task.pid) ;
@@ -249,15 +251,17 @@ void DomeTaskExec::run(DomeTask &task) {
     close(task.fd[i]);
   
   {
-    boost::lock_guard<DomeTask> l(task);
+    boost::unique_lock <boost::mutex> l(task);
     task.finished = true;
     //endtime
     time(&task.endtime);
     task.notifyAll();
+    
+    onTaskCompleted(task);
   }
   
   
-  onTaskCompleted(task);
+  
 }
 
 
@@ -266,11 +270,12 @@ int DomeTaskExec::submitCmd(std::string cmd) {
    task->cmd= cmd;
    task->splitCmd();
    {  
-     boost::lock_guard<DomeTask> l(*task);
+     scoped_lock lck (*this);
+     
      task->key = ++taskcnt; 
      tasks.insert( std::pair<int,DomeTask*>(task->key,task));
    }
-   boost::thread workerThread( taskfunc,this,taskcnt);
+   boost::thread workerThread( taskfunc, this, taskcnt );
    return taskcnt;
 }
 
@@ -290,9 +295,10 @@ int DomeTaskExec::submitCmd(std::vector<std::string> &args) {
 
    assignCmd(task,args);
    {
-     boost::lock_guard<DomeTask> l(*task);
+     scoped_lock lck (*this);
+     
      task->key = ++taskcnt;
-     tasks.insert( std::pair<int,DomeTask*>(task->key,task));
+     tasks.insert( std::pair<int,DomeTask*>(task->key,task) );
    }
    boost::thread workerThread( taskfunc,this,taskcnt);
    return taskcnt;
@@ -310,9 +316,10 @@ void DomeTaskExec::assignCmd(DomeTask *task, std::vector<std::string> &args) {
 
 int DomeTaskExec::waitResult(int taskID, int tmout) {
 
-  const char *fname = "DomeTaskExec::waitFinished";
   
   {
+    scoped_lock lck (*this);
+    
     map <int, DomeTask *>::iterator i = tasks.find(taskID);
     if ( i != tasks.end() ) {
            Log(Logger::Lvl4, domelogmask, "waitResult", "Found task " << taskID);
@@ -328,84 +335,130 @@ int DomeTaskExec::waitResult(int taskID, int tmout) {
 }
 
 int DomeTaskExec::killTask(int taskID){
-   map <int, DomeTask *>::iterator i = tasks.find(taskID);
-    if ( i != tasks.end() ) {
-           boost::lock_guard<DomeTask> l(*i->second);
-           Log(Logger::Lvl4, domelogmask, "killTask", "Found task " << taskID);
-	   if (i->second->finished){
-		Log(Logger::Lvl4, domelogmask, "killTask", "Task " << taskID << " already finished");
-		return 0;
-	   } else if ( i->second->pid == -1) {
-		Log(Logger::Lvl4, domelogmask, "killTask", "Task " << taskID << " not yet started");
-		return 0;
-	   } else {
-		kill(i->second->pid, SIGKILL);
-		//close fd related to the task
-		for(int k=0; k<3; k++) 
-		    close(i->second->fd[k]);
-		Log(Logger::Lvl4, domelogmask, "killedTask", "Task " << taskID);
-		return 0;
-	   }
-		
-    }else {
-          Log(Logger::Lvl4, domelogmask, "waitTask", "Task with ID " << taskID << " not found");
-          return 1;
-        }
+  
+  
+  scoped_lock lck (*this);
+  
+  map <int, DomeTask *>::iterator i = tasks.find(taskID);
+  
+  if ( i != tasks.end() ) {
+    Log(Logger::Lvl4, domelogmask, "killTask", "Found task " << taskID);
+    killTask(i->second);
   }
+  else {
+    Log(Logger::Lvl4, domelogmask, "waitTask", "Task with ID " << taskID << " not found");
+    return 1;
+  }
+  
+  return 0;
+}
 
 
 DomeTask* DomeTaskExec::getTask(int taskID) {
-   map <int, DomeTask *>::iterator i = tasks.find(taskID);
-   if ( i != tasks.end() ) 
-   	return i->second;
-   else 
-	return NULL;
+  
+  scoped_lock lck (*this);
+  
+  map <int, DomeTask *>::iterator i = tasks.find(taskID);
+  if ( i != tasks.end() ) 
+    return i->second;
+  else 
+    return NULL;
+  
 }
+
+
+int DomeTaskExec::killTask(DomeTask *task){
+  
+  boost::lock_guard<DomeTask> l(*task);
+  
+
+  if (task->finished){
+    Log(Logger::Lvl4, domelogmask, "killTask", "Task " << task->key << " already finished");
+    return 0;
+  } else if ( task->pid == -1) {
+    Log(Logger::Lvl4, domelogmask, "killTask", "Task " << task->key << " not yet started");
+    return 0;
+  } else {
+    kill(task->pid, SIGKILL);
+    //close fd related to the task
+    for(int k=0; k<3; k++) 
+      close(task->fd[k]);
+    Log(Logger::Lvl4, domelogmask, "killedTask", "Task " << task->key);
+    return 0;
+  }
+  
+}
+
 
 
 
 void DomeTaskExec::tick() {
-   int maxruntime = CFG->GetLong("glb.task.maxrunningtime", 3600);
-   int purgetime = CFG->GetLong("glb.task.purgetime", 3600);
-
-   Log(Logger::Lvl4, domelogmask, "tick", "tick");
-   map <int, DomeTask *>::iterator i;
+  std::deque<DomeTask *> notifq_running;
+  
+  int maxruntime = CFG->GetLong("glb.task.maxrunningtime", 3600);
+  int purgetime = CFG->GetLong("glb.task.purgetime", 3600);
+  
+  Log(Logger::Lvl4, domelogmask, "tick", "tick");
+  
+  {
+    scoped_lock lck (*this);
+    map <int, DomeTask *>::iterator i;
+    
+    
     for( i = tasks.begin(); i != tasks.end(); ++i ) {
-            Log(Logger::Lvl4, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd);
-	    Log(Logger::Lvl4, domelogmask, "tick", "The status of the task is " << i->second->finished);
-	    Log(Logger::Lvl4, domelogmask, "tick", "StartTime " << i->second->starttime << " EndTime " << i->second->endtime);
-	    Log(Logger::Lvl4, domelogmask, "tick", "Pid " << i->second->pid << " resultcode " << i->second->resultcode);
- 	    time_t timenow;
-	    time(&timenow);
+      Log(Logger::Lvl4, domelogmask, "tick", "Found task " << i->first << " with command " << i->second->cmd);
+      Log(Logger::Lvl4, domelogmask, "tick", "The status of the task is " << i->second->finished);
+      Log(Logger::Lvl4, domelogmask, "tick", "StartTime " << i->second->starttime << " EndTime " << i->second->endtime);
+      Log(Logger::Lvl4, domelogmask, "tick", "Pid " << i->second->pid << " resultcode " << i->second->resultcode);
+      time_t timenow;
+      time(&timenow);
+      bool terminated = false;
+      
+      // Treat the task object, in locked state, and accumulate events to be sent later
+      {
+        boost::unique_lock< boost::mutex > lck (*(i->second));
+        
+        if (!i->second->finished && ( (i->second->starttime< (timenow - (maxruntime*1000))))) {
+          Log(Logger::Lvl4, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
+          //we kill the task
+          killTask(i->second);
+          Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " exceed maxrunnngtime");
 
-	    //lock
-	    {
-               if (!i->second->finished && ( (i->second->starttime< (timenow - (maxruntime*1000))))) {
-			Log(Logger::Lvl4, domelogmask, "tick", "endtime " << i->second->endtime<< " timelimit " << (timenow - (maxruntime*1000)));
-			//we kill the task
-			killTask(i->first);
-			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " exceed maxrunnngtime");
-			Log(Logger::Lvl3, domelogmask, "tick", "Task killed ");
-	       }
-	
-    	       //check if purgetime has exceeded and clean
-    	       if (i->second->finished && ( i->second->endtime < (timenow - (purgetime*1000)))) {
-			Log(Logger::Lvl4, domelogmask, "tick", "Task with id  " << i->first << " to purge");
-			//delete the task
-			delete i->second;
-			//remove from map
-			tasks.erase(i);
-			Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " purged");
-		}
-	    }
-		
-   }
-
+          terminated = true;
+          Log(Logger::Lvl3, domelogmask, "tick", "Task killed ");
+        }
+        
+        //check if purgetime has exceeded and clean
+        if (i->second->finished && ( i->second->endtime < (timenow - (purgetime*1000)))) {
+          Log(Logger::Lvl4, domelogmask, "tick", "Task with id  " << i->first << " to purge");
+          //delete the task
+          delete i->second;
+          //remove from map
+          tasks.erase(i);
+          Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " purged");
+        }
+        else if (!terminated)
+          notifq_running.push_back( i->second );
+      }
+      
+    }
+  } // lock
+  
+  // Now send the accumulated notifications. We send them here in order not to keep the whole
+  // object locked. Of course we are assuming that even in case of network hiccups
+  // this phase ends well quicker than the purgetime
+  for( std::deque<DomeTask *>::iterator q = notifq_running.begin(); q != notifq_running.end(); ++q ) {
+    boost::unique_lock< boost::mutex > lck (**q);
+    onTaskRunning(**q);
+  }
+  
 }
 
-void DomeTaskExec::onTaskRunning(DomeTask &task) {
+
+
+void DomeTaskExec::onTaskRunning(DomeTask task) {
              Log(Logger::Lvl3, domelogmask, "onTaskRunning", "task " << task.key << " with command " << task.cmd);    
 	}
-void DomeTaskExec::onTaskCompleted(DomeTask &task) {
+void DomeTaskExec::onTaskCompleted(DomeTask task) {
 	    Log(Logger::Lvl3, domelogmask, "onTaskCompleted", "task " << task.key << " with command " << task.cmd);
 	}
