@@ -448,7 +448,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   
   Statement stmt(conn_, "dpm_db", 
                  "SELECT f.poolname, f.server, f.fs, f.status, "
-                 "p.defsize, p.s_type FROM dpm_fs f, dpm_pool p"
+                 "p.defsize, p.s_type FROM dpm_fs f, dpm_pool p "
                  "WHERE f.poolname = p.poolname" );
   stmt.execute();
   
