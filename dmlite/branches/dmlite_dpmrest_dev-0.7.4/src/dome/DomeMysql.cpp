@@ -465,9 +465,9 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   
   stmt.bindResult(3, (int *)&fs.status);
   
-  stmt.bindResult(3, (int *)&fs.pool_defsize);
+  stmt.bindResult(4, (int *)&fs.pool_defsize);
   
-  stmt.bindResult(3, (int *)&fs.pool_stype);
+  stmt.bindResult(5, (int *)&fs.pool_stype);
   
   int cnt = 0;
   st.fslist.clear();
