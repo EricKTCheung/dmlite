@@ -151,6 +151,10 @@ public:
   int dome_getstatinfo(DomeReq &req, FCGX_Request &request);
   /// Like an HTTP GET on a directory, gets all the content
   int dome_getdir(DomeReq &req, FCGX_Request &request);
+  /// Get user information
+  int dome_getuser(DomeReq &req, FCGX_Request &request);
+  /// Get group information
+  int dome_getgroup(DomeReq &req, FCGX_Request &request);
   
 private:
   bool initdone, terminationrequested;

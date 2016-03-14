@@ -2689,7 +2689,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 /// Like an HTTP GET on a directory, gets all the content
 int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_getstatinfo only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, 500, "dome_getdir only available on head nodes.");
   }
   
   std::string path =  req.bodyfields.get<std::string>("path", "");
@@ -2734,6 +2734,32 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   jresp.push_back(std::make_pair("entries", jresp2));
   return DomeReq::SendSimpleResp(request, 200, jresp);
   
+}
+
+/// Get information about a user
+int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getuser only available on head nodes.");
+  }
+
+  std::string username = req.bodyfields.get<std::string>("username", "");
+  if (!username.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Username not specified"));
+  }
+
+  DmlitePoolHandler stack(dmpool);
+  boost::property_tree::ptree jresp;
+  
+  try {
+    UserInfo userinfo = stack->getAuthn()->getUser(username);
+    boost::property_tree::ptree pt;
+    pt.put("uid", userinfo.getLong("uid"));
+    pt.put("banned", userinfo.getLong("banned"));
+    return DomeReq::SendSimpleResp(request, 200, pt);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get user info: '" << username << "' err: " << e.code() << " what: '" << e.what()));
+  }
 }
 
   
