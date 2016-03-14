@@ -2547,6 +2547,8 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
   
+  Log(Logger::Lvl4, domelogmask, domelogname, " serrver: '" << server << "' fs: '" << newfs << "'");
+  
   if (!status.PfnMatchesAnyFS(server, newfs)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
   }
@@ -2604,6 +2606,8 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   
   std::string lfn =  req.bodyfields.get<std::string>("lfn", "");
   
+  Log(Logger::Lvl4, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' rfn: '" << rfn << "' lfn: '" << lfn << "'");
+  
   struct dmlite::ExtendedStat st;
   
   // If lfn is filled then we stat the logical file
@@ -2638,7 +2642,12 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
           if (taskrc)
             return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
           
-          
+          std::string err;
+          if (extract_stat(this->getTask(id)->stdout, err, st) <= 0) {
+            Err(domelogname, "Failed stating lfn: '" << lfn << "' err: '" << err << "'");
+            return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
+          }
+            
         }
         
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
@@ -2663,14 +2672,11 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
       rfn = server + ":" + pfn;
       DmlitePoolHandler stack(dmpool);
       try {
-        st = stack->getCatalog()->extendedStatByRFN(rfn);
-        
+        st = stack->getCatalog()->extendedStatByRFN(rfn); 
       }
       catch (dmlite::DmException e) {
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
-        
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'")); 
       }
-      
   }
   
   boost::property_tree::ptree jresp;
