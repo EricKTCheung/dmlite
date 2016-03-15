@@ -61,8 +61,6 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
     throw DmException(EINVAL, talker.err());
   }
 
-  std::cout << &talker.response()[0] << std::endl;
-
   try {
     ExtendedStat xstat;
 
@@ -76,7 +74,7 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
     xstat.stat.st_atime = talker.jresp().get<time_t>("atime");
     xstat.stat.st_ctime = talker.jresp().get<time_t>("ctime");
     xstat.stat.st_mtime = talker.jresp().get<time_t>("mtime");
-    xstat.deserialize(talker.jresp().get<std::string>("xattr"));
+    xstat.deserialize(talker.jresp().get<std::string>("xattrs"));
 
     return xstat;
   }
