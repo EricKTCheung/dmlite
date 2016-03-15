@@ -190,7 +190,7 @@ protected:
   void checkDiskSpaces();
 
   /// Send a notification to the head node about the completion of this task
-  virtual void onTaskCompleted(DomeTask task);
+  virtual void onTaskCompleted(DomeTask &task);
 
   /// Send a notification to the head node about a task that is running
   virtual void onTaskRunning(DomeTask &task);

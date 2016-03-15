@@ -53,7 +53,7 @@ public:
     endtime = o.endtime;
     finished = o.finished;
     fd[0] = 0; fd[1] = 0; fd[2] = 0;
-    stdout = o.stdout;
+    this->stdout = o.stdout;
   }
     
   ~DomeTask();
@@ -140,12 +140,12 @@ protected:
   /// Subclasses can specialize this and apply app-dependent behavior to
   /// perform actions when something has finished running
   /// NOTE the signature. This passes copies of Task objects, not the originals
-  virtual void onTaskCompleted(DomeTask task);
+  virtual void onTaskCompleted(DomeTask &task);
   
   // event that notifies that a task is running
   // This event can be invoked multiple times during the life of a task
   /// NOTE the signature. This passes copies of Task objects, not the originals
-  virtual void onTaskRunning(DomeTask task);
+  virtual void onTaskRunning(DomeTask &task);
 private:
 
   int popen3(int fd[3], pid_t *pid,  const char ** argv );
