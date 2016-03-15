@@ -2648,10 +2648,10 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
             Err(domelogname, "Failed stating lfn: '" << lfn << "' err: '" << err << "'");
             return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
           }
-            
+          
         }
-        
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
+        else
+          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
       }
   
 
@@ -2686,6 +2686,13 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("parentfileid", st.parent);
   jresp.put("size", st.stat.st_size);
   jresp.put("mode", st.stat.st_mode);
+  jresp.put("atime", st.stat.st_atime);
+  jresp.put("mtime", st.stat.st_mtime);
+  jresp.put("ctime", st.stat.st_ctime);
+  jresp.put("uid", st.stat.st_uid);
+  jresp.put("gid", st.stat.st_gid);
+  jresp.put("gid", st.serialize());
+  
   jresp.put("isdir", ( S_ISDIR(st.stat.st_mode) ));
   
   return DomeReq::SendSimpleResp(request, 200, jresp);
