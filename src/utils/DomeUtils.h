@@ -29,6 +29,8 @@
 
 namespace DomeUtils {
 
+#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
+
 inline std::vector<std::string> split(std::string data, std::string token) {
     std::vector<std::string> output;
     size_t pos = std::string::npos;
