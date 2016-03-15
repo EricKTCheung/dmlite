@@ -183,13 +183,14 @@ private:
   
     /// Pending disknode file pulls
   std::map<int, PendingPull> diskPendingPulls;
+  
 protected:
 
   // In the case of a disk server, checks the free/used space in the mountpoints
   void checkDiskSpaces();
 
   /// Send a notification to the head node about the completion of this task
-  virtual void onTaskCompleted(DomeTask &task);
+  virtual void onTaskCompleted(DomeTask task);
 
   /// Send a notification to the head node about a task that is running
   virtual void onTaskRunning(DomeTask &task);
