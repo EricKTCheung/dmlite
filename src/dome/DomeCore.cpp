@@ -285,7 +285,7 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_addpool(dreq, request);
         }
         else if(dreq.domecmd == "dome_pull") {
-          core->dome_addpool(dreq, request);
+          core->dome_pull(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
