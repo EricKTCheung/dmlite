@@ -6,10 +6,14 @@
 
 #include <dmlite/cpp/catalog.h>
 #include <dmlite/cpp/dmlite.h>
+#include "DomeAdapter.h"
 
 namespace dmlite {
 
- struct DomeDir: public Directory {
+  extern Logger::bitmask domeadapterlogmask;
+  extern Logger::component domeadapterlogname;
+
+  struct DomeDir: public Directory {
     virtual ~DomeDir() {};
     std::string path_;
     DomeDir(std::string path) : path_(path) {}
@@ -18,13 +22,26 @@ namespace dmlite {
   class DomeAdapterCatalog: public Catalog, public Authn {
   public:
   	/// Constructor
-    DomeAdapterCatalog() throw (DmException);
+    DomeAdapterCatalog(DomeAdapterFactory *factory) throw (DmException);
 
     // Overload
     std::string getImplId(void) const throw ();
 
     void setStackInstance(StackInstance* si) throw (DmException);
     void setSecurityContext(const SecurityContext* secCtx) throw (DmException);
+
+    SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
+    // SecurityContext* createSecurityContext() throw (DmException);
+
+    ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
+
+    GroupInfo getGroup   (const std::string& groupName) throw (DmException);
+    UserInfo getUser   (const std::string& userName) throw (DmException);
+
+    void getIdMap(const std::string& userName,
+                  const std::vector<std::string>& groupNames,
+                  UserInfo* user,
+                  std::vector<GroupInfo>* groups) throw (DmException);
 
     void        changeDir     (const std::string&) throw (DmException);
     std::string getWorkingDir (void)               throw (DmException);
@@ -38,6 +55,7 @@ namespace dmlite {
   protected:
     StackInstance* si_;
     const SecurityContext* secCtx_;
+    DomeAdapterFactory* factory_;
 
     std::string cwd_;
   };

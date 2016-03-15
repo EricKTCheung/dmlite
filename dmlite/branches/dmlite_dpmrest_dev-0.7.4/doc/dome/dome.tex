@@ -829,8 +829,8 @@ Params:
  \item poolname: a logical path to return information about. Can be omitted if a physical file name is provided.
  \item server: the server part of a physical file name. Can be omitted if a logical file name is provided.
  \item fs: the path/filename part of a physical file name. Can be omitted if a logical file name is provided.
- \item pool_defsize: the default size for a file whose space must be allocated without knowing its size
- \item pool_stype: "V" for a volatile pool that can pull files using the file pull hooks. "P" for a standard, permanent pool.
+ \item pool\_defsize: the default size for a file whose space must be allocated without knowing its size
+ \item pool\_stype: "V" for a volatile pool that can pull files using the file pull hooks. "P" for a standard, permanent pool.
 \end{itemize}
 \subsubsection{dome\_getdir}
 
@@ -857,6 +857,72 @@ Code: 200 or pending
  \item isdir: tells if it's a directory
 \end{itemize}
 
+
+\subsubsection{dome\_getuser}
+
+Get information about a user
+
+Command:
+\lstinline"GET /dome/"\\
+Request header:\\
+\lstinline"cmd=dome_getuser"\\
+Params:
+\begin{itemize}
+ \item username: the username to extract information about
+\end{itemize}
+
+Returns:
+Code: 200 or error
+\begin{itemize}
+ \item uid: the user's uid
+ \item banned: whether the user is banned or not
+\end{itemize}
+
+\subsubsection{dome\_getidmap}
+
+Get id mapping for a user
+
+Command:
+\lstinline"GET /dome/"\\
+Request header:\\
+\lstinline"cmd=dome_getidmap"\\
+Params:
+\begin{itemize}
+ \item username: the username to extract information about
+ \item groupnames: array of strings to translate into gids, can be empty
+\end{itemize}
+
+Returns:
+Code: 200 or error
+\begin{itemize}
+ \item uid: the user's uid
+ \item banned: whether the user is banned or not
+ \item groups: mapping of groupnames to gids
+\end{itemize}
+
+Example request:\\
+\begin{lstlisting}
+{
+  "username" : "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=gbitzes/CN=749194/CN=Georgios Bitzes", 
+  "groupnames" : [] 
+}  
+\end{lstlisting}
+
+Example response:\\
+\begin{lstlisting}
+{
+    "uid": "3",
+    "banned": "0",
+    "groups":
+    {
+        "dteam":
+        {
+            "gid": "104",
+            "banned": "0"
+        }
+    }
+}
+\end{lstlisting}
 
 
 \subsection{Disk node operation}

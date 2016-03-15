@@ -18,6 +18,7 @@ namespace dmlite {
   class DomeAdapterPoolManager;
   class DomeAdapterPoolDriver;
   class DomeAdapterPoolHandler;
+  class DomeAdapterCatalog;
 
   class DomeAdapterFactory : public CatalogFactory, public AuthnFactory,
                              public PoolManagerFactory, public PoolDriverFactory {
@@ -47,6 +48,7 @@ namespace dmlite {
   friend class DomeAdapterPoolManager;
   friend class DomeAdapterPoolDriver;
   friend class DomeAdapterPoolHandler;
+  friend class DomeAdapterCatalog;
   };
 
 }
