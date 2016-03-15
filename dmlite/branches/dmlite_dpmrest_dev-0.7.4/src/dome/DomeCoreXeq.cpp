@@ -2691,7 +2691,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("ctime", st.stat.st_ctime);
   jresp.put("uid", st.stat.st_uid);
   jresp.put("gid", st.stat.st_gid);
-  jresp.put("gid", st.serialize());
+  jresp.put("xattrs", st.serialize());
   
   jresp.put("isdir", ( S_ISDIR(st.stat.st_mode) ));
   
