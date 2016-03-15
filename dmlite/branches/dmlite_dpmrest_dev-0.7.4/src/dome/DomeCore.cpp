@@ -294,8 +294,10 @@ void workerFunc(DomeCore *core, int myidx) {
       }
       
     } // if authorized
-    else
+    else {
       Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
+      DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
+    }
     
     
     FCGX_Finish_r(&request);
