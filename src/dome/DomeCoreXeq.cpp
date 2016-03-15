@@ -36,6 +36,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/optional/optional.hpp>
 
 #include "cpp/authn.h"
 #include "cpp/dmlite.h"
@@ -2765,6 +2766,50 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
   }
   catch (DmException e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get user info: '" << username << "' err: " << e.code() << " what: '" << e.what()));
+  }
+}
+
+/// Get id mapping
+int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getidmap only available on head nodes.");
+  }
+
+  using namespace boost::property_tree;
+
+  try {
+    std::string username = req.bodyfields.get<std::string>("username");
+    std::vector<std::string> groupnames;
+
+    boost::optional<ptree&> groups_in = req.bodyfields.get_child_optional("groupnames");
+    if(groups_in) {
+      for(ptree::const_iterator it = groups_in->begin(); it != groups_in->end(); it++) {
+        groupnames.push_back(it->second.get_value<std::string>());
+      }
+    }
+
+    UserInfo userinfo;
+    std::vector<GroupInfo> groupinfo;
+
+    DmlitePoolHandler stack(dmpool);
+    stack->getAuthn()->getIdMap(username, groupnames, &userinfo, &groupinfo);
+
+    ptree resp;
+    resp.put("uid", userinfo.getLong("uid"));
+    resp.put("banned", userinfo.getLong("banned"));
+
+    for(std::vector<GroupInfo>::iterator it = groupinfo.begin(); it != groupinfo.end(); it++) {
+      resp.put(boost::property_tree::ptree::path_type("groups^" + it->name + "^gid", '^'), it->getLong("gid"));
+      resp.put(boost::property_tree::ptree::path_type("groups^" + it->name + "^banned", '^'), it->getLong("banned"));
+    }
+
+    return DomeReq::SendSimpleResp(request, 200, resp);
+  }
+  catch(ptree_error e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  catch(DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get id mapping: '" << e.code() << " what: '" << e.what()));
   }
 }
 
