@@ -290,7 +290,7 @@ int DomeStatus::tick(time_t timenow) {
   filepullq->tick();
   
   this->tickChecksums();
-  
+  this->tickFilepulls();
   // -----------------------------------
   // Actions to be performed less often...
   // -----------------------------------
@@ -340,7 +340,7 @@ void DomeStatus::tickFilepulls() {
     std::vector<std::string> qualifiers = next->qualifiers;
     
     if(qualifiers.size() != 6) {
-      Err(domelogname, "INCONCISTENCY in the internal file pull queue. Invalid size of qualifiers: " << qualifiers.size());
+      Err(domelogname, "INCONSISTENCY in the internal file pull queue. Invalid size of qualifiers: " << qualifiers.size());
       continue;
     }
 
