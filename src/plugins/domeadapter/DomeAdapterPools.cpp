@@ -25,6 +25,24 @@ DomeAdapterPoolManager::~DomeAdapterPoolManager() {
 
 }
 
+std::string DomeAdapterPoolManager::getImplId() const throw () {
+  return "DomeAdapterPoolManager";
+}
+
+void DomeAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmException) {
+  si_ = si;
+}
+
+void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
+  secCtx_ = secCtx;
+
+  // Id mechanism
+  if (factory_->tokenUseIp_)
+    userId_ = secCtx_->credentials.remoteAddress;
+  else
+    userId_ = secCtx_->credentials.clientName;
+}
+
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
   return PoolManager::kNone; // TODO
 }
@@ -149,10 +167,11 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
     ptree::const_iterator begin = talker.jresp().begin();
     ptree::const_iterator end = talker.jresp().end();
     for(ptree::const_iterator it = begin; it != end; it++) {
-      std::string host = it->second.get<std::string>("host");
+      std::string host = it->second.get<std::string>("server");
       std::string pfn = it->second.get<std::string>("pfn");
 
       Chunk chunk(host + ":" + pfn, 0, 0);
+      chunk.url.query["token"] = dmlite::generateToken(userId_, pfn, factory_->tokenPasswd_, factory_->tokenLife_);
       loc.push_back(chunk);
     }
     return loc;
@@ -201,11 +220,11 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
     std::string url = host + ":" + pfn;
 
     Chunk chunk(url, 0, 0);
-    Location loc;
-    loc.push_back(chunk);
-    return loc;
+    chunk.url.query["sfn"] = path;
+    chunk.url.query["token"] = dmlite::generateToken(userId_, pfn, factory_->tokenPasswd_, factory_->tokenLife_, true);
+    return Location(1, chunk);
   }
-  catch(boost::property_tree::ptree_bad_path &e) {
+  catch(boost::property_tree::ptree_error &e) {
     Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Unable to interpret dome_put response:" << &body[0]);
     throw DmException(EINVAL, " Unable to interpret dome_put response: %s", &body[0]);
   }

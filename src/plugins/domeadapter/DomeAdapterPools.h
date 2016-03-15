@@ -43,6 +43,7 @@ namespace dmlite {
   private:
     StackInstance* si_;
     const SecurityContext* secCtx_;
+    std::string userId_;
 
     /// The corresponding factory.
     DomeAdapterFactory* factory_;

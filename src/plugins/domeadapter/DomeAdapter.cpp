@@ -24,18 +24,8 @@ DomeAdapterFactory::~DomeAdapterFactory() {
   
 }
 
-Catalog* DomeAdapterFactory::createCatalog(PluginManager*) throw (DmException) {
-  return new DomeAdapterCatalog();
-}
-
-Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException)
-{
-  return new DomeAdapterCatalog();
-}
-
 void DomeAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException) 
 {
-  std::cout << "in DomeAdapterFactory::configure with " << key << " = " << value << std::endl;
   LogCfgParm(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, key, value);
 
   if(key == "DomeHead") {
@@ -54,7 +44,6 @@ void DomeAdapterFactory::configure(const std::string& key, const std::string& va
     this->tokenLife_ = (unsigned)atoi(value.c_str());
   }
   else if( key.find("Davix") != std::string::npos) {
-    std::cout << "sending param to davix" << std::endl;
     davixFactory_.configure(key, value);
   }
 }
@@ -68,20 +57,15 @@ PoolManager* DomeAdapterFactory::createPoolManager(PluginManager*) throw (DmExce
 }
 
 PoolDriver* DomeAdapterFactory::createPoolDriver() throw (DmException) {
-  std::cout << "in create pool driver" << std::endl;
   return new DomeAdapterPoolDriver(this);
 }
 
-std::string DomeAdapterPoolManager::getImplId() const throw () {
-  return "DomeAdapterPoolManager";
+Catalog* DomeAdapterFactory::createCatalog(PluginManager*) throw (DmException) {
+  return new DomeAdapterCatalog(this);
 }
 
-void DomeAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmException) {
-  si_ = si;
-}
-
-void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
-  secCtx_ = secCtx;
+Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException) {
+  return new DomeAdapterCatalog(this);
 }
 
 static void registerPluginDomeAdapter(PluginManager* pm) throw(DmException) {
