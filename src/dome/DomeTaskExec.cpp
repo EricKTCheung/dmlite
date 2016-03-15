@@ -462,9 +462,9 @@ void DomeTaskExec::tick() {
 
 
 
-void DomeTaskExec::onTaskRunning(DomeTask task) {
+void DomeTaskExec::onTaskRunning(DomeTask &task) {
              Log(Logger::Lvl3, domelogmask, "onTaskRunning", "task " << task.key << " with command " << task.cmd);    
 	}
-void DomeTaskExec::onTaskCompleted(DomeTask task) {
+void DomeTaskExec::onTaskCompleted(DomeTask &task) {
 	    Log(Logger::Lvl3, domelogmask, "onTaskCompleted", "task " << task.key << " with command " << task.cmd);
 	}

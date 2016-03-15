@@ -490,7 +490,7 @@ void DomeCore::tick(int parm) {
 
 
 /// Send a notification to the head node about the completion of this task
-void DomeCore::onTaskCompleted(DomeTask task) {
+void DomeCore::onTaskCompleted(DomeTask &task) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
   int key = task.key;
 
