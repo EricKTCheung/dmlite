@@ -465,9 +465,9 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   
   stmt.bindResult(3, (int *)&fs.status);
   
-  stmt.bindResult(4, (int *)&fs.pool_defsize);
+  stmt.bindResult(4, &fs.pool_defsize);
   
-  stmt.bindResult(5, (int *)&fs.pool_stype);
+  stmt.bindResult(5, &fs.pool_stype, 1);
   
   int cnt = 0;
   st.fslist.clear();
@@ -487,7 +487,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
       "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "' pool_defsize: " << fs.pool_defsize <<
       " pool_stype: '" << fs.pool_stype << "'");
-      
+       
       st.fslist.push_back(fs);
       
       cnt++;
