@@ -155,6 +155,8 @@ public:
   int dome_getuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
+  /// Get id mapping
+  int dome_getidmap(DomeReq &req, FCGX_Request &request);
   
 private:
   bool initdone, terminationrequested;
