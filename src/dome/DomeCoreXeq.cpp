@@ -1824,7 +1824,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(lfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
-    if (!CFG->GetString("glb.filepuller", (char *)"").size()) {
+    if (!CFG->GetString("disk.filepuller.pullhook", (char *)"").size()) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
     
