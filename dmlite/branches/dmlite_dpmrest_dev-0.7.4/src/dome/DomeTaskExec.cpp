@@ -211,7 +211,7 @@ int DomeTaskExec::popen3(int fd[3], pid_t *pid,  const  char ** argv) {
 
 void DomeTaskExec::run(DomeTask &task) {
   
-  Log(Logger::Lvl3, domelogmask, "run", "Starting command: " << task.cmd) ;
+  Log(Logger::Lvl3, domelogmask, "taskrun", "Starting command: " << task.cmd) ;
   //start time
   {
      boost::unique_lock <boost::mutex>  l(task);
@@ -235,21 +235,23 @@ void DomeTaskExec::run(DomeTask &task) {
     }
     
     if (count == 0) {
-      Log(Logger::Lvl4, domelogmask, "run", "No Stdout") ;
+      Log(Logger::Lvl4, domelogmask, "taskrun", "End Stdout") ;
       break;
     }
     else {
       boost::unique_lock <boost::mutex>   l(task);
       task.stdout.append(buffer, count);
-      Log(Logger::Lvl4, domelogmask, "run", "Stdout: " << task.stdout.c_str()) ;
-      Log(Logger::Lvl4, domelogmask, "run", "Pid " << task.pid) ;
+      Log(Logger::Lvl4, domelogmask, "taskrun", "Stdout: " << task.stdout.c_str()) ;
+      Log(Logger::Lvl4, domelogmask, "taskrun", "Pid " << task.pid) ;
     }
       
   }
   
+  Log(Logger::Lvl4, domelogmask, "taskrun", "Closing fds. key: " << task.key);
   for(int i=0; i<3; i++) 
     close(task.fd[i]);
   
+  Log(Logger::Lvl4, domelogmask, "taskrun", "Finalizing key: " << task.key) ;
   {
     boost::unique_lock <boost::mutex> l(task);
     task.finished = true;
@@ -257,8 +259,12 @@ void DomeTaskExec::run(DomeTask &task) {
     time(&task.endtime);
     task.notifyAll();
     
+    Log(Logger::Lvl4, domelogmask, "taskrun", "Dispatching onTaskCompleted key: " << task.key) ;
     onTaskCompleted(task);
+    
   }
+  
+  Log(Logger::Lvl4, domelogmask, "taskrun", "Dispatched key: " << task.key) ;
   
   
   
