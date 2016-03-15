@@ -47,7 +47,7 @@ public:
   DomeTask(const DomeTask &o) {
     key = o.key;
     cmd = o.cmd;
-    for(unsigned int i = 0; i < sizeof(parms); i++) parms[i] = o.parms[i];
+    for(unsigned int i = 0; i < sizeof(parms); i++) parms[i] = NULL;
     resultcode = o.resultcode;
     starttime = o.starttime;
     endtime = o.endtime;

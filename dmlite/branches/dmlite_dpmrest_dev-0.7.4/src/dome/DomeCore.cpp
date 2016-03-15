@@ -490,7 +490,7 @@ void DomeCore::tick(int parm) {
 
 
 /// Send a notification to the head node about the completion of this task
-void DomeCore::onTaskCompleted(DomeTask &task) {
+void DomeCore::onTaskCompleted(DomeTask task) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
   int key = task.key;
 
@@ -502,15 +502,18 @@ void DomeCore::onTaskCompleted(DomeTask &task) {
     std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
 
     if(it != diskPendingChecksums.end()) {
+      Log(Logger::Lvl4, domelogmask, domelogname, "Found pending checksum. key: " << task.key);
       pending = it->second;
       diskPendingChecksums.erase(it);
       sendChecksumStatus(pending, task, true);
+      Log(Logger::Lvl4, domelogmask, domelogname, "Entering. key: " << task.key);
       return;
     }
 
     std::map<int, PendingPull>::iterator pit = diskPendingPulls.find(key);
     if(pit != diskPendingPulls.end()) {
       pendingpull = pit->second;
+      Log(Logger::Lvl4, domelogmask, domelogname, "Found pending file pull. key: " << task.key);
       diskPendingPulls.erase(pit);
       sendFilepullStatus(pendingpull, task, true);
       return;
