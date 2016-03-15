@@ -54,8 +54,14 @@ bool DomeTalker::execute(const std::string &str) {
 
   req.setRequestMethod(verb_);
   req.addHeaderField("cmd", cmd_);
-  req.addHeaderField("remoteclientdn", creds_.clientName);
-  req.addHeaderField("remoteclientaddr", creds_.remoteAddress);
+
+  if(creds_.clientName != "") {
+    req.addHeaderField("remoteclientdn", creds_.clientName);
+  }
+
+  if(creds_.remoteAddress != "") {
+    req.addHeaderField("remoteclientaddr", creds_.remoteAddress);
+  }
 
   req.setParameters(*ds_->parms);
   req.setRequestBody(str);
