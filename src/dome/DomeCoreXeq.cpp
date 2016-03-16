@@ -1573,7 +1573,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
 int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
   if(status.role == status.roleDisk) {
-    return DomeReq::SendSimpleResp(request, 500, "chksumstatus only available on head nodes");
+    return DomeReq::SendSimpleResp(request, 500, "pullstatus only available on head nodes");
   }
   
   
