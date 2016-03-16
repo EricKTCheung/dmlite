@@ -1245,6 +1245,24 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
     else {
       jresp.put("status", "done");
       jresp.put("checksum", checksum);
+      
+      // Let's stat the real file on disk, we are in a disk node
+      struct stat st;
+      if ( stat(pending.pfn.c_str(), &st) ) {
+        std::ostringstream os;
+        char errbuf[1024];
+        os << "Cannot stat pfn:'" << pending.pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
+        Err(domelogname, os.str());
+        
+        // A successful execution and no file should be aborted!
+        jresp.put("status", "aborted");
+        jresp.put("reason", SSTR("disk node could not stat pfn: '" << pending.pfn << "' - " << os ));
+
+      }
+      else
+        // If stat was successful then we can get the final filesize
+        jresp.put("filesize", st.st_size);
+      
     }
   }
   else {
@@ -1600,7 +1618,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     std::string str_status = req.bodyfields.get<std::string>("status", "");
     std::string reason = req.bodyfields.get<std::string>("reason", "");
     std::string checksum = req.bodyfields.get<std::string>("checksum", "");
-    long size = 0L;
+    size_t size = req.bodyfields.get("filesize", 0L);
     
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
@@ -1687,88 +1705,9 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     
     
     
-    
-    
-    
-    
-    
-    
-    // We are in the headnode, and the only filesize we can trust is the real one, old style
-    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
-    Davix::Uri url(domeurl);
-    
-    Davix::DavixError* tmp_err = NULL;
-    DavixGrabber hdavix(*davixPool);
-    DavixStuff *ds(hdavix);
-    
-    Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
-    if( tmp_err ) {
-      std::ostringstream os;
-      os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-      Err(domelogname, os.str());
-      Davix::DavixError::clearError(&tmp_err);
-      return DomeReq::SendSimpleResp(request, 500, os);
-    } 
-    
-    req2.addHeaderField("cmd", "dome_stat");
-    req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-    req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
-    
-    std::ostringstream os;
-    boost::property_tree::ptree jstat;
-    jstat.put("pfn", pfn);
-    boost::property_tree::write_json(os, jstat);
-    req2.setRequestBody(os.str());
-    
-    // Set the dome timeout values for the operation
-    req2.setParameters(*(ds->parms));
-    
-    if (req2.executeRequest(&tmp_err) != 0) {
-      // The error must be propagated to the response, in clear readable text
-      std::ostringstream os;
-      int errcode = req2.getRequestCode();
-      if (tmp_err)
-        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
-      else
-        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode;
-      
-      Err(domelogname, os.str());
-      
-      Davix::DavixError::clearError(&tmp_err);
-      return DomeReq::SendSimpleResp(request, errcode, os);
-    }
-    
-    if (!req2.getAnswerContent()) {
-      std::ostringstream os;
-      os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 404, os);
-    }
-    
-    // The stat towards the dsk server was successful. Take the size
-    jstat.clear();
-    std::istringstream s(req2.getAnswerContent());
-    try {
-      boost::property_tree::read_json(s, jstat);
-    } catch (boost::property_tree::json_parser_error e) {
-      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s.str() << "'");
-      return -1;
-    }
-    
-    size = jstat.get<size_t>("size", 0L);
-      
-      
-    
     // -------------------------------------------------------
     // If a miracle took us here, the size has been confirmed
     Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
-    
-    
-    
-    
-    
-    
-    
     
     
     
