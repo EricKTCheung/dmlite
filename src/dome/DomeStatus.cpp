@@ -339,8 +339,8 @@ void DomeStatus::tickFilepulls() {
     // parse queue item contents
     std::vector<std::string> qualifiers = next->qualifiers;
     
-    if(qualifiers.size() != 6) {
-      Err(domelogname, "INCONSISTENCY in the internal file pull queue. Invalid size of qualifiers: " << qualifiers.size());
+    if(qualifiers.size() != 7) {
+      Err(domelogname, "INCONSISTENCY in the internal file pull queue. Internal error. Invalid size of qualifiers: " << qualifiers.size());
       continue;
     }
 
