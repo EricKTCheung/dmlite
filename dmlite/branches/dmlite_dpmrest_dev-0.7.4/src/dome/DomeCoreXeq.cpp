@@ -157,6 +157,10 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
   
+  if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
+    return DomeReq::SendSimpleResp(request, 501, "Invalid remote client or remote host credentials");
+  }
+  
   // Give errors for combinations of the parameters that are obviously wrong
   if ( (host != "") && (pool != "") ) {
     // Error! Log it as such!, level1
@@ -1190,17 +1194,19 @@ static int extract_stat(std::string stdout, std::string &err, struct dmlite::Ext
 
 
 void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed);
+  
 
   std::string checksum, extract_error;
-  bool failed = false;
+  bool failed = (task.resultcode != 0);
 
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed << " rc: " << task.resultcode);
+  
   if(completed) {
     checksum = extract_checksum(task.stdout, extract_error);
     if( ! extract_error.empty()) {
-      Err(domelogname, extract_error << task.stdout);
-      failed = true;
+      Log(Logger::Lvl4, domelogmask, domelogname, "File pull did not provide any checksum. err: " << extract_error << task.stdout);
     }
+    Log(Logger::Lvl4, domelogmask, domelogname, "File pull checksum: " << checksum);
   }
 
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
@@ -1559,6 +1565,8 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
       DomeFsInfo fs;
       canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
     }
+    else
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << req.object << "'"));
   }
   
   // Here we have to trigger the file pull and tell to the client to come back later
@@ -1820,6 +1828,9 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     // Checksumtype in this case can be empty, as it's just a suggestion...
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
+    }
+    if(!status.PfnMatchesAnyFS(status.myhostname, pfn)) {
+      return DomeReq::SendSimpleResp(request, 422, "pfn does not match any of the filesystems of this server.");
     }
     if(lfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
