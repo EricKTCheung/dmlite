@@ -60,7 +60,7 @@ bool DomeTalker::execute(const std::string &str) {
   }
 
   if(creds_.remoteAddress != "") {
-    req.addHeaderField("remoteclientaddr", creds_.remoteAddress);
+    req.addHeaderField("remoteclienthost", creds_.remoteAddress);
   }
 
   req.setParameters(*ds_->parms);
