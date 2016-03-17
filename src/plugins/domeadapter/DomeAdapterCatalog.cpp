@@ -33,8 +33,27 @@ void DomeAdapterCatalog::setSecurityContext(const SecurityContext* secCtx) throw
   this->secCtx_ = secCtx;
 }
 
-GroupInfo DomeAdapterCatalog::getGroup(const std::string& groupName) throw (DmException) {
+// GroupInfo DomeAdapterCatalog::getGroup(const std::string& groupName) throw (DmException) {
 
+// }
+
+SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "");
+  
+  UserInfo user;
+  std::vector<GroupInfo> groups;
+  GroupInfo group;
+
+  user.name    = "root";
+  user["uid"]  = 0;
+  group.name   = "root";
+  group["gid"] = 0;
+  groups.push_back(group);
+
+  SecurityContext* sec = new SecurityContext(SecurityCredentials(), user, groups);
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
+  
+  return sec;
 }
 
 SecurityContext* DomeAdapterCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException) {
@@ -48,6 +67,24 @@ SecurityContext* DomeAdapterCatalog::createSecurityContext(const SecurityCredent
   
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, cred.clientName << " " << cred.remoteAddress);
   return sec;
+}
+
+bool DomeAdapterCatalog::accessReplica(const std::string& replica, int mode) throw (DmException) {
+  return true; // TODO: FIX!!!!
+}
+
+static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::ExtendedStat &xstat) {
+  xstat.stat.st_size = ptree.get<uint64_t>("size");
+  xstat.stat.st_mode = ptree.get<mode_t>("mode");
+  xstat.stat.st_ino   = ptree.get<ino_t>("fileid");
+  xstat.parent = ptree.get<ino_t>("parentfileid");
+  xstat.stat.st_atime = ptree.get<time_t>("atime");
+  xstat.stat.st_ctime = ptree.get<time_t>("ctime");
+  xstat.stat.st_mtime = ptree.get<time_t>("mtime");
+  xstat.stat.st_nlink = ptree.get<nlink_t>("nlink");
+  xstat.stat.st_gid = ptree.get<gid_t>("gid");
+  xstat.stat.st_uid = ptree.get<uid_t>("uid");
+  xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
 ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
@@ -66,16 +103,7 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
 
     std::vector<std::string> components = Url::splitPath(path);
     xstat.name = components.back();
-
-    xstat.stat.st_size = talker.jresp().get<uint64_t>("size");
-    xstat.stat.st_mode = talker.jresp().get<mode_t>("mode");
-    xstat.stat.st_ino   = talker.jresp().get<ino_t>("fileid");
-    xstat.parent = talker.jresp().get<ino_t>("parentfileid");
-    xstat.stat.st_atime = talker.jresp().get<time_t>("atime");
-    xstat.stat.st_ctime = talker.jresp().get<time_t>("ctime");
-    xstat.stat.st_mtime = talker.jresp().get<time_t>("mtime");
-    xstat.deserialize(talker.jresp().get<std::string>("xattrs"));
-
+    ptree_to_xstat(talker.jresp(), xstat);
     return xstat;
   }
   catch(boost::property_tree::ptree_error &e) {
@@ -141,8 +169,8 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
 }
 
 
-UserInfo DomeAdapterCatalog::getUser(const std::string& username) throw (DmException) {
-  throw DmException(EINVAL, "getUser not implemented");
+// UserInfo DomeAdapterCatalog::getUser(const std::string& username) throw (DmException) {
+  // throw DmException(EINVAL, "getUser not implemented");
   // Davix::Uri uri(factory_->domehead_ + "/");
 
 
@@ -164,37 +192,77 @@ UserInfo DomeAdapterCatalog::getUser(const std::string& username) throw (DmExcep
   // catch(boost::property_tree::ptree_error &e) {
   //   throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
   // }
-}
+// }
 
-void DomeAdapterCatalog::changeDir(const std::string& dir) throw (DmException)
-{
-  std::cout << "change dir to: " << dir << std::endl;
-  cwd_ = dir;
-}
+// void DomeAdapterCatalog::changeDir(const std::string& dir) throw (DmException) {
+//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering - dir: " << dir);
+//   cwd_ = dir;
+// }
 
-std::string DomeAdapterCatalog::getWorkingDir(void) throw (DmException) {
-  std::cout << "get working dir: " << cwd_ << std::endl;
-  return cwd_;
-}
+// std::string DomeAdapterCatalog::getWorkingDir(void) throw (DmException) {
+//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "cwd: " << cwd_);
+//   return cwd_;
+// }
 
 Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmException) {
-  std::cout << "open dir: " << path << std::endl;
-  return new DomeDir(path);
+  using namespace boost::property_tree;
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
+  Davix::Uri uri(factory_->domehead_ + "/");
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "GET", uri, "dome_getdir");
+
+  ptree params;
+  params.put("path", path);
+  params.put("statentries", "true");
+
+  if(!talker.execute(params)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
+  try {
+    DomeDir *domedir = new DomeDir(path);
+    
+    ptree entries = talker.jresp().get_child("entries");
+    for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
+      ExtendedStat xstat;
+      xstat.name = it->second.get<std::string>("name");
+
+      Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "entry " << xstat.name);
+
+      ptree_to_xstat(it->second, xstat);
+      domedir->entries_.push_back(xstat);
+    }
+    return domedir;
+  }
+  catch(ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response - " << e.what() << " : " << &talker.response()[0]));
+  }
 }
 
 void DomeAdapterCatalog::closeDir(Directory* dir) throw (DmException) {
-  std::cout << "close dir called" << std::endl;
-  delete dir;
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+  DomeDir *domedir = static_cast<DomeDir*>(dir);
+  delete domedir;
 }
 
-struct dirent* DomeAdapterCatalog::readDir(Directory* dir) throw (DmException) {
-  std::cout << "readDir called" << std::endl;
-  return NULL;
-}
+// struct dirent* DomeAdapterCatalog::readDir(Directory* dir) throw (DmException) {
+//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+//   return NULL;
+// }
 
 ExtendedStat* DomeAdapterCatalog::readDirx(Directory* dir) throw (DmException) {
-  // std::cout << "readDirx called on " << domedir->path_ << std::endl;
-  return NULL;
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+  if (dir == NULL) {
+    throw DmException(DMLITE_SYSERR(EFAULT), "Tried to read a null dir");
+  }
+
+  DomeDir *domedir = static_cast<DomeDir*>(dir);
+  if(domedir->pos_ >= domedir->entries_.size()) {
+    return NULL;
+  }
+
+  domedir->pos_++;
+  return &domedir->entries_[domedir->pos_ - 1];
 }
 
 

@@ -2564,6 +2564,19 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
 
 
 
+static void xstat_to_ptree(const dmlite::ExtendedStat& xstat, boost::property_tree::ptree &ptree) {
+  ptree.put("fileid", xstat.stat.st_ino);
+  ptree.put("parentfileid", xstat.parent);
+  ptree.put("size", xstat.stat.st_size);
+  ptree.put("mode", xstat.stat.st_mode);
+  ptree.put("atime", xstat.stat.st_atime);
+  ptree.put("mtime", xstat.stat.st_mtime);
+  ptree.put("ctime", xstat.stat.st_ctime);
+  ptree.put("uid", xstat.stat.st_uid);
+  ptree.put("gid", xstat.stat.st_gid);
+  ptree.put("nlink", xstat.stat.st_nlink);
+  ptree.put("xattrs", xstat.serialize());
+}
 
 
 /// Fecthes logical stat information for an LFN or file ID or a pfn
@@ -2652,24 +2665,11 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   }
   
   boost::property_tree::ptree jresp;
-    
-  jresp.put("fileid", st.stat.st_ino);
-  jresp.put("parentfileid", st.parent);
-  jresp.put("size", st.stat.st_size);
-  jresp.put("mode", st.stat.st_mode);
-  jresp.put("atime", st.stat.st_atime);
-  jresp.put("mtime", st.stat.st_mtime);
-  jresp.put("ctime", st.stat.st_ctime);
-  jresp.put("uid", st.stat.st_uid);
-  jresp.put("gid", st.stat.st_gid);
-  jresp.put("xattrs", st.serialize());
-  
-  jresp.put("isdir", ( S_ISDIR(st.stat.st_mode) ));
+  xstat_to_ptree(st, jresp);
   
   return DomeReq::SendSimpleResp(request, 200, jresp);
   
 }
-
 
 /// Like an HTTP GET on a directory, gets all the content
 int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
@@ -2702,13 +2702,9 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
       
       if (statentries) {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(dent->d_name);
-        pt.put("size", st.stat.st_size);
-        pt.put("flags", st.stat.st_mode);
-        pt.put("isdir", S_ISDIR(st.stat.st_mode));
+        xstat_to_ptree(st, pt);
       }  
   
-      
-      
       jresp2.push_back(std::make_pair("", pt));
     }
   }
