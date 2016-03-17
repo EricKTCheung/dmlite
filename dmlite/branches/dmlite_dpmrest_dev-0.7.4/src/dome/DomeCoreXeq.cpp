@@ -1248,6 +1248,7 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
       
       // Let's stat the real file on disk, we are in a disk node
       struct stat st;
+      
       if ( stat(pending.pfn.c_str(), &st) ) {
         std::ostringstream os;
         char errbuf[1024];
@@ -1259,9 +1260,11 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
         jresp.put("reason", SSTR("disk node could not stat pfn: '" << pending.pfn << "' - " << os ));
 
       }
-      else
+      else {
         // If stat was successful then we can get the final filesize
+        Log(Logger::Lvl1, domelogmask, domelogname, "pfn: " << pending.pfn << " has size: " << st.st_size);
         jresp.put("filesize", st.st_size);
+      }
       
     }
   }
@@ -1710,7 +1713,15 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
     
     
-    
+    try {
+      stack->getCatalog()->setSize(rep);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 500, os);
+    }
     
     
     

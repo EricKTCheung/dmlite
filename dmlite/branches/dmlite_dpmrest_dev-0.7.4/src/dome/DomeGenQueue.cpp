@@ -166,7 +166,7 @@ bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
 
 int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers) {
   scoped_lock(*this);
-  Log(Logger::Lvl4, domelogmask, domelogname, " Adding new item to the queue with name: " << namekey << ", status: " << status <<
+  Log(Logger::Lvl4, domelogmask, domelogname, " Touching new item to the queue with name: " << namekey << ", status: " << status <<
       "priority: " << priority);
 
   GenPrioQueueItem_ptr item = items[namekey];
