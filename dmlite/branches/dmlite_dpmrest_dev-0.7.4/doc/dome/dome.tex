@@ -672,28 +672,10 @@ Params:
 Returns: 200, unconditionally
 No response body.
 
-\subsubsection{dome\_ispullable}
-Tells whether a file can be pulled from somewhere else, through an appropriate callout in the disk server
-
-Command:
-\lstinline"GET /dome/pathfile"\\
-Request header:\\
-\lstinline"cmd=dome_ispullable"\\
-Params:
-\begin{itemize}
- \item Params: Free string that can be passed to the callout that verifies the existence of the file
-\end{itemize}
-
-Returns:
-\begin{itemize}
- \item IsOffline: true|false|yes|no|0|1
- \item Info: app-dependent free string that may be used to notify (or log) location information about the file (optional)
-\end{itemize}
-
 
 
 \subsubsection{dome\_get}
-Returns a pfn that can be used to read a file, usual stuff.\\
+Returns a pfn that can be used to read a file.\\
 
 If the given lfn belongs to a directory subtree that is associated to pools marked as "V" (volatile), then the file puller callout
 may be invoked if the file is absent AND is not being already pulled.\\
@@ -713,25 +695,29 @@ Code: 200 or pending
  \item filesystem: filesystem that is hosting the file
 \end{itemize}
 
-\subsubsection{dome\_pulldone}
-Notifies that a file pull has finished. Until that moment it can be invoked to send a sort of progress report or heartbeat.
-This notification is usually sent by a disk server
+\subsubsection{dome\_pullstatus}
+Notifies the status of a pending file pull, including its end. Until the end it must be invoked to send a sort of progress report or heartbeat.
+This notification is usually sent by a disk server.
 Command:
 \lstinline"POST /dome"\\
 Request header:\\
 \lstinline"cmd=dome_pulldone"\\
 Params:
 \begin{itemize}
- \item Host: server name
- \item Pfn: physical filename
- \item Lfn: Logical filename
- \item Status: Pending|Done|Aborted
- \item Reason: Free string describing errors or similar (for logging)
+ \item host: server name
+ \item pfn: physical filename
+ \item server: server the pfn refers to
+ \item lfn: Logical filename
+ \item status: pending|done|aborted
+ 
+ \item reason: Free string describing errors or similar (for logging)
+ \item checksum-type: optional checksum type
+ \item checksum: optional file checksum that the remote file puller may have calculated on the fly
 \end{itemize}
 
 Returns:
-Code: 200 always
-No body is required
+Code: 200 if the notification's fields are correct
+
 
 \subsubsection{dome\_statpool}
 Gets total and free space information for one pool
@@ -967,7 +953,7 @@ Request header:\\
 Params:
 \begin{itemize}
  \item pfn: Physical filename
- \item info: app-dependent free string that may be used to notify (or log) things
+ \item checksum-type: a suggestion about the kind of checksum that the external file puller may want to calculate
 \end{itemize}
 
 Returns: 200 or various errors if the pull process cannot be started.
