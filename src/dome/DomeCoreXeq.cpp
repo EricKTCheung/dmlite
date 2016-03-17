@@ -471,7 +471,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   
   req2.addHeaderField("cmd", "dome_putdone");
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
   
   // Copy the same body fields as the original one, except for some fields,
   // where we write this machine's hostname (we are a disk server here) and the validated size
@@ -619,7 +619,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   
     req2.addHeaderField("cmd", "dome_stat");
     req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-    req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+    req2.addHeaderField("remoteclienthost", req.remoteclienthost);
   
     std::ostringstream os;
     boost::property_tree::ptree jstat;
@@ -2205,7 +2205,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   req2.addHeaderField("cmd", "dome_pfnrm");
   req2.addHeaderField("pfn", absPath);
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
   std::ostringstream os;
   boost::property_tree::write_json(os, req.bodyfields);
   req2.setRequestBody(os.str());
@@ -2453,7 +2453,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   }
   req2.addHeaderField("cmd", "dome_statpfn");
   req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclientaddr", req.remoteclienthost);
+  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
 
   boost::property_tree::ptree jresp;
   jresp.put("pfn", newfs);
