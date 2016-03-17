@@ -12,6 +12,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "utils/logger.h"
+#include "utils/DomeUtils.h"
 #include "utils/DavixPool.h"
 #include "DomeAdapterIO.h"
 #include "DomeAdapter.h"
@@ -121,7 +122,7 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   }
 
   // Create
-  return new DomeIOHandler(pfn, flags, mode);
+  return new DomeIOHandler(DomeUtils::pfn_from_rfio_syntax(pfn), flags, mode);
 }
 
 void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
