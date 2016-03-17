@@ -13,10 +13,13 @@ namespace dmlite {
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  struct DomeDir: public Directory {
-    virtual ~DomeDir() {};
+  struct DomeDir : public Directory {
     std::string path_;
-    DomeDir(std::string path) : path_(path) {}
+    size_t pos_;
+    std::vector<dmlite::ExtendedStat> entries_;
+
+    virtual ~DomeDir() {}
+    DomeDir(std::string path) : path_(path), pos_(0) {}
   };
 
   class DomeAdapterCatalog: public Catalog, public Authn {
@@ -31,25 +34,27 @@ namespace dmlite {
     void setSecurityContext(const SecurityContext* secCtx) throw (DmException);
 
     SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
-    // SecurityContext* createSecurityContext() throw (DmException);
+    SecurityContext* createSecurityContext() throw (DmException);
 
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
 
-    GroupInfo getGroup   (const std::string& groupName) throw (DmException);
-    UserInfo getUser   (const std::string& userName) throw (DmException);
+    // GroupInfo getGroup   (const std::string& groupName) throw (DmException);
+    // UserInfo getUser   (const std::string& userName) throw (DmException);
 
     void getIdMap(const std::string& userName,
                   const std::vector<std::string>& groupNames,
                   UserInfo* user,
                   std::vector<GroupInfo>* groups) throw (DmException);
 
-    void        changeDir     (const std::string&) throw (DmException);
-    std::string getWorkingDir (void)               throw (DmException);
+    bool accessReplica(const std::string& replica, int mode) throw (DmException);
+
+    // void        changeDir     (const std::string&) throw (DmException);
+    // std::string getWorkingDir (void)               throw (DmException);
 
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
 
-    struct dirent* readDir (Directory*) throw (DmException);
+    // struct dirent* readDir (Directory*) throw (DmException);
     ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   protected:
