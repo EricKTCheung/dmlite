@@ -13,7 +13,7 @@
 
 #include "utils/logger.h"
 #include "utils/DomeUtils.h"
-#include "utils/DavixPool.h"
+#include "utils/DomeTalker.h"
 #include "DomeAdapterIO.h"
 #include "DomeAdapter.h"
 
@@ -143,29 +143,17 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 
   // send a put done to the local dome instance
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
-  Davix::Uri uri(domedisk_ + sfn);
-  Davix::DavixError *err = NULL;
 
-  DavixGrabber grabber(davixPool_);
-  DavixStuff *ds(grabber);
+  Davix::Uri uri(domedisk_ + "/" + sfn);
+  DomeTalker talker(davixPool_, secCtx_,
+                    "POST", uri, "dome_putdone");
 
-  Davix::PostRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_putdone");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+  boost::property_tree::ptree params;
+  params.put("pfn", loc[0].url.path);
+  params.put("size", loc[0].size);
 
-  boost::property_tree::ptree jresp;
-  jresp.put("pfn", loc[0].url.path);
-  jresp.put("size", loc[0].size);
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-  req.setParameters(*ds->parms);
-  req.setRequestBody(os.str());
-  req.executeRequest(&err);
-
-  if(err) {
-    throw DmException(EINVAL, "Error when sending putdone to disknode: %s", err->getErrMsg().c_str());
+  if(!talker.execute(params)) {
+    throw DmException(EINVAL, talker.err());
   }
 
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "doneWriting was successful - putdone sent to domedisk");
