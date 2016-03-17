@@ -370,7 +370,7 @@ void DomeStatus::tickFilepulls() {
 
     req.addHeaderField("cmd", "dome_pull");
     req.addHeaderField("remoteclientdn", remoteclientdn);
-    req.addHeaderField("remoteclientaddr", remoteclienthost);
+    req.addHeaderField("remoteclienthost", remoteclienthost);
 
     boost::property_tree::ptree params;
     params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
@@ -445,7 +445,7 @@ void DomeStatus::tickChecksums() {
 
     req.addHeaderField("cmd", "dome_dochksum");
     req.addHeaderField("remoteclientdn", remoteclientdn);
-    req.addHeaderField("remoteclientaddr", remoteclienthost);
+    req.addHeaderField("remoteclienthost", remoteclienthost);
 
     boost::property_tree::ptree params;
     params.put("checksum-type", checksumtype);
