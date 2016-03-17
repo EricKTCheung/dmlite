@@ -1605,6 +1605,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     return DomeReq::SendSimpleResp(request, 500, "pullstatus only available on head nodes");
   }
   
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
   
   try {
     DmlitePoolHandler stack(dmpool);
@@ -1617,16 +1618,23 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string lfn = req.object;
     std::string server = req.bodyfields.get<std::string>("server", "");
     std::string str_status = req.bodyfields.get<std::string>("status", "");
     std::string reason = req.bodyfields.get<std::string>("reason", "");
     std::string checksum = req.bodyfields.get<std::string>("checksum", "");
     size_t size = req.bodyfields.get("filesize", 0L);
     
+    Log(Logger::Lvl1, domelogmask, domelogname, "lfn: '" << lfn << "' server: '" << server << "' pfn: '" << pfn <<
+      "' pullstatus: '" << str_status << "' cktype: '" << checksum << "' ck: '" << checksum << "' reason: '" << reason << "'");
+    
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
     }
-
+    if(lfn == "") {
+      return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
+    }
+    
     GenPrioQueueItem::QStatus qstatus;
 
     if(str_status == "pending") {
@@ -1714,7 +1722,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     
     
     try {
-      stack->getCatalog()->setSize(rep);
+      stack->getCatalog()->setSize(lfn, size);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
