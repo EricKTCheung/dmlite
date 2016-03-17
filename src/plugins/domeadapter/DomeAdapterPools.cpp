@@ -186,47 +186,26 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
 
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException) 
 {
-  DavixGrabber grabber(factory_->davixPool_);
-  DavixStuff *ds(grabber);
-
-  Davix::DavixError *err = NULL;
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
   Davix::Uri uri(factory_->domehead_ + "/" + path);
-  Davix::PostRequest req(*ds->ctx, uri, &err);
-  req.addHeaderField("cmd", "dome_put");
-  req.addHeaderField("remoteclientdn", this->secCtx_->credentials.clientName);
-  req.addHeaderField("remoteclientaddr", this->secCtx_->credentials.remoteAddress);
+  DomeTalker talker(factory_->davixPool_, secCtx_,
+                    "POST", uri, "dome_put");
 
-  boost::property_tree::ptree params;
-  params.put("lfn", path);
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, params);
-
-  req.setParameters(*ds->parms);
-  req.setRequestBody(os.str());
-  req.executeRequest(&err);
-
-  if(err) {
-    throw DmException(EINVAL, "Error when sending dome_put to headnode: %s", err->getErrMsg().c_str());
-   }
-
-  // parse json response
-  std::vector<char> body = req.getAnswerContentVec();
-  boost::property_tree::ptree jresp = parseJSON(&body[0]);
+  if(!talker.execute("lfn", path)) {
+    throw DmException(EINVAL, talker.err());
+  }
 
   try {
-    std::string host = jresp.get<std::string>("host");
-    std::string pfn = jresp.get<std::string>("pfn");
-    std::string url = host + ":" + pfn;
+    std::string host = talker.jresp().get<std::string>("host");
+    std::string pfn = talker.jresp().get<std::string>("pfn");
 
-    Chunk chunk(url, 0, 0);
+    Chunk chunk(host+":"+pfn, 0, 0);
     chunk.url.query["sfn"] = path;
     chunk.url.query["token"] = dmlite::generateToken(userId_, pfn, factory_->tokenPasswd_, factory_->tokenLife_, true);
     return Location(1, chunk);
   }
-  catch(boost::property_tree::ptree_error &e) {
-    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Unable to interpret dome_put response:" << &body[0]);
-    throw DmException(EINVAL, " Unable to interpret dome_put response: %s", &body[0]);
+  catch(boost::property_tree::ptree &err) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
   }
 }
 
