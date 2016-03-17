@@ -1534,7 +1534,10 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   // Currently just returns a list of all replicas
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  bool canpull = false;
+  
+  DomeFsInfo fs;
+  bool canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
+  
   DmlitePoolHandler stack(dmpool);
   try {
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
@@ -1582,9 +1585,8 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     
     // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
     if (e.code() == ENOENT) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << req.object << "'");
       
-      DomeFsInfo fs;
-      canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
     }
     else
       return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << req.object << "'"));
