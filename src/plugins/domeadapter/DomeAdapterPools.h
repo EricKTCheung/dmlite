@@ -36,7 +36,6 @@ namespace dmlite {
     void deletePool(const Pool& pool) throw (DmException);
 
     Location whereToRead (const std::string& path) throw (DmException);
-    // Location whereToRead (ino_t inode)             throw (DmException);
     Location whereToWrite(const std::string& path) throw (DmException);
 
     // void cancelWrite(const Location& loc) throw (DmException);
