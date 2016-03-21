@@ -15,7 +15,7 @@
 \contentsline {section}{\numberline {1.4}Command sets of DOME}{15}
 \contentsline {subsection}{\numberline {1.4.1}Common header fields}{16}
 \contentsline {subsubsection}{\nonumberline remoteclientdn}{16}
-\contentsline {subsubsection}{\nonumberline remoteclientaddr}{16}
+\contentsline {subsubsection}{\nonumberline remoteclienthost}{16}
 \contentsline {subsection}{\numberline {1.4.2}Head node operation}{16}
 \contentsline {subsubsection}{\nonumberline dome\_put}{16}
 \contentsline {subsubsection}{\nonumberline dome\_putdone}{17}
@@ -66,7 +66,7 @@
 \contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{38}
 \contentsline {subsubsection}{\nonumberline glb.role}{38}
 \contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{38}
-\contentsline {subsubsection}{\nonumberline glb.put.minfreespacemb}{38}
+\contentsline {subsubsection}{\nonumberline glb.put.minfreespace\_mb}{38}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{38}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{39}
 \contentsline {subsubsection}{\nonumberline glb.workers}{39}
