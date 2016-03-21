@@ -38,9 +38,6 @@ namespace dmlite {
 
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
 
-    // GroupInfo getGroup   (const std::string& groupName) throw (DmException);
-    // UserInfo getUser   (const std::string& userName) throw (DmException);
-
     void getIdMap(const std::string& userName,
                   const std::vector<std::string>& groupNames,
                   UserInfo* user,
@@ -48,13 +45,8 @@ namespace dmlite {
 
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
 
-    // void        changeDir     (const std::string&) throw (DmException);
-    // std::string getWorkingDir (void)               throw (DmException);
-
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
-
-    // struct dirent* readDir (Directory*) throw (DmException);
     ExtendedStat*  readDirx(Directory*) throw (DmException);
 
   protected:

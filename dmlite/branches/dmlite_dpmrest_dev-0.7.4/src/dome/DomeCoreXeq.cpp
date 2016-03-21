@@ -157,9 +157,9 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
   
-  if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
-    return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
-  }
+  // if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
+  //   return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
+  // }
   
   // Give errors for combinations of the parameters that are obviously wrong
   if ( (host != "") && (pool != "") ) {

@@ -628,6 +628,10 @@ std::string dmlite::generateToken(const std::string& id, const std::string& pfn,
   char     buffer2[1024];
   unsigned inl, outl;
 
+  // if(id.size() == 0) {
+  //   throw DmException(EINVAL, "SECURITY VULNERABILITY - tried to create a token with empty id");
+  // }
+
   time_t expires = time(NULL) + lifetime;
   
   // Concatenate

@@ -33,10 +33,6 @@ void DomeAdapterCatalog::setSecurityContext(const SecurityContext* secCtx) throw
   this->secCtx_ = secCtx;
 }
 
-// GroupInfo DomeAdapterCatalog::getGroup(const std::string& groupName) throw (DmException) {
-
-// }
-
 SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "");
   
@@ -168,42 +164,6 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "Exiting. Username: " << userName);
 }
 
-
-// UserInfo DomeAdapterCatalog::getUser(const std::string& username) throw (DmException) {
-  // throw DmException(EINVAL, "getUser not implemented");
-  // Davix::Uri uri(factory_->domehead_ + "/");
-
-
-
-  // DomeTalker talker(factory_->davixPool_, secCtx_,
-  //                   "GET", uri, "dome_getuser");
-
-  // if(!talker.execute("username", username)) {
-  //   throw DmException(EINVAL, talker.err());
-  // }
-
-  // try {
-  //   UserInfo userinfo;
-  //   userinfo.name = username;
-  //   userinfo["uid"] = talker.jresp().get<std::string>("uid");
-  //   userinfo["banned"] = talker.jresp().get<std::string>("banned");
-  //   return userinfo;
-  // }
-  // catch(boost::property_tree::ptree_error &e) {
-  //   throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
-  // }
-// }
-
-// void DomeAdapterCatalog::changeDir(const std::string& dir) throw (DmException) {
-//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering - dir: " << dir);
-//   cwd_ = dir;
-// }
-
-// std::string DomeAdapterCatalog::getWorkingDir(void) throw (DmException) {
-//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "cwd: " << cwd_);
-//   return cwd_;
-// }
-
 Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmException) {
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
@@ -244,11 +204,6 @@ void DomeAdapterCatalog::closeDir(Directory* dir) throw (DmException) {
   DomeDir *domedir = static_cast<DomeDir*>(dir);
   delete domedir;
 }
-
-// struct dirent* DomeAdapterCatalog::readDir(Directory* dir) throw (DmException) {
-//   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
-//   return NULL;
-// }
 
 ExtendedStat* DomeAdapterCatalog::readDirx(Directory* dir) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");

@@ -186,7 +186,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
 
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException) 
 {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. (PoolManager) Path: " << path);
   Davix::Uri uri(factory_->domehead_ + "/" + path);
   DomeTalker talker(factory_->davixPool_, secCtx_,
                     "POST", uri, "dome_put");
