@@ -160,13 +160,40 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 }
 
 
+void DomeIOHandler::mkdirp(const std::string& path) throw (DmException) {
+  std::vector<std::string> parts = DomeUtils::split(path, "/");
+  std::ostringstream tocreate(parts[0]);
 
+  // rudimentary sanity protection: never try to create the top-level directory
+  for(std::vector<std::string>::iterator it = parts.begin()+1; it+1 != parts.end(); it++) {
+    tocreate << "/" + *it;
+
+    struct stat info;
+    if(::stat(tocreate.str().c_str(), &info) != 0) {
+      Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Creating directory: " << tocreate.str());
+
+      mode_t prev = umask(0);
+      int ret = ::mkdir(tocreate.str().c_str(), 0770);
+      umask(prev);
+
+      if(ret != 0) {
+        char errbuffer[128];
+        strerror_r(errno, errbuffer, sizeof(errbuffer));
+        throw DmException(errno, "Could not create directory: %s err: %s", tocreate.str().c_str(), errbuffer);
+      }
+    }
+  }
+}
 
 DomeIOHandler::DomeIOHandler(const std::string& path,
                            int flags, mode_t mode) throw (DmException):
   eof_(false)
 {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " path:" << path << ", flags: " << flags << ", mode: " << mode);
+
+  if(flags & O_CREAT) {
+    this->mkdirp(path);
+  }
 
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1) {
