@@ -736,7 +736,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     // Start transaction
     InodeTrans trans(inodeintf);
     
-    off_t sz = st.stat.st_size;
+    off_t sz = size;
     
     
     ino_t hierarchy[128];
