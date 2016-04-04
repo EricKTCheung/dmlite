@@ -142,7 +142,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
   
   // fetch the parameters, lfn and placement suggestions
-  std::string lfn = req.object;
+  std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   std::string addreplica_ = req.bodyfields.get<std::string>("additionalreplica", "");
   std::string pool = req.bodyfields.get<std::string>("pool", "");
   std::string host = req.bodyfields.get<std::string>("host", "");
@@ -384,6 +384,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   // in order to put some distance from rfio concepts, at least in the api
   std::string server = req.bodyfields.get<std::string>("server", "");
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+  std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   
   size_t size = req.bodyfields.get<size_t>("size", 0);
   std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
@@ -458,7 +459,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl1, domelogmask, domelogname, " Forwarding to headnode. server: '" << server << "' pfn: '" << pfn << "' "
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
   
-  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + req.object;
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   Davix::Uri url(domeurl);
 
   Davix::DavixError* tmp_err = NULL;
@@ -482,6 +483,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   // where we write this machine's hostname (we are a disk server here) and the validated size
   req.bodyfields.put("server", status.myhostname);
   req.bodyfields.put("size", size);
+  req.bodyfields.put("lfn", lfn);
   std::ostringstream os;
   boost::property_tree::write_json(os, req.bodyfields);
   req2.setRequestBody(os.str());
@@ -526,7 +528,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // in order to put some distance from rfio concepts, at least in the api
   std::string server = req.bodyfields.get<std::string>("server", "");
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-  
+  std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   size_t size = req.bodyfields.get<size_t>("size", 0);
   std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
   std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
@@ -606,7 +608,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
   if (size == 0) {
-    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.object;
+    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
     Davix::Uri url(domeurl);
 
     Davix::DavixError* tmp_err = NULL;
@@ -629,6 +631,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     boost::property_tree::ptree jstat;
     jstat.put("pfn", pfn);
+    jstat.put("lfn", lfn);
     boost::property_tree::write_json(os, jstat);
     req2.setRequestBody(os.str());
     
@@ -948,6 +951,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     bool forcerecalc = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("force-recalc", "false"));
     bool updateLfnChecksum = (pfn == "");
 
@@ -956,8 +960,8 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     }
 
     if(forcerecalc) {
-      Replica replica = pickReplica(req.object, pfn, stack);
-      return calculateChecksum(req, request, req.object, replica, chksumtype, updateLfnChecksum);
+      Replica replica = pickReplica(lfn, pfn, stack);
+      return calculateChecksum(req, request, lfn, replica, chksumtype, updateLfnChecksum);
     }
 
     // Not forced to do a recalc - maybe I can find the checksums in the db
@@ -966,7 +970,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     Replica replica;
 
     // retrieve lfn checksum
-    ExtendedStat xstat = stack->getCatalog()->extendedStat(req.object);
+    ExtendedStat xstat = stack->getCatalog()->extendedStat(lfn);
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
       Log(Logger::Lvl3, domelogmask, domelogname, "Found lfn checksum in the db: " << lfnchecksum);
@@ -977,7 +981,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
 
     // retrieve pfn checksum
     if(pfn != "") {
-      replica = pickReplica(req.object, pfn, stack);
+      replica = pickReplica(lfn, pfn, stack);
       if(replica.hasField(fullchecksum)) {
         pfnchecksum = replica.getString(fullchecksum);
         Log(Logger::Lvl3, domelogmask, domelogname, "Found pfn checksum in the db: " << pfnchecksum);
@@ -996,10 +1000,10 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
 
     // something is missing, need to calculate
     if(pfn == "") {
-      replica = pickReplica(req.object, pfn, stack);
+      replica = pickReplica(lfn, pfn, stack);
     }
 
-    return calculateChecksum(req, request, req.object, replica, chksumtype, updateLfnChecksum);
+    return calculateChecksum(req, request, lfn, replica, chksumtype, updateLfnChecksum);
   }
   catch(dmlite::DmException& e) {
     std::ostringstream os("An error has occured.\r\n");
@@ -1022,6 +1026,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
+    std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     std::string str_status = req.bodyfields.get<std::string>("status", "");
     std::string reason = req.bodyfields.get<std::string>("reason", "");
     std::string checksum = req.bodyfields.get<std::string>("checksum", "");
@@ -1047,7 +1052,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     }
 
     // modify the queue as needed
-    std::string namekey = req.object + "[#]" + pfn + "[#]" + chksumtype;
+    std::string namekey = lfn + "[#]" + pfn + "[#]" + chksumtype;
     std::vector<std::string> qualifiers;
 
     Url u(pfn);
@@ -1059,7 +1064,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
 
     if(str_status == "aborted") {
-      Log(Logger::Lvl1, domelogmask, domelogname, "Checksum calculation failed. LFN: " << req.object
+      Log(Logger::Lvl1, domelogmask, domelogname, "Checksum calculation failed. LFN: " << lfn
       << "PFN: " << pfn << ". Reason: " << reason);
       return DomeReq::SendSimpleResp(request, 200, "");
     }
@@ -1075,19 +1080,19 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     }
 
     // replace pfn checksum
-    Replica replica = pickReplica(req.object, pfn, stack);
+    Replica replica = pickReplica(lfn, pfn, stack);
     replica[fullchecksum] = checksum;
     stack->getCatalog()->updateReplica(replica);
 
     // replace lfn checksum?
     if(updateLfnChecksum) {
-      stack->getCatalog()->setChecksum(req.object, fullchecksum, checksum);
+      stack->getCatalog()->setChecksum(lfn, fullchecksum, checksum);
     }
     // still update if it's empty, though
     else {
-      ExtendedStat xstat = stack->getCatalog()->extendedStat(req.object);
+      ExtendedStat xstat = stack->getCatalog()->extendedStat(lfn);
       if(!xstat.hasField(fullchecksum)) {
-        stack->getCatalog()->setChecksum(req.object, fullchecksum, checksum);
+        stack->getCatalog()->setChecksum(lfn, fullchecksum, checksum);
       }
     }
 
@@ -1541,11 +1546,13 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
   
   DomeFsInfo fs;
-  bool canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
+  std::string lfn = req.bodyfields.get<std::string>("lfn", "");
+  
+  bool canpull = status.LfnMatchesAnyCanPullFS(lfn, fs);
   
   DmlitePoolHandler stack(status.dmpool);
   try {
-    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
+    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
     using boost::property_tree::ptree;
     ptree jresp;
     bool found = false;
@@ -1590,20 +1597,20 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     
     // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
     if (e.code() == ENOENT) {
-      Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << req.object << "'");
+      Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << lfn << "'");
       
     }
     else
-      return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << req.object << "'"));
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << lfn << "'"));
   }
   
   // Here we have to trigger the file pull and tell to the client to come back later
   if (canpull) {
-    Log(Logger::Lvl1, domelogmask, domelogname, "Volatile filesystem detected. Seems we can try pulling the file: '" << req.object << "'");
-    return enqfilepull(req, request, req.object);
+    Log(Logger::Lvl1, domelogmask, domelogname, "Volatile filesystem detected. Seems we can try pulling the file: '" << lfn << "'");
+    return enqfilepull(req, request, lfn);
   }
   
-  return DomeReq::SendSimpleResp(request, 404, SSTR("No available replicas for '" << req.object << "'"));
+  return DomeReq::SendSimpleResp(request, 404, SSTR("No available replicas for '" << lfn << "'"));
   
 }
 
@@ -1625,7 +1632,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-    std::string lfn = req.object;
+    std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     std::string server = req.bodyfields.get<std::string>("server", "");
     std::string str_status = req.bodyfields.get<std::string>("status", "");
     std::string reason = req.bodyfields.get<std::string>("reason", "");
@@ -1655,7 +1662,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     }
 
     // modify the queue as needed
-    std::string namekey = req.object;
+    std::string namekey = lfn;
     std::vector<std::string> qualifiers;
 
     qualifiers.push_back("");
@@ -1663,19 +1670,19 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
 
     if(str_status == "aborted") {
-      Log(Logger::Lvl1, domelogmask, domelogname, "File pull failed. LFN: " << req.object
+      Log(Logger::Lvl1, domelogmask, domelogname, "File pull failed. LFN: " << lfn
       << "PFN: " << pfn << ". Reason: " << reason);
       return DomeReq::SendSimpleResp(request, 200, "");
     }
 
     if(str_status == "pending") {
-      Log(Logger::Lvl2, domelogmask, domelogname, "File pull pending... LFN: " << req.object
+      Log(Logger::Lvl2, domelogmask, domelogname, "File pull pending... LFN: " << lfn
       << "PFN: " << pfn << ". Reason: " << reason);
       return DomeReq::SendSimpleResp(request, 200, "");
     }
 
     // status is done, checksum can be empty
-    Log(Logger::Lvl2, domelogmask, domelogname, "File pull finished. LFN: " << req.object
+    Log(Logger::Lvl2, domelogmask, domelogname, "File pull finished. LFN: " << lfn
         << "PFN: " << pfn << ". Reason: " << reason);
     
     // In practice it's like a putdone request, unfortunately we have to
@@ -1788,7 +1795,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-    std::string lfn = req.object;
+    std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     
     // Checksumtype in this case can be empty, as it's just a suggestion...
     if(pfn == "") {
@@ -1838,7 +1845,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   // Remove any trailing slash
-  std::string absPath = req.object;
+  std::string absPath = req.bodyfields.get<std::string>("lfn", "");
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
