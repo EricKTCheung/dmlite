@@ -31,7 +31,7 @@
 #include "DomeTaskExec.h"
 #include "DomeReq.h"
 #include "DomeLog.h"
-#include "DomeDmlitePool.h"
+
 #include "utils/mysqlpools.h"
 #include "utils/DavixPool.h"
 #include <fcgiapp.h>
@@ -163,7 +163,7 @@ private:
   boost::recursive_mutex mtx;
   boost::mutex accept_mutex;
   int fcgi_listenSocket;
-  DmlitePool *dmpool;
+
 
   dmlite::DavixCtxFactory *davixFactory;
   dmlite::DavixCtxPool *davixPool;

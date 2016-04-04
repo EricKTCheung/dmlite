@@ -34,6 +34,7 @@
 #include "utils/logger.h"
 #include "utils/poolcontainer.h"
 #include <dmlite/cpp/dmlite.h>
+#include "DomeLog.h"
 
 class DmlitePool;
 

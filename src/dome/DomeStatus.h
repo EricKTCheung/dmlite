@@ -28,6 +28,8 @@
 #include <set>
 #include "DomeGenQueue.h"
 #include "utils/DavixPool.h"
+#include "DomeDmlitePool.h"
+
 
 /// We describe a filesystem where to put data. We also keep dynamic information here, e.g. the free/used space
 class DomeFsInfo {
@@ -136,6 +138,13 @@ class DomeStatus: public boost::recursive_mutex {
 public:
   
   DomeStatus();
+  ~DomeStatus() {
+    
+    if(dmpool) {
+      delete dmpool;
+      dmpool = NULL;
+    }
+  }
   
   // Head node or disk server ?
   enum {
@@ -182,6 +191,9 @@ public:
   /// Returns zero if pool was found, nonzero otherwise
   int getPoolSpaces(std::string &poolname, long long &total, long long &free, int &poolstatus);
   
+  /// Calculates the free space in the given path, considering both quotatokens and pool spaces
+  long long getPathFreeSpace(const std::string &path);
+  
   /// Tells if a pool with the given name exists
   bool existsPool(std::string &poolname);
   
@@ -201,6 +213,9 @@ public:
   // disk node trusts head node as defined in the config file
   bool isDNaKnownServer(std::string dn);
   
+  /// Tells if a file is likely to fit into a certain directory,
+  /// considering quotas and disk space 
+  bool LfnFitsInFreespace(std::string lfn, size_t space);
   
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
@@ -230,6 +245,7 @@ public:
   /// The status lives
   int tick(time_t timenow);
   
+  DmlitePool *dmpool;
 private:
   time_t lastreload, lastfscheck;
   long globalputcount;
