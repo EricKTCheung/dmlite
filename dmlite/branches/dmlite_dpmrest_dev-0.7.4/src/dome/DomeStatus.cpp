@@ -919,8 +919,8 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
   
   // Loop, going up in the parent directory hierarchy
   while (lfn1.length() > 0) {
-    long long totfree = 0L;  
-    long long totused = 0L;
+    long long totfree = 0LL;  
+    long long totused = 0LL;
     Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
     
     // Check if any matching quotatoken exists, with enough free space
@@ -977,7 +977,7 @@ bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
   // Calculate parent path
   std::string parent;
   
-  return (getPathFreeSpace(parent) > space);
+  return (getPathFreeSpace(parent) > (long long)space);
   
 }
 
