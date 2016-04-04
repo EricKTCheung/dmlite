@@ -1847,22 +1847,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   bool getsubdirs = req.bodyfields.get<bool>("getsubdirs", false);
   bool getparentdirs = req.bodyfields.get<bool>("getparentdirs", false);
   
-  // Get the used space for this path
-  long long pathused = 0LL;
-  long long pathfree = 0L;
-  DmlitePoolHandler stack(status.dmpool);
-  try {
-    struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
-    pathused = st.stat.st_size;
-  }
-  catch (dmlite::DmException e) {
-    std::ostringstream os;
-    os << "Cannot find logical path: " << absPath;
-    
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os); 
-    
-  }
+
 
   // Get the ones that match the object of the query
   
@@ -1876,11 +1861,29 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     size_t pos = absPath.find(it->second.path);
     if ( pos == 0 ) {
       
+
+      
       // If the query is longer than the tk then it's not matching if getsubdirs is false
       if ((absPath.length() > it->second.path.length()) && (!getparentdirs)) continue;
       
       // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (absPath[it->second.path.length()] != '/') ) continue;
+      
+      // Get the used space for this path
+      long long pathfree = 0LL;
+      long long pathused = 0LL;      
+      DmlitePoolHandler stack(status.dmpool);
+      try {
+        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
+        pathused = st.stat.st_size;
+      }
+      catch (dmlite::DmException e) {
+        std::ostringstream os;
+        os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
+    
+        Err(domelogname, os.str());
+        continue;
+      }      
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
@@ -1917,10 +1920,27 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     size_t pos = it->second.path.find(absPath);
     if ( pos == 0 ) {
       
+      
+            // Get the used space for this path
+      long long pathfree = 0LL;
+      long long pathused = 0LL;      
+      DmlitePoolHandler stack(status.dmpool);
+      try {
+        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(it->second.path);
+        pathused = st.stat.st_size;
+      }
+      catch (dmlite::DmException e) {
+        std::ostringstream os;
+        os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
+    
+        Err(domelogname, os.str());
+        continue;
+      } 
+      
       // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
       
-      // If the lengths are the same then we don't want it, as we look for proper subdirs
+      // If the lengths are the same then we don't want it, as we look for proper subdirs here
       if ( absPath.length() == it->second.path.length() ) continue;
       
       // Now find the free space in the mentioned pool
