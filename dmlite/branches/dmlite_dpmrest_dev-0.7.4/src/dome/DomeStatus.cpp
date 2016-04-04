@@ -40,6 +40,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/param.h>
+
+
+#include "cpp/dmlite.h"
+#include "cpp/catalog.h"
 
 using namespace dmlite;
 
@@ -77,6 +82,9 @@ DomeStatus::DomeStatus() {
   
   Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
   
+  // Create a dmlite pool
+  dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
+    
 }
 long DomeStatus::getGlobalputcount() {
   boost::unique_lock<boost::recursive_mutex> l(*this);
@@ -903,7 +911,75 @@ bool DomeStatus::LfnMatchesPool(std::string lfn, std::string pool) {
   
 }
 
+long long DomeStatus::getPathFreeSpace(const std::string &path) {
+  // Lock status!
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  std::string lfn1(path);
+  
+  
+  // Loop, going up in the parent directory hierarchy
+  while (lfn1.length() > 0) {
+    long long totfree = 0L;  
+    long long totused = 0L;
+    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
+    
+    // Check if any matching quotatoken exists, with enough free space
+    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
+    myintv = quotas.equal_range(lfn1);
+    
+    // Any quotatokens here ?
+    if (myintv.first != quotas.end()) {
+      
+      // Gets the used space in the dir
+      DmlitePoolHandler stack(dmpool);
+      ExtendedStat st;
+      // Try to get the used space in the dir of the quotatoken
+      try {
+        st = stack->getCatalog()->extendedStat(lfn1);
+        totused = st.stat.st_size;
+      }
+      catch (DmException e) {
+        std::ostringstream os;
+        os << "Found quotatokens for non-existing path '"<< path << "' : " << e.code() << "-" << e.what();
+      
+        Err(domelogname, os.str());
+        continue;
+      }
+          
+      // Loop on all the quotatokens of this dir  
+      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+        long long pooltotal, poolfree;
+        int poolst;
+        
+        // Gets the free space in the pool pointed to by this quotatoken
+        if (!getPoolSpaces(it->second.poolname, pooltotal, poolfree, poolst)) {
+          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn1 << "' poolfree: " << poolfree << " poolstatus: " << poolst);    
+          
+          // Consider as free space the minimum between free space on the pool and quota size in the same pool
+          totfree += MIN(poolfree, it->second.t_space);
+        }
+      }
+      
+      // Remember, with quotatokens we exit at the first match in the parent directories
+      return MAX( 0, totfree - totused );
+    }
+    
+    // No match found, look upwards by trimming the last token from absPath
+    size_t pos = lfn1.rfind("/");
+    lfn1.erase(pos);
+  }
+  return 0;
+}
 
+
+bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
+  
+  // Calculate parent path
+  std::string parent;
+  
+  return (getPathFreeSpace(parent) > space);
+  
+}
 
 bool DNMatchesHost(std::string dn, std::string host) {
   std::string s = "/CN="+host;

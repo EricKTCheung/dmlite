@@ -56,10 +56,6 @@ DomeCore::~DomeCore() {
   
   Log(Logger::Lvl1, domelogmask, domelogname, "Stopping ticker.");
   
-  if(dmpool) {
-    delete dmpool;
-    dmpool = NULL;
-  }
   
   if(davixPool) {
     delete davixPool;
@@ -422,9 +418,7 @@ int DomeCore::init(const char *cfgfile) {
                           CFG->GetLong  ("glb.db.port",     0),
                           CFG->GetLong  ("glb.db.poolsz",   10) );
     
-    // Create a dmlite pool
-    dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
-    
+   
     // Configure the davix pool
     davixFactory = new dmlite::DavixCtxFactory();
     davixFactory->setRequestParams(getDavixParams());

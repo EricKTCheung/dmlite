@@ -167,6 +167,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     return DomeReq::SendSimpleResp(request, 501, "The pool hint and the host hint are mutually exclusive.");
   }
  
+  // Check against the quotas
+  if ( !status.LfnFitsInFreespace(lfn, CFG->GetLong("glb.put.minfreespace_mb", 4096)*1024*1024L) ) {
+    return DomeReq::SendSimpleResp(request, 400, "Not enough free space, either quota or disk.");
+  }
+  
   std::vector<DomeFsInfo> selectedfss;
   {
     // Lock!
@@ -292,7 +297,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     // Create the logical catalog entry, if not already present. We also create the parent dirs
     // if they are absent
     
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
     ExtendedStat parentstat, lfnstat;
     std::string parentpath;
     
@@ -510,7 +515,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   
   
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
   if (!inodeintf) {
     Err( domelogname , " Cannot retrieve inode interface. Fatal.");
@@ -938,7 +943,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
@@ -1012,7 +1017,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
@@ -1104,7 +1109,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    //DmlitePoolHandler stack(dmpool);
+    //DmlitePoolHandler stack(status.dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
@@ -1485,7 +1490,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
         // Now get the size of this directory, using the dmlite catalog
         usedspace = 0;
-        DmlitePoolHandler stack(dmpool);
+        DmlitePoolHandler stack(status.dmpool);
         try {
           struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
           usedspace = st.stat.st_size;
@@ -1538,7 +1543,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   DomeFsInfo fs;
   bool canpull = status.LfnMatchesAnyCanPullFS(req.object, fs);
   
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   try {
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(req.object);
     using boost::property_tree::ptree;
@@ -1610,7 +1615,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
   
   try {
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
     INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
     if (!inodeintf) {
       Err( domelogname , " Cannot retrieve inode interface. Fatal.");
@@ -1779,7 +1784,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    //DmlitePoolHandler stack(dmpool);
+    //DmlitePoolHandler stack(status.dmpool);
     
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
@@ -1845,7 +1850,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   // Get the used space for this path
   long long pathused = 0LL;
   long long pathfree = 0L;
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   try {
     struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
     pathused = st.stat.st_size;
@@ -1905,7 +1910,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   if (getsubdirs) {
-    // Here we want to match abspaths that are shorter than the quotatokens
+    // Here we want to match abspaths that are shorter than the quotatokens. Shorter but not equal.
       for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getsubdirs: " << getsubdirs);
     // If we can find the abspath into the token then we are selecting tokens that are equal or longer
@@ -1914,6 +1919,9 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       
       // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
+      
+      // If the lengths are the same then we don't want it, as we look for proper subdirs
+      if ( absPath.length() == it->second.path.length() ) continue;
       
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
@@ -1976,7 +1984,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
     mytk.path.erase(mytk.path.size() - 1);
   }
   
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   try {
     struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(mytk.path);
   }
@@ -2170,7 +2178,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   
   
   // Get the replica. Unfortunately to delete it we must first fetch it
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   std::string rfiopath = srv + ":" + absPath;
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting replica: '" << rfiopath);
   dmlite::Replica rep;
@@ -2597,7 +2605,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   
   // If lfn is filled then we stat the logical file
   if (lfn.size()) {
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
     try {
         st = stack->getCatalog()->extendedStat(lfn);
       }
@@ -2655,7 +2663,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
     // Else we stat the replica, recomposing the rfioname (sob)
 
       rfn = server + ":" + pfn;
-      DmlitePoolHandler stack(dmpool);
+      DmlitePoolHandler stack(status.dmpool);
       try {
         st = stack->getCatalog()->extendedStatByRFN(rfn); 
       }
@@ -2684,7 +2692,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot list an empty path"));
   }
   
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   boost::property_tree::ptree jresp, jresp2;
   
   Directory *d;
@@ -2728,7 +2736,7 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Username not specified"));
   }
 
-  DmlitePoolHandler stack(dmpool);
+  DmlitePoolHandler stack(status.dmpool);
   boost::property_tree::ptree jresp;
   
   try {
@@ -2765,7 +2773,7 @@ int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
     UserInfo userinfo;
     std::vector<GroupInfo> groupinfo;
 
-    DmlitePoolHandler stack(dmpool);
+    DmlitePoolHandler stack(status.dmpool);
     stack->getAuthn()->getIdMap(username, groupnames, &userinfo, &groupinfo);
 
     ptree resp;
