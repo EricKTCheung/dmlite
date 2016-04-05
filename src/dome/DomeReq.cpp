@@ -27,6 +27,7 @@
 #include "DomeLog.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include "cpp/utils/urls.h"
 
 DomeReq::DomeReq(FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Ctor");
@@ -36,10 +37,14 @@ DomeReq::DomeReq(FCGX_Request &request) {
     verb = s;
   if ( (s = FCGX_GetParam("PATH_INFO", request.envp)) )
     object = s;
-  if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
-    domecmd = s;
 
-  // TODO: extract the authz info about the submitting client
+
+//  if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
+//    domecmd = s;
+  
+  std::vector<std::string> vecurl = dmlite::Url::splitPath(object);
+  if (vecurl.size() > 1)
+    domecmd = vecurl[vecurl.size()-1];
   
   // Extract the authz info about the remote user
   if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) )
