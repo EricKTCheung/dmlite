@@ -58,7 +58,7 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
     davixFactory_.configure(key, value);
   }
   else gotit = false;
-  
+
   if (gotit)
     LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
 }
@@ -144,9 +144,8 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   // send a put done to the local dome instance
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
 
-  Davix::Uri uri(domedisk_ + "/" + sfn);
-  DomeTalker talker(davixPool_, secCtx_,
-                    "POST", uri, "dome_putdone");
+  DomeTalker talker(davixPool_, secCtx_, domedisk_,
+                    "POST", "dome_putdone", sfn);
 
   boost::property_tree::ptree params;
   params.put("pfn", loc[0].url.path);

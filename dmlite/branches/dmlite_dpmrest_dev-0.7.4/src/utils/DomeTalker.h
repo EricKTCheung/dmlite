@@ -34,7 +34,7 @@ namespace dmlite {
 
 class DomeTalker {
 public:
-  DomeTalker(DavixCtxPool &pool, const SecurityContext* sec, std::string verb, Davix::Uri uri, std::string cmd);
+  DomeTalker(DavixCtxPool &pool, const SecurityContext* sec, std::string uri, std::string verb, std::string cmd, std::string path = "");
   ~DomeTalker();
 
   bool execute();
@@ -57,8 +57,9 @@ private:
   DavixCtxPool &pool_;
   const SecurityCredentials &creds_;
   std::string verb_;
-  Davix::Uri uri_;
+  std::string uri_;
   std::string cmd_;
+  std::string path_;
 
   DavixGrabber grabber_;
   DavixStuff *ds_;
