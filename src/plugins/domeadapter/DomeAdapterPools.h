@@ -41,7 +41,7 @@ namespace dmlite {
     // void cancelWrite(const Location& loc) throw (DmException);
   private:
     StackInstance* si_;
-    const SecurityContext* secCtx_;
+    const SecurityCredentials* creds_;
     std::string userId_;
 
     /// The corresponding factory.

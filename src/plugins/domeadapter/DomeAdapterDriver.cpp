@@ -20,6 +20,7 @@ using namespace dmlite;
 
 DomeAdapterPoolDriver::DomeAdapterPoolDriver(DomeAdapterFactory *factory) {
   factory_ = factory;
+  creds_ = NULL;
 }
 
 DomeAdapterPoolDriver::~DomeAdapterPoolDriver() {
@@ -35,13 +36,13 @@ void DomeAdapterPoolDriver::setStackInstance(StackInstance* si) throw (DmExcepti
 }
 
 void DomeAdapterPoolDriver::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
-  secCtx_ = secCtx;
+  creds_ = &secCtx->credentials;
 
   // Id mechanism
   if (factory_->tokenUseIp_)
-    userId_ = secCtx_->credentials.remoteAddress;
+    userId_ = creds_->remoteAddress;
   else
-    userId_ = secCtx_->credentials.clientName;
+    userId_ = creds_->clientName;
 }
 
 PoolHandler* DomeAdapterPoolDriver::createPoolHandler(const std::string& poolname) throw (DmException) {
@@ -68,7 +69,7 @@ std::string DomeAdapterPoolHandler::getPoolName(void) throw (DmException) {
 
 void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
   {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "POST", "dome_addpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -80,7 +81,7 @@ void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
   for(unsigned i = 0; i < filesystems.size(); ++i) {
     Extensible fs = boost::any_cast<Extensible>(filesystems[i]);
 
-    DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+    DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                       "POST", "dome_addfstopool");
 
     boost::property_tree::ptree params;
@@ -109,7 +110,7 @@ bool contains_filesystem(std::vector<boost::any> filesystems, std::string server
 }
 
 void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -130,7 +131,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
         // send rmfs to dome to remove this filesystem
         Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Removing filesystem '" << fs << "' on server '" << server << "'");
 
-        DomeTalker rmfs(factory_->davixPool_, secCtx_, factory_->domehead_,
+        DomeTalker rmfs(factory_->davixPool_, creds_, factory_->domehead_,
                         "POST", "dome_rmfs");
 
         boost::property_tree::ptree params;
@@ -153,7 +154,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
       if(!contains_filesystem(oldfilesystems, server, fs)) {
         // send addfs to dome to add this filesystem
         Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Adding filesystem '" << fs << "' on server '" << server << "'");
-        DomeTalker addfs(factory_->davixPool_, secCtx_, factory_->domehead_,
+        DomeTalker addfs(factory_->davixPool_, creds_, factory_->domehead_,
                          "POST", "dome_addfstopool");
 
         boost::property_tree::ptree params;
@@ -173,7 +174,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
 }
 
 void DomeAdapterPoolDriver::toBeDeleted(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "POST", "dome_rmpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -182,7 +183,7 @@ void DomeAdapterPoolDriver::toBeDeleted(const Pool& pool) throw (DmException) {
 }
 
 uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmException) {
-  DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_, driver_->factory_->domehead_,
+  DomeTalker talker(driver_->factory_->davixPool_, driver_->creds_, driver_->factory_->domehead_,
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname_)) {
@@ -232,7 +233,7 @@ bool DomeAdapterPoolHandler::replicaIsAvailable(const Replica& replica) throw (D
     return false;
   }
 
-  DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_, driver_->factory_->domehead_,
+  DomeTalker talker(driver_->factory_->davixPool_, driver_->creds_, driver_->factory_->domehead_,
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname_)) {
@@ -265,7 +266,7 @@ bool DomeAdapterPoolHandler::replicaIsAvailable(const Replica& replica) throw (D
 
 void DomeAdapterPoolHandler::removeReplica(const Replica& replica) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " rfn: " << replica.rfn);
-  DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_, driver_->factory_->domehead_,
+  DomeTalker talker(driver_->factory_->davixPool_, driver_->creds_, driver_->factory_->domehead_,
                     "POST", "dome_delreplica");
 
   boost::property_tree::ptree params;
@@ -287,10 +288,10 @@ void DomeAdapterPoolHandler::cancelWrite(const Location& loc) throw (DmException
 
 Location DomeAdapterPoolHandler::whereToWrite(const std::string& lfn) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " lfn: " << lfn);
-  DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_, driver_->factory_->domehead_,
-                    "POST", "dome_put", lfn);
+  DomeTalker talker(driver_->factory_->davixPool_, driver_->creds_, driver_->factory_->domehead_,
+                    "POST", "dome_put");
 
-  if(!talker.execute("pool", poolname_)) {
+  if(!talker.execute("pool", poolname_, "lfn", lfn)) {
     throw DmException(EINVAL, talker.err());
   }
 

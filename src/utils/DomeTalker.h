@@ -34,7 +34,7 @@ namespace dmlite {
 
 class DomeTalker {
 public:
-  DomeTalker(DavixCtxPool &pool, const SecurityContext* sec, std::string uri, std::string verb, std::string cmd, std::string path = "");
+  DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std::string uri, std::string verb, std::string cmd);
   ~DomeTalker();
 
   bool execute();
@@ -44,6 +44,10 @@ public:
 
   // only send a single json param
   bool execute(const std::string &key, const std::string &value);
+
+  // only send two
+  bool execute(const std::string &key1, const std::string &value1,
+               const std::string &key2, const std::string &value2);
 
   // get error message, if it exists
   std::string err();
@@ -55,11 +59,10 @@ public:
   const std::vector<char>& response();
 private:
   DavixCtxPool &pool_;
-  const SecurityCredentials &creds_;
+  const SecurityCredentials *creds_;
   std::string verb_;
   std::string uri_;
   std::string cmd_;
-  std::string path_;
 
   DavixGrabber grabber_;
   DavixStuff *ds_;

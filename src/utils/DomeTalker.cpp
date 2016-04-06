@@ -26,18 +26,19 @@
 
 using namespace dmlite;
 
-DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::string uri,
-                       std::string verb, std::string cmd, std::string path)
-    : pool_(pool), creds_(sec->credentials), uri_(uri), verb_(verb), cmd_(cmd), path_(path),
+static std::string trim_trailing_slashes(std::string str) {
+  while(str.size() > 0 && str[str.size()-1] == '/') {
+    str = str.substr(0, str.size()-2);
+  }
+}
+
+DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std::string uri,
+                       std::string verb, std::string cmd)
+    : pool_(pool), creds_(creds), uri_(trim_trailing_slashes(uri)), verb_(verb), cmd_(cmd),
     grabber_(pool_), ds_(grabber_) {
 
   err_ = NULL;
   parsedJson_ = false;
-
-  // trim trailing slashes
-  while(uri_.size() > 0 && uri_[uri_.size()-1] == '/') {
-    uri_ = uri_.substr(0, uri_.size()-2);
-  }
 }
 
 DomeTalker::~DomeTalker() {
@@ -60,16 +61,10 @@ bool DomeTalker::execute(const std::string &str) {
   if(err_) return false;
 
   req.setRequestMethod(verb_);
-  if(path_.size() != 0) {
-    req.addHeaderField("path", path_);
-  }
-
-  if(creds_.clientName != "") {
-    req.addHeaderField("remoteclientdn", creds_.clientName);
-  }
-
-  if(creds_.remoteAddress != "") {
-    req.addHeaderField("remoteclienthost", creds_.remoteAddress);
+  
+  if(creds_) {
+    req.addHeaderField("remoteclientdn", creds_->clientName);
+    req.addHeaderField("remoteclienthost", creds_->remoteAddress);
   }
 
   req.setParameters(*ds_->parms);
@@ -105,6 +100,14 @@ bool DomeTalker::execute(const boost::property_tree::ptree &params) {
 bool DomeTalker::execute(const std::string &key, const std::string &value) {
   boost::property_tree::ptree params;
   params.put(key, value);
+  return this->execute(params);
+}
+
+bool DomeTalker::execute(const std::string &key1, const std::string &value1,
+                         const std::string &key2, const std::string &value2) {
+  boost::property_tree::ptree params;
+  params.put(key1, value1);
+  params.put(key2, value2);
   return this->execute(params);
 }
 

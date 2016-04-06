@@ -36,13 +36,13 @@ void DomeAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmExcept
 }
 
 void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
-  secCtx_ = secCtx;
+  creds_ = &secCtx->credentials;
 
   // Id mechanism
   if (factory_->tokenUseIp_)
-    userId_ = secCtx_->credentials.remoteAddress;
+    userId_ = creds_->remoteAddress;
   else
-    userId_ = secCtx_->credentials.clientName;
+    userId_ = creds_->clientName;
 }
 
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
@@ -66,7 +66,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
     availability = kForWrite;
   }
 
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_getspaceinfo");
 
   if(!talker.execute()) {
@@ -92,7 +92,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
 }
 
 Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname)) {
@@ -108,7 +108,7 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
 }
 
 void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "POST", "dome_addpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -121,7 +121,7 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
 // }
 
 void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "POST", "dome_rmpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -131,7 +131,7 @@ void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_get");
 
   if(!talker.execute()) {
@@ -166,8 +166,8 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. (PoolManager) Path: " << path);
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
-                    "POST", "dome_put", path);
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+                    "POST", "dome_put");
 
   if(!talker.execute("lfn", path)) {
     throw DmException(EINVAL, talker.err());
