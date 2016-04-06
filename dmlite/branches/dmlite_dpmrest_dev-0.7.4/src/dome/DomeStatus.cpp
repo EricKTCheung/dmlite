@@ -31,7 +31,7 @@
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>
-#include "utils/DavixPool.h"
+#include "utils/DomeTalker.h"
 #include <values.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -52,139 +52,103 @@ using namespace dmlite;
 DomeStatus::DomeStatus() {
   davixPool = NULL;
   lastfscheck = lastreload = 0;
-  
+
   struct addrinfo hints, *info, *p;
   int gai_result;
-  
+
   globalputcount = 0;
-  
+
   // Horrible kludge to get our hostname
   char hostname[1024];
   hostname[1023] = '\0';
   gethostname(hostname, 1023);
-  
+
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC; /*either IPV4 or IPV6*/
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_CANONNAME;
-  
+
   if ((gai_result = getaddrinfo(hostname, "http", &hints, &info)) != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_result));
     exit(1);
   }
-  
+
   for(p = info; p != NULL; p = p->ai_next) {
     if (p->ai_canonname && strlen(p->ai_canonname) > myhostname.size())
       myhostname =  p->ai_canonname;
   }
-  
+
   freeaddrinfo(info);
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
-  
+
   // Create a dmlite pool
   dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
-    
+
 }
 long DomeStatus::getGlobalputcount() {
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   globalputcount++;
   globalputcount %= MAXINT;
-  
+
   return (globalputcount);
 }
 
 
 /// Helper function that reloads all the filesystems from the DB or asking the head node
 int DomeStatus::loadFilesystems() {
-  
+
   if (role == roleHead) {
     DomeMySql sql;
     return sql.getFilesystems(*this);
   }
-  
+
   // Disk node case. We ask the head node and match the
-  // filesystems against the local server name  
+  // filesystems against the local server name
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   domeurl += "/";
-  Davix::Uri url(domeurl);
-  Davix::DavixError* tmp_err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  
-  Davix::GetRequest req2(*(ds->ctx), url, &tmp_err);
-  if( tmp_err ) {
-    std::ostringstream os;
-    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-    Davix::DavixError::clearError(&tmp_err);
-    Err(domelogname, os.str());
+
+  DomeTalker talker(*davixPool, NULL, domeurl,
+                    "GET", "dome_getspaceinfo");
+
+  if(!talker.execute()) {
+    Err(domelogname, "Error when issuing dome_getspaceinfo: " << talker.err());
     return -1;
   }
-  
-  req2.addHeaderField("cmd", "dome_getspaceinfo");
-  
-  // Set the dome timeout values for the operation
-  req2.setParameters(*(ds->parms));
-      
-  if (req2.executeRequest(&tmp_err) != 0) {
-    // The error must be ignored, hoping for better times ahead
-    std::ostringstream os;
-    int errcode = req2.getRequestCode();
-    if (tmp_err)
-      os << "Cannot query headnode for filesystems. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
-    else
-      os << "Cannot query headnode for filesystems. errcode: " << errcode;
-    
-    Err(domelogname, os.str());
-    
-    Davix::DavixError::clearError(&tmp_err);
-    return -1;
-  }
-  
-  // Here we have a positive response from the headnode. We use it to loop through
-  // the servers that match our hostname
-  const char *resp = req2.getAnswerContent();
-  
-  if (!resp || !resp[0]) {
-    Err(domelogname, "Cannot query headnode for filesystems. Empty response.");
-    return -1;
-  }
-  
-  // Here we have the response... splat its body into a ptree to parse it
-  std::istringstream is(resp);
-  boost::property_tree::ptree myresp;
-  Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << is.str() << "'");
+
+  Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << &talker.response()[0] << "'");
+  boost::property_tree::ptree jresp;
   try {
-    boost::property_tree::read_json(is, myresp);
-          
-  } catch (boost::property_tree::json_parser_error e) {
-    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+    jresp = talker.jresp();
+  }
+  catch (boost::property_tree::ptree_error &e) {
+    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << &talker.response()[0] << "'");
     return -1;
   }
-  
+
   // Now overwrite the fs entries we have with the ones we got
   {
     boost::unique_lock<boost::recursive_mutex> l(*this);
-    
+
     // Loop on the servers of the response, looking for one that matches this server
-    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo.")) {
+    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, jresp.get_child("fsinfo.")) {
       // v.first is the name of the server.
       // v.second is the child tree representing the server
       if (srv.first != this->myhostname) continue;
-                 
+
       // Now loop on the filesystems of the response
       // Now we loop through the filesystems reported by this server
       BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
         // v.first is the name of the server.
         // v.second is the child tree representing the server
-              
+
 
         // Find the corresponding server:fs info in our array, and get the counters
         bool found = false;
         Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
         for (unsigned int ii = 0; ii < fslist.size(); ii++) {
-                
+
           Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
           if (fslist[ii].fs == fs.first) {
             found = true;
@@ -194,29 +158,29 @@ int DomeStatus::loadFilesystems() {
         if (!found) {
           Log(Logger::Lvl1, domelogmask, domelogname, "Learning new fs from head node: " << srv.first << ":" << fs.first <<
             " poolname: '" << fs.second.get<std::string>("poolname") << "'" );
-          
+
           DomeFsInfo newfs;
           newfs.poolname = fs.second.get<std::string>("poolname");;
           newfs.server = myhostname;
           servers.insert(myhostname);
           newfs.fs = fs.first;
-          
+
           fslist.push_back(newfs);
         }
-        
+
       } // foreach
-    
-    
+
+
     } // foreach
   } // lock
-  
+
   return 0;
 }
 
 /// Helper function that reloads all the quotas from the DB
 int DomeStatus::loadQuotatokens() {
   DomeMySql sql;
-  
+
   return sql.getSpacesQuotas(*this);
 }
 
@@ -224,14 +188,14 @@ int DomeStatus::loadQuotatokens() {
 int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
 
    boost::unique_lock<boost::recursive_mutex> l(*this);
-    
+
     // Insert this quota, by overwriting any other quota that has the same path and same pool
     std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
     myintv = quotas.equal_range(mytk.path);
-      
+
     for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
        it != myintv.second;
-       ++it) {   
+       ++it) {
           if (it->second.poolname == mytk.poolname) {
             quotas.erase(it);
             break;
@@ -346,7 +310,7 @@ void DomeStatus::tickFilepulls() {
 
     // parse queue item contents
     std::vector<std::string> qualifiers = next->qualifiers;
-    
+
     if(qualifiers.size() != 7) {
       Err(domelogname, "INCONSISTENCY in the internal file pull queue. Internal error. Invalid size of qualifiers: " << qualifiers.size());
       continue;
@@ -356,43 +320,21 @@ void DomeStatus::tickFilepulls() {
     std::string server = next->qualifiers[2];
     std::string fs = next->qualifiers[3];
     std::string rfn = next->qualifiers[4];
-    
-    std::string remoteclientdn = qualifiers[5];
-    std::string remoteclienthost = qualifiers[6];
+
+    SecurityCredentials creds;
+    creds.clientName = qualifiers[5];
+    creds.remoteAddress = qualifiers[6];
 
     // send pull command to the disk to initiate calculation
     Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
     std::string diskurl = "https://" + server + "/domedisk/" + lfn;
-    Davix::Uri durl(diskurl);
-    Davix::DavixError *err = NULL;
 
-    DavixGrabber hdavix(*davixPool);
-    DavixStuff *ds(hdavix);
-    Davix::PostRequest req(*(ds->ctx), durl, &err);
 
-    if(err) {
-      Err(domelogname, "ERROR when initializing a post request for pulling: '" << rfn << "' : " << err->getErrMsg() );
-      Davix::DavixError::clearError(&err);
-      continue;
-    }
+    DomeTalker talker(*davixPool, &creds, diskurl,
+                      "POST", "dome_pull");
 
-    req.addHeaderField("cmd", "dome_pull");
-    req.addHeaderField("remoteclientdn", remoteclientdn);
-    req.addHeaderField("remoteclienthost", remoteclienthost);
-
-    boost::property_tree::ptree params;
-    params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
-
-    std::ostringstream os;
-    boost::property_tree::write_json(os, params);
-
-    req.setParameters(*ds->parms);
-    req.setRequestBody(os.str());
-    req.executeRequest(&err);
-
-    if(err) {
-      Err(domelogname, "ERROR when requesting file pull: '" << rfn << "' : " << err->getErrMsg() );
-      Davix::DavixError::clearError(&err);
+    if(!talker.execute("lfn", lfn, "pfn", DomeUtils::pfn_from_rfio_syntax(rfn))) {
+      Err(domelogname, "ERROR when issuing dome_pull to diskserver: " << talker.err());
       continue;
     }
   }
@@ -432,44 +374,25 @@ void DomeStatus::tickChecksums() {
 
     std::string server = qualifiers[1];
     bool updateLfnChecksum = DomeUtils::str_to_bool(qualifiers[2]);
-    std::string remoteclientdn = qualifiers[3];
-    std::string remoteclienthost = qualifiers[4];
+
+    SecurityCredentials creds;
+    creds.clientName = qualifiers[3];
+    creds.remoteAddress = qualifiers[4];
 
     // send dochksum to the disk to initiate calculation
     Log(Logger::Lvl3, domelogmask, domelogname, "Contacting disk server " << server << " for checksum calculation.");
     std::string diskurl = "https://" + server + "/domedisk/" + lfn;
-    Davix::Uri durl(diskurl);
-    Davix::DavixError *err = NULL;
 
-    DavixGrabber hdavix(*davixPool);
-    DavixStuff *ds(hdavix);
-    Davix::PostRequest req(*(ds->ctx), durl, &err);
-
-    if(err) {
-      Log(Logger::Lvl1, domelogmask, domelogname, "ERROR when initializing a post request for dochksum: " << err->getErrMsg() );
-      Davix::DavixError::clearError(&err);
-      continue;
-    }
-
-    req.addHeaderField("cmd", "dome_dochksum");
-    req.addHeaderField("remoteclientdn", remoteclientdn);
-    req.addHeaderField("remoteclienthost", remoteclienthost);
+    DomeTalker talker(*davixPool, &creds, diskurl,
+                      "POST", "dome_dochksum");
 
     boost::property_tree::ptree params;
     params.put("checksum-type", checksumtype);
     params.put("update-lfn-checksum", DomeUtils::bool_to_str(updateLfnChecksum));
     params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
 
-    std::ostringstream os;
-    boost::property_tree::write_json(os, params);
-
-    req.setParameters(*ds->parms);
-    req.setRequestBody(os.str());
-    req.executeRequest(&err);
-
-    if(err) {
-      Log(Logger::Lvl1, domelogmask, domelogname, "ERROR when sending a dochksum: " << err->getErrMsg() );
-      Davix::DavixError::clearError(&err);
+    if(!talker.execute(params)) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "Error when issuing dome_dochksum: " << talker.err());
       continue;
     }
   }
@@ -532,68 +455,44 @@ void DomeStatus::checkDiskSpaces() {
       boost::unique_lock<boost::recursive_mutex> l(*this);
       srv = servers;
     }
-    
     // Contact all the servers, sequentially
     for (std::set<std::string>::iterator servername = srv.begin(); servername != srv.end(); servername++) {
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Contacting disk server: " << *servername);
-      int errcode;
-      
+
       // https is mandatory to contact disk nodes, as they must be able to apply
       // decent authorization rules
       std::string url = "https://" + *servername +
       CFG->GetString("head.diskdomemgmtsuffix", (char *)"/domedisk/");
-      Davix::Uri uri(url);
-      
-      Davix::DavixError* tmp_err = NULL;
-      DavixGrabber hdavix(*davixPool);
-      DavixStuff *ds(hdavix);
-      Davix::GetRequest req(*ds->ctx, url, &tmp_err);
-      
-      if( tmp_err ){
-        Err("checkDiskSpaces", "Cannot initialize Query to" << url << ", Error: "<< tmp_err->getErrMsg());
-        Davix::DavixError::clearError(&tmp_err);
-        continue;
-      }
-      
-      req.addHeaderField("cmd", "dome_getspaceinfo");
-      
-      // Set decent timeout values for the operation
-      req.setParameters(ds->parms);
-      
-      if (req.executeRequest(&tmp_err) == 0)
-        errcode = req.getRequestCode();
-      
-      // Prepare the text status message to display
+
+      DomeTalker talker(*davixPool, NULL, url,
+                        "GET", "dome_getspaceinfo");
+
       boost::property_tree::ptree myresp;
-      
-      if (tmp_err) {
-        Err("checkDiskSpaces", "HTTP status error on" << url << ", Error: "<< tmp_err->getErrMsg());
-        // Here we had an error of some kind while trying to contact the disk server
-        // We don't distinguish between TCP and HTTP errors, in any case we will disable the filesystems
-      } else {
-        
-        // Here we have the response... splat its body into a ptree to parse it
-        std::istringstream is(req.getAnswerContent());
-        
-        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *servername << " answered: '" << is.str() << "'");
-        
+      bool haveJresp = false;
+
+      if(!talker.execute()) {
+        Err("checkDiskSpaces", "Error when issuing dome_getspaceinfo: " << talker.err());
+      }
+      else {
+        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *servername << " answered: '" << &talker.response()[0] << "'");
         try {
-          boost::property_tree::read_json(is, myresp);
-          
-        } catch (boost::property_tree::json_parser_error e) {
-          Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << is.str() << "'");
+          myresp = talker.jresp();
+          haveJresp = true;
+        }
+        catch (boost::property_tree::json_parser_error &e) {
+          Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << &talker.response()[0] << "'");
           continue;
         }
       }
-      
+
       // Now process the values from the Json, or just disable the filesystems. Lock the status!
       {
         boost::unique_lock<boost::recursive_mutex> l(*this);
         bool someerror = true;
         // Loop through the server names, childs of fsinfo
         
-        if (!tmp_err) {
+        if (haveJresp) {
           
           try {
             BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
@@ -656,14 +555,8 @@ void DomeStatus::checkDiskSpaces() {
             }
             
           } // loop fs
-          
-          Davix::DavixError::clearError(&tmp_err);
         } // if someerror
-        
-        
       } // lock
-      
-      
       
       // Here we should disable all the filesystems that belong to the given server
       // that were absent in the successful server's response.
