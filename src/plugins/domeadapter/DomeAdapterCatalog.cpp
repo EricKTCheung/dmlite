@@ -35,7 +35,7 @@ void DomeAdapterCatalog::setSecurityContext(const SecurityContext* secCtx) throw
 
 SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "");
-  
+
   UserInfo user;
   std::vector<GroupInfo> groups;
   GroupInfo group;
@@ -48,7 +48,7 @@ SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmExcept
 
   SecurityContext* sec = new SecurityContext(SecurityCredentials(), user, groups);
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
-  
+
   return sec;
 }
 
@@ -60,7 +60,7 @@ SecurityContext* DomeAdapterCatalog::createSecurityContext(const SecurityCredent
 
   this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
   SecurityContext* sec = new SecurityContext(cred, user, groups);
-  
+
   Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, cred.clientName << " " << cred.remoteAddress);
   return sec;
 }
@@ -86,9 +86,8 @@ static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
 ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
 
-  Davix::Uri uri(factory_->domehead_ + "/");
-  DomeTalker talker(factory_->davixPool_, secCtx_,
-                    "GET", uri, "dome_getstatinfo");
+  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+                    "GET", "dome_getstatinfo");
 
   if(!talker.execute("lfn", path)) {
     throw DmException(EINVAL, talker.err());
@@ -120,9 +119,8 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
   SecurityCredentials creds;
   SecurityContext ctx(creds, *user, *groups);
 
-  Davix::Uri uri(factory_->domehead_ + "/");
-  DomeTalker talker(factory_->davixPool_, &ctx,
-                    "GET", uri, "dome_getidmap");
+  DomeTalker talker(factory_->davixPool_, &ctx, factory_->domehead_,
+                    "GET", "dome_getidmap");
 
   using namespace boost::property_tree;
   ptree params, groups_ptree;
@@ -167,9 +165,8 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
 Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmException) {
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
-  Davix::Uri uri(factory_->domehead_ + "/");
-  DomeTalker talker(factory_->davixPool_, secCtx_,
-                    "GET", uri, "dome_getdir");
+  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+                    "GET", "dome_getdir");
 
   ptree params;
   params.put("path", path);
@@ -181,7 +178,7 @@ Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmExcepti
 
   try {
     DomeDir *domedir = new DomeDir(path);
-    
+
     ptree entries = talker.jresp().get_child("entries");
     for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
       ExtendedStat xstat;

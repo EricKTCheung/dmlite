@@ -1,18 +1,18 @@
 /*
  * Copyright 2016 CERN
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 
@@ -26,12 +26,18 @@
 
 using namespace dmlite;
 
-DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::string verb, Davix::Uri uri, std::string cmd)
-    : pool_(pool), creds_(sec->credentials), verb_(verb), uri_(uri), cmd_(cmd),
+DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::string uri,
+                       std::string verb, std::string cmd, std::string path)
+    : pool_(pool), creds_(sec->credentials), uri_(uri), verb_(verb), cmd_(cmd), path_(path),
     grabber_(pool_), ds_(grabber_) {
 
   err_ = NULL;
   parsedJson_ = false;
+
+  // trim trailing slashes
+  while(uri_.size() > 0 && uri_[uri_.size()-1] == '/') {
+    uri_ = uri_.substr(0, uri_.size()-2);
+  }
 }
 
 DomeTalker::~DomeTalker() {
@@ -49,11 +55,14 @@ bool DomeTalker::execute(const std::ostringstream &ss) {
 bool DomeTalker::execute(const std::string &str) {
   Davix::DavixError::clearError(&err_);
 
-  Davix::HttpRequest req(*ds_->ctx, uri_, &err_);
+  Davix::Uri target(uri_ + "/command/" + cmd_);
+  Davix::HttpRequest req(*ds_->ctx, target, &err_);
   if(err_) return false;
 
   req.setRequestMethod(verb_);
-  req.addHeaderField("cmd", cmd_);
+  if(path_.size() != 0) {
+    req.addHeaderField("path", path_);
+  }
 
   if(creds_.clientName != "") {
     req.addHeaderField("remoteclientdn", creds_.clientName);
