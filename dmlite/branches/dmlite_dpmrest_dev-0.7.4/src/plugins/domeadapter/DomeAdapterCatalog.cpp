@@ -17,6 +17,7 @@ using namespace dmlite;
 
 DomeAdapterCatalog::DomeAdapterCatalog(DomeAdapterFactory *factory) throw (DmException) {
   factory_ = factory;
+  creds_ = NULL;
 }
 
 std::string DomeAdapterCatalog::getImplId() const throw() {
@@ -30,7 +31,7 @@ void DomeAdapterCatalog::setStackInstance(StackInstance* si) throw (DmException)
 
 void DomeAdapterCatalog::setSecurityContext(const SecurityContext* secCtx) throw (DmException)
 {
-  this->secCtx_ = secCtx;
+  this->creds_ = &secCtx->credentials;
 }
 
 SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmException) {
@@ -86,7 +87,7 @@ static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
 ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
 
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_getstatinfo");
 
   if(!talker.execute("lfn", path)) {
@@ -114,12 +115,8 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Username: " << userName);
   groups->clear();
 
-  // temporary credentials to use in DomeTalker - necessary because our own
-  // credentials have not been initialized yet
-  SecurityCredentials creds;
-  SecurityContext ctx(creds, *user, *groups);
-
-  DomeTalker talker(factory_->davixPool_, &ctx, factory_->domehead_,
+  // our own credentials have not been initialized yet
+  DomeTalker talker(factory_->davixPool_, NULL, factory_->domehead_,
                     "GET", "dome_getidmap");
 
   using namespace boost::property_tree;
@@ -165,7 +162,7 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
 Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmException) {
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
-  DomeTalker talker(factory_->davixPool_, secCtx_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_getdir");
 
   ptree params;
