@@ -85,7 +85,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
     }
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 
   return ret;
@@ -139,7 +139,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
   }
 
   if(talker.status() == 202) {
-    throw DmException(EINPROGRESS, &talker.response()[0]);
+    throw DmException(EINPROGRESS, talker.response());
   }
 
   try {
@@ -159,7 +159,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
     return loc;
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
 
@@ -183,7 +183,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
     return Location(1, chunk);
   }
   catch(boost::property_tree::ptree &err) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
 

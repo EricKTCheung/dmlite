@@ -43,7 +43,6 @@
 #include "cpp/catalog.h"
 #include "cpp/utils/urls.h"
 #include "utils/checksums.h"
-// #include "utils/DavixPool.h"
 #include "utils/DomeTalker.h"
 
 
@@ -461,58 +460,22 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
   
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
-  Davix::Uri url(domeurl);
 
-  Davix::DavixError* tmp_err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  
-  Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
-  if( tmp_err ) {
-    std::ostringstream os;
-    os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-    Err(domelogname, os.str());
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
-  } 
-  
-  req2.addHeaderField("cmd", "dome_putdone");
-  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
-  
+  DomeTalker talker(*davixPool, &req.creds, domeurl,
+                    "POST", "dome_putdone");
+
   // Copy the same body fields as the original one, except for some fields,
   // where we write this machine's hostname (we are a disk server here) and the validated size
   req.bodyfields.put("server", status.myhostname);
   req.bodyfields.put("size", size);
   req.bodyfields.put("lfn", lfn);
-  std::ostringstream os;
-  boost::property_tree::write_json(os, req.bodyfields);
-  req2.setRequestBody(os.str());
-      
-  // Set the dome timeout values for the operation
-  req2.setParameters(*(ds->parms));
-      
-  if (req2.executeRequest(&tmp_err) != 0) {
-    // The error must be propagated to the response, in clear readable text
-    std::ostringstream os;
-    int errcode = req2.getRequestCode();
-    if (tmp_err)
-      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
-    else
-      os << "Cannot forward cmd_putdone to head node. errcode: " << errcode;
-    
-    Err(domelogname, os.str());
-    
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
+
+  if(!talker.execute(req.bodyfields)) {
+    Err(domelogname, talker.err());
+    return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
-  
-  // The request has been successfully forwarded to the headnode
-  os.clear();
-  if (req2.getAnswerContent()) os << req2.getAnswerContent();
-  return DomeReq::SendSimpleResp(request, 200, os);
-  
-      
+
+  return DomeReq::SendSimpleResp(request, 200, talker.response());
 }
 
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
@@ -610,73 +573,26 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
   if (size == 0) {
     std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
-    Davix::Uri url(domeurl);
 
-    Davix::DavixError* tmp_err = NULL;
-    DavixGrabber hdavix(*davixPool);
-    DavixStuff *ds(hdavix);
-  
-    Davix::PostRequest req2(*(ds->ctx), url, &tmp_err);
-    if( tmp_err ) {
-      std::ostringstream os;
-      os << "Cannot initialize Davix query to" << url << ", Error: "<< tmp_err->getErrMsg();
-      Err(domelogname, os.str());
-      Davix::DavixError::clearError(&tmp_err);
-      return DomeReq::SendSimpleResp(request, 500, os);
-    } 
-  
-    req2.addHeaderField("cmd", "dome_stat");
-    req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-    req2.addHeaderField("remoteclienthost", req.remoteclienthost);
-  
-    std::ostringstream os;
-    boost::property_tree::ptree jstat;
-    jstat.put("pfn", pfn);
-    jstat.put("lfn", lfn);
-    boost::property_tree::write_json(os, jstat);
-    req2.setRequestBody(os.str());
-    
-    // Set the dome timeout values for the operation
-    req2.setParameters(*(ds->parms));
-      
-    if (req2.executeRequest(&tmp_err) != 0) {
-      // The error must be propagated to the response, in clear readable text
-      std::ostringstream os;
-      int errcode = req2.getRequestCode();
-      if (tmp_err)
-        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "'";
-      else
-        os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. errcode: " << errcode;
-    
-      Err(domelogname, os.str());
-    
-      Davix::DavixError::clearError(&tmp_err);
-      return DomeReq::SendSimpleResp(request, errcode, os);
+    DomeTalker talker(*davixPool, &req.creds, domeurl,
+                      "POST", "dome_stat");
+
+    if(!talker.execute("pfn", pfn, "lfn", lfn)) {
+      Err(domelogname, talker.err());
+      return DomeReq::SendSimpleResp(request, 500, talker.err());
     }
-    
-    if (!req2.getAnswerContent()) {
-      std::ostringstream os;
-      os << "Cannot remote stat pfn: '" << server << ":" << pfn << "'. null response.";
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 404, os);
-    }
-    
-    // The stat towards the dsk server was successful. Take the size
-    jstat.clear();
-    std::istringstream s(req2.getAnswerContent());
+
     try {
-      boost::property_tree::read_json(s, jstat);
-    } catch (boost::property_tree::json_parser_error e) {
-      Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << s.str() << "'");
-      return -1;
+      size = talker.jresp().get<size_t>("size", 0L);
     }
-    
-    size = jstat.get<size_t>("size", 0L);
+    catch(boost::property_tree::ptree_error &e) {
+      std::string errmsg = SSTR("Received invalid json when talking to " << domeurl << ":" << e.what() << " '" << talker.response() << "'");
+      Err("takeJSONbodyfields", errmsg);
+      return DomeReq::SendSimpleResp(request, 500, errmsg);
+    }
 
-    
   } // if size == 0
 
-  
   // -------------------------------------------------------
   // If a miracle took us here, the size has been confirmed
   Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
@@ -1115,8 +1031,6 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    //DmlitePoolHandler stack(status.dmpool);
-
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.object;
@@ -1132,7 +1046,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
 
-    PendingChecksum pending(lfn, status.myhostname, pfn, chksumtype, updateLfnChecksum);
+    PendingChecksum pending(lfn, status.myhostname, pfn, req.creds, chksumtype, updateLfnChecksum);
 
     std::vector<std::string> params;
     params.push_back("/usr/bin/dome-checksum");
@@ -1148,7 +1062,6 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     diskPendingChecksums[id] = pending;
     }
-    
     return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated checksum calculation on " << pfn << ", task executor ID: " << id));
   }
   catch(dmlite::DmException& e) {
@@ -1156,7 +1069,6 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
     os << "Dmlite exception: " << e.what();
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
   return DomeReq::SendSimpleResp(request, 500, SSTR("Not implemented, dude."));
 };
 
@@ -1222,22 +1134,9 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
 
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
   Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
-  Davix::Uri url(domeurl);
 
-  Davix::DavixError* err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  Davix::PostRequest req2(*(ds->ctx), url, &err);
-
-  if(err) {
-    std::string msg = SSTR("Cannot initialize davix query to " << url << ", error: " << err->getErrMsg());
-    Err(domelogname, msg);
-    return;
-  }
-
-  req2.addHeaderField("cmd", "dome_pullstatus");
-  req2.addHeaderField("remoteclientdn", pending.remoteclientdn);
-  req2.addHeaderField("remoteclienthost", pending.remoteclienthost);
+  DomeTalker talker(*davixPool, &pending.creds, domeurl,
+                    "POST", "dome_pullstatus");
 
   // set chksumstatus params
   boost::property_tree::ptree jresp;
@@ -1283,17 +1182,10 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
     jresp.put("status", "pending");
   }
 
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-  req2.setRequestBody(os.str());
-
-  req2.setParameters(*(ds->parms));
-  req2.executeRequest(&err);
-
-  if(err) {
-    Err(domelogname, "Error after sending a dome_pullstatus: " << err->getErrMsg());
-    Davix::DavixError::clearError(&err);
+  if(!talker.execute(jresp)) {
+    Err(domelogname, talker.err());
   }
+
 }
 
 
@@ -1319,29 +1211,16 @@ void DomeCore::sendChecksumStatus(const PendingChecksum &pending, const DomeTask
     }
   }
 
-  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
-  Davix::Uri url(domeurl);
+  std::string rfn = pending.server + ":" + pending.pfn;
 
-  Davix::DavixError* err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  Davix::PostRequest req2(*(ds->ctx), url, &err);
-
-  if(err) {
-    std::string msg = SSTR("Cannot initialize davix query to " << url << ", error: " << err->getErrMsg());
-    Err(domelogname, msg);
-    return;
-  }
-
-  req2.addHeaderField("cmd", "dome_chksumstatus");
-  req2.addHeaderField("remoteclientdn", pending.remoteclientdn);
-  req2.addHeaderField("remoteclienthost", pending.remoteclienthost);
+  DomeTalker talker(*davixPool, &pending.creds, domeurl,
+                    "POST", "dome_chksumstatus");
 
   // set chksumstatus params
   boost::property_tree::ptree jresp;
-  std::string rfn = pending.server + ":" + pending.pfn;
-
+  jresp.put("lfn", pending.lfn);
   jresp.put("pfn", rfn);
   Log(Logger::Lvl4, domelogmask, domelogname, "rfn: " << rfn);
 
@@ -1362,16 +1241,8 @@ void DomeCore::sendChecksumStatus(const PendingChecksum &pending, const DomeTask
     jresp.put("status", "pending");
   }
 
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-  req2.setRequestBody(os.str());
-
-  req2.setParameters(*(ds->parms));
-  req2.executeRequest(&err);
-
-  if(err) {
-    Err(domelogname, "Error after sending a dome_chksumstatus: " << err->getErrMsg());
-    Davix::DavixError::clearError(&err);
+  if(!talker.execute(jresp)) {
+    Err(domelogname, talker.err());
   }
 }
 
@@ -1814,7 +1685,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     
     // Let's just execute the external hook, passing the obvious parameters
     
-    PendingPull pending(lfn, status.myhostname, pfn, chksumtype);
+    PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
 
     std::vector<std::string> params;
     params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
@@ -2222,49 +2093,17 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
-  {
   std::string diskurl = "https://" + srv + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << absPath << "' to disk node: '" << diskurl);
-  Davix::Uri durl(diskurl);
 
-  Davix::DavixError* tmp_err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  Davix::PostRequest req2(*(ds->ctx), durl, &tmp_err);
-  if( tmp_err ) {
-    std::ostringstream os;
-    os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
-    Err(domelogname, os.str());
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
+  DomeTalker talker(*davixPool, &req.creds, diskurl,
+                    "POST", "dome_pfnrm");
+
+  if(!talker.execute(req.bodyfields)) {
+    Err(domelogname, talker.err());
+    return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
-  req2.addHeaderField("cmd", "dome_pfnrm");
-  req2.addHeaderField("pfn", absPath);
-  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
-  std::ostringstream os;
-  boost::property_tree::write_json(os, req.bodyfields);
-  req2.setRequestBody(os.str());
-      
-  // Set the dome timeout values for the operation
-  req2.setParameters(*(ds->parms));
-      
-  int rc = req2.executeRequest(&tmp_err);
-  if ( rc || tmp_err) {
-    // The error must be propagated to the response, in clear readable text
-    std::ostringstream os;
-    int errcode = req2.getRequestCode();
-    if (tmp_err)
-      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "' response body: '" << req2.getAnswerContent();
-    else
-      os << "Cannot execute cmd_pfnrm to disk node. pfn: '" << absPath << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
-    
-    Err(domelogname, os.str());   
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
-  }
-  }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
   // And now remove the replica
   try {
@@ -2469,54 +2308,21 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     if ( status.PfnMatchesFS(server, newfs, *fs) )
       return DomeReq::SendSimpleResp(request, 422, SSTR("Filesystem '" << server << ":" << fs->fs << "' already exists or overlaps an existing filesystem."));
   }
-  
-  {
   // Stat the remote path, to make sure it exists and it makes sense
   std::string diskurl = "https://" + server + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Stat-ing new filesystem '" << newfs << "' in disk node: '" << server);
-  Davix::Uri durl(diskurl);
 
-  Davix::DavixError* tmp_err = NULL;
-  DavixGrabber hdavix(*davixPool);
-  DavixStuff *ds(hdavix);
-  Davix::GetRequest req2(*(ds->ctx), durl, &tmp_err);
-  if( tmp_err ) {
-    std::ostringstream os;
-    os << "Cannot initialize Davix query to" << durl << ", Error: "<< tmp_err->getErrMsg();
-    Err(domelogname, os.str());
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
-  }
-  req2.addHeaderField("cmd", "dome_statpfn");
-  req2.addHeaderField("remoteclientdn", req.remoteclientdn);
-  req2.addHeaderField("remoteclienthost", req.remoteclienthost);
+  DomeTalker talker(*davixPool, &req.creds, diskurl,
+                    "GET", "dome_statpfn");
 
   boost::property_tree::ptree jresp;
   jresp.put("pfn", newfs);
   jresp.put("matchfs", "false");
   jresp.put("server", server);
 
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-
-  req2.setRequestBody(os.str());
-  // Set the dome timeout values for the operation
-  req2.setParameters(*(ds->parms));
-      
-  int rc = req2.executeRequest(&tmp_err);
-  if ( rc || tmp_err) {
-    // The error must be propagated to the response, in clear readable text
-    std::ostringstream os;
-    int errcode = req2.getRequestCode();
-    if (tmp_err)
-      os << "Cannot execute cmd_statpfn to disk node. pfn: '" << newfs << "' Url: '" << durl << "' errcode: " << errcode << "'"<< tmp_err->getErrMsg() << "' response body: '" << req2.getAnswerContent();
-    else
-      os << "Cannot execute cmd_statrm to head node. pfn: '" << newfs << "' Url: '" << durl << "' errcode: " << errcode << " response body: '" << req2.getAnswerContent();
-    
-    Err(domelogname, os.str()); 
-    Davix::DavixError::clearError(&tmp_err);
-    return DomeReq::SendSimpleResp(request, 500, os);
-  }
+  if(!talker.execute(jresp)) {
+    Err(domelogname, talker.err());
+    return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
   
   // Everything seems OK here, like UFOs invading Earth. We can start updating values.

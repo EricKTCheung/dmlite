@@ -45,19 +45,19 @@
 #include <bitset>
 #include <boost/thread.hpp>
 #include <dmlite/cpp/catalog.h>
+#include "cpp/authn.h"
 
 /// Data associated to a running checksum calculation
 struct PendingChecksum {
   std::string lfn;
   std::string server;
   std::string pfn;
+  dmlite::SecurityCredentials creds;
   std::string chksumtype;
   bool updateLfnChecksum;
-  std::string remoteclientdn;
-  std::string remoteclienthost;
 
-  PendingChecksum(std::string _lfn, std::string _server, std::string _pfn, std::string _chksumtype, bool _updateLfnChecksum)
-  : lfn(_lfn), server(_server), pfn(_pfn), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {} 
+  PendingChecksum(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityCredentials _creds, std::string _chksumtype, bool _updateLfnChecksum)
+  : lfn(_lfn), server(_server), pfn(_pfn), creds(_creds), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {}
 
   PendingChecksum() {}
 };
@@ -67,13 +67,11 @@ struct PendingPull {
   std::string lfn;
   std::string server;
   std::string pfn;
+  dmlite::SecurityCredentials creds;
   std::string chksumtype;
 
-  std::string remoteclientdn;
-  std::string remoteclienthost;
-
-  PendingPull(std::string _lfn, std::string _server, std::string _pfn, std::string _chksumtype)
-  : lfn(_lfn), server(_server), pfn(_pfn), chksumtype(_chksumtype) {} 
+  PendingPull(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityCredentials _creds, std::string _chksumtype)
+  : lfn(_lfn), server(_server), pfn(_pfn), creds(_creds), chksumtype(_chksumtype) {}
 
   PendingPull() {}
 };
