@@ -56,7 +56,7 @@ public:
   int status();
 
   const boost::property_tree::ptree& jresp();
-  const std::vector<char>& response();
+  const std::string& response();
 private:
   DavixCtxPool &pool_;
   const SecurityCredentials *creds_;
@@ -68,7 +68,7 @@ private:
   DavixStuff *ds_;
 
   Davix::DavixError *err_;
-  std::vector<char> response_;
+  std::string response_;
   boost::property_tree::ptree json_;
   bool parsedJson_;
   int status_;

@@ -33,6 +33,8 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <fcgiapp.h>
 
+#include "cpp/authn.h"
+
 /// Class that describes a request
 /// Requests have some fields, that normally come from parsing a CGI request
 /// The CGI request can carry a payload in the BODY, which is assumed to be in JSON format
@@ -75,6 +77,7 @@ public:
     
     /// And these are the identity of the remote user that originated the request,
     /// for the cases where it applies.
+    dmlite::SecurityCredentials creds;
     std::string remoteclientdn;
     std::string remoteclienthost;
     

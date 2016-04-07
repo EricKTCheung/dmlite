@@ -71,21 +71,21 @@ bool DomeTalker::execute(const std::string &str) {
   req.setRequestBody(str);
 
   int rc = req.executeRequest(&err_);
-  response_ = req.getAnswerContentVec();
+  response_ = std::string(req.getAnswerContentVec().begin(), req.getAnswerContentVec().end());
   status_ = req.getRequestCode();
 
   if(rc || err_) return false;
   return true;
 }
 
-const std::vector<char>& DomeTalker::response() {
+const std::string& DomeTalker::response() {
   return response_;
 }
 
 const boost::property_tree::ptree& DomeTalker::jresp() {
   if(parsedJson_) return json_;
 
-  std::istringstream iss(&response_[0]);
+  std::istringstream iss(response_);
   boost::property_tree::read_json(iss, json_);
   parsedJson_ = true;
   return json_;
@@ -113,8 +113,18 @@ bool DomeTalker::execute(const std::string &key1, const std::string &value1,
 
 std::string DomeTalker::err() {
   if(err_) {
-    if(response_.size() != 0) return err_->getErrMsg() + " - " + &response_[0];
-    return err_->getErrMsg();
+    std::ostringstream os;
+    os << "Error when issuing " << cmd_ << " to '" << uri_ << "'. Status: " << status_ << ".";
+    os << "DavixError: '" << err_->getErrMsg() << "'. ";
+
+    if(response_.size() != 0) {
+      os << "Response: '" << response_ << "'.";
+    }
+    else {
+      os << "No response to show.";
+    }
+
+    return os.str();
   }
   return "";
 }

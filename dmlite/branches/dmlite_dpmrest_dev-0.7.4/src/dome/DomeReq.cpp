@@ -47,10 +47,14 @@ DomeReq::DomeReq(FCGX_Request &request) {
     domecmd = vecurl[vecurl.size()-1];
   
   // Extract the authz info about the remote user
-  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) )
+  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) ) {
     this->remoteclientdn = s;
-  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTHOST", request.envp)) )
+    creds.clientName = s;
+  }
+  if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTHOST", request.envp)) ) {
     this->remoteclienthost = s;
+    creds.remoteAddress = s;
+  }
   
   
   // We also must know the info on the client that is contacting us

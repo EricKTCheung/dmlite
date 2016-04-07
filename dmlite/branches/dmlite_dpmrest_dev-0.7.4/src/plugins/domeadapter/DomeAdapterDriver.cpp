@@ -169,7 +169,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
     }
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
 
@@ -260,7 +260,7 @@ bool DomeAdapterPoolHandler::replicaIsAvailable(const Replica& replica) throw (D
     return false;
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
 
@@ -310,7 +310,7 @@ Location DomeAdapterPoolHandler::whereToWrite(const std::string& lfn) throw (DmE
     return Location(1, single);
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << e.what() << " - " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << e.what() << " - " << talker.response()));
   }
 }
 

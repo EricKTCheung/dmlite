@@ -103,7 +103,7 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
     return xstat;
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
 
@@ -153,7 +153,7 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
     }
   }
   catch(ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "Exiting. Username: " << userName);
@@ -189,7 +189,7 @@ Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmExcepti
     return domedir;
   }
   catch(ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response - " << e.what() << " : " << &talker.response()[0]));
+    throw DmException(EINVAL, SSTR("Error when parsing json response - " << e.what() << " : " << talker.response()));
   }
 }
 

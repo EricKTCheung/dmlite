@@ -117,13 +117,13 @@ int DomeStatus::loadFilesystems() {
     return -1;
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << &talker.response()[0] << "'");
+  Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << talker.response() << "'");
   boost::property_tree::ptree jresp;
   try {
     jresp = talker.jresp();
   }
   catch (boost::property_tree::ptree_error &e) {
-    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << &talker.response()[0] << "'");
+    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
     return -1;
   }
 
@@ -475,13 +475,13 @@ void DomeStatus::checkDiskSpaces() {
         Err("checkDiskSpaces", "Error when issuing dome_getspaceinfo: " << talker.err());
       }
       else {
-        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *servername << " answered: '" << &talker.response()[0] << "'");
+        Log(Logger::Lvl4, domelogmask, domelogname, "Disk server: " << *servername << " answered: '" << talker.response() << "'");
         try {
           myresp = talker.jresp();
           haveJresp = true;
         }
         catch (boost::property_tree::json_parser_error &e) {
-          Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << &talker.response()[0] << "'");
+          Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
           continue;
         }
       }
