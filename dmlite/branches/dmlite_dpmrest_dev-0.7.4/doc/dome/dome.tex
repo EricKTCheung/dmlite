@@ -92,27 +92,27 @@ The functionalities are roughly as follows:
  \subitem uses the dmlite library to access logical information about pools/filesystems and name space content
 
  \item disknode: local disk and space-related services
- \subitem Allows to \textit{stat} individual physical paths
- \subitem Allows to \textit{statfs} of filesystems to get size and free space
+ \subitem Allows to \textit{stat} individual physical files and directories
+ \subitem Allows to \textit{statfs} filesystems to get size and free space
  \subitem Allows the local submission of checksum calculations
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
 The main difference from the legacy components is that DOME does not apply authorization again for individual user file
 access, as this task is already accomplished by the dmlite frontends. DOME only checks that the sender of a request is authorized to
-send requests, in a way that is similar to the libshift "root mode". DOME applies strong authentication protocols to this task.\\
-
+send requests, in a way that is similar to the libshift "root mode". DOME applies strong, industry standard authentication protocols to this task.\\
+Authentication in DOME must be zero-config for the regular cases (one head node and multiple disk servers), and flexible enough to add arbitrary identities that will be allowed to send commands to it.\\
 \textbf{DOME is protocol-agnostic. Its concepts of logical file name and physical file name are not linked to a particular data/metadata transfer protocol.
 DOME manages paths and filenames, not URLs. URLs can be constructed by the DPM frontends starting from the pfn or lfn information given by DOME.}
 
 
 \subsection{From spacetokens to quota tokens}
-Historically, DPM does space accounting through a set of individual named space reservations, kept in the DB in the head node, and associated to
-pools. Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
+Historically, DPM does space accounting through a set of individual named space reservations, kept in the DB in the head node, and associated to pools.\\
+Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
 One of the weakest points in this schema is that the writer has to know technical details of the destination storage, to be able to write
 and be properly accounted for.\\
-
+Another historical weak point is that calculating good numbers for the space occupancies can be a challenging exercise, especially if the pools have been modified in the years.\\
 The development direction of DOME is to evolve this mechanism towards \textit{subdirectory-based space accounting}, instead than pool-based.\\
 
 In the current production version of the dmlite framework (0.7.3, Sept 2015), space accounting on the first levels of directories
@@ -124,8 +124,7 @@ into semantically representing a quota on one and only one directory subtree.\\
 For simplicity of management, a quota token attached to a directory subtree \textbf{overrides others that may be attached to its parents}. This also helps reducing the complexity of the checks.\\
 If a directory content (counting all the replicas) exceeds the quota, then new PUT requests on that dir will be denied.\\
 
-In the most common DPM setups, legacy spacetokens are de facto used to assign space limits to a VO or to one of its service directories,
-named after space tokens.\\
+In the most common DPM setups, legacy spacetokens are de facto used to assign space limits to a VO or to one of its service directories, named after space tokens.\\
 The described semantic evolution is supposed to be crafted in order not to interfere with the spacetoken support implemented by the legacy components in the cases
 where space tokens were used in that way.
 
@@ -134,7 +133,7 @@ where space tokens were used in that way.
 A pool is a logical group of mount points in individual disk servers that are used to store replicas.\\
 
 DOME uses the same concept of Pool than the historical DPM, hence the "Pool management" functionalities
-of the lcg-dm components will continue to work mostly as they are.\\
+of the legacy lcg-dm components will continue to work mostly as they are.\\
 
 DOME considers pools as referred to path prefixes, that is directory subtrees. A pool assigned to a directory
 completely overrides pool assignments that belong to its parent directories.\\
@@ -142,9 +141,8 @@ completely overrides pool assignments that belong to its parent directories.\\
 A Pool assigned to a subtree acts as a sort of "replication domain". Replicas of files belonging to that subtree
 are stored in filesystems belonging to this pool. Multiple replicas are spread through different file systems.\\
 
-Multiple pools can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch). 
-Writes into this subtree will be space-balanced between all the filesystems composing the pools assigned to it. Some pools may also be
-used to host only replicas of content that is already available in other pools.\\
+For internal performance and accounting coherency reasons, only one pool can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch). 
+Writes into this subtree will be space-balanced between all the filesystems composing the pool assigned to it.\\
 
 \subsection{Open checksumming}
 DOME supports requests for checksums of arbitrary kind. It can:\\
@@ -164,7 +162,7 @@ calculations do not end correctly, or some machines are restarted.
 
 \section{Tech}
 
-The architecture of DOME has to be expandable, which does not necessarily mean that it's excessively plugin-based. Where to add the impl of a new request must be clear and simple to understand.\\
+The architecture of DOME has to be expandable, which does not necessarily mean that it's excessively plugin-based. Where to add the implementation of a new request must be clear and simple to understand, in order to guarantee easier maintenance for the future.\\
 DOME is a client of dmlite, i.e. it can invoke the dmlite catalogue, pool, etc. functions.\\
 
 \subsection{Architecture}
@@ -173,12 +171,10 @@ adapter\_rest
 take Eric's picture and comments
 
 \subsection{Security}
-The configuration file can specify criteria to accept requests that come to DOME. These criteria have the form
+DOME by default accepts requests from the disk servers of the cluster it manages. This mechanism is based on secure HTTPS handshakes.\\
+Additionally, the configuration file can specify criteria to accept requests that come to DOME. These criteria have the form
 of a list of allowed DNs (taken from X509 certificates).\\
 
-Main goals: strong security which can be disabled (for debugging purposes) in a way that is trivial for the sysadmin to understand, apply, disable, check, doublecheck.\\
-
-The typical configuration is that only the DN coming from the host certificate of the head node can interact with DOME.\\
 The typical configuration uses HTTPS in the frontend configuration, to enforce the usage of a valid certificate.\\
 
 \subsection{Checksum queuer}
@@ -187,11 +183,10 @@ The typical configuration uses HTTPS in the frontend configuration, to enforce t
  No more than L checksums will be run per disk server\\
  No more than M checksums will be run in total\\
 
- Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances constantly update the head node on the running checksums, hance there is no need for persistence,
+ Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances constantly update the head node about the running checksums, hance there is no need for persistence,
  and the system will self-heal on restarts of the head node. When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
- Eventually memcached can be used for queue synchronization purposes, only if it turns out that even in SOME cases the code is not totally
- preventing the spawning of new processes (which has never to happen!!!). This evenience would require more development effort, and would have the
- advantage of making the dpm service able to scale horizontally. So far, we have no evidence that the dpm service needs that.\\
+ Eventually in the future memcached can be used for queue synchronization purposes. This evenience would require more development effort, and would have the
+ advantage of making the DOME service able to scale horizontally. So far, we have no evidence that the DOME service needs that.\\
 
 \subsection{File pulls queuer}
 DOME internally on the head node queues and schedules requests for file pulls from external locations
@@ -353,7 +348,7 @@ NOTES:
 \item rfio\_stat64
 \item rfio\_allowed
 \item rfio\_statfs64
-\item rfio\_rcp (used to replicate files... maybe we don't need this)
+\item rfio\_rcp (used to replicate files...)
 \end{itemize}
 
  
@@ -368,12 +363,12 @@ Goals:
 \end{itemize}
 
 
-Each command is encoded as a RESTful request, where only the command name is URL-encoded, and every other dpm-specific parameter is encoded in a JSON snippet supplied as BODY of the request.
+Each command is encoded as an HTTPS request that is inspired by the RESTful paradigm, where only the command name is URL-encoded, and every other dpm-specific parameter is encoded in a JSON snippet supplied as BODY of the request.\\
 
-A legitimate response can be a 202-Accepted with or without a body field that gives a token to be used to retry.
+A legitimate response can be a 202-Accepted, with means that the client should retry the same request later to get the final result or another 202 response.
 
 Each client request is implemented on a simplified client API based on davix.
-Each command is ALSO implemented on a command line tool that has the same name, the same parameters and prints the output in a pretty and readable way\\
+Each command is ALSO implemented on a command line tool that has the same name, the same parameters and prints the output in a pretty and readable way.\\
 
 \subsection{Common header fields}
 
@@ -391,9 +386,9 @@ The hostname of the original client that submitted the request.
 initiates a replica upload. The client is given a location where to write the replica (redirection)
 
 Command:
-\lstinline"POST /dome/<logical file path>"\\
+\lstinline"POST /dome/command/dome_put"\\
 Request header:\\
-\lstinline"cmd=dome_put"\\
+ no particular fields in the header\\
 Params:
 \begin{itemize}
  \item lfn: logical file name of the entry
@@ -405,9 +400,9 @@ Params:
 
 
 
-Returns:
+Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
+Response body:
 \begin{itemize}
- \item 200 if OK. Other HTTP codes for the corresponding errors.
  \item pool: chosen pool
  \item host: chosen host:port
  \item pfn: physical filename to be used
@@ -419,51 +414,38 @@ Notifies that the upload of a replica finished successfully. It also can carry a
 \textbf{Workflow:}\\
 The notification from the data access frontend (e.g. GridFTP) always goes to the DOME instance that is running in the \textbf{disk node}. This means that
 generally the notification will be sent to \textit{localhost}.\\
-The DOME in the disk node doublechecks the existence of the file, the correctness of the path and the correctness of the file size that
-the frontend presumes.\\
-If the local checks are passed, the request is forwarded automatically to the instance of DOME running in the head node.
+The DOME in the disk node doublechecks the existence of the file, the correctness of the path and the correctness of the file size that the frontend presumes.\\
+If the local checks are passed, the request is forwarded automatically to the instance of DOME running in the head node, which will take the new replica into account.
 
 Command:
-\lstinline"POST /dome/<logical file path>"\\
+\lstinline"POST /dome/command/dome_putdone"\\
 Request header:\\
-\lstinline"cmd=dome_putdone"\\
+ no particular fields in the header\\
 
 Params:
 \begin{itemize}
- \item pfn: Physical filename (doublecheck if it's the case not to use the vetust rfio syntax)
+ \item pfn: Physical filename
  \item size: size of the file
  \item checksumtype: Type of checksum (optional)
  \item checksum: Checksum value (optional)
 \end{itemize}
 
-Returns:
-\begin{itemize}
- \item 200 if OK. Other HTTP codes for the corresponding errors.
-\end{itemize}
+Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
 
 \subsubsection{dome\_getspaceinfo}
 Returns total and free space information for all the pools and filesystems at once (the list is supposed to be in memory all the time)
 
 Command:
-\lstinline"GET /dome/"\\
+\lstinline"GET /dome/command/dome_getspaceinfo"\\
 Request header:\\
-\lstinline"cmd=dome_getspaceinfo"\\
+ no particular fields in the header\\
 Params:
-\begin{itemize}
- \item 
-\end{itemize}
+ no parameters
 
-Returned information:
-\begin{itemize}
- \item all the pools
- \item \textbf{poolstatus}: the status of the pool. 0 means active.
- \item \textbf{physicalsize}: the total space physically available for this pool
- \item \textbf{freespace}: the free space
- 
- 
- \item all the server and mountpoints that this pool contains
- \subitem for each server:mountpoint, the total space, and the free space, and the status of the mountpoint (0 means active)
-\end{itemize}
+Returned information:\\
+two sequences, names \textbf{fsinfo} and \textbf{poolinfo}.\\
+Fsinfo describes each known file system. File systems are grouped by server.\\
+Poolinfo describes each pool, listing the filesystems that compose it.\\
 
 JSON example:\\
 \begin{lstlisting}
@@ -524,15 +506,18 @@ JSON example:\\
 \end{lstlisting}
 
 \subsubsection{dome\_getquotatoken}
-Gets a quota token, using the path prefix as a key. The path prefix must be an existing directory.
+Gets a quota token, using the lfn as a key. The lfn must be an existing directory.
 It also returns the space that is still available for each of the quota tokens listed.
 
 Command:\\
-\lstinline"GET /dome/path"\\
+\lstinline"GET /dome/command/dome_getquotatoken"\\
+
 Request header:\\
-\lstinline"cmd=dome_getquotatoken"\\
+ no particular fields in the header\\
+ 
 Params:\\
 \begin{itemize}
+ \item path: absolute logical path to query for quotatokens
  \item getsubdirs: if true, the output will include quotatokens that refer to the parent directories of the query
  \item getparentdirs: if true, the output will include quotatokens that refer to the subdirectories of the query
 \end{itemize}
@@ -540,7 +525,7 @@ Params:\\
 Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 \begin{itemize}
  \item a sequence of :
- \subitem path: the logical path a quota token is referring to
+ \subitem path: the absolute logical path a quota token is referring to
  \subitem quotatkname: Human readable name for the quota
  \subitem quotatkpoolname: The pool that serves this quotatoken
  \subitem quotatktotspace: The max number of bytes that anyone will
@@ -554,12 +539,14 @@ Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 Sets or create a quota token, using the path prefix and the poolname as a key. The path prefix must be an existing directory, the poolname should be the name of an existing pool.
 
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_setquotatoken"\\
+
 Request header:\\
-\lstinline"cmd=dome_setquotatoken"\\
+ no particular fields in the header\\
+
 Params:
 \begin{itemize}
- \item path: the logical path a quota token is referring to
+ \item path: the absolute logical path a quota token is referring to
  \item poolname: the pool that will host the replicas that are written into paths associated to this quotatoken
  \item quotaspace: the maximum number of bytes that the subtree rooted at path can acquire through write operations
  \item description: a human readable description, e.g. ATLASSCRATCH
@@ -568,42 +555,46 @@ Params:
 Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota being set exceeds the size of the directory subtree it refers to, DOME will set the quota anyway, and give a warning in the body of the response. The result will be that noone will be able to write in that subtree until a sufficient number of files is removed.\\
 
 A file write is accounted in the directory tree that contains the logical file name. A quotatoken must be assigned to one of the parent directories to tell DOME which pool the physical write should be directed to.
-At the same time, the quotatoken will also set a limit (quota) to the maximum number of bytes that can be written.
+At the same time, the quotatoken will also set a limit (quota) to the maximum number of bytes that can be written into the directory it's assigned to.
 
 \subsubsection{dome\_delquotatoken}
 Deletes a quota token, using the path prefix and a poolname as a key. The path prefix must be an existing directory.
 
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_delquotatoken"\\
+
 Request header:\\
-\lstinline"cmd=dome_delquotatoken"\\
+no particular fields in the header\\
+
 Params:\\
 \begin{itemize}
- \item path: the logical path a quota token is referring to
+ \item path: the absolute logical path a quota token is referring to
  \item poolname: the pool that will host the replicas that are written into paths associated to this quotatoken
 \end{itemize}
 
-Returns:
-\begin{itemize}
- \item 200 if OK. Other HTTP codes for the corresponding errors.
-\end{itemize}
-
+Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 
 \subsubsection{dome\_getdirspaces}
 Computes used/free space for a path. The path must be an existing directory.
 
 Command:
-\lstinline"GET /dome/path"\\
-Request header:\\
-\lstinline"cmd=dome_getdirspaces"\\
-Params:\\
+\lstinline"GET /dome/command/dome_getdirspaces"\\
 
-Returns:
+Request header:\\
+no particular fields in the header\\
+
+Params:\\
 \begin{itemize}
- \item 200 if OK. Other HTTP codes for the corresponding errors.
+ \item path: the absolute logical path to query for space
 \end{itemize}
 
-
+Returns: 200 if OK. Other HTTP codes for the corresponding errors.
+\begin{itemize}
+  \item quotatotspace: the total space that the quota allows
+  \item quotafreespace: how much free space the quota still has
+  \item poolfreespace: how much physical disk space space is available in the related pool
+  \item usedspace: how much space this directory is using
+\end{itemize}
 
 
 
@@ -612,11 +603,14 @@ Returns:
  
 
 Command:
-\lstinline"GET /dome/pathfile"\\
+\lstinline"GET /dome/command/dome_chksum"\\
+
 Request header:\\
-\lstinline"cmd=dome_chksum"\\
+no praticular fields in the header\\
+
 Params:
 \begin{itemize}
+ \item lfn: logical file name of the entry to query for the checksum
  \item checksum-type: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
  \item pfn: Physical filename as it appears in the db (optional)
  \item force-recalc: true|false|yes|no|0|1 (optional)
@@ -654,11 +648,14 @@ A disk node that has calculated a checksum (or failed) will invoke this function
 This is also used as a sort of heartbeat to notify the head node about checksum calculations that are pending or running.
 
 Command:
-\lstinline"POST /dome/pathfile"\\
+\lstinline"POST /dome/command/dome_chksumstatus"\\
+
 Request header:\\
 \lstinline"cmd=dome_chksumstatus"\\
+
 Params:
 \begin{itemize}
+ \item lfn: logical file name of the entry to submit a checksum to
  \item checksum-type: Kind of checksum that was requested (e.g. adler32, MD5, etc...)
  \item force-recalc: tells if the original request was for a forced recalculation
  \item checksum: value of the computed checksum (optional if still being calculated)
@@ -681,14 +678,15 @@ may be invoked if the file is absent AND is not being already pulled.\\
 The result may be 'pending' if the file is being pulled.
 
 Command:
-\lstinline"GET /dome/pathfile"\\
-Request header:\\
-\lstinline"cmd=dome_get"\\
+\lstinline"GET /dome/command/dome_get"\\
 
+Request header:\\
+no particular fields in the the header\\
 
 Returns:
-Code: 200 or pending
+Code: 200 or corresponding HTTP code corresponding to the errors
 \begin{itemize}
+ \item lfn: logical file name of the entry
  \item server: name of the server that hosts the file
  \item pfn: full physical filename of the file
  \item filesystem: filesystem that is hosting the file
@@ -696,11 +694,14 @@ Code: 200 or pending
 
 \subsubsection{dome\_pullstatus}
 Notifies the status of a pending file pull, including its end. Until the end it must be invoked to send a sort of progress report or heartbeat.
-This notification is usually sent by a disk server.
+This notification is usually sent by a disk server to the head node.\\
+
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/pullstatus"\\
+
 Request header:\\
-\lstinline"cmd=dome_pulldone"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item host: server name
@@ -721,15 +722,17 @@ Code: 200 if the notification's fields are correct
 \subsubsection{dome\_statpool}
 Gets total and free space information for one pool
 
-\lstinline"GET /dome"\\
+\lstinline"GET /dome/command/dome_statpool"\\
+
 Request header:\\
-\lstinline"cmd=dome_statpool"\\
+ no particular fields in the header\\
+ 
 Params:
 \begin{itemize}
  \item \textbf{poolname}: pool name to stat
 \end{itemize}
 
-Returned information:
+Returns: 200 if the notification's fields are correct
 \begin{itemize}
  \item \textbf{poolstatus}: the status of the pool. 0 means active.
  \item \textbf{physicalsize}: the total space physically available for this pool
@@ -781,9 +784,11 @@ If a lfn is provided and the associated pools allow file pulling, then the exter
 to produce the stat information by contacting an external system.
 
 Command:
-\lstinline"GET /dome/"\\
+\lstinline"GET /dome/command/dome_getstatinfo"\\
+
 Request header:\\
-\lstinline"cmd=dome_getstatinfo"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
@@ -806,9 +811,11 @@ Code: 200 or pending
 Adds a filesystem to a pool. This implicitely creates a pool with the given name if it did not already exist.\\
 
 Command:\\
-\lstinline"POST /dome/"\\
+\lstinline"POST /dome/command/dome_addfstopool"\\
+
 Request header:\\
-\lstinline"cmd=dome_addfstopool"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item poolname: a logical path to return information about. Can be omitted if a physical file name is provided.
@@ -817,13 +824,16 @@ Params:
  \item pool\_defsize: the default size for a file whose space must be allocated without knowing its size
  \item pool\_stype: "V" for a volatile pool that can pull files using the file pull hooks. "P" for a standard, permanent pool.
 \end{itemize}
+
 \subsubsection{dome\_getdir}
 
 Lists the content of a logical directory
 Command:
-\lstinline"GET /dome/"\\
+\lstinline"GET /dome/command/dome_getdir"\\
+
 Request header:\\
-\lstinline"cmd=dome_getdir"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
@@ -848,9 +858,11 @@ Code: 200 or pending
 Get information about a user
 
 Command:
-\lstinline"GET /dome/"\\
+\lstinline"GET /dome/command/dome_getuser"\\
+
 Request header:\\
-\lstinline"cmd=dome_getuser"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item username: the username to extract information about
@@ -868,9 +880,11 @@ Code: 200 or error
 Get id mapping for a user
 
 Command:
-\lstinline"GET /dome/"\\
+\lstinline"GET /dome/command/dome_getidmap"\\
+
 Request header:\\
-\lstinline"cmd=dome_getidmap"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item username: the username to extract information about
@@ -913,7 +927,6 @@ Example response:\\
 \subsection{Disk node operation}
 The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not
 given by WebDAV/HTTP, and to control the checksum calculations.\\
-The invokation of these primitives must be properly authenticated through URL tokens.\\
 
 \subsubsection{dome\_dochksum}
  Immediately start an external process that calculates the checksum and returns it (or error).
@@ -923,10 +936,12 @@ The invokation of these primitives must be properly authenticated through URL to
  informed of the checksums being calculated at regular intervals,
  through te dome\_checksumstatus command.
 
- Command:
-\lstinline"POST /dome/pathfile"\\
+Command:
+\lstinline"POST /dome/pathfile/command/dome_dochecksum"\\
+
 Request header:\\
-\lstinline"cmd=dome_dochksum"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item checksum-type: Kind of checksum that is requested (e.g. adler32, MD5, etc...)
@@ -946,9 +961,11 @@ Returns: 200 or various errors if the calculation process cannot be started.
  
  
 Command:
-\lstinline"GET /dome/pathfile"\\
+\lstinline"GET /dome/command/dome_pull"\\
+
 Request header:\\
-\lstinline"cmd=dome_pull"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item pfn: Physical filename
@@ -962,9 +979,11 @@ Returns: 200 or various errors if the pull process cannot be started.
 
 Removes a physical file or directory from the disks. Valid only in disk nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_pfnrm"\\
+
 Request header:\\
-\lstinline"cmd=dome_pfnrm"\\
+no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
@@ -980,9 +999,11 @@ Returns:
 
 Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_delreplica"\\
+
 Request header:\\
 \lstinline"cmd=dome_delreplica"\\
+
 Params:
 \begin{itemize}
  \item server: server hosting the replica
@@ -1010,9 +1031,10 @@ Returns:
 \subsubsection{dome\_statpfn}
 Return information about a physical file or directory. Valid only in disk nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_statpfn"\\
 Request header:\\
-\lstinline"cmd=dome_statpfn"\\
+ no particular fields in the header\\
+ 
 Params:
 \begin{itemize}
  \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
@@ -1032,9 +1054,11 @@ Returns:
 \subsubsection{dome\_rmpool}
 Remove from DPM control all the filesystems that are related to the same pool. Valid only in head nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_rmpool"\\
+
 Request header:\\
-\lstinline"cmd=dome_rmpool"\\
+ no particular fields in the header\\
+ 
 Params:
 \begin{itemize}
  \item poolname: the name of the pool to remove
@@ -1044,9 +1068,11 @@ Params:
 \subsubsection{dome\_addfstopool}
 Adds a filesystem for DPM to manage. Valid only in head nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_addfstopool"\\
+
 Request header:\\
-\lstinline"cmd=dome_addfstopool"\\
+ no particular fields in the header\\
+
 Params:
 \begin{itemize}
  \item server: server hosting the replica
@@ -1054,29 +1080,21 @@ Params:
  \item poolname: name of the DPM pool this filesystem will be used for
 \end{itemize}
 
-Returns:
-\begin{itemize}
- \item 
-\end{itemize}
  
 \subsubsection{dome\_rmfs}
 
 Removes a filesystem, no matter to which pool it was attached. Valid only in head nodes.\\
 Command:
-\lstinline"POST /dome"\\
+\lstinline"POST /dome/command/dome_rmfs"\\
 Request header:\\
-\lstinline"cmd=dome_rmfs"\\
+ no particular fields in the header\\
+ 
 Params:
 \begin{itemize}
  \item server: server hosting the replica
  \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
 \end{itemize}
 
-Returns:
-\begin{itemize}
- \item 
-\end{itemize}
- 
  
  
  
