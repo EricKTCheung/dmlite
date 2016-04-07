@@ -1846,7 +1846,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   // Remove any trailing slash
-  std::string absPath = req.bodyfields.get<std::string>("lfn", "");
+  std::string absPath = req.bodyfields.get<std::string>("path", "");
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
