@@ -28,8 +28,9 @@ using namespace dmlite;
 
 static std::string trim_trailing_slashes(std::string str) {
   while(str.size() > 0 && str[str.size()-1] == '/') {
-    str = str.substr(0, str.size()-2);
+    str.erase(str.size()-1);
   }
+  return str;
 }
 
 DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std::string uri,
