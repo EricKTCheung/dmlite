@@ -40,6 +40,7 @@ DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std
 
   err_ = NULL;
   parsedJson_ = false;
+  target_ = uri_ + "/command/" + cmd_;
 }
 
 DomeTalker::~DomeTalker() {
@@ -57,7 +58,7 @@ bool DomeTalker::execute(const std::ostringstream &ss) {
 bool DomeTalker::execute(const std::string &str) {
   Davix::DavixError::clearError(&err_);
 
-  Davix::Uri target(uri_ + "/command/" + cmd_);
+  Davix::Uri target(target_);
   Davix::HttpRequest req(*ds_->ctx, target, &err_);
   if(err_) return false;
 
@@ -115,7 +116,7 @@ bool DomeTalker::execute(const std::string &key1, const std::string &value1,
 std::string DomeTalker::err() {
   if(err_) {
     std::ostringstream os;
-    os << "Error when issuing " << cmd_ << " to '" << uri_ << "'. Status: " << status_ << ".";
+    os << "Error when issuing request to '" << target_ << "'. Status: " << status_ << ".";
     os << "DavixError: '" << err_->getErrMsg() << "'. ";
 
     if(response_.size() != 0) {

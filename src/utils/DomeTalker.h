@@ -64,6 +64,8 @@ private:
   std::string uri_;
   std::string cmd_;
 
+  std::string target_;
+
   DavixGrabber grabber_;
   DavixStuff *ds_;
 
