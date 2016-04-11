@@ -98,57 +98,50 @@ long DomeStatus::getGlobalputcount() {
 
 /// Helper function that reloads all the filesystems from the DB or asking the head node
 int DomeStatus::loadFilesystems() {
-
+  
   if (role == roleHead) {
     DomeMySql sql;
     return sql.getFilesystems(*this);
   }
-
+  
   // Disk node case. We ask the head node and match the
   // filesystems against the local server name
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   domeurl += "/";
-
+  
   DomeTalker talker(*davixPool, NULL, domeurl,
                     "GET", "dome_getspaceinfo");
-
+  
   if(!talker.execute()) {
     Err(domelogname, "Error when issuing dome_getspaceinfo: " << talker.err());
     return -1;
   }
-
+  
   Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << talker.response() << "'");
-  boost::property_tree::ptree jresp;
+  
   try {
-    jresp = talker.jresp();
-  }
-  catch (boost::property_tree::ptree_error &e) {
-    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
-    return -1;
-  }
-
-  // Now overwrite the fs entries we have with the ones we got
-  {
+    
+    // Now overwrite the fs entries we have with the ones we got
     boost::unique_lock<boost::recursive_mutex> l(*this);
-
+    
     // Loop on the servers of the response, looking for one that matches this server
-    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, jresp.get_child("fsinfo")) {
+    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, talker.jresp().get_child("fsinfo")) {
       // v.first is the name of the server.
       // v.second is the child tree representing the server
       if (srv.first != this->myhostname) continue;
-
+      
       // Now loop on the filesystems of the response
       // Now we loop through the filesystems reported by this server
       BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
         // v.first is the name of the server.
         // v.second is the child tree representing the server
-
-
+        
+        
         // Find the corresponding server:fs info in our array, and get the counters
         bool found = false;
         Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
         for (unsigned int ii = 0; ii < fslist.size(); ii++) {
-
+          
           Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
           if (fslist[ii].fs == fs.first) {
             found = true;
@@ -157,23 +150,28 @@ int DomeStatus::loadFilesystems() {
         }
         if (!found) {
           Log(Logger::Lvl1, domelogmask, domelogname, "Learning new fs from head node: " << srv.first << ":" << fs.first <<
-            " poolname: '" << fs.second.get<std::string>("poolname") << "'" );
-
+          " poolname: '" << fs.second.get<std::string>("poolname") << "'" );
+          
           DomeFsInfo newfs;
           newfs.poolname = fs.second.get<std::string>("poolname");;
           newfs.server = myhostname;
           servers.insert(myhostname);
           newfs.fs = fs.first;
-
+          
           fslist.push_back(newfs);
         }
-
+        
       } // foreach
-
-
+      
+      
     } // foreach
-  } // lock
-
+    
+  }
+  catch (boost::property_tree::ptree_error &e) {
+    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
+    return -1;
+  }
+  
   return 0;
 }
 
