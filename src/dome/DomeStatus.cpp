@@ -820,6 +820,7 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
     
     // Any quotatokens here ?
     if (myintv.first != quotas.end()) {
+      bool goterr = false;
       
       // Gets the used space in the dir
       DmlitePoolHandler stack(dmpool);
@@ -832,27 +833,29 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
       catch (DmException e) {
         std::ostringstream os;
         os << "Found quotatokens for non-existing path '"<< path << "' : " << e.code() << "-" << e.what();
-      
-        Err(domelogname, os.str());
-        continue;
-      }
-          
-      // Loop on all the quotatokens of this dir  
-      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
-        long long pooltotal, poolfree;
-        int poolst;
         
-        // Gets the free space in the pool pointed to by this quotatoken
-        if (!getPoolSpaces(it->second.poolname, pooltotal, poolfree, poolst)) {
-          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn1 << "' poolfree: " << poolfree << " poolstatus: " << poolst);    
-          
-          // Consider as free space the minimum between free space on the pool and quota size in the same pool
-          totfree += MIN(poolfree, it->second.t_space);
-        }
+        Err(domelogname, os.str());
+        goterr = true;
       }
       
-      // Remember, with quotatokens we exit at the first match in the parent directories
-      return MAX( 0, totfree - totused );
+      if (!goterr) {
+        // Loop on all the quotatokens of this dir  
+        for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
+          long long pooltotal, poolfree;
+          int poolst;
+          
+          // Gets the free space in the pool pointed to by this quotatoken
+          if (!getPoolSpaces(it->second.poolname, pooltotal, poolfree, poolst)) {
+            Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn1 << "' poolfree: " << poolfree << " poolstatus: " << poolst);    
+            
+            // Consider as free space the minimum between free space on the pool and quota size in the same pool
+            totfree += MIN(poolfree, it->second.t_space);
+          }
+        }
+        
+        // Remember, with quotatokens we exit at the first match in the parent directories
+        return MAX( 0, totfree - totused );
+      }
     }
     
     // No match found, look upwards by trimming the last token from absPath
