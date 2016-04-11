@@ -168,7 +168,7 @@ int DomeStatus::loadFilesystems() {
     
   }
   catch (boost::property_tree::ptree_error &e) {
-    Err("checkDiskSpaces", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
+    Err("loadFilesystems", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
     return -1;
   }
   
