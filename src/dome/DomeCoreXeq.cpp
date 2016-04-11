@@ -169,7 +169,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
  
   // Check against the quotas
   if ( !status.LfnFitsInFreespace(lfn, CFG->GetLong("glb.put.minfreespace_mb", 4096)*1024*1024L) ) {
-    return DomeReq::SendSimpleResp(request, 400, "Not enough free space, either quota or disk.");
+    return DomeReq::SendSimpleResp(request, 400, "Not enough free space, either quota or disk. lfn: '" << lfn << "'");
   }
   
   std::vector<DomeFsInfo> selectedfss;
