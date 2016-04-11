@@ -132,7 +132,7 @@ int DomeStatus::loadFilesystems() {
     boost::unique_lock<boost::recursive_mutex> l(*this);
 
     // Loop on the servers of the response, looking for one that matches this server
-    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, jresp.get_child("fsinfo.")) {
+    BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, jresp.get_child("fsinfo")) {
       // v.first is the name of the server.
       // v.second is the child tree representing the server
       if (srv.first != this->myhostname) continue;
