@@ -41,7 +41,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/param.h>
-
+#include "cpp/utils/urls.h"
 
 #include "cpp/dmlite.h"
 #include "cpp/catalog.h"
@@ -865,10 +865,10 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
 
 bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
   
-  // Calculate parent path
-  std::string parent;
-  
-  return (getPathFreeSpace(parent) > (long long)space);
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn << "'");
+  long long freespace = getPathFreeSpace(lfn);
+  Log(Logger::Lvl1, domelogmask, domelogname, "Processing: '" << lfn << "' freespace: " << freespace << " needed: " << space);
+  return (freespace > (long long)space);
   
 }
 
