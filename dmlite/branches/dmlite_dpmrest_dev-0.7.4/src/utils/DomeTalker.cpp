@@ -63,7 +63,7 @@ bool DomeTalker::execute(const std::string &str) {
   if(err_) return false;
 
   req.setRequestMethod(verb_);
-  
+
   if(creds_) {
     req.addHeaderField("remoteclientdn", creds_->clientName);
     req.addHeaderField("remoteclienthost", creds_->remoteAddress);
@@ -87,7 +87,7 @@ const std::string& DomeTalker::response() {
 const boost::property_tree::ptree& DomeTalker::jresp() {
   if(parsedJson_) return json_;
 
-  std::istringstream iss(response_);
+  std::istringstream iss(&response_[0]);
   boost::property_tree::read_json(iss, json_);
   parsedJson_ = true;
   return json_;
