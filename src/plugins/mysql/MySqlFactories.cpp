@@ -197,7 +197,7 @@ IODriver* MysqlIOPassthroughFactory::createIODriver(PluginManager* pm) throw (Dm
 // Static functions implementing hooks for the dynamic loading
 //
 
-// Register plugin item that gives name space functionalities
+// Register plugin item that gives name space functionalities together with authentication
 static void registerPluginNs(PluginManager* pm) throw(DmException)
 {
   mysqllogmask = Logger::get()->getMask(mysqllogname);
@@ -207,6 +207,15 @@ static void registerPluginNs(PluginManager* pm) throw(DmException)
   pm->registerAuthnFactory(nsFactory);
 }
 
+// Register plugin item that gives name space functionalities only
+static void registerPluginNsOnly(PluginManager* pm) throw(DmException)
+{
+  mysqllogmask = Logger::get()->getMask(mysqllogname);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "registerPluginNsOnly");
+  NsMySqlFactory* nsFactory = new NsMySqlFactory();
+  pm->registerINodeFactory(nsFactory);
+
+}
 
 // Register plugin item that gives disk pool manager functionalities
 static void registerPluginDpm(PluginManager* pm) throw(DmException)
@@ -237,6 +246,11 @@ static void registerPluginMysqlIOPassthrough(PluginManager* pm) throw(DmExceptio
 PluginIdCard plugin_mysql_ns = {
   PLUGIN_ID_HEADER,
   registerPluginNs
+};
+
+PluginIdCard plugin_mysql_nsonly = {
+  PLUGIN_ID_HEADER,
+  registerPluginNsOnly
 };
 
 PluginIdCard plugin_mysql_dpm = {
