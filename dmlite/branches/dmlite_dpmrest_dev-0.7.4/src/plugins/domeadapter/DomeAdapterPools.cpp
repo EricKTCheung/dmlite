@@ -134,7 +134,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
   DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
                     "GET", "dome_get");
 
-  if(!talker.execute()) {
+  if(!talker.execute("lfn", path)) {
     throw DmException(EINVAL, talker.err());
   }
 
