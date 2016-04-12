@@ -64,47 +64,56 @@ namespace dmlite {
     /// Acquires a free resource.
     E  acquire(bool block = true)
     {
-      
+      bool found = false; 
       E e;
-      boost::mutex::scoped_lock lock(mutex_);
       
-      // Wait for one free
-      if (!block && (freeSlots_ == 0)) {
-        throw DmException(DMLITE_SYSERR(EBUSY),
-                          std::string("No resources available"));
-      }
-
-
-      boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(60);
+      { // lock scope
+        boost::mutex::scoped_lock lock(mutex_);
       
-      while (freeSlots_ < 1) {
-        if (boost::get_system_time() >= timeout) {
-           syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds", 60);
-           break;
+        // Wait for one free
+        if (!block && (freeSlots_ == 0)) {
+          throw DmException(DMLITE_SYSERR(EBUSY),
+                            std::string("No resources available"));
         }
-        available_.timed_wait(lock, timeout);
-      }
 
-      // If there is any in the queue, give one from there
-      if (free_.size() > 0) {
-        e = free_.front();
-        free_.pop_front();
-        // May have expired!
-        if (!factory_->isValid(e)) {
-          factory_->destroy(e);
-          e = factory_->create();
+        boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(60);
+      
+        while (freeSlots_ < 1) {
+          if (boost::get_system_time() >= timeout) {
+            syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds", 60);
+            break;
+          }
+          available_.timed_wait(lock, timeout);
         }
-      }
-      else {
-        // None created, so create it now
+
+        // If there is any in the queue, give one from there
+        if (free_.size() > 0) {
+          e = free_.front();
+          free_.pop_front();
+          // May have expired! In this case the element as to be destroyed,
+          // and the conclusion is that we have not found a good one in the pool
+          if (!factory_->isValid(e)) {
+            factory_->destroy(e);
+          }
+          else
+            found = true;
+        }
+      
+      } // lock
+
+      // We create a new element out of the lock. This may help for elements that need other elements
+      // of the same type to be constructed (sigh)
+      if (!found) 
         e = factory_->create();
+    
+      { // lock scope (again, sigh)
+        boost::mutex::scoped_lock lock(mutex_);
+        // Keep track of used
+        used_.insert(std::pair<E, unsigned>(e, 1));
+
+        // Note that in case of timeout freeSlots_ can become negative
+        --freeSlots_;
       }
-      // Keep track of used
-      used_.insert(std::pair<E, unsigned>(e, 1));
-
-      // Note that in case of timeout freeSlots_ can become negative
-      --freeSlots_;
-
       return e;
     }
 
