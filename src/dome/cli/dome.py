@@ -21,6 +21,8 @@ def main():
     parser.add_option("--space", dest="space", help="the space", default = '')
     parser.add_option("--desc", dest="desc", help="the quota token description", default = '')
     parser.add_option("--server", dest="server", help="the server", default = '')
+    parser.add_option("--fs", dest="fs", help="the filtesystem", default = '')
+    parser.add_option("--size", dest="size", help="the file size", default = '')
     parser.add_option("--clientDN", dest="clientDN", help="the clientDN to use", default = '/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=furano/CN=644746/CN=Fabrizio Furano')
     parser.add_option("--clientAddr",  dest="clientAddr", help="the clientAddr to use", default = '43.54.56.6')
     (options, args) = parser.parse_args()
@@ -36,23 +38,29 @@ def main():
 		if not options.lfn:
 			print "Please specify the LFN  via --lfn option"
                         sys.exit(1)
-		executor.get(options.url,options.lfn)
+   		if not options.pfn:
+                        print "Please specify the PFN  via --pfn option"
+			sys.exit(1)
+		if not options.server:
+                        print "Please specify the Server  via --server option"
+                        sys.exit(1)	
+		if not options.fs:
+                        print "Please specify the Filesystem  via --fs option"
+                        sys.exit(1)
+		executor.get(options.url,options.lfn, options.pfn,options.server,options.fs)
 	if options.execute == 'put':
 		if not options.lfn:
 			print "Please specify the LFN  via --lfn option"
 			sys.exit(1)
 		executor.put(options.url,options.lfn)
 	elif options.execute == 'putdone':
-		if not options.lfn:
-                        print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
 		if not options.pfn:
                         print "Please specify the PFN  via --pfn option"
                         sys.exit(1)
-		if not options.server:
-                        print "Please specify the Server  via --server option"
+		if not options.size:
+                        print "Please specify the Server  via --size option"
                         sys.exit(1)
-		executor.putDone(options.url,options.lfn, options.pfn,options.server)
+		executor.putDone(options.url, options.pfn,options.size)
 	elif options.execute == 'getspaceinfo':
 		executor.getSpaceInfo(options.url)
 	elif options.execute == 'statpool':
@@ -87,6 +95,11 @@ def main():
                         print "Please specify the Pool to set the quota  token  via --pool option"
                         sys.exit(1)
 		executor.delquotatoken(options.url,options.lfn,options.pool)
+	elif options.execute == 'getdirspaces':
+		if not options.lfn:
+                        print "Please specify the LFN  via --lfn option"
+                        sys.exit(1)
+		executor.getdirspaces(options.url,options.lfn)
 	elif options.execute == "pfnrm":
 		if not options.pfn:
                         print "Please specify the PFN  via --pfn option"

@@ -2,15 +2,19 @@ PUT:
 ./dome.py -e put --url https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/andrea12
 
 PUTDONE:
-./dome.py -e putdone --url https://domedisk-trunk.cern.ch/domedisk --lfn /dpm/cern.ch/home/dteam/andrea9 --pfn  /data/dteam/2016-02-17/andrea9.45.1455722844 --server domedisk-trunk.cern.ch
+./dome.py -e putdone --url https://domedisk-trunk.cern.ch/domedisk --pfn  /srv/dpm/01/dteam/2016-04-11/testfab-006.5.1460390261 --size 641064
 
 GET:
-./dome.py -e get -u  https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/catarro9
+./dome.py -e get -u  https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/gridftp-f1458221342620113120 --pfn /srv/dpm/01/dteam/2016-03-17/gridftp-f1458221342620113120.6.1458221894 --server domehead-disk.cern.ch --fs /srv/dpm/01
+
 
 GETSPACEINFO:
 ./dome.py -e getspaceinfo -u https://domehead-trunk.cern.ch/domehead
 
 ./dome.py -e getspaceinfo -u https://domedisk-trunk.cern.ch/domedisk
+
+GETDIRSPACES:
+./dome.py -e getdirspaces -u https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam
 
 STATPOOL
 ./dome.py -e statpool -u https://domehead-trunk.cern.ch/domehead --pool pool01
