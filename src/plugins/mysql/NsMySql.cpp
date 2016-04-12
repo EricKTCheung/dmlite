@@ -234,13 +234,13 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   // Destination must not exist!
   // For the future... I think that this overhead can be avoided by more carefully
   // checking for the execute() return values and exceptions
-  try {
-    this->extendedStat(nf.parent, nf.name);
-    throw DmException(EEXIST, "%s already exists", nf.name.c_str());
-  }
-  catch (DmException& e) {
-    if (e.code() != ENOENT) throw;
-  }
+//   try {
+//     this->extendedStat(nf.parent, nf.name);
+//     throw DmException(EEXIST, "%s already exists", nf.name.c_str());
+//   }
+//   catch (DmException& e) {
+//     if (e.code() != ENOENT) throw;
+//   }
 
   
     
@@ -289,6 +289,7 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   // Start a new transaction
   InodeMySqlTrans trans(this);
   
+  try {
   {
     
     
@@ -341,7 +342,15 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
   // Commit the local trans object
   // This also releases the connection back to the pool
   trans.Commit();
-  
+  }
+  catch (DmException e) {
+    if (e.code() | DMLITE_DATABASE_ERROR) {
+      int c = e.code() ^ DMLITE_DATABASE_ERROR;
+      if (c == 1062) // mysql duplicate key
+        throw DmException(EEXIST, "File already exists - mysql duplicate key");
+    }
+    throw;
+  }
 
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
   
