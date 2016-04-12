@@ -9,40 +9,45 @@ class DomeExecutor(object):
 		self.clientDN = clientDN
 		self.clientAddress = clientAddress
 		self.baseArgs = ["davix-http", "-k","--cert", "/etc/grid-security/hostcert.pem","--key", "/etc/grid-security/hostkey.pem"]
-	def putDone(self, url,lfn,pfn,server):
+	def putDone(self, url,pfn,size):
         	args = self.baseArgs
                 args.append("-X POST")
-		url = url + lfn
+		url = url + "/dome/command/dome_putdone"
 		args.append(url)
 		args = self.addClient(args)
-		args.append("-H")
-		args.append(quote('cmd: dome_putdone'))
 		args.append("--data")
 		data = {}
-		data['pfn']=pfn
-		data['server'] = server
+		data['pfn']= pfn
+		data['size'] = size
 		args.append(quote(json.dumps(data)))
 		self.executeDavix(args)
-	def put(self,url,lfn):
+	def put(self,url,lfn, additionalreplica='true', pool='pool01',host='domedisk-trunk.cern.ch',fs='/srv/dpm/02'):
 		args = self.baseArgs
-		args.append("-X PUT")
-		url = url + lfn
+		args.append("-X POST")
+		url = url + "/dome/command/dome_put"
 		args.append(url)
 		args = self.addClient(args)
 		args.append("--data")
-		args.append(quote("{}"))
+                data = {}
+		data['lfn']= lfn
+		data['additionalreplica']= additionalreplica
+		data['pool'] = pool
+		data['host'] = host
+		data['fs'] = fs
+ 		args.append(quote(json.dumps(data)))
 		self.executeDavix(args)
-	def get(self,url,lfn):
+	def get(self,url,lfn,server,pfn,filesystem):
 		args = self.baseArgs
                 args.append("-X GET")
-		url = url + lfn
+		url = url +"/dome/command/dome_get"
 		args.append(url)
 		args = self.addClient(args)
-		args.append("-H")
-                args.append(quote('cmd: dome_get'))
 		args.append("--data")
 		data = {}
-                data['canpull']=True
+		data['lfn'] = lfn
+		data['server'] = server
+		data['pfn'] = pfn
+		data['filesystem'] = filesystem
                 args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
 	def pfnrm(self,url,pfn):
@@ -60,10 +65,8 @@ class DomeExecutor(object):
 	def getSpaceInfo(self,url):
 		args = self.baseArgs
 		args.append("-X GET")
-		args.append(url+"/dome")
+		args.append(url+ "/dome/command/dome_getspaceinfo")
 		args = self.addClient(args)
-		args.append("-H")
-	 	args.append(quote('cmd: dome_getspaceinfo'))
 		args.append("--data")
                 args.append(quote("{}"))
                 self.executeDavix(args)
@@ -82,22 +85,21 @@ class DomeExecutor(object):
 	def getquotatoken(self,url,lfn):
 		args = self.baseArgs
 		args.append("-X GET")
-		url = url + lfn
+		url = url + "/dome/command/dome_getquotatoken"
                 args.append(url)
 		args = self.addClient(args)
-		args.append("-H")
-                args.append(quote('cmd: dome_getquotatoken'))
                 args.append("--data")
-                args.append(quote("{}"))
+		data = {}
+		data['path'] = lfn
+		data['getsubdirs'] = True
+                args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
 	def setquotatoken(self,url,lfn,pool, space,desc):
                 args = self.baseArgs
 	        args.append("-X POST")
- 		url = url + "/dome" + lfn
+ 		url = url + "/dome/command/dome_setquotatoken"
 		args.append(url)
                 args = self.addClient(args)
-		args.append("-H")
-                args.append(quote('cmd: dome_setquotatoken'))
 	        args.append("--data")
                 data = {}
                 data['path']=lfn
@@ -106,14 +108,24 @@ class DomeExecutor(object):
 		data['description']=desc
                 args.append(quote(json.dumps(data)))
                 self.executeDavix(args)
+	def getdirspaces(self,url,lfn):
+		args = self.baseArgs
+                args.append("-X GET")
+                url = url + "/dome/command/dome_getdirspaces"
+                args.append(url)
+                args = self.addClient(args)
+                args.append("--data")
+                data = {}
+                data['path'] = lfn
+                args.append(quote(json.dumps(data)))
+                self.executeDavix(args)
+
 	def delquotatoken(self,url,lfn,pool):
 		args = self.baseArgs
                 args.append("-X POST")
-		url = url+"/dome"
+		url = url+"/dome/command/dome_delquotatoken"
 		args.append(url)
 		args = self.addClient(args)
-		args.append("-H")
-		args.append(quote('cmd: dome_delquotatoken'))
 		args.append("--data")
 		data = {}
 		data['path']=lfn
