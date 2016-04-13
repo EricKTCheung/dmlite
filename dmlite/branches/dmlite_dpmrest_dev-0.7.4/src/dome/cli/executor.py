@@ -2,158 +2,102 @@ from subprocess import Popen, PIPE, STDOUT
 from pipes import quote
 import os
 import json
+import subprocess
+
+class DomeCredentials(object):
+    """Stores all credentials needed for a dome request"""
+
+    def __init__(self, cert, key, capath, clientDN, clientAddress):
+        self.cert = cert
+        self.key = key
+        self.capath = capath
+        self.clientDN = clientDN
+        self.clientAddress = clientAddress
+
+class DomeTalker(object):
+    """Issues requests to Dome"""
+
+    @staticmethod
+    def build_url(url, command):
+        while url.endswith("/"):
+            url = url[:-1]
+        return "{0}/command/{1}".format(url, command)
+
+    def __init__(self, creds, uri, verb, cmd):
+        self.creds = creds
+        self.uri = uri
+        self.verb = verb
+        self.cmd = cmd
+    def execute(self, data):
+        cmd = ["davix-http"]
+        if self.creds.cert:
+            cmd += ["--cert", self.creds.cert]
+        if self.creds.key:
+            cmd += ["--key", self.creds.key]
+        if self.creds.clientDN:
+            cmd += ["--header", "remoteclientdn: {0}".format(self.creds.clientDN)]
+        if self.creds.clientAddress:
+            cmd += ["--header", "remoteclientaddr: {0}".format(self.creds.clientAddress)]
+        if self.creds.capath:
+            cmd += ["--capath", self.creds.capath]
+
+        cmd += ["--data", json.dumps(data)]
+        cmd += ["--request", self.verb]
+
+        cmd.append(DomeTalker.build_url(self.uri, self.cmd))
+
+        print("'" + "' '".join(cmd) + "'")
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = proc.communicate()[0]
+        print(out)
 
 class DomeExecutor(object):
-	'''It invokes the method via Davix CLI'''
-	def __init__(self,clientDN,clientAddress):
-		self.clientDN = clientDN
-		self.clientAddress = clientAddress
-		self.baseArgs = ["davix-http", "-k","--cert", "/etc/grid-security/hostcert.pem","--key", "/etc/grid-security/hostkey.pem"]
-	def putDone(self, url,pfn,size):
-        	args = self.baseArgs
-                args.append("-X POST")
-		url = url + "/dome/command/dome_putdone"
-		args.append(url)
-		args = self.addClient(args)
-		args.append("--data")
-		data = {}
-		data['pfn']= pfn
-		data['size'] = size
-		args.append(quote(json.dumps(data)))
-		self.executeDavix(args)
-	def put(self,url,lfn, additionalreplica='true', pool='pool01',host='domedisk-trunk.cern.ch',fs='/srv/dpm/02'):
-		args = self.baseArgs
-		args.append("-X POST")
-		url = url + "/dome/command/dome_put"
-		args.append(url)
-		args = self.addClient(args)
-		args.append("--data")
-                data = {}
-		data['lfn']= lfn
-		data['additionalreplica']= additionalreplica
-		data['pool'] = pool
-		data['host'] = host
-		data['fs'] = fs
- 		args.append(quote(json.dumps(data)))
-		self.executeDavix(args)
-	def get(self,url,lfn,server,pfn,filesystem):
-		args = self.baseArgs
-                args.append("-X GET")
-		url = url +"/dome/command/dome_get"
-		args.append(url)
-		args = self.addClient(args)
-		args.append("--data")
-		data = {}
-		data['lfn'] = lfn
-		data['server'] = server
-		data['pfn'] = pfn
-		data['filesystem'] = filesystem
-                args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def pfnrm(self,url,pfn):
-		args = self.baseArgs
-                args.append("-X POST")
-		args.append(url+"/")
-		args = self.addClient(args)
-		args.append("-H")
-                args.append(quote('cmd: dome_pfnrm'))
-		args.append("--data")
-                data = {}
-                data['pfn']=pfn
-		args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def getSpaceInfo(self,url):
-		args = self.baseArgs
-		args.append("-X GET")
-		args.append(url+ "/dome/command/dome_getspaceinfo")
-		args = self.addClient(args)
-		args.append("--data")
-                args.append(quote("{}"))
-                self.executeDavix(args)
-	def statPool(self,url, pool):
-		args = self.baseArgs
-                args.append("-X GET")
-                args.append(url+"/dome")
-                args = self.addClient(args)
-                args.append("-H")
-                args.append(quote('cmd: dome_statpool'))
-                args.append("--data")
-		data = {}
-		data['poolname']=pool
-                args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def getquotatoken(self,url,lfn):
-		args = self.baseArgs
-		args.append("-X GET")
-		url = url + "/dome/command/dome_getquotatoken"
-                args.append(url)
-		args = self.addClient(args)
-                args.append("--data")
-		data = {}
-		data['path'] = lfn
-		data['getsubdirs'] = True
-                args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def setquotatoken(self,url,lfn,pool, space,desc):
-                args = self.baseArgs
-	        args.append("-X POST")
- 		url = url + "/dome/command/dome_setquotatoken"
-		args.append(url)
-                args = self.addClient(args)
-	        args.append("--data")
-                data = {}
-                data['path']=lfn
-                data['poolname'] = pool
-		data['quotaspace'] = space
-		data['description']=desc
-                args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def getdirspaces(self,url,lfn):
-		args = self.baseArgs
-                args.append("-X GET")
-                url = url + "/dome/command/dome_getdirspaces"
-                args.append(url)
-                args = self.addClient(args)
-                args.append("--data")
-                data = {}
-                data['path'] = lfn
-                args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
+    """Wrapper around DomeTalker"""
+    def __init__(self, cert, key, capath, clientDN, clientAddress):
+        self.creds = DomeCredentials(cert, key, capath, clientDN, clientAddress)
 
-	def delquotatoken(self,url,lfn,pool):
-		args = self.baseArgs
-                args.append("-X POST")
-		url = url+"/dome/command/dome_delquotatoken"
-		args.append(url)
-		args = self.addClient(args)
-		args.append("--data")
-		data = {}
-		data['path']=lfn
-		data['poolname'] = pool
-		args.append(quote(json.dumps(data)))
-		self.executeDavix(args)
-	def delreplica(self,url,pfn,server):
-		args = self.baseArgs
-		args.append("-X POST")
-		args.append(url+"/")
-		args = self.addClient(args)
-		args.append("-H")
-                args.append(quote('cmd: dome_delreplica'))
-		args.append("--data")
-                data = {}
-                data['server']=server
-                data['pfn'] = pfn
-		args.append(quote(json.dumps(data)))
-                self.executeDavix(args)
-	def executeDavix(self,args):
-		args = (' ').join(args)
-		print args
-                proc = Popen(args, shell=True,stdout=PIPE)
-		out = proc.communicate()[0]
-                print out
-	def addClient(self,args):
-                args.append("-H")
-                args.append(quote("remoteclientdn: "+self.clientDN))
-                args.append("-H")
-                args.append(quote("remoteclientaddr: "+self.clientAddress))
-		return args
+    def putDone(self, url,pfn,size):
+        talker = DomeTalker(self.creds, url, "POST", "dome_putdone")
+        talker.execute({"pfn" : pfn, "size" : size})
+
+    def put(self,url,lfn, additionalreplica='true', pool='pool01',host='domedisk-trunk.cern.ch',fs='/srv/dpm/02'):
+        talker = DomeTalker(self.creds, url, "POST", "dome_put")
+        talker.execute({ "lfn" : lfn, "additionalreplica" : additionalreplica,
+                         "pool" : pool, "host" : host, "fs" : fs})
+
+    def get(self,url,lfn,server,pfn,filesystem):
+        talker = DomeTalker(self.creds, url, "GET", "dome_get")
+        talker.execute()
+
+    def pfnrm(self,url,pfn):
+        talker = DomeTalker(self.creds, url, "POST", "dome_pfnrm")
+        talker.execute({"pfn" : pfn})
+
+    def getSpaceInfo(self,url):
+        talker = DomeTalker(self.creds, url, "GET", "dome_getspaceinfo")
+        talker.execute({})
+
+    def statPool(self,url, pool):
+        talker = DomeTalker(self.creds, url, "GET", "dome_statpool")
+        talker.execute({"poolname" : pool})
+
+    def getquotatoken(self,url,lfn):
+        talker = DomeTalker(self.creds, url, "GET", "dome_getquotatoken")
+        talker.execute( { "path" : lfn, "getsubdirs" : True })
+
+    def setquotatoken(self,url,lfn,pool, space,desc):
+        talker = DomeTalker(self.creds, url, "POST", "dome_setquotatoken")
+        talker.execute({ "path" : lfn, "poolname" : pool,
+                          "quotaspace" : space, "description" : desc })
+
+    def getdirspaces(self,url,lfn):
+        talker = DomeTalker(self.creds, url, "GET", "dome_getdirspaces")
+        talker.execute({ "path" : lfn})
+
+    def delquotatoken(self,url,lfn,pool):
+        talker = DomeTalker(self.creds, url, "POST", "dome_delquotatoken")
+        talker.execute({ "path" : lfn, "poolname" : pool})
+
+    def delreplica(self,url,pfn,server):
+        talker = DomeTalker(self.creds, url, "POST", "dome_delreplica")
+        talker.execute({ "server" : server, "pfn" : pfn})
