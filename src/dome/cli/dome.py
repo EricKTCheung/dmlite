@@ -30,92 +30,92 @@ def main():
         parser.error("Incorrect number of arguments")
 
     if options.execute:
-	if not options.url:
+        if not options.url:
                 print "Please specify the url  via --url option"
                 sys.exit(1)
-	executor = DomeExecutor(options.clientDN, options.clientAddr)
-        if options.execute == 'get':
-		if not options.lfn:
-			print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
-   		if not options.pfn:
-                        print "Please specify the PFN  via --pfn option"
-			sys.exit(1)
-		if not options.server:
-                        print "Please specify the Server  via --server option"
-                        sys.exit(1)	
-		if not options.fs:
-                        print "Please specify the Filesystem  via --fs option"
-                        sys.exit(1)
-		executor.get(options.url,options.lfn, options.pfn,options.server,options.fs)
-	if options.execute == 'put':
-		if not options.lfn:
-			print "Please specify the LFN  via --lfn option"
-			sys.exit(1)
-		executor.put(options.url,options.lfn)
-	elif options.execute == 'putdone':
-		if not options.pfn:
-                        print "Please specify the PFN  via --pfn option"
-                        sys.exit(1)
-		if not options.size:
-                        print "Please specify the Server  via --size option"
-                        sys.exit(1)
-		executor.putDone(options.url, options.pfn,options.size)
-	elif options.execute == 'getspaceinfo':
-		executor.getSpaceInfo(options.url)
-	elif options.execute == 'statpool':
-		if not options.pool:
-                        print "Please specify the Pool to stat  via --pool option"
-                        sys.exit(1)
-		executor.statPool(options.url,options.pool)
-	elif options.execute == 'getquotatoken':
-		if not options.lfn:
-                        print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
-		executor.getquotatoken(options.url,options.lfn)
-	elif options.execute == 'setquotatoken':
-		if not options.lfn:
-                        print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
- 	 	if not options.pool:
-                        print "Please specify the Pool to set the quota  token  via --pool option"
-                        sys.exit(1)
-		if not options.space:
-                        print "Please specify the Space for the quota token  via --space option"
-                        sys.exit(1)
-		if not options.desc:
-                        print "Please specify the Space for the quota token description  via --desc option"
-                        sys.exit(1)
-		executor.setquotatoken(options.url,options.lfn,options.pool, options.space,options.desc)
-	elif options.execute == 'delquotatoken':
-		if not options.lfn:
-                        print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
-                if not options.pool:
-                        print "Please specify the Pool to set the quota  token  via --pool option"
-                        sys.exit(1)
-		executor.delquotatoken(options.url,options.lfn,options.pool)
-	elif options.execute == 'getdirspaces':
-		if not options.lfn:
-                        print "Please specify the LFN  via --lfn option"
-                        sys.exit(1)
-		executor.getdirspaces(options.url,options.lfn)
-	elif options.execute == "pfnrm":
-		if not options.pfn:
-                        print "Please specify the PFN  via --pfn option"
-                        sys.exit(1)
-		executor.pfnrm(options.url,options.pfn)
-	elif options.execute == "delreplica":
-		if not options.pfn:
-                        print "Please specify the PFN  via --pfn option"
-                        sys.exit(1)
-		if not options.server:
-                        print "Please specify the Server  via --server option"
-                        sys.exit(1)
-		executor.delreplica(options.url,options.pfn,options.server)	
+    executor = DomeExecutor("/etc/grid-security/hostcert.pem", "/etc/grid-security/hostkey.pem",
+                            "/etc/grid-security/certificates", options.clientDN, options.clientAddr)
 
-
+    if options.execute == 'get':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        if not options.pfn:
+            print "Please specify the PFN  via --pfn option"
+            sys.exit(1)
+        if not options.server:
+            print "Please specify the Server  via --server option"
+            sys.exit(1)
+        if not options.fs:
+            print "Please specify the Filesystem  via --fs option"
+            sys.exit(1)
+        executor.get(options.url,options.lfn, options.pfn,options.server,options.fs)
+    if options.execute == 'put':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        executor.put(options.url,options.lfn)
+    elif options.execute == 'putdone':
+        if not options.pfn:
+            print "Please specify the PFN  via --pfn option"
+            sys.exit(1)
+        if not options.size:
+            print "Please specify the Server  via --size option"
+            sys.exit(1)
+        executor.putDone(options.url, options.pfn,options.size)
+    elif options.execute == 'getspaceinfo':
+        executor.getSpaceInfo(options.url)
+    elif options.execute == 'statpool':
+        if not options.pool:
+            print "Please specify the Pool to stat  via --pool option"
+            sys.exit(1)
+        executor.statPool(options.url,options.pool)
+    elif options.execute == 'getquotatoken':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        executor.getquotatoken(options.url,options.lfn)
+    elif options.execute == 'setquotatoken':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        if not options.pool:
+            print "Please specify the Pool to set the quota  token  via --pool option"
+            sys.exit(1)
+        if not options.space:
+            print "Please specify the Space for the quota token  via --space option"
+            sys.exit(1)
+        if not options.desc:
+            print "Please specify the Space for the quota token description  via --desc option"
+            sys.exit(1)
+        executor.setquotatoken(options.url,options.lfn,options.pool, options.space,options.desc)
+    elif options.execute == 'delquotatoken':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        if not options.pool:
+            print "Please specify the Pool to set the quota  token  via --pool option"
+            sys.exit(1)
+        executor.delquotatoken(options.url,options.lfn,options.pool)
+    elif options.execute == 'getdirspaces':
+        if not options.lfn:
+            print "Please specify the LFN  via --lfn option"
+            sys.exit(1)
+        executor.getdirspaces(options.url,options.lfn)
+    elif options.execute == "pfnrm":
+        if not options.pfn:
+            print "Please specify the PFN  via --pfn option"
+            sys.exit(1)
+        executor.pfnrm(options.url,options.pfn)
+    elif options.execute == "delreplica":
+        if not options.pfn:
+            print "Please specify the PFN  via --pfn option"
+            sys.exit(1)
+        if not options.server:
+            print "Please specify the Server  via --server option"
+            sys.exit(1)
+        executor.delreplica(options.url,options.pfn,options.server)
 
 # this is an executable module
 if __name__ == '__main__':
-	main()
+        main()
