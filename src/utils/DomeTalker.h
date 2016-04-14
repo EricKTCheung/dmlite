@@ -32,6 +32,20 @@
 
 namespace dmlite {
 
+enum DomeHttpCode {
+  DOME_HTTP_OK = 200,
+
+  DOME_HTTP_BAD_REQUEST = 400,
+  DOME_HTTP_NOT_FOUND = 404,
+  DOME_HTTP_CONFLICT = 409,
+  DOME_HTTP_UNPROCESSABLE = 422,
+
+  DOME_HTTP_INTERNAL_SERVER_ERROR = 500,
+  DOME_HTTP_INSUFFICIENT_STORAGE = 507
+};
+
+int http_status(const dmlite::DmException &e);
+
 class DomeTalker {
 public:
   DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std::string uri, std::string verb, std::string cmd);
@@ -54,6 +68,9 @@ public:
 
   // get response status
   int status();
+
+  // produce the appropriate code for a dmlite exception
+  int dmlite_code();
 
   const boost::property_tree::ptree& jresp();
   const std::string& response();

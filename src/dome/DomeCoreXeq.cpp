@@ -164,14 +164,14 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   // Give errors for combinations of the parameters that are obviously wrong
   if ( (host != "") && (pool != "") ) {
     // Error! Log it as such!, level1
-    return DomeReq::SendSimpleResp(request, 501, "The pool hint and the host hint are mutually exclusive.");
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "The pool hint and the host hint are mutually exclusive.");
   }
  
   // Check against the quotas
   if ( !status.LfnFitsInFreespace(lfn, CFG->GetLong("glb.put.minfreespace_mb", 4096)*1024*1024L) ) {
     std::ostringstream os;
     os << "Not enough free space, either quota or disk. lfn: '" << lfn << "'";
-    return DomeReq::SendSimpleResp(request, 400, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, os);
   }
   
   std::vector<DomeFsInfo> selectedfss;
@@ -225,7 +225,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
     if ( !selectedfss.size() ) {
       // Error!
-      return DomeReq::SendSimpleResp(request, 400, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
     }
     
     // Remove the filesystems that have less then the minimum free space available
@@ -240,7 +240,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     // If no filesystems remain, return error "filesystems full for path ..."
     if ( !selectedfss.size() ) {
       // Error!
-      return DomeReq::SendSimpleResp(request, 400, "All matching filesystems are full.");
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, "All matching filesystems are full.");
     }
     
     // Sort the selected filesystems by decreasing free space
@@ -284,7 +284,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
       os << "Unable to get vo name from the lfn: " << lfn;
           
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 422, os);      
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, os);      
     }
     
     
@@ -317,18 +317,18 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
           req.remoteclienthost << "' - " << e.code() << "-" << e.what();
           
         Err(domelogname, os.str());
-        return DomeReq::SendSimpleResp(request, 422, os);
+        return DomeReq::SendSimpleResp(request, http_status(e), os);
       }
     }
 
     try {
       mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
-    } catch (DmException e) {
+    } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
       
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 422, os);
+      return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
     
     // Create the replica in the catalog
@@ -344,12 +344,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     r["filesystem"] = selectedfss[fspos].fs;
     try {
       stack->getCatalog()->addReplica(r);
-    } catch (DmException e) {
+    } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
-      
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 501, os);
+      return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
     
   // Here we are assuming that some frontend will soon start to write a new replica
@@ -399,7 +398,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( !pfn.length() ) {
     std::ostringstream os;
     os << "Invalid pfn: '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 422, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
 
   // Please note that the server field can be empty
@@ -407,7 +406,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
-    return DomeReq::SendSimpleResp(request, 422, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
   
   // Now the optional ones for basic sanity
@@ -415,14 +414,14 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 422, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
   
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 422, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   
   }
   
@@ -442,7 +441,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     char errbuf[1024];
     os << "Cannot stat pfn:'" << pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_NOT_FOUND, os);
   }
   
   Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
@@ -454,7 +453,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 422, os);
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
   
   // Now forward the request to the head node
@@ -477,7 +476,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
 
-  return DomeReq::SendSimpleResp(request, 200, talker.response());
+  return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, talker.response());
 }
 
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {

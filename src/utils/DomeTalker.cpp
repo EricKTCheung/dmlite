@@ -33,6 +33,8 @@ static std::string trim_trailing_slashes(std::string str) {
   return str;
 }
 
+
+
 DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityCredentials *creds, std::string uri,
                        std::string verb, std::string cmd)
     : pool_(pool), creds_(creds), uri_(trim_trailing_slashes(uri)), verb_(verb), cmd_(cmd),
@@ -116,7 +118,7 @@ bool DomeTalker::execute(const std::string &key1, const std::string &value1,
 std::string DomeTalker::err() {
   if(err_) {
     std::ostringstream os;
-    os << "Error when issuing request to '" << target_ << "'. Status: " << status_ << ".";
+    os << "Error when issuing request to '" << target_ << "'. Status " << status_ << ". ";
     os << "DavixError: '" << err_->getErrMsg() << "'. ";
 
     if(response_.size() != 0) {
@@ -133,4 +135,35 @@ std::string DomeTalker::err() {
 
 int DomeTalker::status() {
   return status_;
+}
+
+struct StatusCodePair {
+  int status;
+  int code;
+};
+
+static struct StatusCodePair pairs[] = {
+  { DOME_HTTP_OK,                   DMLITE_SUCCESS  },
+  { DOME_HTTP_BAD_REQUEST,          EINVAL          },
+  { DOME_HTTP_NOT_FOUND,            ENOENT          },
+  { DOME_HTTP_CONFLICT,             EEXIST          },
+  { DOME_HTTP_INSUFFICIENT_STORAGE, ENOSPC          }
+};
+
+int dmlite::http_status(const dmlite::DmException &e) {
+  for(int i = 0; i < sizeof(pairs); i++) {
+    if(pairs[i].code == DMLITE_ERRNO(e.code())) {
+      return pairs[i].status;
+    }
+  }
+  return DOME_HTTP_INTERNAL_SERVER_ERROR;
+}
+
+int DomeTalker::dmlite_code() {
+  for(int i = 0; i < sizeof(pairs); i++) {
+    if(pairs[i].status == status_) {
+      return pairs[i].code;
+    }
+  }
+  return EINVAL;
 }
