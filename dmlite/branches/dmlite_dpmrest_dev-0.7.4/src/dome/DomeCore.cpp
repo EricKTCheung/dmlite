@@ -286,6 +286,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if(dreq.domecmd == "dome_pullstatus") {
           core->dome_pullstatus(dreq, request);
         }
+        else if(dreq.domecmd == "dome_updatexattr") {
+          core->dome_updatexattr(dreq, request);
+        }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
           

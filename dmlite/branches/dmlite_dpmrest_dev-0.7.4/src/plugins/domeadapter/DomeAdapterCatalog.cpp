@@ -160,6 +160,7 @@ void DomeAdapterCatalog::getIdMap(const std::string& userName,
 }
 
 Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
   DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
@@ -212,6 +213,18 @@ ExtendedStat* DomeAdapterCatalog::readDirx(Directory* dir) throw (DmException) {
 
   domedir->pos_++;
   return &domedir->entries_[domedir->pos_ - 1];
+}
+
+void DomeAdapterCatalog::updateExtendedAttributes(const std::string& lfn,
+                                                  const Extensible& ext) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+                    "POST", "dome_updatexattr");
+
+  if(!talker.execute("lfn", lfn, "xattr", ext.serialize())) {
+    throw DmException(EINVAL, talker.err());
+  }
 }
 
 

@@ -875,6 +875,25 @@ Code: 200 or error
  \item banned: whether the user is banned or not
 \end{itemize}
 
+\subsection{dome\_updatexattr}
+
+Update the extended attributes associated with a file.
+
+Command:
+\lstinline"GET /dome/command/dome_updatexattr"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+  \item lfn: the lfn
+  \item xattr: the serialized extended attributes
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
 \subsubsection{dome\_getidmap}
 
 Get id mapping for a user
