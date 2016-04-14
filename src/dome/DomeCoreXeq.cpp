@@ -2631,4 +2631,29 @@ int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
   }
 }
 
-  
+int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_updatexattr only available on head nodes.");
+  }
+
+  using namespace boost::property_tree;
+
+  try {
+    std::string lfn = req.bodyfields.get<std::string>("lfn");
+    std::string xattr = req.bodyfields.get<std::string>("xattr");
+    DmlitePoolHandler stack(status.dmpool);
+
+    dmlite::Extensible e;
+    e.deserialize(xattr);
+
+    stack->getCatalog()->updateExtendedAttributes(lfn, e);
+    return DomeReq::SendSimpleResp(request, 200,  "");
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
+  }
+}
+

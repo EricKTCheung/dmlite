@@ -49,6 +49,9 @@ namespace dmlite {
     void       closeDir(Directory*)         throw (DmException);
     ExtendedStat*  readDirx(Directory*) throw (DmException);
 
+    void updateExtendedAttributes(const std::string&,
+                                  const Extensible&) throw (DmException);
+
   protected:
     StackInstance* si_;
     const SecurityCredentials *creds_;

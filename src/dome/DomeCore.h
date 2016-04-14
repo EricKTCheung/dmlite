@@ -155,7 +155,9 @@ public:
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
   /// Get id mapping
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
-  
+  /// Update extended attributes
+  int dome_updatexattr(DomeReq &req, FCGX_Request &request);
+
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
