@@ -73,7 +73,7 @@ void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
                     "POST", "dome_addpool");
 
   if(!talker.execute("poolname", pool.name)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
   }
 
@@ -90,7 +90,7 @@ void DomeAdapterPoolDriver::toBeCreated(const Pool& pool) throw (DmException) {
     params.put("poolname", pool.name);
 
     if(!talker.execute(params)) {
-      throw DmException(EINVAL, talker.err());
+      throw DmException(talker.dmlite_code(), talker.err());
     }
   }
 }
@@ -114,7 +114,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", pool.name)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
@@ -139,7 +139,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
         params.put("fs", fs);
 
         if(!rmfs.execute(params)) {
-          throw DmException(EINVAL, rmfs.err());
+          throw DmException(rmfs.dmlite_code(), rmfs.err());
         }
       }
     }
@@ -163,7 +163,7 @@ void DomeAdapterPoolDriver::update(const Pool& pool) throw (DmException) {
         params.put("poolname", pool.name);
 
         if(!addfs.execute(params)) {
-          throw DmException(EINVAL, addfs.err());
+          throw DmException(addfs.dmlite_code(), addfs.err());
         }
       }
     }
@@ -178,7 +178,7 @@ void DomeAdapterPoolDriver::toBeDeleted(const Pool& pool) throw (DmException) {
                     "POST", "dome_rmpool");
 
   if(!talker.execute("poolname", pool.name)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
@@ -187,7 +187,7 @@ uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmExcept
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname_)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
@@ -237,7 +237,7 @@ bool DomeAdapterPoolHandler::replicaIsAvailable(const Replica& replica) throw (D
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname_)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
@@ -274,7 +274,7 @@ void DomeAdapterPoolHandler::removeReplica(const Replica& replica) throw (DmExce
   params.put("pfn", DomeUtils::pfn_from_rfio_syntax(replica.rfn));
 
   if(!talker.execute(params)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
@@ -292,7 +292,7 @@ Location DomeAdapterPoolHandler::whereToWrite(const std::string& lfn) throw (DmE
                     "POST", "dome_put");
 
   if(!talker.execute("pool", poolname_, "lfn", lfn)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {

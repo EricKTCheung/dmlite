@@ -70,7 +70,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
                     "GET", "dome_getspaceinfo");
 
   if(!talker.execute()) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   std::vector<Pool> ret;
@@ -96,7 +96,7 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
@@ -112,7 +112,7 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
                     "POST", "dome_addpool");
 
   if(!talker.execute("poolname", pool.name)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
@@ -125,7 +125,7 @@ void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
                     "POST", "dome_rmpool");
 
   if(!talker.execute("poolname", pool.name)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
@@ -135,7 +135,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
                     "GET", "dome_get");
 
   if(!talker.execute("lfn", path)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   if(talker.status() == 202) {
@@ -170,7 +170,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
                     "POST", "dome_put");
 
   if(!talker.execute("lfn", path)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
@@ -186,8 +186,3 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
-
-// void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException) {
-
-// }
-
