@@ -806,8 +806,7 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
   // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
   std::string lfn1(path);
-  
-  
+
   // Loop, going up in the parent directory hierarchy
   while (lfn1.length() > 0) {
     long long totfree = 0LL;  
@@ -819,7 +818,7 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
     myintv = quotas.equal_range(lfn1);
     
     // Any quotatokens here ?
-    if (myintv.first != quotas.end()) {
+    if (myintv.first != myintv.second) {
       bool goterr = false;
       
       // Gets the used space in the dir
@@ -854,6 +853,7 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
         }
         
         // Remember, with quotatokens we exit at the first match in the parent directories
+        Log(Logger::Lvl4, domelogmask, domelogname, "Match: path '" << path << "' matches quota token in '" << lfn1 << "'");
         return MAX( 0, totfree - totused );
       }
     }
@@ -862,6 +862,7 @@ long long DomeStatus::getPathFreeSpace(const std::string &path) {
     size_t pos = lfn1.rfind("/");
     lfn1.erase(pos);
   }
+  Log(Logger::Lvl3, domelogmask, domelogname, "No quota tokens matched path: '" << path << "', returning zero free space");
   return 0;
 }
 
