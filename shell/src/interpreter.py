@@ -2372,6 +2372,7 @@ ex:
 
                 #step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+		self.interpreter.replicaQueue.queue.clear()
                 self.interpreter.replicaQueueLock = threading.Lock()
 
                 self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
@@ -2852,6 +2853,7 @@ The drainpool command accepts the following parameters:
 		
 		#step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
+		self.interpreter.replicaQueue.queue.clear()
 		self.interpreter.replicaQueueLock = threading.Lock()
 
 		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
@@ -2967,6 +2969,7 @@ The drainfs command accepts the following parameters:
 
 		#step 3 : for each file call the drain method of DrainFileReplica
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+		self.interpreter.replicaQueue.queue.clear()
 		self.interpreter.replicaQueueLock = threading.Lock()
 		
 		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
@@ -3086,6 +3089,7 @@ The drainserver command accepts the following parameters:
 
                 #step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
+		self.interpreter.replicaQueue.queue.clear()
                 self.interpreter.replicaQueueLock = threading.Lock()
 
                 self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
