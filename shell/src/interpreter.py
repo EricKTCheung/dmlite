@@ -2089,13 +2089,14 @@ class Response(object):
 	
 class Replicate(object):
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
-    def __init__(self,interpreter,parameters,spacetoken=None):
+    def __init__(self,interpreter, filename, adminUserName,spacetoken, parameters=[]):
 	self.interpreter=interpreter
 	self.parameters =parameters
 	self.spacetoken = spacetoken
+	self.filename= filename
 	self.interpreter.replicaQueueLock.acquire()
         securityContext= self.interpreter.stackInstance.getSecurityContext()
-        securityContext.user.name = self.parameters['adminUserName']
+        securityContext.user.name = adminUserName
         self.interpreter.stackInstance.setSecurityContext(securityContext)
 	
         replicate = pydmlite.boost_any()
@@ -2166,7 +2167,7 @@ class Replicate(object):
 	self.interpreter.replicaQueueLock.release()
 
         try:
-                loc = self.interpreter.poolManager.whereToWrite(self.parameters['filename'])
+                loc = self.interpreter.poolManager.whereToWrite(self.filename)
         except Exception, e:
 		self.interpreter.error(e.__str__())
 		return (False, None, e.__str__())
@@ -2205,7 +2206,7 @@ class Replicate(object):
         c.setopt(c.CUSTOMREQUEST, 'COPY')
         c.setopt(c.HTTPHEADER, ['Destination: '+destination, 'X-No-Delegate: true'])
         c.setopt(c.FOLLOWLOCATION, 1)
-        c.setopt(c.URL, 'https://'+socket.getfqdn()+':'+str(https_port)+'/'+self.parameters['filename'])
+        c.setopt(c.URL, 'https://'+socket.getfqdn()+':'+str(https_port)+'/'+self.filename)
 
         try:
                 c.perform()
@@ -2226,11 +2227,12 @@ class Replicate(object):
 
 class DrainThread (threading.Thread):
     """ Thread running a portion of the draining activity"""
-    def __init__(self, interpreter,threadID,parameters):
+    def __init__(self, interpreter,threadID,adminUserName,  move=False):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.interpreter = interpreter
-	self.parameters= parameters
+	self.adminUserName = adminUserName
+	self.move = move
 	self.stopEvent =  threading.Event()
 
     def run(self):
@@ -2245,7 +2247,7 @@ class DrainThread (threading.Thread):
 		if not self.interpreter.replicaQueue.empty():
 			replica = self.interpreter.replicaQueue.get()
 			self.interpreter.replicaQueueLock.release()
-	                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.parameters)
+	                drainreplica = DrainFileReplica(self.threadID,self.interpreter,replica,self.adminUserName, self.move)
         	        drainreplica.drain();
 		else:
 			self.interpreter.replicaQueueLock.release()
@@ -2375,7 +2377,7 @@ ex:
 		self.interpreter.replicaQueue.queue.clear()
                 self.interpreter.replicaQueueLock = threading.Lock()
 
-                self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
+                self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters['adminUserName'], parameters['group'],parameters['size'],parameters['nthreads'],parameters['dryrun'], move=True)
                 self.drainProcess.drain()
 
         except Exception, e:
@@ -2503,11 +2505,13 @@ The replicate command accepts the following parameters:
 	
 class DrainFileReplica(object):
     """implement draining of a file replica"""
-    def __init__(self, threadID,interpreter , fileReplica,parameters):
+    def __init__(self, threadID,interpreter , fileReplica,adminUserName, move=False,spacetoken= None):
         self.threadID = threadID
-	self.interpreter= interpreter
-        self.parameters= parameters
+	self.interpreter= interpreter 
 	self.fileReplica = fileReplica
+	self.adminUserName = adminUserName
+        self.move = move
+	self.spacetoken = spacetoken
 
     def getThreadID(self):
 	return "Thread " + str(self.threadID) +": "
@@ -2537,27 +2541,17 @@ class DrainFileReplica(object):
 		self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is pinned"))
                 return 1
 
-        #step 5 : replicate files
-	self.parameters['filename']=filename
-	
 	#step 5-1: check spacetoken parameters,if set use that one 
-	spacetoken = None
-	try:
-		spacetoken =  self.parameters['spacetoken']
-		self.logOK("Assign the spacetoken " + spacetoken + " to the file with replica sfn: "+ self.fileReplica.sfn +"\n")
-	except:
-		pass
-
-	if spacetoken:
-		pass
+	if self.spacetoken:
+		self.logOK("Assign the spacetoken " +self.spacetoken + " to the file with replica sfn: "+ self.fileReplica.sfn +"\n")
 	elif self.fileReplica.setname is not "":
-		spacetoken = self.fileReplica.setname
+		self.spacetoken = self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
 
 
-        replicate = Replicate(self.interpreter,self.parameters, spacetoken=spacetoken)
+        replicate = Replicate(self.interpreter,filename,self.adminUserName, self.spacetoken)
 
-	self.logOK("Trying to replicate file: %s\n" % self.parameters['filename']);
+	self.logOK("Trying to replicate file: %s\n" % filename);
 
 	replicated = None
 	destination = None
@@ -2643,16 +2637,16 @@ class DrainFileReplica(object):
 
 class DrainReplicas(object):
     """implement draining of a list of replicas"""
-    def __init__(self, interpreter , db,fileReplicas, parameters):
+    def __init__(self, interpreter , db,fileReplicas, adminUserName, group,size,nthreads,dryrun, move=False):
        	self.interpreter= interpreter
        	self.fileReplicas=fileReplicas
-     	self.adminUserName = parameters['adminUserName']
-	self.group = parameters['group']
+     	self.adminUserName = adminUserName
+	self.group = group
 	self.db = db
-	self.size = parameters['size']
-	self.nthreads= parameters['nthreads']
-	self.dryrun = parameters['dryrun']
-	self.parameters = parameters
+	self.size = size
+	self.nthreads= nthreads
+	self.dryrun = dryrun
+	self.move = move
 	self.interpreter.drainErrors = []
 	self.threadpool = []
 
@@ -2679,11 +2673,6 @@ class DrainReplicas(object):
         		gid = self.db.getGroupIdByName(self.group)
         	numFiles = 0
         	fileSize = 0
-		moveOperation = False
-		try:
-			moveOperation = self.parameters['move']
-		except:
-			pass
 
        	 	for file in self.fileReplicas:
         		#print "putting file " + file.sfn
@@ -2697,7 +2686,7 @@ class DrainReplicas(object):
                 	file.lfn = filename
                 	numFiles = numFiles+1
                 	fileSize = fileSize + file.size
-		if moveOperation:
+		if self.move:
 			self.interpreter.ok("Total replicas to move: " + str(numFiles))
 			self.interpreter.ok("Total capacity to move: " + str(fileSize/1024) + " KB")
 		else:
@@ -2708,7 +2697,7 @@ class DrainReplicas(object):
         	sizeToDrain = fileSize
         	if self.size != 100:
         		sizeToDrain = sizeToDrain*self.size/100
-		if not moveOperation:
+		if not self.move:
 	     	   	self.interpreter.ok("Percentage of capacity to drain: " + str(self.size)+ " %")
         		self.interpreter.ok("Total capacity to drain: " + str(sizeToDrain/1024)+ " KB")
 
@@ -2727,7 +2716,7 @@ class DrainReplicas(object):
         		return
 		
         	for i in range(0,self.nthreads):
-                	thread = DrainThread(self.interpreter, i, self.parameters)
+                	thread = DrainThread(self.interpreter, i,self.adminUserName, self.move)
                 	thread.setDaemon(True)
                 	thread.start()
 			self.threadpool.append(thread)
@@ -2737,7 +2726,7 @@ class DrainReplicas(object):
 
 		for t in self.threadpool:
 			t.stop()
-		if moveOperation:
+		if self.move:
 			self.interpreter.ok("Move Process completed\n")
 		else:
 			self.interpreter.ok("Drain Process completed\n")
@@ -2856,7 +2845,7 @@ The drainpool command accepts the following parameters:
 		self.interpreter.replicaQueue.queue.clear()
 		self.interpreter.replicaQueueLock = threading.Lock()
 
-		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters)
+		self.drainProcess = DrainReplicas(self.interpreter, db, listTotalFiles, parameters['adminUserName'], parameters['group'],parameters['size'],parameters['nthreads'],parameters['dryrun'])
                 self.drainProcess.drain()
 
     	except Exception, e:
@@ -2972,7 +2961,7 @@ The drainfs command accepts the following parameters:
 		self.interpreter.replicaQueue.queue.clear()
 		self.interpreter.replicaQueueLock = threading.Lock()
 		
-		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
+		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters['adminUserName'], parameters['group'],parameters['size'],parameters['nthreads'],parameters['dryrun'])
 		self.drainProcess.drain()
 
  	except Exception, e:
@@ -3092,7 +3081,7 @@ The drainserver command accepts the following parameters:
 		self.interpreter.replicaQueue.queue.clear()
                 self.interpreter.replicaQueueLock = threading.Lock()
 
-                self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
+                self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters['adminUserName'], parameters['group'],parameters['size'],parameters['nthreads'],parameters['dryrun'])
                 self.drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
