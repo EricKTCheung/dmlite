@@ -2264,7 +2264,6 @@ The replicamove command accepts the following parameters:
 * <destFilesystem>		: the filesystem where to move the file to ( in the form as servername:fsname)
 * filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
 * lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
-* spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional), by default the original spacetoken will be assigned if present
 * nthreads <threads>		: the number of threads to use in the process (optional, default = 5)
 * dryrun <true/false>		: if set to true just print the statistics (optional, default = true)
 
@@ -2274,11 +2273,11 @@ ex:
 
     def _init(self):
 	self.parameters = ['?sourceFilesystem', '?sourceFolder', '?destFilesystem',
-					'*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-					'*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value',
-                                        '*Oparameter:filetype:lifetime:spacetoken:nthreads:dryrun',  '*?value' ]
+					'*Oparameter:filetype:lifetime:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:nthreads:dryrun',  '*?value',
+					'*Oparameter:filetype:lifetime:nthreads:dryrun',  '*?value',
+                                        '*Oparameter:filetype:lifetime:nthreads:dryrun',  '*?value' ]
 
     def _execute(self,given):
 	if self.interpreter.stackInstance is None:
@@ -2313,8 +2312,6 @@ ex:
 				parameters['filetype'] = given[i+1]
 			elif given[i] == "lifetime":
 				parameters['lifetime'] = given[i+1]
-			elif given[i] == "spacetoken":
-				parameters['spacetoken'] = given[i+1]
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
                                 if nthreads < 1 or nthreads > 10:
@@ -2434,7 +2431,7 @@ The replicate command accepts the following parameters:
 		pass
 
 	try:	
-		replicate = Replicate(self.interpreter,parameters,spacetoken=spacetoken)
+		replicate = Replicate(self.interpreter,filename, adminUserName,spacetoken, parameters=parameters)
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
 		self.error(e.__str__())
@@ -2505,13 +2502,12 @@ The replicate command accepts the following parameters:
 	
 class DrainFileReplica(object):
     """implement draining of a file replica"""
-    def __init__(self, threadID,interpreter , fileReplica,adminUserName, move=False,spacetoken= None):
+    def __init__(self, threadID,interpreter , fileReplica,adminUserName, move=False):
         self.threadID = threadID
 	self.interpreter= interpreter 
 	self.fileReplica = fileReplica
 	self.adminUserName = adminUserName
         self.move = move
-	self.spacetoken = spacetoken
 
     def getThreadID(self):
 	return "Thread " + str(self.threadID) +": "
@@ -2542,9 +2538,7 @@ class DrainFileReplica(object):
                 return 1
 
 	#step 5-1: check spacetoken parameters,if set use that one 
-	if self.spacetoken:
-		self.logOK("Assign the spacetoken " +self.spacetoken + " to the file with replica sfn: "+ self.fileReplica.sfn +"\n")
-	elif self.fileReplica.setname is not "":
+	if self.fileReplica.setname is not "":
 		self.spacetoken = self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
 
