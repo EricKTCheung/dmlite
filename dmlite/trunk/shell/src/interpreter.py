@@ -2384,19 +2384,36 @@ class ReplicateCommand(ShellCommand):
 
 The replicate command accepts the following parameters:
 
-* <filename>			: the file to replicate (absolute path)
-* poolname  <poolname>		: the pool where to replicate the file to (optional)
-* filesystem <filesystemname>	: the filesystem where to replicate the file to, specified as servername:fsname (optional)
-* filetype <filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
-* lifetime <lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
-* spacetoken <spacetoken>	: the spacetoken ID to assign the new replica to (optional)"""
+* <filename>				: the file to replicate (absolute path)
+* poolname	<poolname>		: the pool where to replicate the file to (optional)
+* filesystem 	<filesystemname>	: the filesystem where to replicate the file to, specified as servername:fsname (optional)
+* filetype 	<filetype>		: the filetype of the new replica, it could be P (permanent), D (durable), V (volatile) (optional, default = P )
+* lifetime 	<lifetime>		: the lifetime of the new replica, it can be specified as a multiple of y,m,d,h or Inf (infinite) (optional, default = Inf)
+* spacetoken 	<spacetoken>		: the spacetoken ID to assign the new replica to (optional)
+* dryrun 	<true/false>		: if set to true just print the info (optional, default = true)
+"""
 
     def _init(self):
-        self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value',
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value', 
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken',  '*?value' ]
+        self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value', 
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value', 
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value' ]
+
+    def printComments(self):
+    	self.interpreter.ok('')
+        self.interpreter.ok('===================================================================================================================================================================================')
+        self.interpreter.ok("Your are running in dryrun mode, please add the option 'dryrun false' to effectively perform the file replication")
+        self.interpreter.ok('\n')
+        self.interpreter.ok("Make sure to have LCGDM-Dav properly setup on your infrastructure. The process contacts the Headnode by default via https on the 443 port and the disknodes via http on the 80 port")
+        self.interpreter.ok('\n')
+        self.interpreter.ok("If your infrastructure has different ports configured please use the DPM_HTTPS_PORT and DPM_HTTP_PORT env variabile to configure the drain process accordingly")
+        self.interpreter.ok('\n')
+        self.interpreter.ok("The disknodes should have ALL the same port configured")
+        self.interpreter.ok('\n')
+	self.interpreter.ok('Please also note that if the file is associated to a spacetoken the new replica is not going to be added to that spacetoken unless you specify it via the \'spacetoken\' parameter')
+	self.interpreter.ok('===================================================================================================================================================================================')
+        self.interpreter.ok('\n')
 
     def _execute(self, given):
 	if self.interpreter.stackInstance is None:
@@ -2420,6 +2437,7 @@ The replicate command accepts the following parameters:
 	parameters['filename'] = filename
 	parameters['adminUserName'] = adminUserName
  	parameters['move'] = False
+	dryrun = True
 	spacetoken = None
 
 	for i in range(1, len(given),2):
@@ -2429,9 +2447,21 @@ The replicate command accepts the following parameters:
 		spacetoken= parameters['spacetoken']
 	except:
 		pass
+
+	try: 
+		if parameters['dryrun'] == "False" or parameters['dryrun'] == "false" or parameters['dryrun'] == "0":
+         	       dryrun = False
+	except:
+		pass
+
 	error = None
 	destination = None
 	replicated = None
+	
+	if dryrun:
+		self.printComments()
+		return 1
+		
 	try:	
 		replicate = Replicate(self.interpreter,filename, spacetoken, parameters)
 		(replicated,destination, error) = replicate.run()
@@ -2734,10 +2764,10 @@ class DrainPoolCommand(ShellCommand):
 The drainpool command accepts the following parameters:
 
 * <poolname>		: the pool to drain 
-* group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
-* size <size>		: the percentage of size to drain (optional, default = 100)
-* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
+* group		<groupname>	: the group the files to drain belongs to  (optional, default = ALL)
+* size		<size>		: the percentage of size to drain (optional, default = 100)
+* nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun		<true/false>	: if set to true just print the drain statistics (optional, default = true)"""
     
     def _init(self):
         self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2848,11 +2878,11 @@ class DrainFSCommand(ShellCommand):
 
 The drainfs command accepts the following parameters:
 
-* <servername>	: the FQDN of the server to drain  
-* group <groupname>	: the group the files to drain belongs to  (optional, default = ALL)
-* size <size>	: the percentage of size to drain (optional, default = 100)
-* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
+* <servername>		: the FQDN of the server to drain  
+* group		<groupname>	: the group the files to drain belongs to  (optional, default = ALL)
+* size		<size>		: the percentage of size to drain (optional, default = 100)
+* nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun		<true/false>	: if set to true just print the drain statistics (optional, default = true)"""
 
     def _init(self):
         self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2965,11 +2995,11 @@ class DrainServerCommand(ShellCommand):
 
 The drainserver command accepts the following parameters:
 
-* <servername>	: the FQDN of the server to drain  
-* group <groupname>	: the group the files to drain belongs to (optional, default = ALL)
-* size <size>	: the percentage of size to drain (optional, default = 100)
-* nthreads <threads>	: the number of threads to use in the drain process (optional, default = 5)
-* dryrun <true/false>	: if set to true just print the drain statistics (optional, default = true)"""
+* <servername			: the FQDN of the server to drain  
+* group		<groupname>	: the group the files to drain belongs to (optional, default = ALL)
+* size		<size>		: the percentage of size to drain (optional, default = 100)
+* nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
+* dryrun		<true/false>	: if set to true just print the drain statistics (optional, default = true)"""
 
     def _init(self):
         self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun',  '*?value',
