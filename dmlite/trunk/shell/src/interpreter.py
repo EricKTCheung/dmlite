@@ -2040,9 +2040,9 @@ class Util(object):
 		interpreter.ok('\n')
 		interpreter.ok("If your infrastructure has different ports configured please use the DPM_HTTPS_PORT and DPM_HTTP_PORT env variabile to configure the drain process accordingly")
 		interpreter.ok('\n')
-		interpreter.ok("The disknodes should have ALL the same port configured")
+		interpreter.ok("The disknodes should ALL have the same port configured")
 		interpreter.ok('\n')
-		interpreter.ok("Please also monitor the draining logs, and in case of errors due to timoeuts/daemons overloaded please adjust accordingly the number of draining threads( Default = 5)")
+		interpreter.ok("Please also monitor the draining logs, and in case of errors due to timeouts/daemons overloaded please adjust accordingly the number of draining threads( Default = 5)")
 		interpreter.ok('===================================================================================================================================================================================')
 		interpreter.ok('\n')
 
