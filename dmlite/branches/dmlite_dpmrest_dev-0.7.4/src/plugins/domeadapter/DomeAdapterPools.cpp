@@ -186,3 +186,13 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
+
+void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. (PoolManager)");
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+                    "POST", "dome_delreplica");
+
+  if(!talker.execute("server", loc[0].url.domain, "pfn", loc[0].url.path)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
