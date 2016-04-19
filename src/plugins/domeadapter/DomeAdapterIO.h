@@ -10,6 +10,8 @@
 #include "utils/DavixPool.h"
 
 namespace dmlite {
+  extern Logger::bitmask domeadapterlogmask;
+  extern Logger::component domeadapterlogname;
 
   class DomeIOFactory: public IODriverFactory {
   public:
@@ -52,6 +54,37 @@ namespace dmlite {
 
     DavixCtxPool &davixPool_;
     std::string domedisk_;
+  };
+
+  class DomeTunnelHandler : public IOHandler {
+  public:
+    DomeTunnelHandler(DavixCtxPool &pool, const std::string &url, int flags, mode_t mode) throw (DmException);
+    virtual ~DomeTunnelHandler();
+
+    void   close(void) throw (DmException);
+    int    fileno() throw (DmException);
+
+    size_t read (char* buffer, size_t count) throw (DmException);
+    size_t write(const char* buffer, size_t count) throw (DmException);
+
+    size_t pread(void* buffer, size_t count, off_t offset) throw (DmException);
+    size_t pwrite(const void* buffer, size_t count, off_t offset) throw (DmException);
+
+    void   seek (off_t offset, Whence whence) throw (DmException);
+    off_t  tell (void) throw (DmException);
+    void   flush(void) throw (DmException);
+    bool   eof  (void) throw (DmException);
+  private:
+    void checkErr(Davix::DavixError **err) throw (DmException);
+
+    std::string url_;
+    DavixGrabber grabber_;
+    DavixStuff *ds_;
+
+    Davix::DavPosix dpos_;
+    DAVIX_FD *fd_;
+
+    size_t lastRead_;
   };
 
 

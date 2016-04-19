@@ -18,9 +18,11 @@
 #include "DomeAdapter.h"
 
 using namespace dmlite;
+using namespace Davix;
 
 DomeIOFactory::DomeIOFactory(): passwd_("default"), useIp_(true), davixPool_(&davixFactory_, 10)
 {
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
   setenv("CSEC_MECH", "ID", 1);
 
@@ -112,7 +114,10 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
       else
         userId = this->secCtx_->credentials.clientName;
 
-      if (dmlite::validateToken(extras.getString("token"),
+      if( dmlite::validateToken(extras.getString("token"),
+         "root", pfn, this->passwd_, flags != O_RDONLY) != kTokenOK &&
+
+          dmlite::validateToken(extras.getString("token"),
             userId,
             pfn, this->passwd_,
             flags != O_RDONLY) != kTokenOK)
@@ -121,8 +126,20 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
             this->useIp_?"IP":"DN", pfn.c_str());
   }
 
-  // Create
-  return new DomeIOHandler(DomeUtils::pfn_from_rfio_syntax(pfn), flags, mode);
+  // Create - local or tunneled?
+  if(DomeUtils::server_from_rfio_syntax(pfn) == pfn) {
+    return new DomeIOHandler(pfn, flags, mode);
+  }
+
+  // tunneled I/O
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Creating tunnel handler for " << pfn);
+  std::string server = DomeUtils::server_from_rfio_syntax(pfn);
+  std::string path = DomeUtils::pfn_from_rfio_syntax(pfn);
+
+  std::string supertoken = dmlite::generateToken("root", path, this->passwd_, 50000, flags != O_RDONLY);
+
+  std::string url = SSTR("http://" << server << "/" << path << "?token=" << Uri::escapeString(supertoken));
+  return new DomeTunnelHandler(davixPool_, url, flags, mode);
 }
 
 void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
@@ -142,7 +159,7 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
     throw DmException(EINVAL, "sfn not specified loc: %s", loc.toString().c_str());
 
   // send a put done to the local dome instance
-  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
 
   DomeTalker talker(davixPool_, &secCtx_->credentials, domedisk_,
                     "POST", "dome_putdone");
@@ -159,6 +176,99 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "doneWriting was successful - putdone sent to domedisk");
 }
 
+DomeTunnelHandler::DomeTunnelHandler(DavixCtxPool &pool, const std::string &url, int flags, mode_t mode) throw(DmException)
+  : url_(url), grabber_(pool), ds_(grabber_), dpos_(ds_->ctx) {
+
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Tunnelling '" << url_ << "', flags: " << flags << ", mode: " << mode);
+
+  DavixError *err = NULL;
+  ds_->parms->addHeader("Content-Range", "bytes 0-/*");
+  fd_ = dpos_.open(ds_->parms, url_, flags, &err);
+  checkErr(&err);
+
+  lastRead_ = 1;
+}
+
+DomeTunnelHandler::~DomeTunnelHandler() {
+
+}
+
+void DomeTunnelHandler::close() throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Closing");
+  DavixError *err = NULL;
+  dpos_.close(fd_, &err);
+  checkErr(&err);
+}
+
+int DomeTunnelHandler::fileno() throw (DmException) {
+  throw DmException(EIO, "File is not local, file descriptor is unavailable");
+}
+
+void DomeTunnelHandler::checkErr(DavixError **err) throw (DmException) {
+  if(err && *err) {
+    throw DmException(EINVAL, SSTR("DavixError (" << (*err)->getStatus() << "): " << (*err)->getErrMsg() ));
+  }
+}
+
+size_t DomeTunnelHandler::read(char* buffer, size_t count) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Read " << count << " bytes");
+
+  DavixError *err = NULL;
+  lastRead_ = dpos_.read(fd_, buffer, count, &err);
+  checkErr(&err);
+  return lastRead_;
+}
+
+size_t DomeTunnelHandler::write(const char* buffer, size_t count) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Write " << count << " bytes");
+
+  DavixError *err = NULL;
+  size_t ret = dpos_.write(fd_, buffer, count, &err);
+  checkErr(&err);
+  return ret;
+}
+
+size_t DomeTunnelHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " pread " << count << " bytes with offset " << offset);
+
+  DavixError *err = NULL;
+  lastRead_ = dpos_.pread(fd_, buffer, count, offset, &err);
+  checkErr(&err);
+  return lastRead_;
+}
+
+size_t DomeTunnelHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " pwrite " << count << " bytes with offset " << offset);
+
+  DavixError *err = NULL;
+  size_t ret = dpos_.pwrite(fd_, buffer, count, offset, &err);
+  checkErr(&err);
+  return ret;
+}
+
+void DomeTunnelHandler::seek(off_t offset, Whence whence) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " seek at offset " << offset << ", whence " << whence);
+  DavixError *err = NULL;
+  dpos_.lseek(fd_, offset, whence, &err);
+  checkErr(&err);
+}
+
+off_t DomeTunnelHandler::tell(void) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " tell ");
+  DavixError *err = NULL;
+  off_t ret = dpos_.lseek(fd_, 0, SEEK_CUR, &err);
+  checkErr(&err);
+  return ret;
+}
+
+void DomeTunnelHandler::flush(void) throw (DmException) {
+  // nothing
+}
+
+bool DomeTunnelHandler::eof(void) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " eof: " << lastRead_ == 0);
+  return lastRead_ == 0;
+}
 
 void DomeIOHandler::mkdirp(const std::string& path) throw (DmException) {
   std::vector<std::string> parts = DomeUtils::split(path, "/");

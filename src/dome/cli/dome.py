@@ -33,8 +33,10 @@ def main():
         if not options.url:
                 print "Please specify the url  via --url option"
                 sys.exit(1)
-    executor = DomeExecutor("/etc/grid-security/hostcert.pem", "/etc/grid-security/hostkey.pem",
+    executor = DomeExecutor("/etc/grid-security/dpmmgr/dpmcert.pem", "/etc/grid-security/dpmmgr/dpmkey.pem",
                             "/etc/grid-security/certificates", options.clientDN, options.clientAddr)
+    # executor = DomeExecutor("/etc/grid-security/hostcert.pem", "/etc/grid-security/hostkey.pem",
+                            # "/etc/grid-security/certificates", options.clientDN, options.clientAddr)
 
     if options.execute == 'get':
         if not options.lfn:
