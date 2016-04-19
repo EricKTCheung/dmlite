@@ -38,7 +38,7 @@ namespace dmlite {
     Location whereToRead (const std::string& path) throw (DmException);
     Location whereToWrite(const std::string& path) throw (DmException);
 
-    // void cancelWrite(const Location& loc) throw (DmException);
+    void cancelWrite(const Location& loc) throw (DmException);
   private:
     StackInstance* si_;
     const SecurityCredentials* creds_;

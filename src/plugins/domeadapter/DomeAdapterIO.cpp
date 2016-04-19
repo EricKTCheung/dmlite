@@ -215,7 +215,7 @@ void DomeTunnelHandler::checkErr(DavixError **err) throw (DmException) {
 }
 
 size_t DomeTunnelHandler::read(char* buffer, size_t count) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Read " << count << " bytes");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. Read " << count << " bytes");
 
   DavixError *err = NULL;
   lastRead_ = dpos_.read(fd_, buffer, count, &err);
@@ -224,7 +224,7 @@ size_t DomeTunnelHandler::read(char* buffer, size_t count) throw (DmException) {
 }
 
 size_t DomeTunnelHandler::write(const char* buffer, size_t count) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Write " << count << " bytes");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. Write " << count << " bytes");
 
   DavixError *err = NULL;
   size_t ret = dpos_.write(fd_, buffer, count, &err);
@@ -233,7 +233,7 @@ size_t DomeTunnelHandler::write(const char* buffer, size_t count) throw (DmExcep
 }
 
 size_t DomeTunnelHandler::pread(void* buffer, size_t count, off_t offset) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " pread " << count << " bytes with offset " << offset);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. pread " << count << " bytes with offset " << offset);
 
   DavixError *err = NULL;
   lastRead_ = dpos_.pread(fd_, buffer, count, offset, &err);
@@ -242,7 +242,7 @@ size_t DomeTunnelHandler::pread(void* buffer, size_t count, off_t offset) throw 
 }
 
 size_t DomeTunnelHandler::pwrite(const void* buffer, size_t count, off_t offset) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " pwrite " << count << " bytes with offset " << offset);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. pwrite " << count << " bytes with offset " << offset);
 
   DavixError *err = NULL;
   size_t ret = dpos_.pwrite(fd_, buffer, count, offset, &err);
@@ -251,14 +251,14 @@ size_t DomeTunnelHandler::pwrite(const void* buffer, size_t count, off_t offset)
 }
 
 void DomeTunnelHandler::seek(off_t offset, Whence whence) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " seek at offset " << offset << ", whence " << whence);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. seek at offset " << offset << ", whence " << whence);
   DavixError *err = NULL;
   dpos_.lseek(fd_, offset, whence, &err);
   checkErr(&err);
 }
 
 off_t DomeTunnelHandler::tell(void) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " tell ");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. tell");
   DavixError *err = NULL;
   off_t ret = dpos_.lseek(fd_, 0, SEEK_CUR, &err);
   checkErr(&err);
@@ -266,11 +266,12 @@ off_t DomeTunnelHandler::tell(void) throw (DmException) {
 }
 
 void DomeTunnelHandler::flush(void) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. flush (noop)");
   // nothing
 }
 
 bool DomeTunnelHandler::eof(void) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " eof: " << lastRead_ == 0);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. eof: " << lastRead_ == 0);
   return lastRead_ == 0;
 }
 
