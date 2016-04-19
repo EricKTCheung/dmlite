@@ -877,7 +877,7 @@ bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
 }
 
 bool DNMatchesHost(std::string dn, std::string host) {
-  std::string s = "/CN="+host;
+  std::string s = "CN="+host;
   
   // Simple version, if the common name appears in the dn then we are right
   if (dn.find(s) != std::string::npos) return true;
