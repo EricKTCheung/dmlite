@@ -114,6 +114,9 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
       else
         userId = this->secCtx_->credentials.clientName;
 
+      // this request might either be coming from a regular user client,
+      // or another disk server trying to do tunnelling. In the latter
+      // case, the userId is simply "root"
       if( dmlite::validateToken(extras.getString("token"),
          "root", pfn, this->passwd_, flags != O_RDONLY) != kTokenOK &&
 
@@ -136,6 +139,7 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   std::string server = DomeUtils::server_from_rfio_syntax(pfn);
   std::string path = DomeUtils::pfn_from_rfio_syntax(pfn);
 
+  // we are a disk server doing tunnelling, use "root" as userId
   std::string supertoken = dmlite::generateToken("root", path, this->passwd_, 50000, flags != O_RDONLY);
 
   std::string url = SSTR("http://" << server << "/" << path << "?token=" << Uri::escapeString(supertoken));
