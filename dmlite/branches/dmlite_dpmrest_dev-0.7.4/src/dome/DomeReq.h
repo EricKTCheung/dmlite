@@ -62,10 +62,6 @@ public:
     /// Returns 0 if OK
     int takeJSONbodyfields(char *body);
 
-    /// Produces a JSON representation of the fields contained in the property tree
-    /// Returns 0 if OK
-    int getJSONbodyfields(std::string &body);
-
     /// The request also may carry information about the client that submitted it.
     /// For example, these will be the credentials of a disk server.
     /// ** These are NOT the credentials of the remote user **

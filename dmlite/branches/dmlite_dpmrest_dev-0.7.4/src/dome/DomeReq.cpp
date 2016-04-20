@@ -97,21 +97,6 @@ int DomeReq::takeJSONbodyfields(char *body) {
   return 0;
 }
 
-
-int DomeReq::getJSONbodyfields(std::string &body) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: '" << body << "'");
-  std::ostringstream s(body);
-  try {
-    boost::property_tree::write_json(s, bodyfields);
-  } catch (boost::property_tree::json_parser_error e) {
-    Err("getJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
-    return -1;
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: '" << body << "'");
-  return 0;
-}
-
 int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam) {
   return SendSimpleResp(request, httpcode, body.str(), logwhereiam);
 }

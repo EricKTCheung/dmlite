@@ -364,15 +364,13 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     return 0;
   }
   
-  std::ostringstream os;
   boost::property_tree::ptree jresp;
   jresp.put("pool", selectedfss[fspos].poolname);
   jresp.put("host", selectedfss[fspos].server);
   jresp.put("filesystem", selectedfss[fspos].fs);
   jresp.put("pfn", pfn);
 
-  boost::property_tree::write_json(os, jresp);
-  int rc = DomeReq::SendSimpleResp(request, 200, os);
+  int rc = DomeReq::SendSimpleResp(request, 200, jresp);
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
@@ -1284,12 +1282,7 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 
     }
 
-
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-  rc = DomeReq::SendSimpleResp(request, 200, os);
-
-
+  rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
 
@@ -1392,11 +1385,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("poolfreespace", poolfree);
   jresp.put("usedspace", usedspace);
 
-  std::ostringstream os;
-  boost::property_tree::write_json(os, jresp);
-  int rc = DomeReq::SendSimpleResp(request, 200, os);
-
-
+  int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
 
@@ -1843,9 +1832,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   
   
   if (cnt > 0) {
-    std::ostringstream os;
-    boost::property_tree::write_json(os, jresp);
-    return DomeReq::SendSimpleResp(request, 200, os);
+    return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   
   return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << absPath << "'"));
