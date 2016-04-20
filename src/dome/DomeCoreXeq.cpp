@@ -723,16 +723,12 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 };
 
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
-  int rc = 0;
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-
 
   boost::property_tree::ptree jresp;
   for (unsigned int i = 0; i < status.fslist.size(); i++) {
     std::string fsname, poolname;
     boost::property_tree::ptree top;
-
-
 
     fsname = "fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
 
@@ -763,13 +759,7 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
     }
   }
 
-
-  std::ostringstream os;
-  os << "Content-type: text\r\n\r\n";
-  boost::property_tree::write_json(os, jresp);
-
-  FCGX_PutS(os.str().c_str(), request.out);
-
+  int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
 };
