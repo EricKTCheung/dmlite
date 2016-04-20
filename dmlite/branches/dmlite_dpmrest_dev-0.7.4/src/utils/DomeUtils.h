@@ -73,6 +73,20 @@ inline std::string server_from_rfio_syntax(const std::string &rfn) {
   return rfn.substr(0, pos);
 }
 
+inline std::string unescape_forward_slashes(const std::string &str) {
+  std::ostringstream ss;
+  for(size_t i = 0; i < str.size(); i++) {
+    if(i != str.size()-1 && str[i] == '\\' && str[i] == '/') {
+      ss << "/";
+      i++;
+    }
+    else {
+      ss << str[i];
+    }
+  }
+  return ss.str();
+}
+
 }
 
 

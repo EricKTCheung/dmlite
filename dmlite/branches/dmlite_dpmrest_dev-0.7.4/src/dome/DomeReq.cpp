@@ -28,6 +28,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "cpp/utils/urls.h"
+#include "utils/DomeUtils.h"
 
 DomeReq::DomeReq(FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Ctor");
@@ -122,7 +123,8 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const boost::pr
 }
 
 int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body, const char *logwhereiam) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << body << "'");
+  std::string fixed_body = DomeUtils::unescape_forward_slashes(body);
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering: code: " << httpcode << " body: '" << fixed_body << "'");
   int rc = 0;
 
   std::ostringstream hdr;
@@ -132,13 +134,13 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   rc = FCGX_PutS(hdr.str().c_str(), request.out);
   if (rc <= 0) return rc;
 
-  FCGX_PutS(body.c_str(), request.out);
+  FCGX_PutS(fixed_body.c_str(), request.out);
   if (rc <= 0) return rc;
 
   // We prefer to log all the responses
   if (logwhereiam)
-    Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << body << "'");
+    Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
   else
-    Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << body << "'");
+    Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
   return 0;
 }

@@ -22,6 +22,7 @@
 /// @date   Mar 2016
 
 #include "DomeTalker.h"
+#include "utils/DomeUtils.h"
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace dmlite;
@@ -72,7 +73,7 @@ bool DomeTalker::execute(const std::string &str) {
   }
 
   req.setParameters(*ds_->parms);
-  req.setRequestBody(str);
+  req.setRequestBody(DomeUtils::unescape_forward_slashes(str));
 
   int rc = req.executeRequest(&err_);
   response_ = std::string(req.getAnswerContentVec().begin(), req.getAnswerContentVec().end());
