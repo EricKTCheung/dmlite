@@ -76,7 +76,7 @@ inline std::string server_from_rfio_syntax(const std::string &rfn) {
 inline std::string unescape_forward_slashes(const std::string &str) {
   std::ostringstream ss;
   for(size_t i = 0; i < str.size(); i++) {
-    if(i != str.size()-1 && str[i] == '\\' && str[i] == '/') {
+    if(i != str.size()-1 && str[i] == '\\' && str[i+1] == '/') {
       ss << "/";
       i++;
     }
