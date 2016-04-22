@@ -216,7 +216,13 @@ public:
   /// Tells if a file is likely to fit into a certain directory,
   /// considering quotas and disk space 
   bool LfnFitsInFreespace(std::string lfn, size_t space);
+
+  /// Check which quotatokens apply to a given lfn
+  bool whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token);
   
+  // does this file fit in our quotatoken?
+  bool fitsInQuotatoken(const DomeQuotatoken &token, const size_t size);
+
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
   long getGlobalputcount();

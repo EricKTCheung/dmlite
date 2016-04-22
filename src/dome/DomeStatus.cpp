@@ -769,6 +769,35 @@ bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
   
 }
 
+// which quotatoken should apply to lfn?
+// return true and set the token, or return false if no tokens match
+bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "'");
+
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+
+  std::string path = lfn;
+  while( !path.empty() ) {
+    Log(Logger::Lvl4, domelogmask, domelogname, "  checking '" << path << "'");
+
+    typedef std::multimap<std::string, DomeQuotatoken>::iterator MapIter;
+    std::pair<MapIter, MapIter> interval = quotas.equal_range(path);
+
+    if(interval.first != interval.second) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " match for lfn '" << lfn << "'" << "and quotatoken " << interval.first->second.u_token);
+      token = interval.first->second;
+      return true;
+    }
+
+    // no match found, look upwards by trimming the last slash from path
+    size_t pos = path.rfind("/");
+    path.erase(pos);
+  }
+
+  Log(Logger::Lvl4, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
+  return false;
+}
 
 bool DomeStatus::LfnMatchesPool(std::string lfn, std::string pool) {
   
@@ -874,6 +903,27 @@ bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
   Log(Logger::Lvl1, domelogmask, domelogname, "Processing: '" << lfn << "' freespace: " << freespace << " needed: " << space);
   return (freespace > (long long)space);
   
+}
+
+bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const size_t size) {
+  // need to get used space of quotatoken
+  long long totused;
+
+  DmlitePoolHandler stack(dmpool);
+  ExtendedStat st;
+  try {
+    st = stack->getCatalog()->extendedStat(token.path);
+    totused = st.stat.st_size;
+  }
+  catch (DmException &e) {
+    Err(domelogname, "dmlite exception when trying to find used space of quotatoken for path'" << token.path << "' : " << e.code() << "-" << e.what());
+    return false;
+  }
+
+  Log(Logger::Lvl4, domelogmask, domelogname, "Used space for quotatoken '" << token.u_token << "': " << totused);
+  Log(Logger::Lvl4, domelogmask, domelogname, "Total space for quotatoken '" << token.u_token << "': " << token.t_space);
+
+  return (token.t_space > totused) && (token.t_space - totused) > size;
 }
 
 bool DNMatchesHost(std::string dn, std::string host) {
