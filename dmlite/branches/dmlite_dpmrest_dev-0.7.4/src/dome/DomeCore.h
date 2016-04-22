@@ -186,6 +186,10 @@ private:
   
 protected:
 
+  // given some hints, pick a list of filesystems for writing
+  std::vector<DomeFsInfo> pickFilesystems(const std::string &pool, const std::string &host, const std::string &fs);
+
+
   // In the case of a disk server, checks the free/used space in the mountpoints
   void checkDiskSpaces();
 

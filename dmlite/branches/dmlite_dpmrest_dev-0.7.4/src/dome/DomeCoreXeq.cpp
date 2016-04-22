@@ -139,6 +139,37 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   return 0;
 }
 
+// pick from the list of appropriate filesystems, given the hints
+std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
+                                       const std::string &host,
+                                       const std::string &fs) {
+  std::vector<DomeFsInfo> selected;
+
+  boost::unique_lock<boost::recursive_mutex> l(status);
+
+  for(unsigned int i = 0; i < status.fslist.size(); i++) {
+    if(!status.fslist[i].isGoodForWrite()) {
+      continue;
+    }
+
+    if(!pool.empty() && status.fslist[i].poolname != pool) {
+      continue;
+    }
+
+    if(!host.empty() && status.fslist[i].server != host) {
+      continue;
+    }
+
+    if(!fs.empty() && status.fslist[i].fs != fs) {
+      continue;
+    }
+
+    // fslist[i], you win
+    selected.push_back(status.fslist[i]);
+  }
+  return selected;
+}
+
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
   
   // fetch the parameters, lfn and placement suggestions
@@ -151,205 +182,171 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   bool addreplica = false;
   if ( (addreplica_ == "yes") || (addreplica_ == "1") || (addreplica_ == "on") )
     addreplica = true;
-  
+
   // Log the parameters, level 1
   Log(Logger::Lvl1, domelogmask, domelogname, "Entering. lfn: '" << lfn <<
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
+
   
   // if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
   //   return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
   // }
-  
+
   // Give errors for combinations of the parameters that are obviously wrong
   if ( (host != "") && (pool != "") ) {
     // Error! Log it as such!, level1
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "The pool hint and the host hint are mutually exclusive.");
   }
- 
-  // Check against the quotas
-  if ( !status.LfnFitsInFreespace(lfn, CFG->GetLong("glb.put.minfreespace_mb", 4096)*1024*1024L) ) {
-    std::ostringstream os;
-    os << "Not enough free space, either quota or disk. lfn: '" << lfn << "'";
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, os);
-  }
   
-  std::vector<DomeFsInfo> selectedfss;
-  {
-    // Lock!
-    boost::unique_lock<boost::recursive_mutex> l(status);
-    
-    // Build a list of the filesystems that match the suggestions
-    // Loop on the filesystems and take the ones that match
-    // The filesystems must be writable and working
+  // default minfreespace is 4GB
+  long minfreespace_bytes = CFG->GetLong("glb.put.minfreespace_mb", 1024*4) * 1024*1024;
 
-    for (unsigned int i = 0; i < status.fslist.size(); i++) {
-      if ( (pool.size() > 0) && (status.fslist[i].poolname == pool) ) {
-        
-        // Take only pools that are associated to the lfn parent dirs
-        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() ) 
-          selectedfss.push_back(status.fslist[i]);
-        
-        continue;
-      }
-      
-      if ( (host.size() > 0) && (fs.size() == 0) && (status.fslist[i].server == host) ) {
-        
-        // Take only pools that are associated to the lfn parent dirs
-        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
-          selectedfss.push_back(status.fslist[i]);
-        
-        continue;
-      }
-      
-      if ( (host.size() > 0) && (fs.size() > 0) && (status.fslist[i].server == host) && (status.fslist[i].fs == fs) ) {
-        
-        // Take only pools that are associated to the lfn parent dirs through a quotatoken
-        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
-          selectedfss.push_back(status.fslist[i]);
-        
-        continue;
-      }
-      
-      // No hints matched because there a re no hintss. Add the filesystem if its path is not empty
-      // and matches the put path
-      if ( !host.size() && !fs.size() )
-        if ( status.LfnMatchesPool(lfn, status.fslist[i].poolname) && status.fslist[i].isGoodForWrite() )
-          selectedfss.push_back(status.fslist[i]);
-        
+  // use quotatokens?
+  if(pool.empty() && host.empty() && fs.empty()) {
+    DomeQuotatoken token;
+    if(!status.whichQuotatokenForLfn(lfn, token)) {
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No quotatokens match lfn, and no hints were given.");
     }
-    
-    
-  } // end lock
-    
-    // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
-    if ( !selectedfss.size() ) {
-      // Error!
-      return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
+    if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
+      std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space");
+      Log(Logger::Lvl1, domelogmask, domelogname, err);
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, err);
     }
+    pool = token.poolname;
+  }
+
+  // populate the list of candidate filesystems
+  std::vector<DomeFsInfo> selectedfss = pickFilesystems(pool, host, fs);
     
-    // Remove the filesystems that have less then the minimum free space available
-    for (int i = selectedfss.size()-1; i >= 0; i--) {
-      if (selectedfss[i].freespace / 1024 / 1024 < CFG->GetLong("glb.put.minfreespace_mb", 1024*4)) {// default is 4GB
+  // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
+  if ( !selectedfss.size() ) {
+    // Error!
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
+  }
+    
+  // Remove the filesystems that have less then the minimum free space available
+  for (int i = selectedfss.size()-1; i >= 0; i--) {
+    if (selectedfss[i].freespace < minfreespace_bytes) { 
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
-          "' has less than " << CFG->GetLong("glb.put.minfreespace_mb", 1024*4) << "MB free");
+          "' has less than " << minfreespace_bytes << "bytes free");
         selectedfss.erase(selectedfss.begin()+i);
-      }
     }
+  }
     
-    // If no filesystems remain, return error "filesystems full for path ..."
-    if ( !selectedfss.size() ) {
-      // Error!
-      return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, "All matching filesystems are full.");
+  // If no filesystems remain, return error "filesystems full for path ..."
+  if ( !selectedfss.size() ) {
+    // Error!
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, "All matching filesystems are full.");
+  }
+    
+  // Sort the selected filesystems by decreasing free space
+  std::sort(selectedfss.begin(), selectedfss.end(), DomeFsInfo::pred_decr_freespace());
+    
+  // Use the free space as weight for a random choice among the filesystems
+  // Nice algorithm taken from http://stackoverflow.com/questions/1761626/weighted-random-numbers#1761646
+  long sum_of_weight = 0;  
+  int fspos = 0;
+  for (unsigned int i = 0; i < selectedfss.size(); i++) {
+    sum_of_weight += (selectedfss[i].freespace >> 20);
+  }
+  // RAND_MAX is sufficiently big for this purpose
+  int rnd = random() % sum_of_weight;
+  for(unsigned int i=0; i < selectedfss.size(); i++) {
+    if(rnd < (selectedfss[i].freespace >> 20)) {
+      fspos = i;
+      break;
     }
+    rnd -= (selectedfss[i].freespace >> 20);
+  }
     
-    // Sort the selected filesystems by decreasing free space
-    std::sort(selectedfss.begin(), selectedfss.end(), DomeFsInfo::pred_decr_freespace());
+  // We have the fs, build the final pfn for the file
+  //  fs/group/date/basename.r_ordinal.f_ordinal
+  Log(Logger::Lvl1, domelogmask, domelogname, "Selected fs: '" << selectedfss[fspos].server << ":" << selectedfss[fspos].fs <<
+        " from " << selectedfss.size() << " matchings for lfn: '" << lfn << "'");
+  
+  // Fetch the time
+  time_t rawtimenow = time(0);
+  struct tm tmstruc;
+  char timestr[16], suffix[32];
+  localtime_r(&rawtimenow, &tmstruc);
+  strftime (timestr, 11, "%F", &tmstruc);
     
-    // Use the free space as weight for a random choice among the filesystems
-    // Nice algorithm taken from http://stackoverflow.com/questions/1761626/weighted-random-numbers#1761646
-    long sum_of_weight = 0;  
-    int fspos = 0;
-    for (unsigned int i = 0; i < selectedfss.size(); i++) {
-      sum_of_weight += (selectedfss[i].freespace >> 20);
-    }
-    // RAND_MAX is sufficiently big for this purpose
-    int rnd = random() % sum_of_weight;
-    for(unsigned int i=0; i < selectedfss.size(); i++) {
-      if(rnd < (selectedfss[i].freespace >> 20)) {
-        fspos = i;
-        break;
-      }
-      rnd -= (selectedfss[i].freespace >> 20);
-    }
+  // Parse the lfn and pick the 4th token, likely the one with the VO name
+  std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
+  sprintf(suffix, ".%ld.%ld", status.getGlobalputcount(), rawtimenow);
     
-    // We have the fs, build the final pfn for the file
-    //  fs/group/date/basename.r_ordinal.f_ordinal
-    Log(Logger::Lvl1, domelogmask, domelogname, "Selected fs: '" << selectedfss[fspos].server << ":" << selectedfss[fspos].fs <<
-          " from " << selectedfss.size() << " matchings for lfn: '" << lfn << "'");
+  if (vecurl.size() < 5) {
+    std::ostringstream os;
+    os << "Unable to get vo name from the lfn: " << lfn;
+          
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, os);      
+  }
     
-    // Fetch the time
-    time_t rawtimenow = time(0);
-    struct tm tmstruc;
-    char timestr[16], suffix[32];
-    localtime_r(&rawtimenow, &tmstruc);
-    strftime (timestr, 11, "%F", &tmstruc);
     
-    // Parse the lfn and pick the 4th token, likely the one with the VO name
-    std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
-    sprintf(suffix, ".%ld.%ld", status.getGlobalputcount(), rawtimenow);
+  std::string pfn = selectedfss[fspos].fs + "/" + vecurl[4] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
     
-    if (vecurl.size() < 5) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << selectedfss[fspos].server << ":" << pfn << "'");
+    
+  // NOTE: differently from the historical dpmd, here we do not create the remote path/file
+  // of the replica in the disk. We jsut make sure that the LFN exists
+  // The replica in the catalog instead is created here
+    
+  // Create the logical catalog entry, if not already present. We also create the parent dirs
+  // if they are absent
+    
+  DmlitePoolHandler stack(status.dmpool);
+  ExtendedStat parentstat, lfnstat;
+  std::string parentpath;
+    
+  {
+    // Security credentials are mandatory, and they have to carry the identity of the remote client
+    SecurityCredentials cred;
+    cred.clientName = (std::string)req.remoteclientdn;
+    cred.remoteAddress = req.remoteclienthost;
+      
+    try {
+      stack->setSecurityCredentials(cred);
+    } catch (DmException e) {
       std::ostringstream os;
-      os << "Unable to get vo name from the lfn: " << lfn;
+      os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
+            req.remoteclienthost << "' - " << e.code() << "-" << e.what();
           
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, os);      
+      return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
-    
-    
-    std::string pfn = selectedfss[fspos].fs + "/" + vecurl[4] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
-    
-    Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << selectedfss[fspos].server << ":" << pfn << "'");
-    
-    // NOTE: differently from the historical dpmd, here we do not create the remote path/file
-    // of the replica in the disk. We jsut make sure that the LFN exists
-    // The replica in the catalog instead is created here
-    
-    // Create the logical catalog entry, if not already present. We also create the parent dirs
-    // if they are absent
-    
-    DmlitePoolHandler stack(status.dmpool);
-    ExtendedStat parentstat, lfnstat;
-    std::string parentpath;
-    
-    {
-      // Security credentials are mandatory, and they have to carry the identity of the remote client
-      SecurityCredentials cred;
-      cred.clientName = (std::string)req.remoteclientdn;
-      cred.remoteAddress = req.remoteclienthost;
-      
-      try {
-        stack->setSecurityCredentials(cred);
-      } catch (DmException e) {
-        std::ostringstream os;
-        os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
-          req.remoteclienthost << "' - " << e.code() << "-" << e.what();
-          
-        Err(domelogname, os.str());
-        return DomeReq::SendSimpleResp(request, http_status(e), os);
-      }
-    }
+  }
 
-    try {
-      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
-    } catch (DmException &e) {
-      std::ostringstream os;
-      os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
+  try {
+    mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
+  } catch (DmException &e) {
+    std::ostringstream os;
+    os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
       
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, http_status(e), os);
-    }
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, http_status(e), os);
+  }
     
-    // Create the replica in the catalog
-    dmlite::Replica r;
-    r.fileid = lfnstat.stat.st_ino;
-    r.replicaid = 0;
-    r.nbaccesses = 0;
-    r.atime = r.ptime = r.ltime = time(0);
-    r.status = dmlite::Replica::kBeingPopulated;
-    r.type = dmlite::Replica::kPermanent;
-    r.rfn = selectedfss[fspos].server + ":" + pfn;
-    r["pool"] = selectedfss[fspos].poolname;
-    r["filesystem"] = selectedfss[fspos].fs;
-    try {
-      stack->getCatalog()->addReplica(r);
-    } catch (DmException &e) {
-      std::ostringstream os;
-      os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, http_status(e), os);
-    }
+  // Create the replica in the catalog
+  dmlite::Replica r;
+  r.fileid = lfnstat.stat.st_ino;
+  r.replicaid = 0;
+  r.nbaccesses = 0;
+  r.atime = r.ptime = r.ltime = time(0);
+  r.status = dmlite::Replica::kBeingPopulated;
+  r.type = dmlite::Replica::kPermanent;
+  r.rfn = selectedfss[fspos].server + ":" + pfn;
+  r["pool"] = selectedfss[fspos].poolname;
+  r["filesystem"] = selectedfss[fspos].fs;
+  try {
+    stack->getCatalog()->addReplica(r);
+  } catch (DmException &e) {
+    std::ostringstream os;
+    os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, http_status(e), os);
+  }
     
   // Here we are assuming that some frontend will soon start to write a new replica
   //  with the name we chose here
