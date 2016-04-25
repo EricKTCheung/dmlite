@@ -191,9 +191,6 @@ public:
   /// Returns zero if pool was found, nonzero otherwise
   int getPoolSpaces(std::string &poolname, long long &total, long long &free, int &poolstatus);
   
-  /// Calculates the free space in the given path, considering both quotatokens and pool spaces
-  long long getPathFreeSpace(const std::string &path);
-  
   /// Tells if a pool with the given name exists
   bool existsPool(std::string &poolname);
   
@@ -204,7 +201,6 @@ public:
   int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
 
   // Utility ------------------------------------
-  bool LfnMatchesPool(std::string lfn, std::string pool);
   bool LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo);
@@ -213,10 +209,6 @@ public:
   // disk node trusts head node as defined in the config file
   bool isDNaKnownServer(std::string dn);
   
-  /// Tells if a file is likely to fit into a certain directory,
-  /// considering quotas and disk space 
-  bool LfnFitsInFreespace(std::string lfn, size_t space);
-
   /// Check which quotatokens apply to a given lfn
   bool whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token);
   
