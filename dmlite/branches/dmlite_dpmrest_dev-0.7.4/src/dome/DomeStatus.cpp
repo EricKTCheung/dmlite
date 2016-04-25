@@ -799,112 +799,6 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
   return false;
 }
 
-bool DomeStatus::LfnMatchesPool(std::string lfn, std::string pool) {
-  
-  // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(*this);
-  std::string lfn1(lfn);
-  
-  while (lfn1.length() > 0) {
-    
-    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
-    // Check if any matching quotatoken exists
-    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
-    myintv = quotas.equal_range(lfn1);
-    
-    if (myintv.first != quotas.end()) {
-      for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
-        if (it->second.poolname == pool) {
-          
-          Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
-          
-          return true;
-        }
-      }
-    }
-    
-    // No match found, look upwards by trimming the last token from absPath
-    size_t pos = lfn1.rfind("/");
-    lfn1.erase(pos);
-  }
-  return false;
-  
-}
-
-long long DomeStatus::getPathFreeSpace(const std::string &path) {
-  // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(*this);
-  std::string lfn1(path);
-
-  // Loop, going up in the parent directory hierarchy
-  while (lfn1.length() > 0) {
-    long long totfree = 0LL;  
-    long long totused = 0LL;
-    Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
-    
-    // Check if any matching quotatoken exists, with enough free space
-    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
-    myintv = quotas.equal_range(lfn1);
-    
-    // Any quotatokens here ?
-    if (myintv.first != myintv.second) {
-      bool goterr = false;
-      
-      // Gets the used space in the dir
-      DmlitePoolHandler stack(dmpool);
-      ExtendedStat st;
-      // Try to get the used space in the dir of the quotatoken
-      try {
-        st = stack->getCatalog()->extendedStat(lfn1);
-        totused = st.stat.st_size;
-      }
-      catch (DmException e) {
-        std::ostringstream os;
-        os << "Found quotatokens for non-existing path '"<< path << "' : " << e.code() << "-" << e.what();
-        
-        Err(domelogname, os.str());
-        goterr = true;
-      }
-      
-      if (!goterr) {
-        // Loop on all the quotatokens of this dir  
-        for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
-          long long pooltotal, poolfree;
-          int poolst;
-          
-          // Gets the free space in the pool pointed to by this quotatoken
-          if (!getPoolSpaces(it->second.poolname, pooltotal, poolfree, poolst)) {
-            Log(Logger::Lvl1, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn1 << "' poolfree: " << poolfree << " poolstatus: " << poolst);    
-            
-            // Consider as free space the minimum between free space on the pool and quota size in the same pool
-            totfree += MIN(poolfree, it->second.t_space);
-          }
-        }
-        
-        // Remember, with quotatokens we exit at the first match in the parent directories
-        Log(Logger::Lvl4, domelogmask, domelogname, "Match: path '" << path << "' matches quota token in '" << lfn1 << "'");
-        return MAX( 0, totfree - totused );
-      }
-    }
-    
-    // No match found, look upwards by trimming the last token from absPath
-    size_t pos = lfn1.rfind("/");
-    lfn1.erase(pos);
-  }
-  Log(Logger::Lvl3, domelogmask, domelogname, "No quota tokens matched path: '" << path << "', returning zero free space");
-  return 0;
-}
-
-
-bool DomeStatus::LfnFitsInFreespace(std::string lfn, size_t space) {
-  
-  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn << "'");
-  long long freespace = getPathFreeSpace(lfn);
-  Log(Logger::Lvl1, domelogmask, domelogname, "Processing: '" << lfn << "' freespace: " << freespace << " needed: " << space);
-  return (freespace > (long long)space);
-  
-}
-
 bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const size_t size) {
   // need to get used space of quotatoken
   long long totused;
@@ -934,9 +828,6 @@ bool DNMatchesHost(std::string dn, std::string host) {
   
   return false;
 }
-
-
-
 
 bool DomeStatus::isDNaKnownServer(std::string dn) {
   // We know this server if its DN matches our own hostname, it's us !
