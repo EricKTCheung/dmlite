@@ -743,7 +743,7 @@ bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
     std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
     myintv = quotas.equal_range(lfn1);
     
-    if (myintv.first != quotas.end()) {
+    if (myintv.first != myintv.second) {
       for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
           
           Log(Logger::Lvl4, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
