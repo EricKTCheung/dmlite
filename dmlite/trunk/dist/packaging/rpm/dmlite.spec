@@ -26,11 +26,13 @@ URL:					https://svnweb.cern.ch/trac/lcgdm/wiki/Dpm/Dev/Dmlite
 Source0:				%{name}-%{version}.tar.gz
 Buildroot:				%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildRequires:			boost-devel >= 1.41.0
+%if %{?fedora}%{!?fedora:0} >= 17 || %{?rhel}%{!?rhel:0} >= 7
+BuildRequires:                  boost-devel >= 1.48.0
 %else
-BuildRequires:			boost141-devel
+BuildRequires:                  boost148-devel >= 1.48.0
 %endif
+
+
 BuildRequires:			cmake
 BuildRequires:			cppunit-devel
 BuildRequires:			doxygen
@@ -86,12 +88,11 @@ This package contains the man pages and HTML documentation for dmlite.
 Summary:			Private development libraries and headers for dmlite
 Group:				Applications/Internet
 Requires:			%{name}-devel%{?_isa} = %{version}-%{release}
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-Requires:			boost-devel >= 1.41.0
+%if %{?fedora}%{!?fedora:0} >= 17 || %{?rhel}%{!?rhel:0} >= 7
+BuildRequires:                  boost-devel >= 1.48.0
 %else
-Requires:			boost141-devel
+BuildRequires:                  boost148-devel >= 1.48.0
 %endif
-
 %description private-devel
 Private development headers for dmlite. Provided for the development of 
 dmlite plugins only, no API compatibility is guaranteed on these headers.
