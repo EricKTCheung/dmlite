@@ -52,9 +52,9 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 set (Boost_NO_BOOST_CMAKE ON)
 #---------------------------------
 # ---------------- Find Boost 1.41
-set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
-set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
-set (Boost_ADDITIONAL_VERSIONS "1.41" "1.41.0")
+set (BOOST_INCLUDEDIR "/usr/include/boost148") # EPEL5
+set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost148/") # EPEL5
+set (Boost_ADDITIONAL_VERSIONS "1.48" "1.48.0")
 
 #needed for GCC6
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
@@ -63,9 +63,9 @@ find_package (Boost 1.41 COMPONENTS date_time system thread regex REQUIRED)
 
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
-  if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost141")
+  if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost148")
     message ("INFO: Overriding Boost library location")
-    set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost141/")
+    set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost148/")
   endif ()
 
   message ("Boost headers under: ${Boost_INCLUDE_DIR}")
