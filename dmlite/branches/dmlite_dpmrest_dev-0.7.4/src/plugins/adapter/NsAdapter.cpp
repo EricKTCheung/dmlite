@@ -651,10 +651,11 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
     }
     
     // We are here if the entry is a checksum. Check if it's one that adapter can support
-    shortCsumType = checksums::shortChecksumName(keys[i].substr(9));
+    shortCsumType = checksums::shortChecksumName(keys[i]);
     if (shortCsumType.length() > 2) {
       Log(Logger::Lvl2, adapterlogmask, adapterlogname,
           "Adapter does not support checksums of type " << shortCsumType << " Ignoring.");
+      continue;
     }
     
     // Write a warning if we already had one to write
@@ -667,16 +668,32 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
     csumXattr = keys[i];
   }
 
-  shortCsumType = checksums::shortChecksumName(csumXattr.substr(9));
+  shortCsumType = checksums::shortChecksumName(csumXattr);
   std::string csumValue     = attr.getString(csumXattr);
     
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " csumtype:" << shortCsumType << " csumvalue:" << csumValue);
   setDpnsApiIdentity();
 
-  ExtendedStat stat = this->extendedStat(path, false);
+
+  off_t sz = 0;
+  try {
+      // dpm-dsi is very kind and may offer to us a way to avoid yet one more stat request
+      // other plugins may follow one day the same suggestion by A.Kyrianov
+      sz = attr.getU64("filesize");
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " filesize:" << sz << " got from the xattrs.");
+  }
+  catch (...) {  }
   
+  if (sz == 0) {
+      ExtendedStat xstat = this->extendedStat(path, false);
+      sz = xstat.stat.st_size;
+      Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " filesize:" << sz << " got from stat-ing the file.");
+  }
+      
+      
+      
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
-    (dpns_setfsizec, path.c_str(), NULL, xstat.stat.st_size,
+    (dpns_setfsizec, path.c_str(), NULL, sz,
      shortCsumType.c_str(), (char*)csumValue.c_str())();
      
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, "Exiting. path: " << path );

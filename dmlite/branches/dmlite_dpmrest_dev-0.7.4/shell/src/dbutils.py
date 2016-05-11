@@ -88,6 +88,24 @@ class DPMDB(object):
                         print "Error %d: %s" % (e.args[0], e.args[1])
                         sys.exit(1)
 
+	def getReplicaInFSFolder(self,fsname,server,folder):
+		"""Method to get all the file replica for a FS folder"""
+		try:
+			folder = server+":"+fsname+folder+"%"
+			self.nsdb_c.execute('''
+                        SELECT m.name, r.poolname,r.fs, r.host, r.sfn, m.filesize, m.gid, m.status, r.setname, r.ptime
+                        FROM Cns_file_replica r
+                        JOIN Cns_file_metadata m USING (fileid)
+                        WHERE r.fs = '%(fs)s' AND r.host= '%(host)s' AND r.sfn LIKE '%(fold)s'
+                        ''' % {"fs" : fsname,"host" : server, "fold" : folder})
+                        ret = list()
+                        for row in self.nsdb_c.fetchall():
+                                ret.append(FileReplica(row[0], row[1], row[2], row[3], row[4], row[5],row[6],row[7],row[8],row[9]))
+                        return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        sys.exit(1)
+
 
 	def getReplicasInPool(self,poolname):
                 """Method to get all the file replica for a pool"""

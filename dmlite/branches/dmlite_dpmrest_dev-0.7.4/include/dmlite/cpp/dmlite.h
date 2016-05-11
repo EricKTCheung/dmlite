@@ -242,7 +242,7 @@ namespace dmlite {
   /// Joint between plugins and plugin-manager
   struct PluginIdCard {
     /// Used to make sure API is consistent.
-    unsigned const  ApiVersion;
+    unsigned const ApiVersion;
     /// Let the plug-in register itself and its concrete factories
     void (*registerPlugin)(PluginManager* pm) throw (DmException);
   };

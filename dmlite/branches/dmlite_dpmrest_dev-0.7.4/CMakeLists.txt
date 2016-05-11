@@ -40,9 +40,10 @@ endif (CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 
 
-set (INSTALL_PFX_ETC "etc/" CACHE STRING "relative path suffix to the etc directory where to install")
-set (INSTALL_PFX_LIB "usr/lib${LIB_SUFFIX}/" CACHE STRING "relative path suffix to the lib/lib64 directory where to install")
-set (INSTALL_PFX_USR "usr/" CACHE STRING "relative path suffix to the usr directory where to install (e.g. docs)")
+set (INSTALL_PFX_ETC "etc/" CACHE PATH "relative path suffix to the etc directory where to install")
+set (INSTALL_PFX_USR "usr/" CACHE PATH "relative path suffix to the usr directory where to install")
+set (INSTALL_PFX_LIB "${INSTALL_PFX_USR}/lib${LIB_SUFFIX}/" CACHE PATH "relative path suffix to the lib/lib64 directory where to install")
+set( INSTALL_PFX_DOC "${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}" CACHE PATH "relative path suffix to the docs directory where to install")
 set (INSTALL_PFX_VAR "var/www/" CACHE STRING "relative path suffix to the /var/www directory where to install fast-cgi")
 set (INSTALL_PFX_BIN "usr/bin/" CACHE STRING "relative path suffix to the /usr/bin directory where to install dome-checksum")
 
@@ -57,17 +58,20 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 set (Boost_NO_BOOST_CMAKE ON)
 #---------------------------------
 # ---------------- Find Boost 1.41
-set (BOOST_INCLUDEDIR "/usr/include/boost141") # EPEL5
-set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost141/") # EPEL5
-set (Boost_ADDITIONAL_VERSIONS "1.41" "1.41.0")
+set (BOOST_INCLUDEDIR "/usr/include/boost148") # EPEL5
+set (BOOST_LIBRARYDIR "/usr/lib${LIB_SUFFIX}/boost148/") # EPEL5
+set (Boost_ADDITIONAL_VERSIONS "1.48" "1.48.0")
+
+#needed for GCC6
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 
 find_package (Boost 1.41 COMPONENTS date_time system thread regex REQUIRED)
 
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
-  if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost141")
+  if (Boost_INCLUDE_DIR STREQUAL "/usr/include/boost148")
     message ("INFO: Overriding Boost library location")
-    set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost141/")
+    set (Boost_LIBRARY_DIRS "/usr/lib${LIB_SUFFIX}/boost148/")
   endif ()
 
   message ("Boost headers under: ${Boost_INCLUDE_DIR}")
