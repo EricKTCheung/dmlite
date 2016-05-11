@@ -218,7 +218,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         while (i < components.size()) {
           components.pop_back();
         }
-        
+	//re-add / at the beginning
+	components.insert( components.begin(),std::string(1,'/'));        
         throw DmException(ENOENT, "Entry '%s' not found under '%s'",
                           c.c_str(), Url::joinPath(components).c_str());
       }
@@ -1084,29 +1085,14 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
     // Update regular extended attributes
     this->si_->getINode()->updateExtendedAttributes(meta.stat.st_ino, attr);
 
-    // If there is a checksum xattr, try to update the legacy fields
-    // The legacy fields will always hold the most recent legacy-compatible checksum
-      static const char* csumXattr[3] = {"checksum.adler32",
-                                         "checksum.crc32",
-                                         "checksum.md5"};
-
-      for (unsigned i = 0; i < 3; ++i) {
-        if (attr.hasField(csumXattr[i])) {
-          
-          meta.csumtype  = checksums::shortChecksumName(csumXattr[i]);
-          meta.csumvalue = attr.getString(csumXattr[i]);
-
-          this->si_->getINode()->setChecksum(meta.stat.st_ino,
-                                             meta.csumtype, meta.csumvalue);
-        }
-      }
-
     this->si_->getINode()->commit();
   }
   catch (...) {
     this->si_->getINode()->rollback();
     throw;
   }
+  
+
 }
 
 

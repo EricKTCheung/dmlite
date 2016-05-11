@@ -151,7 +151,7 @@ namespace dmlite {
         std::string dpnsHost) throw (DmException);
 
     /// Destructor
-    ~NsAdapterINode() throw (DmException);
+    ~NsAdapterINode();
 
     // Overloading
     std::string getImplId(void) const throw ();

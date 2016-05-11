@@ -595,7 +595,7 @@ Location DpmAdapterPoolManager::whereToWrite(const std::string& path) throw (DmE
     switch(statuses[0].status & 0xF000) {
       case DPM_FAILED: case DPM_ABORTED: case DPM_EXPIRED:
 	Err(adapterlogname, " No error string returned from DPM: " << path << " " << 
-	  statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM"
+	  (statuses[0].errstring?statuses[0].errstring:"No error string returned from DPM")
 	);
         throw DmException(DMLITE_SYSERR(statuses[0].status & 0x0FFF),
                           "The DPM put request failed (%s)",

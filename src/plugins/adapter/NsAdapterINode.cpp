@@ -46,7 +46,7 @@ NsAdapterINode::NsAdapterINode(unsigned retryLimit, bool hostDnIsRoot, std::stri
   pthread_once(&once_control, ns_init_routine);
 }
 
-NsAdapterINode::~NsAdapterINode() throw (DmException)
+NsAdapterINode::~NsAdapterINode() 
 {
   if (this->fqans_ != NULL) {
     for (unsigned i = 0; i < this->nFqans_; ++i)
