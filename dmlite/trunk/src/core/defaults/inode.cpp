@@ -1,9 +1,57 @@
-#include <dmlite/cpp/inode.h>
+#include "inode.h"
 #include "NotImplemented.h"
 
 using namespace dmlite;
 
 
+
+void ExtendedStat::fixchecksums() {
+  // If legacy fields are empty then fill them with a suitable chksum from the xattrs
+  if (!csumtype.length() || !csumvalue.length()) {
+    std::string shortCsumType;
+    std::vector<std::string> keys = getKeys();
+    
+    for (unsigned i = 0; i < keys.size(); ++i) {
+      if (checksums::isChecksumFullName(keys[i])) {
+        std::string csumXattr = keys[i];
+        shortCsumType = checksums::shortChecksumName(csumXattr);
+        if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
+          csumvalue     = getString(csumXattr);
+          csumtype      = shortCsumType;
+          break;
+        }
+      }
+    }
+    
+  }
+  else {
+    // If legacy fields are not empty make sure that the same chksum is presented as an xattr too
+    checksums::fillChecksumInXattr(*this);
+  }
+}
+
+
+int ExtendedStat::getchecksum(std::string &cktype, std::string &ckvalue) {
+  if (csumtype.empty()) {
+    fixchecksums();
+    cktype = this->csumtype;
+    ckvalue = this->csumvalue;
+    return 0;
+  }
+  
+  std::string key = "checksum." + cktype;
+  if ( !hasField(cktype) ) return -1;
+  
+  
+  try {
+    ckvalue = getString(key);
+  }
+  catch (DmException e) {
+    return -1;
+  }
+  
+  
+}
 
 INodeFactory::~INodeFactory()
 {

@@ -1175,7 +1175,7 @@ void BuiltInCatalog::updateReplica(const Replica& replica) throw (DmException)
   
   if (dmlite::checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
-                      "Can not modify the replica");
+                      "Can not modify the replica " + replica.rfn);
   
   this->si_->getINode()->updateReplica(replica);
 }

@@ -10,7 +10,7 @@
 #include <mysql/mysql.h>
 #include <vector>
 
-#include "MySqlWrapper.h"
+#include "utils/MySqlWrapper.h"
 
 namespace dmlite {
   
@@ -128,7 +128,6 @@ namespace dmlite {
 
   };
 
-
   /// Convenience class that releases a resource on destruction
   class InodeMySqlTrans {
   public:
@@ -152,7 +151,6 @@ namespace dmlite {
     INodeMySql *obj;
 
   };
-
 
 
 };

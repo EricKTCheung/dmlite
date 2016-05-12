@@ -13,7 +13,7 @@
 
 
 Name:					dmlite
-Version:				0.7.6
+Version:				0.8.0
 Release:				1%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
@@ -47,6 +47,8 @@ BuildRequires:			lcgdm-devel
 BuildRequires:			libmemcached-devel
 BuildRequires:			mysql-devel
 BuildRequires:			protobuf-devel
+BuildRequires:		        davix-devel
+BuildRequires:			fcgi-devel
 
 %description
 This package provides the dmlite framework that implements common
@@ -193,6 +195,14 @@ This package provides the adapter plug-in for dmlite. This plug-in provides both
 a name-space and pool management implementation which fallback to forwarding
 calls to the old LcgDM DPNS and DPM daemons.
 
+%package plugins-domeadapter
+Summary:      Adapter plugin for dmlite
+Group:        Applications/Internet
+Requires:     %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description plugins-domeadapter
+This package provides the next-generation adapter plug-in for dmlite, which uses
+dome and does not depend on the old LcgDM DPNS and DPM daemons.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -247,11 +257,14 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/dmlite.conf.d
 %dir %{_libdir}/dmlite
+%dir %{_localstatedir}/www/fcgi-bin
 %config(noreplace) %{_sysconfdir}/dmlite.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/dmlite
 %config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 %{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
+%{_bindir}/dome-checksum
+%{_localstatedir}/www/fcgi-bin/dome
 %doc README LICENSE RELEASE-NOTES
 
 %files devel
@@ -301,7 +314,8 @@ rm -rf %{buildroot}
 
 %files shell
 %defattr(-,root,root,-)
-%{_bindir}/*
+%{_bindir}/dmlite-shell 
+%{_bindir}/dmlite-mysql-dirspaces.py
 %{python_sitearch}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
@@ -316,6 +330,12 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/plugin_adapter.so
 %doc LICENSE README RELEASE-NOTES
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
+
+%files plugins-domeadapter
+%defattr(-,root,root,-)
+%{_libdir}/dmlite/plugin_domeadapter.so
+%doc LICENSE README RELEASE-NOTES
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/domeadapter.conf
 
 %changelog
 * Mon Feb 15 2016  Andrea Manzi <amanzi@cern.ch> - 0.7.6-1
