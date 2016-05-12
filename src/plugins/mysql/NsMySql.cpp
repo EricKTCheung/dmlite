@@ -10,7 +10,7 @@
 #include <vector>
 #include <sys/param.h>
 
-#include "MySqlWrapper.h"
+#include "utils/MySqlWrapper.h"
 #include "NsMySql.h"
 #include "Queries.h"
 #include "MySqlFactories.h"

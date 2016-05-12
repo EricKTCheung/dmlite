@@ -4,10 +4,12 @@ set (CMAKE_INSTALL_PREFIX "/" CACHE PATH "Global installation prefix. Works for 
 
 project (dmlite)
 
+include(FindPkgConfig)
+
 # Version
 set(dmlite_MAJOR 0)
-set(dmlite_MINOR 7)
-set(dmlite_PATCH 6)
+set(dmlite_MINOR 8)
+set(dmlite_PATCH 0)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
@@ -15,6 +17,8 @@ option (BUILD_SHELL "Build the dmlite shell" ON)
 option (BUILD_MYSQL "Build the mysql plugin" ON)
 option (BUILD_MEMCACHE "Build the memcache plugin" ON)
 option (BUILD_ADAPTER "Build the LCGDM adapter plugin" ON)
+option (BUILD_DOME  "Build the dome fastcgi component" ON)
+option (BUILD_DOMEADAPTER "Build the dome adapter plugin" ON)
 
 OPTION(RSYSLOG_SUPPORT "Enable rsyslog Support" ON)
 OPTION(LOGROTATE_SUPPORT "Enable logrotate Support" ON)
@@ -40,6 +44,8 @@ set (INSTALL_PFX_ETC "etc/" CACHE PATH "relative path suffix to the etc director
 set (INSTALL_PFX_USR "usr/" CACHE PATH "relative path suffix to the usr directory where to install")
 set (INSTALL_PFX_LIB "${INSTALL_PFX_USR}/lib${LIB_SUFFIX}/" CACHE PATH "relative path suffix to the lib/lib64 directory where to install")
 set( INSTALL_PFX_DOC "${INSTALL_PFX_USR}/share/doc/${PROJECT_NAME}-${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}" CACHE PATH "relative path suffix to the docs directory where to install")
+set (INSTALL_PFX_VAR "var/www/" CACHE STRING "relative path suffix to the /var/www directory where to install fast-cgi")
+set (INSTALL_PFX_BIN "usr/bin/" CACHE STRING "relative path suffix to the /usr/bin directory where to install dome-checksum")
 
 
 
@@ -79,7 +85,9 @@ endif (Boost_FOUND)
 find_package (MySQL)
 if (NOT MYSQL_FOUND)
   message("-- Mysql not found... disabling the MySQL plugin")
+  message("-- Mysql not found... disabling the dome fastcgi component")
   set (BUILD_MYSQL OFF)
+  set (BUILD_DOME OFF)
 endif()
 
 #--------------------------------
@@ -94,14 +102,32 @@ if (NOT DPM_FOUND OR NOT DPM_FOUND)
   set (BUILD_ADAPTER OFF)
 endif()
 
+                     
+                     
+#--------------------------------
+# Find Davix
+pkg_check_modules(DAVIX_PKG davix)
+if (NOT DAVIX_PKG_FOUND)
+  message("-- Davix not found... disabling dome fastcgi component")
+  message("-- Davix not found... disabling domeadapter component")
+  set (BUILD_DOME OFF)
+endif()
+                    
+                    
+
 # Include path
 include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
+                     ${CMAKE_CURRENT_SOURCE_DIR}/src
                      ${Boost_INCLUDE_DIRS}
-                     ${APR_INCLUDE_DIR})
-
+                     ${APR_INCLUDE_DIR}
+                     )
+                    
+                    
+                    
+                    
 # include the directory itself as a path to include directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -109,7 +135,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 # Definitions
-add_definitions (-D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE)
+add_definitions (-std=c++98 -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE)
 
 # enable testing
 enable_testing()
@@ -131,14 +157,16 @@ endif (BUILD_SHELL)
 
 
 message(" ----------------- build summary ----------------")
-message(" -- BUILD_PYTHON   :" ${BUILD_PYTHON} )
-message(" -- BUILD_SHELL    : " ${BUILD_SHELL} )
-message(" -- BUILD_MYSQL    : " ${BUILD_MYSQL} )
-message(" -- BUILD_MEMCACHE : " ${BUILD_MEMCACHE} )
-message(" -- BUILD_ADAPTER  : " ${BUILD_ADAPTER} )
+message(" -- BUILD_PYTHON       : " ${BUILD_PYTHON} )
+message(" -- BUILD_SHELL        : " ${BUILD_SHELL} )
+message(" -- BUILD_MYSQL        : " ${BUILD_MYSQL} )
+message(" -- BUILD_MEMCACHE     : " ${BUILD_MEMCACHE} )
+message(" -- BUILD_ADAPTER      : " ${BUILD_ADAPTER} )
+message(" -- BUILD_DOME         : " ${BUILD_DOME} )
+message(" -- BUILD_DOMEADAPTER  : " ${BUILD_DOMEADAPTER} )
 message(" --" )
-message(" -- RSYSLOG CFG    : " ${RSYSLOG_SUPPORT} )
-message(" -- LOGROTATE CFG  : " ${LOGROTATE_SUPPORT} )
+message(" -- RSYSLOG CFG        : " ${RSYSLOG_SUPPORT} )
+message(" -- LOGROTATE CFG      : " ${LOGROTATE_SUPPORT} )
 message(" ---------------- ")
 
 

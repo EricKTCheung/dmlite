@@ -89,10 +89,10 @@ void Statement::bindParam(unsigned index, int64_t value) throw (DmException)
 {
   BIND_PARAM_SANITY();
   params_[index].buffer_type   = MYSQL_TYPE_LONGLONG;
-  params_[index].buffer        = std::malloc(sizeof(int64_t));
-  params_[index].is_unsigned   = false;
+  params_[index].buffer        = std::malloc(sizeof(unsigned long));
+  params_[index].is_unsigned   = true;
   params_[index].is_null_value = false;
-  ASSIGN_POINTER_TYPECAST(int64_t, params_[index].buffer, value);
+  ASSIGN_POINTER_TYPECAST(unsigned long, params_[index].buffer, value);
 }
 
 
@@ -134,7 +134,7 @@ void Statement::bindParam(unsigned index, const char* value, size_t size) throw 
 
 unsigned long Statement::execute(void) throw (DmException)
 {
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Executing: " << stmt_ << " nParams_: " << nParams_);
+  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Executing: " << stmt_ << " nParams_: " << nParams_);
   
   SANITY_CHECK(STMT_CREATED, execute);
 
@@ -161,7 +161,7 @@ unsigned long Statement::execute(void) throw (DmException)
   }
 
   unsigned long l = (unsigned long) mysql_stmt_affected_rows(this->stmt_);
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, "Executed: " << stmt_ << " nParams_: " << nParams_ << " nrows:" << l);
+  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Executed: " << stmt_ << " nParams_: " << nParams_ << " nrows:" << l);
   return l;
 }
 

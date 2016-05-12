@@ -10,11 +10,12 @@ include_directories (${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR})
 add_library (mysql MODULE AuthnMySql.cpp
                           DpmMySql.cpp
                           MySqlFactories.cpp
-                          MySqlWrapper.cpp
+                          ../../utils/MySqlWrapper.cpp
                           NsMySql.cpp
                           Queries.cpp
                           MySqlIO.cpp
-            )
+                          ../../utils/MySqlPools.cpp
+)
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries (mysql boost_system dmlite ${MYSQL_LIBRARIES})
