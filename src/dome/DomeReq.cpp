@@ -36,17 +36,17 @@ DomeReq::DomeReq(FCGX_Request &request) {
 
   if ( (s = FCGX_GetParam("REQUEST_METHOD", request.envp)) )
     verb = s;
-  if ( (s = FCGX_GetParam("PATH_INFO", request.envp)) )
+  if ( (s = FCGX_GetParam("REQUEST_URI", request.envp)) )
     object = s;
 
 
 //  if ( (s = FCGX_GetParam("HTTP_CMD", request.envp)) )
 //    domecmd = s;
-  
+
   std::vector<std::string> vecurl = dmlite::Url::splitPath(object);
   if (vecurl.size() > 1)
     domecmd = vecurl[vecurl.size()-1];
-  
+
   // Extract the authz info about the remote user
   if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) ) {
     this->remoteclientdn = s;
@@ -56,15 +56,15 @@ DomeReq::DomeReq(FCGX_Request &request) {
     this->remoteclienthost = s;
     creds.remoteAddress = s;
   }
-  
-  
+
+
   // We also must know the info on the client that is contacting us
   if ( (s = FCGX_GetParam("SSL_CLIENT_S_DN", request.envp)) )
     this->clientdn = s;
   if ( (s = FCGX_GetParam("REMOTE_HOST", request.envp)) )
     this->clienthost = s;
-  
-  
+
+
   // We assume that the body fits in 4K, otherwise we ignore it ?!?
   char buf[4096];
   int nb = FCGX_GetStr(buf, sizeof(buf)-1, request.in);
@@ -83,16 +83,16 @@ int DomeReq::takeJSONbodyfields(char *body) {
   std::istringstream s(body);
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering: '" << body << "'");
   if ( strlen(body) > 2 ) {
-  
+
     try {
       boost::property_tree::read_json(s, bodyfields);
     } catch (boost::property_tree::json_parser_error e) {
       Err("takeJSONbodyfields", "Could not process JSON: " << e.what() << " '" << body << "'");
       return -1;
     }
-    
+
   }
-  
+
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting: '" << body << "'");
   return 0;
 }

@@ -57,33 +57,33 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
                          std::string  &parentpath,
                          ExtendedStat &parentstat,
                          ExtendedStat &statinfo) throw (DmException) {
-                           
+
   if (filepath.empty())
     throw DmException(EINVAL, "Empty path. Internal error ?");
-  
+
   // Get the absolute path
   std::string path;
   if ( filepath[0] != '/' )
     path = catalog->getWorkingDir() + "/" + filepath;
-  
+
   if ( path[0] != '/' )
     path.insert(0, "/");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Absolute path: path");
-  
+
   std::vector<std::string> components = Url::splitPath(path);
   std::vector<std::string> todo;
   std::string name;
   bool parentok = false;
-  
+
   components.pop_back();
-  
+
   // Make sure that all the parent dirs exist
   do {
-    
+
     std::string ppath = Url::joinPath(components);
     ExtendedStat st;
-    
+
     // Try to get the stat of the parent
     try {
       st = catalog->extendedStat(ppath);
@@ -95,25 +95,25 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
         parentok = true;
         break;
       }
-      
-      
+
+
     } catch (DmException e) {
       // No parent means that we have to create it later
       name = components.back();
       components.pop_back();
-      
+
       todo.push_back(ppath);
     }
-    
+
   } while ( !components.empty() );
-  
-  
+
+
   // Here we have a todo list of directories that we have to create
   // .... so we do it
   while (!todo.empty()) {
     std::string p = todo.back();
     todo.pop_back();
-    
+
     // Try to get the stat of the parent
     try {
       catalog->makeDir(p, 0664);
@@ -122,10 +122,10 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
       Err(domelogname, "Cannot create path '" << p << "' err: " << e.code() << "-" << e.what());
       if (e.code() != EEXIST) throw;
     }
-    
-    
+
+
   }
-  
+
   // If a miracle took us here, we only miss to create the final file
   try {
     catalog->create(filepath, 0664);
@@ -135,7 +135,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     Err(domelogname, "Cannot create file '" << filepath << "'");
     throw;
   }
- 
+
   return 0;
 }
 
@@ -171,7 +171,7 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
 }
 
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
-  
+
   // fetch the parameters, lfn and placement suggestions
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   std::string addreplica_ = req.bodyfields.get<std::string>("additionalreplica", "");
@@ -188,7 +188,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
 
-  
+
   // if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
   //   return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
   // }
@@ -198,7 +198,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     // Error! Log it as such!, level1
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "The pool hint and the host hint are mutually exclusive.");
   }
-  
+
   // default minfreespace is 4GB
   long minfreespace_bytes = CFG->GetLong("glb.put.minfreespace_mb", 1024*4) * 1024*1024;
 
@@ -218,34 +218,34 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
 
   // populate the list of candidate filesystems
   std::vector<DomeFsInfo> selectedfss = pickFilesystems(pool, host, fs);
-    
+
   // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
   if ( !selectedfss.size() ) {
     // Error!
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
   }
-    
+
   // Remove the filesystems that have less then the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
-    if (selectedfss[i].freespace < minfreespace_bytes) { 
+    if (selectedfss[i].freespace < minfreespace_bytes) {
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
           "' has less than " << minfreespace_bytes << "bytes free");
         selectedfss.erase(selectedfss.begin()+i);
     }
   }
-    
+
   // If no filesystems remain, return error "filesystems full for path ..."
   if ( !selectedfss.size() ) {
     // Error!
     return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, "All matching filesystems are full.");
   }
-    
+
   // Sort the selected filesystems by decreasing free space
   std::sort(selectedfss.begin(), selectedfss.end(), DomeFsInfo::pred_decr_freespace());
-    
+
   // Use the free space as weight for a random choice among the filesystems
   // Nice algorithm taken from http://stackoverflow.com/questions/1761626/weighted-random-numbers#1761646
-  long sum_of_weight = 0;  
+  long sum_of_weight = 0;
   int fspos = 0;
   for (unsigned int i = 0; i < selectedfss.size(); i++) {
     sum_of_weight += (selectedfss[i].freespace >> 20);
@@ -259,60 +259,60 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     }
     rnd -= (selectedfss[i].freespace >> 20);
   }
-    
+
   // We have the fs, build the final pfn for the file
   //  fs/group/date/basename.r_ordinal.f_ordinal
   Log(Logger::Lvl1, domelogmask, domelogname, "Selected fs: '" << selectedfss[fspos].server << ":" << selectedfss[fspos].fs <<
         " from " << selectedfss.size() << " matchings for lfn: '" << lfn << "'");
-  
+
   // Fetch the time
   time_t rawtimenow = time(0);
   struct tm tmstruc;
   char timestr[16], suffix[32];
   localtime_r(&rawtimenow, &tmstruc);
   strftime (timestr, 11, "%F", &tmstruc);
-    
+
   // Parse the lfn and pick the 4th token, likely the one with the VO name
   std::vector<std::string> vecurl = dmlite::Url::splitPath(lfn);
   sprintf(suffix, ".%ld.%ld", status.getGlobalputcount(), rawtimenow);
-    
+
   if (vecurl.size() < 5) {
     std::ostringstream os;
     os << "Unable to get vo name from the lfn: " << lfn;
-          
+
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, os);      
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, os);
   }
-    
-    
+
+
   std::string pfn = selectedfss[fspos].fs + "/" + vecurl[4] + "/" + timestr + "/" + *vecurl.rbegin() + suffix;
-    
+
   Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "' --> '" << selectedfss[fspos].server << ":" << pfn << "'");
-    
+
   // NOTE: differently from the historical dpmd, here we do not create the remote path/file
   // of the replica in the disk. We jsut make sure that the LFN exists
   // The replica in the catalog instead is created here
-    
+
   // Create the logical catalog entry, if not already present. We also create the parent dirs
   // if they are absent
-    
+
   DmlitePoolHandler stack(status.dmpool);
   ExtendedStat parentstat, lfnstat;
   std::string parentpath;
-    
+
   {
     // Security credentials are mandatory, and they have to carry the identity of the remote client
     SecurityCredentials cred;
     cred.clientName = (std::string)req.remoteclientdn;
     cred.remoteAddress = req.remoteclienthost;
-      
+
     try {
       stack->setSecurityCredentials(cred);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot set security credentials. dn: '" << req.remoteclientdn << "' addr: '" <<
             req.remoteclienthost << "' - " << e.code() << "-" << e.what();
-          
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
@@ -323,11 +323,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   } catch (DmException &e) {
     std::ostringstream os;
     os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
-      
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, http_status(e), os);
   }
-    
+
   // Create the replica in the catalog
   dmlite::Replica r;
   r.fileid = lfnstat.stat.st_ino;
@@ -347,12 +347,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, http_status(e), os);
   }
-    
+
   // Here we are assuming that some frontend will soon start to write a new replica
   //  with the name we chose here
-    
+
   // Return the response
-    
+
   // This function may have been invoked to know
   // details about the placement without telling the client
   if (dest && destrfn) {
@@ -360,7 +360,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     *destrfn = r.rfn;
     return 0;
   }
-  
+
   boost::property_tree::ptree jresp;
   jresp.put("pool", selectedfss[fspos].poolname);
   jresp.put("host", selectedfss[fspos].server);
@@ -374,21 +374,21 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
 };
 
 int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
-  
-  
+
+
   // The command takes as input server and pfn, separated
   // in order to put some distance from rfio concepts, at least in the api
   std::string server = req.bodyfields.get<std::string>("server", "");
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
-  
+
   size_t size = req.bodyfields.get<size_t>("size", 0);
   std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
   std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' "
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
-  
+
   // Check for the mandatory arguments
   if ( !pfn.length() ) {
     std::ostringstream os;
@@ -397,13 +397,13 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   }
 
   // Please note that the server field can be empty
-  
+
   if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
-  
+
   // Now the optional ones for basic sanity
   if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
     std::ostringstream os;
@@ -411,24 +411,24 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
-  
+
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
-  
+
   }
-  
-  
+
+
   // We are in the disk server, hence we check only things that reside here
   // and then forward the request to the head
   // Head node stuff will be checked by the headnode
-  
+
   // We check the stat information of the file.
   Log(Logger::Lvl2, domelogmask, domelogname, " Stat-ing pfn: '" << pfn << "' "
     " on disk.");
-  
+
   struct stat st;
 
   if ( stat(pfn.c_str(), &st) ) {
@@ -438,23 +438,23 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, DOME_HTTP_NOT_FOUND, os);
   }
-  
+
   Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
     " disksize: " << st.st_size);
-  
+
   if (size == 0) size = st.st_size;
-  
+
   if ( (unsigned)size != st.st_size ) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, os);
   }
-  
+
   // Now forward the request to the head node
   Log(Logger::Lvl1, domelogmask, domelogname, " Forwarding to headnode. server: '" << server << "' pfn: '" << pfn << "' "
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
-  
+
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
 
   DomeTalker talker(*davixPool, &req.creds, domeurl,
@@ -475,15 +475,15 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 }
 
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
-  
-  
+
+
   DmlitePoolHandler stack(status.dmpool);
   INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
   if (!inodeintf) {
     Err( domelogname , " Cannot retrieve inode interface. Fatal.");
     return -1;
   }
-  
+
   // The command takes as input server and pfn, separated
   // in order to put some distance from rfio concepts, at least in the api
   std::string server = req.bodyfields.get<std::string>("server", "");
@@ -492,10 +492,10 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   size_t size = req.bodyfields.get<size_t>("size", 0);
   std::string chktype = req.bodyfields.get<std::string>("checksumtype", "");
   std::string chkval = req.bodyfields.get<std::string>("checksumvalue", "");
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' "
     " size: " << size << " cksumt: '" << chktype << "' cksumv: '" << chkval << "'" );
-    
+
   // Check for the mandatory arguments
   if ( !pfn.length() ) {
     std::ostringstream os;
@@ -512,7 +512,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Invalid size: " << size << " '" << pfn << "'";
     return DomeReq::SendSimpleResp(request, 422, os);
   }
-  
+
   // Now the optional ones for basic sanity
   if ( !(chktype.length() > 0) != !(chkval.length() > 0) ) {
     std::ostringstream os;
@@ -520,48 +520,48 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 422, os);
   }
-  
+
   if (chktype.length() && !checksums::isChecksumFullName(chktype)) {
     std::ostringstream os;
     os << "Invalid checksum hint. type:'" << chktype << "' val: '" << chkval << "'";
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 422, os);
-  
+
   }
-  
+
   // Here unfortunately, for backward compatibility we are forced to
   // use the rfio syntax.
   std::string rfn = server + ":" + pfn;
-  
-  
+
+
   dmlite::Replica rep;
   try {
     rep = stack->getCatalog()->getReplicaByRFN(rfn);
   } catch (DmException e) {
     std::ostringstream os;
     os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   if (rep.status != dmlite::Replica::kBeingPopulated) {
-    
+
     std::ostringstream os;
     os << "Invalid status for replica '"<< rfn << "'";
-      
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 422, os);
-    
+
   }
-  
+
   dmlite::ExtendedStat st;
   try {
     st = inodeintf->extendedStat(rep.fileid);
   } catch (DmException e) {
     std::ostringstream os;
     os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 422, os);
   }
@@ -592,51 +592,51 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // -------------------------------------------------------
   // If a miracle took us here, the size has been confirmed
   Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
-    
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Update the replica values, including the checksum
   rep.ptime = rep.ltime = rep.atime = time(0);
   rep.status = dmlite::Replica::kAvailable;
   rep[chktype] = chkval;
-  
+
   try {
     stack->getCatalog()->updateReplica(rep);
   } catch (DmException e) {
     std::ostringstream os;
     os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 500, os);
   }
-  
+
   // If the checksum of the main entry is different, just output a bad warning in the log
   std::string ck;
   if ( !st.getchecksum(chktype, ck) && (ck != chkval) ) {
     Err(domelogname, SSTR("Replica checksum mismatch rfn:'"<< rfn << "' : " << chkval << " fileid: " << rep.fileid << " : " << ck));
   }
-  
-  
-  
+
+
+
   // Anyway propagate the checksum to the main stat
   inodeintf->setChecksum(st.stat.st_ino, chktype, chkval);
   inodeintf->setSize(st.stat.st_ino, size);
-  
+
   // Now update the space counters for the parent directories!
   // Please note that this substitutes the IOPassthrough plugin in the disk's dmlite stack
   if (st.parent <= 0) {
-      
+
     try {
       Log(Logger::Lvl4, domelogmask, domelogname, " Looking up parent of inode " << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
       st = inodeintf->extendedStat(st.stat.st_ino);
@@ -648,25 +648,25 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     }
 
   }
-    
-  
+
+
   // Add this filesize to the size of its parent dirs, only the first N levels
   {
 
-    
+
     // Start transaction
     InodeTrans trans(inodeintf);
-    
+
     off_t sz = size;
-    
-    
+
+
     ino_t hierarchy[128];
     size_t hierarchysz[128];
     unsigned int idx = 0;
     while (st.parent) {
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-      
+
       try {
         st = inodeintf->extendedStat(st.parent);
       }
@@ -674,21 +674,21 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
         Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
         return -1;
       }
-      
+
       hierarchy[idx] = st.stat.st_ino;
       hierarchysz[idx] = st.stat.st_size;
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
       " is " << st.stat.st_size << " with idx " << idx);
-      
+
       idx++;
-      
+
       if (idx >= sizeof(hierarchy)) {
         Err( domelogname , " Too many parent directories for replica " << rfn);
         return -1;
       }
     }
-    
+
     // Update the filesize in the first levels
     // Avoid the contention on /dpm/voname/home
     if (idx > 0) {
@@ -700,17 +700,17 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     else {
       Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
     }
-    
-    
+
+
     // Commit the local trans object
     // This also releases the connection back to the pool
     trans.Commit();
   }
-  
-  
-  
-  
-  
+
+
+
+
+
   int rc = DomeReq::SendSimpleResp(request, 200, SSTR("dome_putdone successful."));
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
@@ -778,7 +778,7 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
   qualifiers.push_back(req.remoteclienthost);
 
   status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
-  
+
   return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued checksum calculation for server " << replica.server
                                                      << ", path " << DomeUtils::pfn_from_rfio_syntax(replica.rfn)
                                                      << ", check back later.\r\nTotal checksums in queue right now: "
@@ -788,14 +788,14 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
 
 
 int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) {
-  
+
   // This simple implementation is like a put
   DomeFsInfo destfs;
   std::string destrfn;
   int rc = dome_put(req, request, &destfs, &destrfn);
   if (rc != 0)
     return rc; // means that a response has already been sent in the context of dome_put, btw it can only be an error
-  
+
   // create queue entry
   GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
   std::string namekey = lfn;
@@ -807,15 +807,15 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   qualifiers.push_back(lfn); // lfn as second qualifier
   qualifiers.push_back(destfs.server);
   qualifiers.push_back(destfs.fs);
-  
+
   // necessary information to keep - order is important
-  
+
   qualifiers.push_back(destrfn);
   qualifiers.push_back(req.remoteclientdn);
   qualifiers.push_back(req.remoteclienthost);
 
   status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
-  
+
   return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued file pull request " << destfs.server
                                                      << ", path " << lfn
                                                      << ", check back later.\r\nTotal pulls in queue right now: "
@@ -1019,7 +1019,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
   try {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
-    std::string lfn = req.object;
+    std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     bool updateLfnChecksum = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("update-lfn-checksum", "false"));
 
     if(chksumtype == "") {
@@ -1103,13 +1103,13 @@ static int extract_stat(std::string stdout, std::string &err, struct dmlite::Ext
 
 
 void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed) {
-  
+
 
   std::string checksum, extract_error;
   bool failed = (task.resultcode != 0);
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Completed: " << completed << " rc: " << task.resultcode);
-  
+
   if(completed) {
     checksum = extract_checksum(task.stdout, extract_error);
     if( ! extract_error.empty()) {
@@ -1141,16 +1141,16 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
     else {
       jresp.put("status", "done");
       jresp.put("checksum", checksum);
-      
+
       // Let's stat the real file on disk, we are in a disk node
       struct stat st;
-      
+
       if ( stat(pending.pfn.c_str(), &st) ) {
         std::ostringstream os;
         char errbuf[1024];
         os << "Cannot stat pfn:'" << pending.pfn << "' err: " << errno << ":" << strerror_r(errno, errbuf, 1023);
         Err(domelogname, os.str());
-        
+
         // A successful execution and no file should be aborted!
         jresp.put("status", "aborted");
         jresp.put("reason", SSTR("disk node could not stat pfn: '" << pending.pfn << "' - " << os ));
@@ -1161,7 +1161,7 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
         Log(Logger::Lvl1, domelogmask, domelogname, "pfn: " << pending.pfn << " has size: " << st.st_size);
         jresp.put("filesize", st.st_size);
       }
-      
+
     }
   }
   else {
@@ -1393,12 +1393,12 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   // Currently just returns a list of all replicas
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  
+
   DomeFsInfo fs;
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
-  
+
   bool canpull = status.LfnMatchesAnyCanPullFS(lfn, fs);
-  
+
   DmlitePoolHandler stack(status.dmpool);
   try {
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
@@ -1423,19 +1423,19 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
         continue;
       }
       if (!fsinfo.isGoodForRead()) continue;
-      
+
       if (replicas[i].status == Replica::kBeingPopulated) {
         foundpending = true;
         continue;
       }
-      
+
       found = true;
       jresp.put(ptree::path_type(SSTR(i << "^server"), '^'), replicas[i].server);
       jresp.put(ptree::path_type(SSTR(i << "^pfn"), '^'), pfn);
       jresp.put(ptree::path_type(SSTR(i << "^filesystem"), '^'), replicas[i].getString("filesystem"));
     }
-    
-    
+
+
 
     if (found)
       return DomeReq::SendSimpleResp(request, 200, jresp);
@@ -1443,33 +1443,33 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
       return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
   }
   catch (dmlite::DmException e) {
-    
+
     // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
     if (e.code() == ENOENT) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << lfn << "'");
-      
+
     }
     else
       return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << lfn << "'"));
   }
-  
+
   // Here we have to trigger the file pull and tell to the client to come back later
   if (canpull) {
     Log(Logger::Lvl1, domelogmask, domelogname, "Volatile filesystem detected. Seems we can try pulling the file: '" << lfn << "'");
     return enqfilepull(req, request, lfn);
   }
-  
+
   return DomeReq::SendSimpleResp(request, 404, SSTR("No available replicas for '" << lfn << "'"));
-  
+
 }
 
 int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
   if(status.role == status.roleDisk) {
     return DomeReq::SendSimpleResp(request, 500, "pullstatus only available on head nodes");
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  
+
   try {
     DmlitePoolHandler stack(status.dmpool);
     INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
@@ -1477,7 +1477,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
       Err( domelogname , " Cannot retrieve inode interface. Fatal.");
       return -1;
     }
-  
+
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
@@ -1487,17 +1487,17 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     std::string reason = req.bodyfields.get<std::string>("reason", "");
     std::string checksum = req.bodyfields.get<std::string>("checksum", "");
     size_t size = req.bodyfields.get("filesize", 0L);
-    
+
     Log(Logger::Lvl1, domelogmask, domelogname, "lfn: '" << lfn << "' server: '" << server << "' pfn: '" << pfn <<
       "' pullstatus: '" << str_status << "' cktype: '" << checksum << "' ck: '" << checksum << "' reason: '" << reason << "'");
-    
+
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
     }
     if(lfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
-    
+
     GenPrioQueueItem::QStatus qstatus;
 
     if(str_status == "pending") {
@@ -1533,92 +1533,92 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     // status is done, checksum can be empty
     Log(Logger::Lvl2, domelogmask, domelogname, "File pull finished. LFN: " << lfn
         << "PFN: " << pfn << ". Reason: " << reason);
-    
+
     // In practice it's like a putdone request, unfortunately we have to
     // apparently duplicate some code
-    
-    
+
+
     // Here unfortunately, for backward compatibility we are forced to
     // use the rfio syntax.
     std::string rfn = server + ":" + pfn;
-    
-    
+
+
     dmlite::Replica rep;
     try {
       rep = stack->getCatalog()->getReplicaByRFN(rfn);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 404, os);
     }
-    
+
     if (rep.status != dmlite::Replica::kBeingPopulated) {
-      
+
       std::ostringstream os;
       os << "Invalid status for replica '"<< rfn << "'";
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 422, os);
-      
+
     }
-    
+
     dmlite::ExtendedStat st;
     try {
       st = inodeintf->extendedStat(rep.fileid);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 422, os);
     }
-    
-    
-    
-    
-    
+
+
+
+
+
     // -------------------------------------------------------
     // If a miracle took us here, the size has been confirmed
     Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
-    
-    
+
+
     try {
       stack->getCatalog()->setSize(lfn, size);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 500, os);
     }
-    
-    
-    
+
+
+
     // Update the replica values, including the checksum, if present
     rep.ptime = rep.ltime = rep.atime = time(0);
     rep.status = dmlite::Replica::kAvailable;
     if (checksum.size() && chksumtype.size())
       rep[fullchecksum] = checksum;
-    
+
     try {
       stack->getCatalog()->updateReplica(rep);
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 500, os);
     }
-    
+
     // If the checksum of the main entry is different, just output a bad warning in the log
     std::string ck;
     if ( !st.getchecksum(fullchecksum, ck) && (ck != checksum) ) {
       Err(domelogname, SSTR("Replica checksum mismatch rfn:'"<< rfn << "' : " << checksum << " fileid: " << rep.fileid << " : " << ck));
     }
-    
-    
+
+
     return DomeReq::SendSimpleResp(request, 200, "");
   }
   catch(dmlite::DmException& e) {
@@ -1629,9 +1629,9 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
 
   Log(Logger::Lvl1, domelogmask, domelogname, "Error - execution should never reach this point");
   return DomeReq::SendSimpleResp(request, 500, "Something went wrong, execution should never reach this point.");
-  
-  
-  
+
+
+
 };
 
 int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
@@ -1641,11 +1641,11 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
   try {
     //DmlitePoolHandler stack(status.dmpool);
-    
+
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.bodyfields.get<std::string>("lfn", "");
-    
+
     // Checksumtype in this case can be empty, as it's just a suggestion...
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
@@ -1659,9 +1659,9 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if (!CFG->GetString("disk.filepuller.pullhook", (char *)"").size()) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
-    
+
     // Let's just execute the external hook, passing the obvious parameters
-    
+
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
 
     std::vector<std::string> params;
@@ -1669,12 +1669,12 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     params.push_back(lfn);
     params.push_back(pfn);
     int id = this->submitCmd(params);
-    
+
     if (id < 0)
       return DomeReq::SendSimpleResp(request, 500, "Could not invoke file puller.");
-    
+
     diskPendingPulls[id] = pending;
-    
+
     // Now exit, the file pull is hopefully ongoing
 
     return DomeReq::SendSimpleResp(request, 202, SSTR("Initiated file pull. lfn: '" << lfn << "' pfn: '"<< pfn << "', task executor ID: " << id));
@@ -1684,50 +1684,50 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     os << "Dmlite exception: " << e.what();
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
-  
+
+
 };
 
 
 
 int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
-  
-  
+
+
   // Remove any trailing slash
   std::string absPath = req.bodyfields.get<std::string>("path", "");
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
   bool getsubdirs = req.bodyfields.get<bool>("getsubdirs", false);
   bool getparentdirs = req.bodyfields.get<bool>("getparentdirs", false);
-  
+
 
 
   // Get the ones that match the object of the query
-  
+
   boost::property_tree::ptree jresp;
   int cnt = 0;
-  
-  
+
+
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getparentdirs: " << getparentdirs);
     // If we can find the quotatoken path into the query...
     size_t pos = absPath.find(it->second.path);
     if ( pos == 0 ) {
-      
 
-      
+
+
       // If the query is longer than the tk then it's not matching if getsubdirs is false
       if ((absPath.length() > it->second.path.length()) && (!getparentdirs)) continue;
-      
+
       // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (absPath[it->second.path.length()] != '/') ) continue;
-      
+
       // Get the used space for this path
       long long pathfree = 0LL;
-      long long pathused = 0LL;      
+      long long pathused = 0LL;
       DmlitePoolHandler stack(status.dmpool);
       try {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
@@ -1736,23 +1736,23 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       catch (dmlite::DmException e) {
         std::ostringstream os;
         os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
-    
+
         Err(domelogname, os.str());
         continue;
-      }      
-      
+      }
+
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
       int poolst;
       status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
-      
+
       pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
       if (pathfree < 0) pathfree = 0;
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
       it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
       " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
-      
+
       boost::property_tree::ptree pt;
       pt.put("path", it->second.path);
       pt.put("quotatkname", it->second.u_token);
@@ -1761,13 +1761,13 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       pt.put("pooltotspace", ptot);
       pt.put("pathusedspace", pathused);
       pt.put("pathfreespace", pathfree);
-      
+
       jresp.push_back(std::make_pair("", pt));
       cnt++;
     } // if
   } // for
-  
-  
+
+
   if (getsubdirs) {
     // Here we want to match abspaths that are shorter than the quotatokens. Shorter but not equal.
       for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
@@ -1775,11 +1775,11 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     // If we can find the abspath into the token then we are selecting tokens that are equal or longer
     size_t pos = it->second.path.find(absPath);
     if ( pos == 0 ) {
-      
-      
+
+
             // Get the used space for this path
       long long pathfree = 0LL;
-      long long pathused = 0LL;      
+      long long pathused = 0LL;
       DmlitePoolHandler stack(status.dmpool);
       try {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(it->second.path);
@@ -1788,29 +1788,29 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       catch (dmlite::DmException e) {
         std::ostringstream os;
         os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
-    
+
         Err(domelogname, os.str());
         continue;
-      } 
-      
+      }
+
       // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
       if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
-      
+
       // If the lengths are the same then we don't want it, as we look for proper subdirs here
       if ( absPath.length() == it->second.path.length() ) continue;
-      
+
       // Now find the free space in the mentioned pool
       long long ptot, pfree;
       int poolst;
       status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
-      
+
       pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
       if (pathfree < 0) pathfree = 0;
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
       it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
       " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
-      
+
       boost::property_tree::ptree pt;
       pt.put("path", it->second.path);
       pt.put("quotatkname", it->second.u_token);
@@ -1819,45 +1819,45 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       pt.put("pooltotspace", ptot);
       pt.put("pathusedspace", pathused);
       pt.put("pathfreespace", pathfree);
-      
+
       jresp.push_back(std::make_pair("", pt));
       cnt++;
     } // if
   } // for
   }
-  
-  
-  
+
+
+
   if (cnt > 0) {
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
-  
+
   return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << absPath << "'"));
-  
+
 };
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
-  
+
   DomeQuotatoken mytk;
-  
+
   mytk.path = req.bodyfields.get("path", "");
   mytk.poolname = req.bodyfields.get("poolname", "");
-  
+
   if (!status.existsPool(mytk.poolname)) {
     std::ostringstream os;
     os << "Cannot find pool: '" << mytk.poolname << "'";
-    
+
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os); 
-    
+    return DomeReq::SendSimpleResp(request, 404, os);
+
   }
-    
-  
+
+
   // Remove any trailing slash
   while (mytk.path[ mytk.path.size()-1 ] == '/') {
     mytk.path.erase(mytk.path.size() - 1);
   }
-  
+
   DmlitePoolHandler stack(status.dmpool);
   try {
     struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(mytk.path);
@@ -1865,23 +1865,23 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   catch (dmlite::DmException e) {
     std::ostringstream os;
     os << "Cannot find logical path: '" << mytk.path << "'";
-    
+
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os); 
-    
+    return DomeReq::SendSimpleResp(request, 404, os);
+
   }
-  
+
 
   // We fetch the values that we may have in the internal map, using the keys
   if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
     Log(Logger::Lvl1, domelogmask, domelogname, "No quotatoken found for pool: '" <<
-      mytk.poolname << "' path '" << mytk.path << "'. Creating new one.");   
+      mytk.poolname << "' path '" << mytk.path << "'. Creating new one.");
   }
-  
+
   mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
   mytk.u_token = req.bodyfields.get("description", "(unnamed)");
-  
+
   // First we write into the db, if it goes well then we update the internal map
   int rc;
   {
@@ -1893,13 +1893,13 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   rc =  sql.setQuotatoken(mytk, clientid);
   if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot write quotatoken into the DB. poolname: '" << mytk.poolname
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
     return 1;
   }
-  
+
   status.insertQuotatoken(mytk);
   return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken written. poolname: '" << mytk.poolname
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
@@ -1912,30 +1912,30 @@ int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, "dome_delquotatoken only available on head nodes.");
   }
   DomeQuotatoken mytk;
-  
+
   mytk.path = req.bodyfields.get("path", "");
   mytk.poolname = req.bodyfields.get("poolname", "");
-  
+
   if (!status.existsPool(mytk.poolname)) {
     std::ostringstream os;
     os << "Cannot find pool: '" << mytk.poolname << "'";
-    
+
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os); 
+    return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
-  
+
+
   // We fetch the values that we may have in the internal map, using the keys, and remove it
   if ( status.delQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
     os << "No quotatoken found for pool: '" <<
       mytk.poolname << "' path '" << mytk.path << "'.";
-    
+
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os); 
-    
+    return DomeReq::SendSimpleResp(request, 404, os);
+
   }
-  
+
   // If everything was ok, we delete it from the db too
   // First we write into the db, if it goes well then we update the internal map
   int rc;
@@ -1948,47 +1948,47 @@ int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
   rc =  sql.delQuotatoken(mytk, clientid);
   if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot delete quotatoken from the DB. poolname: '" << mytk.poolname
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
     return 1;
   }
-  
+
   // To avoid race conditions without locking, we have to make sure that it's not in memory
   status.delQuotatoken(mytk.path, mytk.poolname, mytk);
-  
+
   return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken deleted. poolname: '" << mytk.poolname
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
 
 };
 
 int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
-  
+
   if (status.role != status.roleDisk) {
     return DomeReq::SendSimpleResp(request, 500, "pfnrm only available on disk nodes");
   }
-  
+
   std::string absPath =  req.bodyfields.get<std::string>("pfn", "");
   if (!absPath.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is empty."));
   }
-  
+
   if (absPath[0] != '/') {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not an absolute path."));
   }
-  
+
   // Remove any trailing slash
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-  
+
   if (!status.PfnMatchesAnyFS(status.myhostname, absPath)) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is not a valid pfn."));
   }
-  
+
   // OK, remove directly on disk
-  
+
   // This is not a high perf function, so we can afford one stat call
   struct stat st;
   int rc = stat(absPath.c_str(), &st);
@@ -1996,18 +1996,18 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
     if (errno == ENOENT) {
       return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful. The file or dir '" << absPath << "' not there anyway."));
     }
-    
+
     char errbuf[1024];
     return DomeReq::SendSimpleResp(request, 422, SSTR("Rm of '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
   }
-  
+
   if (S_ISDIR(st.st_mode)) {
     int rc = rmdir(absPath.c_str());
     if (rc) {
       char errbuf[1024];
       return DomeReq::SendSimpleResp(request, 422, SSTR("Rmdir of directory '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
     }
-  
+
   }
   else {
   int rc = unlink(absPath.c_str());
@@ -2016,7 +2016,7 @@ int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Rm of file '" << absPath << "' failed. err: " << errno << " msg: " << strerror_r(errno, errbuf, sizeof(errbuf))));
     }
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, SSTR("Rm successful."));
 }
 
@@ -2024,33 +2024,33 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_delreplica only available on head nodes.");
   }
-   
+
   std::string absPath =  req.bodyfields.get<std::string>("pfn", "");
   std::string srv =  req.bodyfields.get<std::string>("server", "");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " srv: '" << srv << "' pfn: '" << absPath << "' ");
-  
+
   if (!absPath.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is empty."));
   }
   if (!srv.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Server name '" << srv << "' is empty."));
   }
-  
+
   if (absPath[0] != '/') {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not an absolute path."));
   }
-  
+
   // Remove any trailing slash
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-  
+
   if (!status.PfnMatchesAnyFS(srv, absPath)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not a valid pfn for server '" << srv << "'"));
   }
-  
-  
+
+
   // Get the replica. Unfortunately to delete it we must first fetch it
   DmlitePoolHandler stack(status.dmpool);
   std::string rfiopath = srv + ":" + absPath;
@@ -2060,12 +2060,12 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     rep = stack->getCatalog()->getReplicaByRFN(rfiopath);
   } catch (DmException e) {
     std::ostringstream os;
-    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();  
+    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
-  
+
+
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
   std::string diskurl = "https://" + srv + "/domedisk/";
@@ -2085,56 +2085,56 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     stack->getCatalog()->deleteReplica(rep);
   } catch (DmException e) {
     std::ostringstream os;
-    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();  
+    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
   dmlite::INode *ino;
   try {
     ino = stack->getINode();
-    if (!ino) 
+    if (!ino)
       Err(domelogname, "Cannot retrieve inode interface.");
   } catch (DmException e) {
     std::ostringstream os;
-    os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+    os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
     Err(domelogname, os.str());
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   if (ino) {
     InodeTrans trans(ino);
-    
+
     std::vector<Replica> repls;
     try {
-      
+
       repls = ino->getReplicas(rep.fileid);
-      
+
     } catch (DmException e) {
       std::ostringstream os;
-      os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+      os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
       Err(domelogname, os.str());
       //return DomeReq::SendSimpleResp(request, 404, os);
     }
-    
+
     if (repls.size() == 0) {
       // Delete the logical entry if this was the last replica
       try {
-        
+
         ino->unlink(rep.fileid);
-        
+
       } catch (DmException e) {
         std::ostringstream os;
-        os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();  
+        os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
         Err(domelogname, os.str());
         //return DomeReq::SendSimpleResp(request, 404, os);
       }
     }
-    
+
   }
-  
-  
+
+
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
 }
 
@@ -2144,11 +2144,11 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_rmpool only available on head nodes.");
   }
-    
+
   std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
-    
+
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
-  
+
   if (!poolname.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
   }
@@ -2162,12 +2162,12 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
   rc =  sql.rmPool(poolname);
   if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot delete pool: '" << poolname << "'"));
     return 1;
   }
-  
+
   status.rmPoolfs(poolname);
   return DomeReq::SendSimpleResp(request, 200, "Pool deleted.");
 }
@@ -2176,21 +2176,21 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleDisk) {
     return DomeReq::SendSimpleResp(request, 500, "dome_statpfn only available on disk nodes.");
   }
-  
-  
+
+
   std::string pfn = req.bodyfields.get<std::string>("pfn", "");
   bool matchesfs = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("matchfs", "true"));
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " pfn: '" << pfn << "'");
-  
+
   if (!pfn.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("pfn '" << pfn << "' is empty."));
   }
-  
+
   if (matchesfs && !status.PfnMatchesAnyFS(status.myhostname, pfn)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << pfn << "' does not match any existing filesystems in disk server '" << status.myhostname << "'"));
   }
-  
+
   struct stat st;
 
   if ( stat(pfn.c_str(), &st) ) {
@@ -2200,20 +2200,20 @@ int DomeCore::dome_statpfn(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   Log(Logger::Lvl2, domelogmask, domelogname, " pfn: '" << pfn << "' "
     " disksize: " << st.st_size << " flags: " << st.st_mode);
-  
+
 
   boost::property_tree::ptree jresp;
   jresp.put("size", st.st_size);
   jresp.put("mode", st.st_mode);
   jresp.put("isdir", ( S_ISDIR(st.st_mode) ));
-  
+
   return DomeReq::SendSimpleResp(request, 200, jresp);
-   
-  
-  
+
+
+
 };
 
 int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
@@ -2224,9 +2224,9 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   std::string poolname = req.bodyfields.get<std::string>("poolname", "");
   long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
   std::string pool_stype = req.bodyfields.get("pool_stype", "P");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
-  
+
   if (!poolname.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
   }
@@ -2251,7 +2251,7 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   rc =  sql.addPool(poolname, pool_defsize, pool_stype[0]);
   if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
   }
@@ -2264,15 +2264,15 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_addfstopool only available on head nodes.");
   }
-    
+
   std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
   long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
   char pool_stype = req.bodyfields.get("pool_stype", 'P');
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
-  
+
   if (!poolname.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
   }
@@ -2299,7 +2299,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, talker.err());
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
-  
+
   // Everything seems OK here, like UFOs invading Earth. We can start updating values.
   // First we write into the db, if it goes well then we update the internal map
   int rc;
@@ -2316,12 +2316,12 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   rc =  sql.addFsPool(fsfs);
   if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not insert new fs: '" << newfs << "' It likely already exists."));
     return 1;
   }
-  
+
   status.addPoolfs(server, newfs, poolname);
   return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
 }
@@ -2332,21 +2332,21 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_rmfs only available on head nodes.");
   }
-  
+
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " serrver: '" << server << "' fs: '" << newfs << "'");
-  
+
   if (!status.PfnMatchesAnyFS(server, newfs)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
   }
-  
+
   int ndel = 0;
   {
     // Lock status!
     boost::unique_lock<boost::recursive_mutex> l(status);
-    
+
     // Loop on the filesystems, looking for one that is a proper substring of the pfn
     for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
       if (status.PfnMatchesFS(server, newfs, *fs)) {
@@ -2356,8 +2356,8 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
       }
     }
   }
-  
-  
+
+
   // No matter how many deletions happened in the data structure,
   // propagate anyway the deletion to the db
     int rc;
@@ -2370,11 +2370,11 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   rc =  sql.rmFs(server, newfs);
   if (!rc) t.Commit();
   }
-  
-  if (rc) 
+
+  if (rc)
     return DomeReq::SendSimpleResp(request, 422, SSTR("Failed deleting filesystem '" << newfs << "' of server '" << server << "'"));
-  
-  
+
+
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted " << ndel << "filesystems matching '" << newfs << "' of server '" << server << "'"));
 }
 
@@ -2401,17 +2401,17 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getstatinfo only available on head nodes.");
   }
-  
+
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string pfn =  req.bodyfields.get<std::string>("pfn", "");
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
-  
+
   std::string lfn =  req.bodyfields.get<std::string>("lfn", "");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' rfn: '" << rfn << "' lfn: '" << lfn << "'");
-  
+
   struct dmlite::ExtendedStat st;
-  
+
   // If lfn is filled then we stat the logical file
   if (lfn.size()) {
     DmlitePoolHandler stack(status.dmpool);
@@ -2426,66 +2426,66 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
           // problem... for an external file there's no damn inode yet, let's set it to 0
 
           std::string hook = CFG->GetString("head.filepuller.stathook", (char *)"");
-          
+
           if ((hook.size() < 5) || (hook[0] != '/'))
             return DomeReq::SendSimpleResp(request, 500, "Invalid stat hook.");
-                    
+
           std::vector<std::string> params;
           params.push_back(hook);
           params.push_back(lfn);
-    
+
           int id = this->submitCmd(params);
-    
+
           if (id < 0)
             return DomeReq::SendSimpleResp(request, 500, "Could not invoke stat hook.");
-    
+
           // Now wait for the process to have finished
           int taskrc = waitResult(id, CFG->GetLong("head.filepuller.stathooktimeout", 10));
           if (taskrc)
             return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
-          
+
           std::string err;
           if (extract_stat(this->getTask(id)->stdout, err, st) <= 0) {
             Err(domelogname, "Failed stating lfn: '" << lfn << "' err: '" << err << "'");
             return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
           }
-          
+
         }
         else
           return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
       }
-  
+
 
   }
   else {
-    
+
     // Let's be kind with the client and also accept the rfio syntax
     if ( rfn.size() )  {
       pfn = DomeUtils::pfn_from_rfio_syntax(rfn);
       server = DomeUtils::server_from_rfio_syntax(rfn);
     }
-    
+
     // If no stat happened so far, we check if we can stat the pfn
     if ( (!server.size() || !pfn.size() ) )
       return DomeReq::SendSimpleResp(request, 422, SSTR("Not enough parameters."));
-    
+
     // Else we stat the replica, recomposing the rfioname (sob)
 
       rfn = server + ":" + pfn;
       DmlitePoolHandler stack(status.dmpool);
       try {
-        st = stack->getCatalog()->extendedStatByRFN(rfn); 
+        st = stack->getCatalog()->extendedStatByRFN(rfn);
       }
       catch (dmlite::DmException e) {
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'")); 
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
       }
   }
-  
+
   boost::property_tree::ptree jresp;
   xstat_to_ptree(st, jresp);
-  
+
   return DomeReq::SendSimpleResp(request, 200, jresp);
-  
+
 }
 
 /// Like an HTTP GET on a directory, gets all the content
@@ -2493,45 +2493,45 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getdir only available on head nodes.");
   }
-  
+
   std::string path =  req.bodyfields.get<std::string>("path", "");
   bool statentries = req.bodyfields.get<bool>("statentries", false);
-  
+
   if (!path.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot list an empty path"));
   }
-  
+
   DmlitePoolHandler stack(status.dmpool);
   boost::property_tree::ptree jresp, jresp2;
-  
+
   Directory *d;
   try {
-    
+
     d = stack->getCatalog()->openDir(path);
     stack->getCatalog()->changeDir(path);
-    
+
     struct dirent *dent;
     while ( (dent = stack->getCatalog()->readDir(d)) ) {
-      
+
       boost::property_tree::ptree pt;
       pt.put("name", dent->d_name);
       pt.put("type", dent->d_type);
-      
+
       if (statentries) {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(dent->d_name);
         xstat_to_ptree(st, pt);
-      }  
-  
+      }
+
       jresp2.push_back(std::make_pair("", pt));
     }
   }
   catch (DmException e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get directory content: '" << path << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
-  
+
   jresp.push_back(std::make_pair("entries", jresp2));
   return DomeReq::SendSimpleResp(request, 200, jresp);
-  
+
 }
 
 /// Get information about a user
@@ -2547,7 +2547,7 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
 
   DmlitePoolHandler stack(status.dmpool);
   boost::property_tree::ptree jresp;
-  
+
   try {
     UserInfo userinfo = stack->getAuthn()->getUser(username);
     boost::property_tree::ptree pt;
@@ -2629,4 +2629,3 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
   }
 }
-
