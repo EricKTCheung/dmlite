@@ -96,7 +96,7 @@ BuildRequires:                  boost-devel >= 1.48.0
 BuildRequires:                  boost148-devel >= 1.48.0
 %endif
 %description private-devel
-Private development headers for dmlite. Provided for the development of 
+Private development headers for dmlite. Provided for the development of
 dmlite plugins only, no API compatibility is guaranteed on these headers.
 
 
@@ -119,7 +119,7 @@ Summary:			Memcached plugin for dmlite
 Group:				Applications/Internet
 Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
-# Merge migration 
+# Merge migration
 Obsoletes:			dmlite-plugins-memcache < 0.7.0-1
 
 %description plugins-memcache
@@ -131,12 +131,12 @@ Summary:			Monitoring plugin for dmlite
 Group:				Applications/Internet
 Requires:			%{name}-libs%{?_isa} = %{version}-%{release}
 
-# Merge migration 
+# Merge migration
 Obsoletes:			dmlite-plugins-profiler < 0.7.0-1
 
 %description plugins-profiler
-This package provides the profiler plug-in for dmlite. This plug-in 
-provides multiple performance measurement tools for dmlite. 
+This package provides the profiler plug-in for dmlite. This plug-in
+provides multiple performance measurement tools for dmlite.
 
 
 %package plugins-librarian
@@ -144,11 +144,11 @@ Summary:                        Libarrian plugin for dmlite
 Group:                          Applications/Internet
 Requires:                       %{name}-libs%{?_isa} = %{version}-%{release}
 
-# Merge migration 
+# Merge migration
 Obsoletes:                      dmlite-plugins-librarian < 0.7.0-1
 
 %description plugins-librarian
-This package provides the librarian plug-in for dmlite. 
+This package provides the librarian plug-in for dmlite.
 
 
 
@@ -230,7 +230,7 @@ make install DESTDIR=%{buildroot}
 ## remote tests if not needed
 %if %{?dmlite_tests} == 0
 rm -rf %{buildroot}/%{_libdir}/dmlite/test
-%endif 
+%endif
 
 %clean
 rm -rf %{buildroot}
@@ -243,11 +243,15 @@ rm -rf %{buildroot}
         /bin/systemctl try-restart dpnsdaemon.service || true
         /bin/systemctl try-restart httpd.service || true
         /bin/systemctl try-restart dpm-gsiftp.service || true
+        /bin/systemctl try-restart domehead.service || true
+        /bin/systemctl try-restart domedisk.service || true
 %else
         /sbin/service dpm condrestart  || true
         /sbin/service dpnsdaemon condrestart ||true
         /sbin/service httpd condrestart || true
-        /sbin/service dpm-gsiftp condrestart ||true
+        /sbin/service dpm-gsiftp condrestart || true
+        /sbin/service domehead condrestart || true
+        /sbin/service domedisk condrestart || true
 %endif
 
 
@@ -265,6 +269,8 @@ rm -rf %{buildroot}
 %{_libdir}/dmlite/plugin_config.so
 %{_bindir}/dome-checksum
 %{_localstatedir}/www/fcgi-bin/dome
+%{_sysconfdir}/rc.d/init.d/domehead
+%{_sysconfdir}/rc.d/init.d/domedisk
 %doc README LICENSE RELEASE-NOTES
 
 %files devel
@@ -314,7 +320,7 @@ rm -rf %{buildroot}
 
 %files shell
 %defattr(-,root,root,-)
-%{_bindir}/dmlite-shell 
+%{_bindir}/dmlite-shell
 %{_bindir}/dmlite-mysql-dirspaces.py
 %{python_sitearch}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
@@ -342,7 +348,7 @@ rm -rf %{buildroot}
 - Added move replicat to dmlite-shell
 - fix crash in dmlite-plugins-mysql
 - some fixes in dmlite-shell drain
- 
+
 
 * Mon Nov 02 2015  Andrea Manzi <amanzi@cern.ch> - 0.7.5-1
 - added xattr to Memcache plugin
@@ -357,7 +363,7 @@ rm -rf %{buildroot}
 
 * Fri Oct 03 2014 Andrea Manzi <amanzi@cern.ch> - 0.7.1-1
 - Fix for wrong file size stored in Memcache
-- Fix for xroot third party copy when Memcache enabled 
+- Fix for xroot third party copy when Memcache enabled
 
 * Mon Jun 16 2014 Fabrizio Furano <furano@cern.ch> - 0.7.0-2
 - Push on Fedora/EPEL for 0.7.0
