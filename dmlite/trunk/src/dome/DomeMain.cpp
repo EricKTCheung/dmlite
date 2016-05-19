@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
 
   if ( core.init(cfgfile.c_str()) ) {
     cout << "Cannot start :-(" << endl;
+    daemon(0, 0);
     return -1;
   }
 
