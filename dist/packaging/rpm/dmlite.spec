@@ -322,8 +322,10 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_bindir}/dmlite-shell
 %{_bindir}/dmlite-mysql-dirspaces.py
+%if %{?rhel}%{!?rhel:99} <= 5
 %{_bindir}/dmlite-mysql-dirspaces.pyc
 %{_bindir}/dmlite-mysql-dirspaces.pyo
+%endif
 %{python_sitearch}/dmliteshell
 %doc LICENSE README RELEASE-NOTES
 
