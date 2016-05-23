@@ -35,25 +35,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
   std::string cfgfile;
-
-
-
-
-
-  std::string response = "{\"title\":\"Foo\",\"items\":[{\"id\":123,\"name\":\"test1\"},{\"id\":456,\"name\":\"test2\"}]}";
-
-        boost::property_tree::ptree pt;
-        std::stringstream ss; ss << response;
-        boost::property_tree::read_json(ss, pt);
-
-
-
-
-
-
-
-
-
+  
   if (argc < 2) {
     char *c = getenv("DOME_CFGFILE");
 
@@ -69,16 +51,16 @@ int main(int argc, char **argv) {
   cout << "Welcome to dome" << endl;
   cout << "Cfg file: " << cfgfile << endl;
 
+  daemon(0, 0);
+
   domelogmask = Logger::get()->getMask(domelogname);
   DomeCore core;
 
   if ( core.init(cfgfile.c_str()) ) {
     cout << "Cannot start :-(" << endl;
-    daemon(0, 0);
     return -1;
   }
 
-  daemon(0, 0);
 
   while(1) {
     sleep(1);
