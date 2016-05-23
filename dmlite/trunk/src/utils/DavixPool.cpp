@@ -1,18 +1,18 @@
 /*
  * Copyright 2016 CERN
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 
@@ -95,16 +95,16 @@ void DavixCtxFactory::configure(const std::string &key, const std::string &value
   if( (key == "DavixCertPath" || key == "DavixPrivateKeyPath") &&
      (!davix_cert_path.empty() && !davix_privkey_path.empty()) ) {
 
-     Davix::X509Credential cred;
+     Davix::X509Credential *cred = new Davix::X509Credential();
      Davix::DavixError* tmp_err = NULL;
-      
-     cred.loadFromFilePEM(davix_privkey_path, davix_cert_path, "", &tmp_err);
+
+     cred->loadFromFilePEM(davix_privkey_path, davix_cert_path, "", &tmp_err);
      if( tmp_err ){
        std::ostringstream os;
        os << "Cannot load cert-privkey " << davix_cert_path << "-" << davix_privkey_path << ", Error: " << tmp_err->getErrMsg();
        throw DmException(EPERM, os.str());
      }
-     params_.setClientCertX509(cred);
+     params_.setClientCertX509(*cred);
   }
 }
 
@@ -117,11 +117,11 @@ void DavixCtxFactory::setRequestParams(const Davix::RequestParams &params)
 DavixStuff* DavixCtxFactory::create()
 {
   DavixStuff*  c;
-  
+
   Log(Logger::Lvl4, davixpoollogmask, davixpoollogname, "Creating DavixStuff... ");
 
   c = new DavixStuff(params_);
-  
+
   Log(Logger::Lvl3, davixpoollogmask, davixpoollogname, "Ok.");
   return c;
 }
@@ -129,9 +129,9 @@ DavixStuff* DavixCtxFactory::create()
 void DavixCtxFactory::destroy(DavixStuff* c)
 {
   Log(Logger::Lvl4, davixpoollogmask, davixpoollogname, "Destroying... ");
-  
+
   delete c;
-  
+
   Log(Logger::Lvl3, davixpoollogmask, davixpoollogname, "Destroyed. ");
 }
 
