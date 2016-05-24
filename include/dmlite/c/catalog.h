@@ -217,6 +217,21 @@ int dmlite_setfsize(dmlite_context* context, const char* path, uint64_t filesize
  */
 int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesize,
                  const char* csumtype, const char* csumvalue);
+/**
+ * @brief           Gets the checksum of a file in the catalog.
+ * @param context   The DM context.
+ * @param path      The logical path.
+ * @param csumtype  The wanted checksum type (CS, AD or MD. We can also pass a long checksum name (e.g. checksum.adler32))
+ * @param csumvalue The wanted checksum value will be written into this string. Make sure it has enough space.
+ * @param maxcksumlen Max allowed length for a checksum, to avoid buffer overflows.
+ * @param allowcalc     True if nonzero. Allow the checksum to be calculated (may take long and return EAGAIN)
+ * @param waitsecs      Seconds to wait for a checksum to be calculated. Returns EAGAIN if timeouts. Set to 0 for blocking behavior. 
+ * @return          0 on success, error code otherwise.
+ */
+
+int dmlite_getchecksum(dmlite_context* context, const char* path,
+                 const char* csumtype, char* csumvalue, const int maxcksumlen,
+                 const int allowcalc, const int waitsecs);
 
 /**
  * @brief          Changes the ACL of a file.
@@ -226,6 +241,8 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
  * @param acl      An ACL array.
  * @return         0 on success, error code otherwise.
  */
+
+
 int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries, dmlite_aclentry* acl);
 
 /**
