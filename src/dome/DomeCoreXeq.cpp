@@ -787,6 +787,7 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
 
 
 
+
 int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) {
 
   // This simple implementation is like a put
@@ -840,6 +841,29 @@ static Replica pickReplica(std::string lfn, std::string rfn, DmlitePoolHandler &
   // no explicit pfn? pick a random replica
   int index = rand() % replicas.size();
   return replicas[index];
+}
+
+int DomeCore::dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+
+  std::ostringstream response;
+  response << "dome [" << DMLITE_MAJOR << "." << DMLITE_MINOR << "." << DMLITE_PATCH << "] running as ";
+  if(status.role == status.roleDisk) response << "disk";
+  else response << "head";
+
+  response << "\r\nServer PID: " << getpid() << " - Thread Index: " << myidx << " \r\n";
+  response << "Your DN: " << req.clientdn << "\r\n\r\n";
+
+  if(authorized) {
+    for (char **envp = request.envp ; *envp; ++envp) {
+      response << *envp << "\r\n";
+    }
+  }
+  else {
+    response << "Your client certificate is not authorized to directly access dome. Sorry :-)\r\n";
+  }
+
+  return DomeReq::SendSimpleResp(request, 200, response);
 }
 
 int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {

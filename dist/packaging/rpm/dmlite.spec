@@ -73,7 +73,7 @@ This package provides the core libraries used by dmlite.
 Summary:			The dome daemon
 Group:				Applications/Internet
 Requires:     httpd
-%if %systemd
+%if %systemd == 0
 Requires:     mod_proxy_fcgi
 %endif
 
