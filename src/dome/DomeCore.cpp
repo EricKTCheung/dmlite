@@ -413,6 +413,13 @@ int DomeCore::init(const char *cfgfile) {
                             CFG->GetString("head.db.password", (char *)"none"),
                             CFG->GetLong  ("head.db.port",     0),
                             CFG->GetLong  ("head.db.poolsz",   10) );
+
+      // Try getting a db connection and use it. If it does not work
+      // an exception will just kill us, which is what we want
+      DomeMySql sql;
+
+      // Only load quotatokens on the head node
+      status.loadQuotatokens();
     }
 
     // Configure the davix pool
@@ -421,10 +428,7 @@ int DomeCore::init(const char *cfgfile) {
     davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 15));
     status.setDavixPool(davixPool);
 
-    // Try getting a db connection and use it. If it does not work
-    // an exception will just kill us, which is what we want
-    DomeMySql sql;
-    status.loadQuotatokens();
+    // Load filesystems
     status.loadFilesystems();
 
 

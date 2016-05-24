@@ -98,50 +98,50 @@ long DomeStatus::getGlobalputcount() {
 
 /// Helper function that reloads all the filesystems from the DB or asking the head node
 int DomeStatus::loadFilesystems() {
-  
+
   if (role == roleHead) {
     DomeMySql sql;
     return sql.getFilesystems(*this);
   }
-  
+
   // Disk node case. We ask the head node and match the
   // filesystems against the local server name
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   domeurl += "/";
-  
+
   DomeTalker talker(*davixPool, NULL, domeurl,
                     "GET", "dome_getspaceinfo");
-  
+
   if(!talker.execute()) {
     Err(domelogname, "Error when issuing dome_getspaceinfo: " << talker.err());
     return -1;
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Head node answered: '" << talker.response() << "'");
-  
+
   try {
-    
+
     // Now overwrite the fs entries we have with the ones we got
     boost::unique_lock<boost::recursive_mutex> l(*this);
-    
+
     // Loop on the servers of the response, looking for one that matches this server
     BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, talker.jresp().get_child("fsinfo.")) {
       // v.first is the name of the server.
       // v.second is the child tree representing the server
       if (srv.first != this->myhostname) continue;
-      
+
       // Now loop on the filesystems of the response
       // Now we loop through the filesystems reported by this server
       BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
         // v.first is the name of the server.
         // v.second is the child tree representing the server
-        
-        
+
+
         // Find the corresponding server:fs info in our array, and get the counters
         bool found = false;
         Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
         for (unsigned int ii = 0; ii < fslist.size(); ii++) {
-          
+
           Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
           if (fslist[ii].fs == fs.first) {
             found = true;
@@ -151,27 +151,27 @@ int DomeStatus::loadFilesystems() {
         if (!found) {
           Log(Logger::Lvl1, domelogmask, domelogname, "Learning new fs from head node: " << srv.first << ":" << fs.first <<
           " poolname: '" << fs.second.get<std::string>("poolname") << "'" );
-          
+
           DomeFsInfo newfs;
           newfs.poolname = fs.second.get<std::string>("poolname");;
           newfs.server = myhostname;
           servers.insert(myhostname);
           newfs.fs = fs.first;
-          
+
           fslist.push_back(newfs);
         }
-        
+
       } // foreach
-      
-      
+
+
     } // foreach
-    
+
   }
   catch (boost::property_tree::ptree_error &e) {
     Err("loadFilesystems", "Could not process JSON: " << e.what() << " '" << talker.response() << "'");
     return -1;
   }
-  
+
   return 0;
 }
 
@@ -199,9 +199,9 @@ int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
             break;
           }
         }
-        
+
     quotas.insert( std::pair<std::string, DomeQuotatoken>(mytk.path, mytk) );
-    
+
     return 0;
 }
 
@@ -211,73 +211,73 @@ int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long
   bool rc = 1;
   poolstatus = DomeFsInfo::FsStaticDisabled;
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
-      
+
       if (fslist[i].isGoodForRead()) {
-        
+
         if (poolstatus == DomeFsInfo::FsStaticDisabled)
           poolstatus = DomeFsInfo::FsStaticReadOnly;
-        
+
         if (fslist[i].isGoodForWrite()) {
           free += fslist[i].freespace;
           poolstatus = DomeFsInfo::FsStaticActive;
         }
-        
+
         total += fslist[i].physicalsize;
       }
-      
-      
+
+
 
       rc = 0;
     }
-    
+
   return rc;
 }
 
 bool DomeStatus::existsPool(std::string &poolname) {
-  
+
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
       return true;
     }
-    
+
   return false;
 }
 
 
 int DomeStatus::tick(time_t timenow) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
-  
+
   // Give life to the queues
   checksumq->tick();
   filepullq->tick();
-  
+
   this->tickChecksums();
   this->tickFilepulls();
   // -----------------------------------
   // Actions to be performed less often...
   // -----------------------------------
-  
-  
-  
-  
+
+
+
+
   // Actions to be performed less often...
-  if ( timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
+  if ( this->role == this->roleHead && timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
     // At regular intervals, one minute or so,
     // reloading the filesystems and the quotatokens is a good idea
     Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas.");
-    loadQuotatokens();   
-    
+    loadQuotatokens();
+
     lastreload = timenow;
   }
-  
+
   if ( timenow - lastfscheck >= CFG->GetLong("glb.fscheckinterval", 60)) {
     // At regular intervals, one minute or so,
     // checking the filesystems is a good idea for a disk server
@@ -285,9 +285,9 @@ int DomeStatus::tick(time_t timenow) {
 
     if (role == roleDisk)
       loadFilesystems();
-      
+
     checkDiskSpaces();
-    
+
     lastfscheck = timenow;
   }
 
@@ -405,28 +405,28 @@ void DomeStatus::setDavixPool(dmlite::DavixCtxPool *pool) {
 // In the case of a disk server, checks the free/used space in the mountpoints
 void DomeStatus::checkDiskSpaces() {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-  
+
   if (role == roleDisk) {
     boost::unique_lock<boost::recursive_mutex> l(*this);
-    
-    
+
+
     // Loop over the filesystems, and check those that match our hostname
-    
+
     int nfs = 0;
-    
+
     for (unsigned int i = 0; i < fslist.size(); i++) {
-      
+
       if ( fslist[i].server == myhostname ) {
         struct statfs buf;
         // this is supposed to be in this disk server. We statfs it, simply.
         int rc = statfs(fslist[i].fs.c_str(), &buf);
         if ( !rc ) {
           fslist[i].freespace = buf.f_bavail * buf.f_bsize;
-          
+
           fslist[i].physicalsize = buf.f_blocks * buf.f_bsize;
           fslist[i].activitystatus = DomeFsInfo::FsOnline;
           Log(Logger::Lvl1, domelogmask, domelogname, "fs: " << fslist[i].fs << " phys: " << fslist[i].physicalsize << " free: " << fslist[i].freespace);
-          
+
           nfs++;
         }
         else {
@@ -436,17 +436,17 @@ void DomeStatus::checkDiskSpaces() {
           fslist[i].activitystatus = DomeFsInfo::FsBroken;
         }
       }
-      
+
     }
-    
-    
+
+
     Log(Logger::Lvl1, domelogmask, domelogname, "Number of local filesystems: " << nfs);
   }
-  
+
   if (role == roleHead) {
     // Head node case. We request dome_getspaceinfo to each server, then loop on the results and calculate the head numbers
     // If a server does not reply, mark as disabled all its filesystems
-    
+
     std::set<std::string> srv;
     {
       // Let's work on a local copy, to avoid a longer locking
@@ -489,58 +489,58 @@ void DomeStatus::checkDiskSpaces() {
         boost::unique_lock<boost::recursive_mutex> l(*this);
         bool someerror = true;
         // Loop through the server names, childs of fsinfo
-        
+
         if (haveJresp) {
-          
+
           try {
             BOOST_FOREACH(const boost::property_tree::ptree::value_type &srv, myresp.get_child("fsinfo")) {
               // v.first is the name of the server.
               // v.second is the child tree representing the server
-              
+
               // Now we loop through the filesystems reported by this server
               BOOST_FOREACH(const boost::property_tree::ptree::value_type &fs, srv.second) {
                 // v.first is the name of the server.
                 // v.second is the child tree representing the server
-                
+
                 // Find the corresponding server:fs info in our array, and get the counters
                 Log(Logger::Lvl4, domelogmask, domelogname, "Processing: " << srv.first << " " << fs.first);
                 for (unsigned int ii = 0; ii < fslist.size(); ii++) {
-                  
+
                   Log(Logger::Lvl4, domelogmask, domelogname, "Checking: " << fslist[ii].server << " " << fslist[ii].fs);
                   if ((fslist[ii].server == srv.first) && (fslist[ii].fs == fs.first)) {
-                    
+
                     Log(Logger::Lvl3, domelogmask, domelogname, "Matched: " << fslist[ii].server << " " << fslist[ii].fs);
                     Log(Logger::Lvl3, domelogmask, domelogname, "Getting: " << fs.second.get<long long>( "freespace", 0 ) << " " << fs.second.get<long long>( "physicalsize", 0 ));
                     fslist[ii].freespace = fs.second.get<long long>( "freespace", 0 );
                     fslist[ii].physicalsize = fs.second.get<long long>( "physicalsize", 0 );
                     int actst = fs.second.get<int>( "activitystatus", 0 );
-                    
+
                     // Clearly log the state transitions if there is one
                     if ((fslist[ii].activitystatus != (DomeFsInfo::DomeFsActivityStatus)actst) &&
                       ((DomeFsInfo::DomeFsActivityStatus)actst == DomeFsInfo::FsOnline) ) {
-                      
+
                       Log(Logger::Lvl1, domelogmask, domelogname, "Enabling filesystem: " << fslist[ii].server << " " << fslist[ii].fs);
-                    
+
                       }
                       fslist[ii].activitystatus = (DomeFsInfo::DomeFsActivityStatus)actst;
                   }
-                  
-                  
-                  
-                  
+
+
+
+
                 } // loop fs
               } // foreach
-            } // foreach  
-            
+            } // foreach
+
             someerror = false;
-            
+
           }  catch (boost::property_tree::ptree_error e) {
             Err("checkDiskSpaces", "Error processing JSON response: " << e.what());
             continue;
           }
-          
+
         } // if !tmp_err
-        
+
         if (someerror) {
           // The communication with the server had problems
           // Disable all the filesystems belonging to that server
@@ -551,21 +551,21 @@ void DomeStatus::checkDiskSpaces() {
               Err(domelogname, "Server down or other trouble. Disabling filesystem: '" << fslist[ii].server << " " << fslist[ii].fs << "'");
               fslist[ii].activitystatus = DomeFsInfo::FsBroken;
             }
-            
+
           } // loop fs
         } // if someerror
       } // lock
-      
+
       // Here we should disable all the filesystems that belong to the given server
       // that were absent in the successful server's response.
       // Not critical by now, may be useful in the future
-      
-      
+
+
     } // for
     Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.");
   } // if role head
-  
-  
+
+
 }
 
 
@@ -573,62 +573,62 @@ void DomeStatus::checkDiskSpaces() {
 
 
 int DomeStatus::getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk) {
-  
+
   std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
   myintv = quotas.equal_range(path);
-  
-  
+
+
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
        it != myintv.second;
        ++it) {
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << path );
     // If the path of this quotatoken matches...
     if ( it->second.poolname == poolname ) {
       tk = it->second;
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Found quotatoken '" << it->second.u_token << "' of pool: '" <<
       it->second.poolname << "' matches path '" << path << "' quotatktotspace: " << it->second.t_space);
-      
+
       return 0;
     }
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "No quotatoken found for pool: '" <<
       poolname << "' path '" << path << "'");
   return 1;
 }
-  
-  
+
+
 
 int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk) {
-  
+
   std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
   myintv = quotas.equal_range(path);
-  
-  
+
+
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
        it != myintv.second;
        ++it) {
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << path );
     // If the path of this quotatoken matches...
     if ( it->second.poolname == poolname ) {
       tk = it->second;
-      
+
       Log(Logger::Lvl4, domelogmask, domelogname, "Deleting quotatoken '" << it->second.u_token << "' of pool: '" <<
       it->second.poolname << "' matches path '" << path << "' quotatktotspace: " << it->second.t_space);
-      
+
       quotas.erase(it);
       return 0;
     }
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "No quotatoken found for pool: '" <<
       poolname << "' path '" << path << "'");
   return 1;
 }
-  
+
 
 static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
     return ( fsi.poolname == pool );
@@ -636,24 +636,24 @@ static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
 
 int DomeStatus::rmPoolfs(std::string &poolname) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Removing filesystems of pool: '" << poolname << "'");
-  
+
   // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   std::vector<DomeFsInfo>::iterator new_end;
-  
+
   new_end = std::remove_if(fslist.begin(), fslist.end(), boost::bind(&predFsMatchesPool, _1, poolname));
-  fslist.erase(new_end, fslist.end()); 
-  
+  fslist.erase(new_end, fslist.end());
+
   Log(Logger::Lvl3, domelogmask, domelogname, "Removed filesystems of pool: '" << poolname << "'");
   return 0;
-  
+
 }
 
 bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
 
   if (server != fs.server) return false;
-  
+
   size_t pos = pfn.find(fs.fs);
     if (pos == 0) {
       // Here, a filesystem is a substring of the pfn. To be its parent filesystem,
@@ -661,28 +661,28 @@ bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo 
       if (fs.fs.size() == pfn.size()) return true;
       if (pfn[fs.fs.size()] == '/') return true;
     }
-    
+
   return false;
-  
+
 }
 
 int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poolname) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Adding filesystem. srv: '" << srv << "' fs: '" << newfs << "' pool: '" << poolname << "'");
-  
+
   // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   DomeFsInfo fsi;
   fsi.poolname = poolname;
   fsi.server = srv;
   fsi.fs = newfs;
-  
+
   // Make sure it's not already there or that we are not adding a parent/child of an existing fs
   for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
     if ( PfnMatchesFS(srv, newfs, *fs) )
       return 1;
   }
-  
+
   fslist.push_back(fsi);
   return 0;
 }
@@ -692,81 +692,81 @@ int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poo
 
 
 bool DomeStatus::PfnMatchesAnyFS(std::string &srv, std::string &pfn) {
-  
-  
+
+
     // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop on the filesystems, looking for one that is a proper substring of the pfn
   for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
-    
+
     if (PfnMatchesFS(srv, pfn, *fs))
       return true;
-    
+
   }
-    
+
   return false;
-  
+
 }
 
 
 bool DomeStatus::PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo) {
-  
-  
+
+
     // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop on the filesystems, looking for one that is a proper substring of the pfn
   for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
-    
+
     if (PfnMatchesFS(srv, pfn, *fs)) {
       fsinfo = *fs;
       return true;
     }
-    
+
   }
-    
+
   return false;
-  
+
 }
 
 bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
-  
+
   // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
   std::string lfn1(lfn);
-  
+
   while (lfn1.length() > 0) {
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << lfn1 << "'");
     // Check if any matching quotatoken exists
     std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
     myintv = quotas.equal_range(lfn1);
-    
+
     if (myintv.first != myintv.second) {
       for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
-          
-          Log(Logger::Lvl4, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);    
-          
+
+          Log(Logger::Lvl4, domelogmask, domelogname, "pool: '" << it->second.poolname << "' matches path '" << lfn);
+
           // Now loop on the FSs belonging to this pool
           // and check if at least one of them can pull files in from external sources
           for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
             if ((fs->poolname == it->second.poolname) && fs->canPullFile()) {
-              Log(Logger::Lvl1, domelogmask, domelogname, "CanPull pool: '" << it->second.poolname << "' matches path '" << lfn);    
+              Log(Logger::Lvl1, domelogmask, domelogname, "CanPull pool: '" << it->second.poolname << "' matches path '" << lfn);
               fsinfo = *fs;
               return true;
             }
           } // for
-          
+
       } // for
     }
-    
+
     // No match found, look upwards by trimming the last token from absPath
     size_t pos = lfn1.rfind("/");
     lfn1.erase(pos);
   }
   return false;
-  
+
 }
 
 // which quotatoken should apply to lfn?
@@ -822,28 +822,25 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const size_t size
 
 bool DNMatchesHost(std::string dn, std::string host) {
   std::string s = "CN="+host;
-  
+
   // Simple version, if the common name appears in the dn then we are right
   if (dn.find(s) != std::string::npos) return true;
-  
+
   return false;
 }
 
 bool DomeStatus::isDNaKnownServer(std::string dn) {
   // We know this server if its DN matches our own hostname, it's us !
   if (DNMatchesHost(dn, myhostname)) return true;
-  
+
   // We know this server if its DN matches the DN of the head node
   if (DNMatchesHost(dn, headnodename)) return true;
-  
+
   // We know this server if its DN matches the hostname of a disk server
   for (std::set<std::string>::iterator i = servers.begin() ; i != servers.end(); i++) {
     if (DNMatchesHost(dn, *i)) return true;
   }
-  
+
   // We don't know this server
   return false;
 }
-
-
-
