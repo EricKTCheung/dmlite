@@ -69,6 +69,17 @@ Obsoletes:			dmlite-shell-debuginfo < 0.7.0-1
 %description libs
 This package provides the core libraries used by dmlite.
 
+%package dome
+Summary:			The dome daemon
+Group:				Applications/Internet
+Requires:     httpd
+%if %systemd
+Requires:     mod_proxy_fcgi
+%endif
+
+%description dome
+This package provides the binaries necessary to run the dome daemon.
+
 %package devel
 Summary:			Development libraries and headers for dmlite
 Group:				Applications/Internet
@@ -235,6 +246,15 @@ rm -rf %{buildroot}/%{_libdir}/dmlite/test
 %clean
 rm -rf %{buildroot}
 
+%post dome
+%if %systemd
+        /bin/systemctl try-restart domehead.service || true
+        /bin/systemctl try-restart domedisk.service || true
+%else
+        /sbin/service domehead condrestart || true
+        /sbin/service domedisk condrestart || true
+%endif
+
 %post libs
 /sbin/ldconfig
 /sbin/service rsyslog condrestart || true
@@ -243,15 +263,11 @@ rm -rf %{buildroot}
         /bin/systemctl try-restart dpnsdaemon.service || true
         /bin/systemctl try-restart httpd.service || true
         /bin/systemctl try-restart dpm-gsiftp.service || true
-        /bin/systemctl try-restart domehead.service || true
-        /bin/systemctl try-restart domedisk.service || true
 %else
         /sbin/service dpm condrestart  || true
         /sbin/service dpnsdaemon condrestart ||true
         /sbin/service httpd condrestart || true
         /sbin/service dpm-gsiftp condrestart || true
-        /sbin/service domehead condrestart || true
-        /sbin/service domedisk condrestart || true
 %endif
 
 
@@ -261,17 +277,20 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/dmlite.conf.d
 %dir %{_libdir}/dmlite
-%dir %{_localstatedir}/www/fcgi-bin
 %config(noreplace) %{_sysconfdir}/dmlite.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/dmlite
 %config(noreplace) %{_sysconfdir}/rsyslog.d/20-log-dmlite.conf
 %{_libdir}/libdmlite.so.*
 %{_libdir}/dmlite/plugin_config.so
+%doc README LICENSE RELEASE-NOTES
+
+%files dome
+%defattr(-,root,root,-)
+%dir %{_localstatedir}/www/fcgi-bin
 %{_bindir}/dome-checksum
-%{_localstatedir}/www/fcgi-bin/dome
 %{_sysconfdir}/rc.d/init.d/domehead
 %{_sysconfdir}/rc.d/init.d/domedisk
-%doc README LICENSE RELEASE-NOTES
+%{_localstatedir}/www/fcgi-bin/dome
 
 %files devel
 %defattr(-,root,root,-)
