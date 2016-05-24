@@ -407,12 +407,13 @@ int DomeCore::init(const char *cfgfile) {
     status.filepullq = new GenPrioQueue(CFG->GetLong("head.filepulls.qtmout", 30), limits);
 
     // Allocate the mysql factory and configure it
-    DomeMySql::configure( CFG->GetString("head.db.host",     (char *)"localhost"),
-                          CFG->GetString("head.db.user",     (char *)"guest"),
-                          CFG->GetString("head.db.password", (char *)"none"),
-                          CFG->GetLong  ("head.db.port",     0),
-                          CFG->GetLong  ("head.db.poolsz",   10) );
-
+    if(status.role == status.roleHead) {
+      DomeMySql::configure( CFG->GetString("head.db.host",     (char *)"localhost"),
+                            CFG->GetString("head.db.user",     (char *)"guest"),
+                            CFG->GetString("head.db.password", (char *)"none"),
+                            CFG->GetLong  ("head.db.port",     0),
+                            CFG->GetLong  ("head.db.poolsz",   10) );
+    }
 
     // Configure the davix pool
     davixFactory = new dmlite::DavixCtxFactory();
