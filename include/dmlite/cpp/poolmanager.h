@@ -70,6 +70,12 @@ namespace dmlite {
     /// @param path The logical file name.
     /// @param loc  As returned by whereToWrite
     virtual void cancelWrite(const Location& loc) throw (DmException);
+    
+    /// Get the estimation of the free/used space for writing into a directory
+    /// @param path               The path of the directory to query
+    /// @param totalfree          The total number of free bytes (may not be contiguous)
+    /// @param used               The total number of used bytes
+    virtual void getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException);
   };
 
   /// Plug-ins must implement a concrete factory to be instantiated.

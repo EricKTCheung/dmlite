@@ -42,3 +42,5 @@ NOT_IMPLEMENTED(Location PoolManager::whereToRead(const std::string& path) throw
 NOT_IMPLEMENTED(Location PoolManager::whereToRead(ino_t inode) throw (DmException));
 NOT_IMPLEMENTED(Location PoolManager::whereToWrite(const std::string& path) throw (DmException));
 NOT_IMPLEMENTED(void PoolManager::cancelWrite(const Location& loc) throw (DmException));
+
+NOT_IMPLEMENTED(void PoolManager::getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException));

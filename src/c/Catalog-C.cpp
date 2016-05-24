@@ -497,3 +497,4 @@ int dmlite_updatereplica(dmlite_context* context, const dmlite_replica* replica)
   context->stack->getCatalog()->updateReplica(replicapp);
   CATCH(context, updatereplica)
 }
+
