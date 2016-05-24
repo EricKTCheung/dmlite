@@ -21,24 +21,26 @@ namespace dmlite {
   class DomeAdapterPoolManager : public PoolManager {
   public:
     DomeAdapterPoolManager(DomeAdapterFactory *factory);
-    ~DomeAdapterPoolManager();
+    virtual ~DomeAdapterPoolManager();
 
-    std::string getImplId() const throw ();
+    virtual std::string getImplId() const throw ();
 
-    void setStackInstance(StackInstance* si) throw (DmException);
-    void setSecurityContext(const SecurityContext*) throw (DmException);
+    virtual void setStackInstance(StackInstance* si) throw (DmException);
+    virtual void setSecurityContext(const SecurityContext*) throw (DmException);
 
-    std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException);
-    Pool getPool(const std::string&) throw (DmException);
+    virtual std::vector<Pool> getPools(PoolAvailability availability = kAny) throw (DmException);
+    virtual Pool getPool(const std::string&) throw (DmException);
 
-    void newPool(const Pool& pool) throw (DmException);
+    virtual void newPool(const Pool& pool) throw (DmException);
     // void updatePool(const Pool& pool) throw (DmException);
-    void deletePool(const Pool& pool) throw (DmException);
+    virtual void deletePool(const Pool& pool) throw (DmException);
 
-    Location whereToRead (const std::string& path) throw (DmException);
-    Location whereToWrite(const std::string& path) throw (DmException);
+    virtual Location whereToRead (const std::string& path) throw (DmException);
+    virtual Location whereToWrite(const std::string& path) throw (DmException);
 
-    void cancelWrite(const Location& loc) throw (DmException);
+    virtual void cancelWrite(const Location& loc) throw (DmException);
+    
+    virtual void getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException);
   private:
     StackInstance* si_;
     const SecurityCredentials* creds_;

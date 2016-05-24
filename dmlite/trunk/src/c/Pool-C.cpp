@@ -209,3 +209,21 @@ int dmlite_put_abort(dmlite_context* context, const dmlite_location* loc)
   context->stack->getPoolManager()->cancelWrite(location);
   CATCH(context, put_abort)
 }
+
+
+
+
+
+int dmlite_getdirspaces(dmlite_context* context, const char *logicaldir, int64_t *freespace, int64_t *used)
+{
+  TRY(context, getfreespace)
+  NOT_NULL(freespace);
+  NOT_NULL(used);
+  *freespace = 0LL;
+  *used = 0LL;
+  context->stack->getPoolManager()->getDirSpaces(logicaldir, *freespace, *used);
+
+  CATCH(context, dmlite_getdirspaces)
+}
+
+

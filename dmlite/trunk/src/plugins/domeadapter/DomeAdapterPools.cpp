@@ -196,3 +196,29 @@ void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
+
+
+
+
+void DomeAdapterPoolManager::getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException)
+{
+  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+                    "GET", "dome_getdirspaces");
+
+  if(!talker.execute("path", path)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+
+  try {
+    // extract info
+    
+    totalfree = talker.jresp().get<int64_t>("quotafreespace");
+    used = talker.jresp().get<int64_t>("usedspace");
+
+    
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
