@@ -1258,7 +1258,7 @@ Array containing DNs that are authorized to send commands. Commands sent by diff
 Used in a head node, this list includes all the DNs that are used by disk nodes to communicate with the head node. Among the possibilities, all the disk nodes can use the same certificate, in this case only one entry has to be put here.\\
 Used in a disk node, this list contains the DN that is used by the head node to communicate with the disk server.\\
 
-\subsubsection{glb.put.minfreespace\_mb}
+\subsubsection{head.put.minfreespace\_mb}
 Specifies the minimum free space in megabytes for a PUT requests to consider a filesystem for writing into.
 Default: 4096 [ which corresponds to 4 gigabytes ]
 

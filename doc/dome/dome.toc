@@ -53,11 +53,11 @@
 \contentsline {subsubsection}{\nonumberline glb.debug}{37}
 \contentsline {subsubsection}{\nonumberline glb.debug.components[]}{38}
 \contentsline {subsubsection}{\nonumberline glb.fcgi.listenport}{38}
-\contentsline {subsubsection}{\nonumberline glb.db.host}{38}
-\contentsline {subsubsection}{\nonumberline glb.db.user}{38}
-\contentsline {subsubsection}{\nonumberline glb.db.password}{39}
-\contentsline {subsubsection}{\nonumberline glb.db.port}{39}
-\contentsline {subsubsection}{\nonumberline glb.db.poolsz}{39}
+\contentsline {subsubsection}{\nonumberline head.db.host}{38}
+\contentsline {subsubsection}{\nonumberline head.db.user}{38}
+\contentsline {subsubsection}{\nonumberline head.db.password}{39}
+\contentsline {subsubsection}{\nonumberline head.db.port}{39}
+\contentsline {subsubsection}{\nonumberline head.db.poolsz}{39}
 \contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{39}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ops\_timeout}{39}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{39}
@@ -67,7 +67,7 @@
 \contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{40}
 \contentsline {subsubsection}{\nonumberline glb.role}{40}
 \contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{40}
-\contentsline {subsubsection}{\nonumberline glb.put.minfreespace\_mb}{40}
+\contentsline {subsubsection}{\nonumberline head.put.minfreespace\_mb}{40}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{40}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{41}
 \contentsline {subsubsection}{\nonumberline glb.workers}{41}

@@ -200,7 +200,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   }
 
   // default minfreespace is 4GB
-  long minfreespace_bytes = CFG->GetLong("glb.put.minfreespace_mb", 1024*4) * 1024*1024;
+  long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
 
   // use quotatokens?
   if(pool.empty() && host.empty() && fs.empty()) {
@@ -693,7 +693,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     // Avoid the contention on /dpm/voname/home
     if (idx > 0) {
       Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
-      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("glb.dirspacereportdepth", 6)); i--) {
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
         inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
       }
     }
