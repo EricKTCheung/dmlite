@@ -133,7 +133,7 @@ public:
   int dome_pfnrm(DomeReq &req, FCGX_Request &request);
   /// Disk server only. Removes a replica, both from the catalog and the disk
   int dome_delreplica(DomeReq &req, FCGX_Request &request);
-  
+
   /// Adds a new pool
   int dome_addpool(DomeReq &req, FCGX_Request &request);
   /// Removes a pool and all the related filesystems
@@ -143,8 +143,8 @@ public:
   /// Removes a filesystem, no matter to which pool it was attached
   int dome_rmfs(DomeReq &req, FCGX_Request &request);
 
-   
-  
+
+
   /// Fecthes logical stat information for an LFN or file ID or a pfn
   int dome_getstatinfo(DomeReq &req, FCGX_Request &request);
   /// Like an HTTP GET on a directory, gets all the content
@@ -157,6 +157,9 @@ public:
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
   /// Update extended attributes
   int dome_updatexattr(DomeReq &req, FCGX_Request &request);
+
+  /// Send a simple info message
+  int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
 
 private:
   bool initdone, terminationrequested;
@@ -180,10 +183,10 @@ private:
 
   /// Pending disknode checksums
   std::map<int, PendingChecksum> diskPendingChecksums;
-  
+
     /// Pending disknode file pulls
   std::map<int, PendingPull> diskPendingPulls;
-  
+
 protected:
 
   // given some hints, pick a list of filesystems for writing
@@ -202,7 +205,7 @@ protected:
   // helper functions for checksums
   int calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, dmlite::Replica replica, std::string checksumtype, bool updateLfnChecksum);
   void sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed);
-  
+
   // Helper for file pulls
   int enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn);
   void sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed);

@@ -209,25 +209,11 @@ void workerFunc(DomeCore *core, int myidx) {
             core->dome_getuser(dreq, request);
         } else if ( dreq.domecmd == "dome_getidmap" ) {
             core->dome_getidmap(dreq, request);
-        }
-        else
-          // Very useful sort of echo service for FastCGI.
-          // Will return to the client a detailed summary of his request
-          if (dreq.domecmd == "info") {
-            FCGX_FPrintF(request.out,
-                         "Content-type: text\r\n"
-                         "\r\n"
-                         "Hi, This is a GET, and you may like it.\r\n");
-
-            FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
-            for (char **envp = request.envp ; *envp; ++envp)
-            {
-              FCGX_FPrintF(request.out, "%s \r\n", *envp);
-
-            }
-
-          } else
+        } else if (dreq.domecmd == "dome_info") {
+            core->dome_info(dreq, request, myidx, authorize);
+        } else {
             DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
+        }
 
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
         FCGX_FPrintF(request.out,
@@ -297,8 +283,14 @@ void workerFunc(DomeCore *core, int myidx) {
 
     } // if authorized
     else {
-      Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
-      DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
+      // only possible to run info when unauthorized
+      if(dreq.domecmd == "dome_info") {
+        core->dome_info(dreq, request, myidx, authorize);
+      }
+      else {
+        Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
+        DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
+      }
     }
 
 
