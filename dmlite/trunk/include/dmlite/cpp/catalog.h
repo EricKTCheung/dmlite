@@ -126,12 +126,22 @@ namespace dmlite {
 
     /// Set the checksum of a file.
     /// @param path      The file to modify.
-    /// @param csumtype  The checksum type (CS, AD or MD).
+    /// @param csumtype  The checksum type cc
     /// @param csumvalue The checksum value.
     virtual void setChecksum(const std::string& path,
                              const std::string& csumtype,
                              const std::string& csumvalue) throw (DmException);
 
+    /// Get the checksum of a file, eventually waiting for it to be calculated.
+    /// @param path          The file to query
+    /// @param csumtype      The checksum type (CS, AD or MD. We can also pass a long checksum name (e.g. checksum.adler32)).
+    /// @param csumvalue     The checksum value.
+    /// @param allowcalc     Allow the checksum to be calculated (may take long and throw EAGAIN)
+    /// @param waitsecs      Seconds to wait for a checksum to be calculated. Throws EAGAIN if timeouts. Set to 0 for blocking behavior.                         
+    virtual void getChecksum(const std::string& path,
+                             const std::string& csumtype,
+                             std::string& csumvalue, const bool allowcalc = true, const int waitsecs = 0) throw (DmException);
+                             
     /// Set the ACLs
     /// @param path The file to modify.
     /// @param acl  The Access Control List.
