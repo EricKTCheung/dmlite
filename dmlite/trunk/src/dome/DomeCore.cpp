@@ -44,19 +44,19 @@ DomeCore::~DomeCore() {
   for (unsigned int i = 0; i < workers.size(); i++) {
     workers[i]->interrupt();
   }
-  
+
   // Shutdown fgci
   FCGX_ShutdownPending();
-  
+
   // Join workers
   for (unsigned int i = 0; i < workers.size(); i++) {
     Log(Logger::Lvl1, domelogmask, domelogname, "Joining worker " << i);
     workers[i]->join();
   }
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "Stopping ticker.");
-  
-  
+
+
   if(davixPool) {
     delete davixPool;
     davixPool = NULL;
@@ -74,10 +74,10 @@ DomeCore::~DomeCore() {
     delete ticker;
     ticker = 0;
     Log(Logger::Lvl1, domelogmask, domelogname, "Joined ticker.");
-    
+
   }
-  
-  
+
+
 }
 
 
@@ -86,56 +86,56 @@ DomeCore::~DomeCore() {
 // entry point for worker threads, endless loop that wait for requests from apache
 // pass on processing to handlers depends on (not yet) defined REST methods
 void workerFunc(DomeCore *core, int myidx) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " started");
-  
+
   int rc;
-  
-  
+
+
   FCGX_Request request;
   FCGX_InitRequest(&request, core->fcgi_listenSocket, 0);
-  
+
   while( !core->terminationrequested )
   {
     // thread safety seems to be platform dependant... serialise the accept loop just in case
     // NOTE: although we are multithreaded, this is a very naive way of dealing with this. The future, proper
     // implementation should keep 2 threads doing only accept/enqueue, and all the others dequeue/working
-    
+
     {
       boost::lock_guard<boost::mutex> l(core->accept_mutex);
-      
+
       rc = FCGX_Accept_r(&request);
     }
-    
+
     if (rc < 0) {// Something broke in fcgi... maybe we have to exit ? MAH ?
       Err("workerFunc", "Accept returned " << rc);
       break;
     }
-    
+
     if (Logger::get()->getLevel() >= Logger::Lvl4) {
-      
+
       for (char **envp = request.envp ; *envp; ++envp) {
         Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " FCGI env: " << *envp);
       }
     }
-    
+
     DomeReq dreq(request);
     Log(Logger::Lvl1, domelogmask, domelogname, "--------- New request. Worker: " << myidx <<
     " clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
     "' remoteclient: '" << dreq.remoteclientdn << "' remoteclienthost: '" << dreq.remoteclienthost);
-    
+
     Log(Logger::Lvl1, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
-    
-    
+
+
     // -------------------------
     // Generic authorization
     // Please note that authentication must be configured in the web server, not in DOME
     // -------------------------
-    
+
     int i = 0;
     bool authorize = false;
     while (true) {
-      
+
       char buf[1024];
       char *dn = buf;
       CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
@@ -144,48 +144,48 @@ void workerFunc(DomeCore *core, int myidx) {
         if (i == 0) authorize = false;
         break;
       }
-      
+
       if (buf[0] == '"') {
-        
+
         if (buf[strlen(buf)-1] != '"') {
           Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
           continue;
         }
-        
+
         buf[strlen(buf)-1] = '\0';
         dn = buf+1;
-        
+
       }
-      
+
       if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
         // Authorize if the client DN can be found in the config whitelist
         Log(Logger::Lvl1, domelogmask, domelogname, "DN '" << dn << "' authorized by whitelist.");
         authorize = true;
         break;
       }
-      
+
       i++;
     }
-    
+
     if (!authorize) {
       // The whitelist in the config file did not authorize
       // Anyway this call may come from a server that was implicitly known, e.g.
       // head node trusts all the disk nodes that are registered in the filesystem table
       // disk node trusts head node as defined in the config file
-      
+
       authorize = core->status.isDNaKnownServer(dreq.clientdn);
       if (authorize)
         Log(Logger::Lvl1, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
     }
-    
+
     // -------------------------
     // Command dispatching
     // -------------------------
-    
+
     if (authorize) {
       // First discriminate on the HTTP request: GET/POST, etc..
       if(dreq.verb == "GET") {
-        
+
         // Now dispatch based on the actual command name
         if ( dreq.domecmd == "dome_getspaceinfo" ) {
           core->dome_getspaceinfo(dreq, request);
@@ -213,39 +213,39 @@ void workerFunc(DomeCore *core, int myidx) {
         else
           // Very useful sort of echo service for FastCGI.
           // Will return to the client a detailed summary of his request
-          if (dreq.object == "/info") {
+          if (dreq.domecmd == "info") {
             FCGX_FPrintF(request.out,
                          "Content-type: text\r\n"
                          "\r\n"
                          "Hi, This is a GET, and you may like it.\r\n");
-            
+
             FCGX_FPrintF(request.out, "Server PID: %d - Thread Index: %d \r\n\r\n", getpid(), myidx);
             for (char **envp = request.envp ; *envp; ++envp)
             {
               FCGX_FPrintF(request.out, "%s \r\n", *envp);
-              
+
             }
-            
+
           } else
             DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
-            
+
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
         FCGX_FPrintF(request.out,
                      "Content-type: text/html\r\n"
                      "\r\n"
                      "You sent me a HEAD request. Nice, eh ?\r\n");
-        
-      } else if(dreq.verb == "POST"){ 
+
+      } else if(dreq.verb == "POST"){
         if ( dreq.domecmd == "dome_put" ) {
           core->dome_put(dreq, request);
         }
         else if ( dreq.domecmd == "dome_putdone" ) {
-          
+
           if(core->status.role == core->status.roleHead)
             core->dome_putdone_head(dreq, request);
           else
             core->dome_putdone_disk(dreq, request);
-          
+
         }
         else if ( dreq.domecmd == "dome_setquotatoken" ) {
           core->dome_setquotatoken(dreq, request);
@@ -291,23 +291,23 @@ void workerFunc(DomeCore *core, int myidx) {
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
-          
+
         }
       }
-      
+
     } // if authorized
     else {
       Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
       DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
     }
-    
-    
+
+
     FCGX_Finish_r(&request);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " finished");
-  
-  
+
+
 }
 
 static Davix::RequestParams getDavixParams() {
@@ -326,7 +326,7 @@ static Davix::RequestParams getDavixParams() {
   spec_timeout.tv_nsec = 0;
   params.setOperationTimeout(&spec_timeout);
   Log(Logger::Lvl1, domelogmask, domelogname, "Davix: Operation timeout is set to : " << ops_timeout);
-    
+
   // get ssl check
   bool ssl_check = CFG->GetBool("glb.restclient.ssl_check", true);
   params.setSSLCAcheck(ssl_check);
@@ -348,7 +348,7 @@ static Davix::RequestParams getDavixParams() {
       std::ostringstream os;
       os << "Cannot load cert-privkey " << CFG->GetString("glb.restclient.cli_certificate", (char *)"") << "-" <<
             CFG->GetString("glb.restclient.cli_private_key", (char *)"") << ", Error: "<< tmp_err->getErrMsg();
-      
+
       Davix::DavixError::clearError(&tmp_err);
       throw dmlite::DmException(EPERM, os.str());
   }
@@ -361,27 +361,27 @@ int DomeCore::init(const char *cfgfile) {
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     if (initdone) return -1;
-    
+
     Logger::get()->setLevel(Logger::Lvl4);
-    
+
     // Process the config file
     Log(Logger::Lvl1, domelogmask, domelogname, "------------------------------------------");
     Log(Logger::Lvl1, domelogmask, domelogname, "------------ Starting. Config: " << cfgfile);
-    
+
     if (!cfgfile || !strlen(cfgfile)) {
       Err(fname, "No config file given." << cfgfile);
       return -1;
     }
-    
+
     if (CFG->ProcessFile((char *)cfgfile)) {
       Err(fname, "Error processing config file." << cfgfile << std::endl);
       return 1;
     }
-    
+
     // Initialize the logger
     long debuglevel = CFG->GetLong("glb.debug", 1);
     Logger::get()->setLevel((Logger::Level)debuglevel);
-    
+
     std::string r = CFG->GetString("glb.role", (char *)"head");
     if (r == "head") status.role = status.roleHead;
     else if (r == "disk") status.role = status.roleDisk;
@@ -389,56 +389,56 @@ int DomeCore::init(const char *cfgfile) {
       Err(fname, "Invalid role: '" << r << "'");
       return -1;
     }
-    
-    if (status.role == status.roleHead) 
+
+    if (status.role == status.roleHead)
       status.headnodename = status.myhostname;
     else {
       // Now get the host name of the head node
       Davix::Uri uri(CFG->GetString("disk.headnode.domeurl", (char *)""));
       status.headnodename = uri.getHost();
     }
-  
+
     Log(Logger::Lvl1, domelogmask, domelogname, "My head node hostname is: " << status.headnodename);
-    
+
     // The limits for the prio queues, get them from the cfg
     std::vector<size_t> limits;
     limits.push_back( CFG->GetLong("head.checksum.maxtotal", 10) );
     limits.push_back( CFG->GetLong("head.checksum.maxpernode", 2) );
-    
+
     // Create the chksum queue
     status.checksumq = new GenPrioQueue(CFG->GetLong("head.checksum.qtmout", 30), limits);
-    
+
     // Create the queue for the callouts
     limits.clear();
     limits.push_back( CFG->GetLong("head.filepulls.maxtotal", 10) );
     limits.push_back( CFG->GetLong("head.filepulls.maxpernode", 2) );
     status.filepullq = new GenPrioQueue(CFG->GetLong("head.filepulls.qtmout", 30), limits);
-    
+
     // Allocate the mysql factory and configure it
     DomeMySql::configure( CFG->GetString("glb.db.host",     (char *)"localhost"),
                           CFG->GetString("glb.db.user",     (char *)"guest"),
                           CFG->GetString("glb.db.password", (char *)"none"),
                           CFG->GetLong  ("glb.db.port",     0),
                           CFG->GetLong  ("glb.db.poolsz",   10) );
-    
-   
+
+
     // Configure the davix pool
     davixFactory = new dmlite::DavixCtxFactory();
     davixFactory->setRequestParams(getDavixParams());
     davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 15));
     status.setDavixPool(davixPool);
-    
+
     // Try getting a db connection and use it. If it does not work
     // an exception will just kill us, which is what we want
     DomeMySql sql;
     status.loadQuotatokens();
     status.loadFilesystems();
-    
-    
+
+
     // Startup the FCGI mechanics
     // init must be called for multithreaded applications
     FCGX_Init();
-    
+
     // Standalone external servers have to specify a port number and must be run
     // by a proper script (mod_fcgi provides one)
     // If the port number is 0 then we assume that the lifetime of this daemon
@@ -451,28 +451,28 @@ int DomeCore::init(const char *cfgfile) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Setting fcgi listen port to '" << buf << "'");
       fcgi_listenSocket = FCGX_OpenSocket( buf, 100 );
     }
-    
+
     if( fcgi_listenSocket < 0 ) {
       Err(fname, "FCGX_OpenSocket() error " << fcgi_listenSocket);
-      
+
       return -1;
     }
-    
+
     // Create our pool of threads. Please note tha this approach may have some limitations.
     // Best would be a couple of threads that do only accept and enqueue
     // and a larger pool of workers
     Log(Logger::Lvl1, domelogmask, domelogname, "Creating " << CFG->GetLong("glb.workers", 300) << " workers.");
-    
+
     for (int i = 0; i < CFG->GetLong("glb.workers", 300); i++) {
       workers.push_back(new boost::thread(workerFunc, this, i));
     }
-    
-    
+
+
 
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
     ticker = new boost::thread(boost::bind(&DomeCore::tick, this, 0));
-    
+
     return 0;
   }
 }
@@ -480,17 +480,17 @@ int DomeCore::init(const char *cfgfile) {
 
 
 void DomeCore::tick(int parm) {
-  
+
   while (! this->terminationrequested ) {
     time_t timenow = time(0);
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
-    
+
     status.tick(timenow);
-    
+
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
-  
+
 }
 
 
@@ -501,7 +501,7 @@ void DomeCore::onTaskCompleted(DomeTask &task) {
 
   PendingChecksum pending;
   PendingPull pendingpull;
-  
+
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
@@ -524,8 +524,8 @@ void DomeCore::onTaskCompleted(DomeTask &task) {
       return;
     }
   }
-  
-  // This may be a stat 
+
+  // This may be a stat
   // This would be an internal error!!!!
   Err(domelogname, "Cannot match task notification. key: " << task.key);
 }
@@ -536,7 +536,7 @@ void DomeCore::onTaskRunning(DomeTask &task) {
   int key = task.key;
   PendingChecksum pending;
   PendingPull pendingpull;
-  
+
   {
     boost::lock_guard<boost::recursive_mutex> l(mtx);
     std::map<int, PendingChecksum>::iterator it = diskPendingChecksums.find(key);
@@ -557,7 +557,7 @@ void DomeCore::onTaskRunning(DomeTask &task) {
       return;
     }
   }
-  
+
   // This would be an internal error or just a stat request.
   Err(domelogname, "Cannot match task notification. key: " << task.key);
 }
