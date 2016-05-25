@@ -49,6 +49,10 @@ void DomeAdapterHeadCatalogFactory::configure(const std::string& key, const std:
     LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
 }
 
+Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (DmException) {
+  return new DomeAdapterHeadCatalog(this);
+}
+
 // IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)
 // {
 //   return new DomeIODriver(passwd_, useIp_, domedisk_, davixPool_);
@@ -81,6 +85,7 @@ void DomeAdapterHeadCatalog::setStackInstance(StackInstance* si) throw (DmExcept
   this->si_ = si;
 }
 
+
 void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
                                          const std::string& csumtype,
                                          std::string& csumvalue,
@@ -101,7 +106,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   //   params.put("checksum-type", csumtype);
   //   params.put("lfn", path);
   // }
-  
+
 }
 
 // IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
