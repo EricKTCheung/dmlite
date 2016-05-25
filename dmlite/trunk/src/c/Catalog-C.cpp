@@ -295,6 +295,7 @@ int dmlite_getchecksum(dmlite_context* context, const char* path,
   std::string csval;
   context->stack->getCatalog()->getChecksum(path, csumtype, csval, allowcalc, waitsecs);
   strncpy(csumvalue, csval.c_str(), maxcksumlen-1);
+  csumvalue[maxcksumlen-1] = '\0';
   CATCH(context, getchecksum)
 }
 
