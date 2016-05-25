@@ -6,6 +6,7 @@
 
 #include <dmlite/cpp/dmlite.h>
 #include <dmlite/cpp/catalog.h>
+#include <dmlite/cpp/dummy/DummyCatalog.h>
 #include <fstream>
 #include "utils/DavixPool.h"
 
