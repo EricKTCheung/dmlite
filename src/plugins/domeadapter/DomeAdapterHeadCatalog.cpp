@@ -53,11 +53,6 @@ Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (
   return new DomeAdapterHeadCatalog(this);
 }
 
-// IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)
-// {
-//   return new DomeIODriver(passwd_, useIp_, domedisk_, davixPool_);
-// }
-
 DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory) :
   secCtx_(0), factory_(*factory)
 {
