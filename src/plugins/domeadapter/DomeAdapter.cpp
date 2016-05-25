@@ -91,7 +91,7 @@ static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException
   pm->registerCatalogFactory(factory);
 }
 
-PluginIdCard plugin_domeadapter_headcatalog {
+PluginIdCard plugin_domeadapter_headcatalog = {
   PLUGIN_ID_HEADER,
   registerDomeAdapterHeadCatalog
 };
