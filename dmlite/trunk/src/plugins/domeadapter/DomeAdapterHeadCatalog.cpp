@@ -54,7 +54,7 @@ Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (
 }
 
 DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory) :
-  secCtx_(0), factory_(*factory)
+  DummyCatalog(this), secCtx_(0), factory_(*factory)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
