@@ -47,10 +47,6 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
     else
       this->useIp_ = false;
   }
-  else if (key == "DpmHost" || key == "Host") {
-    setenv("DPM_HOST", value.c_str(), 1);
-    setenv("DPNS_HOST", value.c_str(), 1);
-  }
   else if (key == "DomeDisk") {
     domedisk_ = value;
   }

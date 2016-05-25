@@ -6,6 +6,7 @@
 
 #include "DomeAdapter.h"
 #include "DomeAdapterCatalog.h"
+#include "DomeAdapterHeadCatalog.h"
 #include "DomeAdapterIO.h"
 #include "DomeAdapterPools.h"
 #include "DomeAdapterDriver.h"
@@ -21,10 +22,10 @@ DomeAdapterFactory::DomeAdapterFactory() throw (DmException) : davixPool_(&davix
 }
 
 DomeAdapterFactory::~DomeAdapterFactory() {
-  
+
 }
 
-void DomeAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException) 
+void DomeAdapterFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   LogCfgParm(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, key, value);
 
@@ -85,6 +86,15 @@ static void registerDomeAdapterPools(PluginManager* pm) throw (DmException) {
   pm->registerPoolDriverFactory(dmFactory);
 }
 
+static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException) {
+  DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory();
+  pm->registerCatalogFactory(factory);
+}
+
+PluginIdCard plugin_domeadapter_headcatalog {
+  PLUGIN_ID_HEADER,
+  registerDomeAdapterHeadCatalog
+};
 
 PluginIdCard plugin_domeadapter_ns = {
   PLUGIN_ID_HEADER,

@@ -4,7 +4,8 @@ add_library (domeadapter MODULE DomeAdapter.cpp
 								DomeAdapterCatalog.cpp
                 DomeAdapterIO.cpp
                 DomeAdapterPools.cpp
-                DomeAdapterDriver.cpp)
+                DomeAdapterDriver.cpp
+							  DomeAdapterHeadCatalog.cpp)
 
 include_directories (${DAVIX_PKG_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 
