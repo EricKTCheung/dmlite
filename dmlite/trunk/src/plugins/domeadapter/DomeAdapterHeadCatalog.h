@@ -35,7 +35,7 @@ namespace dmlite {
     friend class DomeAdapterHeadCatalog;
   };
 
-  class DomeAdapterHeadCatalog : public Catalog {
+  class DomeAdapterHeadCatalog : public DummyCatalog {
   public:
     DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory);
     virtual ~DomeAdapterHeadCatalog();
