@@ -4,7 +4,7 @@
 #ifndef MEMCACHE_FUNCTIONS_H
 #define MEMCACHE_FUNCTIONS_H
 
-#define NUM_CATALOG_API_FUNCTIONS 82
+#define NUM_CATALOG_API_FUNCTIONS 84
 
 namespace dmlite {
 
@@ -29,6 +29,7 @@ namespace dmlite {
     SETOWNER,
     SETSIZE,
     SETCHECKSUM,
+    GETCHECKSUM,
     SETACL,
     UTIME,
     GETCOMMENT,
@@ -63,6 +64,7 @@ namespace dmlite {
     SETOWNER_DELEGATE,
     SETSIZE_DELEGATE,
     SETCHECKSUM_DELEGATE,
+    GETCHECKSUM_DELEGATE,
     SETACL_DELEGATE,
     UTIME_DELEGATE,
     GETCOMMENT_DELEGATE,
@@ -120,6 +122,7 @@ namespace dmlite {
     "setOwner",
     "setSize",
     "setChecksum",
+    "getChecksum",
     "setAcl",
     "utime",
     "getComment",
@@ -154,6 +157,7 @@ namespace dmlite {
     "setOwner_delegate",
     "setSize_delegate",
     "setChecksum_delegate",
+    "getChecksum_delegate",
     "setAcl_delegate",
     "utime_delegate",
     "getComment_delegate",
