@@ -18,13 +18,14 @@ namespace dmlite {
 
   class DomeAdapterHeadCatalogFactory : public CatalogFactory {
   public:
-    DomeAdapterHeadCatalogFactory();
+    DomeAdapterHeadCatalogFactory(CatalogFactory *nested);
     virtual ~DomeAdapterHeadCatalogFactory();
 
     void configure(const std::string& key, const std::string& value) throw (DmException);
     Catalog *createCatalog(PluginManager* pm) throw (DmException);
 
   private:
+    CatalogFactory *nested_;
     std::string domehead_;
     // std::string passwd_;
     // bool        useIp_;
@@ -38,19 +39,21 @@ namespace dmlite {
 
   class DomeAdapterHeadCatalog : public DummyCatalog {
   public:
-    DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory);
+    DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory, Catalog *nested);
     virtual ~DomeAdapterHeadCatalog();
 
     std::string getImplId() const throw();
 
-    virtual void setSecurityContext(const SecurityContext* ctx) throw (DmException);
-    virtual void setStackInstance(StackInstance* si) throw (DmException);
+    void setSecurityContext(const SecurityContext* ctx) throw (DmException);
+    void setStackInstance(StackInstance* si) throw (DmException);
 
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
                              std::string& csumvalue, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
    private:
+    Catalog *decorated_;
+    std::string decorated_id;
     const SecurityContext* secCtx_;
     StackInstance* si_;
 

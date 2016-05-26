@@ -20,7 +20,7 @@
 using namespace dmlite;
 using namespace Davix;
 
-DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(): davixPool_(&davixFactory_, 10) {
+DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(CatalogFactory *nested): nested_(nested), davixPool_(&davixFactory_, 10) {
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
 }
@@ -50,11 +50,15 @@ void DomeAdapterHeadCatalogFactory::configure(const std::string& key, const std:
 }
 
 Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (DmException) {
-  return new DomeAdapterHeadCatalog(this);
+  if(this->nested_ == 0x00)
+    return 0x00;
+
+  return new DomeAdapterHeadCatalog(this,
+                                    CatalogFactory::createCatalog(this->nested_, pm));
 }
 
-DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory) :
-  DummyCatalog(this), secCtx_(0), factory_(*factory)
+DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory, Catalog *nested) :
+  DummyCatalog(nested), decorated_(nested), secCtx_(0), factory_(*factory)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
@@ -62,21 +66,24 @@ DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *fa
 
 DomeAdapterHeadCatalog::~DomeAdapterHeadCatalog()
 {
-  // Nothing
+  if (this->decorated_ != 0x00)
+    delete this->decorated_;
 }
 
 std::string DomeAdapterHeadCatalog::getImplId() const throw ()
 {
-  return "DomeAdapterHeadCatalog";
+  return "DomeAdapterHeadCatalog over " + decorated_->getImplId();
 }
 
 void DomeAdapterHeadCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
+  BaseInterface::setSecurityContext(this->decorated_, ctx);
   this->secCtx_ = ctx;
 }
 
 void DomeAdapterHeadCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
+  BaseInterface::setStackInstance(this->decorated_, si);
   this->si_ = si;
 }
 

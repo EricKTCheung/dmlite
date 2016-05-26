@@ -87,7 +87,15 @@ static void registerDomeAdapterPools(PluginManager* pm) throw (DmException) {
 }
 
 static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException) {
-  DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory();
+  CatalogFactory* nestedCAT = pm->getCatalogFactory();
+
+  if (nestedCAT == NULL)
+    throw DmException(DMLITE_SYSERR(DMLITE_NO_CATALOG),
+        std::string("Head catalog wraps another catalog (usually the mysql one) and cannot be loaded first. "
+                     "You probably need to load the head catalog after the mysql plugin - remember the config files are "
+                     "processed by lexicographical order. "));
+
+  DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory(nestedCAT);
   pm->registerCatalogFactory(factory);
 }
 
