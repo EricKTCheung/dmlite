@@ -227,6 +227,19 @@ void ProfilerCatalog::setChecksum(const std::string& path, const std::string& cs
   PROFILE(setChecksum, path, csumtype, csumvalue);
 }
 
+void ProfilerCatalog::getChecksum(const std::string& path, const std::string& csumtype,
+              std::string& csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException)
+{
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname,
+          "path: " << path <<
+          ", csumtype: " << csumtype <<
+          ", forcerecalc: " << forcerecalc <<
+          ", waitsecs: " << waitsecs
+        );
+  //sendUserIdentOrNOP();
+  PROFILE(getChecksum, path, csumtype, csumvalue, forcerecalc, waitsecs);
+}
+
 
 
 void ProfilerCatalog::setAcl(const std::string& path, const Acl& acls) throw (DmException)
@@ -279,7 +292,7 @@ void ProfilerCatalog::updateExtendedAttributes(const std::string& path,
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "path: " << path << ", attr size: " << (attr.end() - attr.begin()));
   //sendUserIdentOrNOP();
-  PROFILE(updateExtendedAttributes, path, attr);  
+  PROFILE(updateExtendedAttributes, path, attr);
 }
 
 
