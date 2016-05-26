@@ -164,7 +164,7 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
 
   checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  
+
   return meta;
 }
 
@@ -262,9 +262,9 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
   meta["normPath"] = cwd;
 
   checksums::fillChecksumInXattr(meta);
-  
+
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  
+
   return meta;
 }
 
@@ -288,9 +288,9 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders)
     if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
-    else {              
+    else {
           serializeExtendedStat(meta, valMemc);
           safeSetMemcachedFromKeyValue(key, valMemc);
          }
@@ -299,7 +299,7 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
 
   checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  
+
   return meta;
 }
 
@@ -322,10 +322,10 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
-   
-    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
+
+    //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders)
     if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
-    else {       
+    else {
            serializeExtendedStat(meta, valMemc);
            safeSetMemcachedFromKeyValue(key, valMemc);
           }
@@ -353,8 +353,8 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
   {
     incrementFunctionCounter(EXTENDEDSTATBYRFN_DELEGATE);
     DELEGATE_ASSIGN(meta, extendedStatByRFN, rfn);
-   //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders) 
-   if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}    
+   //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders)
+   if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
    else {
   	serializeExtendedStat(meta, valMemc);
    	safeSetMemcachedFromKeyValue(key, valMemc);
@@ -363,7 +363,7 @@ ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (D
 
   checksums::fillChecksumInXattr(meta);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  
+
   return meta;
 }
 
@@ -408,7 +408,7 @@ void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
   //I need to get the replica ID;
   Replica newreplica;
   DELEGATE_ASSIGN(newreplica, getReplicaByRFN, replica.rfn);
-  
+
   if (replica.status == dmlite::Replica::kAvailable) {
     valMemc = serializeReplica(newreplica);
     safeSetMemcachedFromKeyValue(keyFromString(key_prefix[PRE_REPL],newreplica.rfn),valMemc);
@@ -417,7 +417,7 @@ void MemcacheCatalog::addReplica(const Replica& replica) throw (DmException)
   //invalidating replica list
   std::string filepath = getFullPathByRFN(newreplica.rfn);
   filepath = getAbsolutePath(filepath);
-  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath)); 
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_REPL_LIST], filepath));
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
@@ -582,6 +582,20 @@ void MemcacheCatalog::setChecksum(const std::string& path,
   incrementFunctionCounter(SETCHECKSUM_DELEGATE);
   std::string absPath = getAbsolutePath(path);
   DELEGATE(setChecksum, absPath, csumtype, csumvalue);
+  safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
+  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
+}
+
+void MemcacheCatalog::getChecksum(const std::string& path,
+                       const std::string& csumtype,
+                       std::string& csumvalue,
+                       const bool forcerecalc,
+                       const int waitsecs) throw (DmException)
+{
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
+  incrementFunctionCounter(GETCHECKSUM_DELEGATE);
+  std::string absPath = getAbsolutePath(path);
+  DELEGATE(getChecksum, absPath, csumtype, csumvalue, forcerecalc, waitsecs);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
@@ -953,12 +967,12 @@ Replica MemcacheCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcept
   {
     incrementFunctionCounter(GETREPLICABYRFN_DELEGATE);
     DELEGATE_ASSIGN(replica, getReplicaByRFN, rfn);
-    
+
     if (replica.status == dmlite::Replica::kAvailable) {
       valMemc = serializeReplica(replica);
       safeSetMemcachedFromKeyValue(key, valMemc);
     }
-    
+
   }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
@@ -998,7 +1012,7 @@ std::string MemcacheCatalog::getFullPathByRFN(const std::string& rfn) throw (DmE
 
  while( paths.size() > 0){
     Log(Logger::Lvl4, memcachelogmask, memcachelogname, paths.back());
-    finalPath.append(paths.back()); 
+    finalPath.append(paths.back());
     paths.pop_back();
     finalPath.append("/");
  }

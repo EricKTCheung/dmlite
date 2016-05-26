@@ -107,6 +107,12 @@ namespace dmlite {
           const std::string& csumtype,
           const std::string& csumvalue) throw (DmException);
 
+      void getChecksum(const std::string& path,
+                       const std::string& csumtype,
+                       std::string& csumvalue,
+                       const bool forcerecalc = false,
+                       const int waitsecs = 0) throw (DmException);
+
       void setAcl(const std::string& path,
           const Acl& acl) throw (DmException);
 
@@ -228,4 +234,3 @@ namespace dmlite {
 }
 
 #endif // MEMCACHED_CATALOG_H
-
