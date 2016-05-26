@@ -84,7 +84,7 @@ void DomeAdapterHeadCatalog::setStackInstance(StackInstance* si) throw (DmExcept
 void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
                                          const std::string& csumtype,
                                          std::string& csumvalue,
-                                         const bool allowcalc,
+                                         const bool forcerecalc,
                                          const int waitsecs) throw (DmException) {
 
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path '"

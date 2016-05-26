@@ -37,7 +37,7 @@ class DMLiteInterpreter:
     global replicaQueue
     global replicaQueueLock
     global drainErrors
-    
+
 
     # collect all available commands into commands-array
     self.commands = []
@@ -62,7 +62,7 @@ class DMLiteInterpreter:
 
       # empty command
       return self.ok()
-    
+
     # search for command and execute it
     for c in self.commands:
       if c.name == cmdline[0]:
@@ -71,34 +71,34 @@ class DMLiteInterpreter:
     else:
       # other, unknown command
       return self.error('Unknown command: ' + cmdline[0])
-    
+
   def ok(self, msg = ''):
     """Writes a message to the output. Returns False on any previous errors."""
     if msg != '':
       self.write(msg + '\n')
     self.answered = True
     return not self.failed
-    
+
   def error(self, error, msg = ''):
     """Writes an error message to the output. Returns False."""
     self.ok(msg)
-    self.write(self.doIndentation(error, 'ERROR: ', '       ') + '\n') 
+    self.write(self.doIndentation(error, 'ERROR: ', '       ') + '\n')
     self.failed = True
     return not self.failed
-    
+
   def doIndentation(self, msg, firstLine, indentation):
-    exp = re.compile('\\n[^\\S\\r\\n]*') # selects all 
+    exp = re.compile('\\n[^\\S\\r\\n]*') # selects all
     return exp.sub("\n" + indentation, firstLine + msg.lstrip())
-    
+
   def exitShell(self, msg = ''):
     """Set the shell exit flag. Returns False on any previous errors."""
     self.ok(msg)
     self.exit = True
     return not self.failed
-    
+
   def completer(self, text, state):
     """ Complete the given start of a command line."""
-    
+
     if (self.lastCompleted != text) or (self.lastCompletedState > state):
       self.completionOptions = []
       self.lastCompleted = text
@@ -132,14 +132,14 @@ class DMLiteInterpreter:
       else:
         prettySize = '%.2fPB' % (size / 1024. / 1024. / 1024. / 1024. / 1024.)
       return prettySize
-  
+
   def listDirectory(self, directory, readComments = False):
     # list information about files in a directory
     try:
       hDir = self.catalog.openDir(directory)
     except:
       return -1
-    
+
     flist = []
 
     while True:
@@ -160,7 +160,7 @@ class DMLiteInterpreter:
           finfo['link'] = self.catalog.readLink(os.path.join(directory, f.name))
         else:
           finfo['link'] = ''
-        
+
         if readComments:
           try:
             finfo['comment'] = self.catalog.getComment(os.path.join(directory, f.name))
@@ -170,7 +170,7 @@ class DMLiteInterpreter:
         flist.append(finfo)
       except:
         break
-    
+
     self.catalog.closeDir(hDir)
     return flist
 
@@ -190,20 +190,20 @@ class ShellCommand:
   def _init(self):
     """Override this to set e.g. self.parameters."""
     pass
-  
+
   def _execute(self, given):
     """Override this to execute the command with the parameters in the given array."""
     return self.ok('Execute stub for ' + self.name + '...')
-  
-  
+
+
   def __init__(self, interpreter):
     """Initialisation for the command class. Do not override!"""
     self.interpreter = interpreter
-    
+
     # self.name contains the name of the command
     # this is automatically extracted from the class name
     self.name = ((self.__class__.__name__)[:-7]).lower()
-    
+
     # self.description contains a short desc of the command
     # this is automatically extracted from the class __doc__
     self.description = self.__doc__
@@ -211,7 +211,7 @@ class ShellCommand:
       self.shortDescription = self.description[0:self.description.find('\n')]
     else:
       self.shortDescription = self.description
-        
+
     # self.parameters contains a list of parameters in the syntax
     # *Tparameter name
     # where * is added for optional parameters and T defines the
@@ -223,13 +223,13 @@ class ShellCommand:
     #   ? other, no checks done
     # Note: use uppercase letter for a check if file/command/.. exists
     self.parameters = []
-    
+
     self._init()
-  
+
   def help(self):
     """Returns a little help text with the description of the command."""
     return ' ' + self.name + (' ' * (15 - len(self.name))) + self.shortDescription
-  
+
   def syntax(self):
     """Returns the syntax description of the command."""
     return self.name + ' ' + ' '.join(self.prettyParameter(p) for p in self.parameters)
@@ -237,7 +237,7 @@ class ShellCommand:
   def moreHelp(self):
     """Returns the syntax description of the command and a help text."""
     return self.syntax() + '\n' + self.interpreter.doIndentation(self.description, '  ', '  ')
-  
+
   def prettyParameter(self, parameter):
     """Return the human readable format of a parameter"""
     if parameter.startswith('*'):
@@ -248,7 +248,7 @@ class ShellCommand:
 
   def prettySize(self, size=0):
       return self.interpreter.prettySize(size)
-  
+
   def checkSyntax(self, given):
     if len(given) > len(self.parameters):
       return self.syntaxError()
@@ -261,7 +261,7 @@ class ShellCommand:
         return self.syntaxError()
       else:
         ptype = self.parameters[i][0:1]
-      
+
       # check for type and check if correct type
       if ptype == 'C':
         if given[i] not in list(c.name for c in self.interpreter.commands):
@@ -322,37 +322,37 @@ class ShellCommand:
         pOptions = self.parameters[i].split(':')[1:]
         if given[i] not in pOptions:
           return self.syntaxError('Expected one of the following options: ' + ', '.join(pOptions))
-        
+
     return self.ok()
-  
+
   def execute(self, given):
     """Executes the current command with the parameters in the given array."""
     signal.signal(signal.SIGINT, self.signal_handler)
-    
+
     # reset result flags
     self.interpreter.answered = False
     self.interpreter.failed = False
     self.interpreter.exit = False
-    
+
     # check syntax first
     if not self.checkSyntax(given): # syntax error occcurred!
       return
     self._execute(given)
-    
+
   def completer(self, start):
     """Return a list of possible tab-completions for the string start."""
-    
+
     # This has known issues. In complicated scenarios with " and spaces in
     # the commandline, this might fail, due to the complicated readline
     # behaviour. Also, it does only support completion at the end.
-    
+
     if self.name.startswith(start):
       # complete the command
       if len(self.parameters) == 0:
         return [self.name]
       else:
         return [self.name + ' ']
-      
+
     elif start.startswith(self.name):
       # complete parameters, analyse the already given parameters
       try:
@@ -370,7 +370,7 @@ class ShellCommand:
             quoted = "'"
           except Exception, e:
             return [] # all parsing attempts failed
-      
+
       if len(given)-1 > len(self.parameters):
         # too many parameters given already
         return []
@@ -381,26 +381,26 @@ class ShellCommand:
           ptype = ptype[1:2].lower()
         else:
           ptype = ptype[0:1].lower()
-        
+
         # and the currently given parameter
         if not quoted:
           lastgiven = given[len(given)-1][:-1] # remove 'x' at the end
         else:
           lastgiven = given[len(given)-1]
-        
+
         # if the parameter contained slashes, we only need to return
         # the part after the last slash, because it is recognized as
         # a delimiter
         lastslashcut = lastgiven.rfind('/') + 1
-        
+
         # workaround for readline bug: escaped whitespaces are also
         # recognized used as delimiters. Best we can do is display
         # only the part after the escaped whitespace...
         lastspacecut = lastgiven.rfind(' ') + 1
         if lastspacecut > lastslashcut:
           lastslashcut = lastspacecut
-        
-        
+
+
         if ptype == 'c': # command
           l = list(c.name for c in self.interpreter.commands if c.name.startswith(lastgiven))
         elif ptype == 'f': # file or folder
@@ -428,13 +428,13 @@ class ShellCommand:
           l = list(option for option in pOptions if option.startswith(lastgiven))
         else:
           return []
-        
+
         if not quoted:
           exp = re.compile('([\\"\' ])') # we still have to escape the characters \,",' and space
         else:
           exp = re.compile('([\\"\'])') # do not escape space in a quoted string
         l = list(exp.sub(r'\\\1', option) for option in l)
-        
+
         if quoted and len(l) == 1:
           if lastslashcut > 0:
             return [l[0] + quoted] # close a quotation if no other possibility
@@ -444,10 +444,10 @@ class ShellCommand:
     else:
       # no auto completions from this command
       return []
-  
+
   def ok(self, msg = ''):
     return self.interpreter.ok(msg)
-    
+
   def error(self, error, msg = ''):
     return self.interpreter.error(error, msg)
 
@@ -465,7 +465,7 @@ class InitCommand(ShellCommand):
   """Initialise the DMLite shell with a given configuration file."""
   def _init(self):
     self.parameters = ['*OLogLevel=0:0:1:2:3:4', '*Fconfiguration_file=' + self.interpreter.defaultConfigurationFile]
-    
+
   def _execute(self, given):
     if len(given) == 0:
         configFile =  self.interpreter.defaultConfigurationFile
@@ -482,7 +482,7 @@ class InitCommand(ShellCommand):
         if line.startswith("LogLevel"):
             confTmp.write("LogLevel %s\n" % log)
 	else:
-            confTmp.write(line) 
+            confTmp.write(line)
     conf.close()
     confTmp.close()
     self.interpreter.configurationFile = "/tmp/dmlite.conf"
@@ -501,7 +501,7 @@ class InitCommand(ShellCommand):
       self.interpreter.pluginManager.loadConfiguration(self.interpreter.configurationFile)
     except Exception, e:
       return self.error('Could not initialise PluginManager with file "' + self.interpreter.configurationFile + '".\n' + e.__str__())
-    
+
     try:
       self.interpreter.securityContext = pydmlite.SecurityContext()
       group = pydmlite.GroupInfo()
@@ -547,7 +547,7 @@ class InitCommand(ShellCommand):
     if log != '0':
         self.ok("Log Level set to %s." % log)
 
-    return self.ok() 
+    return self.ok()
 
 
 class HelpCommand(ShellCommand):
@@ -614,7 +614,7 @@ class CdCommand(ShellCommand):
   """Change the current directory."""
   def _init(self):
     self.parameters = ['Ddirectory']
-    
+
   def _execute(self, given):
     # change directory
     try:
@@ -623,11 +623,11 @@ class CdCommand(ShellCommand):
 	self.interpreter.catalog.changeDir('')
         path = path[1:]
       f = self.interpreter.catalog.extendedStat(path, True)
-      if f.stat.isDir(): 
+      if f.stat.isDir():
       	self.interpreter.catalog.changeDir(path)
       else:
 	return self.error('The given path is not a Directory:\nParameter(s): ' + ', '.join(given))
-		
+
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
     return self.ok()
@@ -638,20 +638,20 @@ class LsCommand(ShellCommand):
   def _init(self):
     self.parameters = ['*Ddirectory']
     pass
-  
+
   def _execute(self, given):
     # if no parameters given, list current directory
     given.append(self.interpreter.catalog.getWorkingDir())
-    
+
     flist = self.interpreter.listDirectory(given[0], True)
     if flist == -1:
       return self.error('"' + given[0] + '" is not a directory.')
-    
+
     fnamelen = 5 # find longest filename
     for f in flist:
       if len(f['name']) > fnamelen:
         fnamelen = len(f['name'])
-    
+
     flist = ( f['name'] + (' '*(fnamelen+2-len(f['name']))) + (f['prettySize'], '-> ' + f['link'])[f['isLnk']] + '\t' + f['comment'] for f in flist)
 
     return self.ok('\n'.join(list(flist)))
@@ -661,7 +661,7 @@ class MkDirCommand(ShellCommand):
   """Create a new directory."""
   def _init(self):
     self.parameters = ['ddirectory','*Oparent:p:parent:parents:-p:--parent:--parents']
-    
+
   def _execute(self, given):
     try:
       directory = given[0]
@@ -695,7 +695,7 @@ class UnlinkCommand(ShellCommand):
   """Remove a file from the database."""
   def _init(self):
     self.parameters = ['Dfile','*Oforce:f:force:-f:--force']
-    
+
   def _execute(self, given):
     try:
       try:
@@ -718,7 +718,7 @@ class RmDirCommand(ShellCommand):
   """Delete a directory."""
   def _init(self):
     self.parameters = ['Ddirectory','*O--recursive:-r']
-   
+
   def _execute(self, given):
     dirname = given[0]
     if not dirname.startswith('/'):
@@ -780,7 +780,7 @@ class MvCommand(ShellCommand):
   """Move or rename a file."""
   def _init(self):
     self.parameters = ['Dsource-file', 'ddestination-file']
-    
+
   def _execute(self, given):
     try:
       self.interpreter.catalog.rename(given[0], given[1])
@@ -793,17 +793,17 @@ class DuCommand(ShellCommand):
   """Determine the disk usage of a file or a directory."""
   def _init(self):
     self.parameters = ['*Dfile']
-    
+
   def _execute(self, given):
     # if no parameters given, list current directory
     given.append(self.interpreter.catalog.getWorkingDir())
-    
+
     f = self.interpreter.catalog.extendedStat(given[0], True)
     if f.stat.isDir():
       return self.ok(str(self.folderSize(given[0])) + 'B')
     else:
       return self.ok(str(f.stat.st_size) + 'B')
-    
+
   def folderSize(self, folder):
     gfiles = self.interpreter.listDirectory(folder)
     size = 0
@@ -821,7 +821,7 @@ class LnCommand(ShellCommand):
   """Create a symlink."""
   def _init(self):
     self.parameters = ['Dtarget-file', 'dsymlink-file']
-    
+
   def _execute(self, given):
     try:
       self.interpreter.catalog.symlink(given[0], given[1])
@@ -834,7 +834,7 @@ class ReadLinkCommand(ShellCommand):
   """Show the target of a symlink."""
   def _init(self):
     self.parameters = ['Dsymlink']
-    
+
   def _execute(self, given):
     try:
       return self.ok(self.interpreter.catalog.readLink(given[0]))
@@ -847,7 +847,7 @@ class CommentCommand(ShellCommand):
   Put comment in quotes. Reset file comment via comment <file> ""."""
   def _init(self):
     self.parameters = ['Dfile', '*?comment']
-    
+
   def _execute(self, given):
     if len(given) == 2:
       try:
@@ -865,7 +865,7 @@ class InfoCommand(ShellCommand):
   """Print all available information about a file."""
   def _init(self):
     self.parameters = ['Dfile']
-    
+
   def _execute(self, given):
     try:
       filename = given[0]
@@ -873,7 +873,7 @@ class InfoCommand(ShellCommand):
         filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
       self.ok(filename)
       self.ok('-' * len(filename))
-      
+
       f = self.interpreter.catalog.extendedStat(filename, False)
       if f.stat.isDir():
         self.ok('File type:  Folder')
@@ -884,7 +884,7 @@ class InfoCommand(ShellCommand):
         self.ok('            -> ' + self.interpreter.catalog.readLink(filename))
       else:
         self.ok('File type:  Unknown')
-      
+
       self.ok('Size:       ' + str(f.stat.st_size) + 'B')
       if f.status == pydmlite.FileStatus.kOnline:
         self.ok('Status:     Online')
@@ -892,7 +892,7 @@ class InfoCommand(ShellCommand):
         self.ok('Status:     Migrated')
       else:
         self.ok('Status:     Unknown')
-      
+
       try:
         comment = self.interpreter.catalog.getComment(filename)
         self.ok('Comment:    ' + comment)
@@ -903,7 +903,7 @@ class InfoCommand(ShellCommand):
       self.ok('Ino:        ' + str(f.stat.st_ino))
       self.ok('Mode:       ' + oct(f.stat.st_mode))
       self.ok('# of Links: ' + str(f.stat.st_nlink))
-      
+
       try:
         uid = pydmlite.boost_any()
         uid.setUnsigned(f.stat.st_uid)
@@ -932,14 +932,14 @@ class InfoCommand(ShellCommand):
       self.ok('ATime:      ' + time.ctime(f.stat.getATime()))
       self.ok('MTime:      ' + time.ctime(f.stat.getMTime()))
       self.ok('CTime:      ' + time.ctime(f.stat.getCTime()))
-      
+
       try:
         replicas = self.interpreter.catalog.getReplicas(filename)
       except:
         replicas = []
 
       if not replicas:
-        self.ok('Replicas:   None') 
+        self.ok('Replicas:   None')
       else:
         for r in replicas:
           self.ok('Replica:	ID:     ' + str(r.replicaid) )
@@ -950,15 +950,15 @@ class InfoCommand(ShellCommand):
 	  self.ok('		Replica Extended Attributes (Key, Value):')
 	  for k in r.getKeys():
             self.ok("			"+ k + ":\t" + r.getString(k,""))
-      
+
       a=ACLCommand('/')
       self.ok('ACL:        ' + "\n            ".join(a.getACL(self.interpreter, filename)))
-      
+
       self.ok('Extended Attributes (Key, Value):')
       for k in f.getKeys():
 	self.ok("            "+ k + ":\t\t" + f.getString(k,""))
       return self.ok(' ')
-      
+
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -967,14 +967,14 @@ class CreateCommand(ShellCommand):
   """Create a new file."""
   def _init(self):
     self.parameters = ['dnew file', '*?mode=755']
-    
+
   def _execute(self, given):
     given.append('755')
     try:
       mode = int(given[1], 8)
     except:
       return self.syntaxError('Expected: Octal mode number')
-    
+
     try:
       self.interpreter.catalog.create(given[0], mode)
     except Exception, e:
@@ -986,13 +986,13 @@ class ChModCommand(ShellCommand):
   """Change the mode of a file."""
   def _init(self):
     self.parameters = ['Dfile', '?mode']
-    
+
   def _execute(self, given):
     try:
       mode = int(given[1], 8)
     except:
       return self.syntaxError('Expected: Octal mode number')
-    
+
     try:
       self.interpreter.catalog.setMode(given[0], mode)
     except Exception, e:
@@ -1035,12 +1035,30 @@ class ChGrpCommand(ShellCommand):
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+class GetChecksumCommand(ShellCommand):
+  """Get or calculate file checksum"""
+  def _init(self):
+    self.parameters = ['Dfile', '*checksumtype']
+
+  def _execute(self, given):
+    if self.interpreter.authn is None:
+      return self.error('There is no Authentification interface.')
+
+    try:
+      csumvalue = pydmlite.StringWrapper()
+      self.interpreter.catalog.getChecksum(given[0], given[1], csumvalue, False, 5)
+      return self.ok(str(given[1]) + ': ' + str(csumvalue.s))
+    except Exception, e:
+      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+
+
 
 class ChecksumCommand(ShellCommand):
-  """Set or read file checksums."""
+  """Set or read file checksums. (DEPRECATED)"""
   def _init(self):
     self.parameters = ['Dfile', '*?checksum', '*?checksumtype']
-    
+
   def _execute(self, given):
     if len(given) == 1:
       try:
@@ -1062,7 +1080,7 @@ class UtimeCommand(ShellCommand):
   If no modification time is given, the access time will be used."""
   def _init(self):
     self.parameters = ['Dfile', 'taccess-time', '*tmodification-time']
-    
+
   def _execute(self, given):
     given.append(given[1]) # if mod time not given, use access time
     tb = pydmlite.utimbuf()
@@ -1077,15 +1095,15 @@ class UtimeCommand(ShellCommand):
 
 class ACLCommand(ShellCommand):
   """Set or read the ACL of a file.
-  
-The expected syntax is : acl <file> <ACL> command 
+
+The expected syntax is : acl <file> <ACL> command
 
 Where command could be set, modify or delete.
 
 The ACL can be specified in the following form
 
 * user::rwx ( or u:)
-* user:<DN>:rwx  
+* user:<DN>:rwx
 * user:<USERID>:rwx
 * group::rwx (or g:)
 * group:<GROUP>:rw
@@ -1330,7 +1348,7 @@ class ReplicaAddCommand(ShellCommand):
   """Add a new replica for a file."""
   def _init(self):
     self.parameters = ['Dfile', 'Ostatus:available:beingPopulated:toBeDeleted', 'Otype:volatile:permanent', '?rfn', '*?server', '*?pool']
-    
+
   def _execute(self, given):
     if given[1].lower() in ('a', 'available', '-'):
       rstatus = pydmlite.ReplicaStatus.kAvailable
@@ -1340,7 +1358,7 @@ class ReplicaAddCommand(ShellCommand):
       rstatus = pydmlite.ReplicaStatus.kToBeDeleted
     else:
       return self.syntaxError('This is not a valid replica status.')
-    
+
     if given[2].lower() in ('v', 'volatile'):
       rtype = pydmlite.ReplicaType.kVolatile
     elif given[2].lower() in ('p', 'permanent'):
@@ -1352,26 +1370,26 @@ class ReplicaAddCommand(ShellCommand):
       f = self.interpreter.catalog.extendedStat(given[0], False)
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-    
+
     myreplica = pydmlite.Replica()
     myreplica.fileid = f.stat.st_ino
     myreplica.status = rstatus
     myreplica.type = rtype
     myreplica.rfn = given[3]
-    
+
     if len(given) == 6:
       myreplica.server = given[4]
     elif given[4].find(':/') != -1:
       myreplica.server = given[3].split(':/')[0]
     else:
       return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
-    
-    
+
+
     if len(given) == 6:
       myreplica.setString('pool', given[5])
-    
-    
-    
+
+
+
     try:
       self.interpreter.catalog.addReplica(myreplica)
       return self.ok()
@@ -1383,7 +1401,7 @@ class ReplicaModifyCommand(ShellCommand):
   """Update the replica of a file."""
   def _init(self):
     self.parameters = ['Dfile', '?replica-id | rfn', 'Onew-status:available:beingPopulated:toBeDeleted', 'Onew-type:volatile:permanent', '?new-rfn', '*?new-server']
-    
+
   def _execute(self, given):
     try:
       self.interpreter.catalog.getReplicas
@@ -1392,7 +1410,7 @@ class ReplicaModifyCommand(ShellCommand):
       for r in replicas:
         if given[1] in (str(r.replicaid), r.rfn):
           # found specified replica. update it!
-          
+
           if given[2].lower() in ('a', 'available', '-'):
             rstatus = pydmlite.ReplicaStatus.kAvailable
           elif given[2].lower() in ('p', 'beingpopulated'):
@@ -1401,7 +1419,7 @@ class ReplicaModifyCommand(ShellCommand):
             rstatus = pydmlite.ReplicaStatus.kToBeDeleted
           else:
             return self.syntaxError('This is not a valid replica status.')
-          
+
           if given[3].lower() in ('v', 'volatile'):
             rtype = pydmlite.ReplicaType.kVolatile
           elif given[3].lower() in ('p', 'permanent'):
@@ -1418,7 +1436,7 @@ class ReplicaModifyCommand(ShellCommand):
             r.server = given[4].split(':/')[0]
           else:
             return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
-          
+
           self.interpreter.catalog.updateReplica(r)
           break
       else:
@@ -1450,7 +1468,7 @@ class ReplicaDelCommand(ShellCommand):
 		self.interpreter.catalog.deleteReplica(r)
 	  except Exception:
 		#do nothing cause if it fails does not hurt
-		pass	
+		pass
           break
       else:
         return self.error('The specified replica was not found.')
@@ -1513,7 +1531,7 @@ class PoolInfoCommand(ShellCommand):
 class PoolModifyCommand(ShellCommand):
     """Modify a pool.
 
-Valid attributes for every pool: 
+Valid attributes for every pool:
 ---> defsize, gc_start_thresh, gc_stop_thresh, def_lifetime, defpintime, max_lifetime, maxpintime.
 
 Additionnal attributes for:
@@ -1979,7 +1997,7 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
         self.parameters = ['?filesystem name', '?server']
 
     def _execute(self, given):
-       
+
 	if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
@@ -2046,8 +2064,8 @@ class Util(object):
 		interpreter.ok('===================================================================================================================================================================================')
 		interpreter.ok('\n')
 
-		
-		
+
+
 
 class Response(object):
   """ utility class to collect the response """
@@ -2086,7 +2104,7 @@ class Response(object):
   def printMarkers(self):
 	for marker in self.markers:
 		print marker
-	
+
 class Replicate(object):
     """Replicate a File to a specific pool/filesystem, used by other commands so input validation has been already done"""
     def __init__(self,interpreter, filename, spacetoken, parameters):
@@ -2098,7 +2116,7 @@ class Replicate(object):
         securityContext= self.interpreter.stackInstance.getSecurityContext()
         securityContext.user.name = self.parameters['adminUserName']
         self.interpreter.stackInstance.setSecurityContext(securityContext)
-	
+
         replicate = pydmlite.boost_any()
         replicate.setBool(True)
         self.interpreter.stackInstance.set("replicate",replicate)
@@ -2111,7 +2129,7 @@ class Replicate(object):
         except Exception,e:
                 self.interpreter.replicaQueueLock.release()
 	self.interpreter.replicaQueueLock.release()
-	
+
     def run(self):
 	self.interpreter.replicaQueueLock.acquire()
 
@@ -2132,7 +2150,7 @@ class Replicate(object):
                         filetype.setString(self.parameters['filetype'])
                 else:
 			self.interpreter.error('Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
-			self.interpreter.replicaQueueLock.release()	
+			self.interpreter.replicaQueueLock.release()
 			return (False, None, 'Incorrect file Type, it should be P (permanent), V (volatile) or D (Durable)')
 
                 self.interpreter.stackInstance.set("f_type",filetype)
@@ -2181,11 +2199,11 @@ class Replicate(object):
 
 	https_port = 443
 	try:
-	        https_port = os.environ['DPM_HTTPS_PORT'] 
+	        https_port = os.environ['DPM_HTTPS_PORT']
         except Exception, e:
                 pass
 
-        
+
         destination = loc[0].url.toString()
         destination = urllib.unquote(destination)
         #create correct destination url and SFN
@@ -2236,7 +2254,7 @@ class DrainThread (threading.Thread):
 
     def run(self):
         self.drainReplica(self.threadID)
-	
+
     def stop(self):
 	self.stopEvent.set()
 
@@ -2254,7 +2272,7 @@ class DrainThread (threading.Thread):
 
 
 class ReplicaMoveCommand(ShellCommand):
-    """Move a specified rfn folder to a new filesystem location 
+    """Move a specified rfn folder to a new filesystem location
 
 The replicamove command accepts the following parameters:
 
@@ -2267,7 +2285,7 @@ The replicamove command accepts the following parameters:
 * dryrun <true/false>		: if set to true just print the statistics (optional, default = true)
 
 ex:
-	replicamove dpmdisk01.cern.ch:/srv/dpm/01 /dteam/2015-11-25/ dpmdisk02.cern.ch:/srv/dpm/01 
+	replicamove dpmdisk01.cern.ch:/srv/dpm/01 /dteam/2015-11-25/ dpmdisk02.cern.ch:/srv/dpm/01
 """
 
     def _init(self):
@@ -2299,7 +2317,7 @@ ex:
 	parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
 	parameters['group'] = 'ALL'
-	parameters['size'] = 100 
+	parameters['size'] = 100
         parameters['move'] = True
 
         try:
@@ -2320,7 +2338,7 @@ ex:
                         elif given[i] == "dryrun":
                                 if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
                                         parameters['dryrun']  = False
-				
+
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2360,7 +2378,7 @@ ex:
                                 return
 		else:
 			Util.printComments(self.interpreter)
-	
+
 
                 self.ok("Calculating Replicas to Move..")
                 self.ok()
@@ -2395,9 +2413,9 @@ The replicate command accepts the following parameters:
 
     def _init(self):
         self.parameters = ['Dfilename', '*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value', 
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
-					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value', 
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
+					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value',
 					'*Oparameter:poolname:filesystem:filetype:lifetime:spacetoken:dryrun',  '*?value' ]
 
     def printComments(self):
@@ -2428,7 +2446,7 @@ The replicate command accepts the following parameters:
 
 	if len(given)%2 == 0:
 	    return self.error("Incorrect number of parameters")
-	
+
 	parameters = {}
 	self.interpreter.replicaQueueLock = threading.Lock()
 	filename = given[0]
@@ -2448,7 +2466,7 @@ The replicate command accepts the following parameters:
 	except:
 		pass
 
-	try: 
+	try:
 		if parameters['dryrun'] == "False" or parameters['dryrun'] == "false" or parameters['dryrun'] == "0":
          	       dryrun = False
 	except:
@@ -2457,12 +2475,12 @@ The replicate command accepts the following parameters:
 	error = None
 	destination = None
 	replicated = None
-	
+
 	if dryrun:
 		self.printComments()
 		return 1
-		
-	try:	
+
+	try:
 		replicate = Replicate(self.interpreter,filename, spacetoken, parameters)
 		(replicated,destination, error) = replicate.run()
         except Exception, e:
@@ -2473,7 +2491,7 @@ The replicate command accepts the following parameters:
              	if destination:
              	#logging only need to clean pending replica
                         self.error("Error while copying to SFN: " +destination+"\n")
-		
+
                 else:
                         return 1
 	cleanReplica = False
@@ -2481,7 +2499,7 @@ The replicate command accepts the following parameters:
 		if error:
 			self.error(error)
                 if destination:
-                        #logging only need to clean pending replica 
+                        #logging only need to clean pending replica
                         self.error("Error while copying to SFN: " +destination+"\n")
 			cleanReplica = True
                 else:
@@ -2503,11 +2521,11 @@ The replicate command accepts the following parameters:
 
         if cleanReplica:
 		if not replica:
-			try:		
+			try:
 		                replica = self.interpreter.catalog.getReplicaByRFN(destination)
 			except Exception, e:
 				self.error("Error while checking the replica status\n")
-				self.error('Please remove manually the replica with rfn: ' + destination) 
+				self.error('Please remove manually the replica with rfn: ' + destination)
 				return 1
 		try:
 	                self.interpreter.poolDriver = self.interpreter.stackInstance.getPoolDriver('filesystem')
@@ -2515,7 +2533,7 @@ The replicate command accepts the following parameters:
         		self.error('Could not initialise the pool driver to clean the replica\n' + e.__str__())
 			self.error('Please remove manually the replica with rfn: ' + destination)
 			return 1
-	        try:	
+	        try:
 			if replica.getString('pool',''):
 	        	        poolHandler = self.interpreter.poolDriver.createPoolHandler(replica.getString('pool',''))
         	        	poolHandler.removeReplica(replica)
@@ -2531,12 +2549,12 @@ The replicate command accepts the following parameters:
 
 
 
-	
+
 class DrainFileReplica(object):
     """implement draining of a file replica"""
     def __init__(self, threadID,interpreter , fileReplica, parameters):
         self.threadID = threadID
-	self.interpreter= interpreter 
+	self.interpreter= interpreter
 	self.fileReplica = fileReplica
         self.parameters = parameters
 
@@ -2544,11 +2562,11 @@ class DrainFileReplica(object):
 	return "Thread " + str(self.threadID) +": "
 
     def logError(self, msg):
-	return self.interpreter.error(self.getThreadID()+msg) 
-  
+	return self.interpreter.error(self.getThreadID()+msg)
+
     def logOK(self, msg):
         return self.interpreter.ok(self.getThreadID()+msg)
-	
+
     def drain(self):
 	filename = self.fileReplica.lfn
         #step 4 : check the status, pinned  and see if they the replica can be drained
@@ -2568,12 +2586,12 @@ class DrainFileReplica(object):
 		self.interpreter.drainErrors.append ( (filename, self.fileReplica.sfn, "The file is pinned"))
                 return 1
 
-	#step 5-1: check spacetoken parameters,if set use that one 
+	#step 5-1: check spacetoken parameters,if set use that one
 	if self.fileReplica.setname is not "":
 		self.spacetoken = self.fileReplica.setname
 		self.logOK("The file with replica sfn: "+ self.fileReplica.sfn + " belongs to the spacetoken: " + self.fileReplica.setname +"\n")
 	else:
-		self.spacetoken = None 
+		self.spacetoken = None
 
         replicate = Replicate(self.interpreter,filename, self.spacetoken,self.parameters)
 
@@ -2593,14 +2611,14 @@ class DrainFileReplica(object):
 			self.logError("Error while copying to SFN: " +destination+"\n")
 		else:
 			return 1
-	cleanReplica = False			
+	cleanReplica = False
 	if not replicated:
 		if destination:
-			#logging only need to clean pending replica 
+			#logging only need to clean pending replica
 			self.logError("Error while copying to SFN: " +destination+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, "Error while copying to SFN: " +destination +" with error: " +str(error)))
 			cleanReplica = True
-		else:	
+		else:
 			self.logError("Error moving Replica for file: " +filename+"\n")
 			self.interpreter.drainErrors.append ((filename, self.fileReplica.sfn, error))
 			return 1
@@ -2686,7 +2704,7 @@ class DrainReplicas(object):
         for (file, sfn, error) in self.interpreter.drainErrors:
         	self.interpreter.ok("File: " + file+ "\tsfn: " +sfn +"\tError: " +error)
 
-    def drain(self): 
+    def drain(self):
 	gid = None
         #filter by group
 	try:
@@ -2735,7 +2753,7 @@ class DrainReplicas(object):
 
         	if self.parameters['dryrun'] :
         		return
-		
+
         	for i in range(0,self.parameters['nthreads'] ):
                 	thread = DrainThread(self.interpreter, i,self.parameters)
                 	thread.setDaemon(True)
@@ -2751,9 +2769,9 @@ class DrainReplicas(object):
 			self.interpreter.ok("Move Process completed\n")
 		else:
 			self.interpreter.ok("Drain Process completed\n")
-                
+
 		self.printDrainErrors()
-		
+
         except Exception, e:
                 return self.interpreter.error(e.__str__())
 
@@ -2763,12 +2781,12 @@ class DrainPoolCommand(ShellCommand):
 
 The drainpool command accepts the following parameters:
 
-* <poolname>		: the pool to drain 
+* <poolname>		: the pool to drain
 * group		<groupname>	: the group the files to drain belongs to  (optional, default = ALL)
 * size		<size>		: the percentage of size to drain (optional, default = 100)
 * nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
 * dryrun		<true/false>	: if set to true just print the drain statistics (optional, default = true)"""
-    
+
     def _init(self):
         self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 					'*Oparameter:group:size:nthreads:dryrun',  '*?value',
@@ -2781,14 +2799,14 @@ The drainpool command accepts the following parameters:
             return self.error('There is no pool manager.')
 	if 'dpm2' not in sys.modules:
             return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
-	
+
 	adminUserName = Util.checkConf()
 	if not adminUserName:
             return self.error("DPM configuration is not correct")
 
 	if len(given)%2 == 0:
             return self.error("Incorrect number of parameters")
-	
+
 	#default
 	parameters = {}
 	parameters['group'] = 'ALL'
@@ -2818,7 +2836,7 @@ The drainpool command accepts the following parameters:
                                         parameters['dryrun'] = False
 	except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-	
+
 	#instantiating DPMDB
 	try:
 		db = DPMDB()
@@ -2836,16 +2854,16 @@ The drainpool command accepts the following parameters:
         	for pool in pools:
 			if pool.name==poolname:
 				poolToDrain = pool
-			else: 
+			else:
 		        	poolForDraining = pool
 		if poolToDrain is None:
 			return self.error("The poolname to drain has not been found in the configuration");
 		if poolForDraining  is None:
-			return self.error("The poolname for draining has not been found in the configuration");	
-	
+			return self.error("The poolname for draining has not been found in the configuration");
+
 		listFStoDrain = db.getFilesystems(poolToDrain.name)
 
-		
+
 		#step 1 : set as READONLY all FS in the pool to drain
 		if not parameters['dryrun']:
 			 for fs in listFStoDrain:
@@ -2858,10 +2876,10 @@ The drainpool command accepts the following parameters:
 			Util.printComments(self.interpreter)
 		self.ok("Calculating Replicas to Drain..")
                 self.ok()
-				
+
 		#step 2 : get all FS associated to the pool to drain and get the list of replicas
 		listTotalFiles = db.getReplicasInPool(poolToDrain.name)
-		
+
 		#step 3 : for each file call the drain method of DrainFileReplica
 		self.interpreter.replicaQueue = Queue.Queue(len(listTotalFiles))
 		self.interpreter.replicaQueue.queue.clear()
@@ -2878,7 +2896,7 @@ class DrainFSCommand(ShellCommand):
 
 The drainfs command accepts the following parameters:
 
-* <servername>		: the FQDN of the server to drain  
+* <servername>		: the FQDN of the server to drain
 * group		<groupname>	: the group the files to drain belongs to  (optional, default = ALL)
 * size		<size>		: the percentage of size to drain (optional, default = 100)
 * nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
@@ -2887,8 +2905,8 @@ The drainfs command accepts the following parameters:
     def _init(self):
         self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
 						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',	
-						      '*Oparameter:group:size:nthreads:dryrun',  '*?value' ] 
+						      '*Oparameter:group:size:nthreads:dryrun',  '*?value',
+						      '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
@@ -2948,7 +2966,7 @@ The drainfs command accepts the following parameters:
 
 		fsToDrain = None
 		doDrain = False
-		
+
                 for pool in pools:
 	        	listFS = db.getFilesystems(pool.name)
 			for fs in listFS:
@@ -2971,7 +2989,7 @@ The drainfs command accepts the following parameters:
         	                pass
                 	else:
                         	self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
-                        	return	
+                        	return
 		else:
 			Util.printComments(self.interpreter)
 		self.ok("Calculating Replicas to Drain..")
@@ -2983,7 +3001,7 @@ The drainfs command accepts the following parameters:
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
 		self.interpreter.replicaQueue.queue.clear()
 		self.interpreter.replicaQueueLock = threading.Lock()
-		
+
 		self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
 		self.drainProcess.drain()
 
@@ -2995,7 +3013,7 @@ class DrainServerCommand(ShellCommand):
 
 The drainserver command accepts the following parameters:
 
-* <servername			: the FQDN of the server to drain  
+* <servername			: the FQDN of the server to drain
 * group		<groupname>	: the group the files to drain belongs to (optional, default = ALL)
 * size		<size>		: the percentage of size to drain (optional, default = 100)
 * nthreads		<threads>	: the number of threads to use in the drain process (optional, default = 5)
@@ -3049,7 +3067,7 @@ The drainserver command accepts the following parameters:
 			elif given[i] == "dryrun":
 				if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
 	                                parameters['dryrun'] = False
-			
+
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -3109,4 +3127,3 @@ The drainserver command accepts the following parameters:
                 self.drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
