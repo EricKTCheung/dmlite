@@ -95,7 +95,7 @@ void Catalog::setChecksum(const std::string &path, const std::string &csumtype, 
 
 void Catalog::getChecksum(const std::string& path,
                           const std::string& csumtype,
-                          std::string& csumvalue, const bool allowcalc, const int waitsecs) throw (DmException) {
+                          std::string& csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException) {
                           // We can also pass a long checksum name (e.g. checksum.adler32)
 
   // Gets a checksum of the required type. Utility function
@@ -125,7 +125,7 @@ void Catalog::getChecksum(const std::string& path,
   
   // If we did not find the wanted chksum in the hash, then we may want
   // to calculate it in a plugin that is more specialized than this one
-  if (allowcalc) {
+  if (forcerecalc) {
     
       throw DmException(EINVAL, "'" + csumtype + "' cannot be calculated by the base Catalog implementation. You may want to use a more specialized plugin.");
     

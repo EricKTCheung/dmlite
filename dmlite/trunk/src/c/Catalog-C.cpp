@@ -286,14 +286,14 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
 
 int dmlite_getchecksum(dmlite_context* context, const char* path,
                  const char* csumtype, char* csumvalue, int maxcksumlen,
-                 const int allowcalc, const int waitsecs) {
+                 const int forcerecalc, const int waitsecs) {
   
   TRY(context, getchecksum)
   NOT_NULL(path);
   NOT_NULL(csumtype);
   NOT_NULL(csumvalue);
   std::string csval;
-  context->stack->getCatalog()->getChecksum(path, csumtype, csval, allowcalc, waitsecs);
+  context->stack->getCatalog()->getChecksum(path, csumtype, csval, forcerecalc, waitsecs);
   strncpy(csumvalue, csval.c_str(), maxcksumlen-1);
   csumvalue[maxcksumlen-1] = '\0';
   CATCH(context, getchecksum)

@@ -8,6 +8,8 @@
 #include "pydmlite.h"
 #include "catalogwrapper.cpp"
 
+void wrapperGetChecksum(Catalog *catalog, const std::string& path, const std::string& csumtype, StringWrapper &csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException) { catalog->getChecksum(path, csumtype, csumvalue.s, forcerecalc, waitsecs); }
+
 void export_catalog()
 {
     class_<CatalogWrapper, bases< BaseInterface >, boost::noncopyable >("Catalog", no_init)
@@ -30,6 +32,8 @@ void export_catalog()
         .def("setSize", &Catalog::setSize)
         .def("setChecksum", &Catalog::setChecksum)
         .def("setAcl", &Catalog::setAcl)
+
+        .def("getChecksum",  &wrapperGetChecksum)
 
         .def("utime", &Catalog::utime)
         .def("getComment", &Catalog::getComment)
@@ -54,8 +58,12 @@ void export_catalog()
     class_<CatalogFactoryWrapper, bases< BaseFactory >, boost::noncopyable>("CatalogFactory", no_init)
         .def("createCatalog", static_cast< Catalog*(CatalogFactoryWrapper::*)(PluginManager*) > (&CatalogFactoryWrapper::createCatalog), return_value_policy<manage_new_object>())
         ;
-    
+
 
     class_<DirectoryWrapper, boost::noncopyable >("Directory", no_init)
         ;
+
+    class_<StringWrapper, boost::noncopyable >("StringWrapper", init<>())
+        .def_readwrite("s", &StringWrapper::s);
+
 }
