@@ -44,7 +44,7 @@ namespace dmlite {
 
     void        symlink (const std::string&, const std::string&) throw (DmException);
     std::string readLink(const std::string& path) throw (DmException);
-    
+
     void unlink(const std::string&)                     throw (DmException);
 
     void create(const std::string&, mode_t) throw (DmException);
@@ -56,6 +56,9 @@ namespace dmlite {
     void setSize    (const std::string&, size_t) throw (DmException);
     void setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
 
+    void getChecksum(const std::string& path, const std::string& csumtype,
+                     std::string& csumvalue, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+
     void setAcl(const std::string&, const Acl&) throw (DmException);
 
     void utime(const std::string&, const struct utimbuf*) throw (DmException);
@@ -64,7 +67,7 @@ namespace dmlite {
     void        setComment(const std::string&, const std::string&) throw (DmException);
 
     void setGuid(const std::string&, const std::string&) throw (DmException);
-    
+
     void updateExtendedAttributes(const std::string&,
                                   const Extensible&) throw (DmException);
 
@@ -91,4 +94,3 @@ namespace dmlite {
 };
 
 #endif	// PROFILERCATALOG_H
-
