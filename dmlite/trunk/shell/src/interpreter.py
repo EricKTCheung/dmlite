@@ -1038,15 +1038,20 @@ class ChGrpCommand(ShellCommand):
 class GetChecksumCommand(ShellCommand):
   """Get or calculate file checksum"""
   def _init(self):
-    self.parameters = ['Dfile', '*checksumtype']
+    self.parameters = ['Dfile', '*checksumtype', '*?forcerecalc']
 
   def _execute(self, given):
     if self.interpreter.authn is None:
       return self.error('There is no Authentification interface.')
 
+    forcerecalc = False
+    if len(given) > 2 and (given[2] == "false" or given[2] == "1"):
+        forcerecalc = True
+
     try:
       csumvalue = pydmlite.StringWrapper()
-      self.interpreter.catalog.getChecksum(given[0], given[1], csumvalue, False, 5)
+
+      self.interpreter.catalog.getChecksum(given[0], given[1], csumvalue, forcerecalc, 15)
       return self.ok(str(given[1]) + ': ' + str(csumvalue.s))
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))

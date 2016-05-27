@@ -379,7 +379,7 @@ void DomeStatus::tickChecksums() {
 
     // send dochksum to the disk to initiate calculation
     Log(Logger::Lvl3, domelogmask, domelogname, "Contacting disk server " << server << " for checksum calculation.");
-    std::string diskurl = "https://" + server + "/domedisk/" + lfn;
+    std::string diskurl = "https://" + server + "/domedisk/";
 
     DomeTalker talker(*davixPool, &creds, diskurl,
                       "POST", "dome_dochksum");
@@ -388,6 +388,7 @@ void DomeStatus::tickChecksums() {
     params.put("checksum-type", checksumtype);
     params.put("update-lfn-checksum", DomeUtils::bool_to_str(updateLfnChecksum));
     params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
+    params.put("lfn", lfn);
 
     if(!talker.execute(params)) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Error when issuing dome_dochksum: " << talker.err());
