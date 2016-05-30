@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 typedef struct dmlite_dir dmlite_dir;
-  
+
 /**
  * @brief         Changes the working dir.
  * @param context The DM context.
@@ -224,14 +224,15 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
  * @param csumtype  The wanted checksum type (CS, AD or MD. We can also pass a long checksum name (e.g. checksum.adler32))
  * @param csumvalue The wanted checksum value will be written into this string. Make sure it has enough space.
  * @param maxcksumlen Max allowed length for a checksum, to avoid buffer overflows.
+ * @param pfn       Optional: the corresponding replica for which to calculate a checksum
  * @param forcerecalc True if nonzero. Force recalculation of the checksum (may take long and return EAGAIN)
- * @param waitsecs      Seconds to wait for a checksum to be calculated. Returns EAGAIN if timeouts. Set to 0 for blocking behavior. 
+ * @param waitsecs  Seconds to wait for a checksum to be calculated. Returns EAGAIN if timeouts. Set to 0 for blocking behavior.
  * @return          0 on success, error code otherwise.
  */
 
 int dmlite_getchecksum(dmlite_context* context, const char* path,
                  const char* csumtype, char* csumvalue, const int maxcksumlen,
-                 const int forcerecalc, const int waitsecs);
+                 const char* pfn, const int forcerecalc, const int waitsecs);
 
 /**
  * @brief          Changes the ACL of a file.

@@ -589,13 +589,14 @@ void MemcacheCatalog::setChecksum(const std::string& path,
 void MemcacheCatalog::getChecksum(const std::string& path,
                        const std::string& csumtype,
                        std::string& csumvalue,
+                       const std::string& pfn,
                        const bool forcerecalc,
                        const int waitsecs) throw (DmException)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(GETCHECKSUM_DELEGATE);
   std::string absPath = getAbsolutePath(path);
-  DELEGATE(getChecksum, absPath, csumtype, csumvalue, forcerecalc, waitsecs);
+  DELEGATE(getChecksum, absPath, csumtype, csumvalue, pfn, forcerecalc, waitsecs);
   safeDelMemcachedFromKey(keyFromString(key_prefix[PRE_STAT], absPath));
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }

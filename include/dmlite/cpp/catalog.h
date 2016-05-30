@@ -21,20 +21,20 @@ namespace dmlite {
   // Forward declarations.
   class StackInstance;
   class PluginManager;
-  
+
   /// Typedef for directories.
   struct Directory { virtual ~Directory(); };
-  
+
   /// Interface for Catalog (Namespaces).
   class Catalog: public virtual BaseInterface {
-   public:    
+   public:
     /// Destructor.
     virtual ~Catalog();
 
     /// Change the working dir. Future not-absolute paths will use this as root.
     /// @param path The new working dir.
     virtual void changeDir(const std::string& path) throw (DmException);
-    
+
     /// Get the current working dir.
     /// @return The current working dir.
     virtual std::string getWorkingDir(void) throw (DmException);
@@ -83,7 +83,7 @@ namespace dmlite {
     /// @param symlink The new access path.
     virtual void symlink(const std::string& path,
                          const std::string& symlink) throw (DmException);
-    
+
     /// Returns the path pointed by the symlink path
     /// @param path The symlink file.
     /// @return     The symlink target.
@@ -137,11 +137,12 @@ namespace dmlite {
     /// @param csumtype      The checksum type (CS, AD or MD. We can also pass a long checksum name (e.g. checksum.adler32)).
     /// @param csumvalue     The checksum value.
     /// @param forcerecalc   Force recalculation of the checksum (may take long and throw EAGAIN)
-    /// @param waitsecs      Seconds to wait for a checksum to be calculated. Throws EAGAIN if timeouts. Set to 0 for blocking behavior.                         
+    /// @param waitsecs      Seconds to wait for a checksum to be calculated. Throws EAGAIN if timeouts. Set to 0 for blocking behavior.
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
-                             std::string& csumvalue, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
-                             
+                             std::string& csumvalue,
+                             const std::string& pfn, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+
     /// Set the ACLs
     /// @param path The file to modify.
     /// @param acl  The Access Control List.
@@ -170,7 +171,7 @@ namespace dmlite {
     /// @param guid The new GUID.
     virtual void setGuid(const std::string& path,
                          const std::string &guid) throw (DmException);
-    
+
     /// Update extended metadata on the catalog.
     /// @param path The file to update.
     /// @param attr The extended attributes struct.
@@ -211,7 +212,7 @@ namespace dmlite {
     /// Remove a directory.
     /// @param path The path of the directory to remove.
     virtual void removeDir(const std::string& path) throw (DmException);
-    
+
     /// Get a replica.
     /// @param rfn The replica file name.
     virtual Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
@@ -230,7 +231,7 @@ namespace dmlite {
 
    protected:
     // Stack instance is allowed to instantiate catalogs
-    friend class StackInstance;  
+    friend class StackInstance;
 
     /// Children of CatalogFactory are allowed to instantiate too (decorator)
     static Catalog* createCatalog(CatalogFactory* factory,

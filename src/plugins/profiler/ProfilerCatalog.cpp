@@ -228,7 +228,8 @@ void ProfilerCatalog::setChecksum(const std::string& path, const std::string& cs
 }
 
 void ProfilerCatalog::getChecksum(const std::string& path, const std::string& csumtype,
-              std::string& csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException)
+              std::string& csumvalue, const std::string &pfn, const bool forcerecalc,
+              const int waitsecs) throw (DmException)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname,
           "path: " << path <<
@@ -237,7 +238,7 @@ void ProfilerCatalog::getChecksum(const std::string& path, const std::string& cs
           ", waitsecs: " << waitsecs
         );
   //sendUserIdentOrNOP();
-  PROFILE(getChecksum, path, csumtype, csumvalue, forcerecalc, waitsecs);
+  PROFILE(getChecksum, path, csumtype, csumvalue, pfn, forcerecalc, waitsecs);
 }
 
 

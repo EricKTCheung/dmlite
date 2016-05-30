@@ -49,7 +49,9 @@ namespace dmlite {
 
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
-                             std::string& csumvalue, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+                             std::string& csumvalue,
+                             const std::string& pfn,
+                             const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
    private:
     Catalog *decorated_;

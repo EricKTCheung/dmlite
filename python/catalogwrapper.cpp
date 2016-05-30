@@ -38,9 +38,6 @@
         virtual void setChecksum(const std::string& path, const std::string& csumtype, const std::string& csumvalue) throw (DmException) { this->get_override("setChecksum")(path, csumtype, csumvalue); }
         virtual void setAcl(const std::string& path, const std::vector<Acl>& acls) throw (DmException) { this->get_override("setAcl")(path, acls); }
 
-        // void wrapperGetChecksum(const std::string& path, const std::string& csumtype, const bool forcerecalc, const int waitsecs) throw (DmException) { std::string s; this->getChecksum(path, csumtype, s, forcerecalc, waitsecs); }
-        // void wrapperGetChecksum() throw (DmException) { std::string s; this->get_override("getChecksum")("", "", s, false, 5); }
-
         virtual void utime(const std::string& path, const struct utimbuf* buf) throw (DmException) { this->get_override("utime")(path, buf); }
         virtual std::string getComment(const std::string& path) throw (DmException) { return this->get_override("getComment")(path); }
         virtual void setComment(const std::string& path, const std::string& comment) throw (DmException) { this->get_override("setComment")(path, comment); }
