@@ -1038,7 +1038,7 @@ class ChGrpCommand(ShellCommand):
 class GetChecksumCommand(ShellCommand):
   """Get or calculate file checksum"""
   def _init(self):
-    self.parameters = ['Dfile', '*checksumtype', '*?forcerecalc']
+    self.parameters = ['Dfile', '*checksumtype', '*?forcerecalc' '*?pfn']
 
   def _execute(self, given):
     if self.interpreter.authn is None:
@@ -1048,16 +1048,16 @@ class GetChecksumCommand(ShellCommand):
     if len(given) > 2 and (given[2] == "false" or given[2] == "1"):
         forcerecalc = True
 
+    pfn = ""
+    if len(given) > 3:
+        pfn = given[3]
+
     try:
       csumvalue = pydmlite.StringWrapper()
-
       self.interpreter.catalog.getChecksum(given[0], given[1], csumvalue, forcerecalc, 15)
       return self.ok(str(given[1]) + ': ' + str(csumvalue.s))
     except Exception, e:
       return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
-
-
 
 class ChecksumCommand(ShellCommand):
   """Set or read file checksums. (DEPRECATED)"""

@@ -8,7 +8,7 @@
 #include "pydmlite.h"
 #include "catalogwrapper.cpp"
 
-void wrapperGetChecksum(Catalog *catalog, const std::string& path, const std::string& csumtype, StringWrapper &csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException) { catalog->getChecksum(path, csumtype, csumvalue.s, forcerecalc, waitsecs); }
+void wrapperGetChecksum(Catalog *catalog, const std::string& path, const std::string& csumtype, StringWrapper &csumvalue, const std::string &pfn, const bool forcerecalc, const int waitsecs) throw (DmException) { catalog->getChecksum(path, csumtype, csumvalue.s, pfn, forcerecalc, waitsecs); }
 
 void export_catalog()
 {

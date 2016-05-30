@@ -57,7 +57,8 @@ namespace dmlite {
     void setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
 
     void getChecksum(const std::string& path, const std::string& csumtype,
-                     std::string& csumvalue, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+                     std::string& csumvalue, const std::string& pfn,
+                     const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
     void setAcl(const std::string&, const Acl&) throw (DmException);
 

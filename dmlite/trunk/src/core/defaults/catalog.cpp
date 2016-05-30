@@ -62,40 +62,42 @@ NOT_IMPLEMENTED(void Catalog::setOwner(const std::string&, uid_t, gid_t, bool) t
 NOT_IMPLEMENTED(void Catalog::setSize(const std::string&, size_t) throw (DmException));
 
 void Catalog::setChecksum(const std::string &path, const std::string &csumtype, const std::string &csumvalue) throw (DmException) {
-  
+
   // This is a convenience function, which could be overridden, but normally should not
   // We translate a legacy checksum (e.g. AD for adler32)  into the proper extended xattrs to be set
   // (e.g. checksum.adler32)
   // We can also pass a long checksum name (e.g. checksum.adler32)
-  
+
   Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " csumtype:" << csumtype << " csumvalue:" << csumvalue);
-  
+
   ExtendedStat ckx = this->extendedStat(path);
-  
+
   std::string k = csumtype;
-  
+
   // If it looks like a legacy chksum then try to xlate its name
   if (csumtype.length() == 2)
     k = checksums::fullChecksumName(csumtype);
-  
+
   if (!checksums::isChecksumFullName(k))
     throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
-    
+
   if (csumvalue.length() == 0)
     throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
-  
-  
+
+
   ckx[k] = csumvalue;
   updateExtendedAttributes(path, ckx);
-  
+
   Log(Logger::Lvl3, Logger::unregistered, Logger::unregisteredname, "Exiting");
-  
+
 }
 
 
 void Catalog::getChecksum(const std::string& path,
                           const std::string& csumtype,
-                          std::string& csumvalue, const bool forcerecalc, const int waitsecs) throw (DmException) {
+                          std::string& csumvalue,
+                          const std::string &pfn,
+                          const bool forcerecalc, const int waitsecs) throw (DmException) {
                           // We can also pass a long checksum name (e.g. checksum.adler32)
 
   // Gets a checksum of the required type. Utility function
@@ -104,33 +106,33 @@ void Catalog::getChecksum(const std::string& path,
   // Other backends (e.g. DOME) may  support calculating it on the fly. In this case this func will have to be specialised in a plugin
 
   Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path:" << path);
-  
+
   ExtendedStat ckx = this->extendedStat(path);
-  
+
   std::string k = csumtype;
-  
+
   // If it looks like a legacy chksum then try to xlate its name
   if (csumtype.length() == 2)
     k = checksums::fullChecksumName(csumtype);
-                            
+
   if (!checksums::isChecksumFullName(k))
     throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
-    
+
   if (csumvalue.length() == 0)
     throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
-  
+
   csumvalue = ckx.getString((const std::string)k, "");
-  
+
   if (csumvalue.length() > 0) return;
-  
+
   // If we did not find the wanted chksum in the hash, then we may want
   // to calculate it in a plugin that is more specialized than this one
   if (forcerecalc) {
-    
+
       throw DmException(EINVAL, "'" + csumtype + "' cannot be calculated by the base Catalog implementation. You may want to use a more specialized plugin.");
-    
+
   }
-  
+
 }
 
 NOT_IMPLEMENTED(void Catalog::setAcl(const std::string&, const Acl&) throw (DmException));

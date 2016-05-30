@@ -130,7 +130,7 @@ int dmlite_accessr(dmlite_context* context, const char* rfn, int mode)
 int dmlite_addreplica(dmlite_context* context, const dmlite_replica* replica)
 {
   TRY(context, addreplica)
-  NOT_NULL(replica);  
+  NOT_NULL(replica);
   dmlite::Replica replicapp;
   dmlite_creplica_to_cppreplica(replica, &replicapp);
   context->stack->getCatalog()->addReplica(replicapp);
@@ -170,7 +170,7 @@ int dmlite_getreplicas(dmlite_context* context, const char* path, unsigned *nRep
   for (unsigned i = 0; i < *nReplicas; ++i) {
     (*fileReplicas)[i].extra = new dmlite_any_dict();
     dmlite_cppreplica_to_creplica(replicaSet[i], &((*fileReplicas)[i]));
-  }  
+  }
 
   CATCH(context, getreplicas)
 }
@@ -195,7 +195,7 @@ int dmlite_symlink(dmlite_context* context,
   TRY(context, symlink)
   context->stack->getCatalog()->symlink(oldPath, newPath);
   CATCH(context, symlink)
-}  
+}
 
 
 
@@ -286,14 +286,14 @@ int dmlite_setfsizec(dmlite_context* context, const char* path, uint64_t filesiz
 
 int dmlite_getchecksum(dmlite_context* context, const char* path,
                  const char* csumtype, char* csumvalue, int maxcksumlen,
-                 const int forcerecalc, const int waitsecs) {
-  
+                 const char* pfn, const int forcerecalc, const int waitsecs) {
+
   TRY(context, getchecksum)
   NOT_NULL(path);
   NOT_NULL(csumtype);
   NOT_NULL(csumvalue);
   std::string csval;
-  context->stack->getCatalog()->getChecksum(path, csumtype, csval, forcerecalc, waitsecs);
+  context->stack->getCatalog()->getChecksum(path, csumtype, csval, pfn, forcerecalc, waitsecs);
   strncpy(csumvalue, csval.c_str(), maxcksumlen-1);
   csumvalue[maxcksumlen-1] = '\0';
   CATCH(context, getchecksum)
@@ -309,11 +309,11 @@ int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries,
   dmlite::Acl acl;
   for (unsigned i = 0; i < nEntries; ++i) {
     dmlite::AclEntry e;
-    
+
     e.id   = acl[i].id;
     e.perm = acl[i].perm;
     e.type = acl[i].type;
-    
+
     acl.push_back(e);
   }
 
@@ -409,13 +409,13 @@ dmlite_dir* dmlite_opendir(dmlite_context* context, const char* path)
   TRY(context, opendir)
   NOT_NULL(path);
   dmlite::Directory* d = context->stack->getCatalog()->openDir(path);
-  
+
   dmlite_dir* dirp = new dmlite_dir();
   dirp->dir = d;
   memset(&dirp->xstat, 0, sizeof(dirp->xstat));
   dirp->xstat.extra = dmlite_any_dict_new();
-  
-  return dirp;  
+
+  return dirp;
   CATCH_POINTER(context, opendir)
 }
 
@@ -450,7 +450,7 @@ struct dmlite_xstat* dmlite_readdirx(dmlite_context* context, dmlite_dir* dir)
   dmlite::ExtendedStat* ex = context->stack->getCatalog()->readDirx(dir->dir);
   if (ex == NULL)
     return NULL;
-  
+
   dmlite_cppxstat_to_cxstat(*ex, &dir->xstat);
   return &dir->xstat;
   CATCH_POINTER(context, readdirx)
@@ -510,4 +510,3 @@ int dmlite_updatereplica(dmlite_context* context, const dmlite_replica* replica)
   context->stack->getCatalog()->updateReplica(replicapp);
   CATCH(context, updatereplica)
 }
-
