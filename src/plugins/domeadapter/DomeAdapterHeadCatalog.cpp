@@ -67,8 +67,7 @@ DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *fa
 
 DomeAdapterHeadCatalog::~DomeAdapterHeadCatalog()
 {
-  if (this->decorated_ != 0x00)
-    delete this->decorated_;
+  // Nothing, dummy catalog deletes the nested catalog
 }
 
 std::string DomeAdapterHeadCatalog::getImplId() const throw ()
