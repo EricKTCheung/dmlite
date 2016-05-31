@@ -708,7 +708,10 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   }
 
 
-
+  // For backward compatibility with the DPM daemon, we also update its
+  // spacetoken counters, adjusting u_space
+  {
+  }
 
 
   int rc = DomeReq::SendSimpleResp(request, 200, SSTR("dome_putdone successful."));
