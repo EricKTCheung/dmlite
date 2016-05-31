@@ -114,6 +114,9 @@ public:
   /// An ID
   int64_t rowid;
 
+  /// Spacetoken uuid. Used for backward compatibility
+  std::string s_token;
+  
   /// Spacetoken human name
   std::string u_token;
   

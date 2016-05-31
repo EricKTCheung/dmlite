@@ -177,11 +177,11 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
 {
   
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-  char buf1[1024], buf2[1024], buf3[1024];
+  char buf1[1024], buf2[1024], buf3[1024], buf4[1024];
   
   // Get it from the DB, using path and poolname as keys
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT rowid, u_token, t_space, poolname, path\
+                 "SELECT rowid, u_token, t_space, poolname, path, s_token\
                  FROM dpm_space_reserv WHERE path = ? AND poolname = ?"
   );
   
@@ -202,6 +202,9 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
   memset(buf2, 0, sizeof(buf2));
   stmt.bindResult(4, buf2, 256);
 
+  memset(buf4, 0, sizeof(buf4));
+  stmt.bindResult(5, buf4, 256);
+  
   int cnt = 0;
   try {
         
@@ -211,8 +214,9 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
       qtk.u_token = buf1;
       qtk.path = buf2;
       qtk.poolname = buf3;
+      qtk.s_token = buf4;
       
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid <<
+      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid << " s_token:" << qtk.s_token << 
       " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path);
       
       cnt++;
@@ -232,13 +236,13 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT rowid, u_token, t_space, poolname, path\
+                 "SELECT rowid, u_token, t_space, poolname, path, s_token\
                  FROM dpm_space_reserv"
   );
   stmt.execute();
   
   DomeQuotatoken qt;
-  char buf1[1024], buf2[1024], buf3[1024];
+  char buf1[1024], buf2[1024], buf3[1024], buf4[1024];
   
   stmt.bindResult(0, &qt.rowid);
   
@@ -253,7 +257,9 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   memset(buf2, 0, sizeof(buf2));
   stmt.bindResult(4, buf2, 256);
   
-
+  memset(buf4, 0, sizeof(buf4));
+  stmt.bindResult(5, buf4, 256);
+  
   int cnt = 0;
   try {
         
@@ -263,8 +269,9 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       qt.u_token = buf1;
       qt.path = buf2;
       qt.poolname = buf3;
+      qt.s_token = buf4;
       
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid <<
+      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid << " s_token:" << qt.s_token << 
       " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname << "' path:" << qt.path);
       
       st.insertQuotatoken(qt);
@@ -284,15 +291,14 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   
   // First try updating it. Makes sense just to overwrite only description, space and pool
   Statement stmt(conn_, "dpm_db", 
-                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ? , g_space = ? , u_space = ?\
+                 "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, s_token = ?\
                   WHERE path = ? AND poolname = ?");
   
   stmt.bindParam(0, qtk.u_token);
   stmt.bindParam(1, qtk.t_space);
-  stmt.bindParam(2, qtk.t_space);
-  stmt.bindParam(3, qtk.t_space);
-  stmt.bindParam(4, qtk.path);
-  stmt.bindParam(5, qtk.poolname);
+  stmt.bindParam(2, qtk.s_token);
+  stmt.bindParam(3, qtk.path);
+  stmt.bindParam(4, qtk.poolname);
   
   bool ok = true;
   long unsigned int nrows;
@@ -391,6 +397,50 @@ int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   
   return 0;
 }
+
+
+
+/// Add/subtract an integer to the u_space of a quota(space)token
+/// u_space is the free space for the legacy DPM daemon, to be decremented on write
+int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+    " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+  
+  // First try updating it. Makes sense just to overwrite only description, space and pool
+  Statement stmt(conn_, "dpm_db", 
+                 "UPDATE dpm_space_reserv\
+                  SET u_space = u_space + ( ? )\
+                  WHERE path = ? AND poolname = ?");
+  stmt.bindParam(0, increment);
+  stmt.bindParam(1, qtk.path);
+  stmt.bindParam(2, qtk.poolname);
+  
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  
+  if (!ok) {
+    Err( domelogname, "Could not update u_space quotatoken from DB. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' increment: " << increment << " nrows: " << nrows );
+      return 1;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken u_space updated. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' increment: " << increment << " nrows: " << nrows; );
+  
+  return 0;
+};
+
+
+
+
+
 
 /// Removes a pool and all the related filesystems
 int DomeMySql::rmPool(std::string &poolname)  {
