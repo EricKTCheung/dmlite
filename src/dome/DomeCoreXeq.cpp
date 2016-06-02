@@ -199,7 +199,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "The pool hint and the host hint are mutually exclusive.");
   }
 
-  // default minfreespace is 4GB
+  // default minfreespace is 4GB. Gets overridden by the individual pool's value
   long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
 
   // use quotatokens?
@@ -208,6 +208,20 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     if(!status.whichQuotatokenForLfn(lfn, token)) {
       return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No quotatokens match lfn, and no hints were given.");
     }
+    
+    // Check if the quotatoken admits writes for the groups the client belongs to
+    if(!status.canwriteintoQuotatoken(req, token)) {
+      std::string s;
+      for (int i = 0; i < req.creds.fqans.size(); i++) {
+        s += req.creds.fqans[i];
+        if (i < req.creds.fqans.size()-1) s += ", ";
+      }
+      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << s << "' cannot write to quotatoken '" << token.s_token << "'");
+      Log(Logger::Lvl1, domelogmask, domelogname, err);
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
+    }
+    
+    
     if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
       std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space");
       Log(Logger::Lvl1, domelogmask, domelogname, err);

@@ -30,6 +30,8 @@
 #include "utils/DavixPool.h"
 #include "DomeDmlitePool.h"
 
+class DomeReq;
+class DomeQuotatoken;
 
 /// We describe a filesystem where to put data. We also keep dynamic information here, e.g. the free/used space
 class DomeFsInfo {
@@ -88,6 +90,9 @@ public:
     return ( ((pool_stype == 'V') || (pool_stype == 'v')) && (freespace > pool_defsize) );
   }
   
+  /// Check if the given write request can go to the given quotatoken
+  bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
+  
   // Default file size for blindly allocating a new file
   long pool_defsize;
   
@@ -129,7 +134,13 @@ public:
   /// Path prefix this structure is assigned to, in the quotatoken use case
   /// No trailing slash !
   std::string path;
+  
+  /// Groups that are allowed to write
+  std::vector<std::string> groupsforwrite;
 
+  /// uid/gid associated to this quotatoken
+  /// Details are not very clear at this time
+  int s_uid, s_gid;
 };
 
 
@@ -218,6 +229,8 @@ public:
   // does this file fit in our quotatoken?
   bool fitsInQuotatoken(const DomeQuotatoken &token, const size_t size);
 
+  bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
+  
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
   long getGlobalputcount();

@@ -236,13 +236,13 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   
   Statement stmt(conn_, "dpm_db", 
-                 "SELECT rowid, u_token, t_space, poolname, path, s_token\
+                 "SELECT rowid, u_token, t_space, poolname, path, s_token, groups, s_uid, s_gid\
                  FROM dpm_space_reserv"
   );
   stmt.execute();
   
   DomeQuotatoken qt;
-  char buf1[1024], buf2[1024], buf3[1024], buf4[1024];
+  char buf1[1024], buf2[1024], buf3[1024], buf4[1024], buf5[1024];
   
   stmt.bindResult(0, &qt.rowid);
   
@@ -260,6 +260,13 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   memset(buf4, 0, sizeof(buf4));
   stmt.bindResult(5, buf4, 256);
   
+  memset(buf5, 0, sizeof(buf5));
+  stmt.bindResult(6, buf5, 256);
+  
+  stmt.bindResult(7, &qt.s_uid);
+  
+  stmt.bindResult(8, &qt.s_gid);
+  
   int cnt = 0;
   try {
         
@@ -271,8 +278,18 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       qt.poolname = buf3;
       qt.s_token = buf4;
       
+      // parse the groups into a vector
+      std::stringstream ss( buf5 );
+      while( ss.good() ) {
+        std::string substr;
+        getline( ss, substr, ',' );
+        qt.groupsforwrite.push_back( substr );
+      }
+      
       Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid << " s_token:" << qt.s_token << 
-      " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname << "' path:" << qt.path);
+        " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname <<
+        "' groupsforwrite(" << qt.groupsforwrite.size() << ") : '" << buf5 <<
+        "'  path:" << qt.path);
       
       st.insertQuotatoken(qt);
       
