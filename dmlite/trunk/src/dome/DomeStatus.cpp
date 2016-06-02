@@ -27,12 +27,14 @@
 #include "DomeStatus.h"
 #include "DomeMysql.h"
 #include "DomeLog.h"
+#include "DomeReq.h"
 #include "utils/DomeUtils.h"
 #include "utils/Config.hh"
 #include <sys/vfs.h>
 #include <unistd.h>
 #include "utils/DomeTalker.h"
 #include <values.h>
+#include <algorithm>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
@@ -845,3 +847,18 @@ bool DomeStatus::isDNaKnownServer(std::string dn) {
   // We don't know this server
   return false;
 }
+
+
+
+bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
+  // True if one of the groups of the remote user matches the quotatk
+  for (int i = 0; i < token.groupsforwrite.size(); i++) {
+    if ( std::find(req.creds.fqans.begin(), req.creds.fqans.end(),
+          token.groupsforwrite[i]) != req.creds.fqans.end() )
+      return true;
+  }
+  
+  return false;
+}
+
+
