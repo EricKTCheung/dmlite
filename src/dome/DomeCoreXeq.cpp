@@ -203,6 +203,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
 
   // use quotatokens?
+  // TODO: more than quotatoken may match, they all should be considered
   if(pool.empty() && host.empty() && fs.empty()) {
     DomeQuotatoken token;
     if(!status.whichQuotatokenForLfn(lfn, token)) {
@@ -210,13 +211,15 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     }
     
     // Check if the quotatoken admits writes for the groups the client belongs to
+    // Please note that the clients' groups come through fastcgi,
+    // instead the groups in the quotatoken are in the form of gids
     if(!status.canwriteintoQuotatoken(req, token)) {
       std::string s;
-      for (int i = 0; i < req.creds.fqans.size(); i++) {
+      for (unsigned int i = 0; i < req.creds.fqans.size(); i++) {
         s += req.creds.fqans[i];
         if (i < req.creds.fqans.size()-1) s += ", ";
       }
-      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << s << "' cannot write to quotatoken '" << token.s_token << "'");
+      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << s << "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token << ")'");
       Log(Logger::Lvl1, domelogmask, domelogname, err);
       return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
     }

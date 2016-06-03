@@ -53,8 +53,8 @@ using namespace dmlite;
 
 DomeStatus::DomeStatus() {
   davixPool = NULL;
-  lastfscheck = lastreload = 0;
-
+  lastreloadusersgroups = lastfscheck = lastreload = 0;
+  
   struct addrinfo hints, *info, *p;
   int gai_result;
 
@@ -184,6 +184,19 @@ int DomeStatus::loadQuotatokens() {
   return sql.getSpacesQuotas(*this);
 }
 
+/// Helper function that reloads all the users from the DB. Returns 0 on failure
+int DomeStatus::loadUsersGroups() {
+  DomeMySql sql;
+  int cnt1, cnt2;
+  
+  cnt1 = sql.getUsers(*this);
+  if (!cnt1) return 0;
+  
+  cnt2 = sql.getGroups(*this);
+  if (!cnt2) return 0;
+  
+  return cnt1+cnt2;
+}
 
 int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
 
@@ -278,6 +291,15 @@ int DomeStatus::tick(time_t timenow) {
     loadQuotatokens();
 
     lastreload = timenow;
+  }
+  
+  if ( this->role == this->roleHead && timenow - lastreloadusersgroups >= CFG->GetLong("glb.reloadusersgroups", 60)) {
+    // At regular intervals, one minute or so,
+    // reloading the users and groups tables is a good idea
+    Log(Logger::Lvl4, domelogmask, domelogname, "Reloading users/groups.");
+    loadUsersGroups();
+    
+    lastreloadusersgroups = timenow;
   }
 
   if ( timenow - lastfscheck >= CFG->GetLong("glb.fscheckinterval", 60)) {
@@ -590,14 +612,14 @@ int DomeStatus::getQuotatoken(const std::string &path, const std::string &poolna
     if ( it->second.poolname == poolname ) {
       tk = it->second;
 
-      Log(Logger::Lvl4, domelogmask, domelogname, "Found quotatoken '" << it->second.u_token << "' of pool: '" <<
+      Log(Logger::Lvl3, domelogmask, domelogname, "Found quotatoken '" << it->second.u_token << "' of pool: '" <<
       it->second.poolname << "' matches path '" << path << "' quotatktotspace: " << it->second.t_space);
 
       return 0;
     }
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "No quotatoken found for pool: '" <<
+  Log(Logger::Lvl3, domelogmask, domelogname, "No quotatoken found for pool: '" <<
       poolname << "' path '" << path << "'");
   return 1;
 }
@@ -627,7 +649,7 @@ int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolna
     }
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "No quotatoken found for pool: '" <<
+  Log(Logger::Lvl3, domelogmask, domelogname, "No quotatoken found for pool: '" <<
       poolname << "' path '" << path << "'");
   return 1;
 }
@@ -774,6 +796,8 @@ bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
 
 // which quotatoken should apply to lfn?
 // return true and set the token, or return false if no tokens match
+// If more than one quotatokens match then the first one is selected
+// TODO: honour the fact that multiple quotatokens may match
 bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token) {
   Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "'");
 
@@ -798,11 +822,14 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
     path.erase(pos);
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
+  Log(Logger::Lvl3, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
   return false;
 }
 
-bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const size_t size) {
+bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size) {
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size);
+  
   // need to get used space of quotatoken
   long long totused;
 
@@ -820,7 +847,10 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const size_t size
   Log(Logger::Lvl4, domelogmask, domelogname, "Used space for quotatoken '" << token.u_token << "': " << totused);
   Log(Logger::Lvl4, domelogmask, domelogname, "Total space for quotatoken '" << token.u_token << "': " << token.t_space);
 
-  return (token.t_space > totused) && (token.t_space - totused) > size;
+  bool rc = ((token.t_space > totused) && (token.t_space - totused) > size);
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size << " rc: " << rc);
+  return rc;
 }
 
 bool DNMatchesHost(std::string dn, std::string host) {
@@ -851,14 +881,121 @@ bool DomeStatus::isDNaKnownServer(std::string dn) {
 
 
 bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
+  
+  
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  
   // True if one of the groups of the remote user matches the quotatk
-  for (int i = 0; i < token.groupsforwrite.size(); i++) {
+  for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
+    DmlitePoolHandler stack(dmpool);
+    
+    DomeGroupInfo gi;
+    char *endptr;
+    long int gid = strtol(token.groupsforwrite[i].c_str(), &endptr, 10);
+    if ( (*endptr) || (errno == ERANGE && (gid == LONG_MAX || gid == LONG_MIN))
+      || (errno != 0 && gid == 0)) {
+        Err(domelogname, "gid: '" << token.groupsforwrite[i] <<
+          "' in quotatoken '" << token.s_token << "' is not a gid");
+        return false;
+      }
+      
+      if (!getGroup(gid, gi)) {
+      Err(domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
+        gid << " unknown");
+      return false;
+    }
+    
     if ( std::find(req.creds.fqans.begin(), req.creds.fqans.end(),
-          token.groupsforwrite[i]) != req.creds.fqans.end() )
+          gi.groupname) != req.creds.fqans.end() )
+      Log(Logger::Lvl3, domelogmask, domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
+      gid << " can write in quotatoken " << token.s_token);
+   
       return true;
   }
   
+  Err(domelogname, "Cannot write in quotatoken " << token.s_token);
   return false;
 }
 
+/// Gets user info from uid. Returns 0 on failure
+int DomeStatus::getUser(int uid, DomeUserInfo &ui) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  try {
+    ui = usersbyuid.at(uid);
+  }
+  catch ( ... ) {
+    return 0;
+  }
+  
+  return 1;
+  
+}
 
+/// Gets user info from name. Returns 0 on failure
+int DomeStatus::getUser(std::string username, DomeUserInfo &ui) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  try {
+    ui = usersbyname.at(username);
+  }
+  catch ( ... ) {
+    return 0;
+  }
+    
+  return 1;
+    
+}
+/// Gets group info from uid. Returns 0 on failure
+int DomeStatus::getGroup(int gid, DomeGroupInfo &gi) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  try {
+    gi = groupsbygid.at(gid);
+  }
+  catch ( ... ) {
+    return 0;
+  }
+    
+  return 1;
+}
+/// Gets user info from name. Returns 0 on failure
+int DomeStatus::getGroup(std::string groupname, DomeGroupInfo &gi) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  try {
+    gi = groupsbyname.at(groupname);
+  }
+  catch ( ... ) {
+    return 0;
+  }
+    
+  return 1;
+}
+
+/// Inserts/overwrites an user
+int DomeStatus::insertUser(DomeUserInfo &ui) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  usersbyname[ui.username] = ui;
+  usersbyuid[ui.userid] = ui;
+  
+  return 0;
+}
+/// Inserts/overwrites a group
+int DomeStatus::insertGroup(DomeGroupInfo &gi) {
+  // lock status
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  groupsbygid[gi.groupid] = gi;
+  groupsbyname[gi.groupname] = gi;
+  
+  return 0;
+}
