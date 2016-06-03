@@ -302,6 +302,123 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   return cnt;
 }
 
+
+
+
+
+
+int DomeMySql::getGroups(DomeStatus &st)
+{
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
+  
+  Statement stmt(conn_, "cns_db", 
+                 "SELECT gid, groupname, banned, xattr\
+                 FROM Cns_groupinfo"
+  );
+  stmt.execute();
+  
+  DomeGroupInfo gi;
+  char buf1[1024], buf2[1024];
+  int banned;
+  
+  stmt.bindResult(0, &gi.groupid);
+  
+  memset(buf1, 0, sizeof(buf1));
+  stmt.bindResult(1, buf1, 256);
+  
+  stmt.bindResult(2, &banned);
+  
+  memset(buf2, 0, sizeof(buf2));
+  stmt.bindResult(3, buf2, 256);
+  
+  int cnt = 0;
+  {
+    boost::unique_lock<boost::recursive_mutex> l(st);
+    
+    
+    try {
+      
+      while ( stmt.fetch() ) {
+        
+        gi.groupname = buf1;
+        gi.xattr = buf2;
+        gi.banned = (banned != 0);
+        
+        Log(Logger::Lvl1, domelogmask, domelogname, " Fetched group. id:" << gi.groupid <<
+        " groupname:" << gi.groupname << " banned:" << gi.banned << " xattr: '" << gi.xattr);
+        
+        st.insertGroup(gi);
+        
+        cnt++;
+      }
+    }
+    catch ( ... ) { 
+      Err(domelogname, " Exception while reading groups. Groups read:" << cnt);
+    }
+    
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Groups read:" << cnt);
+  return cnt;
+}
+
+
+int DomeMySql::getUsers(DomeStatus &st)
+{
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
+  
+  Statement stmt(conn_, "cns_db", 
+                 "SELECT userid, username, banned, xattr\
+                 FROM Cns_userinfo"
+  );
+  stmt.execute();
+  
+  DomeUserInfo ui;
+  char buf1[1024], buf2[1024];
+  int banned;
+  
+  stmt.bindResult(0, &ui.userid);
+  
+  memset(buf1, 0, sizeof(buf1));
+  stmt.bindResult(1, buf1, 256);
+  
+  stmt.bindResult(2, &banned);
+  
+  memset(buf2, 0, sizeof(buf2));
+  stmt.bindResult(3, buf2, 256);
+  
+  int cnt = 0;
+  {
+    boost::unique_lock<boost::recursive_mutex> l(st);
+    
+    try {
+      
+      while ( stmt.fetch() ) {
+        
+        ui.username = buf1;
+        ui.xattr = buf2;
+        ui.banned = (banned != 0);
+        
+        Log(Logger::Lvl1, domelogmask, domelogname, " Fetched user. id:" << ui.userid <<
+        " username:" << ui.username << " banned:" << ui.banned << " xattr: '" << ui.xattr);
+        
+        st.insertUser(ui);
+        
+        cnt++;
+      }
+    }
+    catch ( ... ) { 
+      Err(domelogname, " Exception while reading users. Users read:" << cnt);
+    }
+    
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Users read:" << cnt);
+  return cnt;
+}
+
+
+
 int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );

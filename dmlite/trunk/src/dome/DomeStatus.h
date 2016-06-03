@@ -144,6 +144,43 @@ public:
 };
 
 
+/// Information about an user
+class DomeUserInfo {
+public:
+  
+  DomeUserInfo(): userid(-1), banned(false) {};
+  
+  /// The user id
+  int16_t userid;
+  
+  /// The username
+  std::string username;
+  
+  /// Tha banned status
+  bool banned;
+  
+  /// additional info
+  std::string xattr;
+};
+
+/// Information about a group
+class DomeGroupInfo {
+public:
+  
+  DomeGroupInfo(): groupid(-1), banned(false) {};
+  
+  /// The user id
+  int16_t groupid;
+  
+  /// The username
+  std::string groupname;
+  
+  /// Tha banned status
+  bool banned;
+  
+  /// additional info
+  std::string xattr;
+};
 
 
 /// Class that contains the internal status of the storage system, pools, disks, etc
@@ -184,13 +221,33 @@ public:
   /// when populating the filesystems
   std::set <std::string> servers;
   
+  /// Tables to quick translate users and groups. To access this the status must be locked!
+  std::map <int, DomeUserInfo> usersbyuid;
+  std::map <std::string, DomeUserInfo> usersbyname;
+  std::map <int, DomeGroupInfo> groupsbygid;
+  std::map <std::string, DomeGroupInfo> groupsbyname;
   
+  /// Inserts/overwrites an user
+  int insertUser(DomeUserInfo &ui);
+  /// Inserts/overwrites a group
+  int insertGroup(DomeGroupInfo &gi);
+  /// Gets user info from uid. Returns 0 on failure
+  int getUser(int uid, DomeUserInfo &ui);
+  /// Gets user info from name. Returns 0 on failure
+  int getUser(std::string username, DomeUserInfo &ui);
+  /// Gets group info from gid. Returns 0 on failure
+  int getGroup(int gid, DomeGroupInfo &gi);
+  /// Gets group info from name. Returns 0 on failure
+  int getGroup(std::string groupname, DomeGroupInfo &gi);
 
   /// Helper function that reloads all the filesystems from the DB
   int loadFilesystems();
 
   /// Helper function that reloads all the quotas from the DB
   int loadQuotatokens();
+  
+  /// Helper function that reloads all the users from the DB
+  int loadUsersGroups();
 
   /// Helper function that inserts a quotatoken or overwrites an existing one
   int insertQuotatoken(DomeQuotatoken &tk);
@@ -223,11 +280,14 @@ public:
   // disk node trusts head node as defined in the config file
   bool isDNaKnownServer(std::string dn);
   
-  /// Check which quotatokens apply to a given lfn
+  // which quotatoken should apply to lfn?
+  // return true and set the token, or return false if no tokens match
+  // If more than one quotatokens match then the first one is selected
+  // TODO: honour the fact that multiple quotatokens may match
   bool whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token);
   
   // does this file fit in our quotatoken?
-  bool fitsInQuotatoken(const DomeQuotatoken &token, const size_t size);
+  bool fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size);
 
   bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
   
@@ -261,6 +321,6 @@ public:
   
   DmlitePool *dmpool;
 private:
-  time_t lastreload, lastfscheck;
+  time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
 };

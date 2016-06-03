@@ -57,6 +57,10 @@ public:
   /// Loads spaces and quotas into the given status. Thread safe.
   int getSpacesQuotas(DomeStatus &st);
   
+  /// Loads users and groups into the given status. Thread safe.
+  int getGroups(DomeStatus &st);
+  int getUsers(DomeStatus &st);
+  
   /// Load from the DB, matching the given poolname and path
   int getQuotaTokenByKeys(DomeQuotatoken &qtk);
   
