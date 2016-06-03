@@ -240,6 +240,11 @@ public:
   /// Gets group info from name. Returns 0 on failure
   int getGroup(std::string groupname, DomeGroupInfo &gi);
 
+  /// A quick rendition of the grid mapfile, translating from user DN to VOMS group
+  /// The implementation of getIdMap should use this
+  std::multimap <std::string, std::string> gridmap;
+
+  
   /// Helper function that reloads all the filesystems from the DB
   int loadFilesystems();
 

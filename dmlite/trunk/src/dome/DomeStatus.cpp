@@ -38,6 +38,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
+#include <fstream>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -187,15 +188,26 @@ int DomeStatus::loadQuotatokens() {
 /// Helper function that reloads all the users from the DB. Returns 0 on failure
 int DomeStatus::loadUsersGroups() {
   DomeMySql sql;
-  int cnt1, cnt2;
   
-  cnt1 = sql.getUsers(*this);
-  if (!cnt1) return 0;
+  sql.getUsers(*this);
   
-  cnt2 = sql.getGroups(*this);
-  if (!cnt2) return 0;
+  sql.getGroups(*this);
   
-  return cnt1+cnt2;
+  // And now also load the gridmap file
+  std::ifstream in( CFG->GetString("head.gridmapfile", (char *)"/etc/lcgdm-mapfile").c_str() );
+  {
+    std::string dn, grp;
+    boost::unique_lock<boost::recursive_mutex> l(*this);
+    
+    while (in.good() && (in >> dn >> grp)) {
+      Log(Logger::Lvl4, domelogmask, domelogname, "Mapfile DN: " << dn << " -> " << grp);
+      gridmap.insert ( std::pair<std::string,std::string>(dn, grp) );
+    }
+    
+    return 1;
+  }
+  
+  
 }
 
 int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
