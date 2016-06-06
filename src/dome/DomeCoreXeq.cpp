@@ -214,12 +214,48 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     // Please note that the clients' groups come through fastcgi,
     // instead the groups in the quotatoken are in the form of gids
     if(!status.canwriteintoQuotatoken(req, token)) {
-      std::string s;
+      
+      // Prepare a complete error message that describes why the user can't write
+      
+      
+      std::string userfqans, tokengroups, s;
+      DomeGroupInfo gi;
+      
+      // Start prettyprinting the groups the user belongs to
       for (unsigned int i = 0; i < req.creds.fqans.size(); i++) {
-        s += req.creds.fqans[i];
-        if (i < req.creds.fqans.size()-1) s += ", ";
+        userfqans += req.creds.fqans[i];
+        if (status.getGroup(req.creds.fqans[i], gi)) {
+          userfqans += "(";
+          userfqans += gi.groupid;
+          userfqans += ")";
+        }
+        else
+          userfqans += "(<unknown group>)";
+          
+          
+        if (i < req.creds.fqans.size()-1) userfqans += ", ";
       }
-      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << s << "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token << ")'");
+      
+      // Then prettyprint the gids of the selected token
+      for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
+        int g = atoi(token.groupsforwrite[i].c_str());
+        if (status.getGroup(g, gi)) {
+          tokengroups += gi.groupname;
+          tokengroups += "(";
+          tokengroups += gi.groupid;
+          tokengroups += ")";
+        }
+        else {
+          tokengroups += "<unknown group>(";
+          tokengroups += token.groupsforwrite[i];
+          tokengroups += ")";
+        }
+      }
+      
+      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << userfqans <<
+        "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token <<
+        ")' with gids: '" << tokengroups);
+      
       Log(Logger::Lvl1, domelogmask, domelogname, err);
       return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
     }
