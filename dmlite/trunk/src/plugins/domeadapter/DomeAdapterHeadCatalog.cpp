@@ -101,7 +101,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   bool recalc = forcerecalc;
 
   while(true) {
-    DomeTalker talker(factory_.davixPool_, &secCtx_->credentials, factory_.domehead_,
+    DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                       "GET", "dome_chksum");
 
     boost::property_tree::ptree params;

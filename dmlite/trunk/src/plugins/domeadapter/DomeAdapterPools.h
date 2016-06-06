@@ -39,11 +39,11 @@ namespace dmlite {
     virtual Location whereToWrite(const std::string& path) throw (DmException);
 
     virtual void cancelWrite(const Location& loc) throw (DmException);
-    
+
     virtual void getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException);
   private:
     StackInstance* si_;
-    const SecurityCredentials* creds_;
+    const SecurityContext* sec_;
     std::string userId_;
 
     /// The corresponding factory.

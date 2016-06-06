@@ -70,13 +70,13 @@ public:
     std::string clientdn, clienthost;
     std::vector<std::string> clientfqans;
     std::vector<std::string> clientauthkeys;
-    
+
     /// And these are the identity of the remote user that originated the request,
     /// for the cases where it applies.
-    dmlite::SecurityCredentials creds;
+    dmlite::SecurityContext sec;
     std::string remoteclientdn;
     std::string remoteclienthost;
-    
+
 
     /// Utility function to send a quick response
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam = 0);

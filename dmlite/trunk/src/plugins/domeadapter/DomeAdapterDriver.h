@@ -37,8 +37,7 @@ namespace dmlite {
     void toBeDeleted(const Pool& pool) throw (DmException);
   private:
     StackInstance* si_;
-    // const SecurityContext* secCtx_;
-    const SecurityCredentials *creds_;
+    const SecurityContext *secCtx_;
     std::string userId_;
 
     /// The corresponding factory.

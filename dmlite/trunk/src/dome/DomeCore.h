@@ -52,12 +52,12 @@ struct PendingChecksum {
   std::string lfn;
   std::string server;
   std::string pfn;
-  dmlite::SecurityCredentials creds;
+  dmlite::SecurityContext sec;
   std::string chksumtype;
   bool updateLfnChecksum;
 
-  PendingChecksum(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityCredentials _creds, std::string _chksumtype, bool _updateLfnChecksum)
-  : lfn(_lfn), server(_server), pfn(_pfn), creds(_creds), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {}
+  PendingChecksum(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityContext _sec, std::string _chksumtype, bool _updateLfnChecksum)
+  : lfn(_lfn), server(_server), pfn(_pfn), sec(_sec), chksumtype(_chksumtype), updateLfnChecksum(_updateLfnChecksum) {}
 
   PendingChecksum() {}
 };
@@ -67,11 +67,11 @@ struct PendingPull {
   std::string lfn;
   std::string server;
   std::string pfn;
-  dmlite::SecurityCredentials creds;
+  dmlite::SecurityContext sec;
   std::string chksumtype;
 
-  PendingPull(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityCredentials _creds, std::string _chksumtype)
-  : lfn(_lfn), server(_server), pfn(_pfn), creds(_creds), chksumtype(_chksumtype) {}
+  PendingPull(std::string _lfn, std::string _server, std::string _pfn, dmlite::SecurityContext _sec, std::string _chksumtype)
+  : lfn(_lfn), server(_server), pfn(_pfn), sec(_sec), chksumtype(_chksumtype) {}
 
   PendingPull() {}
 };

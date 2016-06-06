@@ -17,7 +17,7 @@ using namespace dmlite;
 
 DomeAdapterCatalog::DomeAdapterCatalog(DomeAdapterFactory *factory) throw (DmException) {
   factory_ = factory;
-  creds_ = NULL;
+  sec_ = NULL;
 }
 
 std::string DomeAdapterCatalog::getImplId() const throw() {
@@ -31,7 +31,7 @@ void DomeAdapterCatalog::setStackInstance(StackInstance* si) throw (DmException)
 
 void DomeAdapterCatalog::setSecurityContext(const SecurityContext* secCtx) throw (DmException)
 {
-  this->creds_ = &secCtx->credentials;
+  this->sec_ = secCtx;
 }
 
 SecurityContext* DomeAdapterCatalog::createSecurityContext(void) throw (DmException) {
@@ -87,7 +87,7 @@ static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
 ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
 
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_getstatinfo");
 
   if(!talker.execute("lfn", path)) {
@@ -163,7 +163,7 @@ Directory* DomeAdapterCatalog::openDir(const std::string& path) throw (DmExcepti
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_getdir");
 
   ptree params;
@@ -219,12 +219,10 @@ void DomeAdapterCatalog::updateExtendedAttributes(const std::string& lfn,
                                                   const Extensible& ext) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
 
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_updatexattr");
 
   if(!talker.execute("lfn", lfn, "xattr", ext.serialize())) {
     throw DmException(EINVAL, talker.err());
   }
 }
-
-

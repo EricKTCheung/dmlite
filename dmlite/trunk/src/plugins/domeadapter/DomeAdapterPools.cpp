@@ -36,13 +36,13 @@ void DomeAdapterPoolManager::setStackInstance(StackInstance* si) throw (DmExcept
 }
 
 void DomeAdapterPoolManager::setSecurityContext(const SecurityContext* secCtx) throw (DmException) {
-  creds_ = &secCtx->credentials;
+  sec_ = secCtx;
 
   // Id mechanism
   if (factory_->tokenUseIp_)
-    userId_ = creds_->remoteAddress;
+    userId_ = sec_->credentials.remoteAddress;
   else
-    userId_ = creds_->clientName;
+    userId_ = sec_->credentials.clientName;
 }
 
 static PoolManager::PoolAvailability getAvailability(const Pool &p) {
@@ -66,7 +66,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
     availability = kForWrite;
   }
 
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_getspaceinfo");
 
   if(!talker.execute()) {
@@ -92,7 +92,7 @@ std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability
 }
 
 Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_statpool");
 
   if(!talker.execute("poolname", poolname)) {
@@ -108,7 +108,7 @@ Pool DomeAdapterPoolManager::getPool(const std::string& poolname) throw (DmExcep
 }
 
 void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_addpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -121,7 +121,7 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
 // }
 
 void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_rmpool");
 
   if(!talker.execute("poolname", pool.name)) {
@@ -131,7 +131,7 @@ void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
 
 Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmException)
 {
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_get");
 
   if(!talker.execute("lfn", path)) {
@@ -166,7 +166,7 @@ Location DomeAdapterPoolManager::whereToRead(const std::string& path) throw (DmE
 Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. (PoolManager) Path: " << path);
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_put");
 
   if(!talker.execute("lfn", path)) {
@@ -189,7 +189,7 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 
 void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. (PoolManager)");
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_delreplica");
 
   if(!talker.execute("server", loc[0].url.domain, "pfn", loc[0].url.path)) {
@@ -202,7 +202,7 @@ void DomeAdapterPoolManager::cancelWrite(const Location& loc) throw (DmException
 
 void DomeAdapterPoolManager::getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException)
 {
-  DomeTalker talker(factory_->davixPool_, creds_, factory_->domehead_,
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_getdirspaces");
 
   if(!talker.execute("path", path)) {
@@ -212,11 +212,11 @@ void DomeAdapterPoolManager::getDirSpaces(const std::string& path, int64_t &tota
 
   try {
     // extract info
-    
+
     totalfree = talker.jresp().get<int64_t>("quotafreespace");
     used = talker.jresp().get<int64_t>("usedspace");
 
-    
+
   }
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
