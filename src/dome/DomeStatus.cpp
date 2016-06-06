@@ -44,8 +44,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/param.h>
-#include "cpp/utils/urls.h"
+#include <stdio.h>
 
+#include "cpp/utils/urls.h"
 #include "cpp/dmlite.h"
 #include "cpp/catalog.h"
 
@@ -187,6 +188,9 @@ int DomeStatus::loadQuotatokens() {
 
 /// Helper function that reloads all the users from the DB. Returns 0 on failure
 int DomeStatus::loadUsersGroups() {
+  
+  if (role != roleHead) return 1;
+  
   DomeMySql sql;
   
   sql.getUsers(*this);
@@ -194,20 +198,70 @@ int DomeStatus::loadUsersGroups() {
   sql.getGroups(*this);
   
   // And now also load the gridmap file
-  std::ifstream in( CFG->GetString("head.gridmapfile", (char *)"/etc/lcgdm-mapfile").c_str() );
-  {
-    std::string dn, grp;
-    boost::unique_lock<boost::recursive_mutex> l(*this);
-    
-    while (in.good() && (in >> dn >> grp)) {
-      Log(Logger::Lvl4, domelogmask, domelogname, "Mapfile DN: " << dn << " -> " << grp);
-      gridmap.insert ( std::pair<std::string,std::string>(dn, grp) );
-    }
-    
-    return 1;
+  int cnt = 0;
+  FILE *mf;
+  std::string gridmapfile = CFG->GetString("head.gridmapfile", (char *)"/etc/lcgdm-mapfile");
+  char buf[1024];
+  
+  if ((mf = fopen(gridmapfile.c_str(), "r")) == NULL) {
+    buf[0] = '\0';
+    strerror_r(errno, buf, 1024);
+    Err("loadUsersGroups", "Could not process gridmap file: '" << gridmapfile << "' err: " << errno << "-" << buf);
+    return 0;
   }
   
   
+  char *p, *q;
+  char *user, *vo;
+  
+  while (fgets(buf, sizeof(buf), mf)) {
+    buf[strlen (buf) - 1] = '\0';
+    p = buf;
+    
+    // Skip leading blanks
+    while (isspace(*p))
+      p++;
+    
+    if (*p == '\0') continue; // Empty line
+    if (*p == '#') continue;  // Comment
+    
+    if (*p == '"') {
+      q = p + 1;
+      if ((p = strrchr (q, '"')) == NULL) continue;
+    }
+    else {
+      q = p;
+      while (!isspace(*p) && *p != '\0')
+        p++;
+      if (*p == '\0') continue; // No VO
+    }
+    
+    *p = '\0';
+    user = q;
+    p++;
+    
+    // Skip blanks between DN and VO
+    while (isspace(*p))
+      p++;
+    q = p;
+    
+    while (!isspace(*p) && *p != '\0' && *p != ',')
+      p++;
+    *p = '\0';
+    vo = q;
+    
+    // Insert
+    //mfe->voForDn[user] = vo;
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Mapfile DN: " << user << " -> " << vo);
+    gridmap.insert ( std::pair<std::string,std::string>(user, vo) );
+    cnt++;
+  }
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "Loaded " << cnt << " mapfile entries.");
+  
+  
+  return 1;
 }
 
 int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
