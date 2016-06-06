@@ -31,6 +31,18 @@ namespace DomeUtils {
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
+inline std::string join(const std::string &separator, const std::vector<std::string> &arr) {
+  if(arr.empty()) return std::string();
+  
+  std::stringstream ss;
+  for(size_t i = 0; i < arr.size()-1; i++) {
+    ss << arr[i];
+    ss << separator;
+  }
+  ss << arr[arr.size()-1];
+  return ss.str();
+}
+
 inline std::vector<std::string> split(std::string data, std::string token) {
     std::vector<std::string> output;
     size_t pos = std::string::npos;

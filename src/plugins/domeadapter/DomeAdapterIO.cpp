@@ -161,7 +161,7 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   // send a put done to the local dome instance
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " about to send put done for " << loc[0].url.path << " - " << sfn);
 
-  DomeTalker talker(davixPool_, &secCtx_->credentials, domedisk_,
+  DomeTalker talker(davixPool_, secCtx_, domedisk_,
                     "POST", "dome_putdone");
 
   boost::property_tree::ptree params;

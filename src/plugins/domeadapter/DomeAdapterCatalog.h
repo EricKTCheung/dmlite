@@ -54,7 +54,7 @@ namespace dmlite {
 
   protected:
     StackInstance* si_;
-    const SecurityCredentials *creds_;
+    const SecurityContext *sec_;
     DomeAdapterFactory* factory_;
 
     std::string cwd_;

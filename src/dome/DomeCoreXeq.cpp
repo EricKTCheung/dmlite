@@ -209,33 +209,33 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     if(!status.whichQuotatokenForLfn(lfn, token)) {
       return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No quotatokens match lfn, and no hints were given.");
     }
-    
+
     // Check if the quotatoken admits writes for the groups the client belongs to
     // Please note that the clients' groups come through fastcgi,
     // instead the groups in the quotatoken are in the form of gids
     if(!status.canwriteintoQuotatoken(req, token)) {
-      
+
       // Prepare a complete error message that describes why the user can't write
-      
-      
+
+
       std::string userfqans, tokengroups, s;
       DomeGroupInfo gi;
-      
+
       // Start prettyprinting the groups the user belongs to
-      for (unsigned int i = 0; i < req.creds.fqans.size(); i++) {
-        userfqans += req.creds.fqans[i];
-        if (status.getGroup(req.creds.fqans[i], gi)) {
+      for (unsigned int i = 0; i < req.sec.credentials.fqans.size(); i++) {
+        userfqans += req.sec.credentials.fqans[i];
+        if (status.getGroup(req.sec.credentials.fqans[i], gi)) {
           userfqans += "(";
           userfqans += gi.groupid;
           userfqans += ")";
         }
         else
           userfqans += "(<unknown group>)";
-          
-          
-        if (i < req.creds.fqans.size()-1) userfqans += ", ";
+
+
+        if (i < req.sec.credentials.fqans.size()-1) userfqans += ", ";
       }
-      
+
       // Then prettyprint the gids of the selected token
       for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
         int g = atoi(token.groupsforwrite[i].c_str());
@@ -251,16 +251,16 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
           tokengroups += ")";
         }
       }
-      
-      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << userfqans <<
+
+      std::string err = SSTR("User '" << req.sec.credentials.clientName << " with fqans '" << userfqans <<
         "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token <<
         ")' with gids: '" << tokengroups);
-      
+
       Log(Logger::Lvl1, domelogmask, domelogname, err);
       return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
     }
-    
-    
+
+
     if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
       std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space");
       Log(Logger::Lvl1, domelogmask, domelogname, err);
@@ -510,7 +510,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
 
-  DomeTalker talker(*davixPool, &req.creds, domeurl,
+  DomeTalker talker(*davixPool, &req.sec, domeurl,
                     "POST", "dome_putdone");
 
   // Copy the same body fields as the original one, except for some fields,
@@ -623,7 +623,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   if (size == 0) {
     std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
 
-    DomeTalker talker(*davixPool, &req.creds, domeurl,
+    DomeTalker talker(*davixPool, &req.sec, domeurl,
                       "POST", "dome_stat");
 
     if(!talker.execute("pfn", pfn, "lfn", lfn)) {
@@ -1112,7 +1112,7 @@ int DomeCore::dome_dochksum(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
 
-    PendingChecksum pending(lfn, status.myhostname, pfn, req.creds, chksumtype, updateLfnChecksum);
+    PendingChecksum pending(lfn, status.myhostname, pfn, req.sec, chksumtype, updateLfnChecksum);
 
     std::vector<std::string> params;
     params.push_back("/usr/bin/dome-checksum");
@@ -1201,7 +1201,7 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
   std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
   Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
 
-  DomeTalker talker(*davixPool, &pending.creds, domeurl,
+  DomeTalker talker(*davixPool, &pending.sec, domeurl,
                     "POST", "dome_pullstatus");
 
   // set chksumstatus params
@@ -1281,7 +1281,7 @@ void DomeCore::sendChecksumStatus(const PendingChecksum &pending, const DomeTask
   Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
   std::string rfn = pending.server + ":" + pending.pfn;
 
-  DomeTalker talker(*davixPool, &pending.creds, domeurl,
+  DomeTalker talker(*davixPool, &pending.sec, domeurl,
                     "POST", "dome_chksumstatus");
 
   // set chksumstatus params
@@ -1742,7 +1742,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     // Let's just execute the external hook, passing the obvious parameters
 
-    PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
+    PendingPull pending(lfn, status.myhostname, pfn, req.sec, chksumtype);
 
     std::vector<std::string> params;
     params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
@@ -2151,7 +2151,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   std::string diskurl = "https://" + srv + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << absPath << "' to disk node: '" << diskurl);
 
-  DomeTalker talker(*davixPool, &req.creds, diskurl,
+  DomeTalker talker(*davixPool, &req.sec, diskurl,
                     "POST", "dome_pfnrm");
 
   if(!talker.execute(req.bodyfields)) {
@@ -2367,7 +2367,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   std::string diskurl = "https://" + server + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Stat-ing new filesystem '" << newfs << "' in disk node: '" << server);
 
-  DomeTalker talker(*davixPool, &req.creds, diskurl,
+  DomeTalker talker(*davixPool, &req.sec, diskurl,
                     "GET", "dome_statpfn");
 
   boost::property_tree::ptree jresp;

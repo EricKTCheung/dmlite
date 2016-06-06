@@ -56,7 +56,7 @@ using namespace dmlite;
 DomeStatus::DomeStatus() {
   davixPool = NULL;
   lastreloadusersgroups = lastfscheck = lastreload = 0;
-  
+
   struct addrinfo hints, *info, *p;
   int gai_result;
 
@@ -192,11 +192,11 @@ int DomeStatus::loadUsersGroups() {
   if (role != roleHead) return 1;
   
   DomeMySql sql;
-  
+
   sql.getUsers(*this);
-  
+
   sql.getGroups(*this);
-  
+
   // And now also load the gridmap file
   int cnt = 0;
   FILE *mf;
@@ -217,7 +217,7 @@ int DomeStatus::loadUsersGroups() {
   while (fgets(buf, sizeof(buf), mf)) {
     buf[strlen (buf) - 1] = '\0';
     p = buf;
-    
+
     // Skip leading blanks
     while (isspace(*p))
       p++;
@@ -358,13 +358,13 @@ int DomeStatus::tick(time_t timenow) {
 
     lastreload = timenow;
   }
-  
+
   if ( this->role == this->roleHead && timenow - lastreloadusersgroups >= CFG->GetLong("glb.reloadusersgroups", 60)) {
     // At regular intervals, one minute or so,
     // reloading the users and groups tables is a good idea
     Log(Logger::Lvl4, domelogmask, domelogname, "Reloading users/groups.");
     loadUsersGroups();
-    
+
     lastreloadusersgroups = timenow;
   }
 
@@ -409,16 +409,16 @@ void DomeStatus::tickFilepulls() {
     std::string fs = next->qualifiers[3];
     std::string rfn = next->qualifiers[4];
 
-    SecurityCredentials creds;
-    creds.clientName = qualifiers[5];
-    creds.remoteAddress = qualifiers[6];
+    SecurityContext sec;
+    sec.credentials.clientName = qualifiers[5];
+    sec.credentials.remoteAddress = qualifiers[6];
 
     // send pull command to the disk to initiate calculation
     Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
     std::string diskurl = "https://" + server + "/domedisk/" + lfn;
 
 
-    DomeTalker talker(*davixPool, &creds, diskurl,
+    DomeTalker talker(*davixPool, &sec, diskurl,
                       "POST", "dome_pull");
 
     if(!talker.execute("lfn", lfn, "pfn", DomeUtils::pfn_from_rfio_syntax(rfn))) {
@@ -463,15 +463,15 @@ void DomeStatus::tickChecksums() {
     std::string server = qualifiers[1];
     bool updateLfnChecksum = DomeUtils::str_to_bool(qualifiers[2]);
 
-    SecurityCredentials creds;
-    creds.clientName = qualifiers[3];
-    creds.remoteAddress = qualifiers[4];
+    SecurityContext sec;
+    sec.credentials.clientName = qualifiers[3];
+    sec.credentials.remoteAddress = qualifiers[4];
 
     // send dochksum to the disk to initiate calculation
     Log(Logger::Lvl3, domelogmask, domelogname, "Contacting disk server " << server << " for checksum calculation.");
     std::string diskurl = "https://" + server + "/domedisk/";
 
-    DomeTalker talker(*davixPool, &creds, diskurl,
+    DomeTalker talker(*davixPool, &sec, diskurl,
                       "POST", "dome_dochksum");
 
     boost::property_tree::ptree params;
@@ -893,9 +893,9 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
 }
 
 bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size);
-  
+
   // need to get used space of quotatoken
   long long totused;
 
@@ -914,7 +914,7 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t siz
   Log(Logger::Lvl4, domelogmask, domelogname, "Total space for quotatoken '" << token.u_token << "': " << token.t_space);
 
   bool rc = ((token.t_space > totused) && (token.t_space - totused) > size);
-  
+
   Log(Logger::Lvl3, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size << " rc: " << rc);
   return rc;
 }
@@ -947,18 +947,18 @@ bool DomeStatus::isDNaKnownServer(std::string dn) {
 
 
 bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
-  
-  
+
+
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
-  
+
+
   // True if one of the groups of the remote user matches the quotatk
   // Loop on the gids written in the quotatoken
   // For each of them, check if the user belongs to it
   for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
     DmlitePoolHandler stack(dmpool);
-    
+
     DomeGroupInfo gi;
     char *endptr;
     long int gid = strtol(token.groupsforwrite[i].c_str(), &endptr, 10);
@@ -968,21 +968,21 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
           "' in quotatoken '" << token.s_token << "' is not a gid");
         return false;
       }
-      
+
       if (!getGroup(gid, gi)) {
         Err(domelogname, "In quotatoken " << token.s_token << " group: '" << token.groupsforwrite[i] << "' gid: " <<
         gid << " unknown");
       return false;
     }
-    
-    if ( std::find(req.creds.fqans.begin(), req.creds.fqans.end(),
-          gi.groupname) != req.creds.fqans.end() )
+
+    if ( std::find(req.sec.credentials.fqans.begin(), req.sec.credentials.fqans.end(),
+          gi.groupname) != req.sec.credentials.fqans.end() )
       Log(Logger::Lvl3, domelogmask, domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
       gid << " can write in quotatoken " << token.s_token);
-   
+
       return true;
   }
-  
+
   Err(domelogname, "Cannot write in quotatoken " << token.s_token);
   return false;
 }
@@ -991,59 +991,59 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
 int DomeStatus::getUser(int uid, DomeUserInfo &ui) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   try {
     ui = usersbyuid.at(uid);
   }
   catch ( ... ) {
     return 0;
   }
-  
+
   return 1;
-  
+
 }
 
 /// Gets user info from name. Returns 0 on failure
 int DomeStatus::getUser(std::string username, DomeUserInfo &ui) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   try {
     ui = usersbyname.at(username);
   }
   catch ( ... ) {
     return 0;
   }
-    
+
   return 1;
-    
+
 }
 /// Gets group info from uid. Returns 0 on failure
 int DomeStatus::getGroup(int gid, DomeGroupInfo &gi) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   try {
     gi = groupsbygid.at(gid);
   }
   catch ( ... ) {
     return 0;
   }
-    
+
   return 1;
 }
 /// Gets user info from name. Returns 0 on failure
 int DomeStatus::getGroup(std::string groupname, DomeGroupInfo &gi) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   try {
     gi = groupsbyname.at(groupname);
   }
   catch ( ... ) {
     return 0;
   }
-    
+
   return 1;
 }
 
@@ -1051,19 +1051,19 @@ int DomeStatus::getGroup(std::string groupname, DomeGroupInfo &gi) {
 int DomeStatus::insertUser(DomeUserInfo &ui) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   usersbyname[ui.username] = ui;
   usersbyuid[ui.userid] = ui;
-  
+
   return 0;
 }
 /// Inserts/overwrites a group
 int DomeStatus::insertGroup(DomeGroupInfo &gi) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   groupsbygid[gi.groupid] = gi;
   groupsbyname[gi.groupname] = gi;
-  
+
   return 0;
 }
