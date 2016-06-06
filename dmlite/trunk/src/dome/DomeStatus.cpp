@@ -954,6 +954,8 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
   
   
   // True if one of the groups of the remote user matches the quotatk
+  // Loop on the gids written in the quotatoken
+  // For each of them, check if the user belongs to it
   for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
     DmlitePoolHandler stack(dmpool);
     
@@ -968,7 +970,7 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
       }
       
       if (!getGroup(gid, gi)) {
-      Err(domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
+        Err(domelogname, "In quotatoken " << token.s_token << " group: '" << token.groupsforwrite[i] << "' gid: " <<
         gid << " unknown");
       return false;
     }
