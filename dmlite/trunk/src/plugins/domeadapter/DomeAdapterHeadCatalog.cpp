@@ -47,7 +47,7 @@ void DomeAdapterHeadCatalogFactory::configure(const std::string& key, const std:
   else gotit = false;
 
   if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
+    LogCfgParm(Logger::Lvl1, Logger::unregistered, "DomeAdapterHeadCatalogFactory", key, value);
 }
 
 Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (DmException) {
