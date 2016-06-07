@@ -573,6 +573,41 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
 
 
 
+/// Add/subtract an integer to the u_space of a quota(space)token
+/// u_space is the free space for the legacy DPM daemon, to be decremented on write
+int DomeMySql::addtoQuotatokenUspace(std::string &s_token, int64_t increment) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. s_token: '" << s_token << "' increment: " << increment );
+  
+  // First try updating it. Makes sense just to overwrite only description, space and pool
+  Statement stmt(conn_, "dpm_db", 
+                 "UPDATE dpm_space_reserv\
+                 SET u_space = u_space + ( ? )\
+                 WHERE s_token = ?");
+  stmt.bindParam(0, increment);
+  stmt.bindParam(1, s_token);
+    
+  bool ok = true;
+  long unsigned int nrows;
+  try {
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  
+  if (!ok) {
+    Err( domelogname, "Could not update u_space quotatoken from DB. s_token: '" << s_token <<
+      "' increment: " << increment << " nrows: " << nrows );
+    return 1;
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken u_space updated. s_token: '" << s_token <<
+  "' increment: " << increment << " nrows: " << nrows );
+  
+  return 0;
+};
+
 
 
 
