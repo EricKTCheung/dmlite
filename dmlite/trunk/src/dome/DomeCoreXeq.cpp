@@ -227,15 +227,16 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
       for (unsigned int i = 0; i < req.creds.groups.size(); i++) {
         userfqans += req.creds.groups[i];
         if (status.getGroup(req.creds.groups[i], gi)) {
+          
           userfqans += "(";
-          userfqans += gi.groupid;
+          userfqans += std::to_string(gi.groupid);
           userfqans += ")";
         }
         else
           userfqans += "(<unknown group>)";
 
 
-        if (i < req.creds.groups.size()-1) userfqans += ", ";
+        if (i < req.creds.groups.size()-1) userfqans += ",";
       }
 
       // Then prettyprint the gids of the selected token
@@ -244,7 +245,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
         if (status.getGroup(g, gi)) {
           tokengroups += gi.groupname;
           tokengroups += "(";
-          tokengroups += gi.groupid;
+          tokengroups += std::to_string(gi.groupid);
           tokengroups += ")";
         }
         else {
@@ -252,6 +253,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
           tokengroups += token.groupsforwrite[i];
           tokengroups += ")";
         }
+        if (i < token.groupsforwrite.size()-1) tokengroups += ",";
       }
 
       std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << userfqans <<
