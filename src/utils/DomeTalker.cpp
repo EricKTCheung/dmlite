@@ -36,9 +36,9 @@ static std::string trim_trailing_slashes(std::string str) {
 
 
 
-DomeTalker::DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::string uri,
+DomeTalker::DomeTalker(DavixCtxPool &pool, const DomeCredentials &creds, std::string uri,
                        std::string verb, std::string cmd)
-    : pool_(pool), sec_(sec), uri_(trim_trailing_slashes(uri)), verb_(verb), cmd_(cmd),
+    : pool_(pool), creds_(creds), uri_(trim_trailing_slashes(uri)), verb_(verb), cmd_(cmd),
     grabber_(pool_), ds_(grabber_) {
 
   err_ = NULL;
@@ -67,18 +67,16 @@ bool DomeTalker::execute(const std::string &str) {
 
   req.setRequestMethod(verb_);
 
-  if(sec_) {
-    req.addHeaderField("remoteclientdn", sec_->credentials.clientName);
-    req.addHeaderField("remoteclienthost", sec_->credentials.remoteAddress);
+  if(!creds_.clientName.empty()) {
+    req.addHeaderField("remoteclientdn", creds_.clientName);
+  }
 
-    std::vector<std::string> groups;
-    for(size_t i = 0; i < sec_->groups.size(); i++) {
-      groups.push_back(sec_->groups[i].name);
-    }
+  if(!creds_.remoteAddress.empty()) {
+    req.addHeaderField("remoteclienthost", creds_.remoteAddress);
+  }
 
-    if(groups.size() != 0) {
-      req.addHeaderField("remoteclientgroups", DomeUtils::join(",", groups));
-    }
+  if(!creds_.groups.empty()) {
+    req.addHeaderField("remoteclientgroups", DomeUtils::join(",", creds_.groups));
   }
 
   req.setParameters(*ds_->parms);

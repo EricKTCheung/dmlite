@@ -32,6 +32,27 @@
 
 namespace dmlite {
 
+struct DomeCredentials {
+  std::string clientName;
+  std::string remoteAddress;
+  std::vector<std::string> groups;
+
+  DomeCredentials(std::string cn, std::string ra, std::vector<std::string> gr) :
+    clientName(cn), remoteAddress(ra), groups(gr) {}
+
+  DomeCredentials() {}
+  DomeCredentials(const SecurityContext *ctx) {
+    if(ctx) {
+      clientName = ctx->credentials.clientName;
+      remoteAddress = ctx->credentials.remoteAddress;
+
+      for(size_t i = 0; i < ctx->groups.size(); i++) {
+        groups.push_back(ctx->groups[i].name);
+      }
+    }
+  }
+};
+
 enum DomeHttpCode {
   DOME_HTTP_OK = 200,
 
@@ -49,7 +70,7 @@ int http_status(const dmlite::DmException &e);
 
 class DomeTalker {
 public:
-  DomeTalker(DavixCtxPool &pool, const SecurityContext *sec, std::string uri, std::string verb, std::string cmd);
+  DomeTalker(DavixCtxPool &pool, const DomeCredentials &creds, std::string uri, std::string verb, std::string cmd);
   ~DomeTalker();
 
   bool execute();
@@ -77,7 +98,7 @@ public:
   const std::string& response();
 private:
   DavixCtxPool &pool_;
-  const SecurityContext *sec_;
+  DomeCredentials creds_;
   std::string verb_;
   std::string uri_;
   std::string cmd_;

@@ -49,20 +49,13 @@ DomeReq::DomeReq(FCGX_Request &request) {
 
   // Extract the authz info about the remote user
   if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTDN", request.envp)) ) {
-    this->remoteclientdn = s;
-    sec.credentials.clientName = s;
+    creds.clientName = s;
   }
   if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTHOST", request.envp)) ) {
-    this->remoteclienthost = s;
-    sec.credentials.remoteAddress = s;
+    creds.remoteAddress = s;
   }
   if ( (s = FCGX_GetParam("HTTP_REMOTECLIENTGROUPS", request.envp)) ) {
-    std::vector<std::string> groups = DomeUtils::split(s, ",");
-    for(size_t i = 0; i < groups.size(); i++) {
-      dmlite::GroupInfo ginfo;
-      ginfo.name = groups[i];
-      sec.groups.push_back(ginfo);
-    }
+    creds.groups = DomeUtils::split(s, ",");
   }
 
 

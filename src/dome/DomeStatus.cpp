@@ -188,9 +188,9 @@ int DomeStatus::loadQuotatokens() {
 
 /// Helper function that reloads all the users from the DB. Returns 0 on failure
 int DomeStatus::loadUsersGroups() {
-  
+
   if (role != roleHead) return 1;
-  
+
   DomeMySql sql;
 
   sql.getUsers(*this);
@@ -202,18 +202,18 @@ int DomeStatus::loadUsersGroups() {
   FILE *mf;
   std::string gridmapfile = CFG->GetString("head.gridmapfile", (char *)"/etc/lcgdm-mapfile");
   char buf[1024];
-  
+
   if ((mf = fopen(gridmapfile.c_str(), "r")) == NULL) {
     buf[0] = '\0';
     strerror_r(errno, buf, 1024);
     Err("loadUsersGroups", "Could not process gridmap file: '" << gridmapfile << "' err: " << errno << "-" << buf);
     return 0;
   }
-  
-  
+
+
   char *p, *q;
   char *user, *vo;
-  
+
   while (fgets(buf, sizeof(buf), mf)) {
     buf[strlen (buf) - 1] = '\0';
     p = buf;
@@ -221,10 +221,10 @@ int DomeStatus::loadUsersGroups() {
     // Skip leading blanks
     while (isspace(*p))
       p++;
-    
+
     if (*p == '\0') continue; // Empty line
     if (*p == '#') continue;  // Comment
-    
+
     if (*p == '"') {
       q = p + 1;
       if ((p = strrchr (q, '"')) == NULL) continue;
@@ -235,32 +235,32 @@ int DomeStatus::loadUsersGroups() {
         p++;
       if (*p == '\0') continue; // No VO
     }
-    
+
     *p = '\0';
     user = q;
     p++;
-    
+
     // Skip blanks between DN and VO
     while (isspace(*p))
       p++;
     q = p;
-    
+
     while (!isspace(*p) && *p != '\0' && *p != ',')
       p++;
     *p = '\0';
     vo = q;
-    
+
     // Insert
     //mfe->voForDn[user] = vo;
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Mapfile DN: " << user << " -> " << vo);
     gridmap.insert ( std::pair<std::string,std::string>(user, vo) );
     cnt++;
   }
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "Loaded " << cnt << " mapfile entries.");
-  
-  
+
+
   return 1;
 }
 
@@ -975,8 +975,8 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
       return false;
     }
 
-    if ( std::find(req.sec.credentials.fqans.begin(), req.sec.credentials.fqans.end(),
-          gi.groupname) != req.sec.credentials.fqans.end() )
+    if ( std::find(req.creds.groups.begin(), req.creds.groups.end(),
+          gi.groupname) != req.creds.groups.end() )
       Log(Logger::Lvl3, domelogmask, domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
       gid << " can write in quotatoken " << token.s_token);
 
