@@ -34,6 +34,7 @@
 #include <fcgiapp.h>
 
 #include "cpp/authn.h"
+#include "utils/DomeTalker.h"
 
 /// Class that describes a request
 /// Requests have some fields, that normally come from parsing a CGI request
@@ -73,9 +74,11 @@ public:
 
     /// And these are the identity of the remote user that originated the request,
     /// for the cases where it applies.
-    dmlite::SecurityContext sec;
-    std::string remoteclientdn;
-    std::string remoteclienthost;
+    dmlite::DomeCredentials creds;
+
+    // dmlite::SecurityContext sec;
+    // std::string remoteclientdn;
+    // std::string remoteclienthost;
 
 
     /// Utility function to send a quick response
