@@ -965,22 +965,23 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
     if ( (*endptr) || (errno == ERANGE && (gid == LONG_MAX || gid == LONG_MIN))
       || (errno != 0 && gid == 0)) {
         Err(domelogname, "gid: '" << token.groupsforwrite[i] <<
-          "' in quotatoken '" << token.s_token << "' is not a gid");
-        return false;
+          "' in quotatoken '" << token.s_token << "' is not a gid. Wrong/corrupted info in quotatokens ?");
+        continue;
       }
 
       if (!getGroup(gid, gi)) {
         Err(domelogname, "In quotatoken " << token.s_token << " group: '" << token.groupsforwrite[i] << "' gid: " <<
         gid << " unknown");
-      return false;
-    }
+      continue;
+      }
 
-    if ( std::find(req.creds.groups.begin(), req.creds.groups.end(),
-          gi.groupname) != req.creds.groups.end() )
-      Log(Logger::Lvl3, domelogmask, domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
-      gid << " can write in quotatoken " << token.s_token);
+      if ( std::find(req.creds.groups.begin(), req.creds.groups.end(),
+          gi.groupname) != req.creds.groups.end() ) {
+            Log(Logger::Lvl3, domelogmask, domelogname, "group: '" << token.groupsforwrite[i] << "' gid: " <<
+              gid << " can write in quotatoken " << token.s_token);
 
-      return true;
+            return true;
+      }
   }
 
   Err(domelogname, "Cannot write in quotatoken " << token.s_token);
