@@ -74,8 +74,9 @@ public:
   int delQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
   
   /// Add/subtract an integer to the u_space of a quota(space)token
-  /// u_space is the free space, to be incremented on write
+  /// u_space is the free space, to be DEcremented on write
   int addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment);
+  int addtoQuotatokenUspace(std::string &s_token, int64_t increment);
   
   /// Removes a pool and all the related filesystems
   int rmPool(std::string &poolname);

@@ -432,6 +432,30 @@ Params:
 
 Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
 
+
+
+\subsubsection{dome\_delreplica}
+
+Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_delreplica"\\
+
+Request header:\\
+\lstinline"cmd=dome_delreplica"\\
+
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item 
+\end{itemize}
+
+ 
+ 
 \subsubsection{dome\_getspaceinfo}
 Returns total and free space information for all the pools and filesystems at once (the list is supposed to be in memory all the time)
 
@@ -1014,27 +1038,6 @@ Returns:
 \end{itemize}
 
 
-\subsubsection{dome\_delreplica}
-
-Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_delreplica"\\
-
-Request header:\\
-\lstinline"cmd=dome_delreplica"\\
-
-Params:
-\begin{itemize}
- \item server: server hosting the replica
- \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
-\end{itemize}
-
-Returns:
-\begin{itemize}
- \item 
-\end{itemize}
-
- 
  
  
  
