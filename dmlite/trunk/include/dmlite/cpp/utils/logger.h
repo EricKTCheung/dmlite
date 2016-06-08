@@ -25,7 +25,7 @@ do{                                											\
 		std::ostringstream outs;                                   			\
 		outs << "dmlite " << where << " !! " << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)0, outs.str());    				\
-}while(0)       
+}while(0)
 
 /**
  * A Logger class
@@ -50,14 +50,15 @@ public:
         Lvl1,
         Lvl2,
         Lvl3,
-        Lvl4
+        Lvl4,
+        Lvl5
     };
 
     /// Destructor
     ~Logger();
 
     static Logger *instance;
-    
+
     /// @return the singleton instance
     static Logger *get()
     {
@@ -89,10 +90,10 @@ public:
         if (mask == 0) return mask & unregistered;
     	return mask & m;
     }
-    
+
     /// @param comp : the component that will be registered for logging
     void registerComponent(component const &  comp);
-    
+
     /// @param components : list of components that will be registered for logging
     void registerComponents(std::vector<component> const & components);
 
@@ -100,7 +101,7 @@ public:
     /// @param comp : the component name
     /// @param tobelogged : true if we want to log this component
     void setLogged(component const &comp, bool tobelogged);
-    
+
     /**
      * Logs the message
      *
@@ -118,8 +119,8 @@ public:
     {
     	mask = ~0;
     }
-    
-        
+
+
     /**
      * @param comp : component name
      * @return respectiv bitmask assigned to given component
