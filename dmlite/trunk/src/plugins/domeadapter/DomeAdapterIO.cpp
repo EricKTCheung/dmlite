@@ -138,7 +138,7 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   // we are a disk server doing tunnelling, use "root" as userId
   std::string supertoken = dmlite::generateToken("root", path, this->passwd_, 50000, flags != O_RDONLY);
 
-  std::string url = SSTR("http://" << server << "/" << path << "?token=" << Uri::escapeString(supertoken));
+  std::string url = SSTR("http://" << server << "/" << Uri::escapeString(path) << "?token=" << Uri::escapeString(supertoken));
   return new DomeTunnelHandler(davixPool_, url, flags, mode);
 }
 
