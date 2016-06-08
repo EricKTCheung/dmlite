@@ -327,6 +327,12 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
     if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
     else {
            serializeExtendedStat(meta, valMemc);
+           
+           // Let's write directories into the fast local cache
+           if ((localCacheMaxSize > 0) && S_ISDIR(meta.stat.st_mode)) {
+             setLocalFromKeyValue(key, valMemc);
+           }
+           
            safeSetMemcachedFromKeyValue(key, valMemc);
           }
    }
