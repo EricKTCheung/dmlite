@@ -913,7 +913,7 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t siz
   Log(Logger::Lvl4, domelogmask, domelogname, "Used space for quotatoken '" << token.u_token << "': " << totused);
   Log(Logger::Lvl4, domelogmask, domelogname, "Total space for quotatoken '" << token.u_token << "': " << token.t_space);
 
-  bool rc = ((token.t_space > totused) && (token.t_space - totused) > size);
+  bool rc = ((token.t_space > totused) && (token.t_space - totused > size));
 
   Log(Logger::Lvl3, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size << " rc: " << rc);
   return rc;
