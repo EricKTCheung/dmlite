@@ -253,7 +253,7 @@ int DomeStatus::loadUsersGroups() {
     // Insert
     //mfe->voForDn[user] = vo;
 
-    Log(Logger::Lvl4, domelogmask, domelogname, "Mapfile DN: " << user << " -> " << vo);
+    Log(Logger::Lvl5, domelogmask, domelogname, "Mapfile DN: " << user << " -> " << vo);
     gridmap.insert ( std::pair<std::string,std::string>(user, vo) );
     cnt++;
   }
