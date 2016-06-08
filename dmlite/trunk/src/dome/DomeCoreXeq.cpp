@@ -203,7 +203,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
 
   // default minfreespace is 4GB. Gets overridden by the individual pool's value
   long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
-
+  
   // use quotatokens?
   // TODO: more than quotatoken may match, they all should be considered
   if(pool.empty() && host.empty() && fs.empty()) {
@@ -259,7 +259,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
       return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
     }
 
-
+    char pooltype;
+    
+    // Eventually override the default size
+    status.getPoolInfo(token.poolname, minfreespace_bytes, pooltype);
+      
     if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
       std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space. minfreespace_bytes: " << minfreespace_bytes);
       Log(Logger::Lvl1, domelogmask, domelogname, err);

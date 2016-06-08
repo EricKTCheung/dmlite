@@ -331,6 +331,20 @@ bool DomeStatus::existsPool(std::string &poolname) {
   return false;
 }
 
+bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype) {
+  
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  
+  // Loop over the filesystems and just sum the numbers
+  for (unsigned int i = 0; i < fslist.size(); i++)
+    if (fslist[i].poolname == poolname) {
+      pool_defsize = fslist[i].pool_defsize;
+      pool_stype = fslist[i].pool_stype;
+      return true;
+    }
+    
+    return false;
+}
 
 int DomeStatus::tick(time_t timenow) {
 
