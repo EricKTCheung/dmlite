@@ -261,7 +261,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
 
 
     if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
-      std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space");
+      std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space. minfreespace_bytes: " << minfreespace_bytes);
       Log(Logger::Lvl1, domelogmask, domelogname, err);
       return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, err);
     }
