@@ -641,7 +641,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     }
 
     try {
-      size = talker.jresp().get<size_t>("size", 0L);
+      size = talker.jresp().get<size_t>("size");
     }
     catch(boost::property_tree::ptree_error &e) {
       std::string errmsg = SSTR("Received invalid json when talking to " << domeurl << ":" << e.what() << " '" << talker.response() << "'");
