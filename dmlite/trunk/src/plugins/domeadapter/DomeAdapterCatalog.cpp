@@ -91,7 +91,7 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
                     "GET", "dome_getstatinfo");
 
   if(!talker.execute("lfn", path)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   try {
