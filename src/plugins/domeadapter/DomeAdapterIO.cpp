@@ -126,7 +126,7 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   }
 
   // Create - local or tunneled?
-  if(DomeUtils::server_from_rfio_syntax(pfn) == pfn) {
+  if(pfn[0] == '/' && DomeUtils::server_from_rfio_syntax(pfn) == pfn) {
     return new DomeIOHandler(pfn, flags, mode);
   }
 
