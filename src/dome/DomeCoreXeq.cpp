@@ -520,7 +520,11 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 
   // Copy the same body fields as the original one, except for some fields,
   // where we write this machine's hostname (we are a disk server here) and the validated size
-  req.bodyfields.put("server", status.myhostname);
+  if(server.empty()) {
+    server = status.myhostname;
+  }
+
+  req.bodyfields.put("server", server);
   req.bodyfields.put("size", size);
   req.bodyfields.put("lfn", lfn);
 
@@ -626,7 +630,6 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
   if (size == 0) {
-    // std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
     std::string domeurl = SSTR("https://" << server << "/domedisk");
 
     DomeTalker talker(*davixPool, req.creds, domeurl,
