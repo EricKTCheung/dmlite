@@ -173,7 +173,7 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
 
   DomeQuotatoken token;
-  
+
   // fetch the parameters, lfn and placement suggestions
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   std::string addreplica_ = req.bodyfields.get<std::string>("additionalreplica", "");
@@ -203,7 +203,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
 
   // default minfreespace is 4GB. Gets overridden by the individual pool's value
   long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
-  
+
   // use quotatokens?
   // TODO: more than quotatoken may match, they all should be considered
   if(pool.empty() && host.empty() && fs.empty()) {
@@ -228,7 +228,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
         userfqans += req.creds.groups[i];
         if (status.getGroup(req.creds.groups[i], gi)) {
           userfqans += SSTR( "(" << gi.groupid << ")" );
-          
+
         }
         else
           userfqans += "(<unknown group>)";
@@ -242,12 +242,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
         int g = atoi(token.groupsforwrite[i].c_str());
         if (status.getGroup(g, gi)) {
           tokengroups += SSTR( gi.groupname << "(" << gi.groupid << ")" );
-          
+
         }
         else {
           tokengroups += SSTR( "<unknown group>(" << token.groupsforwrite[i] << ")" );
         }
-        
+
         if (i < token.groupsforwrite.size()-1) tokengroups += ",";
       }
 
@@ -260,10 +260,10 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
     }
 
     char pooltype;
-    
+
     // Eventually override the default size
     status.getPoolInfo(token.poolname, minfreespace_bytes, pooltype);
-      
+
     if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
       std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space. minfreespace_bytes: " << minfreespace_bytes);
       Log(Logger::Lvl1, domelogmask, domelogname, err);
@@ -565,7 +565,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     os << "Invalid server: '" << server << "'";
     return DomeReq::SendSimpleResp(request, 422, os);
   }
-  if ( size <= 0 ) {
+  if ( size < 0 ) {
     std::ostringstream os;
     os << "Invalid size: " << size << " '" << pfn << "'";
     return DomeReq::SendSimpleResp(request, 422, os);
@@ -770,19 +770,19 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // spacetoken counters, adjusting u_space
   {
     DomeQuotatoken token;
-    
+
     std::string spctk = rep.getString("accountedspacetoken", "");
     if (spctk.size() > 0) {
       Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << spctk <<
         "' rfn: '" << rep.rfn << "'");
-      
+
       DomeMySql sql;
       DomeMySqlTrans  t(&sql);
-      
+
       // Occupy some space
       sql.addtoQuotatokenUspace(spctk, -size);
     }
-    
+
   }
 
 
@@ -2123,33 +2123,33 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_delreplica only available on head nodes.");
   }
-  
+
   std::string absPath =  req.bodyfields.get<std::string>("pfn", "");
   std::string srv =  req.bodyfields.get<std::string>("server", "");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " srv: '" << srv << "' pfn: '" << absPath << "' ");
-  
+
   if (!absPath.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Path '" << absPath << "' is empty."));
   }
   if (!srv.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Server name '" << srv << "' is empty."));
   }
-  
+
   if (absPath[0] != '/') {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not an absolute path."));
   }
-  
+
   // Remove any trailing slash
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-  
+
   if (!status.PfnMatchesAnyFS(srv, absPath)) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Path '" << absPath << "' is not a valid pfn for server '" << srv << "'"));
   }
-  
-  
+
+
   // Get the replica. Unfortunately to delete it we must first fetch it
   DmlitePoolHandler stack(status.dmpool);
   std::string rfiopath = srv + ":" + absPath;
@@ -2163,21 +2163,21 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
-  
+
+
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
   std::string diskurl = "https://" + srv + "/domedisk/";
   Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << absPath << "' to disk node: '" << diskurl);
-  
+
   DomeTalker talker(*davixPool, req.creds, diskurl,
                     "POST", "dome_pfnrm");
-  
+
   if(!talker.execute(req.bodyfields)) {
     Err(domelogname, talker.err());
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
   // And now remove the replica
   try {
@@ -2188,7 +2188,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
   dmlite::INode *ino;
   try {
@@ -2201,28 +2201,28 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   if (ino) {
     InodeTrans trans(ino);
-    
+
     std::vector<Replica> repls;
     try {
-      
+
       repls = ino->getReplicas(rep.fileid);
-      
+
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
       Err(domelogname, os.str());
       //return DomeReq::SendSimpleResp(request, 404, os);
     }
-    
+
     if (repls.size() == 0) {
       // Delete the logical entry if this was the last replica
       try {
-        
+
         ino->unlink(rep.fileid);
-        
+
       } catch (DmException e) {
         std::ostringstream os;
         os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
@@ -2230,7 +2230,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
         //return DomeReq::SendSimpleResp(request, 404, os);
       }
     }
-    
+
     // Get the file size :-(
     int64_t sz = 0;
     dmlite::ExtendedStat st;
@@ -2239,26 +2239,26 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
     }
-    
+
     // Subtract this filesize to the size of its parent dirs, only the first N levels
     {
-      
-      
+
+
       // Start transaction
       InodeTrans trans(ino);
-      
+
       sz = st.stat.st_size;
-      
+
       ino_t hierarchy[128];
       size_t hierarchysz[128];
       unsigned int idx = 0;
       while (st.parent) {
-        
+
         Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-        
+
         try {
           st = ino->extendedStat(st.parent);
         }
@@ -2266,21 +2266,21 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
           Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
           return -1;
         }
-        
+
         hierarchy[idx] = st.stat.st_ino;
         hierarchysz[idx] = st.stat.st_size;
-        
+
         Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
         " is " << st.stat.st_size << " with idx " << idx);
-        
+
         idx++;
-        
+
         if (idx >= sizeof(hierarchy)) {
           Err( domelogname , " Too many parent directories for replica " << rep.rfn);
           return -1;
         }
       }
-      
+
       // Update the filesize in the first levels
       // Avoid the contention on /dpm/voname/home
       if (idx > 0) {
@@ -2292,35 +2292,35 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       else {
         Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
       }
-      
-      
+
+
       // Commit the local trans object
       // This also releases the connection back to the pool
       trans.Commit();
     }
-    
-    
-    
+
+
+
     // For backward compatibility with the DPM daemon, we also update its
     // spacetoken counters, adjusting u_space
     {
       DomeQuotatoken token;
-      
+
       std::string spctk = rep.getString("accountedspacetoken", "");
       if (spctk.size() > 0) {
         Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << spctk <<
         "' rfn: '" << rep.rfn << "'");
-        
+
         DomeMySql sql;
         DomeMySqlTrans  t(&sql);
         // Free some space
         sql.addtoQuotatokenUspace(spctk, sz);
       }
-      
+
     }
-    
+
   }
-  
+
 
 return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
 }
