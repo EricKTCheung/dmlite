@@ -626,12 +626,13 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
   if (size == 0) {
-    std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
+    // std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"") + req.bodyfields.get<std::string>("lfn", "");
+    std::string domeurl = SSTR("https://" << server << "/domedisk");
 
     DomeTalker talker(*davixPool, req.creds, domeurl,
-                      "POST", "dome_stat");
+                      "GET", "dome_statpfn");
 
-    if(!talker.execute("pfn", pfn, "lfn", lfn)) {
+    if(!talker.execute("pfn", pfn)) {
       Err(domelogname, talker.err());
       return DomeReq::SendSimpleResp(request, 500, talker.err());
     }
