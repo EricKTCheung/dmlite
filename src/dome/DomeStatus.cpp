@@ -84,8 +84,11 @@ DomeStatus::DomeStatus() {
 
   freeaddrinfo(info);
 
-  Log(Logger::Lvl1, domelogmask, domelogname, "My hostname is: " << myhostname);
-
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "My automatically detected hostname is: " << myhostname);
+  myhostname = CFG->GetString("glb.myhostname", myhostname.c_str());
+  Log(Logger::Lvl1, domelogmask, domelogname, "Overriding my hostname to: " << myhostname);
+  
   // Create a dmlite pool
   dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 

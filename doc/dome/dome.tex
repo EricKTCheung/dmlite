@@ -1207,6 +1207,17 @@ Load all the configuration files that are contained in \lstinline"/etc/ugr.conf.
 \lstinline"glb.debug.components[]: queue.CKSUM"\\
 \lstinline"glb.debug.components[]: queue.PULLER"\\
 
+\subsubsection{glb.myhostname}
+Tell Dome the hostname of the machine. The hostname of the machine must match the hostname that describes its file systems, as described in the database table dpm_db.dpm_pool .\\
+In the cases where the network configuration has several interfaces and/or multiple hostnames, we can provide this information to the running Dome instance, to avoid ambiguity.\\
+
+ Syntax:\\
+\lstinline"glb.myhostname <full hostname as used to specify filesystems>"\\
+
+ Example:\\
+\lstinline"glb.myhostname domedisk457.cern.ch"\\
+
+
 
 \subsubsection{glb.fcgi.listenport}
 If Dome is run in external server mode it must specify a TCP port number to bind to.\\
