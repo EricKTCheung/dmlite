@@ -166,6 +166,7 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 
   boost::property_tree::ptree params;
   params.put("pfn", loc[0].url.path);
+  params.put("server", loc[0].url.domain);
   params.put("size", loc[0].size);
   params.put("lfn", sfn);
 
