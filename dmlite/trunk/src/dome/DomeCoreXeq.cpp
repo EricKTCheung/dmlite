@@ -756,6 +756,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     if (idx > 0) {
       Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
       for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
+        Log(Logger::Lvl4, domelogmask, domelogname, " Inide: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] + sz);
         inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
       }
     }
@@ -2211,6 +2212,19 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
 
     InodeTrans trans(ino);
+    
+    
+    // Get the file size :-(
+    int64_t sz = 0;
+    dmlite::ExtendedStat st;
+    try {
+      st = ino->extendedStat(rep.fileid);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+    }
 
     std::vector<Replica> repls;
     try {
@@ -2238,17 +2252,6 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-    // Get the file size :-(
-    int64_t sz = 0;
-    dmlite::ExtendedStat st;
-    try {
-      st = ino->extendedStat(rep.fileid);
-    } catch (DmException e) {
-      std::ostringstream os;
-      os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
-
-      Err(domelogname, os.str());
-    }
 
     // Subtract this filesize to the size of its parent dirs, only the first N levels
     {
@@ -2293,6 +2296,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       if (idx > 0) {
         Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
         for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
+          Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] - sz);
           ino->setSize(hierarchy[i], hierarchysz[i] - sz);
         }
       }
