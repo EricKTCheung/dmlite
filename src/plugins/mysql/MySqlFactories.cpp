@@ -37,7 +37,7 @@ NsMySqlFactory::NsMySqlFactory() throw(DmException):
   nsDb_("cns_db"),
   mapFile_("/etc/lcgdm-mapfile"), hostDnIsRoot_(false), hostDn_("")
 {
-
+  dirspacereportdepth = 6;
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "NsMySqlFactory started");
 }
 

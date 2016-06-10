@@ -2182,18 +2182,6 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
-  // And now remove the replica
-  try {
-    stack->getCatalog()->deleteReplica(rep);
-  } catch (DmException e) {
-    std::ostringstream os;
-    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os);
-  }
-
-  Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
   dmlite::INode *ino;
   try {
     ino = stack->getINode();
@@ -2205,8 +2193,23 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
-
+  
   if (ino) {
+    Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
+    // And now remove the replica
+    try {
+      ino->deleteReplica(rep);
+    } catch (DmException e) {
+      std::ostringstream os;
+      os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, 404, os);
+    }
+
+    Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
+
+
+
     InodeTrans trans(ino);
 
     std::vector<Replica> repls;
