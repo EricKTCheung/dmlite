@@ -2252,7 +2252,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-
+/*
     // Subtract this filesize to the size of its parent dirs, only the first N levels
     {
 
@@ -2308,7 +2308,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       // Commit the local trans object
       // This also releases the connection back to the pool
       trans.Commit();
-    }
+    }*/
 
 
 
