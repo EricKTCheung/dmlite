@@ -37,7 +37,9 @@ namespace dmlite {
     SecurityContext* createSecurityContext() throw (DmException);
 
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-
+    ExtendedStat extendedStatByRFN(const std::string& rfn)  throw (DmException);
+    
+    
     void getIdMap(const std::string& userName,
                   const std::vector<std::string>& groupNames,
                   UserInfo* user,
