@@ -130,3 +130,26 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
     }
   }
 }
+
+
+
+
+void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, rfn: '" << rep.rfn << "'");
+
+  
+  
+    DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                      "POST", "dome_delreplica");
+    
+    boost::property_tree::ptree params;
+    params.put("server", DomeUtils::server_from_rfio_syntax(rep.rfn));
+    params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rep.rfn));
+    
+    
+    if(!talker.execute(params)) {
+      throw DmException(EINVAL, talker.err());
+    }
+    
+  
+}
