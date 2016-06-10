@@ -791,6 +791,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
     if (idx > 0) {
       Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to set sizes. Max depth found: " << idx);
       for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-factory_->dirspacereportdepth); i--) {
+        Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Inode: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] - sz);
         try {
           setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
         }
