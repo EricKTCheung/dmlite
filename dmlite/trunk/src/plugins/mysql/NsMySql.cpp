@@ -708,10 +708,10 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
   statement.bindParam(2, std::string(&cstatus, 1));
   statement.bindParam(3, std::string(&ctype, 1));
   
-  if (replica.getString("accountedspacetoken", "").size() == 0)
+  if (replica.setname.size() == 0)
     statement.bindParam(4, NULL, 0);
   else
-    statement.bindParam(4, replica.getString("accountedspacetoken"));
+    statement.bindParam(4, replica.setname);
   
   statement.bindParam(5, replica.getString("pool"));
   statement.bindParam(6, host);

@@ -395,7 +395,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   r.rfn = selectedfss[fspos].server + ":" + pfn;
   r["pool"] = selectedfss[fspos].poolname;
   r["filesystem"] = selectedfss[fspos].fs;
-  r["accountedspacetoken"] = token.s_token;
+  r.setname = token.s_token;
   r["accountedspacetokenname"] = token.u_token;
   try {
     stack->getCatalog()->addReplica(r);
@@ -776,16 +776,15 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   {
     DomeQuotatoken token;
 
-    std::string spctk = rep.getString("accountedspacetoken", "");
-    if (spctk.size() > 0) {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << spctk <<
+    if (rep.setname.size() > 0) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << rep.setname <<
         "' rfn: '" << rep.rfn << "'");
 
       DomeMySql sql;
       DomeMySqlTrans  t(&sql);
 
       // Occupy some space
-      sql.addtoQuotatokenUspace(spctk, -size);
+      sql.addtoQuotatokenUspace(rep.setname, -size);
     }
 
   }
@@ -2319,15 +2318,15 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     {
       DomeQuotatoken token;
 
-      std::string spctk = rep.getString("accountedspacetoken", "");
-      if (spctk.size() > 0) {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << spctk <<
+      
+      if (rep.setname.size() > 0) {
+        Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << rep.setname <<
         "' rfn: '" << rep.rfn << "'");
 
         DomeMySql sql;
         DomeMySqlTrans  t(&sql);
         // Free some space
-        sql.addtoQuotatokenUspace(spctk, sz);
+        sql.addtoQuotatokenUspace(rep.setname, sz);
       }
 
     }
