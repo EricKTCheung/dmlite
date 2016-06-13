@@ -86,6 +86,10 @@ namespace dmlite {
     ReplicaStatus status;
     ReplicaType   type;
     
+    /// Historical field containing the uuid of the spacetoken that was chosen when
+    /// writing the replica. This is used for accounting
+    std::string setname;
+    
     std::string server;
     std::string rfn;
        
