@@ -707,7 +707,12 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
   statement.bindParam(1, NULL, 0);
   statement.bindParam(2, std::string(&cstatus, 1));
   statement.bindParam(3, std::string(&ctype, 1));
-  statement.bindParam(4, NULL, 0);
+  
+  if (replica.getString("accountedspacetoken", "") == 0)
+    statement.bindParam(4, NULL, 0);
+  else
+    statement.bindParam(4, replica.getString("accountedspacetoken"));
+  
   statement.bindParam(5, replica.getString("pool"));
   statement.bindParam(6, host);
   statement.bindParam(7, replica.getString("filesystem"));
