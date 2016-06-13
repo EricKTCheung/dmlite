@@ -88,7 +88,7 @@ namespace dmlite {
     
     std::string server;
     std::string rfn;
-    
+       
     bool operator == (const Replica&) const;
     bool operator != (const Replica&) const;
     bool operator <  (const Replica&) const;
