@@ -81,6 +81,7 @@ static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
   xstat.stat.st_nlink = ptree.get<nlink_t>("nlink");
   xstat.stat.st_gid = ptree.get<gid_t>("gid");
   xstat.stat.st_uid = ptree.get<uid_t>("uid");
+  xstat.name = ptree.get<std::string>("name");
   xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
@@ -96,9 +97,6 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
 
   try {
     ExtendedStat xstat;
-
-    std::vector<std::string> components = Url::splitPath(path);
-    xstat.name = components.back();
     ptree_to_xstat(talker.jresp(), xstat);
     return xstat;
   }
@@ -108,29 +106,24 @@ ExtendedStat DomeAdapterCatalog::extendedStat(const std::string& path, bool foll
 }
 
 ExtendedStat DomeAdapterCatalog::extendedStatByRFN(const std::string& rfn)  throw (DmException) {
-  
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rfn: " << rfn );
-  
+
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "GET", "dome_getstatinfo");
-  
+
   if(!talker.execute("rfn", rfn)) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
-  
+
   try {
     ExtendedStat xstat;
-    
     ptree_to_xstat(talker.jresp(), xstat);
     return xstat;
   }
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
-  
 }
-
-
 
 void DomeAdapterCatalog::getIdMap(const std::string& userName,
                           const std::vector<std::string>& groupNames,
