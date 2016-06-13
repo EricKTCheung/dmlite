@@ -825,6 +825,7 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
 {
   Replica   replica;
   char      cpool[512];
+  char      setnm[512];
   char      cserver[512];
   char      cfilesystem[512];
   char      crfn[4096];
@@ -850,11 +851,12 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
   stmt.bindResult( 5, &replica.ltime);
   stmt.bindResult( 6, &cstatus, 1);
   stmt.bindResult( 7, &ctype, 1);
-  stmt.bindResult( 8, cpool,       sizeof(cpool));
-  stmt.bindResult( 9, cserver,     sizeof(cserver));
-  stmt.bindResult(10, cfilesystem, sizeof(cfilesystem));
-  stmt.bindResult(11, crfn,        sizeof(crfn));
-  stmt.bindResult(12, cmeta,       sizeof(cmeta));
+  stmt.bindResult( 8, setnm,       sizeof(setnm));
+  stmt.bindResult( 9, cpool,       sizeof(cpool));
+  stmt.bindResult( 10, cserver,     sizeof(cserver));
+  stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+  stmt.bindResult(12, crfn,        sizeof(crfn));
+  stmt.bindResult(13, cmeta,       sizeof(cmeta));
 
   std::vector<Replica> replicas;
 
@@ -895,6 +897,7 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   
   Replica r;
   
+  char setnm[512];
   char cpool[512];
   char cserver[512];
   char cfilesystem[512];
@@ -910,11 +913,12 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   stmt.bindResult( 5, &r.ltime);
   stmt.bindResult( 6, &cstatus, 1);
   stmt.bindResult( 7, &ctype, 1);
-  stmt.bindResult( 8, cpool,       sizeof(cpool));
-  stmt.bindResult( 9, cserver,     sizeof(cserver));
-  stmt.bindResult(10, cfilesystem, sizeof(cfilesystem));
-  stmt.bindResult(11, crfn,        sizeof(crfn));
-  stmt.bindResult(12, cmeta,       sizeof(cmeta));
+  stmt.bindResult( 8, setnm,       sizeof(setnm));
+  stmt.bindResult( 9, cpool,       sizeof(cpool));
+  stmt.bindResult(10, cserver,     sizeof(cserver));
+  stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+  stmt.bindResult(12, crfn,        sizeof(crfn));
+  stmt.bindResult(13, cmeta,       sizeof(cmeta));
 
   if (!stmt.fetch())
     throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %d not found", rid);
@@ -1006,7 +1010,8 @@ void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
   stmt.bindParam(8, rdata.getString("filesystem"));
   stmt.bindParam(9, rdata.rfn);
   stmt.bindParam(10, rdata.serialize());
-  stmt.bindParam(11, rdata.replicaid);
+  stmt.bindParam(11, rdata.setname);
+  stmt.bindParam(12, rdata.replicaid);
 
   stmt.execute();
   

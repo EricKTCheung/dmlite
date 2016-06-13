@@ -34,13 +34,13 @@ const char* STMT_GET_SYMLINK =
 const char* STMT_GET_FILE_REPLICAS =
     "SELECT rowid, fileid, nbaccesses,\
             atime, ptime, ltime,\
-            status, f_type, poolname, host, fs, sfn, COALESCE(xattr, '')\
+            status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
         FROM Cns_file_replica\
         WHERE fileid = ?";
 const char* STMT_GET_REPLICA_BY_ID =
     "SELECT rowid, fileid, nbaccesses,\
             atime, ptime, ltime,\
-            status, f_type, poolname, host, fs, sfn, COALESCE(xattr, '')\
+            status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
         FROM Cns_file_replica\
         WHERE rowid = ?";
 const char* STMT_GET_REPLICA_BY_URL =
@@ -147,7 +147,7 @@ const char* STMT_UPDATE_REPLICA =
     "UPDATE Cns_file_replica\
         SET nbaccesses = ?, ctime = UNIX_TIMESTAMP(), atime = ?, ptime = ?, ltime = ?, \
             f_type = ?, status = ?, poolname = ?, \
-            host = ?, fs = ?, sfn = ?, xattr = ?\
+            host = ?, fs = ?, sfn = ?, xattr = ?, setname = ?\
         WHERE rowid = ?";
 const char* STMT_CHANGE_SIZE =
   "UPDATE Cns_file_metadata\
