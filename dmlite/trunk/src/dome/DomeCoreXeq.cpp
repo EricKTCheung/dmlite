@@ -2219,6 +2219,8 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     dmlite::ExtendedStat st;
     try {
       st = ino->extendedStat(rep.fileid);
+      sz = st.stat.st_size;
+      
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
