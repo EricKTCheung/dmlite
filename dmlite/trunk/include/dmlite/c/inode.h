@@ -40,6 +40,7 @@ typedef struct dmlite_replica {
 
   char server[HOST_NAME_MAX];
   char rfn   [URL_MAX];
+
   
   dmlite_any_dict* extra; /**< @brief   If != NULL, additional metadata will be
                            *            put here.
