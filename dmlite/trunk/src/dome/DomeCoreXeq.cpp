@@ -62,10 +62,10 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     throw DmException(EINVAL, "Empty path. Internal error ?");
 
   // Get the absolute path
-  std::string path;
+  std::string path = filepath;
   if ( filepath[0] != '/' )
     path = catalog->getWorkingDir() + "/" + filepath;
-
+  
   if ( path[0] != '/' )
     path.insert(0, "/");
 
