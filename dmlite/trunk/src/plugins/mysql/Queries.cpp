@@ -46,7 +46,7 @@ const char* STMT_GET_REPLICA_BY_ID =
 const char* STMT_GET_REPLICA_BY_URL =
     "SELECT rowid, fileid, nbaccesses,\
             atime, ptime, ltime,\
-            status, f_type, poolname, host, fs, sfn, COALESCE(xattr, '')\
+            status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
         FROM Cns_file_replica\
         WHERE sfn = ?";
 const char* STMT_GET_COMMENT =
