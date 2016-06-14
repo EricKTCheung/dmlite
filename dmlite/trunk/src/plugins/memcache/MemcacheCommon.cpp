@@ -438,6 +438,7 @@ std::string MemcacheCommon::serializeReplica(const Replica& replica)
   serialReplica.set_ltime(replica.ltime);
   serialReplica.set_status(std::string(1,replica.status));
   serialReplica.set_type(std::string(1,replica.type));
+  serialReplica.set_setname(replica.setname);
   serialReplica.set_pool(replica.getString("pool"));
   serialReplica.set_server(replica.server);
   serialReplica.set_filesystem(replica.getString("filesystem"));
@@ -475,6 +476,7 @@ void MemcacheCommon::deserializeReplica(const std::string& serial_str, Replica& 
   replica.ltime  = serialReplica.ltime();
   replica.status = static_cast<Replica::ReplicaStatus>(serialReplica.status()[0]);
   replica.type   = static_cast<Replica::ReplicaType>(serialReplica.type()[0]);
+  replica.setname = serialReplica.setname();
   replica.server = serialReplica.server();
   replica.rfn    = serialReplica.url();
 
@@ -521,6 +523,7 @@ std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vec
     pReplica->set_ltime(itVecRepl->ltime);
     pReplica->set_status(std::string(1,itVecRepl->status));
     pReplica->set_type(std::string(1,itVecRepl->type));
+    pReplica->set_setname(itVecRepl->setname);
     pReplica->set_pool(itVecRepl->getString("pool"));
     pReplica->set_server(itVecRepl->server);
     pReplica->set_filesystem(itVecRepl->getString("filesystem"));
@@ -561,6 +564,7 @@ void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::
     replica.ltime  = serialReplica.ltime();
     replica.status = static_cast<Replica::ReplicaStatus>(serialReplica.status()[0]);
     replica.type   = static_cast<Replica::ReplicaType>(serialReplica.type()[0]);
+    replica.setname = serialReplica.setname();
     replica.server = serialReplica.server();
     replica.rfn    = serialReplica.url();
 
