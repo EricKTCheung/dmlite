@@ -69,7 +69,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   if ( path[0] != '/' )
     path.insert(0, "/");
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Absolute path: path");
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Absolute path: '" << path << "'");
 
   std::vector<std::string> components = Url::splitPath(path);
   std::vector<std::string> todo;
@@ -99,6 +99,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 
     } catch (DmException e) {
       // No parent means that we have to create it later
+      Log(Logger::Lvl4, domelogmask, domelogname, "Path to create: '" << ppath << "'");
       name = components.back();
       components.pop_back();
 
