@@ -1016,13 +1016,15 @@ void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
   stmt.bindParam(10, rdata.serialize());
   
   if (rdata.setname.size() == 0) {
-    stmt.bindParam(11, rdata.replicaid);
+    stmt.bindParam(11, NULL, 0);
   }
   else {
     stmt.bindParam(11, rdata.setname);
-    stmt.bindParam(12, rdata.replicaid);
+    
   }
 
+  stmt.bindParam(12, rdata.replicaid);
+  
   stmt.execute();
   
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. rdata:" << rdata.rfn);
