@@ -99,8 +99,8 @@ public:
 private:
   DavixCtxPool &pool_;
   DomeCredentials creds_;
-  std::string verb_;
   std::string uri_;
+  std::string verb_;
   std::string cmd_;
 
   std::string target_;

@@ -15,18 +15,22 @@ set(Dome_SOURCES #dpmrest.cpp
                  DomeDmlitePool.cpp
                  ../utils/MySqlPools.cpp
                  ../utils/MySqlWrapper.cpp
-                 ../utils/Config.cc)
+                 ../utils/Config.cc
+                 ${DMLITE_UTILS_SOURCES})
+
+                 
+include_directories(${DAVIX_PKG_INCLUDE_DIRS})
 
 set ( CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}" )
-add_library           (libdome STATIC ${Dome_SOURCES})
+add_library           (libdome STATIC ${Dome_SOURCES} ${DMLITE_UTILS_SOURCES} ${DMLITE_DAVIX_POOL_SOURCES})
 target_link_libraries (libdome fcgi ${DAVIX_PKG_LIBRARIES} ${MYSQL_LIBRARIES} ${Boost_LIBRARIES} crypto dmlite pthread dl)
 set_target_properties (libdome PROPERTIES PREFIX "") # fixes liblib issue
 
 add_executable        (dome DomeMain.cpp)
-target_link_libraries (dome libdome)
+target_link_libraries (dome libdome ${DAVIX_PKG_LIBRARIES})
 
 add_executable        (dome-checksum DomeChecksum.cpp)
-target_link_libraries (dome-checksum z crypto ssl)
+target_link_libraries (dome-checksum z crypto ssl ${DAVIX_PKG_LIBRARIES})
 
 # Install
 install (TARGETS dome

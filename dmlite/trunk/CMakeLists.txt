@@ -111,6 +111,7 @@ if (NOT DAVIX_PKG_FOUND)
   message("-- Davix not found... disabling dome fastcgi component")
   message("-- Davix not found... disabling domeadapter component")
   set (BUILD_DOME OFF)
+  set (BUILD_DOMEADAPTER OFF)
 endif()
                     
                     
