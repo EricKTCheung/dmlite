@@ -78,7 +78,7 @@ Disk Node.
 %install
 
 
-%files -n dpm_mysql
+%files -n dpm_head
 
 %files -n dpm_disk
 
