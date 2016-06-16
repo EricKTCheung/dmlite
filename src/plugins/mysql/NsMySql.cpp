@@ -748,7 +748,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
     Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Ok. Size of " << replica.rfn << " is " << st.stat.st_size);
   }
   catch (DmException& e) {
-    Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve filesize for replica:" << replica.rfn);
+    Err( "MysqlIOPassthroughDriver::deleteReplica" , " Cannot retrieve filesize for replica:" << replica.rfn);
     return;
   }
       
