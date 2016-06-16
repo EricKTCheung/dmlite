@@ -66,6 +66,12 @@ Obsoletes:			dmlite-plugins-profiler-debuginfo < 0.7.0-1
 Obsoletes:                      dmlite-plugins-librarian-debuginfo < 0.7.0-1
 Obsoletes:			dmlite-shell-debuginfo < 0.7.0-1
 
+# This was due to the switch to boost 1.48, linked to the bugs in propertytree
+Conflicts:      dpm-xrootd <= 3.6.0
+
+# Versions prior to this one do not properly do accounting on directories
+Conflicts:      lcgdm-libs <= 1.8
+
 %description libs
 This package provides the core libraries used by dmlite.
 
