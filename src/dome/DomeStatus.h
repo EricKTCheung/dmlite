@@ -39,7 +39,7 @@ class DomeFsInfo {
 public:
 
   DomeFsInfo() {
-    
+
     // A filesystem starts internally disabled
     // It will be anabled by the first good answer of the
     // server that holds it
@@ -47,8 +47,8 @@ public:
     freespace = 0LL;
     physicalsize = 0LL;
   };
-  
-  
+
+
   /// The logical pool this fs belongs to.
   std::string poolname;
 
@@ -66,45 +66,45 @@ public:
     FsStaticDisabled,
     FsStaticReadOnly
   } status;
-  
+
   /// Internal status of the filesystem. It can be broken or its server may be broken
   enum DomeFsActivityStatus {
     FsUnknown = 0, // Just after start
     FsOnline,      // Fs belongs to working server
     FsBroken       // The server that owns this fs seems to be broken.
   } activitystatus;
-  
+
   /// Free space, in bytes
   long long freespace;
   /// Total size of this filesystem
   long long physicalsize;
-  
+
   bool isGoodForWrite() {
     return ( (status == FsStaticActive) && (activitystatus == FsOnline) );
   }
   bool isGoodForRead() {
     return ( (status != FsStaticDisabled) && (activitystatus == FsOnline) );
   }
-  
+
   bool canPullFile() {
     return ( ((pool_stype == 'V') || (pool_stype == 'v')) && (freespace > pool_defsize) );
   }
-  
+
   /// Check if the given write request can go to the given quotatoken
   bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
-  
+
   // Default file size for blindly allocating a new file
   long pool_defsize;
-  
+
   // Space type. V=Volatile, (P or anything else)=Permanent
   char pool_stype;
-  
+
   // Predicate for sorting filesystems by decreasing freespace
   struct pred_decr_freespace {
     bool operator()(DomeFsInfo const & a, DomeFsInfo const & b) const {
         return a.freespace > b.freespace;
     }
-    
+
   };
 
 };
@@ -121,10 +121,10 @@ public:
 
   /// Spacetoken uuid. Used for backward compatibility
   std::string s_token;
-  
+
   /// Spacetoken human name
   std::string u_token;
-  
+
   /// Pool referred to by this quotatoken
   std::string poolname;
 
@@ -134,7 +134,7 @@ public:
   /// Path prefix this structure is assigned to, in the quotatoken use case
   /// No trailing slash !
   std::string path;
-  
+
   /// Groups that are allowed to write
   std::vector<std::string> groupsforwrite;
 
@@ -147,18 +147,18 @@ public:
 /// Information about an user
 class DomeUserInfo {
 public:
-  
+
   DomeUserInfo(): userid(-1), banned(false) {};
-  
+
   /// The user id
   int16_t userid;
-  
+
   /// The username
   std::string username;
-  
+
   /// Tha banned status
   bool banned;
-  
+
   /// additional info
   std::string xattr;
 };
@@ -166,18 +166,18 @@ public:
 /// Information about a group
 class DomeGroupInfo {
 public:
-  
+
   DomeGroupInfo(): groupid(-1), banned(false) {};
-  
+
   /// The user id
   int16_t groupid;
-  
+
   /// The username
   std::string groupname;
-  
+
   /// Tha banned status
   bool banned;
-  
+
   /// additional info
   std::string xattr;
 };
@@ -187,16 +187,16 @@ public:
 /// Accesses must lock/unlock it for operations where other threads may write
 class DomeStatus: public boost::recursive_mutex {
 public:
-  
+
   DomeStatus();
   ~DomeStatus() {
-    
+
     if(dmpool) {
       delete dmpool;
       dmpool = NULL;
     }
   }
-  
+
   // Head node or disk server ?
   enum {
     roleHead,
@@ -205,13 +205,13 @@ public:
 
   // The hostname of this machine
   std::string myhostname;
-  
+
   // The hostname of the head node we refer to
   std::string headnodename;
-  
+
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;
- 
+
   /// Simple keyvalue store for prefix-based quotas, that
   /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes
@@ -220,13 +220,13 @@ public:
   /// List of all the servers that are involved. This list is built dynamically
   /// when populating the filesystems
   std::set <std::string> servers;
-  
+
   /// Tables to quick translate users and groups. To access this the status must be locked!
   std::map <int, DomeUserInfo> usersbyuid;
   std::map <std::string, DomeUserInfo> usersbyname;
   std::map <int, DomeGroupInfo> groupsbygid;
   std::map <std::string, DomeGroupInfo> groupsbyname;
-  
+
   /// Inserts/overwrites an user
   int insertUser(DomeUserInfo &ui);
   /// Inserts/overwrites a group
@@ -244,38 +244,38 @@ public:
   /// The implementation of getIdMap may use this
   std::multimap <std::string, std::string> gridmap;
 
-  
+
   /// Helper function that reloads all the filesystems from the DB
   int loadFilesystems();
 
   /// Helper function that reloads all the quotas from the DB
   int loadQuotatokens();
-  
+
   /// Helper function that reloads all the users from the DB
   int loadUsersGroups();
 
   /// Helper function that inserts a quotatoken or overwrites an existing one
   int insertQuotatoken(DomeQuotatoken &tk);
-  
+
   /// Helper function that gets a quotatoken given the keys
   int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
-  
+
   /// Helper function that deletes a quotatoken given the keys
   int delQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
-  
+
   /// Calculates the total space for the given pool and the free space on the disks that belong to it
   /// Returns zero if pool was found, nonzero otherwise
   int getPoolSpaces(std::string &poolname, long long &total, long long &free, int &poolstatus);
-  
+
   /// Tells if a pool with the given name exists
   bool existsPool(std::string &poolname);
-  
+
   /// Retrieves basic info about a named pool
   bool getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype);
-  
+
   /// Removes a pool and all its filesystems
   int rmPoolfs(std::string &poolname);
-  
+
   /// Adds a filesystem to an existing pool
   int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
 
@@ -283,33 +283,36 @@ public:
   bool LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn, DomeFsInfo &fsinfo);
-  
+
   // head node trusts all the disk nodes that are registered in the filesystem table
   // disk node trusts head node as defined in the config file
   bool isDNaKnownServer(std::string dn);
-  
+
   // which quotatoken should apply to lfn?
   // return true and set the token, or return false if no tokens match
   // If more than one quotatokens match then the first one is selected
   // TODO: honour the fact that multiple quotatokens may match
   bool whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token);
-  
+  bool whichQuotatokensForLfn(const std::string &lfn, std::vector<DomeQuotatoken> &tokens);
+
   // does this file fit in our quotatoken?
   bool fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size);
 
+  void filterQuotatokensByFreespace(std::vector<DomeQuotatoken> &tokens);
+  void filterQuotatokensByCanwrite(std::vector<DomeQuotatoken> &tokens, DomeReq &req);
   bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
-  
+
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   /// Useful to compose damn unique replica pfns
   long getGlobalputcount();
-  
+
   void checkDiskSpaces();
-  
+
   // Tells if the given pfn belongs to the given filesystem root path
   bool PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs);
   // ---------------------------------
-  
-  
+
+
   /// The queue holding checksum requests
   GenPrioQueue *checksumq;
   /// Checks if I can send a checksum request to the disk
@@ -326,7 +329,7 @@ public:
 
   /// The status lives
   int tick(time_t timenow);
-  
+
   DmlitePool *dmpool;
 private:
   time_t lastreload, lastfscheck, lastreloadusersgroups;

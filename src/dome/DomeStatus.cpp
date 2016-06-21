@@ -84,11 +84,11 @@ DomeStatus::DomeStatus() {
 
   freeaddrinfo(info);
 
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "My automatically detected hostname is: " << myhostname);
   myhostname = CFG->GetString("glb.myhostname", myhostname.c_str());
   Log(Logger::Lvl1, domelogmask, domelogname, "Overriding my hostname to: " << myhostname);
-  
+
   // Create a dmlite pool
   dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 
@@ -335,9 +335,9 @@ bool DomeStatus::existsPool(std::string &poolname) {
 }
 
 bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype) {
-  
+
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
@@ -345,7 +345,7 @@ bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &po
       pool_stype = fslist[i].pool_stype;
       return true;
     }
-    
+
     return false;
 }
 
@@ -877,11 +877,12 @@ bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
 
 }
 
-// which quotatoken should apply to lfn?
-// return true and set the token, or return false if no tokens match
-// If more than one quotatokens match then the first one is selected
-// TODO: honour the fact that multiple quotatokens may match
-bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token) {
+
+// which quotatokens should apply to lfn?
+// populate the vector of matching tokens
+// and return true if there's at least one match
+bool DomeStatus::whichQuotatokensForLfn(const std::string &lfn, std::vector<DomeQuotatoken> &tokens) {
+  typedef std::multimap<std::string, DomeQuotatoken>::iterator MapIter;
   Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "'");
 
   // lock status
@@ -891,13 +892,13 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
   while( !path.empty() ) {
     Log(Logger::Lvl4, domelogmask, domelogname, "  checking '" << path << "'");
 
-    typedef std::multimap<std::string, DomeQuotatoken>::iterator MapIter;
     std::pair<MapIter, MapIter> interval = quotas.equal_range(path);
-
     if(interval.first != interval.second) {
-      Log(Logger::Lvl4, domelogmask, domelogname, " match for lfn '" << lfn << "'" << "and quotatoken " << interval.first->second.u_token);
-      token = interval.first->second;
-      return true;
+      for(MapIter it = interval.first; it != interval.second; it++) {
+        Log(Logger::Lvl4, domelogmask, domelogname, " match for lfn '" << lfn << "'" << "and quotatoken " << it->second.u_token);
+        tokens.push_back(it->second);
+      }
+      return ! tokens.empty();
     }
 
     // no match found, look upwards by trimming the last slash from path
@@ -905,9 +906,56 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
     path.erase(pos);
   }
 
-  Log(Logger::Lvl3, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
+  Log(Logger::Lvl4, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
   return false;
 }
+
+void DomeStatus::filterQuotatokensByFreespace(std::vector<DomeQuotatoken> &tokens) {
+  std::vector<DomeQuotatoken>::iterator it = tokens.begin();
+  while(it != tokens.end()) {
+    char pooltype;
+    // overriden by the pool
+    long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
+    this->getPoolInfo(it->poolname, minfreespace_bytes, pooltype);
+
+    if(! this->fitsInQuotatoken(*it, minfreespace_bytes)) {
+      it = tokens.erase(it);
+    }
+    else ++it;
+  }
+}
+
+// which quotatoken should apply to lfn?
+// return true and set the token, or return false if no tokens match
+// If more than one quotatokens match then the first one is selected
+// TODO: honour the fact that multiple quotatokens may match
+// bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token) {
+//   Log(Logger::Lvl4, domelogmask, domelogname, "lfn: '" << lfn << "'");
+//
+//   // lock status
+//   boost::unique_lock<boost::recursive_mutex> l(*this);
+//
+//   std::string path = lfn;
+//   while( !path.empty() ) {
+//     Log(Logger::Lvl4, domelogmask, domelogname, "  checking '" << path << "'");
+//
+//     typedef std::multimap<std::string, DomeQuotatoken>::iterator MapIter;
+//     std::pair<MapIter, MapIter> interval = quotas.equal_range(path);
+//
+//     if(interval.first != interval.second) {
+//       Log(Logger::Lvl4, domelogmask, domelogname, " match for lfn '" << lfn << "'" << "and quotatoken " << interval.first->second.u_token);
+//       token = interval.first->second;
+//       return true;
+//     }
+//
+//     // no match found, look upwards by trimming the last slash from path
+//     size_t pos = path.rfind("/");
+//     path.erase(pos);
+//   }
+//
+//   Log(Logger::Lvl3, domelogmask, domelogname, " No quotatokens match lfn '" << lfn << "'");
+//   return false;
+// }
 
 bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size) {
 
@@ -961,6 +1009,15 @@ bool DomeStatus::isDNaKnownServer(std::string dn) {
   return false;
 }
 
+void DomeStatus::filterQuotatokensByCanwrite(std::vector<DomeQuotatoken> &tokens, DomeReq &req) {
+  std::vector<DomeQuotatoken>::iterator it = tokens.begin();
+  while(it != tokens.end()) {
+    if(! this->canwriteintoQuotatoken(req, *it)) {
+      it = tokens.erase(it);
+    }
+    else ++it;
+  }
+}
 
 
 bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
