@@ -65,7 +65,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   std::string path = filepath;
   if ( filepath[0] != '/' )
     path = catalog->getWorkingDir() + "/" + filepath;
-  
+
   if ( path[0] != '/' )
     path.insert(0, "/");
 
@@ -173,7 +173,7 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
 
 int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
 
-  DomeQuotatoken token;
+  DomeQuotatoken selected_token;
 
   // fetch the parameters, lfn and placement suggestions
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
@@ -208,69 +208,84 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   // use quotatokens?
   // TODO: more than quotatoken may match, they all should be considered
   if(pool.empty() && host.empty() && fs.empty()) {
-
-    if(!status.whichQuotatokenForLfn(lfn, token)) {
+    std::vector<DomeQuotatoken> tokens;
+    if(!status.whichQuotatokensForLfn(lfn, tokens)) {
       return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No quotatokens match lfn, and no hints were given.");
     }
+
+    std::vector<DomeQuotatoken> original_tokens = tokens;
+    Log(Logger::Lvl1, domelogmask, domelogname, "original list of tokens: " << tokens.size());
+    status.filterQuotatokensByFreespace(tokens);
+    Log(Logger::Lvl1, domelogmask, domelogname, "after freespace filter: " << tokens.size());
+
+    status.filterQuotatokensByCanwrite(tokens, req);
+    Log(Logger::Lvl1, domelogmask, domelogname, "after canwrite filter: " << tokens.size());
+
+    if(tokens.empty()) {
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, SSTR("Unable to find matching quotatoken"));
+    }
+
+    selected_token = tokens[0];
 
     // Check if the quotatoken admits writes for the groups the client belongs to
     // Please note that the clients' groups come through fastcgi,
     // instead the groups in the quotatoken are in the form of gids
-    if(!status.canwriteintoQuotatoken(req, token)) {
+    // TODO: re-enable good error message
+    // if(!status.canwriteintoQuotatoken(req, selected_token)) {
+    //
+    //   // Prepare a complete error message that describes why the user can't write
+    //
+    //
+    //   std::string userfqans, tokengroups, s;
+    //   DomeGroupInfo gi;
+    //
+    //   // Start prettyprinting the groups the user belongs to
+    //   for (unsigned int i = 0; i < req.creds.groups.size(); i++) {
+    //     userfqans += req.creds.groups[i];
+    //     if (status.getGroup(req.creds.groups[i], gi)) {
+    //       userfqans += SSTR( "(" << gi.groupid << ")" );
+    //
+    //     }
+    //     else
+    //       userfqans += "(<unknown group>)";
+    //
+    //
+    //     if (i < req.creds.groups.size()-1) userfqans += ",";
+    //   }
+    //
+    //   // Then prettyprint the gids of the selected token
+    //   for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
+    //     int g = atoi(token.groupsforwrite[i].c_str());
+    //     if (status.getGroup(g, gi)) {
+    //       tokengroups += SSTR( gi.groupname << "(" << gi.groupid << ")" );
+    //
+    //     }
+    //     else {
+    //       tokengroups += SSTR( "<unknown group>(" << token.groupsforwrite[i] << ")" );
+    //     }
+    //
+    //     if (i < token.groupsforwrite.size()-1) tokengroups += ",";
+    //   }
+    //
+    //   std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << userfqans <<
+    //     "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token <<
+    //     ")' with gids: '" << tokengroups);
+    //
+    //   Log(Logger::Lvl1, domelogmask, domelogname, err);
+    //   return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
+    // }
 
-      // Prepare a complete error message that describes why the user can't write
-
-
-      std::string userfqans, tokengroups, s;
-      DomeGroupInfo gi;
-
-      // Start prettyprinting the groups the user belongs to
-      for (unsigned int i = 0; i < req.creds.groups.size(); i++) {
-        userfqans += req.creds.groups[i];
-        if (status.getGroup(req.creds.groups[i], gi)) {
-          userfqans += SSTR( "(" << gi.groupid << ")" );
-
-        }
-        else
-          userfqans += "(<unknown group>)";
-
-
-        if (i < req.creds.groups.size()-1) userfqans += ",";
-      }
-
-      // Then prettyprint the gids of the selected token
-      for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
-        int g = atoi(token.groupsforwrite[i].c_str());
-        if (status.getGroup(g, gi)) {
-          tokengroups += SSTR( gi.groupname << "(" << gi.groupid << ")" );
-
-        }
-        else {
-          tokengroups += SSTR( "<unknown group>(" << token.groupsforwrite[i] << ")" );
-        }
-
-        if (i < token.groupsforwrite.size()-1) tokengroups += ",";
-      }
-
-      std::string err = SSTR("User '" << req.creds.clientName << " with fqans '" << userfqans <<
-        "' cannot write to quotatoken '" << token.s_token << "(" << token.u_token <<
-        ")' with gids: '" << tokengroups);
-
-      Log(Logger::Lvl1, domelogmask, domelogname, err);
-      return DomeReq::SendSimpleResp(request, DOME_HTTP_DENIED, err);
-    }
-
-    char pooltype;
+    // char pooltype;
 
     // Eventually override the default size
-    status.getPoolInfo(token.poolname, minfreespace_bytes, pooltype);
+    // status.getPoolInfo(selected_token.poolname, minfreespace_bytes, pooltype);
 
-    if(!status.fitsInQuotatoken(token, minfreespace_bytes)) {
-      std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << token.u_token << "' has insufficient free space. minfreespace_bytes: " << minfreespace_bytes);
-      Log(Logger::Lvl1, domelogmask, domelogname, err);
-      return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, err);
-    }
-    pool = token.poolname;
+    // if(!status.fitsInQuotatoken(selected_token, minfreespace_bytes)) {
+    //   std::string err = SSTR("Unable to complete put for '" << lfn << "' - quotatoken '" << selected_token.u_token << "' has insufficient free space. minfreespace_bytes: " << minfreespace_bytes);
+    //   Log(Logger::Lvl1, domelogmask, domelogname, err);
+    //   return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, err);
+    // }
+    pool = selected_token.poolname;
   }
 
   // populate the list of candidate filesystems
@@ -396,8 +411,8 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   r.rfn = selectedfss[fspos].server + ":" + pfn;
   r["pool"] = selectedfss[fspos].poolname;
   r["filesystem"] = selectedfss[fspos].fs;
-  r.setname = token.s_token;
-  r["accountedspacetokenname"] = token.u_token;
+  r.setname = selected_token.s_token;
+  r["accountedspacetokenname"] = selected_token.u_token;
   try {
     stack->getCatalog()->addReplica(r);
   } catch (DmException &e) {
@@ -2194,7 +2209,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   if (ino) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
     // And now remove the replica
@@ -2212,19 +2227,19 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
 
     InodeTrans trans(ino);
-    
-    
+
+
     // Get the file size :-(
     int64_t sz = 0;
     dmlite::ExtendedStat st;
     try {
       st = ino->extendedStat(rep.fileid);
       sz = st.stat.st_size;
-      
+
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
     }
 
@@ -2319,7 +2334,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     {
       DomeQuotatoken token;
 
-      
+
       if (rep.setname.size() > 0) {
         Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << rep.setname <<
         "' rfn: '" << rep.rfn << "'");
