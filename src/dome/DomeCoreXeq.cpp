@@ -859,10 +859,12 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
 
   status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
 
-  return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued checksum calculation for server " << replica.server
-                                                     << ", path " << DomeUtils::pfn_from_rfio_syntax(replica.rfn)
-                                                     << ", check back later.\r\nTotal checksums in queue right now: "
-                                                     << status.checksumq->nTotal()));
+  boost::property_tree::ptree jresp;
+  jresp.put("status", "enqueued");
+  jresp.put("server", replica.server);
+  jresp.put("pfn", DomeUtils::pfn_from_rfio_syntax(replica.rfn));
+  jresp.put("queue-size", status.checksumq->nTotal());
+  return DomeReq::SendSimpleResp(request, 202, jresp);
 }
 
 
@@ -1000,6 +1002,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     // can I send a response right now? Of course, sir !
     if(lfnchecksum != "" && (pfn == "" || pfnchecksum != "")) {
       boost::property_tree::ptree jresp;
+      jresp.put("status", "found");
       jresp.put("checksum", lfnchecksum);
       if(pfn != "") {
         jresp.put("pfn-checksum", pfnchecksum);
