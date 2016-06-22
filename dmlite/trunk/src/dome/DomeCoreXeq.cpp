@@ -65,7 +65,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   std::string path = filepath;
   if ( filepath[0] != '/' )
     path = catalog->getWorkingDir() + "/" + filepath;
-  
+
   if ( path[0] != '/' )
     path.insert(0, "/");
 
@@ -935,11 +935,13 @@ int DomeCore::dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool aut
   response << "Your DN: " << req.clientdn << "\r\n\r\n";
 
   if(authorized) {
+    response << "ACCESS TO DOME GRANTED.\r\n"; // magic string, don't change. The tests look for this string
     for (char **envp = request.envp ; *envp; ++envp) {
       response << *envp << "\r\n";
     }
   }
   else {
+    response << "ACCESS TO DOME DENIED.\r\n"; // magic string, don't change
     response << "Your client certificate is not authorized to directly access dome. Sorry :-)\r\n";
   }
 
@@ -2194,7 +2196,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     //return DomeReq::SendSimpleResp(request, 404, os);
   }
-  
+
   if (ino) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
     // And now remove the replica
@@ -2212,19 +2214,19 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
 
     InodeTrans trans(ino);
-    
-    
+
+
     // Get the file size :-(
     int64_t sz = 0;
     dmlite::ExtendedStat st;
     try {
       st = ino->extendedStat(rep.fileid);
       sz = st.stat.st_size;
-      
+
     } catch (DmException e) {
       std::ostringstream os;
       os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
     }
 
@@ -2319,7 +2321,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     {
       DomeQuotatoken token;
 
-      
+
       if (rep.setname.size() > 0) {
         Log(Logger::Lvl4, domelogmask, domelogname, " Accounted space token: '" << rep.setname <<
         "' rfn: '" << rep.rfn << "'");
