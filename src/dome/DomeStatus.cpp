@@ -920,7 +920,14 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t siz
   ExtendedStat st;
   try {
     st = stack->getCatalog()->extendedStat(token.path);
+    
+    // What a nice hack, eh ?
+    // This is to make sure that we bypass a possible memcache plugin instance,
+    //  which would give the correct directory size only after a timeout
+    st = stack->getINode()->extendedStat(st.stat.st_ino);
+    
     totused = st.stat.st_size;
+    
   }
   catch (DmException &e) {
     Err(domelogname, "dmlite exception when trying to find used space of quotatoken for path'" << token.path << "' : " << e.code() << "-" << e.what());
