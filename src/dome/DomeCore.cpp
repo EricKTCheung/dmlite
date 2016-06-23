@@ -398,7 +398,7 @@ int DomeCore::init(const char *cfgfile) {
     limits.push_back( CFG->GetLong("head.checksum.maxpernode", 2) );
 
     // Create the chksum queue
-    status.checksumq = new GenPrioQueue(CFG->GetLong("head.checksum.qtmout", 30), limits);
+    status.checksumq = new GenPrioQueue(CFG->GetLong("head.checksum.qtmout", 180), limits);
 
     // Create the queue for the callouts
     limits.clear();
