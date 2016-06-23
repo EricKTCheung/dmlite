@@ -11,3 +11,5 @@ if (CPPUNIT_FOUND)
   add_subdirectory (cpp)
   add_subdirectory (c)
 endif (CPPUNIT_FOUND)
+
+add_subdirectory(dpm)
