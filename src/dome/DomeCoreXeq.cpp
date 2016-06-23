@@ -1862,7 +1862,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
       " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
 
-      boost::property_tree::ptree pt;
+      boost::property_tree::ptree pt, grps;
       pt.put("path", it->second.path);
       pt.put("quotatkname", it->second.u_token);
       pt.put("quotatkpoolname", it->second.poolname);
@@ -1870,7 +1870,19 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       pt.put("pooltotspace", ptot);
       pt.put("pathusedspace", pathused);
       pt.put("pathfreespace", pathfree);
-
+      
+      // Push the groups array into the response
+      for (unsigned i = 0; i < it->second.groupsforwrite.size(); i++) {
+        DomeGroupInfo gi;
+        int thisgid = atoi(it->second.groupsforwrite[i].c_str());
+        
+        if (!status.getGroup(thisgid, gi))
+          grps.push_back(std::make_pair(it->second.groupsforwrite[i], "<unknown>"));
+        else
+          grps.push_back(std::make_pair(it->second.groupsforwrite[i], gi.groupname));
+      }
+      pt.push_back(std::make_pair("groups", grps));
+      
       jresp.push_back(std::make_pair("", pt));
       cnt++;
     } // if
