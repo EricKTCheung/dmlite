@@ -54,6 +54,87 @@ BuildRequires:			fcgi-devel
 This package provides the dmlite framework that implements common
 logic for data management and storage for the Lcg grid.
 
+
+
+
+
+
+
+
+
+
+%package -n dpm_head
+Summary:  EMI DPM Head Node (MySQL)
+Group:    Applications/Internet
+Requires: bdii
+Requires: dpm%{?_isa} = %{version}
+Requires: dpm-copy-server-mysql%{?_isa} = %{version}
+Requires: dpm-devel%{?_isa} = %{version}
+Requires: dpm-dsi%{?_isa}
+Requires: dpm-name-server-mysql%{?_isa} = %{version}
+Requires: dpm-perl%{?_isa} = %{version}
+Requires: dpm-python%{?_isa} = %{version}
+Requires: dpm-rfio-server%{?_isa} = %{version}
+Requires: dpm-server-mysql%{?_isa} = %{version}
+Requires: dpm-srm-server-mysql%{?_isa} = %{version}
+Requires: dpm-yaim >= 4.2.20
+Requires: dmlite-plugins-adapter >= 0.4.0
+Requires: dmlite-plugins-mysql >= 0.4.0
+Requires: edg-mkgridmap
+Requires:       emi-version
+Requires: fetch-crl
+Requires: finger
+Requires: lcgdm-dav
+Requires: lcgdm-dav-server
+Requires: lcg-expiregridmapdir
+
+Obsoletes: emi-dpm_mysql
+
+
+%description -n dpm_head
+The LCG Disk Pool Manager (DPM) creates a storage element from a set
+of disks. It provides several interfaces for storing and retrieving
+data such as HTTP, Xrootd, GridFTP
+
+%package -n dpm_disk
+Summary:  EMI DPM Disk Node
+Group:    Applications/Internet
+Requires: dpm%{?_isa} = %{version}
+Requires: dpm-devel%{?_isa} = %{version}
+Requires: dpm-dsi%{?_isa}
+Requires: dpm-perl%{?_isa} = %{version}
+Requires: dpm-python%{?_isa} = %{version}
+Requires: dpm-rfio-server%{?_isa} = %{version}
+Requires: dpm-yaim >= 4.2.20
+Requires: dmlite-plugins-adapter >= 0.4.0
+Requires: edg-mkgridmap
+Requires:       emi-version
+Requires: fetch-crl
+Requires: finger
+Requires: lcgdm-dav
+Requires: lcgdm-dav-server
+Requires: lcg-expiregridmapdir
+
+Obsoletes: emi-dpm_disk
+
+%description -n dpm_disk
+The LCG Disk Pool Manager (DPM) creates a storage element from a set
+of disks. It provides several interfaces for storing and retrieving
+data such as RFIO and SRM version 1, version 2 and version 2.2.
+This is a virtual package providing all required daemons for a DPM
+Disk Node. 
+
+
+
+
+
+
+
+
+
+
+
+
 %package libs
 Summary:			Libraries for dmlite packages
 Group:				Applications/Internet
@@ -112,9 +193,27 @@ BuildRequires:                  boost-devel >= 1.48.0
 %else
 BuildRequires:                  boost148-devel >= 1.48.0
 %endif
+
+
+
 %description private-devel
 Private development headers for dmlite. Provided for the development of
 dmlite plugins only, no API compatibility is guaranteed on these headers.
+
+
+
+%package dpm-tester
+Summary:      The dpm tester tool
+Group:        Applications/Internet
+Requires:     python
+Requires:     gfal2
+
+%description dpm-tester
+Tool that is useful to test the main features of a DPM setup
+
+
+
+
 
 
 %package -n python-dmlite
@@ -279,6 +378,17 @@ rm -rf %{buildroot}
 
 %postun libs -p /sbin/ldconfig
 
+
+
+
+
+
+
+%files dpm_head
+
+%files dpm_disk
+
+
 %files libs
 %defattr(-,root,root,-)
 %dir %{_sysconfdir}/dmlite.conf.d
@@ -307,6 +417,11 @@ rm -rf %{buildroot}
 %files private-devel
 %defattr(-,root,root,-)
 %{_includedir}/dmlite/cpp
+
+%files dpm-tester
+%defattr(-,root,root,-)
+%{_bindir}/dpm-tester.py
+
 
 %files docs
 %defattr(-,root,root,-)
