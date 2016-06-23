@@ -63,7 +63,7 @@ logic for data management and storage for the Lcg grid.
 
 
 
-%package -n dpm_head
+%package dpm_head
 Summary:  EMI DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
@@ -91,12 +91,12 @@ Requires: lcg-expiregridmapdir
 Obsoletes: emi-dpm_mysql
 
 
-%description -n dpm_head
+%description dpm_head
 The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
 
-%package -n dpm_disk
+%package dpm_disk
 Summary:  EMI DPM Disk Node
 Group:    Applications/Internet
 Requires: dpm%{?_isa} = %{version}
@@ -117,7 +117,7 @@ Requires: lcg-expiregridmapdir
 
 Obsoletes: emi-dpm_disk
 
-%description -n dpm_disk
+%description dpm_disk
 The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as RFIO and SRM version 1, version 2 and version 2.2.
