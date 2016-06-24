@@ -16,7 +16,8 @@ void export_catalog()
         .def("changeDir", boost::python::pure_virtual(&Catalog::changeDir))
         .def("getWorkingDir", boost::python::pure_virtual(&Catalog::getWorkingDir))
 
-        .def("extendedStat", boost::python::pure_virtual(&Catalog::extendedStat))
+        .def("extendedStat", boost::python::pure_virtual(
+             static_cast<ExtendedStat (Catalog::*)(const std::string&, bool)>(&Catalog::extendedStat)))
         .def("addReplica", boost::python::pure_virtual(&Catalog::addReplica))
         .def("deleteReplica", boost::python::pure_virtual(&Catalog::deleteReplica))
         .def("getReplicas", boost::python::pure_virtual(&Catalog::getReplicas))
