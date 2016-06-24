@@ -139,7 +139,6 @@ std::string BuiltInCatalog::getWorkingDir (void) throw (DmException)
 #define DMLITE_EXCEPTION_SHIELD(statement) try { statement; } catch(DmException &e) { return DmStatus(e); }
 
 DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& path, bool followSym) throw ()
-// ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
  // Split the path always assuming absolute
   std::vector<std::string> components = Url::splitPath(path);
@@ -182,7 +181,7 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
   // Relative, and cwd set, so start there
   else {
     parent = this->cwd_;
-    meta   = this->si_->getINode()->extendedStat(parent);
+    DMLITE_EXCEPTION_SHIELD(meta   = this->si_->getINode()->extendedStat(parent));
   }
 
 
