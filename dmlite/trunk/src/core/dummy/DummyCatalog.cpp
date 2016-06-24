@@ -66,7 +66,21 @@ std::string DummyCatalog::getWorkingDir(void) throw (DmException)
 
 DmStatus DummyCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw ()
 {
-  DELEGATE_RETURN(extendedStat, xstat, path, follow);
+  // it would be best if plugins implemented this version directly,
+  // so as to avoid spurious exception messages in the log
+  // But still.. this function will keep them working even if they don't.
+
+  Catalog *forward = this->decorated_;
+  if(forward == NULL) forward = this;
+
+  try {
+    ExtendedStat ret = forward->extendedStat(path, follow);
+    xstat = ret;
+    return DmStatus();
+  }
+  catch(DmException &e) {
+    return DmStatus(e);
+  }
 }
 
 
