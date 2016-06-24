@@ -10,7 +10,7 @@ void ExtendedStat::fixchecksums() {
   if (!csumtype.length() || !csumvalue.length()) {
     std::string shortCsumType;
     std::vector<std::string> keys = getKeys();
-    
+
     for (unsigned i = 0; i < keys.size(); ++i) {
       if (checksums::isChecksumFullName(keys[i])) {
         std::string csumXattr = keys[i];
@@ -22,7 +22,7 @@ void ExtendedStat::fixchecksums() {
         }
       }
     }
-    
+
   }
   else {
     // If legacy fields are not empty make sure that the same chksum is presented as an xattr too
@@ -38,19 +38,19 @@ int ExtendedStat::getchecksum(std::string &cktype, std::string &ckvalue) {
     ckvalue = this->csumvalue;
     return 0;
   }
-  
+
   std::string key = "checksum." + cktype;
   if ( !hasField(cktype) ) return -1;
-  
-  
+
+
   try {
     ckvalue = getString(key);
   }
   catch (DmException e) {
     return -1;
   }
-  
-  
+
+
 }
 
 INodeFactory::~INodeFactory()
@@ -94,7 +94,9 @@ NOT_IMPLEMENTED(void INode::unlink(ino_t) throw (DmException));
 NOT_IMPLEMENTED(void INode::move(ino_t, ino_t) throw (DmException));
 NOT_IMPLEMENTED(void INode::rename(ino_t, const std::string&) throw (DmException));
 NOT_IMPLEMENTED(ExtendedStat INode::extendedStat(ino_t) throw (DmException));
+NOT_IMPLEMENTED(DmStatus INode::extendedStat(ExtendedStat&, ino_t) throw ());
 NOT_IMPLEMENTED(ExtendedStat INode::extendedStat(ino_t, const std::string&) throw (DmException));
+NOT_IMPLEMENTED(DmStatus INode::extendedStat(ExtendedStat&, ino_t, const std::string&) throw ());
 NOT_IMPLEMENTED(ExtendedStat INode::extendedStat(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(SymLink INode::readLink(ino_t) throw (DmException));
 NOT_IMPLEMENTED(void INode::addReplica(const Replica&) throw (DmException));
