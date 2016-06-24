@@ -29,6 +29,7 @@ namespace dmlite {
     virtual std::string getWorkingDir (void)               throw (DmException);
 
     virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
+    virtual DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw ();
     virtual ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
     virtual bool access(const std::string& path, int mode) throw (DmException);
@@ -40,7 +41,7 @@ namespace dmlite {
 
     virtual void symlink (const std::string&, const std::string&) throw (DmException);
     std::string  readLink(const std::string& path) throw (DmException);
-    
+
     virtual void unlink(const std::string&)                     throw (DmException);
 
     virtual void create(const std::string&, mode_t) throw (DmException);
@@ -62,7 +63,7 @@ namespace dmlite {
 
     virtual void setGuid(const std::string&,
                          const std::string&) throw (DmException);
-    
+
     virtual void updateExtendedAttributes(const std::string&,
                                           const Extensible&) throw (DmException);
 

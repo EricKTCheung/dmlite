@@ -37,12 +37,25 @@ Catalog::~Catalog()
   // Nothing
 }
 
+DmStatus Catalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSymLink) throw ()
+{
+  // it would be best if plugins implemented this version directly,
+  // so as to avoid spurious exception messages in the log
+  // But still.. this function will keep them working even if they don't.
 
+  try {
+    ExtendedStat ret = this->extendedStat(path, followSymLink);
+    xstat = ret;
+    return DmStatus();
+  }
+  catch(DmException &e) {
+    return DmStatus(e);
+  }
+}
 
 NOT_IMPLEMENTED(void Catalog::changeDir(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(std::string Catalog::getWorkingDir(void) throw (DmException));
 NOT_IMPLEMENTED(ExtendedStat Catalog::extendedStat(const std::string&, bool) throw (DmException));
-NOT_IMPLEMENTED(DmStatus Catalog::extendedStat(ExtendedStat&, const std::string&, bool) throw ());
 NOT_IMPLEMENTED(ExtendedStat Catalog::extendedStatByRFN(const std::string&) throw (DmException));
 NOT_IMPLEMENTED(bool Catalog::access(const std::string& path, int mode) throw (DmException));
 NOT_IMPLEMENTED(bool Catalog::accessReplica(const std::string& rfn, int mode) throw (DmException));

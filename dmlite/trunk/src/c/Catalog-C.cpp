@@ -76,8 +76,16 @@ int dmlite_statx(dmlite_context* context, const char* path, dmlite_xstat* buf)
   TRY(context, statx)
   NOT_NULL(path);
   NOT_NULL(buf);
-  dmlite::ExtendedStat ex = context->stack->getCatalog()->extendedStat(path);
-  dmlite_cppxstat_to_cxstat(ex, buf);
+  dmlite::ExtendedStat ex;
+  dmlite::DmStatus st = context->stack->getCatalog()->extendedStat(ex, path);
+  if(st.ok()) {
+    dmlite_cppxstat_to_cxstat(ex, buf);
+  }
+  else {
+    context->errorCode   = DMLITE_ERRNO(st.code()) ? st.code() : st.code()|DMLITE_UNKNOWN_ERROR;
+    context->errorString = st.what();
+    return context->errorCode;
+  }
   CATCH(context, statx);
 }
 
