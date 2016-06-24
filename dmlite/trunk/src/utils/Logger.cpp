@@ -60,8 +60,8 @@ int Logger::getStackTrace(std::string &s)
   // skip previous one (usually an exception)
   for (int i = 2; i < size && messages != NULL; ++i)
   {
-    // Let's not print more than 4 lines
-    if (linecnt > 3) break;
+    // Let's not print more than 6 lines
+    if (linecnt > 5) break;
 
     char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
 
