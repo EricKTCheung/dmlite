@@ -43,16 +43,16 @@ BuiltInCatalogFactory::BuiltInCatalogFactory():
 
 BuiltInCatalogFactory::~BuiltInCatalogFactory()
 {
-  
+
 }
-  
+
 
 
 void BuiltInCatalogFactory::configure(const std::string& key, const std::string& value) throw (DmException)
 {
   bool gotit = true;
   Log(Logger::Lvl4, Logger::unregistered, "BuiltInCatalogFactory",   " Key: " << key << " Value: " << value);
-  
+
   if (key == "SymLinkLimit")
     this->symLinkLimit_ = atoi(value.c_str());
   else if (key == "UpdateAccessTime") {
@@ -61,10 +61,10 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
     this->updateATime_ = (value == "yes");
   }
   else gotit = false;
-  
+
   if (gotit)
     Log(Logger::Lvl1, Logger::unregistered, "BuiltInCatalogFactory", "Setting BuiltInCatalogFactory parms. Key: " << key << " Value: " << value);
-    
+
 }
 
 
@@ -120,7 +120,7 @@ void BuiltInCatalog::changeDir(const std::string& path) throw (DmException)
     this->cwd_ = 0;
     return;
   }
-  
+
   ExtendedStat cwd = this->extendedStat(path,true);
   this->cwd_       = cwd.stat.st_ino;
   if (path[0] == '/')
@@ -136,9 +136,10 @@ std::string BuiltInCatalog::getWorkingDir (void) throw (DmException)
   return this->cwdPath_;
 }
 
+#define DMLITE_EXCEPTION_SHIELD(statement) try { statement; } catch(DmException &e) { return DmStatus(e); }
 
-
-ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
+DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& path, bool followSym) throw ()
+// ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
  // Split the path always assuming absolute
   std::vector<std::string> components = Url::splitPath(path);
@@ -146,8 +147,9 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   // Iterate starting from absolute root (parent of /) (0)
   uint64_t     parent       = 0;
   unsigned     symLinkLevel = 0;
-  ExtendedStat meta;
   std::string  c;
+
+  meta = ExtendedStat(); // ensure it's clean
 
   // If path is absolute OR cwd is empty, start in root
   if (path[0] == '/' || this->cwdPath_.empty()) {
@@ -157,8 +159,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
       meta = this->si_->getINode()->extendedStat(0, "/");
     }
     catch (DmException& e) {
-      if (e.code() != ENOENT) throw;
-  
+      if (e.code() != ENOENT) return DmStatus(e);
+
       meta.parent = 0;
       meta.name   = "/";
       meta.status = ExtendedStat::kOnline;
@@ -166,8 +168,8 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
       meta.stat.st_uid  = 0;
       meta.stat.st_gid  = 0;
       meta.stat.st_size = 0;
-      
-      this->si_->getINode()->create(meta);
+
+      DMLITE_EXCEPTION_SHIELD(this->si_->getINode()->create(meta));
     }
     // Before-root is a word-readable directory
     meta.stat.st_mode = S_IFDIR | 0555;
@@ -182,17 +184,15 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     parent = this->cwd_;
     meta   = this->si_->getINode()->extendedStat(parent);
   }
-  
+
 
   for (unsigned i = 0; i < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      throw DmException(ENOTDIR,
-                        meta.name + " is not a directory");
+      return DmStatus(ENOTDIR, meta.name + " is not a directory");
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-      throw DmException(EACCES,
-                        "Not enough permissions to list " + meta.name);
+      return DmStatus(EACCES, "Not enough permissions to list " + meta.name);
 
     // Pop next component
     c = components[i];
@@ -204,7 +204,7 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
     // Up one level
     else if (c == "..") {
       parent = meta.parent;
-      meta   = this->si_->getINode()->extendedStat(parent);
+      DMLITE_EXCEPTION_SHIELD(meta = this->si_->getINode()->extendedStat(parent));
     }
     // Regular entry
     else {
@@ -213,24 +213,25 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         meta = this->si_->getINode()->extendedStat(parent, c);
       }
       catch (DmException& e) {
-        if (e.code() != ENOENT) throw;
-        
+        if (e.code() != ENOENT) return DmStatus(e);
+
         while (i < components.size()) {
           components.pop_back();
         }
-	//re-add / at the beginning
-	components.insert( components.begin(),std::string(1,'/'));        
-        throw DmException(ENOENT, "Entry '%s' not found under '%s'",
-                          c.c_str(), Url::joinPath(components).c_str());
+	      //re-add / at the beginning
+	      components.insert( components.begin(),std::string(1,'/'));
+        return DmStatus(ENOENT, "Entry '%s' not found under '%s'",
+                        c.c_str(), Url::joinPath(components).c_str());
       }
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
-        SymLink link = this->si_->getINode()->readLink(meta.stat.st_ino);
+        SymLink link;
+        DMLITE_EXCEPTION_SHIELD(link = this->si_->getINode()->readLink(meta.stat.st_ino));
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
-          throw DmException(DMLITE_SYSERR(ELOOP),
+          return DmStatus(DMLITE_SYSERR(ELOOP),
                            "Symbolic links limit exceeded: > %d",
                            this->symLinkLimit_);
         }
@@ -238,13 +239,13 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         // We have the symbolic link now. Split it and push
         // into the component
         std::vector<std::string> symPath = Url::splitPath(link.link);
-        
+
         for (unsigned j = i + 1; j < components.size(); ++j)
           symPath.push_back(components[j]);
-        
+
         components.swap(symPath);
         i = 0;
-        
+
         // If absolute, need to reset parent
         if (link.link[0] == '/') {
           parent = 0;
@@ -253,9 +254,9 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
         // If not, meta has the symlink data, which isn't nice.
         // Stat the parent again!
         else {
-          meta = this->si_->getINode()->extendedStat(meta.parent);
+          DMLITE_EXCEPTION_SHIELD(meta = this->si_->getINode()->extendedStat(meta.parent));
         }
-        
+
         continue; // Jump directly to the beginning of the loop
       }
       // Next one!
@@ -267,16 +268,22 @@ ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSy
   }
 
   checksums::fillChecksumInXattr(meta);
-  return meta;
+  return DmStatus();
 }
 
-
+ExtendedStat BuiltInCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
+{
+  ExtendedStat ret;
+  DmStatus st = this->extendedStat(ret, path, followSym);
+  if(!st.ok()) throw st.exception();
+  return ret;
+}
 
 ExtendedStat BuiltInCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
 {
   Replica replica   = this->getReplicaByRFN(rfn);
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
-  
+
   checksums::fillChecksumInXattr(meta);
   return meta;
 }
@@ -338,19 +345,19 @@ bool BuiltInCatalog::accessReplica(const std::string& rfn, int mode) throw (DmEx
 void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
-   
+
   this->traverseBackwards(meta);
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Can not modify the file %d", replica.fileid);
-  
+
   this->si_->getINode()->addReplica(replica);
-  
+
   // Note: the space occupied by this replica is accounted for in the IODriver
   // only if there is an IODriver, otherwise it is acounted for here
   if (!this->si_->getIODriver())
     addFileSizeToParents(meta, false);
-  
+
 }
 
 
@@ -358,14 +365,14 @@ void BuiltInCatalog::addReplica(const Replica& replica) throw (DmException)
 void BuiltInCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
   ExtendedStat meta = this->si_->getINode()->extendedStat(replica.fileid);
-    
+
   this->traverseBackwards(meta);
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Can not modify the file %d", replica.fileid);
-  
+
   this->si_->getINode()->deleteReplica(replica);
-  
+
   // Subtract the size of this replica from the directory space counters
   addFileSizeToParents(meta, true);
 }
@@ -375,12 +382,12 @@ void BuiltInCatalog::deleteReplica(const Replica& replica) throw (DmException)
 std::vector<Replica> BuiltInCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path);
-  
+
   // The file exists, plus we have permissions to go there. Check we can read
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(EACCES,
                       "Not enough permissions to read %s", path.c_str());
-  
+
   if (S_ISDIR(meta.stat.st_mode))
     throw DmException(EISDIR,
                       "Directories do not have replicas");
@@ -394,7 +401,7 @@ std::vector<Replica> BuiltInCatalog::getReplicas(const std::string& path) throw 
 void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newPath) throw (DmException)
 {
   std::string parentPath, symName;
-  
+
   // Get the parent of the destination and file
   ExtendedStat parent = this->getParent(newPath, &parentPath, &symName);
 
@@ -406,7 +413,7 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
   // Effective gid
   gid_t  egid;
   mode_t mode = 0777;
-  
+
   if (parent.stat.st_mode & S_ISGID) {
     egid = parent.stat.st_gid;
     mode |= S_ISGID;
@@ -414,13 +421,13 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
   else {
     egid = getGid(this->secCtx_, 0);
   }
-  
+
   this->si_->getINode()->begin();
-  
+
   try {
     // Create file
     ExtendedStat newLink;
-    
+
     newLink.parent = parent.stat.st_ino;
     newLink.name   = symName;
     newLink.stat.st_mode = mode | S_IFLNK;
@@ -428,7 +435,7 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
     newLink.status       = ExtendedStat::kOnline;
     newLink.stat.st_uid  = getUid(this->secCtx_);
     newLink.stat.st_gid  = egid;
-    
+
     ExtendedStat linkMeta = this->si_->getINode()->
                               create(newLink);
     // Create symlink
@@ -438,7 +445,7 @@ void BuiltInCatalog::symlink(const std::string& oldPath, const std::string& newP
     this->si_->getINode()->rollback();
     throw;
   }
-  
+
   this->si_->getINode()->commit();
 }
 
@@ -495,26 +502,26 @@ void BuiltInCatalog::unlink(const std::string& path) throw (DmException)
   // Check there are no replicas
   if (!S_ISLNK(file.stat.st_mode)) {
     std::vector<Replica> replicas = this->si_->getINode()->getReplicas(file.stat.st_ino);
-    
-    // Pure catalogs must not remove files with replicas    
+
+    // Pure catalogs must not remove files with replicas
     if (!this->si_->isTherePoolManager() && replicas.size() != 0)
       throw DmException(EEXIST,
                         path + " has replicas, can not remove");
-    
+
     // Try to remove replicas first
     for (unsigned i = 0; i < replicas.size(); ++i) {
       Pool pool   = this->si_->getPoolManager()->
                       getPool(replicas[i].getString("pool"));
-      
+
       PoolHandler* handler = this->si_->getPoolDriver(pool.type)->
                                createPoolHandler(pool.name);
-      
+
       handler->removeReplica(replicas[i]);
-      
+
       delete handler;
     }
   }
-  
+
   // All preconditions are good, so remove
   try {
     this->si_->getINode()->unlink(file.stat.st_ino);
@@ -534,7 +541,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
   std::string  parentPath, name;
   ExtendedStat parent = this->getParent(path, &parentPath, &name);
   ExtendedStat file;
-  
+
   // Need to be able to write to the parent
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
@@ -550,13 +557,13 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     else if (S_ISDIR(file.stat.st_mode))
       throw DmException(EISDIR,
                         "%s is a directory. Can not truncate", path.c_str());
-    
+
   }
   catch (DmException& e) {
     code = DMLITE_ERRNO(e.code());
     if (code != ENOENT) throw;
   }
-  
+
   // Effective gid
   gid_t egid;
   if (parent.stat.st_mode & S_ISGID) {
@@ -585,7 +592,7 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
 
     this->si_->getINode()->create(newFile);
   }
-  
+
   // Truncate
   else {
     if (getUid(this->secCtx_) != file.stat.st_uid &&
@@ -609,21 +616,21 @@ void BuiltInCatalog::makeDir(const std::string& path, mode_t mode) throw (DmExce
   if (checkPermissions(this->secCtx_, parent.acl, parent.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Need write access for " + parentPath);
-  
+
   // Create the folder
   ExtendedStat newFolder;
 
   // zero stat structure
   memset(&newFolder.stat, 0, sizeof(newFolder.stat));
-  
+
   newFolder.parent      = parent.stat.st_ino;
   newFolder.name        = name;
   newFolder.stat.st_uid = getUid(this->secCtx_);
   newFolder.status      = ExtendedStat::kOnline;
-  
+
   // Mode
   newFolder.stat.st_mode = ((mode & ~S_IFMT) & ~this->umask_) | S_IFDIR;
-  
+
   // Effective gid
   gid_t egid;
   if (parent.stat.st_mode & S_ISGID) {
@@ -691,7 +698,7 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
 
   // All preconditions are good!
   this->si_->getINode()->begin();
-  
+
   try {
     // Remove associated comments
     this->si_->getINode()->deleteComment(entry.stat.st_ino);
@@ -702,7 +709,7 @@ void BuiltInCatalog::removeDir(const std::string& path) throw (DmException)
     this->si_->getINode()->rollback();
     throw;
   }
-  
+
   this->si_->getINode()->commit();
 }
 
@@ -738,7 +745,7 @@ std::string oldParentPath, newParentPath;
                       "Not enough permissions on origin " + oldParentPath);
 
   if (checkPermissions(this->secCtx_, newParent.acl, newParent.stat, S_IWRITE) != 0)
-    throw DmException(EACCES, 
+    throw DmException(EACCES,
                       "Not enough permissions on destination " + newParentPath);
 
   // If source is a directory, need write permissions there too
@@ -797,7 +804,7 @@ std::string oldParentPath, newParentPath;
 
   // We are good, so we can move now
   this->si_->getINode()->begin();
-  
+
   try {
     // Change the name if needed
     if (newName != oldName)
@@ -889,7 +896,7 @@ void BuiltInCatalog::setOwner(const std::string& path,
                               bool followSymLink) throw (DmException)
 {
   ExtendedStat meta = this->extendedStat(path, followSymLink);
-  
+
   // If -1, no changes
   if (newUid == (uid_t)-1)
     newUid = meta.stat.st_uid;
@@ -945,7 +952,7 @@ void BuiltInCatalog::setSize(const std::string& path, size_t newSize) throw (DmE
       checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Can not set the size of " + path);
-  
+
   this->si_->getINode()->setSize(meta.stat.st_ino, newSize);
 }
 
@@ -1030,7 +1037,7 @@ std::string BuiltInCatalog::getComment(const std::string& path) throw (DmExcepti
 {
   // Get the file and check we can read
   ExtendedStat meta = this->extendedStat(path);
-  
+
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IREAD) != 0)
     throw DmException(EACCES,
                       "Not enough permissions to read " + path);
@@ -1072,13 +1079,13 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
 {
   // The builtin catalog instance makes sure that the checksums contained in the xattrs
   // fill the legacy checksum fields if they are compatible
-  
+
   ExtendedStat meta = this->extendedStat(path);
-  
+
   if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Not enough permissions to write " + path);
-  
+
   try {
     this->si_->getINode()->begin();
 
@@ -1091,7 +1098,7 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
     this->si_->getINode()->rollback();
     throw;
   }
-  
+
 
 }
 
@@ -1100,9 +1107,9 @@ void BuiltInCatalog::updateExtendedAttributes(const std::string& path,
 Directory* BuiltInCatalog::openDir(const std::string& path) throw (DmException)
 {
   BuiltInDir* dirp;
-  
+
   dirp = new BuiltInDir;
-  
+
   try {
     dirp->dir = this->extendedStat(path,true);
 
@@ -1111,13 +1118,13 @@ Directory* BuiltInCatalog::openDir(const std::string& path) throw (DmException)
                         "Not enough permissions to read " + path);
 
     dirp->idir = this->si_->getINode()->openDir(dirp->dir.stat.st_ino);
-    
+
     return dirp;
   }
   catch (...) {
     delete dirp;
     throw;
-  }  
+  }
 }
 
 
@@ -1157,9 +1164,9 @@ Replica BuiltInCatalog::getReplicaByRFN(const std::string& rfn) throw (DmExcepti
 {
   Replica      rdata = this->si_->getINode()->getReplica(rfn);
   ExtendedStat meta  = this->si_->getINode()->extendedStat(rdata.fileid);
-  
+
   this->traverseBackwards(meta);
-  
+
   return rdata;
 }
 
@@ -1170,13 +1177,13 @@ void BuiltInCatalog::updateReplica(const Replica& replica) throw (DmException)
   // Can not trust the fileid of replica!
   Replica      rdata = this->si_->getINode()->getReplica(replica.replicaid);
   ExtendedStat meta  = this->si_->getINode()->extendedStat(rdata.fileid);
-  
+
   this->traverseBackwards(meta);
-  
+
   if (dmlite::checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IWRITE) != 0)
     throw DmException(EACCES,
                       "Can not modify the replica " + replica.rfn);
-  
+
   this->si_->getINode()->updateReplica(replica);
 }
 
@@ -1201,12 +1208,12 @@ ExtendedStat BuiltInCatalog::getParent(const std::string& path,
   if (path.empty())
     throw DmException(EINVAL,
                       "Empty path");
-  
+
   std::vector<std::string> components = Url::splitPath(path);
 
   *name = components.back();
   components.pop_back();
-  
+
   *parentPath = Url::joinPath(components);
 
   // Get the files now
@@ -1243,7 +1250,7 @@ void BuiltInCatalog::traverseBackwards(const ExtendedStat& meta) throw (DmExcept
 void BuiltInCatalog::addFileSizeToParents(const std::string &fname, bool subtract) throw (DmException)
 {
   ExtendedStat st;
- 
+
   // Stat the file to have the size of the file that was just written
   try {
     Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Looking up size of " << fname);
@@ -1254,38 +1261,38 @@ void BuiltInCatalog::addFileSizeToParents(const std::string &fname, bool subtrac
     Err( "BuiltInCatalog::addSizeToParents" , " Cannot retrieve filesize for loc:" << fname);
     return;
   }
-  
+
   addFileSizeToParents(st, subtract);
 }
-  
+
 void BuiltInCatalog::addFileSizeToParents(const ExtendedStat &statinfo, bool subtract) throw (DmException)
 {
   ExtendedStat st = statinfo;
-  
+
   INode *inodeintf = dynamic_cast<INode *>(this->si_->getINode());
   if (!inodeintf) {
     Err( "MysqlIOPassthroughDriver::doneWriting" , " Cannot retrieve inode interface. Fatal.");
     return;
   }
-  
+
   try {
-    
+
     // Add this filesize to the size of its parent dirs, only the first N levels
     {
-      
+
       // Start transaction
       inodeintf->begin();
-      
+
       off_t sz = st.stat.st_size;
-      
-      
+
+
       ino_t hierarchy[128];
       size_t hierarchysz[128];
       int idx = 0;
       while (st.parent) {
-        
+
         Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-        
+
         try {
           st = inodeintf->extendedStat(st.parent);
         }
@@ -1294,22 +1301,22 @@ void BuiltInCatalog::addFileSizeToParents(const ExtendedStat &statinfo, bool sub
           inodeintf->rollback();
           return;
         }
-        
+
         hierarchy[idx] = st.stat.st_ino;
         hierarchysz[idx] = st.stat.st_size;
-        
+
         Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Size of inode " << st.stat.st_ino <<
         " is " << st.stat.st_size << " with idx " << idx);
-        
+
         idx++;
-        
+
         if (idx >= sizeof(hierarchy)) {
           Err( "BuiltInCatalog::addSizeToParents" , " Too many parent directories for file " << statinfo.name << " fileid: " << statinfo.stat.st_ino);
           inodeintf->rollback();
           return;
         }
       }
-      
+
       for (int i = MIN(6, idx-1); i >= 2; i--) {
         off_t newsz = sz + hierarchysz[i];
         if (subtract) {
@@ -1318,19 +1325,19 @@ void BuiltInCatalog::addFileSizeToParents(const ExtendedStat &statinfo, bool sub
         }
         inodeintf->setSize(hierarchy[i], newsz);
       }
-      
+
       // Commit the local trans object
       // This also releases the connection back to the pool
       inodeintf->commit();
     }
-    
-    
-    
+
+
+
   }
   catch (...) {
     inodeintf->rollback();
     throw;
   }
-  
-  
+
+
 }

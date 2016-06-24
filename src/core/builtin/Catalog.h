@@ -11,7 +11,7 @@
 #include <dmlite/cpp/pooldriver.h>
 
 namespace dmlite {
-  
+
   struct BuiltInDir: public Directory {
     virtual ~BuiltInDir() {};
     IDirectory*  idir;
@@ -27,11 +27,15 @@ namespace dmlite {
 
     void setStackInstance(StackInstance* si) throw (DmException);
 
-    void setSecurityContext(const SecurityContext*) throw (DmException);  
+    void setSecurityContext(const SecurityContext*) throw (DmException);
 
     void        changeDir     (const std::string&) throw (DmException);
     std::string getWorkingDir (void) throw (DmException);
 
+    DmStatus extendedStat(ExtendedStat &xstat,
+                          const std::string& path,
+                          bool followSym) throw ();
+                          
     ExtendedStat extendedStat(const std::string& path,
                               bool followSym = true) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
@@ -109,21 +113,21 @@ namespace dmlite {
     /// @param meta The file at the end
     /// @note       Throws an exception if it is not possible.
     void traverseBackwards(const ExtendedStat& meta) throw (DmException);
-    
+
     /// addFileSizeToParents
     /// Add (or subtract) the size of the given file from
     /// all its parent directories
     /// @param fname The logical file name (SFN) of the file in question
     /// @param subtract If true then subtract instead of adding
     void addFileSizeToParents(const std::string &fname, bool subtract) throw (DmException);
-    
+
     /// addFileSizeToParents
     /// Add (or subtract) the size of the given file from
     /// all its parent directories
     /// @param st The stat information about the file in question
     /// @param subtract If true then subtract instead of adding
     void addFileSizeToParents(const ExtendedStat &statinfo, bool subtract) throw (DmException);
-    
+
    private:
     StackInstance*   si_;
 
@@ -151,7 +155,7 @@ namespace dmlite {
     bool     updateATime_;
     unsigned symLinkLimit_;
   };
-  
+
 };
 
 #endif	// BUILTIN_CATALOG_H

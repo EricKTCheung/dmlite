@@ -7,6 +7,7 @@
 #include "dmlite/common/config.h"
 #include "base.h"
 #include "exceptions.h"
+#include "status.h"
 #include "inode.h"
 #include "utils/extensible.h"
 
@@ -45,6 +46,15 @@ namespace dmlite {
     /// @return          The extended status of the file.
     virtual ExtendedStat extendedStat(const std::string& path,
                                       bool followSym = true) throw (DmException);
+
+    /// Do an extended stat of a file or directory. Exception-safe version, returns a status
+    /// @param path      The path of the file or directory.
+    /// @param followSym If true, symlinks will be followed.
+    /// @param xstat     The extended status of the file.
+    /// @return          A status object
+    virtual DmStatus     extendedStat(ExtendedStat &xstat,
+                                      const std::string& path,
+                                      bool followSym = true) throw ();
 
     /// Do an extended stat of a logical file using an associated replica file name.
     /// @param rfn The replica.
