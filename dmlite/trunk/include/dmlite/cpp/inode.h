@@ -7,6 +7,7 @@
 #include "dmlite/common/config.h"
 #include "base.h"
 #include "exceptions.h"
+#include "status.h"
 #include "utils/extensible.h"
 #include "utils/security.h"
 #include "utils/checksums.h"
@@ -17,19 +18,19 @@
 #include <vector>
 
 namespace dmlite {
-  
+
   // Forward declarations.
-  class StackInstance;  
-  
+  class StackInstance;
+
   /// Typedef for directories.
   struct IDirectory { virtual ~IDirectory(); };
-  
+
   /// File/directory metadata.
     struct ExtendedStat: public Extensible {
       enum FileStatus { kOnline = '-',
                         kMigrated = 'm'
                       };
-      
+
       ino_t         parent;
       struct stat stat;
       FileStatus    status;
@@ -38,33 +39,33 @@ namespace dmlite {
       std::string   csumtype;
       std::string   csumvalue;
       Acl           acl;
-      
+
       bool operator == (const ExtendedStat&) const;
       bool operator != (const ExtendedStat&) const;
       bool operator <  (const ExtendedStat&) const;
       bool operator >  (const ExtendedStat&) const;
-      
+
       void fixchecksums();
-      
+
       /// gets a checksum of type csumtype
       /// if csumtype is empty, then it gets the legacy one (i.e. the easiest to get)
       /// Please note that this function recognizes long checksum name
       /// e.g. "adler32" , which internally will be looked up as "checksum.adler32'
       int getchecksum(std::string &cktype, std::string &ckvalue);
-      
+
     };
-  
+
   /// Symbolic link
   struct SymLink: public Extensible {
     ino_t       inode;
     std::string link;
-    
+
     bool operator == (const SymLink&) const;
     bool operator != (const SymLink&) const;
     bool operator <  (const SymLink&) const;
     bool operator >  (const SymLink&) const;
   };
-  
+
   /// File replica metadata
   struct Replica: public Extensible {
     enum ReplicaStatus { kAvailable      = '-',
@@ -74,25 +75,25 @@ namespace dmlite {
     enum ReplicaType   { kVolatile  = 'V',
                          kPermanent = 'P'
                        };
-    
+
     int64_t    replicaid;
     int64_t    fileid;
-    
+
     int64_t    nbaccesses;
     time_t     atime;
     time_t     ptime;
     time_t     ltime;
-    
+
     ReplicaStatus status;
     ReplicaType   type;
-    
+
     /// Historical field containing the uuid of the spacetoken that was chosen when
     /// writing the replica. This is used for accounting
     std::string setname;
-    
+
     std::string server;
     std::string rfn;
-       
+
     bool operator == (const Replica&) const;
     bool operator != (const Replica&) const;
     bool operator <  (const Replica&) const;
@@ -114,7 +115,7 @@ namespace dmlite {
 
     /// Rollback changes
     virtual void rollback(void) throw (DmException);
-    
+
     /// Create a new file or directory
     /// @param f  The file that will be inserted. Its fields must be initialized.
     /// @return   An stat of the created file.
@@ -143,10 +144,16 @@ namespace dmlite {
     /// @param name  New name.
     virtual void rename(ino_t inode, const std::string& name) throw (DmException);
 
-    /// Do an extended stat of en entry using its inode.
+    /// Do an extended stat of an entry using its inode.
     /// @param inode The inode of the file.
     /// @return      The extended status of the file.
     virtual ExtendedStat extendedStat(ino_t inode) throw (DmException);
+
+    /// Do an extended stat of an entry using its inode, exception-safe version.
+    /// @param xstat The extended status of the file.
+    /// @param inode The inode of the file.
+    /// @return      The status of the operation.
+    virtual DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw ();
 
     /// Do an extended stat of an entry using the parent inode and the name.
     /// @param parent The parent inode.
@@ -154,6 +161,15 @@ namespace dmlite {
     /// @note         No security check will be done.
     virtual ExtendedStat extendedStat(ino_t parent,
                                       const std::string& name) throw (DmException);
+
+    /// Do an extended stat of an entry using the parent inode and the name, exception-safe version.
+    /// @param xstat The extended status of the file.
+    /// @param parent The parent inode.
+    /// @param name   The file or directory name.
+    /// @return       The status of the operation.
+    /// @note         No security check will be done.
+    virtual DmStatus extendedStat(ExtendedStat &xstat, ino_t parent,
+                                      const std::string& name) throw ();
 
     /// Do an extended stat using the GUID.
     /// @param guid The file GUID.
@@ -238,7 +254,7 @@ namespace dmlite {
     /// @param guid  The new GUID.
     virtual void setGuid(ino_t inode,
                          const std::string& guid) throw (DmException);
-    
+
     /// Update extended metadata on the catalog.
     /// @param attr The extended attributes struct.
     virtual void updateExtendedAttributes(ino_t inode,
@@ -272,7 +288,7 @@ namespace dmlite {
 
    protected:
     // Stack instance is allowed to instantiate INodes
-    friend class StackInstance;  
+    friend class StackInstance;
 
     /// Children of INodeFactory are allowed to instantiate too (decorator)
     static INode* createINode(INodeFactory* factory,
@@ -281,10 +297,10 @@ namespace dmlite {
     /// Instantiate a implementation of INode
     virtual INode* createINode(PluginManager* pm) throw (DmException);
   };
-  
-  
-  
-  
+
+
+
+
   /// Convenience class that releases a resource on destruction
   class InodeTrans {
   public:
@@ -309,8 +325,8 @@ namespace dmlite {
 
   };
 
-  
-  
+
+
 };
 
 #endif // DMLITE_CPP_INODE_H

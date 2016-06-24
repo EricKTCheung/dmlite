@@ -13,9 +13,9 @@
 #include "utils/MySqlWrapper.h"
 
 namespace dmlite {
-  
+
   /// Struct used internally to bind when reading
-  struct CStat {    
+  struct CStat {
     ino_t       parent;
     struct stat stat;
     char        status;
@@ -27,11 +27,11 @@ namespace dmlite {
     char        acl[300 * 13]; // Maximum 300 entries of 13 bytes each
     char        xattr[1024];
   };
-  
+
   /// Struct used internally to read drectories.
   struct NsMySqlDir: public IDirectory {
     virtual ~NsMySqlDir() {};
-    
+
     ExtendedStat  dir;           ///< Directory being read.
     CStat         cstat;         ///< Used for the binding
     ExtendedStat  current;       ///< Current entry metadata.
@@ -77,9 +77,12 @@ namespace dmlite {
     ExtendedStat extendedStat(ino_t parent, const std::string& name) throw (DmException);
     ExtendedStat extendedStat(const std::string& guid) throw (DmException);
 
+    DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw ();
+    DmStatus extendedStat(ExtendedStat &xstat, ino_t parent, const std::string& name) throw ();
+
     SymLink readLink(ino_t inode) throw (DmException);
 
-    void addReplica   (const Replica&) throw (DmException);  
+    void addReplica   (const Replica&) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
 
     std::vector<Replica> getReplicas(ino_t inode) throw (DmException);
@@ -96,18 +99,18 @@ namespace dmlite {
     void setSize    (ino_t inode, size_t size) throw (DmException);
     void setChecksum(ino_t inode, const std::string& csumtype,
                                  const std::string& csumvalue) throw (DmException);
-                             
+
     std::string getComment   (ino_t inode) throw (DmException);
     void        setComment   (ino_t inode, const std::string& comment) throw (DmException);
     void        deleteComment(ino_t inode) throw (DmException);
 
     void setGuid(ino_t inode, const std::string& guid) throw (DmException);
-    
+
     void updateExtendedAttributes(ino_t inode,
                                   const Extensible& attr) throw (DmException);
 
     IDirectory*    openDir (ino_t inode) throw (DmException);
-    void           closeDir(IDirectory* dir) throw (DmException);  
+    void           closeDir(IDirectory* dir) throw (DmException);
     ExtendedStat*  readDirx(IDirectory* dir) throw (DmException);
     struct dirent* readDir (IDirectory* dir) throw (DmException);
 

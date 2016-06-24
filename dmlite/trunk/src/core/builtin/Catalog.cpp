@@ -154,11 +154,9 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
   if (path[0] == '/' || this->cwdPath_.empty()) {
     // Stat '/', and, if it does not exist, create it
     // (first go of the server, probably)
-    try {
-      meta = this->si_->getINode()->extendedStat(0, "/");
-    }
-    catch (DmException& e) {
-      if (e.code() != ENOENT) return DmStatus(e);
+    DmStatus st = this->si_->getINode()->extendedStat(meta, 0, "/");
+    if(!st.ok()) {
+      if(st.code() != ENOENT) return st;
 
       meta.parent = 0;
       meta.name   = "/";
@@ -170,6 +168,7 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
 
       DMLITE_EXCEPTION_SHIELD(this->si_->getINode()->create(meta));
     }
+
     // Before-root is a word-readable directory
     meta.stat.st_mode = S_IFDIR | 0555;
     //updating parent
@@ -181,7 +180,8 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
   // Relative, and cwd set, so start there
   else {
     parent = this->cwd_;
-    DMLITE_EXCEPTION_SHIELD(meta   = this->si_->getINode()->extendedStat(parent));
+    DmStatus st = this->si_->getINode()->extendedStat(meta, parent);
+    if(!st.ok()) return st;
   }
 
 
@@ -203,20 +203,20 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
     // Up one level
     else if (c == "..") {
       parent = meta.parent;
-      DMLITE_EXCEPTION_SHIELD(meta = this->si_->getINode()->extendedStat(parent));
+      DmStatus st = this->si_->getINode()->extendedStat(meta, parent);
+      if(!st.ok()) return st;
     }
     // Regular entry
     else {
       // Stat, but capture ENOENT to improve error code
-      try {
-        meta = this->si_->getINode()->extendedStat(parent, c);
-      }
-      catch (DmException& e) {
-        if (e.code() != ENOENT) return DmStatus(e);
+      DmStatus st = this->si_->getINode()->extendedStat(meta, parent, c);
+      if(!st.ok()) {
+        if(st.code() != ENOENT) return st;
 
         while (i < components.size()) {
           components.pop_back();
         }
+
 	      //re-add / at the beginning
 	      components.insert( components.begin(),std::string(1,'/'));
         return DmStatus(ENOENT, "Entry '%s' not found under '%s'",
@@ -253,7 +253,8 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
         // If not, meta has the symlink data, which isn't nice.
         // Stat the parent again!
         else {
-          DMLITE_EXCEPTION_SHIELD(meta = this->si_->getINode()->extendedStat(meta.parent));
+          DmStatus st = this->si_->getINode()->extendedStat(meta, meta.parent);
+          if(!st.ok()) return st;
         }
 
         continue; // Jump directly to the beginning of the loop
