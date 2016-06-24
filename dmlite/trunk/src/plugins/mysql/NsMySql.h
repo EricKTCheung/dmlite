@@ -87,8 +87,11 @@ namespace dmlite {
 
     std::vector<Replica> getReplicas(ino_t inode) throw (DmException);
 
-    Replica getReplica   (int64_t rid) throw (DmException);
-    Replica getReplica   (const std::string& sfn) throw (DmException);
+    Replica  getReplica   (int64_t rid) throw (DmException);
+
+    DmStatus getReplica   (Replica &r, const std::string& sfn) throw ();
+    Replica getReplica    (const std::string& sfn) throw (DmException);
+
     void    updateReplica(const Replica& replica) throw (DmException);
 
     void utime(ino_t inode, const struct utimbuf* buf) throw (DmException);
