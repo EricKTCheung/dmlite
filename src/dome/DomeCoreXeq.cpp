@@ -2548,6 +2548,108 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
 }
 
 
+
+/// Modifies an existing filesystem
+int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_modifyfs only available on head nodes.");
+  }
+  
+  std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
+  std::string server =  req.bodyfields.get<std::string>("server", "");
+  std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  int fsstatus =  req.bodyfields.get<int>("status", 0); // DomeFsStatus::FsStaticActive
+  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
+  char pool_stype = req.bodyfields.get("pool_stype", 'P');
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+  
+  if ((fsstatus < 0) || (fsstatus > 2))
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid status '" << fsstatus << "'. Should be 0, 1 or 2."));
+  
+  // Make sure it is already there exactly
+  {
+    // Lock status!
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+      if ( status.PfnMatchesFS(server, newfs, *fs) ) {
+        if (fs->fs.length() != newfs.length())
+          return DomeReq::SendSimpleResp(request, 422, SSTR("Filesystem '" << server << ":" << newfs << "' overlaps the existing filesystem '" << fs->fs << "'"));
+      }
+    }
+  }
+  // Stat the remote path, to make sure it exists and it makes sense
+  std::string diskurl = "https://" + server + "/domedisk/";
+  Log(Logger::Lvl4, domelogmask, domelogname, "Stat-ing new filesystem '" << newfs << "' in disk node: '" << server);
+  
+  DomeTalker talker(*davixPool, req.creds, diskurl,
+                    "GET", "dome_statpfn");
+  
+  boost::property_tree::ptree jresp;
+  jresp.put("pfn", newfs);
+  jresp.put("matchfs", "false");
+  jresp.put("server", server);
+  
+  if(!talker.execute(jresp)) {
+    Err(domelogname, talker.err());
+    return DomeReq::SendSimpleResp(request, 500, talker.err());
+  }
+  
+  // Everything seems OK here, the technological singularity will come. We can start updating values.
+  // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
+    DomeMySql sql;
+    DomeMySqlTrans  t(&sql);
+    
+    DomeFsInfo fsfs;
+    fsfs.poolname = poolname;
+    fsfs.server = server;
+    fsfs.fs = newfs;
+    fsfs.status = (DomeFsInfo::DomeFsStatus)fsstatus;
+    fsfs.pool_defsize = pool_defsize;
+    fsfs.pool_stype = pool_stype;
+    rc =  sql.modifyFsPool(fsfs);
+    if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not insert new fs: '" << newfs << "' It likely already exists."));
+    return 1;
+  }
+  
+  // Let's modify the fs in memory
+  {
+    // Lock status!
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    
+    for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+      if ( status.PfnMatchesFS(server, newfs, *fs) ) {
+        if (fs->fs.length() == newfs.length()) {
+          fs->poolname = poolname;
+          fs->pool_stype = pool_stype;
+          fs->status = (DomeFsInfo::DomeFsStatus)fsstatus;
+          fs->pool_defsize = pool_defsize;
+          fs->pool_stype = pool_stype;
+        }
+          
+      }
+    }
+    
+  }
+  
+  
+  status.addPoolfs(server, newfs, poolname, (DomeFsInfo::DomeFsStatus)fsstatus);
+  return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
+}
+
+
 /// Removes a filesystem, no matter to which pool it was attached
 int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {

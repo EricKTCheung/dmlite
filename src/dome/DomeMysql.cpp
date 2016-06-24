@@ -748,8 +748,34 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   
   if (!ok) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << poolname << "' It likely already exists. nrows: " << nrows );
+    Log(Logger::Lvl1, domelogmask, domelogname, "Trying to modify pool: '" << poolname << "'" );
+    
+    
+    Statement stmt(conn_, "dpm_db", 
+                   "UPDATE dpm_pool SET\
+                   defsize=?, s_type=? WHERE poolname=?");
+    
+    
+    stmt.bindParam(0, defsize);
+    stmt.bindParam(1, stype);
+    stmt.bindParam(2, poolname);
+    
+    bool ok = true;
+    long unsigned int nrows;
+    try {
+      if ( (nrows = stmt.execute()) == 0 )
+        ok = false;
+    }
+    catch ( ... ) { ok = false; }
+    
+  }
+  
+  if (!ok) {
+    Err(domelogname, "Could not insert or modify pool: '" << poolname << "' nrows:" << nrows );
     return 1;
   }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
   return 0;
 }
 
@@ -785,6 +811,36 @@ int DomeMySql::addFsPool(DomeFsInfo &newfs) {
 }
 
 
+int DomeMySql::modifyFsPool(DomeFsInfo &newfs) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
+  this->addPool(newfs.poolname, newfs.pool_defsize, newfs.pool_stype);
+  
+  // Now insert the filesystem, using poolname
+  Statement stmt(conn_, "dpm_db", 
+                 "INSERT INTO dpm_fs\
+                 (poolname, server, fs, status, weight)\
+                 VALUES \
+                 (?, ?, ?, 0, 0)");
+  
+  stmt.bindParam(0, newfs.poolname);
+  stmt.bindParam(1, newfs.server);
+  stmt.bindParam(2, newfs.fs);
+  
+  long unsigned int nrows;
+  bool ok = true;
+  try {
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+  
+  if (!ok) {
+    Err(domelogname, "Could not insert new filesystem: '" << newfs.server << ":" << newfs.fs << "' for pool: '" << newfs.poolname << "' It likely already exists. nrows: " << nrows );
+    return 1;
+  }
+  
+  return 0;
+}
   
 int DomeMySql::rmFs(std::string& server, std::string& fs) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. server: '" << server << "' fs: '" << fs << "'" );

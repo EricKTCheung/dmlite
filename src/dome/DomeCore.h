@@ -142,7 +142,8 @@ public:
   int dome_addfstopool(DomeReq &req, FCGX_Request &request);
   /// Removes a filesystem, no matter to which pool it was attached
   int dome_rmfs(DomeReq &req, FCGX_Request &request);
-
+  /// Modifies an existing filesystem
+  int dome_modifyfs(DomeReq &req, FCGX_Request &request);
 
 
   /// Fecthes logical stat information for an LFN or file ID or a pfn

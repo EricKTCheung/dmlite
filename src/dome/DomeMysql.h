@@ -83,6 +83,9 @@ public:
   
   /// Adds a new filesystem to a pool that may or may not exist
   int addFsPool(DomeFsInfo &newfs);
+  
+  /// Modify an existing filesystem, which points to a pool that may or may not exist
+  int modifyFsPool(DomeFsInfo &newfs);
 
   /// Add a new, empty pool
   int addPool(std::string &poolname, long defsize, char stype);
