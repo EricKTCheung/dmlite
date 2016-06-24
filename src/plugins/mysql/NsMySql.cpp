@@ -698,13 +698,14 @@ void INodeMySql::addReplica(const Replica& replica) throw (DmException)
                       "Inode %ld is not a regular file", replica.fileid);
 
   // The replica should not exist already
-  try {
-    this->getReplica(replica.rfn);
+  Replica tmp;
+  DmStatus st = this->getReplica(tmp, replica.rfn);
+  if(st.ok()) {
     throw DmException(EEXIST,
                       "Replica %s already registered", replica.rfn.c_str());
   }
-  catch (DmException& e) {
-    if (e.code() != DMLITE_NO_SUCH_REPLICA) throw;
+  else if(st.code() != DMLITE_NO_SUCH_REPLICA) {
+    throw st.exception();
   }
 
   // If server is empty, parse the surl
@@ -903,8 +904,6 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
   return replicas;
 }
 
-
-
 Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rid:" << rid);
@@ -957,60 +956,69 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   return r;
 }
 
+DmStatus INodeMySql::getReplica(Replica &r, const std::string& rfn) throw ()
+{
+  try {
+    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rfn:" << rfn);
 
+    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+    Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
+    stmt.bindParam(0, rfn);
+
+    stmt.execute();
+
+    r = Replica();
+
+    char setnm[512];
+    char cpool[512];
+    char cserver[512];
+    char cfilesystem[512];
+    char crfn[4096];
+    char cmeta[4096];
+    char ctype, cstatus;
+
+    stmt.bindResult( 0, &r.replicaid);
+    stmt.bindResult( 1, &r.fileid);
+    stmt.bindResult( 2, &r.nbaccesses);
+    stmt.bindResult( 3, &r.atime);
+    stmt.bindResult( 4, &r.ptime);
+    stmt.bindResult( 5, &r.ltime);
+    stmt.bindResult( 6, &cstatus, 1);
+    stmt.bindResult( 7, &ctype, 1);
+    stmt.bindResult( 8, setnm,       sizeof(setnm));
+    stmt.bindResult( 9, cpool,       sizeof(cpool));
+    stmt.bindResult(10, cserver,     sizeof(cserver));
+    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+    stmt.bindResult(12, crfn,        sizeof(crfn));
+    stmt.bindResult(13, cmeta,       sizeof(cmeta));
+
+    if (!stmt.fetch())
+      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
+
+    r.rfn           = crfn;
+    r.server        = cserver;
+    r.setname       = std::string(setnm);
+    r["pool"]       = std::string(cpool);
+    r["filesystem"] = std::string(cfilesystem);
+    r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
+    r.type          = static_cast<Replica::ReplicaType>(ctype);
+    r.deserialize(cmeta);
+
+    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
+    return DmStatus();
+  }
+  catch(DmException &e) {
+    return DmStatus(e);
+  }
+}
 
 Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
 {
-  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rfn:" << rfn);
-
-  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-  Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
-  stmt.bindParam(0, rfn);
-
-  stmt.execute();
-
-  Replica r;
-
-  char setnm[512];
-  char cpool[512];
-  char cserver[512];
-  char cfilesystem[512];
-  char crfn[4096];
-  char cmeta[4096];
-  char ctype, cstatus;
-
-  stmt.bindResult( 0, &r.replicaid);
-  stmt.bindResult( 1, &r.fileid);
-  stmt.bindResult( 2, &r.nbaccesses);
-  stmt.bindResult( 3, &r.atime);
-  stmt.bindResult( 4, &r.ptime);
-  stmt.bindResult( 5, &r.ltime);
-  stmt.bindResult( 6, &cstatus, 1);
-  stmt.bindResult( 7, &ctype, 1);
-  stmt.bindResult( 8, setnm,       sizeof(setnm));
-  stmt.bindResult( 9, cpool,       sizeof(cpool));
-  stmt.bindResult(10, cserver,     sizeof(cserver));
-  stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
-  stmt.bindResult(12, crfn,        sizeof(crfn));
-  stmt.bindResult(13, cmeta,       sizeof(cmeta));
-
-  if (!stmt.fetch())
-    throw DmException(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
-
-  r.rfn           = crfn;
-  r.server        = cserver;
-  r.setname       = std::string(setnm);
-  r["pool"]       = std::string(cpool);
-  r["filesystem"] = std::string(cfilesystem);
-  r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
-  r.type          = static_cast<Replica::ReplicaType>(ctype);
-  r.deserialize(cmeta);
-
-  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
-  return r;
+  Replica rep;
+  DmStatus st = this->getReplica(rep, rfn);
+  if(!st.ok()) throw st.exception();
+  return rep;
 }
-
-
 
 void INodeMySql::updateReplica(const Replica& rdata) throw (DmException)
 {
