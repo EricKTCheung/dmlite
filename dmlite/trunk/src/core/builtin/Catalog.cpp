@@ -558,8 +558,9 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
       throw DmException(EISDIR,
                         "%s is a directory. Can not truncate", path.c_str());
   }
-  else if(st.code() != DMLITE_ERRNO(ENOENT)) {
-    throw st.exception();
+  else {
+    code = DMLITE_ERRNO(st.code());
+    if(code != ENOENT) throw st.exception();
   }
 
   // Effective gid
