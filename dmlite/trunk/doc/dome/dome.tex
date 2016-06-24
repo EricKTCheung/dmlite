@@ -811,6 +811,55 @@ JSON example:\\
 \end{lstlisting}
 
 
+
+
+
+\subsubsection{dome\_rmpool}
+Remove from DPM control all the filesystems that are related to the same pool. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_rmpool"\\
+
+Request header:\\
+ no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item poolname: the name of the pool to remove
+\end{itemize}
+
+
+\subsubsection{dome\_addfstopool}
+Adds a filesystem for DPM to manage. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_addfstopool"\\
+
+Request header:\\
+ no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item fs: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
+ \item poolname: name of the DPM pool this filesystem will be used for
+\end{itemize}
+
+
+\subsubsection{dome\_rmfs}
+
+Removes a filesystem, no matter to which pool it was attached. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_rmfs"\\
+Request header:\\
+ no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item server: server hosting the replica
+ \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
+\end{itemize}
+
+
+
 \subsubsection{dome\_getstatinfo}
 Returns stat information about a logical or physical file managed by DPM.
 If a lfn is provided and the associated pools allow file pulling, then the external stat hook will be invoked (if provided)
@@ -908,7 +957,7 @@ Code: 200 or error
  \item banned: whether the user is banned or not
 \end{itemize}
 
-\subsection{dome\_updatexattr}
+\subsubsection{dome\_updatexattr}
 
 Update the extended attributes associated with a file.
 
@@ -1077,53 +1126,6 @@ Returns:
  \item size: the size of the file
  \item mode: the unix mode bits of the file
  \item isdir: tells if it's a file or directory
-\end{itemize}
-
-
-
-
-\subsubsection{dome\_rmpool}
-Remove from DPM control all the filesystems that are related to the same pool. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_rmpool"\\
-
-Request header:\\
- no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item poolname: the name of the pool to remove
-\end{itemize}
-
-
-\subsubsection{dome\_addfstopool}
-Adds a filesystem for DPM to manage. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_addfstopool"\\
-
-Request header:\\
- no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item server: server hosting the replica
- \item fs: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
- \item poolname: name of the DPM pool this filesystem will be used for
-\end{itemize}
-
-
-\subsubsection{dome\_rmfs}
-
-Removes a filesystem, no matter to which pool it was attached. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_rmfs"\\
-Request header:\\
- no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item server: server hosting the replica
- \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
 \end{itemize}
 
 
