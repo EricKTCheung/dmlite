@@ -3137,17 +3137,60 @@ The drainserver command accepts the following parameters:
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+
+### Quota Token Commands###
+
 class QuotaTokenGetCommand(ShellCommand):
-    """List the quota tokens for the given path"""
+    """List the quota tokens for the given path
+
+The command accepts the following paramameter:
+
+* <path>        : the path 
+* getsubdirs    : the command will print the quota token associated to the subfolders of the given path (optional)"""
 
     def _init(self):
-        self.parameters = ['Dpath']
+        self.parameters = ['Dpath','*?getsubdirs']
 
     def _execute(self, given):
 	 if len(given) < 1:
             return self.error("Incorrect number of parameters")
+	 getsubdirs = False
+         if (len(given) == 2):
+		getsubdirs = True
+	 ## TODO parsing output
+	 self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,given[0],getsubdirs)
 
-	 self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,given[0])
+class QuotaTokenSetCommand(ShellCommand):
+    """Set a quota token for the given path
+
+The command accepts the following paramameter:
+
+* <path>    	     : the path
+* pool <poolname>    : the pool name associated to the token
+* size <size>        : the quota size expressed in bytes
+* desc <description> : a description of the token"""
 
 
+    def _init(self):
+        self.parameters = ['Dpath','Oparameter:pool:size:desc',  '*?value',
+                                       'Oparameter:pool:size:desc',  '*?value',
+                                       'Oparameter:pool:size:desc',  '*?value' ]
 
+    def _execute(self, given):
+        if len(given) < 4:
+ 	 	return self.error("Incorrect number of parameters")
+	lfn = given[0]
+        try:
+		for i in range(1, len(given),2):
+        	    if given[i] == "pool":
+               		pool =  given[i+1]
+	            elif given[i] == "size":
+         	      	size = int(given[i+1])
+	              	if size < 0:
+         	        	return self.error("Incorrect size: it must be a positive integer")
+		    elif given[i] == "desc":
+			desc = given[i+1]
+        except Exception, e:
+        	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc)
