@@ -548,8 +548,8 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
                       "Need write access on %s", parentPath.c_str());
 
   // Check that the file does not exist, or it has no replicas
-  try {
-    file = this->si_->getINode()->extendedStat(parent.stat.st_ino, name);
+  DmStatus st = this->si_->getINode()->extendedStat(file, parent.stat.st_ino, name);
+  if(st.ok()) {
     if (this->si_->getINode()->getReplicas(file.stat.st_ino).size() > 0)
       throw DmException(EEXIST,
                         "%s exists and has replicas. Can not truncate.",
@@ -557,11 +557,9 @@ void BuiltInCatalog::create(const std::string& path, mode_t mode) throw (DmExcep
     else if (S_ISDIR(file.stat.st_mode))
       throw DmException(EISDIR,
                         "%s is a directory. Can not truncate", path.c_str());
-
   }
-  catch (DmException& e) {
-    code = DMLITE_ERRNO(e.code());
-    if (code != ENOENT) throw;
+  else if(st.code() != DMLITE_ERRNO(ENOENT)) {
+    throw st.exception();
   }
 
   // Effective gid
