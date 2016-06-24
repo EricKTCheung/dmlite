@@ -50,7 +50,7 @@ int Logger::getStackTrace(std::string &s)
   std::ostringstream o;
 
   void * array[10];
-  int size = backtrace(array, 10);
+  int size = backtrace(array, 12);
 
   int linecnt = 0;
 
@@ -60,8 +60,8 @@ int Logger::getStackTrace(std::string &s)
   // skip previous one (usually an exception)
   for (int i = 2; i < size && messages != NULL; ++i)
   {
-    // Let's not print more than 6 lines
-    if (linecnt > 5) break;
+    // Let's not print more than 8 lines
+    if (linecnt > 7) break;
 
     char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
 
