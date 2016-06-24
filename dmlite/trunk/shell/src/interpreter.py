@@ -17,6 +17,7 @@ import threading
 import Queue
 import signal
 import socket
+from executor import DomeExecutor
 
 try:
     import dpm2
@@ -34,6 +35,9 @@ class DMLiteInterpreter:
     self.quietMode = quietMode
     self.lastCompleted = 0
     self.lastCompletedState = 0
+    self.executor = DomeExecutor("/etc/grid-security/dpmmgr/dpmcert.pem", "/etc/grid-security/dpmmgr/dpmkey.pem",
+                            "/etc/grid-security/certificates", "", "")
+    self.domeheadurl = "https://" + socket.getfqdn() + "/domehead"
     global replicaQueue
     global replicaQueueLock
     global drainErrors
@@ -491,7 +495,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.7.6 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.8.0 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -3132,3 +3136,18 @@ The drainserver command accepts the following parameters:
                 self.drainProcess.drain()
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+class QuotaTokenGetCommand(ShellCommand):
+    """List the quota tokens for the given path"""
+
+    def _init(self):
+        self.parameters = ['Dpath']
+
+    def _execute(self, given):
+	 if len(given) < 1:
+            return self.error("Incorrect number of parameters")
+
+	 self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,given[0])
+
+
+
