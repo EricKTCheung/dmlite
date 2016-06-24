@@ -46,6 +46,7 @@ public:
     status = FsStaticDisabled;
     freespace = 0LL;
     physicalsize = 0LL;
+    activitystatus = FsUnknown;
   };
   
   
@@ -277,7 +278,7 @@ public:
   int rmPoolfs(std::string &poolname);
   
   /// Adds a filesystem to an existing pool
-  int addPoolfs(std::string &srv, std::string &fs, std::string &poolname);
+  int addPoolfs(std::string &srv, std::string &fs, std::string &poolname, DomeFsInfo::DomeFsStatus status);
 
   // Utility ------------------------------------
   bool LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo);

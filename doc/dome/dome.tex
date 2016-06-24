@@ -841,6 +841,10 @@ Params:
  \item server: server hosting the replica
  \item fs: absolute path to the physical file or directory. The prefix must match an existing filesystem that is mounted in the indicated disk server.
  \item poolname: name of the DPM pool this filesystem will be used for
+ \item status: the status of the filesystem. Allowed values are:
+  \subitem 0: Active
+  \subitem 1: Disabled
+  \subitem 2: ReadOnly
 \end{itemize}
 
 

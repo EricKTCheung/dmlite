@@ -774,8 +774,9 @@ bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo 
 
 }
 
-int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poolname) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Adding filesystem. srv: '" << srv << "' fs: '" << newfs << "' pool: '" << poolname << "'");
+int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poolname, DomeFsInfo::DomeFsStatus status) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Adding filesystem. srv: '" << srv <<
+      "' fs: '" << newfs << "' pool: '" << poolname << "' status: " << status);
 
   // Lock status!
   boost::unique_lock<boost::recursive_mutex> l(*this);
@@ -784,7 +785,8 @@ int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poo
   fsi.poolname = poolname;
   fsi.server = srv;
   fsi.fs = newfs;
-
+  fsi.status = status;
+  
   // Make sure it's not already there or that we are not adding a parent/child of an existing fs
   for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
     if ( PfnMatchesFS(srv, newfs, *fs) )

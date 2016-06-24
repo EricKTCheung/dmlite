@@ -2485,6 +2485,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   std::string poolname =  req.bodyfields.get<std::string>("poolname", "");
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  int fsstatus =  req.bodyfields.get<int>("status", 0); // DomeFsStatus::FsStaticActive
   long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
   char pool_stype = req.bodyfields.get("pool_stype", 'P');
 
@@ -2494,6 +2495,8 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
   }
 
+  if ((fsstatus < 0) || (fsstatus > 2))
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid status '" << fsstatus << "'. Should be 0, 1 or 2."));
 
   // Make sure it's not already there or that we are not adding a parent/child of an existing fs
   for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
@@ -2528,6 +2531,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   fsfs.poolname = poolname;
   fsfs.server = server;
   fsfs.fs = newfs;
+  fsfs.status = (DomeFsInfo::DomeFsStatus)fsstatus;
   fsfs.pool_defsize = pool_defsize;
   fsfs.pool_stype = pool_stype;
   rc =  sql.addFsPool(fsfs);
@@ -2539,7 +2543,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     return 1;
   }
 
-  status.addPoolfs(server, newfs, poolname);
+  status.addPoolfs(server, newfs, poolname, (DomeFsInfo::DomeFsStatus)fsstatus);
   return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
 }
 
