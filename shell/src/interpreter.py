@@ -3163,7 +3163,7 @@ The command accepts the following paramameter:
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
 
-The command accepts the following paramameter:
+The command accepts the following parameter:
 
 * <path>    	     : the path
 * pool <poolname>    : the pool name associated to the token
@@ -3194,3 +3194,21 @@ The command accepts the following paramameter:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
         self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc)
+
+class QuotaTokenDelCommand(ShellCommand):
+    """Del the quota token for the given path
+
+The command accepts the following parameter:
+
+* <path>        : the path to remove the quota from
+* pool   	: the pool associated to the quota token to remove"""
+
+    def _init(self):
+        self.parameters = ['Dpath','?pool']
+
+    def _execute(self, given):
+         if len(given) < 2:
+            return self.error("Incorrect number of parameters")
+	 lfn = given[0]
+         pool = given[1]
+         self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool)
