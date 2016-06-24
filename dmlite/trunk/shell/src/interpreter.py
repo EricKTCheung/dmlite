@@ -18,6 +18,8 @@ import Queue
 import signal
 import socket
 from executor import DomeExecutor
+import json
+from pprint import pprint
 
 try:
     import dpm2
@@ -3154,11 +3156,32 @@ The command accepts the following paramameter:
     def _execute(self, given):
 	 if len(given) < 1:
             return self.error("Incorrect number of parameters")
+	 path = given[0]
 	 getsubdirs = False
          if (len(given) == 2):
 		getsubdirs = True
-	 ## TODO parsing output
-	 self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,given[0],getsubdirs)
+	 out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getsubdirs)
+	 try:
+		 data  = json.loads(out)
+	 except ValueError: 
+		self.error("No quota token defined for the path: " +path)
+		return
+	 for token in data.keys():
+		self.ok("****************************************")
+		self.ok("Token Name:\t" + data[token]['quotatkname'])
+		self.ok("Token Path:\t" + data[token]['path'])
+		self.ok("Token Pool:\t" + data[token]['quotatkpoolname'])
+		self.ok("Token Total Space:\t" + data[token]['quotatktotspace'])
+		self.ok("Pool Total Space:\t" + data[token]['pooltotspace'])
+		self.ok("Path Used Space:\t" + data[token]['pathusedspace'])
+		self.ok("Path Free Space:\t" + data[token]['pathfreespace'])
+		self.ok("Groups:")#sometimes the groups are not avaialble immediately after a quotatoken is created
+		try:
+			for group in data[token]['groups'].keys():
+				self.ok("\tID:\t" + group + "\tName:\t" + data[token]['groups'][group]) 
+		except:
+			pass
+	
 
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
@@ -3193,7 +3216,7 @@ The command accepts the following parameter:
         except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-        self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc)
+        self.ok(self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc))
 
 class QuotaTokenDelCommand(ShellCommand):
     """Del the quota token for the given path
@@ -3211,4 +3234,4 @@ The command accepts the following parameter:
             return self.error("Incorrect number of parameters")
 	 lfn = given[0]
          pool = given[1]
-         self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool)
+         self.ok(self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool))

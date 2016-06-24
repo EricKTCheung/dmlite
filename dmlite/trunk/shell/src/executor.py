@@ -48,7 +48,7 @@ class DomeTalker(object):
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = proc.communicate()[0]
-        print(out)
+	return out
 
 class DomeExecutor(object):
     """Wrapper around DomeTalker"""
@@ -57,25 +57,25 @@ class DomeExecutor(object):
 
     def getSpaceInfo(self,url):
         talker = DomeTalker(self.creds, url, "GET", "dome_getspaceinfo")
-        talker.execute({})
+        return talker.execute({})
 
     def statPool(self,url, pool):
         talker = DomeTalker(self.creds, url, "GET", "dome_statpool")
-        talker.execute({"poolname" : pool})
+        return talker.execute({"poolname" : pool})
 
     def getquotatoken(self,url,lfn, getsubdirs):
         talker = DomeTalker(self.creds, url, "GET", "dome_getquotatoken")
-        talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs })
+        return talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs })
 
     def setquotatoken(self,url,lfn,pool, space,desc):
         talker = DomeTalker(self.creds, url, "POST", "dome_setquotatoken")
-        talker.execute({ "path" : lfn, "poolname" : pool,
+        return talker.execute({ "path" : lfn, "poolname" : pool,
                           "quotaspace" : space, "description" : desc })
 
     def getdirspaces(self,url,lfn):
         talker = DomeTalker(self.creds, url, "GET", "dome_getdirspaces")
-        talker.execute({ "path" : lfn})
+        return talker.execute({ "path" : lfn})
 
     def delquotatoken(self,url,lfn,pool):
         talker = DomeTalker(self.creds, url, "POST", "dome_delquotatoken")
-        talker.execute({ "path" : lfn, "poolname" : pool})
+        return talker.execute({ "path" : lfn, "poolname" : pool})
