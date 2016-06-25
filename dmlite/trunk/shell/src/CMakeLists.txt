@@ -13,6 +13,6 @@ install(PROGRAMS      dmlite-shell
 install(PROGRAMS      dmlite-mysql-dirspaces.py
         DESTINATION   ${INSTALL_PFX_USR}/bin)
 
-install(FILES         __init__.py interpreter.py dbutils.py
+install(FILES         __init__.py interpreter.py dbutils.py executor.py
 	DESTINATION   ${INSTALL_PYTHON_SITE_PACKAGES}/dmliteshell
 )
