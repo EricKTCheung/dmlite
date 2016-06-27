@@ -52,8 +52,8 @@ namespace dmlite {
     std::string passwd_;
     bool        useIp_;
 
-    DavixCtxPool &davixPool_;
     std::string domedisk_;
+    DavixCtxPool &davixPool_;
   };
 
   class DomeTunnelHandler : public IOHandler {

@@ -146,8 +146,6 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
 {
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " loc:" << loc.toString());
 
-  struct dpm_filestatus     *statuses;
-  int                        nReplies;
   std::string                sfn;
 
   if (loc.empty())

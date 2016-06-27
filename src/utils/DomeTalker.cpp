@@ -159,7 +159,7 @@ static struct StatusCodePair pairs[] = {
 };
 
 int dmlite::http_status(const dmlite::DmException &e) {
-  for(int i = 0; i < sizeof(pairs); i++) {
+  for(size_t i = 0; i < sizeof(pairs); i++) {
     if(pairs[i].code == DMLITE_ERRNO(e.code())) {
       return pairs[i].status;
     }
@@ -168,7 +168,7 @@ int dmlite::http_status(const dmlite::DmException &e) {
 }
 
 int DomeTalker::dmlite_code() {
-  for(int i = 0; i < sizeof(pairs); i++) {
+  for(size_t i = 0; i < sizeof(pairs); i++) {
     if(pairs[i].status == status_) {
       return pairs[i].code;
     }
