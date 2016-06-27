@@ -23,7 +23,19 @@
  * @date   Jan 2016
  */
 
+
+#ifndef DOMELOG_H
+#define DOMELOG_H
+
 #include "utils/logger.h"
 
 extern Logger::bitmask domelogmask;
 extern Logger::component domelogname;
+
+#endif
+
+
+
+
+
+
