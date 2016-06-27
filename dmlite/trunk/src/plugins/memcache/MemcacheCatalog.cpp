@@ -110,16 +110,25 @@ std::string MemcacheCatalog::getWorkingDir(void) throw (DmException)
   return this->cwd_;
 }
 
+#define DMLITE_EXCEPTION_SHIELD(statement) { try { statement; } catch(DmException &e) { return DmStatus(e); } }
+
+DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSym) throw () {
+  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
+  if (this->memcachedPOSIX_)
+    DMLITE_EXCEPTION_SHIELD(xstat = this->extendedStatSimplePOSIX(path, followSym))
+  else
+    DMLITE_EXCEPTION_SHIELD(xstat = this->extendedStatNoPOSIX(path, followSym))
+
+  return DmStatus();
+}
 
 ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followSym) throw (DmException)
 {
-  Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
-  if (this->memcachedPOSIX_)
-    return this->extendedStatSimplePOSIX(path, followSym);
-  else
-    return this->extendedStatNoPOSIX(path, followSym);
+  ExtendedStat ret;
+  DmStatus st = this->extendedStat(ret, path, followSym);
+  if(!st.ok()) throw st.exception();
+  return ret;
 }
-
 
 ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, bool followSym) throw (DmException)
 {
@@ -327,12 +336,12 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
     if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
     else {
            serializeExtendedStat(meta, valMemc);
-           
+
            // Let's write directories into the fast local cache
            if ((localCacheMaxSize > 0) && S_ISDIR(meta.stat.st_mode)) {
              setLocalFromKeyValue(key, valMemc);
            }
-           
+
            safeSetMemcachedFromKeyValue(key, valMemc);
           }
    }

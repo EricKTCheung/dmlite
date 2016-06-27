@@ -59,6 +59,9 @@ namespace dmlite {
       /// just delegation
       std::string getWorkingDir(void) throw (DmException);
 
+      DmStatus extendedStat(ExtendedStat &xstat, const std::string& path,
+          bool followSym = true) throw ();
+
       ExtendedStat extendedStat(const std::string& path,
           bool followSym = true) throw (DmException);
 
