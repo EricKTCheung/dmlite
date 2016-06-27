@@ -122,7 +122,7 @@ The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as RFIO and SRM version 1, version 2 and version 2.2.
 This is a virtual package providing all required daemons for a DPM
-Disk Node. 
+Disk Node.
 
 
 
@@ -559,5 +559,5 @@ rm -rf %{buildroot}
 * Mon Jan 23 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Added cppunit-devel as a build dependency
 
-* Tue Jan 20 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
+* Fri Jan 20 2012 Alejandro Alvarez <alejandro.alvarez.ayllon@cern.ch> - 0.1.0-1
 - Created spec file
