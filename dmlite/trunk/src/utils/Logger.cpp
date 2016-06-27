@@ -49,8 +49,9 @@ int Logger::getStackTrace(std::string &s)
 {
   std::ostringstream o;
 
-  void * array[10];
-  int size = backtrace(array, 12);
+  const size_t maxdepth = 12;
+  void * array[maxdepth];
+  int size = backtrace(array, maxdepth);
 
   int linecnt = 0;
 
