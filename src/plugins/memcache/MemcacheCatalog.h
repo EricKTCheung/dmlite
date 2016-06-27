@@ -195,8 +195,8 @@ namespace dmlite {
   /// on the parent entities. POSIX semantics might still
   /// apply if the decorated plugin implements them.
   /// @param path         The path, absolute or relative
-  /// @return             ExtendedStat
-  ExtendedStat extendedStatNoPOSIX(const std::string& path, bool followSym) throw (DmException);
+  /// @return             The status
+  DmStatus extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
 
   /// Get an ExtendedStat object without permission checking.
   /// Fetches the ExtendedStat without checking permissions.
@@ -205,7 +205,7 @@ namespace dmlite {
   /// implements them.
   /// @param absPath      The path, must be absolute
   /// @return             ExtendedStat
-  ExtendedStat extendedStatNoCheck(const std::string& absPath, bool followSym) throw (DmException);
+  DmStatus extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw ();
 
   /// Delegate readDirx.
   /// Delegate the readDirx function and add the filename to

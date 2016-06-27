@@ -117,7 +117,7 @@ DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &p
   if (this->memcachedPOSIX_)
     DMLITE_EXCEPTION_SHIELD(xstat = this->extendedStatSimplePOSIX(path, followSym))
   else
-    DMLITE_EXCEPTION_SHIELD(xstat = this->extendedStatNoPOSIX(path, followSym))
+    return this->extendedStatNoPOSIX(xstat, path, followSym);
 
   return DmStatus();
 }
@@ -145,7 +145,8 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
 
   size_t endCurrentPath = 1;
 
-  meta = this->extendedStatNoCheck("/", followSym);
+  DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
+  if(!st.ok()) throw st.exception();
   endCurrentPath = absPath.find('/', 1);
 
   while (endCurrentPath != std::string::npos) {
@@ -160,7 +161,8 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
 
     std::string currentPath = absPath.substr(0, endCurrentPath);
     // Stat, this throws an Exception if the path doesn't exist
-    meta = this->extendedStatNoCheck(currentPath, followSym);
+    DmStatus st = this->extendedStatNoCheck(meta, currentPath, followSym);
+    if(!st.ok()) throw st.exception();
     // fall back to slower implementation, if link
     if (S_ISLNK(meta.stat.st_mode)) {
       return extendedStatPOSIX(path, followSym);
@@ -168,7 +170,8 @@ ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, b
     // include the next level
     endCurrentPath = absPath.find('/', endCurrentPath+1);
   }
-  meta = this->extendedStatNoCheck(absPath, followSym);
+  st = this->extendedStatNoCheck(meta, absPath, followSym);
+  if(!st.ok()) throw st.exception();
   meta["normPath"] = absPath;
 
   checksums::fillChecksumInXattr(meta);
@@ -196,10 +199,12 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
 
   components = Url::splitPath(path);
   if (path[0] == '/' || cwd.empty()) {
-    meta = this->extendedStatNoCheck("/", followSym);
+    DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
+    if(!st.ok()) throw st.exception();
   } else {
     cwdComponents = Url::splitPath(cwd);
-    meta = this->extendedStatNoCheck(cwd, followSym);
+    DmStatus st = this->extendedStatNoCheck(meta, cwd, followSym);
+    if(!st.ok()) throw st.exception();
   }
 
   for (; cwdMarker < components.size(); ) {
@@ -228,7 +233,8 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
       cwdComponents.push_back(currentPathElem);
       cwd = Url::joinPath(cwdComponents);
       // Stat, this throws an Exception if the path doesn't exist
-      meta = this->extendedStatNoCheck(cwd, followSym);
+      DmStatus st = this->extendedStatNoCheck(meta, cwd, followSym);
+      if(!st.ok()) throw st.exception();
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
@@ -254,7 +260,8 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
         // If absolute, need to reset parent
         if (link[0] == '/') {
           cwdComponents.clear();
-          meta = this->extendedStatNoCheck("/", followSym);
+          DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
+          if(!st.ok()) throw st.exception();
         }
         // Keep the meta of the symlink, will be replaced soon
 
@@ -278,12 +285,12 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
 }
 
 
-ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool followSym) throw (DmException)
+DmStatus MemcacheCatalog::extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ()
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(EXTENDEDSTAT);
 
-  ExtendedStat meta;
+  xstat = ExtendedStat();
 
   std::string valMemc;
 
@@ -292,33 +299,35 @@ ExtendedStat MemcacheCatalog::extendedStatNoPOSIX(const std::string& path, bool 
 
   valMemc = safeGetValFromMemcachedKey(key);
   if (!valMemc.empty()) {
-    deserializeExtendedStat(valMemc, meta);
+    deserializeExtendedStat(valMemc, xstat);
   } else // valMemc was not in memcached
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
-    DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
+    DmStatus st;
+    DELEGATE_ASSIGN(st, extendedStat, xstat, absPath, followSym);
+    if(!st.ok()) return st;
+
     //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders)
-    if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
+    if (xstat.stat.st_size == 0 && !S_ISDIR(xstat.stat.st_mode)) {}
     else {
-          serializeExtendedStat(meta, valMemc);
+          serializeExtendedStat(xstat, valMemc);
           safeSetMemcachedFromKeyValue(key, valMemc);
          }
   }
-  meta["normPath"] = absPath;
+  xstat["normPath"] = absPath;
 
-  checksums::fillChecksumInXattr(meta);
+  checksums::fillChecksumInXattr(xstat);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-
-  return meta;
+  return DmStatus();
 }
 
 
-ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bool followSym) throw (DmException)
+DmStatus MemcacheCatalog::extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw ()
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << absPath);
   incrementFunctionCounter(EXTENDEDSTAT);
 
-  ExtendedStat meta;
+  xstat = ExtendedStat();
 
   std::string valMemc;
 
@@ -326,19 +335,21 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
 
   valMemc = safeGetValFromMemcachedKey(key);
   if (!valMemc.empty()) {
-    deserializeExtendedStat(valMemc, meta);
+    deserializeExtendedStat(valMemc, xstat);
   } else // valMemc was not in memcached
   {
     incrementFunctionCounter(EXTENDEDSTAT_DELEGATE);
-    DELEGATE_ASSIGN(meta, extendedStat, absPath, followSym);
+    DmStatus st;
+    DELEGATE_ASSIGN(st, extendedStat, xstat, absPath, followSym);
+    if(!st.ok()) return st;
 
     //only if the size is > 0 we cache the stat, this is needed to fix some problem with third party copies.( we  cache also empty folders)
-    if (meta.stat.st_size == 0 && !S_ISDIR(meta.stat.st_mode)) {}
+    if (xstat.stat.st_size == 0 && !S_ISDIR(xstat.stat.st_mode)) {}
     else {
-           serializeExtendedStat(meta, valMemc);
+           serializeExtendedStat(xstat, valMemc);
 
            // Let's write directories into the fast local cache
-           if ((localCacheMaxSize > 0) && S_ISDIR(meta.stat.st_mode)) {
+           if ((localCacheMaxSize > 0) && S_ISDIR(xstat.stat.st_mode)) {
              setLocalFromKeyValue(key, valMemc);
            }
 
@@ -347,7 +358,7 @@ ExtendedStat MemcacheCatalog::extendedStatNoCheck(const std::string& absPath, bo
    }
 
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-  return meta;
+  return DmStatus();
 }
 
 ExtendedStat MemcacheCatalog::extendedStatByRFN(const std::string& rfn) throw (DmException)
