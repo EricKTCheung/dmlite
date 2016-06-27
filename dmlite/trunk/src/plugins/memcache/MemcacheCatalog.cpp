@@ -235,7 +235,8 @@ DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::strin
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
-        std::string link = this->readLink(cwd);
+        std::string link;
+        DMLITE_EXCEPTION_SHIELD(link = this->readLink(cwd));
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
