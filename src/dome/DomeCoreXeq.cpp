@@ -1881,7 +1881,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       }
       pt.push_back(std::make_pair("groups", grps));
 
-      jresp.push_back(std::make_pair("", pt));
+      jresp.push_back(std::make_pair(it->second->s_token, pt));
       cnt++;
     } // if
   } // for
@@ -1951,7 +1951,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
       }
       pt.push_back(std::make_pair("groups", grps));
 
-      jresp.push_back(std::make_pair("", pt));
+      jresp.push_back(std::make_pair(it->second->s_token, pt));
       cnt++;
     } // if
   } // for
