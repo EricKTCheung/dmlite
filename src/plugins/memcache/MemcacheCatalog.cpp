@@ -92,8 +92,10 @@ void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
     this->cwd_.clear();
   }
 
-  std::string normPath;
-  normPath = this->extendedStatPOSIX(path, true).getString("normPath");
+  ExtendedStat meta;
+  DmStatus st = this->extendedStatPOSIX(meta, path, true);
+  if(!st.ok()) throw st.exception();
+  std::string normPath = meta.getString("normPath");
 
   if (normPath[0] == '/')
     this->cwd_ = normPath;
@@ -115,7 +117,7 @@ std::string MemcacheCatalog::getWorkingDir(void) throw (DmException)
 DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSym) throw () {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
   if (this->memcachedPOSIX_)
-    DMLITE_EXCEPTION_SHIELD(xstat = this->extendedStatSimplePOSIX(path, followSym))
+    return this->extendedStatSimplePOSIX(xstat, path, followSym);
   else
     return this->extendedStatNoPOSIX(xstat, path, followSym);
 
@@ -130,62 +132,59 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   return ret;
 }
 
-ExtendedStat MemcacheCatalog::extendedStatSimplePOSIX(const std::string& path, bool followSym) throw (DmException)
+DmStatus MemcacheCatalog::extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ()
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
-  ExtendedStat meta;
+  xstat = ExtendedStat();
 
   // includes cwd, if applicable
   std::string absPath = getAbsolutePath(path);
 
   // fall back to slower implementation, if relative movement
   if (absPath.find("/./") != std::string::npos || absPath.find("/../") != std::string::npos) {
-    return extendedStatPOSIX(path, followSym);
+    return extendedStatPOSIX(xstat, path, followSym);
   }
 
   size_t endCurrentPath = 1;
 
-  DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
-  if(!st.ok()) throw st.exception();
+  DmStatus st = this->extendedStatNoCheck(xstat, "/", followSym);
+  if(!st.ok()) return st;
   endCurrentPath = absPath.find('/', 1);
 
   while (endCurrentPath != std::string::npos) {
     // Check that the parent is a directory first
-    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      throw DmException(ENOTDIR,
-          meta.name + " is not a directory");
+    if (!S_ISDIR(xstat.stat.st_mode) && !S_ISLNK(xstat.stat.st_mode))
+      return DmStatus(ENOTDIR, xstat.name + " is not a directory");
     // New element traversed! Need to check if it is possible to keep going.
-    if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-      throw DmException(EACCES,
-          "Not enough permissions to list " + meta.name);
+    if (checkPermissions(this->secCtx_, xstat.acl, xstat.stat, S_IEXEC) != 0)
+      return DmStatus(EACCES, "Not enough permissions to list " + xstat.name);
 
     std::string currentPath = absPath.substr(0, endCurrentPath);
     // Stat, this throws an Exception if the path doesn't exist
-    DmStatus st = this->extendedStatNoCheck(meta, currentPath, followSym);
-    if(!st.ok()) throw st.exception();
+    DmStatus st = this->extendedStatNoCheck(xstat, currentPath, followSym);
+    if(!st.ok()) return st;
     // fall back to slower implementation, if link
-    if (S_ISLNK(meta.stat.st_mode)) {
-      return extendedStatPOSIX(path, followSym);
+    if (S_ISLNK(xstat.stat.st_mode)) {
+      return extendedStatPOSIX(xstat, path, followSym);
     }
     // include the next level
     endCurrentPath = absPath.find('/', endCurrentPath+1);
   }
-  st = this->extendedStatNoCheck(meta, absPath, followSym);
-  if(!st.ok()) throw st.exception();
-  meta["normPath"] = absPath;
+  st = this->extendedStatNoCheck(xstat, absPath, followSym);
+  if(!st.ok()) return st;
+  xstat["normPath"] = absPath;
 
-  checksums::fillChecksumInXattr(meta);
+  checksums::fillChecksumInXattr(xstat);
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-
-  return meta;
+  return DmStatus();
 }
 
 
 
-ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool followSym) throw (DmException)
+DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::string& path, bool followSym) throw ()
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
-  ExtendedStat meta;
+  meta = ExtendedStat();
 
   std::string currentPathElem;
 
@@ -200,22 +199,20 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
   components = Url::splitPath(path);
   if (path[0] == '/' || cwd.empty()) {
     DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
-    if(!st.ok()) throw st.exception();
+    if(!st.ok()) return st;
   } else {
     cwdComponents = Url::splitPath(cwd);
     DmStatus st = this->extendedStatNoCheck(meta, cwd, followSym);
-    if(!st.ok()) throw st.exception();
+    if(!st.ok()) return st;
   }
 
   for (; cwdMarker < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      throw DmException(ENOTDIR,
-                        meta.name + " is not a directory");
+      return DmStatus(ENOTDIR, meta.name + " is not a directory");
     // New element traversed! Need to check if it is possible to keep going.
     if (checkPermissions(this->secCtx_, meta.acl, meta.stat, S_IEXEC) != 0)
-      throw DmException(EACCES,
-                        "Not enough permissions to list " + meta.name);
+      return DmStatus(EACCES, "Not enough permissions to list " + meta.name);
 
     currentPathElem = components[cwdMarker];
 
@@ -234,7 +231,7 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
       cwd = Url::joinPath(cwdComponents);
       // Stat, this throws an Exception if the path doesn't exist
       DmStatus st = this->extendedStatNoCheck(meta, cwd, followSym);
-      if(!st.ok()) throw st.exception();
+      if(!st.ok()) return st;
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
@@ -242,7 +239,7 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
-          throw DmException(DMLITE_SYSERR(ELOOP),
+          return DmStatus(DMLITE_SYSERR(ELOOP),
                            "Symbolic links limit exceeded: > %d",
                            this->symLinkLimit_);
         }
@@ -261,7 +258,7 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
         if (link[0] == '/') {
           cwdComponents.clear();
           DmStatus st = this->extendedStatNoCheck(meta, "/", followSym);
-          if(!st.ok()) throw st.exception();
+          if(!st.ok()) return st;
         }
         // Keep the meta of the symlink, will be replaced soon
 
@@ -278,10 +275,8 @@ ExtendedStat MemcacheCatalog::extendedStatPOSIX(const std::string& path, bool fo
   meta["normPath"] = cwd;
 
   checksums::fillChecksumInXattr(meta);
-
   Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
-
-  return meta;
+  return DmStatus();
 }
 
 

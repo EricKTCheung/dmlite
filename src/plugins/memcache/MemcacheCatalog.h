@@ -181,14 +181,14 @@ namespace dmlite {
   /// @param path         The path, absolute or relative
   /// @param followSym    Flag whether to follow symlinks
   /// @return             ExtendedStat
-  ExtendedStat extendedStatSimplePOSIX(const std::string& path, bool followSym) throw (DmException);
+  DmStatus extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
 
   /// Get an ExtendedStat POSIX-like.
   /// The same logic as in BuiltInCatalog, but using cached entries.
   /// @param path         The path, absolute or relative
   /// @param followSym    Flag whether to follow symlinks
   /// @return             ExtendedStat
-  ExtendedStat extendedStatPOSIX(const std::string& path, bool followSym) throw (DmException);
+  DmStatus extendedStatPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
 
   /// Get an ExtendedStat object store-like.
   /// Fetches the ExtendedStat without checking permissions
