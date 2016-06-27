@@ -67,21 +67,21 @@ logic for data management and storage for the Lcg grid.
 Summary:  EMI DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
-Requires: dpm%{?_isa} = %{version}
-Requires: dpm-copy-server-mysql%{?_isa} = %{version}
-Requires: dpm-devel%{?_isa} = %{version}
+Requires: dpm%{?_isa} >= 1.9
+Requires: dpm-copy-server-mysql%{?_isa} >= 1.9
+Requires: dpm-devel%{?_isa} >= 1.9
 Requires: dpm-dsi%{?_isa}
-Requires: dpm-name-server-mysql%{?_isa} = %{version}
-Requires: dpm-perl%{?_isa} = %{version}
-Requires: dpm-python%{?_isa} = %{version}
-Requires: dpm-rfio-server%{?_isa} = %{version}
-Requires: dpm-server-mysql%{?_isa} = %{version}
-Requires: dpm-srm-server-mysql%{?_isa} = %{version}
-Requires: dpm-yaim >= 4.2.20
-Requires: dmlite-plugins-adapter >= 0.4.0
-Requires: dmlite-plugins-mysql >= 0.4.0
+Requires: dpm-name-server-mysql%{?_isa} >= 1.9
+Requires: dpm-perl%{?_isa} >= 1.9
+Requires: dpm-python%{?_isa} >= 1.9
+Requires: dpm-rfio-server%{?_isa} >= 1.9
+Requires: dpm-server-mysql%{?_isa} >= 1.9
+Requires: dpm-srm-server-mysql%{?_isa} >= 1.9
+
+Requires: dmlite-plugins-adapter = %{version}
+Requires: dmlite-plugins-domeadapter = %{version}
+Requires: dmlite-plugins-mysql = %{version}
 Requires: edg-mkgridmap
-Requires:       emi-version
 Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
@@ -99,16 +99,17 @@ data such as HTTP, Xrootd, GridFTP
 %package dpm_disk
 Summary:  EMI DPM Disk Node
 Group:    Applications/Internet
-Requires: dpm%{?_isa} = %{version}
-Requires: dpm-devel%{?_isa} = %{version}
+Requires: dpm%{?_isa} >= 1.9
+Requires: dpm-devel%{?_isa} >= 1.9
 Requires: dpm-dsi%{?_isa}
-Requires: dpm-perl%{?_isa} = %{version}
-Requires: dpm-python%{?_isa} = %{version}
-Requires: dpm-rfio-server%{?_isa} = %{version}
-Requires: dpm-yaim >= 4.2.20
-Requires: dmlite-plugins-adapter >= 0.4.0
+Requires: dpm-perl%{?_isa} >= 1.9
+Requires: dpm-python%{?_isa} >= 1.9
+Requires: dpm-rfio-server%{?_isa} >= 1.9
+
+Requires: dmlite-plugins-adapter = %{version}
+Requires: dmlite-plugins-domeadapter = %{version}
 Requires: edg-mkgridmap
-Requires:       emi-version
+
 Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
