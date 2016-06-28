@@ -33,6 +33,8 @@ DmStatus::DmStatus(int code, const std::string& string): errorCode_(code)
      << std::setfill('0') << std::setw(6) << (DMLITE_ERRNO(code))
      << "] " << string;
   errorMsg_ = os.str();
+
+  Err("", "Info: " << this->errorMsg_);
 }
 
 DmStatus::DmStatus(int code, const char* fmt, ...): errorCode_(code)

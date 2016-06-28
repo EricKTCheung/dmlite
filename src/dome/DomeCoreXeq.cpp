@@ -1980,7 +1980,6 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
-
   }
 
 
