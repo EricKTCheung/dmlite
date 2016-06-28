@@ -53,6 +53,9 @@ DmException::DmException(int code, const std::string& string): std::exception(),
   if(code != ENOENT || Logger::get()->getLevel() >= 3) {
     this->report();
   }
+  else {
+    Err("", string);
+  }
 }
 
 DmException::DmException(int code, const char* fmt, ...): std::exception(), errorCode_(code)
@@ -119,5 +122,8 @@ void DmException::setMessage(const char* fmt, va_list args)
 
   if(errorCode_ != ENOENT || Logger::get()->getLevel() >= 3) {
     this->report();
+  }
+  else {
+    Err("", this->errorMsg_);
   }
 }
