@@ -23,15 +23,19 @@ public:
   DmException(int code, const char* fmt, ...);
 
   DmException(const DmException &de);
-  
+
   virtual ~DmException() throw();
 
   int         code() const throw();
   const char* what() const throw();
 
+  // reports an exception to the log
+  void report() const throw();
+
 protected:
   int         errorCode_;
   std::string errorMsg_;
+  std::string stacktrace_;
 
   void setMessage(const char* fmt, va_list args);
 };

@@ -630,7 +630,6 @@ DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t parent, const std::
   }
 }
 
-
 ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, " guid:" << guid);

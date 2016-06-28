@@ -49,7 +49,7 @@ int Logger::getStackTrace(std::string &s)
 {
   std::ostringstream o;
 
-  const size_t maxdepth = 12;
+  const size_t maxdepth = 8;
   void * array[maxdepth];
   int size = backtrace(array, maxdepth);
 
@@ -61,8 +61,8 @@ int Logger::getStackTrace(std::string &s)
   // skip previous one (usually an exception)
   for (int i = 2; i < size && messages != NULL; ++i)
   {
-    // Let's not print more than 8 lines
-    if (linecnt > 7) break;
+    // Let's not print more than 4 lines
+    if (linecnt > 3) break;
 
     char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
 
