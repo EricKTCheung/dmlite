@@ -49,9 +49,8 @@ int Logger::getStackTrace(std::string &s)
 {
   std::ostringstream o;
 
-  const size_t maxdepth = 8;
-  void * array[maxdepth];
-  int size = backtrace(array, maxdepth);
+  void * array[8];
+  int size = backtrace(array, 8);
 
   int linecnt = 0;
 
@@ -87,7 +86,6 @@ int Logger::getStackTrace(std::string &s)
     if (mangled_name && offset_begin && offset_end &&
       mangled_name < offset_begin)
     {
-
       *mangled_name++ = '\0';
       *offset_begin++ = '\0';
       *offset_end++ = '\0';
@@ -130,6 +128,9 @@ int Logger::getStackTrace(std::string &s)
   }
 
   free(messages);
+
+  s += o.str();
+
   return size;
 }
 
