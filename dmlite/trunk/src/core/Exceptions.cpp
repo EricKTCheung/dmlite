@@ -35,10 +35,6 @@ DmException::DmException(int code): std::exception(), errorCode_(code), errorMsg
   // Nothing
 }
 
-void DmException::report() const throw() {
-    Err("", " DmException(..):" << this->errorMsg_ << " at "  << std::endl << stacktrace_);
-}
-
 DmException::DmException(int code, const std::string& string): std::exception(), errorCode_(code)
 {
   Logger::getStackTrace(stacktrace_);
@@ -49,13 +45,7 @@ DmException::DmException(int code, const std::string& string): std::exception(),
      << std::setfill('0') << std::setw(6) << (DMLITE_ERRNO(code))
      << "] " << string;
   errorMsg_ = os.str();
-
-  if(code != ENOENT || Logger::get()->getLevel() >= 3) {
-    this->report();
-  }
-  else {
-    Err("", string);
-  }
+  Err("", " DmException(..):" << this->errorMsg_ << " at "  << std::endl << stacktrace_);
 }
 
 DmException::DmException(int code, const char* fmt, ...): std::exception(), errorCode_(code)
@@ -119,11 +109,5 @@ void DmException::setMessage(const char* fmt, va_list args)
   buffer[sizeof(buffer)-1] = '\0';
 
   this->errorMsg_ = buffer;
-
-  if(errorCode_ != ENOENT || Logger::get()->getLevel() >= 3) {
-    this->report();
-  }
-  else {
-    Err("", this->errorMsg_);
-  }
+  Err("", " DmException(..):" << this->errorMsg_ << " at "  << std::endl << stacktrace_);
 }

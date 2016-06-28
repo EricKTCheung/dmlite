@@ -87,6 +87,7 @@ int Logger::getStackTrace(std::string &s)
     if (mangled_name && offset_begin && offset_end &&
       mangled_name < offset_begin)
     {
+
       *mangled_name++ = '\0';
       *offset_begin++ = '\0';
       *offset_end++ = '\0';
@@ -129,9 +130,6 @@ int Logger::getStackTrace(std::string &s)
   }
 
   free(messages);
-
-  s += o.str();
-
   return size;
 }
 

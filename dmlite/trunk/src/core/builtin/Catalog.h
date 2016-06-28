@@ -34,7 +34,7 @@ namespace dmlite {
 
     DmStatus extendedStat(ExtendedStat &xstat,
                           const std::string& path,
-                          bool followSym) throw ();
+                          bool followSym) throw (DmException);
 
     ExtendedStat extendedStat(const std::string& path,
                               bool followSym = true) throw (DmException);

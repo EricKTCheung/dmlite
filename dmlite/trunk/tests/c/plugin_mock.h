@@ -11,34 +11,35 @@
 #include <map>
 
 namespace dmlite {
-  
+
   struct MockDirectory {
     DIR*         d;
     ExtendedStat holder;
   };
-  
+
   /// Catalog mock plugin (uses FS calls)
   class MockCatalog: public DummyCatalog {
    private:
     typedef std::map<std::string, Replica> RfnReplicaType;
     typedef std::map<ino_t, RfnReplicaType> InoReplicasType;
     InoReplicasType replicas;
-    
+
    public:
     MockCatalog();
     ~MockCatalog();
-    
+
     std::string getImplId() const throw ();
-    
+
     void        changeDir     (const std::string&) throw (DmException);
     std::string getWorkingDir (void)               throw (DmException);
-    
+
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-    
+    DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw (DmException);
+
     Directory*    openDir (const std::string&) throw (DmException);
     void          closeDir(Directory*)         throw (DmException);
     ExtendedStat* readDirx(Directory*)         throw (DmException);
-    
+
     mode_t umask    (mode_t)                           throw ();
     void   setMode  (const std::string&, mode_t)       throw (DmException);
     void   makeDir  (const std::string&, mode_t)       throw (DmException);
@@ -46,11 +47,11 @@ namespace dmlite {
     void   rename   (const std::string&, const std::string&) throw (DmException);
     void   removeDir(const std::string&)                     throw (DmException);
     void   unlink   (const std::string&)                     throw (DmException);
-    
+
     void addReplica   (const Replica&) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
     std::vector<Replica> getReplicas(const std::string&) throw (DmException);
-    
+
     Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
     void    updateReplica(const Replica& replica) throw (DmException);
   };
@@ -60,19 +61,19 @@ namespace dmlite {
    public:
      MockPoolManager();
      ~MockPoolManager();
-     
+
      std::string getImplId() const throw();
-     
+
      std::vector<Pool> getPools(PoolAvailability availability) throw (DmException);
      void newPool(const Pool&) throw (DmException);
      void updatePool(const Pool&) throw (DmException);
      void deletePool(const Pool&) throw (DmException);
-     
+
      Location whereToRead (const std::string& path) throw (DmException);
      Location whereToRead (ino_t)                   throw (DmException);
      Location whereToWrite(const std::string& path) throw (DmException);
   };
-  
+
   /// Mock IO handler
   class MockIOHandler: public IOHandler {
     private:
@@ -91,21 +92,21 @@ namespace dmlite {
      void    flush(void) throw (DmException);
      bool    eof  (void) throw (DmException);
   };
-  
+
   /// Mock IO Driver
   class MockIODriver: public IODriver {
    public:
      ~MockIODriver();
-     
+
      std::string getImplId() const throw();
      void setSecurityContext(const SecurityContext*) throw (DmException);
      void setStackInstance(StackInstance* si) throw (DmException);
-     
+
      IOHandler* createIOHandler(const std::string& pfn,
                                 int flags,
                                 const Extensible& extras,
                                 mode_t mode) throw (DmException);
-     
+
      void doneWriting(const Location& loc) throw (DmException);
   };
 
@@ -115,16 +116,16 @@ namespace dmlite {
                      public PoolManagerFactory {
    public:
     ~MockFactory();
-        
+
     std::string implementedPool() throw();
-    
+
     void configure(const std::string&, const std::string&) throw (DmException);
-    
+
     Catalog*     createCatalog(PluginManager*)     throw (DmException);
     IODriver*    createIODriver(PluginManager*)    throw (DmException);
     PoolManager* createPoolManager(PluginManager*) throw (DmException);
   };
-  
+
 };
 
 #endif	// PLUGIN_MOCK_H

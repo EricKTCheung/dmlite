@@ -112,9 +112,7 @@ std::string MemcacheCatalog::getWorkingDir(void) throw (DmException)
   return this->cwd_;
 }
 
-#define DMLITE_EXCEPTION_SHIELD(statement) { try { statement; } catch(DmException &e) { return DmStatus(e); } }
-
-DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSym) throw () {
+DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSym) throw (DmException) {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
   if (this->memcachedPOSIX_)
     return this->extendedStatSimplePOSIX(xstat, path, followSym);
@@ -132,7 +130,7 @@ ExtendedStat MemcacheCatalog::extendedStat(const std::string& path, bool followS
   return ret;
 }
 
-DmStatus MemcacheCatalog::extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ()
+DmStatus MemcacheCatalog::extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw (DmException)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   xstat = ExtendedStat();
@@ -181,7 +179,7 @@ DmStatus MemcacheCatalog::extendedStatSimplePOSIX(ExtendedStat &xstat, const std
 
 
 
-DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::string& path, bool followSym) throw ()
+DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::string& path, bool followSym) throw (DmException)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   meta = ExtendedStat();
@@ -235,8 +233,7 @@ DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::strin
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
-        std::string link;
-        DMLITE_EXCEPTION_SHIELD(link = this->readLink(cwd));
+        std::string link = this->readLink(cwd);
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
@@ -281,7 +278,7 @@ DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::strin
 }
 
 
-DmStatus MemcacheCatalog::extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ()
+DmStatus MemcacheCatalog::extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw (DmException)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path);
   incrementFunctionCounter(EXTENDEDSTAT);
@@ -318,7 +315,7 @@ DmStatus MemcacheCatalog::extendedStatNoPOSIX(ExtendedStat &xstat, const std::st
 }
 
 
-DmStatus MemcacheCatalog::extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw ()
+DmStatus MemcacheCatalog::extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw (DmException)
 {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << absPath);
   incrementFunctionCounter(EXTENDEDSTAT);

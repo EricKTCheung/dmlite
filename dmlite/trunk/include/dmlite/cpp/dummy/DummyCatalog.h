@@ -29,7 +29,7 @@ namespace dmlite {
     virtual std::string getWorkingDir (void)               throw (DmException);
 
     virtual ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-    virtual DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw ();
+    virtual DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw (DmException);
     virtual ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
     virtual bool access(const std::string& path, int mode) throw (DmException);
