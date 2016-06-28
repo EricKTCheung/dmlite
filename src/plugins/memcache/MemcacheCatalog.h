@@ -60,7 +60,7 @@ namespace dmlite {
       std::string getWorkingDir(void) throw (DmException);
 
       DmStatus extendedStat(ExtendedStat &xstat, const std::string& path,
-          bool followSym = true) throw ();
+          bool followSym = true) throw (DmException);
 
       ExtendedStat extendedStat(const std::string& path,
           bool followSym = true) throw (DmException);
@@ -181,14 +181,14 @@ namespace dmlite {
   /// @param path         The path, absolute or relative
   /// @param followSym    Flag whether to follow symlinks
   /// @return             ExtendedStat
-  DmStatus extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
+  DmStatus extendedStatSimplePOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw (DmException);
 
   /// Get an ExtendedStat POSIX-like.
   /// The same logic as in BuiltInCatalog, but using cached entries.
   /// @param path         The path, absolute or relative
   /// @param followSym    Flag whether to follow symlinks
   /// @return             ExtendedStat
-  DmStatus extendedStatPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
+  DmStatus extendedStatPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw (DmException);
 
   /// Get an ExtendedStat object store-like.
   /// Fetches the ExtendedStat without checking permissions
@@ -196,7 +196,7 @@ namespace dmlite {
   /// apply if the decorated plugin implements them.
   /// @param path         The path, absolute or relative
   /// @return             The status
-  DmStatus extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw ();
+  DmStatus extendedStatNoPOSIX(ExtendedStat &xstat, const std::string& path, bool followSym) throw (DmException);
 
   /// Get an ExtendedStat object without permission checking.
   /// Fetches the ExtendedStat without checking permissions.
@@ -205,7 +205,7 @@ namespace dmlite {
   /// implements them.
   /// @param absPath      The path, must be absolute
   /// @return             ExtendedStat
-  DmStatus extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw ();
+  DmStatus extendedStatNoCheck(ExtendedStat &xstat, const std::string& absPath, bool followSym) throw (DmException);
 
   /// Delegate readDirx.
   /// Delegate the readDirx function and add the filename to

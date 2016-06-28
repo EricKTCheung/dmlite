@@ -77,8 +77,8 @@ namespace dmlite {
     ExtendedStat extendedStat(ino_t parent, const std::string& name) throw (DmException);
     ExtendedStat extendedStat(const std::string& guid) throw (DmException);
 
-    DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw ();
-    DmStatus extendedStat(ExtendedStat &xstat, ino_t parent, const std::string& name) throw ();
+    DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw (DmException);
+    DmStatus extendedStat(ExtendedStat &xstat, ino_t parent, const std::string& name) throw (DmException);
 
     SymLink readLink(ino_t inode) throw (DmException);
 
@@ -89,7 +89,7 @@ namespace dmlite {
 
     Replica  getReplica   (int64_t rid) throw (DmException);
 
-    DmStatus getReplica   (Replica &r, const std::string& sfn) throw ();
+    DmStatus getReplica   (Replica &r, const std::string& sfn) throw (DmException);
     Replica getReplica    (const std::string& sfn) throw (DmException);
 
     void    updateReplica(const Replica& replica) throw (DmException);

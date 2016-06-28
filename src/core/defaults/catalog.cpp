@@ -37,7 +37,7 @@ Catalog::~Catalog()
   // Nothing
 }
 
-DmStatus Catalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSymLink) throw ()
+DmStatus Catalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSymLink) throw (DmException)
 {
   // it would be best if plugins implemented this version directly,
   // so as to avoid spurious exception messages in the log
@@ -49,7 +49,8 @@ DmStatus Catalog::extendedStat(ExtendedStat &xstat, const std::string &path, boo
     return DmStatus();
   }
   catch(DmException &e) {
-    return DmStatus(e);
+    if(e.code() == ENOENT) return DmStatus(e);
+    throw;
   }
 }
 

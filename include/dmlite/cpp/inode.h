@@ -153,7 +153,7 @@ namespace dmlite {
     /// @param xstat The extended status of the file.
     /// @param inode The inode of the file.
     /// @return      The status of the operation.
-    virtual DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw ();
+    virtual DmStatus extendedStat(ExtendedStat &xstat, ino_t inode) throw (DmException);
 
     /// Do an extended stat of an entry using the parent inode and the name.
     /// @param parent The parent inode.
@@ -169,7 +169,7 @@ namespace dmlite {
     /// @return       The status of the operation.
     /// @note         No security check will be done.
     virtual DmStatus extendedStat(ExtendedStat &xstat, ino_t parent,
-                                      const std::string& name) throw ();
+                                      const std::string& name) throw (DmException);
 
     /// Do an extended stat using the GUID.
     /// @param guid The file GUID.

@@ -54,7 +54,7 @@ namespace dmlite {
     /// @return          A status object
     virtual DmStatus     extendedStat(ExtendedStat &xstat,
                                       const std::string& path,
-                                      bool followSym = true) throw ();
+                                      bool followSym = true) throw (DmException);
 
     /// Do an extended stat of a logical file using an associated replica file name.
     /// @param rfn The replica.

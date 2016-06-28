@@ -47,19 +47,29 @@ std::string MockCatalog::getWorkingDir() throw (DmException)
   return std::string(buffer);
 }
 
+DmStatus MockCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool) throw (DmException)
+{
+  if (::stat(path.c_str(), &xstat.stat) != 0)
+    throw DmException(errno, "Could not stat %s", path.c_str());
+
+  std::vector<std::string> components = Url::splitPath(path);
+  xstat.name = components.back();
+  xstat["easter"] = std::string("egg");
+  return DmStatus();
+}
 
 
 ExtendedStat MockCatalog::extendedStat(const std::string& path, bool) throw (DmException)
 {
   ExtendedStat sx;
-  
+
   if (::stat(path.c_str(), &sx.stat) != 0)
     throw DmException(errno, "Could not stat %s", path.c_str());
-  
+
   std::vector<std::string> components = Url::splitPath(path);
   sx.name = components.back();
   sx["easter"] = std::string("egg");
-  
+
   return sx;
 }
 
@@ -68,9 +78,9 @@ ExtendedStat MockCatalog::extendedStat(const std::string& path, bool) throw (DmE
 Directory* MockCatalog::openDir(const std::string& path) throw (DmException)
 {
   MockDirectory *md;
-  
+
   md = new MockDirectory();
-  
+
   md->d = ::opendir(path.c_str());
   if (md->d == NULL) {
     delete md;
@@ -94,7 +104,7 @@ void MockCatalog::closeDir(Directory* d) throw (DmException)
 ExtendedStat* MockCatalog::readDirx(Directory* d) throw (DmException)
 {
   MockDirectory *md = (MockDirectory*)d;
-  
+
   errno = 0;
   struct dirent* entry = ::readdir(md->d);
   if (entry == NULL) {
@@ -102,11 +112,11 @@ ExtendedStat* MockCatalog::readDirx(Directory* d) throw (DmException)
       throw DmException(errno, "Could not read: %d", errno);
     return NULL;
   }
-  
+
   md->holder.clear();
   md->holder.name = entry->d_name;
   md->holder["easter"] = std::string("egg");
-  
+
   return &(md->holder);
 }
 
@@ -172,7 +182,7 @@ void MockCatalog::unlink(const std::string& path) throw (DmException)
 void MockCatalog::addReplica(const Replica& replica) throw (DmException)
 {
   InoReplicasType::iterator i = replicas.find(replica.fileid);
-  
+
   if (i == replicas.end()) {
     RfnReplicaType rfnDict;
     rfnDict[replica.rfn] = replica;
@@ -188,7 +198,7 @@ void MockCatalog::addReplica(const Replica& replica) throw (DmException)
 void MockCatalog::deleteReplica(const Replica& replica) throw (DmException)
 {
   InoReplicasType::iterator i = replicas.find(replica.fileid);
-  
+
   if (i == replicas.end())
     throw DmException(ENOENT, "Could not find %d", replica.fileid);
   else {
@@ -205,10 +215,10 @@ void MockCatalog::deleteReplica(const Replica& replica) throw (DmException)
 std::vector<Replica> MockCatalog::getReplicas(const std::string& path) throw (DmException)
 {
   std::vector<Replica> rl;
-  
+
   ExtendedStat sx = this->extendedStat(path, true);
-  
-  InoReplicasType::iterator i = replicas.find(sx.stat.st_ino);  
+
+  InoReplicasType::iterator i = replicas.find(sx.stat.st_ino);
   if (i != replicas.end()) {
     RfnReplicaType::const_iterator j;
     for (j = i->second.begin(); j != i->second.end(); ++j) {
@@ -223,13 +233,13 @@ std::vector<Replica> MockCatalog::getReplicas(const std::string& path) throw (Dm
 Replica MockCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 {
   InoReplicasType::iterator i;
-  
+
   for (i = replicas.begin(); i != replicas.end(); ++i) {
     RfnReplicaType::const_iterator j = i->second.find(rfn);
     if (j != i->second.end())
       return j->second;
   }
-  
+
   throw DmException(DMLITE_NO_SUCH_REPLICA,
                     "Not found %s", rfn.c_str());
 }
@@ -239,7 +249,7 @@ Replica MockCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException)
 void MockCatalog::updateReplica(const Replica& replica) throw (DmException)
 {
   InoReplicasType::iterator i = replicas.find(replica.fileid);
-  
+
   if (i == replicas.end())
     throw DmException(ENOENT, "Could not find %d", replica.fileid);
   else {
@@ -277,12 +287,12 @@ std::string MockPoolManager::getImplId() const throw()
 std::vector<Pool> MockPoolManager::getPools(PoolAvailability availability) throw (DmException)
 {
   Pool p;
-  
+
   p.name = "hardcoded";
   p.type = "mock";
-  
+
   p["extra"] = std::string("something");
-  
+
   return std::vector<Pool>(1, p);
 }
 
@@ -316,22 +326,22 @@ Location MockPoolManager::whereToRead(const std::string& path) throw (DmExceptio
 {
   Location loc;
   Chunk    chunk;
-  
+
   chunk.url.domain = "host1.cern.ch";
   chunk.url.path   = "/storage/chunk01";
   chunk.offset = 0;
   chunk.size   = 100;
-  
+
   loc.push_back(chunk);
-  
+
   chunk.url.domain = "host2.cern.ch";
   chunk.url.path   = "/storage/chunk02";
   chunk.url.query["token"] = std::string("123456789");
   chunk.offset = 101;
   chunk.size   =  50;
-  
+
   loc.push_back(chunk);
-  
+
   return loc;
 }
 
@@ -347,14 +357,14 @@ Location MockPoolManager::whereToRead(ino_t) throw (DmException)
 Location MockPoolManager::whereToWrite(const std::string& path) throw (DmException)
 {
   Chunk chunk;
-  
+
   chunk.url.domain = "host1.cern.ch";
   chunk.url.path   = "/storage/chunk01";
   chunk.offset = 0;
   chunk.size   = 0;
-  
+
   chunk.url.query["token"] = std::string("987654321");
-  
+
   return Location(1, chunk);
 }
 
@@ -388,12 +398,12 @@ size_t MockIOHandler::read(char* buffer, size_t count) throw (DmException)
 {
   if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                                 "Can not read after closing");
-  
+
   size_t i;
   for (i = 0; i < count && p < (off_t)sizeof(content); ++i, ++p) {
     buffer[i] = content[p];
   }
-  
+
   return i;
 }
 
@@ -403,12 +413,12 @@ size_t MockIOHandler::write(const char* buffer, size_t count) throw (DmException
 {
   if (closed) throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
                                 "Can not write after closing");
-  
+
   size_t i;
   for (i = 0; i < count && p < (off_t)sizeof(content); ++i, ++p) {
     content[p] = buffer[i];
   }
-  
+
   return i;
 }
 
@@ -428,7 +438,7 @@ void MockIOHandler::seek(off_t offset, Whence whence) throw (DmException)
     default:
       p += offset;
   }
-  
+
   if (p < 0) p = 0;
 }
 
@@ -492,7 +502,7 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
   // Only one recognised
   if (pfn != "/file")
     throw DmException(ENOENT, "File  %s not found", pfn.c_str());
-  
+
   // Check token
   if (!(flags & kInsecure)) {
     switch (flags & 07) {
@@ -511,7 +521,7 @@ IOHandler* MockIODriver::createIOHandler(const std::string& pfn, int flags,
                           "Invalid value for the flags");
     }
   }
-  
+
   return new MockIOHandler();
 }
 

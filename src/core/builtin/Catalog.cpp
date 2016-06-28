@@ -136,9 +136,7 @@ std::string BuiltInCatalog::getWorkingDir (void) throw (DmException)
   return this->cwdPath_;
 }
 
-#define DMLITE_EXCEPTION_SHIELD(statement) try { statement; } catch(DmException &e) { return DmStatus(e); }
-
-DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& path, bool followSym) throw ()
+DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& path, bool followSym) throw (DmException)
 {
  // Split the path always assuming absolute
   std::vector<std::string> components = Url::splitPath(path);
@@ -156,7 +154,7 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
     // (first go of the server, probably)
     DmStatus st = this->si_->getINode()->extendedStat(meta, 0, "/");
     if(!st.ok()) {
-      if(st.code() != ENOENT) return st;
+      if(st.code() != ENOENT) return st; // should never happen
 
       meta.parent = 0;
       meta.name   = "/";
@@ -166,7 +164,7 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
       meta.stat.st_gid  = 0;
       meta.stat.st_size = 0;
 
-      DMLITE_EXCEPTION_SHIELD(this->si_->getINode()->create(meta));
+      this->si_->getINode()->create(meta);
     }
 
     // Before-root is a word-readable directory
@@ -225,8 +223,7 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
 
       // Symbolic link!, follow that instead
       if (S_ISLNK(meta.stat.st_mode) && followSym) {
-        SymLink link;
-        DMLITE_EXCEPTION_SHIELD(link = this->si_->getINode()->readLink(meta.stat.st_ino));
+        SymLink link = this->si_->getINode()->readLink(meta.stat.st_ino);
 
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {

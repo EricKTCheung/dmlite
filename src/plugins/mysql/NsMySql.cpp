@@ -567,31 +567,26 @@ ExtendedStat INodeMySql::extendedStat(ino_t inode) throw (DmException)
   return meta;
 }
 
-DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t inode) throw ()
+DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t inode) throw (DmException)
 {
-  try {
-    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " inode:" << inode);
 
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-    Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_ID);
-    CStat        cstat;
-    xstat = ExtendedStat();
+  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_ID);
+  CStat        cstat;
+  xstat = ExtendedStat();
 
-    stmt.bindParam(0, inode);
-    stmt.execute();
-    bindMetadata(stmt, &cstat);
+  stmt.bindParam(0, inode);
+  stmt.execute();
+  bindMetadata(stmt, &cstat);
 
-    if (!stmt.fetch())
-      return DmStatus(ENOENT, "Inode %ld not found", inode);
+  if (!stmt.fetch())
+    return DmStatus(ENOENT, "Inode %ld not found", inode);
 
-    dumpCStat(cstat, &xstat);
+  dumpCStat(cstat, &xstat);
 
-    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " sz:" << xstat.size());
-    return DmStatus();
-  }
-  catch(DmException &e) {
-    return DmStatus(e);
-  }
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.  inode:" << inode << " sz:" << xstat.size());
+  return DmStatus();
 }
 
 ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) throw (DmException)
@@ -602,32 +597,27 @@ ExtendedStat INodeMySql::extendedStat(ino_t parent, const std::string& name) thr
   return meta;
 }
 
-DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t parent, const std::string& name) throw ()
+DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t parent, const std::string& name) throw (DmException)
 {
-  try {
-    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " parent:" << parent << " name:" << name);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " parent:" << parent << " name:" << name);
 
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-    Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_NAME);
-    CStat        cstat;
-    xstat = ExtendedStat();
+  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  Statement    stmt(conn, this->nsDb_, STMT_GET_FILE_BY_NAME);
+  CStat        cstat;
+  xstat = ExtendedStat();
 
-    stmt.bindParam(0, parent);
-    stmt.bindParam(1, name);
-    stmt.execute();
+  stmt.bindParam(0, parent);
+  stmt.bindParam(1, name);
+  stmt.execute();
 
-    bindMetadata(stmt, &cstat);
+  bindMetadata(stmt, &cstat);
 
-    if (!stmt.fetch())
-      return DmStatus(ENOENT, name + " not found");
+  if (!stmt.fetch())
+    return DmStatus(ENOENT, name + " not found");
 
-    dumpCStat(cstat, &xstat);
-    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. parent:" << parent << " name:" << name << " sz:" << xstat.size());
-    return DmStatus();
-  }
-  catch(DmException &e) {
-    return DmStatus(e);
-  }
+  dumpCStat(cstat, &xstat);
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. parent:" << parent << " name:" << name << " sz:" << xstat.size());
+  return DmStatus();
 }
 
 ExtendedStat INodeMySql::extendedStat(const std::string& guid) throw (DmException)
@@ -955,60 +945,55 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   return r;
 }
 
-DmStatus INodeMySql::getReplica(Replica &r, const std::string& rfn) throw ()
+DmStatus INodeMySql::getReplica(Replica &r, const std::string& rfn) throw (DmException)
 {
-  try {
-    Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rfn:" << rfn);
+  Log(Logger::Lvl4, mysqllogmask, mysqllogname, " rfn:" << rfn);
 
-    PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
-    Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
-    stmt.bindParam(0, rfn);
+  PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+  Statement stmt(conn, this->nsDb_, STMT_GET_REPLICA_BY_URL);
+  stmt.bindParam(0, rfn);
 
-    stmt.execute();
+  stmt.execute();
 
-    r = Replica();
+  r = Replica();
 
-    char setnm[512];
-    char cpool[512];
-    char cserver[512];
-    char cfilesystem[512];
-    char crfn[4096];
-    char cmeta[4096];
-    char ctype, cstatus;
+  char setnm[512];
+  char cpool[512];
+  char cserver[512];
+  char cfilesystem[512];
+  char crfn[4096];
+  char cmeta[4096];
+  char ctype, cstatus;
 
-    stmt.bindResult( 0, &r.replicaid);
-    stmt.bindResult( 1, &r.fileid);
-    stmt.bindResult( 2, &r.nbaccesses);
-    stmt.bindResult( 3, &r.atime);
-    stmt.bindResult( 4, &r.ptime);
-    stmt.bindResult( 5, &r.ltime);
-    stmt.bindResult( 6, &cstatus, 1);
-    stmt.bindResult( 7, &ctype, 1);
-    stmt.bindResult( 8, setnm,       sizeof(setnm));
-    stmt.bindResult( 9, cpool,       sizeof(cpool));
-    stmt.bindResult(10, cserver,     sizeof(cserver));
-    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
-    stmt.bindResult(12, crfn,        sizeof(crfn));
-    stmt.bindResult(13, cmeta,       sizeof(cmeta));
+  stmt.bindResult( 0, &r.replicaid);
+  stmt.bindResult( 1, &r.fileid);
+  stmt.bindResult( 2, &r.nbaccesses);
+  stmt.bindResult( 3, &r.atime);
+  stmt.bindResult( 4, &r.ptime);
+  stmt.bindResult( 5, &r.ltime);
+  stmt.bindResult( 6, &cstatus, 1);
+  stmt.bindResult( 7, &ctype, 1);
+  stmt.bindResult( 8, setnm,       sizeof(setnm));
+  stmt.bindResult( 9, cpool,       sizeof(cpool));
+  stmt.bindResult(10, cserver,     sizeof(cserver));
+  stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+  stmt.bindResult(12, crfn,        sizeof(crfn));
+  stmt.bindResult(13, cmeta,       sizeof(cmeta));
 
-    if (!stmt.fetch())
-      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
+  if (!stmt.fetch())
+    return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
 
-    r.rfn           = crfn;
-    r.server        = cserver;
-    r.setname       = std::string(setnm);
-    r["pool"]       = std::string(cpool);
-    r["filesystem"] = std::string(cfilesystem);
-    r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
-    r.type          = static_cast<Replica::ReplicaType>(ctype);
-    r.deserialize(cmeta);
+  r.rfn           = crfn;
+  r.server        = cserver;
+  r.setname       = std::string(setnm);
+  r["pool"]       = std::string(cpool);
+  r["filesystem"] = std::string(cfilesystem);
+  r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
+  r.type          = static_cast<Replica::ReplicaType>(ctype);
+  r.deserialize(cmeta);
 
-    Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
-    return DmStatus();
-  }
-  catch(DmException &e) {
-    return DmStatus(e);
-  }
+  Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
+  return DmStatus();
 }
 
 Replica INodeMySql::getReplica(const std::string& rfn) throw (DmException)
