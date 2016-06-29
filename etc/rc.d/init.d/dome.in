@@ -26,6 +26,10 @@ RETVAL=0
 STOP_TIMEOUT=${STOP_TIMEOUT-10}
 
 start() {
+  if [ ! -f $domeconfig ]; then
+    echo "Error starting $instance: $domeconfig not found!"
+    return 3
+  fi
   echo -n $"Starting $instance: "
   LANG=$DOME_LANG daemon --user=${DOME_USER} --pidfile=${pidfile} $dome $domeconfig $OPTIONS
   RETVAL=$?
