@@ -390,7 +390,7 @@ int DomeStatus::tick(time_t timenow) {
     // checking the filesystems is a good idea for a disk server
     Log(Logger::Lvl4, domelogmask, domelogname, "Checking disk spaces.");
 
-    if (role == roleDisk)
+    //if (role == roleDisk)
       loadFilesystems();
 
     checkDiskSpaces();
