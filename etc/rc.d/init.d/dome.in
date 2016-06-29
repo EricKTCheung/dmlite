@@ -13,6 +13,8 @@ source /etc/rc.d/init.d/functions
 
 # Start httpd in the C locale by default.
 DOME_LANG=${DOME_LANG-"C"}
+DOME_USER=dpmmgr
+DOME_GROUP=dpmmgr
 
 instance="@STARTUP_SCRIPT_NAME@"
 
@@ -25,7 +27,7 @@ STOP_TIMEOUT=${STOP_TIMEOUT-10}
 
 start() {
   echo -n $"Starting $instance: "
-  LANG=$DOME_LANG daemon --pidfile=${pidfile} $dome $domeconfig $OPTIONS
+  LANG=$DOME_LANG daemon --user=${DOME_USER} --pidfile=${pidfile} $dome $domeconfig $OPTIONS
   RETVAL=$?
   echo
   if [ $RETVAL = 0 ]; then
