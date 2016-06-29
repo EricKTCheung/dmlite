@@ -1973,6 +1973,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   mytk.path = req.bodyfields.get("path", "");
   mytk.poolname = req.bodyfields.get("poolname", "");
+  
 
   if (!status.existsPool(mytk.poolname)) {
     std::ostringstream os;
@@ -2011,7 +2012,10 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
   mytk.u_token = req.bodyfields.get("description", "(unnamed)");
-
+  
+  // Allow changing the uniqueid (s_token)
+  mytk.s_token = req.bodyfields.get("uniqueid", "");
+  
   // First we write into the db, if it goes well then we update the internal map
   int rc;
   {
@@ -2092,6 +2096,9 @@ int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
 
 };
+
+
+
 
 int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {
 

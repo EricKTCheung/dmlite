@@ -442,8 +442,53 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   // If updating the spacetk failed then we try adding a brand new one. In this case we also write the clientid,
   // and we initialize the other fields with default values.
   if (!ok) {
-
-    Statement stmt(conn_, "dpm_db",
+    
+    if (qtk.s_token.size() > 0) {
+      
+      // If the client also gave an s_token (usually an uuid) then use it, because likely the
+      // client wants to recreate a quotatk for files that already exist in the db
+      Statement stmt(conn_, "dpm_db",
+                   "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
+                   ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
+                   poolname, assign_time, expire_time, groups, path, s_token)\
+                   VALUES (\
+                   uuid(), ?, 0, 0,\
+                   '_', 0, '-', ?, ?, ?, ?,\
+                   ?, ?, ?, '', ?, ?\
+      )" );
+      
+      time_t timenow, exptime;
+      timenow = time(0);
+      exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
+      
+      stmt.bindParam(0, clientid);
+      stmt.bindParam(1, qtk.u_token);
+      stmt.bindParam(2, qtk.t_space);
+      stmt.bindParam(3, qtk.t_space);
+      stmt.bindParam(4, qtk.t_space);
+      stmt.bindParam(5, qtk.poolname);
+      stmt.bindParam(6, timenow);
+      stmt.bindParam(7, exptime);
+      stmt.bindParam(8, qtk.path);
+      stmt.bindParam(9, qtk.s_token);
+      
+      ok = true;
+      nrows = 0;
+      try {
+        // If no rows are affected then we should insert
+        if ( (nrows = stmt.execute() == 0) )
+          ok = false;
+        
+      }
+      catch ( dmlite::DmException e ) {
+        ok = false;
+        
+      }
+      
+    } else {
+      
+      // The client did not specify a s_token. Let the db create one for us
+      Statement stmt(conn_, "dpm_db",
        "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
         ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
         poolname, assign_time, expire_time, groups, path)\
@@ -453,41 +498,45 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         ?, ?, ?, '', ?\
         )" );
 
-    time_t timenow, exptime;
-    timenow = time(0);
-    exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
+      time_t timenow, exptime;
+      timenow = time(0);
+      exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
 
-    stmt.bindParam(0, clientid);
-    stmt.bindParam(1, qtk.u_token);
-    stmt.bindParam(2, qtk.t_space);
-    stmt.bindParam(3, qtk.t_space);
-    stmt.bindParam(4, qtk.t_space);
-    stmt.bindParam(5, qtk.poolname);
-    stmt.bindParam(6, timenow);
-    stmt.bindParam(7, exptime);
-    stmt.bindParam(8, qtk.path);
-
-    ok = true;
-    nrows = 0;
-    try {
-      // If no rows are affected then we should insert
-      if ( (nrows = stmt.execute() == 0) )
+      stmt.bindParam(0, clientid);
+      stmt.bindParam(1, qtk.u_token);
+      stmt.bindParam(2, qtk.t_space);
+      stmt.bindParam(3, qtk.t_space);
+      stmt.bindParam(4, qtk.t_space);
+      stmt.bindParam(5, qtk.poolname);
+      stmt.bindParam(6, timenow);
+      stmt.bindParam(7, exptime);
+      stmt.bindParam(8, qtk.path);
+      
+      ok = true;
+      nrows = 0;
+      try {
+        // If no rows are affected then we should insert
+        if ( (nrows = stmt.execute() == 0) )
+          ok = false;
+        
+      }
+      catch ( dmlite::DmException e ) {
         ok = false;
-
+        
+      }
+      
     }
-    catch ( dmlite::DmException e ) {
-      ok = false;
+    
 
-    }
   }
 
   if (!ok) {
-    Err( domelogname, "Could not set quotatoken u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
+    Err( domelogname, "Could not set quotatoken s_token: '" << qtk.s_token << "' u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
       " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows );
       return 1;
   }
 
-  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. s_token: '" << qtk.s_token << "' u_token: '" << qtk.u_token << "' client_dn: '" << clientid << "' t_space: " << qtk.t_space <<
       " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
 
   return 0;
@@ -719,7 +768,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
 
 int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
-
+  bool ok = true;
+  
   Statement stmt(conn_, "dpm_db",
                  "INSERT INTO dpm_pool\
                  (poolname, defsize, gc_start_thresh, gc_stop_thresh,\
@@ -736,7 +786,7 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   stmt.bindParam(1, defsize);
   stmt.bindParam(2, stype);
 
-  bool ok = true;
+
   long unsigned int nrows;
   try {
     if ( (nrows = stmt.execute() == 0) )
@@ -758,7 +808,6 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
     stmt.bindParam(1, stype);
     stmt.bindParam(2, poolname);
 
-    bool ok = true;
     long unsigned int nrows;
     try {
       if ( (nrows = stmt.execute()) == 0 )
