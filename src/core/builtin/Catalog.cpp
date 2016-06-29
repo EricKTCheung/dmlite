@@ -1283,8 +1283,8 @@ void BuiltInCatalog::addFileSizeToParents(const ExtendedStat &statinfo, bool sub
 
 
       ino_t hierarchy[128];
-      size_t hierarchysz[128];
-      int idx = 0;
+      off_t hierarchysz[128];
+      unsigned idx = 0;
       while (st.parent) {
 
         Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);

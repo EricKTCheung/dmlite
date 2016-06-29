@@ -42,15 +42,13 @@ int ExtendedStat::getchecksum(std::string &cktype, std::string &ckvalue) {
   std::string key = "checksum." + cktype;
   if ( !hasField(cktype) ) return -1;
 
-
   try {
     ckvalue = getString(key);
+    return 0;
   }
   catch (DmException e) {
     return -1;
   }
-
-
 }
 
 INodeFactory::~INodeFactory()

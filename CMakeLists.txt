@@ -102,8 +102,8 @@ if (NOT DPM_FOUND OR NOT DPM_FOUND)
   set (BUILD_ADAPTER OFF)
 endif()
 
-                     
-                     
+
+
 #--------------------------------
 # Find Davix
 pkg_check_modules(DAVIX_PKG davix)
@@ -113,22 +113,22 @@ if (NOT DAVIX_PKG_FOUND)
   set (BUILD_DOME OFF)
   set (BUILD_DOMEADAPTER OFF)
 endif()
-                    
-                    
+
+
 
 # Include path
 include_directories (${CMAKE_CURRENT_BINARY_DIR}/include/
-                     ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
-                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite 
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/
+                     ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite
                      ${CMAKE_CURRENT_SOURCE_DIR}/include/dmlite/cpp
                      ${CMAKE_CURRENT_SOURCE_DIR}/src
                      ${Boost_INCLUDE_DIRS}
                      ${APR_INCLUDE_DIR}
                      )
-                    
-                    
-                    
-                    
+
+
+
+
 # include the directory itself as a path to include directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -136,7 +136,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 link_directories (${Boost_LIBRARY_DIRS} ${CMAKE_BINARY_DIR}/src)
 
 # Definitions
-add_definitions (-std=c++98 -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE)
+add_definitions (-Wall -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98")
 
 # enable testing
 enable_testing()
@@ -183,4 +184,3 @@ CONFIGURE_FILE(
 
 ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
-

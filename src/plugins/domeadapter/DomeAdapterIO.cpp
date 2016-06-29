@@ -280,7 +280,7 @@ void DomeTunnelHandler::flush(void) throw (DmException) {
 }
 
 bool DomeTunnelHandler::eof(void) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. eof: " << lastRead_ == 0);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " DomeTunnelHandler. eof: " << (lastRead_ == 0) );
   return lastRead_ == 0;
 }
 

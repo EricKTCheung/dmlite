@@ -72,7 +72,7 @@ bool AclEntry::operator > (const AclEntry& e) const
 
 Acl::Acl() throw ()
 {
-  
+
 }
 
 
@@ -102,7 +102,7 @@ Acl::Acl(const Acl& parent, uid_t uid, gid_t gid, mode_t cmode, mode_t* fmode) t
   // If directory, or default mask
   if (thereIsMask || S_ISDIR(*fmode)) {
     AclEntry entry;
-   
+
     for (i = parent.begin(); i != parent.end(); ++i) {
       if (i->type & AclEntry::kDefault) {
         entry.id   = i->id;
@@ -161,7 +161,7 @@ int Acl::has(uint8_t type) const throw ()
   for (unsigned i = 0; i < this->size(); ++i) {
     if ((*this)[i].type == type)
       return i;
-  }  
+  }
   return -1;
 }
 
@@ -285,7 +285,7 @@ void Acl::validate() const throw (DmException)
   if (nuo != 1 || ngo != 1 || no != 1)
     throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
                       "There must be one and only one of each type USER_OBJ, GROUP_OBJ, OTHER");
-  
+
   // If there is any USER or GROUP entry, there must be a MASK entry
   if ((nu || ng) && nm != 1)
     throw DmException(DMLITE_SYSERR(DMLITE_INVALID_ACL),
@@ -314,11 +314,11 @@ bool dmlite::hasGroup(const std::vector<GroupInfo>& groups, gid_t gid)
       banned = i->getLong("banned");
     else
       banned = 0;
-    
+
     if (g == gid && !banned)
       return true;
   }
-  
+
   return false;
 }
 
@@ -328,12 +328,12 @@ int dmlite::checkPermissions(const SecurityContext* context,
                              const Acl& acl, const struct stat &stat,
                              mode_t mode)
 {
-  unsigned iacl;
+  int iacl;
   uint8_t  aclMask = 0x7F;
   uid_t    aclId;
   int      accPerm = 0;
   int      nGroups = 0;
-  
+
   // If Context is NULL, abort
   if (context == 0)
     throw DmException(DMLITE_SYSERR(EINVAL),
@@ -363,14 +363,14 @@ int dmlite::checkPermissions(const SecurityContext* context,
 
   // Check user. If owner, straigh-forward.
   if (stat.st_uid == uid) {
-    
+
     return ((stat.st_mode & mode) != mode);
   }
 
   // There is no ACL's?
   if (acl.empty()) {
     Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Empty acl for " << stat.st_ino);
-    
+
     // The user is not the owner
     mode >>= 3;
     // Belong to the group?
@@ -593,7 +593,7 @@ std::string dmlite::getCertificateSubject(const std::string& path)
 
   std::string subject = certificate->name;
   X509_free(certificate);
-  
+
   return subject;
 }
 
@@ -616,9 +616,9 @@ static unsigned base64_encode(const char *input, unsigned length, char* output)
   written = bptr->length - 1;
   memcpy(output, bptr->data, written);
   output[written] = 0;
-  
+
   BIO_free_all(b64);
-  
+
   return written;
 }
 
@@ -633,7 +633,7 @@ std::string dmlite::generateToken(const std::string& id, const std::string& pfn,
   unsigned inl, outl;
 
   time_t expires = time(NULL) + lifetime;
-  
+
   // Concatenate
   inl = snprintf((char*)buffer1, sizeof(buffer1),
                  "%s\035%s\035%ld\035%d", pfn.c_str(), id.c_str(), expires, write);
@@ -698,11 +698,10 @@ TokenResult dmlite::validateToken(const std::string& token, const std::string& i
   // Expiration and mode
   if ((expires < time(NULL)))
     return kTokenExpired;
-  
+
   if (write && !tokenForWrite)
     return kTokenInvalidMode;
 
   // We are good!
   return kTokenOK;
 }
-

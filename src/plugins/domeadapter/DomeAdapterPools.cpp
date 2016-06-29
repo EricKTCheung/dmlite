@@ -49,18 +49,6 @@ static PoolManager::PoolAvailability getAvailability(const Pool &p) {
   return PoolManager::kNone; // TODO
 }
 
-static boost::property_tree::ptree parseJSON(const char *s) {
-  std::istringstream iss(s);
-  boost::property_tree::ptree jresp;
-
-  try {
-      boost::property_tree::read_json(iss, jresp);
-  } catch (boost::property_tree::json_parser_error e) {
-      throw DmException(EINVAL, "Could not process JSON: %s --- %s", e.what(), s);
-  }
-  return jresp;
-}
-
 std::vector<Pool> DomeAdapterPoolManager::getPools(PoolAvailability availability) throw (DmException) {
   if(availability == kForBoth) {
     availability = kForWrite;
