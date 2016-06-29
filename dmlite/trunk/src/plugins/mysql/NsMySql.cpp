@@ -795,7 +795,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
 
       idx++;
 
-      if (idx >= sizeof(hierarchy)) {
+      if (idx >= (int)sizeof(hierarchy)) {
         Err( "INodeMySql::deleteReplica" , " Too many parent directories for replica " << replica.rfn);
         return;
       }

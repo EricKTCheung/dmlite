@@ -1,18 +1,18 @@
 /*
  * Copyright 2015 CERN
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 
@@ -39,7 +39,7 @@
 
 using namespace dmlite;
 
-  
+
 // Logger stuff
 Logger::bitmask mysqlpoolslogmask = ~0;
 Logger::component mysqlpoolslogname = "Mysqlpools";
@@ -49,8 +49,16 @@ Logger::component mysqlpoolslogname = "Mysqlpools";
 pthread_once_t dmlite::initialize_mysql_thread = PTHREAD_ONCE_INIT;
 pthread_key_t  dmlite::destructor_key;
 
+void dmlite::destroy_thread(void*)
+{
+  mysql_thread_end();
+}
 
-
+void dmlite::init_thread(void)
+{
+  mysql_thread_init();
+  pthread_key_create(&destructor_key, destroy_thread);
+}
 
 
 //------------------------------------------
@@ -70,7 +78,7 @@ MySqlHolder *MySqlHolder::getInstance() {
 }
 
 MySqlHolder::MySqlHolder() {
-    mysql_library_init(0, NULL, NULL);  
+    mysql_library_init(0, NULL, NULL);
     poolsize = 0;
     connectionPool_ = 0;
 }
@@ -86,23 +94,23 @@ MySqlHolder::~MySqlHolder() {
 PoolContainer<MYSQL*> &MySqlHolder::getMySqlPool()  throw(DmException){
 
   MySqlHolder *h = getInstance();
-  
+
   if (!h->connectionPool_) {
-    Log(Logger::Lvl1, mysqlpoolslogmask, mysqlpoolslogname, "Creating MySQL connection pool" << 
+    Log(Logger::Lvl1, mysqlpoolslogmask, mysqlpoolslogname, "Creating MySQL connection pool" <<
         h->connectionFactory_.user << "@" << h->connectionFactory_.host << ":" <<h->connectionFactory_.port <<
         " size: " << h->poolsize);
     h->connectionPool_ = new PoolContainer<MYSQL*>(&h->connectionFactory_, h->poolsize);
   }
-  
+
   return *(h->connectionPool_);
 }
 
 bool MySqlHolder::configure(const std::string& key, const std::string& value) {
   MySqlHolder *h = getInstance();
   bool gotit = true;
-  
+
   LogCfgParm(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogname, key, value);
-  
+
   if (key == "MySqlHost")
     h->connectionFactory_.host = value;
   else if (key == "MySqlUsername")
@@ -120,32 +128,32 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
   else if (key == "MySqlDirectorySpaceReportDepth")
     h->connectionFactory_.dirspacereportdepth = atoi(value.c_str());
   else gotit = false;
-  
+
   if (gotit)
     LogCfgParm(Logger::Lvl1,  mysqlpoolslogmask, mysqlpoolslogname, key, value);
-    
+
   return gotit;
 }
 
 
-bool MySqlHolder::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
+void MySqlHolder::configure(std::string host, std::string username, std::string password, int port, int poolsize) {
   MySqlHolder *h = MySqlHolder::getInstance();
-  
+
   Log(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogname, "Configuring MySQL access. host:'" << host <<
   "' user:'" << username <<
   "' port:'" << port <<
   "' poolsz:" << poolsize);;
-  
+
   h->connectionFactory_.host = host;
   h->connectionFactory_.user = username;
   h->connectionFactory_.passwd = password;
   h->connectionFactory_.port = port;
-  
+
   h->poolsize = (poolsize < h->poolsize ? h->poolsize : poolsize);
   if (h->connectionPool_)
     h->connectionPool_->resize(h->poolsize);
-  
-  
+
+
 }
 
 
@@ -153,7 +161,7 @@ bool MySqlHolder::configure(std::string host, std::string username, std::string 
 // MySqlConnectionFactory
 //
 MySqlConnectionFactory::MySqlConnectionFactory() {
-  
+
   dirspacereportdepth = 6;
   Log(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogname, "MySqlConnectionFactory started");
   // Nothing
@@ -165,9 +173,9 @@ MYSQL* MySqlConnectionFactory::create()
   MYSQL*  c;
   my_bool reconnect  = 1;
   my_bool truncation = 0;
-  
+
   Log(Logger::Lvl4, mysqlpoolslogmask, mysqlpoolslogname, "Connecting... " << user << "@" << host << ":" << port);
-  
+
   c = mysql_init(NULL);
 
   mysql_options(c, MYSQL_OPT_RECONNECT,          &reconnect);
@@ -185,7 +193,7 @@ MYSQL* MySqlConnectionFactory::create()
     throw DmException(DMLITE_DBERR(ECOMM), err);
 #endif
   }
-  
+
   Log(Logger::Lvl3, mysqlpoolslogmask, mysqlpoolslogname, "Connected. " << user << "@" << host << ":" << port);
   return c;
 }
@@ -203,6 +211,3 @@ bool MySqlConnectionFactory::isValid(MYSQL*)
   // it will reconnect.
   return true;
 }
-
-
-
