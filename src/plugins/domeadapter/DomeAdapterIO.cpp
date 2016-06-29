@@ -47,6 +47,20 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
     else
       this->useIp_ = false;
   }
+  else if (key == "DomeHead") {
+    domehead_ = value;
+    // if there's no DomeDisk directive, it means we're on a head node which
+    // is standalone, ie it does not act as a disk at the same time.
+    // In some cases (looking at you, gridftp) a dome_putdone is sent
+    // directly to the head node without passing through the disk.
+    // So, domedisk_ becomes domehead_.
+    //
+    // If at a later point we do receive a DomeDisk directive, no problem,
+    // the value is simply overwritten
+    if(domedisk_.empty()) {
+      domedisk_ = domehead_;
+    }
+  }
   else if (key == "DomeDisk") {
     domedisk_ = value;
   }
@@ -169,7 +183,7 @@ void DomeIODriver::doneWriting(const Location& loc) throw (DmException)
   params.put("lfn", sfn);
 
   if(!talker.execute(params)) {
-    throw DmException(EINVAL, talker.err());
+    throw DmException(talker.dmlite_code(), talker.err());
   }
 
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "doneWriting was successful - putdone sent to domedisk");

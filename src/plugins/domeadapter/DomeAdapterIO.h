@@ -25,6 +25,7 @@ namespace dmlite {
     std::string passwd_;
     bool        useIp_;
     std::string domedisk_;
+    std::string domehead_;
 
     DavixCtxFactory davixFactory_;
     DavixCtxPool davixPool_;
