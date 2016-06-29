@@ -1920,10 +1920,14 @@ class UserDelCommand(ShellCommand):
         return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 
-class FsAddCommand(ShellCommand):
-    """Add a filesystem.
+restart_dpm_reminder = ("\n\n" + "*" * 80 + "\n"
+  "If your storage system is using the legacy DPM stack, please don't forget\n"
+  "to restart the DPM daemon after any filesystem changes.\n"
+  "Running 'service dpm restart' should be enough.\n"
+  + "*" * 80 + "\n")
 
-Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
+class FsAddCommand(ShellCommand):
+    """Add a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
     def _init(self):
         self.parameters = ['?filesystem name', '?pool name', '?server']
 
@@ -1931,95 +1935,75 @@ Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
-
         try:
             pool = self.interpreter.poolManager.getPool(given[1])
-            if (pool.type == 'filesystem'):
-                status = 0
-                weight = 1
-                if not dpm2.dpm_addfs(pool.name, given[2], given[0], status, weight):
-                    self.ok('Filesystem added')
-                else:
-                    self.error('Filesystem not added.')
-            else:
-                self.error('The pool is not compatible with filesystems.')
+            if pool.type != 'filesystem':
+                return self.error('The pool is not compatible with filesystems.')
+
+            status = 0
+
+            fs = given[0]
+            pool = given[1]
+            server = given[2]
+
+            out = self.interpreter.executor.addFsToPool(self.interpreter.domeheadurl, fs, pool, server, status)
+            print(out)
+            return self.ok(restart_dpm_reminder)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 
 class FsModifyCommand(ShellCommand):
-    """Modify a filesystem.
+    """Modify a filesystem. Dome needs to be installed and running. (package dmlite-dome)
 
-Needs DPM-python to be installed. Please do 'yum install dpm-python'.
+Status must have one of the following values: 0 for ENABLED, 1 for DISABLED, 2 for RDONLY.
+stype: 'P' for permanent, 'V' for volatile
 
-Valid attributes are status and weight.
-Status must have one of the following values: 0, 1 or DISABLED, 2 or RDONLY.
-Weight must be a positive integer (recommended <10). It is used during the filesystem selection.
+NOTE: This command will change defsize and stype for ALL filesystems in selected pool.
 """
     def _init(self):
-        self.parameters = ['?filesystem name', '?server', '?attribute', '?value']
+        self.parameters = ['?filesystem name', '?server', '?pool name', '?status', '?defsize', '?stype']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
-
         try:
-            if given[2] == 'status':
-                if given[3] == 'DISABLED':
-                    status = 1
-                elif given[3] == 'RDONLY':
-                    status = 2
-                else:
-                    try:
-                        status = int(given[3])
-                    except:
-                        return self.error('The value is not valid (0, 1 or DISABLED, 2 or RDONLY).')
-                    if status not in [0,1,2]:
-                        return self.error('The value is not valid (0, 1 or DISABLED, 2 or RDONLY).')
-                weight = -1
-            elif given[2] == 'weight':
-                try:
-                    weight = int(given[3])
-                except:
-                    return self.error('The value is not a valid integer.')
-                if weight < 0:
-                    return self.error('The value must be positive.')
-                status = -1
-            else:
-                return self.error('Non-valid attribute.')
-            if not dpm2.dpm_modifyfs(given[1], given[0], status, weight):
-                return self.ok('Filesystem modified')
-            else:
-                return self.error('Filesystem not modified.')
+            fs = given[0]
+            server = given[1]
+            pool = given[2]
+            status = int(given[3])
+            defsize = int(given[4])
+            stype = given[5]
+
+            if status > 2 or status < 0:
+                return self.error('Unknown status value: ' + str(status))
+
+            out = self.interpreter.executor.modifyFs(self.interpreter.domeheadurl, fs, pool, server,
+                                                     status, defsize, stype)
+            print(out)
+            return self.ok(restart_dpm_reminder)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-
 class FsDelCommand(ShellCommand):
-    """Delete a filesystem.
+    """Delete a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
 
-Needs DPM-python to be installed. Please do 'yum install dpm-python'."""
     def _init(self):
         self.parameters = ['?filesystem name', '?server']
 
     def _execute(self, given):
-
-	if self.interpreter.poolManager is None:
+        if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
-
         try:
-            if not dpm2.dpm_rmfs(given[1], given[0]):
-                self.ok('Filesystem deleted')
-            else:
-                self.error('Filesystem deleted.')
+            fs = given[0]
+            server = given[1]
+
+            out = self.interpreter.executor.rmFs(self.interpreter.domeheadurl, fs, server)
+            print(out)
+            return self.ok(restart_dpm_reminder)
+
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -3147,7 +3131,7 @@ class QuotaTokenGetCommand(ShellCommand):
 
 The command accepts the following paramameter:
 
-* <path>        : the path 
+* <path>        : the path
 * getsubdirs    : the command will print the quota token associated to the subfolders of the given path (optional)"""
 
     def _init(self):
@@ -3163,7 +3147,7 @@ The command accepts the following paramameter:
 	 out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getsubdirs)
 	 try:
 		 data  = json.loads(out)
-	 except ValueError: 
+	 except ValueError:
 		self.error("No quota token defined for the path: " +path)
 		return
 	 for token in data.keys():
@@ -3178,10 +3162,10 @@ The command accepts the following paramameter:
 		self.ok("Groups:")#sometimes the groups are not avaialble immediately after a quotatoken is created
 		try:
 			for group in data[token]['groups'].keys():
-				self.ok("\tID:\t" + group + "\tName:\t" + data[token]['groups'][group]) 
+				self.ok("\tID:\t" + group + "\tName:\t" + data[token]['groups'][group])
 		except:
 			pass
-	
+
 
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
