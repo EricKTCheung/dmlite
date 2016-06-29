@@ -864,14 +864,13 @@ int DomeMySql::modifyFsPool(DomeFsInfo &newfs) {
 
   // Now insert the filesystem, using poolname
   Statement stmt(conn_, "dpm_db",
-                 "INSERT INTO dpm_fs\
-                 (poolname, server, fs, status, weight)\
-                 VALUES \
-                 (?, ?, ?, 0, 0)");
+                 "UPDATE dpm_fs\
+                 SET poolname=?, status=? WHERE server=? AND fs=?");
 
   stmt.bindParam(0, newfs.poolname);
-  stmt.bindParam(1, newfs.server);
-  stmt.bindParam(2, newfs.fs);
+  stmt.bindParam(1, newfs.status);
+  stmt.bindParam(2, newfs.server);
+  stmt.bindParam(3, newfs.fs);
 
   long unsigned int nrows;
   bool ok = true;
