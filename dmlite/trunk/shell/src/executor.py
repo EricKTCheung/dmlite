@@ -48,12 +48,27 @@ class DomeTalker(object):
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = proc.communicate()[0]
-	return out
+        return out
 
 class DomeExecutor(object):
     """Wrapper around DomeTalker"""
     def __init__(self, cert, key, capath, clientDN, clientAddress):
         self.creds = DomeCredentials(cert, key, capath, clientDN, clientAddress)
+
+    def addFsToPool(self,url,fs,pool,server,status):
+        talker = DomeTalker(self.creds, url, "POST", "dome_addfstopool")
+        return talker.execute({"fs" : fs, "poolname" : pool, "server" : server,
+                               "status" : status})
+
+    def modifyFs(self,url,fs,pool,server,status,defsize,stype):
+        talker = DomeTalker(self.creds, url, "POST", "dome_modifyfs")
+        return talker.execute({"fs" : fs, "poolname" : pool, "server" : server,
+                               "status" : status, "pool_defsize" : defsize,
+                               "pool_stype" : stype})
+
+    def rmFs(self,url,fs,server):
+        talker = DomeTalker(self.creds, url, "POST", "dome_rmfs")
+        return talker.execute({"fs" : fs, "server" : server})
 
     def getSpaceInfo(self,url):
         talker = DomeTalker(self.creds, url, "GET", "dome_getspaceinfo")
