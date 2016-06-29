@@ -860,9 +860,27 @@ Request header:\\
 Params:
 \begin{itemize}
  \item server: server hosting the replica
- \item pfn: absolute path to the physical file or directory. The prefix must match an existing filesystem.
+ \item fs: absolute path to the mount point that hosts data for this fs. This must match an existing filesystem.
 \end{itemize}
 
+
+\subsubsection{dome\_modifyfs}
+
+Modifies the information that defines a DPM file system. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_modifyfs"\\
+Request header:\\
+ no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item poolname
+ \item server: server hosting the replica
+ \item fs: absolute path to the mount point that hosts data for this fs
+ \item status: 0=active, 1=disabled, 2=readonly
+ \item pool\_defsize: the default space (bytes) checked for a new file to be written. Default is 3GB. This number will affect all the filesystems belonging to the same pool.
+ \item pool\_stype: the space type of the pool this filesystem belongs to. P=permanent, V=volatile. Default is P. This value will affect all the filesystems belonging to the same pool.
+\end{itemize}
 
 
 \subsubsection{dome\_getstatinfo}
@@ -1224,7 +1242,7 @@ Load all the configuration files that are contained in \lstinline"/etc/ugr.conf.
 \lstinline"glb.debug.components[]: queue.PULLER"\\
 
 \subsubsection{glb.myhostname}
-Tell Dome the hostname of the machine. The hostname of the machine must match the hostname that describes its file systems, as described in the database table dpm_db.dpm_pool .\\
+Tell Dome the hostname of the machine. The hostname of the machine must match the hostname that describes its file systems, as described in the database table dpm\_db.dpm\_pool .\\
 In the cases where the network configuration has several interfaces and/or multiple hostnames, we can provide this information to the running Dome instance, to avoid ambiguity.\\
 
  Syntax:\\

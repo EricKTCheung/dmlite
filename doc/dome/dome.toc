@@ -19,31 +19,32 @@
 \contentsline {subsection}{\numberline {1.4.2}Head node operation}{16}
 \contentsline {subsubsection}{\nonumberline dome\_put}{16}
 \contentsline {subsubsection}{\nonumberline dome\_putdone}{17}
+\contentsline {subsubsection}{\nonumberline dome\_delreplica}{18}
 \contentsline {subsubsection}{\nonumberline dome\_getspaceinfo}{18}
-\contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{19}
-\contentsline {subsubsection}{\nonumberline dome\_setquotatoken}{20}
-\contentsline {subsubsection}{\nonumberline dome\_delquotatoken}{21}
+\contentsline {subsubsection}{\nonumberline dome\_getquotatoken}{20}
+\contentsline {subsubsection}{\nonumberline dome\_setquotatoken}{21}
+\contentsline {subsubsection}{\nonumberline dome\_delquotatoken}{22}
 \contentsline {subsubsection}{\nonumberline dome\_getdirspaces}{22}
-\contentsline {subsubsection}{\nonumberline dome\_chksum}{22}
-\contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{23}
-\contentsline {subsubsection}{\nonumberline dome\_get}{24}
+\contentsline {subsubsection}{\nonumberline dome\_chksum}{23}
+\contentsline {subsubsection}{\nonumberline dome\_chksumstatus}{24}
+\contentsline {subsubsection}{\nonumberline dome\_get}{25}
 \contentsline {subsubsection}{\nonumberline dome\_pullstatus}{25}
-\contentsline {subsubsection}{\nonumberline dome\_statpool}{25}
-\contentsline {subsubsection}{\nonumberline dome\_getstatinfo}{27}
+\contentsline {subsubsection}{\nonumberline dome\_statpool}{26}
+\contentsline {subsubsection}{\nonumberline dome\_rmpool}{27}
 \contentsline {subsubsection}{\nonumberline dome\_addfstopool}{28}
-\contentsline {subsubsection}{\nonumberline dome\_getdir}{28}
-\contentsline {subsubsection}{\nonumberline dome\_getuser}{29}
-\contentsline {subsection}{\numberline {1.4.3}dome\_updatexattr}{30}
-\contentsline {subsubsection}{\nonumberline dome\_getidmap}{30}
-\contentsline {subsection}{\numberline {1.4.4}Disk node operation}{31}
-\contentsline {subsubsection}{\nonumberline dome\_dochksum}{31}
-\contentsline {subsubsection}{\nonumberline dome\_pull}{32}
-\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{32}
-\contentsline {subsubsection}{\nonumberline dome\_delreplica}{33}
-\contentsline {subsubsection}{\nonumberline dome\_statpfn}{33}
-\contentsline {subsubsection}{\nonumberline dome\_rmpool}{34}
-\contentsline {subsubsection}{\nonumberline dome\_addfstopool}{34}
-\contentsline {subsubsection}{\nonumberline dome\_rmfs}{34}
+\contentsline {subsubsection}{\nonumberline dome\_rmfs}{28}
+\contentsline {subsubsection}{\nonumberline dome\_modifyfs}{29}
+\contentsline {subsubsection}{\nonumberline dome\_getstatinfo}{29}
+\contentsline {subsubsection}{\nonumberline dome\_addfstopool}{30}
+\contentsline {subsubsection}{\nonumberline dome\_getdir}{31}
+\contentsline {subsubsection}{\nonumberline dome\_getuser}{31}
+\contentsline {subsubsection}{\nonumberline dome\_updatexattr}{32}
+\contentsline {subsubsection}{\nonumberline dome\_getidmap}{32}
+\contentsline {subsection}{\numberline {1.4.3}Disk node operation}{33}
+\contentsline {subsubsection}{\nonumberline dome\_dochksum}{33}
+\contentsline {subsubsection}{\nonumberline dome\_pull}{34}
+\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{34}
+\contentsline {subsubsection}{\nonumberline dome\_statpfn}{35}
 \contentsline {chapter}{\numberline {2}Configuration}{36}
 \contentsline {section}{\numberline {2.1}Command-line parameters}{36}
 \contentsline {section}{\numberline {2.2}Configuration file: Structure and location}{36}
@@ -52,35 +53,38 @@
 \contentsline {subsubsection}{\nonumberline INCLUDE}{37}
 \contentsline {subsubsection}{\nonumberline glb.debug}{37}
 \contentsline {subsubsection}{\nonumberline glb.debug.components[]}{38}
+\contentsline {subsubsection}{\nonumberline glb.myhostname}{38}
 \contentsline {subsubsection}{\nonumberline glb.fcgi.listenport}{38}
-\contentsline {subsubsection}{\nonumberline head.db.host}{38}
-\contentsline {subsubsection}{\nonumberline head.db.user}{38}
+\contentsline {subsubsection}{\nonumberline head.db.host}{39}
+\contentsline {subsubsection}{\nonumberline head.db.user}{39}
 \contentsline {subsubsection}{\nonumberline head.db.password}{39}
 \contentsline {subsubsection}{\nonumberline head.db.port}{39}
 \contentsline {subsubsection}{\nonumberline head.db.poolsz}{39}
 \contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{39}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ops\_timeout}{39}
-\contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{39}
-\contentsline {subsubsection}{\nonumberline glb.restclient.ca\_path}{39}
-\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_certificate}{39}
-\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_private\_key}{39}
+\contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{40}
+\contentsline {subsubsection}{\nonumberline glb.restclient.ca\_path}{40}
+\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_certificate}{40}
+\contentsline {subsubsection}{\nonumberline glb.restclient.cli\_private\_key}{40}
 \contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{40}
+\contentsline {subsubsection}{\nonumberline glb.reloadusersgroups}{40}
 \contentsline {subsubsection}{\nonumberline glb.role}{40}
-\contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{40}
-\contentsline {subsubsection}{\nonumberline head.put.minfreespace\_mb}{40}
-\contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{40}
+\contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{41}
+\contentsline {subsubsection}{\nonumberline head.put.minfreespace\_mb}{41}
+\contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{41}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{41}
 \contentsline {subsubsection}{\nonumberline glb.workers}{41}
-\contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{41}
-\contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{41}
-\contentsline {subsubsection}{\nonumberline head.maxchecksums}{41}
-\contentsline {subsubsection}{\nonumberline head.maxcallouts}{41}
+\contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{42}
+\contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{42}
+\contentsline {subsubsection}{\nonumberline head.maxchecksums}{42}
+\contentsline {subsubsection}{\nonumberline head.maxcallouts}{42}
 \contentsline {subsubsection}{\nonumberline head.maxchecksumspernode}{42}
 \contentsline {subsubsection}{\nonumberline head.maxcalloutspernode}{42}
-\contentsline {subsubsection}{\nonumberline head.filepuller.stathook}{42}
-\contentsline {subsubsection}{\nonumberline head.filepuller.stathooktimeout}{42}
-\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{42}
-\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{42}
+\contentsline {subsubsection}{\nonumberline head.gridmapfile}{42}
+\contentsline {subsubsection}{\nonumberline head.filepuller.stathook}{43}
+\contentsline {subsubsection}{\nonumberline head.filepuller.stathooktimeout}{43}
+\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{43}
+\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{43}
 \contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{43}
-\contentsline {subsubsection}{\nonumberline disk.filepuller.pullhook}{43}
-\contentsline {chapter}{\numberline {3}subsystems and development tasks}{44}
+\contentsline {subsubsection}{\nonumberline disk.filepuller.pullhook}{44}
+\contentsline {chapter}{\numberline {3}subsystems and development tasks}{45}
