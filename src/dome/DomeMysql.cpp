@@ -685,32 +685,34 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   stmt.bindResult(5, &fs.pool_stype, 1);
 
   int cnt = 0;
-  st.fslist.clear();
-  try {
-
-    while ( stmt.fetch() ) {
-
-      if ( !strcmp(bufserver, st.myhostname.c_str()) || (st.role == DomeStatus::roleHead) ) {
-      boost::unique_lock<boost::recursive_mutex> l(st);
-
-
-      fs.poolname = bufpoolname;
-      fs.server = bufserver;
-      st.servers.insert(bufserver);
-      fs.fs = buffs;
-
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
-      "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "' pool_defsize: " << fs.pool_defsize <<
-      " pool_stype: '" << fs.pool_stype << "'");
-
-      st.fslist.push_back(fs);
-
-      cnt++;
+  {
+    boost::unique_lock<boost::recursive_mutex> l(st);
+    st.fslist.clear();
+    try {
+      
+      while ( stmt.fetch() ) {
+        
+        if ( !strcmp(bufserver, st.myhostname.c_str()) || (st.role == DomeStatus::roleHead) ) {
+          
+          fs.poolname = bufpoolname;
+          fs.server = bufserver;
+          st.servers.insert(bufserver);
+          fs.fs = buffs;
+          
+          Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
+          "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "' pool_defsize: " << fs.pool_defsize <<
+          " pool_stype: '" << fs.pool_stype << "'");
+          
+          st.fslist.push_back(fs);
+          
+          cnt++;
+        }
       }
     }
+    catch ( ... ) {}
+    
   }
-  catch ( ... ) {}
-
+  
   Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
   return cnt;
 }
