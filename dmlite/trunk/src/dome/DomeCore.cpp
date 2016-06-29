@@ -245,6 +245,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if ( dreq.domecmd == "dome_addfstopool" ) {
           core->dome_addfstopool(dreq, request);
         }
+        else if ( dreq.domecmd == "dome_modifyfs" ) {
+          core->dome_modifyfs(dreq, request);
+        }
         else if ( dreq.domecmd == "dome_rmfs" ) {
           core->dome_rmfs(dreq, request);
         }
