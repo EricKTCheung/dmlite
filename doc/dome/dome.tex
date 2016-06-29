@@ -560,7 +560,7 @@ Returns: 200 if OK. Other HTTP codes for the corresponding errors.\\
 \end{itemize}
 
 \subsubsection{dome\_setquotatoken}
-Sets or create a quota token, using the path prefix and the poolname as a key. The path prefix must be an existing directory, the poolname should be the name of an existing pool.
+Modifies or creates a quota token, using the path prefix and the poolname as a key. The path prefix must be an existing directory, the poolname should be the name of an existing pool.
 
 Command:
 \lstinline"POST /dome/command/dome_setquotatoken"\\
@@ -574,6 +574,7 @@ Params:
  \item poolname: the pool that will host the replicas that are written into paths associated to this quotatoken
  \item quotaspace: the maximum number of bytes that the subtree rooted at path can acquire through write operations
  \item description: a human readable description, e.g. ATLASSCRATCH
+ \item uniqueid (optional): normally an uuid that is internally used to assign replicas to this quotatoken (for backwards compatibility with the DPM daemon)
 \end{itemize}
 
 Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota being set exceeds the size of the directory subtree it refers to, DOME will set the quota anyway, and give a warning in the body of the response. The result will be that noone will be able to write in that subtree until a sufficient number of files is removed.\\
