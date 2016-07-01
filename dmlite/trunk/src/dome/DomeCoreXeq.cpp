@@ -831,6 +831,9 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^fsstatus", '^'), status.fslist[i].status);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), status.fslist[i].freespace);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), status.fslist[i].physicalsize);
+      
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^spacetype", '^'), status.fslist[i].pool_stype);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^defsize", '^'), status.fslist[i].pool_defsize);
     }
   }
 
