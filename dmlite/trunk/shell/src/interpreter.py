@@ -1936,9 +1936,14 @@ class FsAddCommand(ShellCommand):
             return self.error('There is no pool manager.')
 
         try:
-            pool = self.interpreter.poolManager.getPool(given[1])
-            if pool.type != 'filesystem':
-                return self.error('The pool is not compatible with filesystems.')
+            # the pool might not have filesystems yet, and even though it exists in the
+            # db, dome does not report it.
+            try:
+                pool = self.interpreter.poolManager.getPool(given[1])
+                if pool.type != 'filesystem':
+                    return self.error('The pool is not compatible with filesystems.')
+            except:
+                pass
 
             status = 0
 
