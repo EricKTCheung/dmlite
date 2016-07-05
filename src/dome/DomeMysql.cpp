@@ -452,37 +452,37 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         if ( (nrows = stmt.execute() == 0) )
           ok = false;
 
+      } else {
+        // The client did not specify a s_token. Let the db create one for us
+        Statement stmt(conn_, "dpm_db",
+          "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
+          ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
+          poolname, assign_time, expire_time, groups, path)\
+          VALUES (\
+          uuid(), ?, 0, 0,\
+          '_', 0, '-', ?, ?, ?, ?,\
+          ?, ?, ?, '', ?\
+          )" );
+
+        time_t timenow, exptime;
+        timenow = time(0);
+        exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
+
+        stmt.bindParam(0, clientid);
+        stmt.bindParam(1, qtk.u_token);
+        stmt.bindParam(2, qtk.t_space);
+        stmt.bindParam(3, qtk.t_space);
+        stmt.bindParam(4, qtk.t_space);
+        stmt.bindParam(5, qtk.poolname);
+        stmt.bindParam(6, timenow);
+        stmt.bindParam(7, exptime);
+        stmt.bindParam(8, qtk.path);
+
+        ok = true;
+        nrows = 0;
+        if ( (nrows = stmt.execute() == 0) )
+          ok = false;
       }
-    } else {
-      // The client did not specify a s_token. Let the db create one for us
-      Statement stmt(conn_, "dpm_db",
-       "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
-        ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
-        poolname, assign_time, expire_time, groups, path)\
-        VALUES (\
-        uuid(), ?, 0, 0,\
-        '_', 0, '-', ?, ?, ?, ?,\
-        ?, ?, ?, '', ?\
-        )" );
-
-      time_t timenow, exptime;
-      timenow = time(0);
-      exptime = timenow + 86400 * 365 * 50; // yeah, 50 years is a silly enough value for a silly feature
-
-      stmt.bindParam(0, clientid);
-      stmt.bindParam(1, qtk.u_token);
-      stmt.bindParam(2, qtk.t_space);
-      stmt.bindParam(3, qtk.t_space);
-      stmt.bindParam(4, qtk.t_space);
-      stmt.bindParam(5, qtk.poolname);
-      stmt.bindParam(6, timenow);
-      stmt.bindParam(7, exptime);
-      stmt.bindParam(8, qtk.path);
-
-      ok = true;
-      nrows = 0;
-      if ( (nrows = stmt.execute() == 0) )
-        ok = false;
     }
   }
   catch (...) {
