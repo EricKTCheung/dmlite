@@ -3190,18 +3190,18 @@ The command accepts the following parameter:
 
     def _execute(self, given):
         if len(given) < 4:
- 	 	return self.error("Incorrect number of parameters")
-	lfn = given[0]
+            return self.error("Incorrect number of parameters")
+        lfn = given[0]
         try:
-		for i in range(1, len(given),2):
-        	    if given[i] == "pool":
-               		pool =  given[i+1]
-	            elif given[i] == "size":
-         	      	size = int(given[i+1])
-	              	if size < 0:
-         	        	return self.error("Incorrect size: it must be a positive integer")
-		    elif given[i] == "desc":
-			desc = given[i+1]
+            for i in range(1, len(given),2):
+                if given[i] == "pool":
+                    pool =  given[i+1]
+                elif given[i] == "size":
+                    size = int(given[i+1])
+                    if size < 0:
+                        return self.error("Incorrect size: it must be a positive integer")
+                elif given[i] == "desc":
+                    desc = given[i+1]
         except Exception, e:
         	return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
