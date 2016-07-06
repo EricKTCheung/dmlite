@@ -64,6 +64,9 @@ public:
   /// Load from the DB, matching the given poolname and path
   int getQuotaTokenByKeys(DomeQuotatoken &qtk);
   
+  /// Load the defined pools
+  int getPools(DomeStatus &st);
+  
   /// Loads the defined filesystems, parses them into server names, etc. into the status
   int getFilesystems(DomeStatus &st);
   
@@ -82,10 +85,10 @@ public:
   int rmPool(std::string &poolname);
   
   /// Adds a new filesystem to a pool that may or may not exist
-  int addFsPool(DomeFsInfo &newfs);
+  int addFs(DomeFsInfo &newfs);
   
   /// Modify an existing filesystem, which points to a pool that may or may not exist
-  int modifyFsPool(DomeFsInfo &newfs);
+  int modifyFs(DomeFsInfo &newfs);
 
   /// Add a new, empty pool
   int addPool(std::string &poolname, long defsize, char stype);
