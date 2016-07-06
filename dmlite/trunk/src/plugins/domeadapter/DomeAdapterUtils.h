@@ -12,12 +12,12 @@ inline dmlite::Pool deserializePool(boost::property_tree::ptree::const_iterator 
     Pool p;
     p.name = it->first;
     p.type = "filesystem";
-    p["freespace"] = it->second.get<uint64_t>("freespace");
-    p["physicalsize"] = it->second.get<uint64_t>("physicalsize");
+    p["freespace"] = it->second.get<uint64_t>("freespace", 0);
+    p["physicalsize"] = it->second.get<uint64_t>("physicalsize", 0);
     
-    p["poolstatus"] = it->second.get<std::string>("poolstatus");
-    p["spacetype"] = it->second.get<std::string>("spacetype");
-    p["defsize"] = it->second.get<uint64_t>("defsize");
+    p["poolstatus"] = it->second.get<std::string>("poolstatus", "");
+    p["spacetype"] = it->second.get<std::string>("spacetype", "");
+    p["defsize"] = it->second.get<uint64_t>("defsize", 0);
     
     
 
@@ -33,9 +33,9 @@ inline dmlite::Pool deserializePool(boost::property_tree::ptree::const_iterator 
         Extensible fs;
         fs["server"] = it2->first;
         fs["fs"] = it3->first;
-        fs["status"] = it3->second.get<uint64_t>("fsstatus");
-        fs["freespace"] = it3->second.get<uint64_t>("freespace");
-        fs["physicalsize"] = it3->second.get<uint64_t>("physicalsize");
+        fs["status"] = it3->second.get<uint64_t>("fsstatus", 0);
+        fs["freespace"] = it3->second.get<uint64_t>("freespace", 0);
+        fs["physicalsize"] = it3->second.get<uint64_t>("physicalsize", 0);
 
         filesystems.push_back(fs);
       }
