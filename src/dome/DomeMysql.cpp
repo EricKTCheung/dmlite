@@ -706,7 +706,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
 }
 
 int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname << "'" );
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << poolname <<
+  " stype: '" << stype << "'");
   bool ok = true;
   long unsigned int nrows = 0;
 
