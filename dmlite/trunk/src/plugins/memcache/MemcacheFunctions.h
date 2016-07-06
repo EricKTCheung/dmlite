@@ -101,7 +101,7 @@ namespace dmlite {
     CANCELWRITE_DELEGATE
   };
 
-  static const char* catalog_func_names[] = {
+  static const char* const catalog_func_names[] = {
     /// Catalog Functions
     // direct functions
     "changeDir",

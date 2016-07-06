@@ -42,7 +42,7 @@ namespace dmlite {
 
   /// Used internally to define Key Prefixes.
   /// Must match with PRE_* constants!
-  static const char* key_prefix[] = {
+  static const char* const key_prefix[] = {
     "STAT",
     "REPL",
     "RPLI",
@@ -53,7 +53,6 @@ namespace dmlite {
     "POLI",
     "LOCA"
   };
-
 
   class MemcacheConnectionFactory: public PoolElementFactory<memcached_st*> {
     public:
