@@ -81,7 +81,7 @@ public:
     // std::string remoteclienthost;
 
 
-    /// Utility function to send a quick response
+    /// Utility function to send a quick response. Returns <= 0 if error
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam = 0);
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::string &body, const char *logwhereiam = 0);
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const boost::property_tree::ptree &body, const char *logwhereiam = 0);

@@ -120,13 +120,15 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   rc = FCGX_PutS(hdr.str().c_str(), request.out);
   if (rc <= 0) return rc;
 
-  FCGX_PutS(fixed_body.c_str(), request.out);
-  if (rc <= 0) return rc;
+  if (fixed_body.size() > 0) {
+    rc = FCGX_PutS(fixed_body.c_str(), request.out);
+    if (rc <= 0) return rc;
+  }
 
   // We prefer to log all the responses
   if (logwhereiam)
     Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
   else
     Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
-  return 0;
+  return 1;
 }
