@@ -813,6 +813,21 @@ JSON example:\\
 
 
 
+\subsubsection{dome\_addpool}
+Adds a pool, or modifies an existing one with the same name. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_addpool"\\
+
+Request header:\\
+ no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item poolname: the name of the pool
+ \item pool_defsize: the default file size for new files, when their size is not known yet
+ \item pool_stype: the space type for the pool. P=Permanent, V=Volatile
+\end{itemize}
+
 
 
 \subsubsection{dome\_rmpool}
