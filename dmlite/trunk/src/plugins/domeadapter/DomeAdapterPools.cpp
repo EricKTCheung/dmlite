@@ -104,9 +104,19 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
   }
 }
 
-// void DomeAdapterPoolManager::updatePool(const Pool& pool) throw (DmException) {
+void DomeAdapterPoolManager::updatePool(const Pool& pool) throw (DmException) {
+  DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
+                    "POST", "dome_addpool");
 
-// }
+  ptree params;
+  params.put("poolname", pool.name);
+  params.put("pool_stype", pool.getString("s_type"));
+  params.put("pool_defsize", pool.getLong("defsize"));
+
+  if(!talker.execute(params)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
 
 void DomeAdapterPoolManager::deletePool(const Pool& pool) throw (DmException) {
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,

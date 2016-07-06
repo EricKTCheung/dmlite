@@ -32,7 +32,7 @@ namespace dmlite {
     virtual Pool getPool(const std::string&) throw (DmException);
 
     virtual void newPool(const Pool& pool) throw (DmException);
-    // void updatePool(const Pool& pool) throw (DmException);
+    virtual void updatePool(const Pool& pool) throw (DmException);
     virtual void deletePool(const Pool& pool) throw (DmException);
 
     virtual Location whereToRead (const std::string& path) throw (DmException);
