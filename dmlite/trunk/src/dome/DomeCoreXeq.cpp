@@ -428,7 +428,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   jresp.put("pfn", pfn);
 
   int rc = 0;
-  
+
   if (!dontsendok)
     return DomeReq::SendSimpleResp(request, 200, jresp);
 
@@ -830,15 +830,15 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
-      jresp.put(boost::property_tree::ptree::path_type(poolname+"^spacetype", '^'), status.fslist[i].pool_stype);
+      jresp.put(boost::property_tree::ptree::path_type(poolname+"^s_type", '^'), status.fslist[i].pool_stype);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^defsize", '^'), status.fslist[i].pool_defsize);
-      
+
       poolname = "poolinfo^" + status.fslist[i].poolname + "^fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
 
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^fsstatus", '^'), status.fslist[i].status);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), status.fslist[i].freespace);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), status.fslist[i].physicalsize);
-      
+
 
     }
   }
@@ -1983,7 +1983,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   mytk.path = req.bodyfields.get("path", "");
   mytk.poolname = req.bodyfields.get("poolname", "");
-  
+
 
   if (!status.existsPool(mytk.poolname)) {
     std::ostringstream os;
@@ -2022,10 +2022,10 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
   mytk.u_token = req.bodyfields.get("description", "(unnamed)");
-  
+
   // Allow changing the uniqueid (s_token)
   mytk.s_token = req.bodyfields.get("uniqueid", "");
-  
+
   // First we write into the db, if it goes well then we update the internal map
   int rc;
   {
