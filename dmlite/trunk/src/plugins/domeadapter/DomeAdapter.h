@@ -18,7 +18,7 @@ namespace dmlite {
   class DomeAdapterPoolManager;
   class DomeAdapterPoolDriver;
   class DomeAdapterPoolHandler;
-  class DomeAdapterCatalog;
+  class DomeAdapterDiskCatalog;
 
   class DomeAdapterFactory : public CatalogFactory, public AuthnFactory,
                              public PoolManagerFactory, public PoolDriverFactory {
@@ -44,11 +44,11 @@ namespace dmlite {
     bool tokenUseIp_;
     std::string tokenPasswd_;
     unsigned tokenLife_;
-  
+
   friend class DomeAdapterPoolManager;
   friend class DomeAdapterPoolDriver;
   friend class DomeAdapterPoolHandler;
-  friend class DomeAdapterCatalog;
+  friend class DomeAdapterDiskCatalog;
   };
 
 }

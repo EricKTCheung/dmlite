@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "DomeAdapter.h"
-#include "DomeAdapterCatalog.h"
+#include "DomeAdapterDiskCatalog.h"
 #include "DomeAdapterHeadCatalog.h"
 #include "DomeAdapterIO.h"
 #include "DomeAdapterPools.h"
@@ -62,18 +62,17 @@ PoolDriver* DomeAdapterFactory::createPoolDriver() throw (DmException) {
 }
 
 Catalog* DomeAdapterFactory::createCatalog(PluginManager*) throw (DmException) {
-  return new DomeAdapterCatalog(this);
+  return new DomeAdapterDiskCatalog(this);
 }
 
 Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException) {
-  return new DomeAdapterCatalog(this);
+  return new DomeAdapterDiskCatalog(this);
 }
 
-static void registerPluginDomeAdapter(PluginManager* pm) throw(DmException) {
+static void registerDomeAdapterDiskCatalog(PluginManager* pm) throw(DmException) {
   DomeAdapterFactory *dmFactory = new DomeAdapterFactory();
   pm->registerCatalogFactory(dmFactory);
   pm->registerAuthnFactory(dmFactory);
-  // pm->registerINodeFactory(nsFactory);
 }
 
 static void registerIOPlugin(PluginManager* pm) throw (DmException) {
@@ -104,9 +103,9 @@ PluginIdCard plugin_domeadapter_headcatalog = {
   registerDomeAdapterHeadCatalog
 };
 
-PluginIdCard plugin_domeadapter_ns = {
+PluginIdCard plugin_domeadapter_diskcatalog = {
   PLUGIN_ID_HEADER,
-  registerPluginDomeAdapter
+  registerDomeAdapterDiskCatalog
 };
 
 PluginIdCard plugin_domeadapter_io = {
