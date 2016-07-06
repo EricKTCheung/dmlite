@@ -99,7 +99,7 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_addpool");
 
-  if(!talker.execute("poolname", pool.name, "pool_stype", pool.type)) {
+  if(!talker.execute("poolname", pool.name, "pool_stype", pool.getString("s_type"))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
