@@ -885,7 +885,7 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   DomeFsInfo destfs;
   std::string destrfn;
   bool success;
-  int rc = dome_put(req, request, success, &destfs, &destrfn, true);
+  dome_put(req, request, success, &destfs, &destrfn, true);
   if (!success)
     return 1; // means that a response has already been sent in the context of dome_put, btw it can only be an error
 
