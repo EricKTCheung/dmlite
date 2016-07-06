@@ -1494,7 +1494,7 @@ class PoolAddCommand(ShellCommand):
     """Add a pool."""
 
     def _init(self):
-        self.parameters = ['?pool_name', '?pool_type']
+        self.parameters = ['?pool_name', '?s_type']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1503,7 +1503,7 @@ class PoolAddCommand(ShellCommand):
         try:
             pool = pydmlite.Pool()
             pool.name = given[0]
-            pool.type = given[1]
+            pool.setString("s_type", given[1])
             self.interpreter.poolManager.newPool(pool)
             return self.ok()
         except Exception, e:
@@ -1929,7 +1929,7 @@ restart_dpm_reminder = ("\n\n" + "*" * 80 + "\n"
 class FsAddCommand(ShellCommand):
     """Add a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
     def _init(self):
-        self.parameters = ['?absolute path', '?pool name', '?server']
+        self.parameters = ['?filesystem name', '?pool name', '?server']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1967,7 +1967,7 @@ stype: 'P' for permanent, 'V' for volatile
 NOTE: This command will change defsize and stype for ALL filesystems in selected pool.
 """
     def _init(self):
-        self.parameters = ['?absolute path', '?server', '?pool name', '?status', '?defsize', '?stype']
+        self.parameters = ['?filesystem name', '?server', '?pool name', '?status', '?defsize', '?stype']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1995,7 +1995,7 @@ class FsDelCommand(ShellCommand):
     """Delete a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
 
     def _init(self):
-        self.parameters = ['?absolute path', '?server']
+        self.parameters = ['?filesystem name', '?server']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -2999,7 +2999,7 @@ The drainfs command accepts the following parameters:
                 self.interpreter.replicaQueue = Queue.Queue(len(listFiles))
                 self.interpreter.replicaQueue.queue.clear()
                 self.interpreter.replicaQueueLock = threading.Lock()
- 
+
                 self.drainProcess = DrainReplicas( self.interpreter, db,listFiles,parameters)
                 self.drainProcess.drain()
 
@@ -3143,7 +3143,7 @@ The command accepts the following paramameter:
     def _execute(self, given):
          if len(given) < 1:
              return self.error("Incorrect number of parameters")
-         path = given[0] 
+         path = given[0]
          getsubdirs = False
          if (len(given) == 2):
              getsubdirs = True
