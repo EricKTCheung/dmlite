@@ -171,8 +171,9 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
   return selected;
 }
 
-int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *dest, std::string *destrfn) {
+int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struct DomeFsInfo *dest, std::string *destrfn, bool dontsendok) {
 
+  success = false;
   DomeQuotatoken token;
 
   // fetch the parameters, lfn and placement suggestions
@@ -426,9 +427,13 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *d
   jresp.put("filesystem", selectedfss[fspos].fs);
   jresp.put("pfn", pfn);
 
-  int rc = DomeReq::SendSimpleResp(request, 200, jresp);
+  int rc = 0;
+  
+  if (!dontsendok)
+    return DomeReq::SendSimpleResp(request, 200, jresp);
 
-  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
+  Log(Logger::Lvl3, domelogmask, domelogname, "Success");
+  success = true;
   return rc;
 };
 
@@ -879,9 +884,10 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   // This simple implementation is like a put
   DomeFsInfo destfs;
   std::string destrfn;
-  int rc = dome_put(req, request, &destfs, &destrfn);
-  if (rc != 0)
-    return rc; // means that a response has already been sent in the context of dome_put, btw it can only be an error
+  bool success;
+  int rc = dome_put(req, request, success, &destfs, &destrfn, true);
+  if (!success)
+    return 1; // means that a response has already been sent in the context of dome_put, btw it can only be an error
 
   // create queue entry
   GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;

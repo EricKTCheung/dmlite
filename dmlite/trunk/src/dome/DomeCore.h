@@ -101,7 +101,7 @@ public:
 
 
   /// Requests calls. These parse the request, do actions and send the response, using the original fastcgi func
-  int dome_put(DomeReq &req, FCGX_Request &request, struct DomeFsInfo *destfs = 0, std::string *destrfn = 0);
+  int dome_put(DomeReq &req, FCGX_Request &request, bool &success, struct DomeFsInfo *destfs = 0, std::string *destrfn = 0, bool dontsendok = false);
   int dome_putdone_head(DomeReq &req, FCGX_Request &request);
   int dome_putdone_disk(DomeReq &req, FCGX_Request &request);
   int dome_getspaceinfo(DomeReq &req, FCGX_Request &request);

@@ -223,7 +223,8 @@ void workerFunc(DomeCore *core, int myidx) {
 
       } else if(dreq.verb == "POST"){
         if ( dreq.domecmd == "dome_put" ) {
-          core->dome_put(dreq, request);
+          bool success;
+          core->dome_put(dreq, request, success);
         }
         else if ( dreq.domecmd == "dome_putdone" ) {
 
