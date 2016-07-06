@@ -14,12 +14,12 @@ inline dmlite::Pool deserializePool(boost::property_tree::ptree::const_iterator 
     p.type = "filesystem";
     p["freespace"] = it->second.get<uint64_t>("freespace", 0);
     p["physicalsize"] = it->second.get<uint64_t>("physicalsize", 0);
-    
+
     p["poolstatus"] = it->second.get<std::string>("poolstatus", "");
-    p["spacetype"] = it->second.get<std::string>("spacetype", "");
+    p["s_type"] = it->second.get<std::string>("s_type", "");
     p["defsize"] = it->second.get<uint64_t>("defsize", 0);
-    
-    
+
+
 
     // fetch info about the filesystems
     std::vector<boost::any> filesystems;
