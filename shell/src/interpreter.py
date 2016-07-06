@@ -1929,7 +1929,7 @@ restart_dpm_reminder = ("\n\n" + "*" * 80 + "\n"
 class FsAddCommand(ShellCommand):
     """Add a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
     def _init(self):
-        self.parameters = ['?filesystem name', '?pool name', '?server']
+        self.parameters = ['?absolute path', '?pool name', '?server']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1967,7 +1967,7 @@ stype: 'P' for permanent, 'V' for volatile
 NOTE: This command will change defsize and stype for ALL filesystems in selected pool.
 """
     def _init(self):
-        self.parameters = ['?filesystem name', '?server', '?pool name', '?status', '?defsize', '?stype']
+        self.parameters = ['?absolute path', '?server', '?pool name', '?status', '?defsize', '?stype']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1995,7 +1995,7 @@ class FsDelCommand(ShellCommand):
     """Delete a filesystem. Dome needs to be installed and running. (package dmlite-dome)"""
 
     def _init(self):
-        self.parameters = ['?filesystem name', '?server']
+        self.parameters = ['?absolute path', '?server']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
