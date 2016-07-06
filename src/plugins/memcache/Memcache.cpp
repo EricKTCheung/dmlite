@@ -27,7 +27,7 @@ MemcacheConnectionFactory::MemcacheConnectionFactory(std::set<std::string> hosts
   dist_(dist)
 {
   memcachelogmask = Logger::get()->getMask(memcachelogname);
-  
+
   // Nothing
 }
 
@@ -170,21 +170,21 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
 {
 
   LogCfgParm(Logger::Lvl4,  memcachelogmask, memcachelogname, key, value);
-  
+
   bool gotit = true;
-  
+
   if (key == "MemcachedServer") {
-    
+
     this->connectionFactory_.hosts_.insert(value);
-    
+
   }
   else if (key == "SymLinkLimit") {
-    
+
     this->symLinkLimit_ = atoi(value.c_str());
-    
+
   }
   else if (key == "MemcachedExpirationLimit") {
-    
+
     unsigned int expLimit = atoi(value.c_str());
     // 60*60*24*30 = 30 days from which on the expiration limit
     // will be treated as a timestamp by memcached
@@ -225,26 +225,26 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
           std::string("Unknown option value ") + value);
 
   } else if (key == "MemcachedFunctionCounter") {
-    
+
     if (value == "on") {
       this->doFuncCount_ = true;
     }
-    
+
   } else if (key == "MemcachedFunctionCounterLogFrequency") {
-    
+
     this->funcCounterLogFreq_ = atoi(value.c_str());
-    
+
   } else if (key == "MemcachedPoolSize") {
-    
+
     this->connectionPool_.resize(atoi(value.c_str()));
-    
+
   } else if (key == "LocalCacheSize") {
 
     MemcacheCommon::localCacheMaxSize = atoi(value.c_str());
-    
+
   }
   else gotit = false;
-  
+
   if (gotit)
     LogCfgParm(Logger::Lvl1,  memcachelogmask, memcachelogname, key, value);
 }

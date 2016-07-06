@@ -296,7 +296,7 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
     ret = sendto(FD_, buf, buf_len, 0, &dest_addr, dest_addr_len);
     errsv = errno;
 
-    if (ret != buf_len) {
+    if (ret != (ssize_t) buf_len) {
       char errbuffer[256];
       strerror_r(errsv, errbuffer, 256);
       Err(profilerlogname, "sending a message failed collector = "
@@ -306,7 +306,7 @@ int XrdMonitor::send(const void *buf, size_t buf_len)
     }
   }
 
-  if (ret == buf_len) {
+  if (ret == (ssize_t) buf_len) {
     return 0;
   } else {
     return ret;
@@ -966,7 +966,6 @@ void XrdMonitor::reportXrdFileDisc(const kXR_unt32 dictid)
 {
   Log(Logger::Lvl4, profilerlogmask, profilerlogname, "Entering");
 
-  int msg_size = sizeof(XrdXrootdMonFileHdr);
   int slots = 1;
 
   XrdXrootdMonFileDSC *msg;
