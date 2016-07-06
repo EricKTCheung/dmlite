@@ -713,8 +713,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
 
   try {
     Statement stmt(conn_, "dpm_db",
-                   "SELECT poolname, server, fs, status, "
-                   " FROM dpm_fs " );
+                   "SELECT poolname, server, fs, status "
+                   "FROM dpm_fs " );
     stmt.execute();
 
     char bufpoolname[1024], bufserver[1024], buffs[1024];
