@@ -70,9 +70,9 @@ size_t ProfilerIOHandler::read(char* buffer, size_t count) throw (DmException)
   xfrstats_.read += ret;
 
   opsstats_.read += 1;
-  if (opsstats_.rdMin > ret)
+  if (opsstats_.rdMin > (int) ret)
     opsstats_.rdMin = ret;
-  if (opsstats_.rdMax < ret)
+  if (opsstats_.rdMax < (int) ret)
     opsstats_.rdMax = ret;
 
   ssq_.read += static_cast<double>(ret) * static_cast<double>(ret);
@@ -108,9 +108,9 @@ size_t ProfilerIOHandler::write(const char* buffer, size_t count) throw (DmExcep
   xfrstats_.write += ret;
 
   opsstats_.write += 1;
-  if (opsstats_.wrMin > ret)
+  if (opsstats_.wrMin > (int) ret)
     opsstats_.wrMin = ret;
-  if (opsstats_.wrMax < ret)
+  if (opsstats_.wrMax < (int) ret)
     opsstats_.wrMax = ret;
 
   ssq_.write += static_cast<double>(ret) * static_cast<double>(ret);
@@ -126,15 +126,15 @@ size_t ProfilerIOHandler::readv(const struct iovec* vector, size_t count) throw 
 
   opsstats_.readv += 1;
   // ret: the number of bytes read
-  if (opsstats_.rvMin > ret)
+  if (opsstats_.rvMin > (int) ret)
     opsstats_.rvMin = ret;
-  if (opsstats_.rvMax < ret)
+  if (opsstats_.rvMax < (int) ret)
     opsstats_.rvMax = ret;
   // count: the number of segments to be read into
   opsstats_.rsegs += count;
-  if (opsstats_.rsMin > count)
+  if (opsstats_.rsMin > (int) count)
     opsstats_.rsMin = count;
-  if (opsstats_.rsMax < count)
+  if (opsstats_.rsMax < (int) count)
     opsstats_.rsMax = count;
 
   ssq_.readv += static_cast<double>(ret) * static_cast<double>(ret);
@@ -150,9 +150,9 @@ size_t ProfilerIOHandler::writev(const struct iovec* vector, size_t count) throw
   xfrstats_.write += ret;
 
   opsstats_.write += 1;
-  if (opsstats_.wrMin > ret)
+  if (opsstats_.wrMin > (int) ret)
     opsstats_.wrMin = ret;
-  if (opsstats_.wrMax < ret)
+  if (opsstats_.wrMax < (int) ret)
     opsstats_.wrMax = ret;
 
   ssq_.write += static_cast<double>(ret) * static_cast<double>(ret);
@@ -167,9 +167,9 @@ size_t ProfilerIOHandler::pread(void* buffer, size_t count, off_t offset) throw 
   xfrstats_.read += ret;
 
   opsstats_.read += 1;
-  if (opsstats_.rdMin > ret)
+  if (opsstats_.rdMin > (int) ret)
     opsstats_.rdMin = ret;
-  if (opsstats_.rdMax < ret)
+  if (opsstats_.rdMax < (int) ret)
     opsstats_.rdMax = ret;
 
   return ret;
@@ -182,9 +182,9 @@ size_t ProfilerIOHandler::pwrite(const void* buffer, size_t count, off_t offset)
   xfrstats_.write += ret;
 
   opsstats_.write += 1;
-  if (opsstats_.wrMin > ret)
+  if (opsstats_.wrMin > (int) ret)
     opsstats_.wrMin = ret;
-  if (opsstats_.wrMax < ret)
+  if (opsstats_.wrMax < (int) ret)
     opsstats_.wrMax = ret;
 
   return ret;
@@ -260,7 +260,7 @@ IOHandler* ProfilerIODriver::createIOHandler(const std::string& pfn,
                                              mode_t mode) throw (DmException)
 {
       Log(Logger::Lvl4, profilerlogmask, profilerlogname, "");
-      
+
       Extensible profilerExtras;
       profilerExtras.copy(extras);
       if (stack_->contains("protocol")) {

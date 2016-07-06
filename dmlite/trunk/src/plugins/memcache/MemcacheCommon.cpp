@@ -28,15 +28,15 @@ MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
   // Nothing
 }
 
-const std::string MemcacheCommon::computeMd5(const std::string& key) 
+const std::string MemcacheCommon::computeMd5(const std::string& key)
 {
     unsigned char digest[16];
     MD5_CTX ctx;
     MD5_Init(&ctx);
     MD5_Update(&ctx, key.c_str(), key.size());
     MD5_Final(digest, &ctx);
-    
-    const int nbytes = 33;
+
+    const size_t nbytes = 33;
     char  buffer[nbytes];
     char *p;
 
@@ -61,12 +61,12 @@ const std::string MemcacheCommon::keyFromString(const char* preKey,
   if ( strlen_path > 200){
         Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Long key, computing Md5 hash");
 	std::string hash = computeMd5(key);
-	Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Hash: "+ hash);        
+	Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Hash: "+ hash);
 	key_path.append(hash);
   }else {
 	key_path.append(key);
-  } 
-	
+  }
+
   streamKey << preKey << ":" << key_path;
 
   return streamKey.str();
@@ -349,7 +349,7 @@ void MemcacheCommon::serializeExtendedStat(const ExtendedStat& var, std::string&
 	serialExtendedAttributeList = seStat.mutable_xattrlist();
 	serialExtendedAttributeList->Clear();
   	std::vector<std::string> keys = var.getKeys();
-        for (unsigned i = 0; i < keys.size(); ++i) { 
+        for (unsigned i = 0; i < keys.size(); ++i) {
                  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
 		      "serialize xattr to memcache: key: " << keys[i] << " value: " << var.getString(keys[i]));
 		 pExtendedAttr = serialExtendedAttributeList->add_xattr();
@@ -416,14 +416,14 @@ void MemcacheCommon::deserializeExtendedStat(const std::string& serial_str, Exte
   if (seStat.has_xattrlist()) {
 	  const SerialExtendedAttributeList* serialExtendedAttributeList;
 	  serialExtendedAttributeList = &seStat.xattrlist();
-	  SerialExtendedAttribute xattr;  
+	  SerialExtendedAttribute xattr;
 	  Log(Logger::Lvl4, memcachelogmask, memcachelogname,"Found xattr on memcache");
 
 	  for (int i = 0; i < serialExtendedAttributeList->xattr_size(); ++i) {
 	      Log(Logger::Lvl4, memcachelogmask, memcachelogname,"deserialize xattr to memcache: key: " << xattr.name() <<  " value: " << xattr.value());
 	      xattr = serialExtendedAttributeList->xattr(i);
 	      var[xattr.name()] = xattr.value();
-	  } 
+	  }
   	}
 }
 
@@ -450,7 +450,7 @@ std::string MemcacheCommon::serializeReplica(const Replica& replica)
         serialExtendedAttributeList = serialReplica.mutable_xattrlist();
         serialExtendedAttributeList->Clear();
         std::vector<std::string> keys = replica.getKeys();
-        for (unsigned i = 0; i < keys.size(); ++i) { 
+        for (unsigned i = 0; i < keys.size(); ++i) {
                  Log(Logger::Lvl4, memcachelogmask, memcachelogname,
                       "serialize xattr to memcache: key: " << keys[i] << " value: " << replica.getString(keys[i]));
                  pExtendedAttr = serialExtendedAttributeList->add_xattr();
@@ -512,7 +512,7 @@ std::string MemcacheCommon::serializeReplicaList(const std::vector<Replica>& vec
     // Files that have replicas that are under processing unfortunately cannot be cached at all
     if (itVecRepl->status != dmlite::Replica::kAvailable)
       return "";
-    
+
     pReplica = serialReplicaList.add_replica();
 
     pReplica->set_replicaid(itVecRepl->replicaid);
@@ -570,7 +570,7 @@ void MemcacheCommon::deserializeReplicaList(const std::string& serial_str, std::
 
     replica["pool"]       = serialReplica.pool();
     replica["filesystem"] = serialReplica.filesystem();
-	
+
     //deserialize xattr
     if (serialReplica.has_xattrlist()) {
           const SerialExtendedAttributeList* serialExtendedAttributeList;

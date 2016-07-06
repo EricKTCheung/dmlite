@@ -390,7 +390,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
   mode >>= 6;
 
   // check ACL_USER entries if any
-  for (iacl = 0; iacl < acl.size(); ++iacl)
+  for (iacl = 0; iacl < (int) acl.size(); ++iacl)
   {
     if (acl[iacl].type > AclEntry::kUser)
       break;
@@ -416,7 +416,7 @@ int dmlite::checkPermissions(const SecurityContext* context,
   }
 
   // Check ACL_GROUP entries if any
-  for ( ; iacl < acl.size(); ++iacl) {
+  for ( ; iacl < (int) acl.size(); ++iacl) {
     if (acl[iacl].type > AclEntry::kGroup)
       break;
     if (acl[iacl].type < AclEntry::kGroup)

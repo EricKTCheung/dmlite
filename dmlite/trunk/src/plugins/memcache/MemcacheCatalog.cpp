@@ -506,7 +506,6 @@ std::string MemcacheCatalog::readLink(const std::string& path) throw(DmException
   std::string absPath = getAbsolutePath(path);
   incrementFunctionCounter(READLINK_DELEGATE);
   DELEGATE_RETURN(readLink, absPath);
-  Log(Logger::Lvl3, memcachelogmask, memcachelogname, "Exiting.");
 }
 
 
