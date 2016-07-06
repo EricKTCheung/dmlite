@@ -805,6 +805,8 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
 
+  boost::unique_lock<boost::recursive_mutex> l(status);
+  
   boost::property_tree::ptree jresp;
   for (unsigned int i = 0; i < status.fslist.size(); i++) {
     std::string fsname, poolname;
@@ -830,8 +832,11 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^poolstatus", '^'), 0);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^freespace", '^'), free);
       jresp.put(boost::property_tree::ptree::path_type(poolname+"^physicalsize", '^'), tot);
-      jresp.put(boost::property_tree::ptree::path_type(poolname+"^s_type", '^'), status.fslist[i].pool_stype);
-      jresp.put(boost::property_tree::ptree::path_type(poolname+"^defsize", '^'), status.fslist[i].pool_defsize);
+      
+      try {
+        jresp.put(boost::property_tree::ptree::path_type(poolname+"^s_type", '^'), status.poolslist[status.fslist[i].poolname].stype);
+        jresp.put(boost::property_tree::ptree::path_type(poolname+"^defsize", '^'), status.poolslist[status.fslist[i].poolname].defsize);
+      } catch ( ... ) {};
 
       poolname = "poolinfo^" + status.fslist[i].poolname + "^fsinfo^" + status.fslist[i].server + "^" + status.fslist[i].fs;
 
@@ -843,6 +848,17 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
     }
   }
 
+  // For completeness, add also the pools that have no filesystems :-(
+  for (std::map <std::string, DomePoolInfo>::iterator it = status.poolslist.begin();
+       it != status.poolslist.end();
+       it++) {
+    std::string poolname = "poolinfo^" + it->second.poolname;
+    jresp.put(boost::property_tree::ptree::path_type(poolname+"^s_type", '^'), it->second.stype);
+    jresp.put(boost::property_tree::ptree::path_type(poolname+"^defsize", '^'), it->second.defsize);
+  
+  }
+  
+  
   int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
@@ -2481,12 +2497,20 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   }
 
   // make sure it doesn't already exist
-  for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-    if(fs->poolname == poolname) {
-      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists."));
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
+      if(fs->poolname == poolname) {
+        return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists."));
+      }  
+    }
+    
+    if (status.poolslist.find("poolname") != status.poolslist.end()) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists in the groups map (may have no filesystems)."));
     }
   }
-
+  
   int rc;
   {
   DomeMySql sql;
@@ -2499,6 +2523,16 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
   }
 
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    DomePoolInfo pinfo;
+    pinfo.poolname = poolname;
+    pinfo.defsize = pool_defsize;
+    pinfo.stype = pool_stype[0];
+    status.poolslist[poolname] = pinfo;
+  }
+  
   return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
 }
 
@@ -2512,9 +2546,9 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
   int fsstatus =  req.bodyfields.get<int>("status", 0); // DomeFsStatus::FsStaticActive
-  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
-  char pool_stype = req.bodyfields.get("pool_stype", 'P');
 
+  
+  
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
 
   if (!poolname.size()) {
@@ -2558,9 +2592,9 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   fsfs.server = server;
   fsfs.fs = newfs;
   fsfs.status = (DomeFsInfo::DomeFsStatus)fsstatus;
-  fsfs.pool_defsize = pool_defsize;
-  fsfs.pool_stype = pool_stype;
-  rc =  sql.addFsPool(fsfs);
+
+  
+  rc =  sql.addFs(fsfs);
   if (!rc) t.Commit();
   }
 
@@ -2585,8 +2619,8 @@ int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string newfs =  req.bodyfields.get<std::string>("fs", "");
   int fsstatus =  req.bodyfields.get<int>("status", 0); // DomeFsStatus::FsStaticActive
-  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
-  char pool_stype = req.bodyfields.get("pool_stype", 'P');
+
+  
 
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
 
@@ -2638,9 +2672,9 @@ int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
     fsfs.server = server;
     fsfs.fs = newfs;
     fsfs.status = (DomeFsInfo::DomeFsStatus)fsstatus;
-    fsfs.pool_defsize = pool_defsize;
-    fsfs.pool_stype = pool_stype;
-    rc =  sql.modifyFsPool(fsfs);
+
+    
+    rc =  sql.modifyFs(fsfs);
     if (!rc) t.Commit();
   }
 
@@ -2659,10 +2693,9 @@ int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
       if ( status.PfnMatchesFS(server, newfs, *fs) ) {
         if (fs->fs.length() == newfs.length()) {
           fs->poolname = poolname;
-          fs->pool_stype = pool_stype;
           fs->status = (DomeFsInfo::DomeFsStatus)fsstatus;
-          fs->pool_defsize = pool_defsize;
-          fs->pool_stype = pool_stype;
+
+          
         }
 
       }

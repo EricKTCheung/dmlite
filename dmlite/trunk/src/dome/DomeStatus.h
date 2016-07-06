@@ -32,6 +32,28 @@
 
 class DomeReq;
 class DomeQuotatoken;
+class DomeStatus;
+
+
+class DomePoolInfo {
+  
+public:
+  DomePoolInfo() {
+    poolname="";
+    defsize = 1024LL*1024*1024*4;
+    stype = 'P';
+  };
+  
+  std::string poolname;
+  
+  // Default file size for blindly allocating a new file
+  int64_t defsize;
+  
+  // Space type. V=Volatile, (P or anything else)=Permanent
+  char stype;
+  
+};
+
 
 /// We describe a filesystem where to put data. We also keep dynamic information here, e.g. the free/used space
 class DomeFsInfo {
@@ -87,19 +109,11 @@ public:
     return ( (status != FsStaticDisabled) && (activitystatus == FsOnline) );
   }
   
-  bool canPullFile() {
-    return ( ((pool_stype == 'V') || (pool_stype == 'v')) && (freespace > pool_defsize) );
-  }
+  bool canPullFile(DomeStatus &st);
   
   /// Check if the given write request can go to the given quotatoken
   bool canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token);
-  
-  // Default file size for blindly allocating a new file
-  long pool_defsize;
-  
-  // Space type. V=Volatile, (P or anything else)=Permanent
-  char pool_stype;
-  
+    
   // Predicate for sorting filesystems by decreasing freespace
   struct pred_decr_freespace {
     bool operator()(DomeFsInfo const & a, DomeFsInfo const & b) const {
@@ -212,7 +226,10 @@ public:
   
   /// Trivial store for filesystems information
   std::vector <DomeFsInfo> fslist;
- 
+  
+  /// Trivial store for pool information
+  std::map <std::string, DomePoolInfo> poolslist;
+  
   /// Simple keyvalue store for prefix-based quotas, that
   /// represent a simplification of spacetokens
   /// The key is the prefix without trailing slashes

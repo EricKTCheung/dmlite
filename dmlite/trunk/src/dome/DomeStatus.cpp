@@ -53,6 +53,13 @@
 using namespace dmlite;
 
 
+bool DomeFsInfo::canPullFile(DomeStatus &st) {
+  char pooltype;
+  int64_t defsz;
+  st.getPoolInfo(poolname, defsz, pooltype);
+  return ( ((pooltype == 'V') || (pooltype == 'v')) && (freespace > defsz) );
+}
+
 DomeStatus::DomeStatus() {
   davixPool = NULL;
   lastreloadusersgroups = lastfscheck = lastreload = 0;
@@ -108,6 +115,7 @@ int DomeStatus::loadFilesystems() {
 
   if (role == roleHead) {
     DomeMySql sql;
+    sql.getPools(*this);
     return sql.getFilesystems(*this);
   }
 
@@ -341,12 +349,17 @@ bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &po
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
-      pool_defsize = fslist[i].pool_defsize;
-      pool_stype = fslist[i].pool_stype;
+      try {
+        pool_defsize = poolslist[fslist[i].poolname].defsize;
+        pool_stype = poolslist[fslist[i].poolname].stype;
+      }catch ( ... ) {
+        pool_defsize = 0;
+        pool_stype = 'P';
+      }
       return true;
     }
     
-    return false;
+  return false;
 }
 
 int DomeStatus::tick(time_t timenow) {
@@ -861,7 +874,7 @@ bool DomeStatus::LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo) {
           // Now loop on the FSs belonging to this pool
           // and check if at least one of them can pull files in from external sources
           for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
-            if ((fs->poolname == it->second.poolname) && fs->canPullFile()) {
+            if ((fs->poolname == it->second.poolname) && fs->canPullFile(*this)) {
               Log(Logger::Lvl1, domelogmask, domelogname, "CanPull pool: '" << it->second.poolname << "' matches path '" << lfn);
               fsinfo = *fs;
               return true;

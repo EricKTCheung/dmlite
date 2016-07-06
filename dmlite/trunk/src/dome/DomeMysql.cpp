@@ -647,6 +647,64 @@ int DomeMySql::rmPool(std::string &poolname)  {
   return 0;
 }
 
+
+
+
+// Load all the pools
+int DomeMySql::getPools(DomeStatus &st)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
+  if (st.role != DomeStatus::roleHead) return -1;
+  
+  DomePoolInfo pinfo;
+  int cnt = 0;
+  
+  try {
+    Statement stmt(conn_, "dpm_db",
+                   "SELECT poolname, defsize, s_type FROM dpm_pool " );
+    stmt.execute();
+    
+    char bufpoolname[1024];
+    
+    memset(bufpoolname, 0, sizeof(bufpoolname));
+    stmt.bindResult(0, bufpoolname, 16);
+    
+    stmt.bindResult(1, &pinfo.defsize);
+    
+    stmt.bindResult(2, &pinfo.stype, 1);
+    
+    {
+      boost::unique_lock<boost::recursive_mutex> l(st);
+      st.poolslist.clear();
+      while ( stmt.fetch() ) {
+                  
+          pinfo.poolname = bufpoolname;
+          
+          Log(Logger::Lvl1, domelogmask, domelogname, " Fetched pool: '" << pinfo.poolname << "' defsize: " << pinfo.defsize <<
+          " stype: '" << pinfo.stype << "'");
+          
+          st.poolslist[bufpoolname] = pinfo;
+          
+          cnt++;
+        
+      }
+    }
+  }
+  catch ( ... ) {}
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
+  return cnt;
+}
+
+
+
+
+
+
+
+
+
+
 int DomeMySql::getFilesystems(DomeStatus &st)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
@@ -655,9 +713,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
 
   try {
     Statement stmt(conn_, "dpm_db",
-                   "SELECT f.poolname, f.server, f.fs, f.status, "
-                   "p.defsize, p.s_type FROM dpm_fs f, dpm_pool p "
-                   "WHERE f.poolname = p.poolname" );
+                   "SELECT poolname, server, fs, status, "
+                   " FROM dpm_fs " );
     stmt.execute();
 
     char bufpoolname[1024], bufserver[1024], buffs[1024];
@@ -673,9 +730,6 @@ int DomeMySql::getFilesystems(DomeStatus &st)
 
     stmt.bindResult(3, (int *)&fs.status);
 
-    stmt.bindResult(4, &fs.pool_defsize);
-
-    stmt.bindResult(5, &fs.pool_stype, 1);
 
     {
     boost::unique_lock<boost::recursive_mutex> l(st);
@@ -689,8 +743,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
         fs.fs = buffs;
 
         Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
-        "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "' pool_defsize: " << fs.pool_defsize <<
-        " pool_stype: '" << fs.pool_stype << "'");
+        "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "'");
 
         st.fslist.push_back(fs);
 
@@ -759,13 +812,12 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   return 0;
 }
 
-int DomeMySql::addFsPool(DomeFsInfo &newfs) {
+int DomeMySql::addFs(DomeFsInfo &newfs) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
   long unsigned int nrows = 0;
   bool ok = true;
 
   try {
-    this->addPool(newfs.poolname, newfs.pool_defsize, newfs.pool_stype);
 
     // Now insert the filesystem, using poolname
     Statement stmt(conn_, "dpm_db",
@@ -791,13 +843,13 @@ int DomeMySql::addFsPool(DomeFsInfo &newfs) {
   return 0;
 }
 
-int DomeMySql::modifyFsPool(DomeFsInfo &newfs) {
+int DomeMySql::modifyFs(DomeFsInfo &newfs) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. poolname: '" << newfs.poolname << "'" );
   long unsigned int nrows = 0;
   bool ok = true;
 
   try {
-    this->addPool(newfs.poolname, newfs.pool_defsize, newfs.pool_stype);
+
     // Now insert the filesystem, using poolname
     Statement stmt(conn_, "dpm_db",
                    "UPDATE dpm_fs\
