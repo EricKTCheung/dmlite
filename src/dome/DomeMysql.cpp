@@ -778,7 +778,7 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
                    '', 'R', ?)");
     stmt.bindParam(0, poolname);
     stmt.bindParam(1, defsize);
-    stmt.bindParam(2, stype);
+    stmt.bindParam(2, std::string(1, stype));
 
     if ( (nrows = stmt.execute() == 0) )
       ok = false;
