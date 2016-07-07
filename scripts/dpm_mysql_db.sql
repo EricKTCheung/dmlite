@@ -152,7 +152,8 @@ CREATE TABLE dpm_space_reserv (
        poolname VARCHAR(15) BINARY,
        assign_time INTEGER,
        expire_time INTEGER,
-       groups VARCHAR(255) BINARY)
+       groups VARCHAR(255) BINARY
+       path VARCHAR(255) BINARY)
 	ENGINE = InnoDB;
 
 CREATE TABLE dpm_unique_id (
@@ -198,4 +199,4 @@ CREATE TABLE schema_version_dpm (
 ) ENGINE=INNODB;
 
 INSERT INTO schema_version_dpm (major, minor, patch)
-  VALUES (3, 4, 0);
+  VALUES (3, 5, 0);
