@@ -19,6 +19,7 @@ import socket
 from executor import DomeExecutor
 import json
 import pprint
+import StringIO
 
 try:
     import dpm2
@@ -1508,6 +1509,23 @@ class PoolAddCommand(ShellCommand):
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+def pprint_dictionary(dpool, indent=4):
+    ret = StringIO.StringIO()
+    for key, value in dpool.iteritems():
+        ret.write(" " * indent)
+        ret.write(key)
+        ret.write(": ")
+        if type(value) is dict:
+            ret.write(pprint_dictionary(value, indent+4))
+        elif type(value) is list:
+            for item in value:
+                ret.write("\n")
+                ret.write(pprint_dictionary(item, indent+4))
+            ret.write("\n")
+        else:
+            ret.write(str(value))
+            ret.write("\n")
+    return ret.getvalue()
 
 class PoolInfoCommand(ShellCommand):
   """List the pools."""
@@ -1533,7 +1551,7 @@ class PoolInfoCommand(ShellCommand):
         pools = self.interpreter.poolManager.getPools(availability)
         for pool in pools:
             dpool = json.loads(pool.serialize())
-            self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint.pformat(dpool, indent=4)))
+            self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint_dictionary(dpool)))
         return self.ok()
     except Exception, e:
         return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
