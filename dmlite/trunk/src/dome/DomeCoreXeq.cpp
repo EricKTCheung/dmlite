@@ -418,8 +418,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   if (dest && destrfn) {
     *dest = selectedfss[fspos];
     *destrfn = r.rfn;
+    Log(Logger::Lvl4, domelogmask, domelogname, "No data to the client will be sent yet - supplying destination to caller. ('" <<
+                                                *destrfn << "')");
     return 0;
   }
+
+  Log(Logger::Lvl4, domelogmask, domelogname, "Sending response to client for '" << pfn << "'");
 
   boost::property_tree::ptree jresp;
   jresp.put("pool", selectedfss[fspos].poolname);
@@ -927,7 +931,7 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
 
   // TODO: Here we have to trigger the file pull in the disk server,
   // by sending a dome_pull request
-  
+
   return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued file pull request " << destfs.server
                                                      << ", path " << lfn
                                                      << ", check back later.\r\nTotal pulls in queue right now: "
@@ -1588,7 +1592,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
     if (found)
       return DomeReq::SendSimpleResp(request, 200, jresp);
-    
+
     if (foundpending)
       return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
   }
