@@ -27,7 +27,7 @@ static inline bool compare_types(const std::type_info& a, const std::type_info& 
 static void jsonifyString(const std::string& str, std::ostream& out)
 {
   out << '"';
-  
+
   std::string::const_iterator i;
   for (i = str.begin(); i != str.end(); ++i) {
     char c = *i;
@@ -63,7 +63,7 @@ static void jsonifyString(const std::string& str, std::ostream& out)
           out << c;
     }
   }
-  
+
   out << '"';
 }
 
@@ -77,7 +77,7 @@ static std::string serializeAny(const boost::any& value)
   std::string strValue;
   std::vector<boost::any> vValue;
   enum {kLong, kDouble, kString, kUnknown, kObj, kVector} whatIs = kUnknown;
-  
+
   // String types are easy
   if (compare_types(value.type(), typeid(std::string))) {
     strValue = boost::any_cast<std::string>(value);
@@ -147,7 +147,7 @@ static std::string serializeAny(const boost::any& value)
     vValue = boost::any_cast<std::vector<boost::any> >(value);
     whatIs = kVector;
   }
-  
+
   // To string
   std::ostringstream final;
   switch (whatIs) {
@@ -165,7 +165,7 @@ static std::string serializeAny(const boost::any& value)
       break;
     case kVector:
       final << '[';
-      for (i = 0; i < vValue.size() - 1; ++i)
+      for (i = 0; (int) i < (int) vValue.size() - 1; ++i)
         final << serializeAny(vValue[i]) << ", ";
       if (i < vValue.size())
         final << serializeAny(vValue[i]);
@@ -174,7 +174,7 @@ static std::string serializeAny(const boost::any& value)
     default:
       final << "\"Unknown:" << value.type().name() << '"';
   }
-  
+
   return final.str();
 }
 
@@ -218,7 +218,7 @@ double Extensible::anyToDouble(const boost::any& any)
     double any;
     str >> any;
     return any;
-  }  
+  }
 }
 
 
@@ -400,7 +400,7 @@ void Extensible::erase(const std::string& s)
 std::string Extensible::serialize() const
 {
   std::ostringstream str;
-  
+
   str << "{";
   if (dictionary_.size() > 0) {
     DictType_::const_iterator i, lastOne;
@@ -411,7 +411,7 @@ std::string Extensible::serialize() const
     str << '"' << i->first << "\": " << serializeAny(i->second);
   }
   str << "}";
-  
+
   return str.str();
 }
 
@@ -422,7 +422,7 @@ void Extensible::populate(const boost::property_tree::ptree& root)
   boost::property_tree::ptree::const_iterator i;
   std::vector<boost::any> auxV;
   boost::any v;
-  
+
   for (i = root.begin(); i != root.end(); ++i) {
     // Process value
     if (i->second.empty()) {
@@ -443,7 +443,7 @@ void Extensible::populate(const boost::property_tree::ptree& root)
     else
       this->dictionary_.push_back(std::make_pair(i->first, v));
   }
-  
+
   // If auxV is not empty, push it with no key
   if (!auxV.empty())
     this->dictionary_.push_back(std::make_pair("", auxV));
@@ -455,12 +455,12 @@ void Extensible::deserialize(const std::string& serial) throw (DmException)
 {
   if (serial.empty())
     return;
-  
+
   // Old Boost versions have a bug related with escaped '/'
   // https://svn.boost.org/trac/boost/ticket/4326
 #if BOOST_VERSION < 104400
   std::ostringstream patchedSerial;
-  
+
   unsigned i;
   for (i = 0; i < serial.size() - 1; ++i) {
     if (serial[i] == '\\' && serial[i + 1] == '/') {
@@ -473,14 +473,14 @@ void Extensible::deserialize(const std::string& serial) throw (DmException)
   }
   if (i < serial.size())
     patchedSerial << serial[i];
-  
+
   std::istringstream stream(patchedSerial.str());
 #else
   std::istringstream stream(serial);
 #endif
-  
+
   boost::property_tree::ptree tree;
-  
+
   try {
     boost::property_tree::read_json(stream, tree);
   }
@@ -488,7 +488,7 @@ void Extensible::deserialize(const std::string& serial) throw (DmException)
     throw DmException(DMLITE_SYSERR(DMLITE_MALFORMED),
                       "Probably malformed JSON data (%s)", e.what());
   }
-  
+
   this->populate(tree);
 }
 
@@ -497,12 +497,12 @@ void Extensible::deserialize(const std::string& serial) throw (DmException)
 std::vector<std::string> Extensible::getKeys(void) const throw (DmException)
 {
   std::vector<std::string> keys;
-  
+
   for (DictType_::const_iterator i = dictionary_.begin();
        i != dictionary_.end(); ++i) {
     keys.push_back(i->first);
   }
-  
+
   return keys;
 }
 
@@ -513,7 +513,7 @@ bool Extensible::getBool(const std::string& key, bool defaultValue) const throw 
   if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
-  
+
   try {
     return anyToBoolean(value);
   }
@@ -549,7 +549,7 @@ unsigned long Extensible::getUnsigned(const std::string& key, unsigned long defa
   if (!hasField(key)) return defaultValue;
 
   boost::any value = (*this)[key];
-  
+
   try {
     return anyToUnsigned(value);
   }
@@ -565,9 +565,9 @@ unsigned long Extensible::getUnsigned(const std::string& key, unsigned long defa
 double Extensible::getDouble(const std::string& key, double defaultValue) const throw (DmException)
 {
   if (!hasField(key)) return defaultValue;
-  
+
   boost::any value = (*this)[key];
-  
+
   try {
     return anyToDouble(value);
   }
@@ -637,9 +637,9 @@ std::string Extensible::getString(const std::string& key, const std::string& def
 Extensible Extensible::getExtensible(const std::string& key, const Extensible& defaultValue) const throw (DmException)
 {
   if (!hasField(key)) return defaultValue;
-  
+
   boost::any value = (*this)[key];
-  
+
   try {
     return boost::any_cast<Extensible>(value);
   }
@@ -655,9 +655,9 @@ Extensible Extensible::getExtensible(const std::string& key, const Extensible& d
 std::vector<boost::any> Extensible::getVector(const std::string& key, const std::vector<boost::any>& defaultValue) const throw (DmException)
 {
   if (!hasField(key)) return defaultValue;
-  
+
   boost::any value = (*this)[key];
-  
+
   try {
     return boost::any_cast<std::vector<boost::any> >(value);
   }
