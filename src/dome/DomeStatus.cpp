@@ -91,11 +91,11 @@ DomeStatus::DomeStatus() {
 
   freeaddrinfo(info);
 
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "My automatically detected hostname is: " << myhostname);
   myhostname = CFG->GetString("glb.myhostname", myhostname.c_str());
   Log(Logger::Lvl1, domelogmask, domelogname, "Overriding my hostname to: " << myhostname);
-  
+
   // Create a dmlite pool
   dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 
@@ -343,9 +343,9 @@ bool DomeStatus::existsPool(std::string &poolname) {
 }
 
 bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype) {
-  
+
   boost::unique_lock<boost::recursive_mutex> l(*this);
-  
+
   // Loop over the filesystems and just sum the numbers
   for (unsigned int i = 0; i < fslist.size(); i++)
     if (fslist[i].poolname == poolname) {
@@ -358,7 +358,7 @@ bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &po
       }
       return true;
     }
-    
+
   return false;
 }
 
@@ -445,7 +445,7 @@ void DomeStatus::tickFilepulls() {
 
     // send pull command to the disk to initiate calculation
     Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
-    std::string diskurl = "https://" + server + "/domedisk/" + lfn;
+    std::string diskurl = "https://" + server + "/domedisk/";
 
 
     DomeTalker talker(*davixPool, &sec, diskurl,
@@ -799,7 +799,7 @@ int DomeStatus::addPoolfs(std::string &srv, std::string &newfs, std::string &poo
   fsi.server = srv;
   fsi.fs = newfs;
   fsi.status = status;
-  
+
   // Make sure it's not already there or that we are not adding a parent/child of an existing fs
   for (std::vector<DomeFsInfo>::iterator fs = fslist.begin(); fs != fslist.end(); fs++) {
     if ( PfnMatchesFS(srv, newfs, *fs) )
@@ -935,14 +935,14 @@ bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t siz
   ExtendedStat st;
   try {
     st = stack->getCatalog()->extendedStat(token.path);
-    
+
     // What a nice hack, eh ?
     // This is to make sure that we bypass a possible memcache plugin instance,
     //  which would give the correct directory size only after a timeout
     st = stack->getINode()->extendedStat(st.stat.st_ino);
-    
+
     totused = st.stat.st_size;
-    
+
   }
   catch (DmException &e) {
     Err(domelogname, "dmlite exception when trying to find used space of quotatoken for path'" << token.path << "' : " << e.code() << "-" << e.what());
