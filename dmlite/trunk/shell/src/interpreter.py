@@ -1,4 +1,3 @@
-
 # interpreter.py
 
 import pydmlite
@@ -19,7 +18,7 @@ import signal
 import socket
 from executor import DomeExecutor
 import json
-from pprint import pprint
+import pprint
 
 try:
     import dpm2
@@ -1527,16 +1526,17 @@ class PoolInfoCommand(ShellCommand):
       return self.error('There is no pool manager.')
 
     try:
-      if (len(given) > 0):
-        availability = PoolInfoCommand.mapping[given[0]]
-      else:
-        availability = PoolInfoCommand.mapping['']
-      pools = self.interpreter.poolManager.getPools(availability)
-      for pool in pools:
-        self.ok("%s (%s)\n\t%s" % (pool.name, pool.type, pool.serialize()))
-      return self.ok()
+        if (len(given) > 0):
+            availability = PoolInfoCommand.mapping[given[0]]
+        else:
+            availability = PoolInfoCommand.mapping['']
+        pools = self.interpreter.poolManager.getPools(availability)
+        for pool in pools:
+            dpool = json.loads(pool.serialize())
+            self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint.pformat(dpool, indent=4)))
+        return self.ok()
     except Exception, e:
-      return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+        return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
 
 class PoolModifyCommand(ShellCommand):
