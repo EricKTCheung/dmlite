@@ -147,6 +147,7 @@ add_subdirectory (doc)
 add_subdirectory (etc)
 add_subdirectory (include)
 add_subdirectory (src)
+add_subdirectory (scripts)
 add_subdirectory (tests)
 
 if (BUILD_PYTHON)
