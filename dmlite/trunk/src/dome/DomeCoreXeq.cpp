@@ -925,6 +925,9 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
 
   status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
 
+  // TODO: Here we have to trigger the file pull in the disk server,
+  // by sending a dome_pull request
+  
   return DomeReq::SendSimpleResp(request, 202, SSTR("Enqueued file pull request " << destfs.server
                                                      << ", path " << lfn
                                                      << ", check back later.\r\nTotal pulls in queue right now: "
@@ -1574,6 +1577,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
     if (found)
       return DomeReq::SendSimpleResp(request, 200, jresp);
+    
     if (foundpending)
       return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
   }
