@@ -2610,7 +2610,7 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
     status.poolslist[poolname] = pinfo;
   }
   
-  return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
+  return DomeReq::SendSimpleResp(request, 200, "Pool was modified.");
 }
 
 
