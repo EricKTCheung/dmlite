@@ -106,7 +106,7 @@ void DomeAdapterPoolManager::newPool(const Pool& pool) throw (DmException) {
 
 void DomeAdapterPoolManager::updatePool(const Pool& pool) throw (DmException) {
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
-                    "POST", "dome_addpool");
+                    "POST", "dome_modifypool");
 
   ptree params;
   params.put("poolname", pool.name);
