@@ -2555,6 +2555,68 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
 }
 
+
+
+
+int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_modifypool only available on head nodes.");
+  }
+  
+  std::string poolname = req.bodyfields.get<std::string>("poolname", "");
+  long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
+  std::string pool_stype = req.bodyfields.get("pool_stype", "P");
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
+  
+  if (!poolname.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
+  }
+  if (pool_defsize < 1024*1024) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid defsize: " << pool_defsize));
+  }
+  if (!pool_stype.size()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("pool_stype '" << pool_stype << "' is empty."));
+  }
+  
+  // make sure it DOES exist
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    if (status.poolslist.find("poolname") == status.poolslist.end()) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' does not exist, cannot modify it."));
+    }
+  }
+  
+  int rc;
+  {
+    DomeMySql sql;
+    DomeMySqlTrans  t(&sql);
+    rc =  sql.addPool(poolname, pool_defsize, pool_stype[0]);
+    if (!rc) t.Commit();
+  }
+  
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not modify pool - error code: " << rc));
+  }
+  
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    
+    DomePoolInfo pinfo;
+    pinfo.poolname = poolname;
+    pinfo.defsize = pool_defsize;
+    pinfo.stype = pool_stype[0];
+    status.poolslist[poolname] = pinfo;
+  }
+  
+  return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
+}
+
+
+
+
+
 /// Adds a filesystem to a pool
 int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
