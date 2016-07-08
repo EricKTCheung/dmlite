@@ -204,7 +204,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   }
 
   // default minfreespace is 4GB. Gets overridden by the individual pool's value
-  long minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
+  int64_t minfreespace_bytes = CFG->GetLong("head.put.minfreespace_mb", 1024*4) * 1024*1024;
 
   // use quotatokens?
   // TODO: more than quotatoken may match, they all should be considered
