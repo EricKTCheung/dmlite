@@ -223,84 +223,77 @@ void INodeMySql::rollback(void) throw (DmException)
 ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
 {
   Log(Logger::Lvl4, mysqllogmask, mysqllogname, "");
-
+  
   ExtendedStat parentMeta;
-
-  // Get parent metadata, if it is not root
-  if (nf.parent > 0) {
-    parentMeta = this->extendedStat(nf.parent);
-  }
-
+  
+  
   // Destination must not exist!
   // For the future... I think that this overhead can be avoided by more carefully
   // checking for the execute() return values and exceptions
-//   try {
-//     this->extendedStat(nf.parent, nf.name);
-//     throw DmException(EEXIST, "%s already exists", nf.name.c_str());
-//   }
-//   catch (DmException& e) {
-//     if (e.code() != ENOENT) throw;
-//   }
-
-
-
+  //   try {
+  //     this->extendedStat(nf.parent, nf.name);
+  //     throw DmException(EEXIST, "%s already exists", nf.name.c_str());
+  //   }
+  //   catch (DmException& e) {
+  //     if (e.code() != ENOENT) throw;
+  //   }
+  
+  
+  
   // Fetch the new file ID
   ino_t newFileId = 0;
-
-  {
-    // Start transaction
-    InodeMySqlTrans trans(this);
-
+  
+  // Start transaction
+  InodeMySqlTrans trans(this);
+  
+  try {
+    
+    
     {
       // Scope to make sure that the local objects that involve mysql
       // are destroyed before the transaction is closed
-
-
+      
+      
       Statement uniqueId(this->conn_, this->nsDb_, STMT_SELECT_UNIQ_ID_FOR_UPDATE);
-
+      
       uniqueId.execute();
       uniqueId.bindResult(0, &newFileId);
-
+      
       // Update the unique ID
       if (uniqueId.fetch()) {
-	Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
-	++newFileId;
-	updateUnique.bindParam(0, newFileId);
-	updateUnique.execute();
+        Statement updateUnique(this->conn_, this->nsDb_, STMT_UPDATE_UNIQ_ID);
+        ++newFileId;
+        updateUnique.bindParam(0, newFileId);
+        updateUnique.execute();
       }
       // Couldn't get, so insert
       else {
-	Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
-	newFileId = 1;
-	insertUnique.bindParam(0, newFileId);
-	insertUnique.execute();
+        Statement insertUnique(this->conn_, this->nsDb_, STMT_INSERT_UNIQ_ID);
+        newFileId = 1;
+        insertUnique.bindParam(0, newFileId);
+        insertUnique.execute();
       }
-
-
+      
+      
       // Closing the scope here makes sure that no local mysql-involving objects
       // are still around when we close the transaction
     }
-
-    // Commit the local trans object
-    // This also releases the connection back to the pool
-    trans.Commit();
-  }
-
-  // Start a new transaction
-  InodeMySqlTrans trans(this);
-
-  try {
-  {
-
-
+    
+    
+    
+    // Get parent metadata, if it is not root
+    if (nf.parent > 0) {
+      parentMeta = this->extendedStat(nf.parent);
+    }
+    
     // Regular files start with 1 link. Directories 0.
     unsigned    nlink   = S_ISDIR(nf.stat.st_mode) ? 0 : 1;
     std::string aclStr  = nf.acl.serialize();
     char        cstatus = static_cast<char>(nf.status);
-
+    
     // Create the entry
     Statement fileStmt(this->conn_, this->nsDb_, STMT_INSERT_FILE);
-
+    
     fileStmt.bindParam( 0, newFileId);
     fileStmt.bindParam( 1, nf.parent);
     fileStmt.bindParam( 2, nf.name);
@@ -315,9 +308,9 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
     fileStmt.bindParam(11, nf.csumvalue);
     fileStmt.bindParam(12, aclStr);
     fileStmt.bindParam(13, nf.serialize());
-
+    
     fileStmt.execute();
-
+    
     // Increment the parent nlink
     if (nf.parent > 0) {
       Statement nlinkStmt(this->conn_, this->nsDb_, STMT_NLINK_FOR_UPDATE);
@@ -325,36 +318,37 @@ ExtendedStat INodeMySql::create(const ExtendedStat& nf) throw (DmException)
       nlinkStmt.execute();
       nlinkStmt.bindResult(0, &parentMeta.stat.st_nlink);
       nlinkStmt.fetch();
-
+      
       Statement nlinkUpdateStmt(this->conn_, this->nsDb_, STMT_UPDATE_NLINK);
-
+      
       parentMeta.stat.st_nlink++;
       nlinkUpdateStmt.bindParam(0, parentMeta.stat.st_nlink);
       nlinkUpdateStmt.bindParam(1, parentMeta.stat.st_ino);
-
+      
       nlinkUpdateStmt.execute();
     }
-
+    
     // Closing the scope here makes sure that no local mysql-involving objects
     // are still around when we close the transaction
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
   }
-
-  // Commit the local trans object
-  // This also releases the connection back to the pool
-  trans.Commit();
-  }
+  
+  
+  
   catch (DmException e) {
     if (e.code() | DMLITE_DATABASE_ERROR) {
       int c = e.code() ^ DMLITE_DATABASE_ERROR;
       if (c == 1062) // mysql duplicate key
-        throw DmException(EEXIST, "File already exists - mysql duplicate key");
+        throw DmException(EEXIST, "File may already exist - mysql duplicate key");
     }
     throw;
   }
-
+  
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting.");
-
-
+  
+  
   // Note: Maybe also this additional overhead can be avoided in the future
   return this->extendedStat(newFileId);
 }
