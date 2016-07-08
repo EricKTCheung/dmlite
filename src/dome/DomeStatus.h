@@ -289,7 +289,7 @@ public:
   bool existsPool(std::string &poolname);
   
   /// Retrieves basic info about a named pool
-  bool getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype);
+  bool getPoolInfo(std::string &poolname, int64_t &pool_defsize, char &pool_stype);
   
   /// Removes a pool and all its filesystems
   int rmPoolfs(std::string &poolname);
