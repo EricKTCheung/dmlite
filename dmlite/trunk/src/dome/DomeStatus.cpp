@@ -342,7 +342,7 @@ bool DomeStatus::existsPool(std::string &poolname) {
   return false;
 }
 
-bool DomeStatus::getPoolInfo(std::string &poolname, long &pool_defsize, char &pool_stype) {
+bool DomeStatus::getPoolInfo(std::string &poolname, int64_t &pool_defsize, char &pool_stype) {
 
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
