@@ -79,6 +79,8 @@ Requires: dpm-srm-server-mysql%{?_isa} >= 1.9
 
 Requires: dmlite-plugins-adapter = %{version}
 Requires: dmlite-plugins-domeadapter = %{version}
+Requires: dmlite-dome = %{version}
+Requires: dmlite-shell = %{version}
 Requires: dmlite-plugins-mysql = %{version}
 Requires: edg-mkgridmap
 Requires: fetch-crl
@@ -86,7 +88,6 @@ Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
 Requires: lcg-expiregridmapdir
-Requires: dmlite-dome
 
 Obsoletes: emi-dpm_mysql
 
@@ -108,6 +109,8 @@ Requires: dpm-rfio-server%{?_isa} >= 1.9
 
 Requires: dmlite-plugins-adapter = %{version}
 Requires: dmlite-plugins-domeadapter = %{version}
+Requires: dmlite-dome = %{version}
+Requires: dmlite-shell = %{version}
 Requires: edg-mkgridmap
 
 Requires: fetch-crl
@@ -115,7 +118,6 @@ Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
 Requires: lcg-expiregridmapdir
-Requires: dmlite-dome
 
 Obsoletes: emi-dpm_disk
 
