@@ -2525,7 +2525,7 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-    if (status.poolslist.find("poolname") != status.poolslist.end()) {
+    if (status.poolslist.find(poolname) != status.poolslist.end()) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' already exists in the groups map (may have no filesystems)."));
     }
   }
@@ -2583,7 +2583,7 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
     
-    if (status.poolslist.find("poolname") == status.poolslist.end()) {
+    if (status.poolslist.find(poolname) == status.poolslist.end()) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' does not exist, cannot modify it."));
     }
   }
