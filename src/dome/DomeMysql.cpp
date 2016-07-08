@@ -782,26 +782,32 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
 
     if ( (nrows = stmt.execute() == 0) )
       ok = false;
-
+    
+    }
+    catch(...) { ok = false; }
+  
     if (!ok) {
       Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << poolname << "' It likely already exists. nrows: " << nrows );
       Log(Logger::Lvl1, domelogmask, domelogname, "Trying to modify pool: '" << poolname << "'" );
       ok = true;
 
-      Statement stmt(conn_, "dpm_db",
+      try {
+        Statement stmt(conn_, "dpm_db",
                      "UPDATE dpm_pool SET\
                      defsize=?, s_type=? WHERE poolname=?");
 
 
-      stmt.bindParam(0, defsize);
-      stmt.bindParam(1, stype);
-      stmt.bindParam(2, poolname);
+        stmt.bindParam(0, defsize);
+        stmt.bindParam(1, stype);
+        stmt.bindParam(2, poolname);
 
-      if ( (nrows = stmt.execute()) == 0 )
-        ok = false;
+        if ( (nrows = stmt.execute()) == 0 )
+          ok = false;
+      }
+      catch(...) { ok = false; }
+      
     }
-  }
-  catch(...) { ok = false; }
+  
 
   if (!ok) {
     Err(domelogname, "Could not insert or modify pool: '" << poolname << "' nrows:" << nrows );
