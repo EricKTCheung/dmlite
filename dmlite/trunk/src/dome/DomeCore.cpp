@@ -270,6 +270,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if(dreq.domecmd == "dome_addpool") {
           core->dome_addpool(dreq, request);
         }
+        else if(dreq.domecmd == "dome_modifypool") {
+          core->dome_addpool(dreq, request);
+        }
         else if(dreq.domecmd == "dome_pull") {
           core->dome_pull(dreq, request);
         }

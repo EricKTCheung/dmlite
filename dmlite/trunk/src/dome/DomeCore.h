@@ -136,6 +136,8 @@ public:
 
   /// Adds a new pool
   int dome_addpool(DomeReq &req, FCGX_Request &request);
+  /// Modify an existing pool
+  int dome_modifypool(DomeReq &req, FCGX_Request &request);
   /// Removes a pool and all the related filesystems
   int dome_rmpool(DomeReq &req, FCGX_Request &request);
   /// Adds a filesystem to an existing pool. This implicitly creates a pool
