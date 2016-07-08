@@ -2842,7 +2842,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
             return DomeReq::SendSimpleResp(request, 500, "Could not invoke stat hook.");
 
           // Now wait for the process to have finished
-          int taskrc = waitResult(id, CFG->GetLong("head.filepuller.stathooktimeout", 10));
+          int taskrc = waitResult(id, CFG->GetLong("head.filepuller.stathooktimeout", 60));
           if (taskrc)
             return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
 
