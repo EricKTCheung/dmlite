@@ -390,6 +390,7 @@ rm -rf %{buildroot}
 %files dpm_head
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/dbscripts
+%{_prefix}/share/dmlite/filepull
 
 
 %files dpm_disk
