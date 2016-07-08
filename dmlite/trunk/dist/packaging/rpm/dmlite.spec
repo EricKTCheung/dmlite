@@ -68,7 +68,6 @@ Summary:  EMI DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
 Requires: dpm%{?_isa} >= 1.9
-Requires: dpm-copy-server-mysql%{?_isa} >= 1.9
 Requires: dpm-devel%{?_isa} >= 1.9
 Requires: dpm-dsi%{?_isa}
 Requires: dpm-name-server-mysql%{?_isa} >= 1.9
