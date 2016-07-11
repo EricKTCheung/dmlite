@@ -396,6 +396,7 @@ rm -rf %{buildroot}
 
 %files dpm_disk
 %defattr(-,root,root,-)
+%{_prefix}/share/dmlite/filepull
 
 %files libs
 %defattr(-,root,root,-)
