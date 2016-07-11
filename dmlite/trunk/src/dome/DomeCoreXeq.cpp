@@ -1261,7 +1261,7 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
     Log(Logger::Lvl4, domelogmask, domelogname, "File pull checksum: " << checksum);
   }
 
-  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/") + pending.lfn;
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
   Log(Logger::Lvl4, domelogmask, domelogname, domeurl);
 
   DomeTalker talker(*davixPool, pending.creds, domeurl,
@@ -1270,6 +1270,7 @@ void DomeCore::sendFilepullStatus(const PendingPull &pending, const DomeTask &ta
   // set chksumstatus params
   boost::property_tree::ptree jresp;
 
+  jresp.put("lfn", pending.lfn);
   jresp.put("pfn", pending.pfn);
   jresp.put("server", status.myhostname);
   Log(Logger::Lvl4, domelogmask, domelogname, "pfn: " << pending.pfn);
