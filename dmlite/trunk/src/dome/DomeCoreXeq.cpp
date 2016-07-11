@@ -33,6 +33,8 @@
 #include <time.h>
 #include <sys/param.h>
 #include <stdio.h>
+#include <algorithm>
+#include <functional>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -806,6 +808,124 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
 };
+
+std::vector<std::string> list_folders(const std::string &folder) {
+  std::vector<std::string> ret;
+
+  DIR *d;
+  struct dirent *dir;
+  d = opendir(folder.c_str());
+  if(!d) return ret;
+
+  while((dir = readdir(d)) != NULL) {
+    std::string name = dir->d_name;
+    if(name != "." && name != ".." && dir->d_name && dir->d_type == DT_DIR) {
+      ret.push_back(folder + "/" + name);
+    }
+  }
+
+  closedir(d);
+
+  std::sort(ret.begin(), ret.end(), std::less<std::string>());
+  return ret;
+}
+
+// semi-random. Depends in what order the filesystem returns the files, which
+// is implementation-defined
+std::pair<size_t, std::string> pick_a_file(const std::string &folder) {
+  DIR *d = opendir(folder.c_str());
+
+  while(true) {
+    struct dirent *entry = readdir(d);
+    if(!entry) {
+      closedir(d);
+      return std::make_pair(-1, "");
+    }
+
+    if(entry->d_type == DT_REG) {
+      std::string filename = SSTR(folder << "/" << entry->d_name);
+      struct stat tmp;
+      if(stat(filename.c_str(), &tmp) != 0) continue; // should not happen
+
+      closedir(d);
+      return std::make_pair(tmp.st_size, filename);
+    }
+  }
+}
+
+int DomeCore::dome_makespace(DomeReq &req, FCGX_Request &request) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
+  if(status.role == status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, SSTR("makespace only available on disknodes"));
+  }
+
+  std::string fs = req.bodyfields.get<std::string>("fs", "");
+  std::string voname = req.bodyfields.get<std::string>("vo", "");
+  int size = req.bodyfields.get<size_t>("size", 0);
+
+  if(fs.empty()) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "fs cannot be empty.");
+  }
+  if(voname.empty()) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "vo cannot be empty.");
+  }
+  if(size <= 0) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "size is required and must be positive.");
+  }
+
+  // verify fs exists!
+  {
+  boost::unique_lock<boost::recursive_mutex> l(status);
+  bool found = false;
+  for(size_t i = 0; i < status.fslist.size(); i++) {
+    if(status.fslist[i].fs == fs) {
+      found = true;
+      break;
+    }
+  }
+  if(!found) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, SSTR("Could not find filesystem '" << fs << "'"));
+  }
+  }
+
+  // retrieve the list of folders and iterate over them, starting from the oldest
+  std::vector<std::string> folders = list_folders(fs + "/" + voname);
+  size_t folder = 0;
+  size_t evictions = 0;
+  int space_cleared = 0;
+
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
+  std::ostringstream response;
+
+  while(size >= space_cleared && folder < folders.size()) {
+    std::pair<size_t, std::string> victim = pick_a_file(folders[folder]);
+
+    if(victim.second.empty()) {
+      // rmdir is part of POSIX and only removes a directory if empty!
+      // If for some crazy reason we end up here even though the directory
+      // has files, the following will not have any effects.
+      rmdir(folders[folder].c_str());
+      folder++;
+      continue;
+    }
+
+    space_cleared += victim.first;
+    evictions++;
+    Log(Logger::Lvl1, domelogmask, domelogname, "Evicting replica '" << victim.second << "' from volatile filesystem to make space");
+    response << "Evicting replica '" << victim.second << "' of size '" << victim.first << "'" << "\r\n";
+
+    DomeTalker talker(*davixPool, req.creds, domeurl,
+                      "POST", "dome_delreplica");
+
+    if(!talker.execute("pfn", victim.second, "server", status.myhostname)) {
+      Err(domelogname, talker.err());
+      return DomeReq::SendSimpleResp(request, 500, talker.err());
+    }
+  }
+
+  response << "Cleared '" << space_cleared << "' bytes through the removal of " << evictions << " files\r\n";
+  return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, response.str());
+}
 
 int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
