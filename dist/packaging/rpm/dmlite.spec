@@ -88,6 +88,7 @@ Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
 Requires: lcg-expiregridmapdir
+Requires: davix
 
 Obsoletes: emi-dpm_mysql
 
@@ -118,6 +119,7 @@ Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
 Requires: lcg-expiregridmapdir
+Requires: davix
 
 Obsoletes: emi-dpm_disk
 
