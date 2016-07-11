@@ -418,6 +418,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   if (dest && destrfn) {
     *dest = selectedfss[fspos];
     *destrfn = r.rfn;
+    success = true;
     Log(Logger::Lvl4, domelogmask, domelogname, "No data to the client will be sent yet - supplying destination to caller. ('" <<
                                                 *destrfn << "')");
     return 0;
@@ -2562,13 +2563,13 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
   if(status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_modifypool only available on head nodes.");
   }
-  
+
   std::string poolname = req.bodyfields.get<std::string>("poolname", "");
   long pool_defsize = req.bodyfields.get("pool_defsize", 3L * 1024 * 1024 * 1024);
   std::string pool_stype = req.bodyfields.get("pool_stype", "P");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " poolname: '" << poolname << "'");
-  
+
   if (!poolname.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' is empty."));
   }
@@ -2578,16 +2579,16 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
   if (!pool_stype.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("pool_stype '" << pool_stype << "' is empty."));
   }
-  
+
   // make sure it DOES exist
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
-    
+
     if (status.poolslist.find(poolname) == status.poolslist.end()) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("poolname '" << poolname << "' does not exist, cannot modify it."));
     }
   }
-  
+
   int rc;
   {
     DomeMySql sql;
@@ -2595,21 +2596,21 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
     rc =  sql.addPool(poolname, pool_defsize, pool_stype[0]);
     if (!rc) t.Commit();
   }
-  
+
   if (rc) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not modify pool - error code: " << rc));
   }
-  
+
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
-    
+
     DomePoolInfo pinfo;
     pinfo.poolname = poolname;
     pinfo.defsize = pool_defsize;
     pinfo.stype = pool_stype[0];
     status.poolslist[poolname] = pinfo;
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, "Pool was modified.");
 }
 
