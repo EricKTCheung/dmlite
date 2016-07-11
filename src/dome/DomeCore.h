@@ -160,6 +160,8 @@ public:
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
   /// Update extended attributes
   int dome_updatexattr(DomeReq &req, FCGX_Request &request);
+  /// Make space in volatile filesystems
+  int dome_makespace(DomeReq &req, FCGX_Request &request);
 
   /// Send a simple info message
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
