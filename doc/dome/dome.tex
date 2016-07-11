@@ -433,7 +433,6 @@ Params:
 Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
 
 
-
 \subsubsection{dome\_delreplica}
 
 Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
@@ -1066,6 +1065,23 @@ Example response:\\
 \subsection{Disk node operation}
 The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not
 given by WebDAV/HTTP, and to control the checksum calculations.\\
+
+\subsubsection{dome\_makespace}
+
+Clears space on a specified volatile filesystem and VO. Used when a pending file pull is unable to start
+due to insufficient space.
+
+\lstinline"POST /dome/command/dome_makespace"\\
+
+Request header:\\
+\lstinline"cmd=dome_makespace"\\
+
+Params:
+\begin{itemize}
+ \item fs: the filesystem on the local disk server to clear space from
+ \item vo: the VO to clear space from
+ \item size: the minimum amount of bytes which should be cleared
+\end{itemize}
 
 \subsubsection{dome\_dochksum}
  Immediately start an external process that calculates the checksum and returns it (or error).
