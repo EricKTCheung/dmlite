@@ -11,7 +11,8 @@ sub update_mysql($) {
         my ($dbh_dpm) = @_;
 
         $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD COLUMN path VARCHAR(255)");
-
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD UNIQUE (path)");
+        
         $dbh_dpm->do ("UPDATE schema_version_dpm SET major = 3, minor = 5, patch = 0");
 
         $dbh_dpm->commit;
@@ -21,7 +22,8 @@ sub update_oracle($) {
         my ($dbh_dpm) = @_;
 
         $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD path VARCHAR2(255)");
-
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD UNIQUE (path)");
+        
         $dbh_dpm->do ("UPDATE schema_version_dpm SET major = 3, minor = 5, patch = 0");
 
         $dbh_dpm->commit;

@@ -176,7 +176,8 @@ ALTER TABLE dpm_copy_filereq
        ADD UNIQUE pk_c_fullid (r_token, f_ordinal);
 ALTER TABLE dpm_space_reserv
        ADD UNIQUE (s_token);
-
+ALTER TABLE dpm_space_reserv
+       ADD UNIQUE (path);
 ALTER TABLE dpm_fs
        ADD CONSTRAINT fk_fs FOREIGN KEY (poolname) REFERENCES dpm_pool(poolname);
 
