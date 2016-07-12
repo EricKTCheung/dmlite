@@ -862,6 +862,7 @@ int DomeCore::dome_makespace(DomeReq &req, FCGX_Request &request) {
   std::string fs = req.bodyfields.get<std::string>("fs", "");
   std::string voname = req.bodyfields.get<std::string>("vo", "");
   int size = req.bodyfields.get<size_t>("size", 0);
+  bool ensure_space = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("ensure-space", "true"));
 
   if(fs.empty()) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "fs cannot be empty.");
@@ -877,14 +878,22 @@ int DomeCore::dome_makespace(DomeReq &req, FCGX_Request &request) {
   {
   boost::unique_lock<boost::recursive_mutex> l(status);
   bool found = false;
-  for(size_t i = 0; i < status.fslist.size(); i++) {
+  size_t i, selected_fs;
+  for(i = 0; i < status.fslist.size(); i++) {
     if(status.fslist[i].fs == fs) {
       found = true;
+      selected_fs = i;
+      if(ensure_space) {
+        size -= status.fslist[i].freespace;
+      }
       break;
     }
   }
   if(!found) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, SSTR("Could not find filesystem '" << fs << "'"));
+  }
+  if(size <= 0) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, SSTR("Selected fs already has enough space. (" << status.fslist[i].freespace << ")"));
   }
   }
 
@@ -924,6 +933,12 @@ int DomeCore::dome_makespace(DomeReq &req, FCGX_Request &request) {
   }
 
   response << "Cleared '" << space_cleared << "' bytes through the removal of " << evictions << " files\r\n";
+
+  if(space_cleared < size) {
+    response << "Error: could not clear up the requested amount of space. " << size << "\r\n";
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_UNPROCESSABLE, response.str());
+  }
+
   return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, response.str());
 }
 
