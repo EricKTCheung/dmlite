@@ -3000,7 +3000,7 @@ static void xstat_to_ptree(const dmlite::ExtendedStat& xstat, boost::property_tr
 /// Fecthes logical stat information for an LFN or file ID or a pfn
 int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_getstatinfo only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getstatinfo only available on head nodes.");
   }
 
   std::string server =  req.bodyfields.get<std::string>("server", "");
