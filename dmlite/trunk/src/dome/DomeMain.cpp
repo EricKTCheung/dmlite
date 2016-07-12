@@ -35,7 +35,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
   std::string cfgfile;
-  
+
   if (argc < 2) {
     char *c = getenv("DOME_CFGFILE");
 
@@ -51,7 +51,9 @@ int main(int argc, char **argv) {
   cout << "Welcome to dome" << endl;
   cout << "Cfg file: " << cfgfile << endl;
 
-  daemon(0, 0);
+  if(!getenv("DOME_NODAEMON")) {
+    daemon(0, 0);
+  }
 
   domelogmask = Logger::get()->getMask(domelogname);
   DomeCore core;
