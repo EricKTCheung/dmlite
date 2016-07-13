@@ -166,6 +166,8 @@ public:
   /// Send a simple info message
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
 
+  int makespace(std::string fs, std::string voname, int size);
+
 private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
