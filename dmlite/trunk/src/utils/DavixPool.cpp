@@ -95,16 +95,16 @@ void DavixCtxFactory::configure(const std::string &key, const std::string &value
   if( (key == "DavixCertPath" || key == "DavixPrivateKeyPath") &&
      (!davix_cert_path.empty() && !davix_privkey_path.empty()) ) {
 
-     Davix::X509Credential *cred = new Davix::X509Credential();
+     Davix::X509Credential cred;
      Davix::DavixError* tmp_err = NULL;
 
-     cred->loadFromFilePEM(davix_privkey_path, davix_cert_path, "", &tmp_err);
+     cred.loadFromFilePEM(davix_privkey_path, davix_cert_path, "", &tmp_err);
      if( tmp_err ){
        std::ostringstream os;
        os << "Cannot load cert-privkey " << davix_cert_path << "-" << davix_privkey_path << ", Error: " << tmp_err->getErrMsg();
        throw DmException(EPERM, os.str());
      }
-     params_.setClientCertX509(*cred);
+     params_.setClientCertX509(cred);
   }
 }
 
