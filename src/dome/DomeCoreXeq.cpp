@@ -1984,6 +1984,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     
     // TODO: Make sure that there is enough space
     
+    // TODO: Make sure that the phys file does not already exist
+    
     // Let's just execute the external hook, passing the obvious parameters
 
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
