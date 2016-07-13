@@ -3058,8 +3058,6 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         else
           return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "' and no volatile filesystem matches.") );
       }
-      else
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
 
 
   }
