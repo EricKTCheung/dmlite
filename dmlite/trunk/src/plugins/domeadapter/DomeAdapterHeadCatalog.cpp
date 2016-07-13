@@ -14,8 +14,8 @@
 #include "utils/logger.h"
 #include "utils/DomeUtils.h"
 #include "utils/DomeTalker.h"
+#include "DomeAdapterUtils.h"
 #include "DomeAdapterHeadCatalog.h"
-// #include "DomeAdapter.h"
 
 using namespace dmlite;
 using namespace Davix;
@@ -131,25 +131,42 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   }
 }
 
+ExtendedStat DomeAdapterHeadCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
 
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getstatinfo");
 
+  if(!talker.execute("lfn", path)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    ExtendedStat xstat;
+    ptree_to_xstat(talker.jresp(), xstat);
+    return xstat;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
 
 void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmException) {
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, rfn: '" << rep.rfn << "'");
 
-  
-  
+
+
     DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                       "POST", "dome_delreplica");
-    
+
     boost::property_tree::ptree params;
     params.put("server", DomeUtils::server_from_rfio_syntax(rep.rfn));
     params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rep.rfn));
-    
-    
+
+
     if(!talker.execute(params)) {
       throw DmException(EINVAL, talker.err());
     }
-    
-  
+
+
 }

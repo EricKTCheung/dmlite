@@ -9,6 +9,7 @@
 #include "DomeAdapter.h"
 #include "utils/DomeTalker.h"
 #include "utils/DomeUtils.h"
+#include "DomeAdapterUtils.h"
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional/optional.hpp>
@@ -68,21 +69,6 @@ SecurityContext* DomeAdapterDiskCatalog::createSecurityContext(const SecurityCre
 
 bool DomeAdapterDiskCatalog::accessReplica(const std::string& replica, int mode) throw (DmException) {
   return true; // TODO: FIX!!!!
-}
-
-static void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::ExtendedStat &xstat) {
-  xstat.stat.st_size = ptree.get<uint64_t>("size");
-  xstat.stat.st_mode = ptree.get<mode_t>("mode");
-  xstat.stat.st_ino   = ptree.get<ino_t>("fileid");
-  xstat.parent = ptree.get<ino_t>("parentfileid");
-  xstat.stat.st_atime = ptree.get<time_t>("atime");
-  xstat.stat.st_ctime = ptree.get<time_t>("ctime");
-  xstat.stat.st_mtime = ptree.get<time_t>("mtime");
-  xstat.stat.st_nlink = ptree.get<nlink_t>("nlink");
-  xstat.stat.st_gid = ptree.get<gid_t>("gid");
-  xstat.stat.st_uid = ptree.get<uid_t>("uid");
-  xstat.name = ptree.get<std::string>("name");
-  xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
 ExtendedStat DomeAdapterDiskCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
