@@ -30,6 +30,8 @@
 #include "utils/DomeUtils.h"
 #include "DomeStatus.h"
 #include "DomeLog.h"
+#include "inode.h"
+#include "utils/urls.h"
 
 #include "boost/thread.hpp"
 
@@ -905,3 +907,331 @@ int DomeMySql::rmFs(std::string& server, std::string& fs) {
 
   return 0;
 }
+
+
+DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, std::string path, bool followSym) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << path << "'" );
+  
+  
+  // Split the path always assuming absolute
+  std::vector<std::string> components = Url::splitPath(path);
+  
+  // Iterate starting from absolute root (parent of /) (0)
+  uint64_t     parent       = 0;
+  unsigned     symLinkLevel = 0;
+  std::string  c;
+  
+  meta = ExtendedStat(); // ensure it's clean
+  
+  // We process only absolute paths here
+  if (path[0] != '/' ) {
+    
+    // TODO: return an error!
+  }
+  
+  
+  for (unsigned i = 0; i < components.size(); ) {
+    // Check that the parent is a directory first
+    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
+      return DmStatus(ENOTDIR, meta.name + " is not a directory, and is referenced by " + path + ". Internal DB error.");
+    
+    // Pop next component
+    c = components[i];
+    
+    // Stay here
+    if (c == ".") {
+      // Nothing
+    }
+    // Up one level
+    else if (c == "..") {
+      parent = meta.parent;
+      DmStatus st = getStatbyFileid(meta, parent);
+      if(!st.ok()) return st;
+    }
+    // Regular entry
+    else {
+      // Stat, but capture ENOENT to improve error code
+      DmStatus st = getStatbyParentFileid(meta, parent, c);
+      if(!st.ok()) {
+        if(st.code() != ENOENT) return st;
+        
+        while (i < components.size()) {
+          components.pop_back();
+        }
+        
+        //re-add / at the beginning
+        components.insert( components.begin(),std::string(1,'/'));
+        return DmStatus(ENOENT, "Entry '%s' not found under '%s'",
+                        c.c_str(), Url::joinPath(components).c_str());
+      }
+      
+      // Symbolic link!, follow that instead
+      if (S_ISLNK(meta.stat.st_mode) && followSym) {
+        SymLink link;
+        DmStatus res = readLink(link, meta.stat.st_ino);
+        if (res.code() != DMLITE_SUCCESS)
+          return res;
+        
+        ++symLinkLevel;
+        if (symLinkLevel > 16) {
+          return DmStatus(DMLITE_SYSERR(ELOOP),
+                          "Symbolic links limit exceeded: > %d",
+                          16);
+        }
+        
+        // We have the symbolic link now. Split it and push
+        // into the component
+        std::vector<std::string> symPath = Url::splitPath(link.link);
+        
+        for (unsigned j = i + 1; j < components.size(); ++j)
+          symPath.push_back(components[j]);
+        
+        components.swap(symPath);
+        i = 0;
+        
+        // If absolute, need to reset parent
+        if (link.link[0] == '/') {
+          parent = 0;
+          meta.stat.st_mode = S_IFDIR | 0555;
+        }
+        // If not, meta has the symlink data, which isn't nice.
+        // Stat the parent again!
+        else {
+          DmStatus st = getStatbyFileid(meta, meta.parent);
+          if(!st.ok()) return st;
+        }
+        
+        continue; // Jump directly to the beginning of the loop
+      }
+      // Next one!
+      else {
+        parent = meta.stat.st_ino;
+      }
+    }
+    ++i; // Next in array
+  }
+  
+  checksums::fillChecksumInXattr(meta);
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Stat-ed '" << path << "' sz: " << meta.stat.st_size);
+  return DmStatus();
+ 
+}
+
+
+
+
+/// Struct used internally to bind when reading
+struct CStat {
+  ino_t       parent;
+  struct stat stat;
+  char        status;
+  short       type;
+  char        name[256];
+  char        guid[37];
+  char        csumtype[4];
+  char        csumvalue[34];
+  char        acl[300 * 13]; // Maximum 300 entries of 13 bytes each
+  char        xattr[1024];
+};
+
+
+/// Takes the content of a CStat structure, as it comes from the queries
+/// and use it to fill the final ExtendedStat object
+/// We also take some corrective action on checksums, to make sure that
+/// the legacy chksum fields and the xattrs are somehow coherent, or at least
+/// not half empty
+static inline void dumpCStat(const CStat& cstat, ExtendedStat* xstat)
+{
+  
+  xstat->clear();
+  Log(Logger::Lvl4, domelogmask, domelogname,
+      " name: " << cstat.name <<
+      " parent: " << cstat.parent <<
+      " csumtype: " << cstat.csumtype <<
+      " csumvalue: " << cstat.csumvalue <<
+      " acl: " << cstat.acl);
+  
+  xstat->stat      = cstat.stat;
+  xstat->csumtype  = cstat.csumtype;
+  xstat->csumvalue = cstat.csumvalue;
+  xstat->guid      = cstat.guid;
+  xstat->name      = cstat.name;
+  xstat->parent    = cstat.parent;
+  xstat->status    = static_cast<ExtendedStat::FileStatus>(cstat.status);
+  xstat->acl       = Acl(cstat.acl);
+  xstat->clear();
+  xstat->deserialize(cstat.xattr);
+  
+  // From LCGDM-1742
+  xstat->fixchecksums();
+  
+  (*xstat)["type"] = cstat.type;
+}
+
+
+static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
+{
+  memset(meta, 0, sizeof(CStat));
+  stmt.bindResult( 0, &meta->stat.st_ino);
+  stmt.bindResult( 1, &meta->parent);
+  stmt.bindResult( 2, meta->guid, sizeof(meta->guid));
+  stmt.bindResult( 3, meta->name, sizeof(meta->name));
+  stmt.bindResult( 4, &meta->stat.st_mode);
+  stmt.bindResult( 5, &meta->stat.st_nlink);
+  stmt.bindResult( 6, &meta->stat.st_uid);
+  stmt.bindResult( 7, &meta->stat.st_gid);
+  stmt.bindResult( 8, &meta->stat.st_size);
+  stmt.bindResult( 9, &meta->stat.st_atime);
+  stmt.bindResult(10, &meta->stat.st_mtime);
+  stmt.bindResult(11, &meta->stat.st_ctime);
+  stmt.bindResult(12, &meta->type);
+  stmt.bindResult(13, &meta->status, 1);
+  stmt.bindResult(14, meta->csumtype,  sizeof(meta->csumtype));
+  stmt.bindResult(15, meta->csumvalue, sizeof(meta->csumvalue));
+  stmt.bindResult(16, meta->acl, sizeof(meta->acl), 0);
+  stmt.bindResult(17, meta->xattr, sizeof(meta->xattr));
+}
+
+
+
+
+
+dmlite::DmStatus DomeMySql::readLink(SymLink link, int64_t fileid)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
+
+  try {
+    Statement stmt(conn_, "cns_db",
+                   "SELECT fileid, linkname FROM Cns_symlinks WHERE fileid = ?");
+
+    char      clink[4096];
+  
+    memset(clink, 0, sizeof(clink));
+    stmt.bindParam(0, fileid);
+    stmt.execute();
+  
+    stmt.bindResult(0, &link.inode);
+    stmt.bindResult(1, clink, sizeof(clink), 0);
+  
+    if (!stmt.fetch())
+      return DmStatus(ENOENT, "Link %ld not found", fileid);
+  
+    link.link = clink;
+
+    }
+    catch ( ... ) {
+      Err(domelogname, " Exception while reading symlink " << fileid);
+      return DmStatus(ENOENT, "Cannot fetch link %ld", fileid);
+    }
+    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " --> " << link.link);
+  return DmStatus();
+}
+
+
+
+
+
+/// Extended stat for inodes
+DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
+  try {
+    Statement    stmt(conn_, "cns_db",   
+                    "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
+                    filesize, atime, mtime, ctime, fileclass, status,\
+                    csumtype, csumvalue, acl, xattr\
+                    FROM Cns_file_metadata\
+                    WHERE fileid = ?");
+    CStat        cstat;
+    xstat = ExtendedStat();
+  
+    stmt.bindParam(0, fileid);
+    stmt.execute();
+  
+    bindMetadata(stmt, &cstat);
+  
+  if (!stmt.fetch())
+    return DmStatus(ENOENT, fileid + " not found");
+  
+  dumpCStat(cstat, &xstat);
+  }
+  catch ( ... ) {
+    Err(domelogname, " Exception while reading stat of fileid " << fileid);
+    return DmStatus(EINVAL, " Exception while reading stat of fileid " + fileid);
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " name:" << xstat.name << " sz:" << xstat.size());
+  return DmStatus();
+}
+
+
+
+
+// Extended stat for replica file names in rfio syntax
+DmStatus DomeMySql::getStatbyRFN(dmlite::ExtendedStat &xstat, std::string rfn) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " rfn:" << rfn);
+  try {
+    Statement    stmt(conn_, "cns_db",   
+                      "SELECT m.fileid, m.parent_fileid, m.guid, m.name, m.filemode, m.nlink, m.owner_uid, m.gid,\
+                      m.filesize, m.atime, m.mtime, m.ctime, m.fileclass, m.status,\
+                      m.csumtype, m.csumvalue, m.acl, m.xattr\
+                      FROM Cns_file_metadata m, Cns_file_replica r\
+                      WHERE r.sfn = ? AND r.fileid = m.fileid");
+    CStat        cstat;
+    xstat = ExtendedStat();
+    
+    stmt.bindParam(0, rfn);
+    stmt.execute();
+    
+    bindMetadata(stmt, &cstat);
+    
+    if (!stmt.fetch())
+      return DmStatus(ENOENT, "replica '" + rfn + "' not found");
+    
+    dumpCStat(cstat, &xstat);
+  }
+  catch ( ... ) {
+    Err(domelogname, " Exception while reading stat of rfn " << rfn);
+    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rfn:" << rfn << " name:" << xstat.name << " sz:" << xstat.size());
+  return DmStatus();
+}
+
+
+
+
+
+
+/// Extended stat for inodes
+DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " parent_fileid:" << fileid << " name: '" << name << "'");
+  try {
+    Statement    stmt(conn_, "cns_db",  
+                      "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
+                      filesize, atime, mtime, ctime, fileclass, status,\
+                      csumtype, csumvalue, acl, xattr\
+                      FROM Cns_file_metadata\
+                      WHERE parent_fileid = ? AND name = ?");
+    CStat        cstat;
+    xstat = ExtendedStat();
+    
+    stmt.bindParam(0, fileid);
+    stmt.bindParam(1, name);
+    stmt.execute();
+    
+    bindMetadata(stmt, &cstat);
+    
+    if (!stmt.fetch())
+      return DmStatus(ENOENT, fileid + " not found");
+    
+    dumpCStat(cstat, &xstat);
+  }
+  catch ( ... ) {
+    Err(domelogname, " Exception while reading stat of parent_fileid " << fileid);
+    return DmStatus(ENOENT, " Exception while reading stat of parent_fileid " + fileid);
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. parent_fileid:" << fileid << " name:" << name << " sz:" << xstat.size());
+  return DmStatus();
+}
+
+

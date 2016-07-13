@@ -28,6 +28,8 @@
 
 #include <string>
 #include <mysql/mysql.h>
+#include "status.h"
+#include "inode.h"
 
 
 class DomeStatus;
@@ -70,6 +72,12 @@ public:
   /// Loads the defined filesystems, parses them into server names, etc. into the status
   int getFilesystems(DomeStatus &st);
   
+  /// Extended stat for logical file names
+  dmlite::DmStatus getStatbyLFN(dmlite::ExtendedStat &st, std::string lfn, bool followSym = false);
+  
+  /// Extended stat for replica file names in rfio syntax
+  dmlite::DmStatus getStatbyRFN(dmlite::ExtendedStat &st, std::string rfn);
+  
   /// Adds or overwrites a quotatoken
   int setQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
   
@@ -103,6 +111,10 @@ protected:
   /// Transaction level, so begins and commits can be nested.
   unsigned transactionLevel_;
   
+  /// Extended stat for inodes
+  dmlite::DmStatus getStatbyFileid(dmlite::ExtendedStat &xstat, int64_t fileid );
+  dmlite::DmStatus getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name);
+  dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
 private:
 
   // Connection

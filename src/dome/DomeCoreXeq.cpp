@@ -3015,11 +3015,14 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 
   // If lfn is filled then we stat the logical file
   if (lfn.size()) {
-    DmlitePoolHandler stack(status.dmpool);
-    try {
-        st = stack->getCatalog()->extendedStat(lfn);
-      }
-      catch (dmlite::DmException e) {
+    DmStatus ret;
+
+    {
+        DomeMySql sql;
+        ret = sql.getStatbyLFN(st, lfn);
+    }
+    
+    if (ret.code() == ENOENT) {
         // If the lfn maps to a pool that can pull files then we want to invoke
         // the external stat hook before concluding that the file is not available
         DomeFsInfo fsnfo;
@@ -3053,13 +3056,16 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 
         }
         else
-          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
+          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "' and no volatile filesystem matches.") );
       }
+      else
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
 
 
   }
   else {
-
+    DmStatus ret;
+    
     // Let's be kind with the client and also accept the rfio syntax
     if ( rfn.size() )  {
       pfn = DomeUtils::pfn_from_rfio_syntax(rfn);
@@ -3073,12 +3079,13 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
     // Else we stat the replica, recomposing the rfioname (sob)
 
       rfn = server + ":" + pfn;
-      DmlitePoolHandler stack(status.dmpool);
-      try {
-        st = stack->getCatalog()->extendedStatByRFN(rfn);
+
+      {
+        DomeMySql sql;
+        ret = sql.getStatbyRFN(st, rfn);
       }
-      catch (dmlite::DmException e) {
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
+      if (ret.code() != DMLITE_SUCCESS) {
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
       }
   }
 
