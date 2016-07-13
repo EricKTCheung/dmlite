@@ -138,6 +138,7 @@ DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::st
                     "GET", "dome_getstatinfo");
 
   if(!talker.execute("lfn", path)) {
+    if(talker.dmlite_code() == ENOENT) return DmStatus(ENOENT, SSTR(path << " not found"));
     throw DmException(talker.dmlite_code(), talker.err());
   }
 
@@ -147,7 +148,6 @@ DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::st
     return DmStatus();
   }
   catch(boost::property_tree::ptree_error &e) {
-    if(talker.dmlite_code() == ENOENT) return DmStatus(ENOENT, SSTR(path << " not found"));
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
