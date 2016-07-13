@@ -166,7 +166,7 @@ public:
   /// Send a simple info message
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
 
-  int makespace(std::string fs, std::string voname, int size);
+  int makespace(std::string fsplusvo, int size);
 
 private:
   bool initdone, terminationrequested;
