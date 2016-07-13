@@ -44,8 +44,9 @@ namespace dmlite {
     void setSecurityContext(const SecurityContext* ctx) throw (DmException);
     void setStackInstance(StackInstance* si) throw (DmException);
 
+    ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
-    
+
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
                              std::string& csumvalue,

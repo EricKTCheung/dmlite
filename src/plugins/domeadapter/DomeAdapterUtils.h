@@ -4,6 +4,22 @@
 #ifndef DOME_ADAPTER_UTILS_H
 #define DOME_ADAPTER_UTILS_H
 
+#include <dmlite/cpp/poolmanager.h>
+
+inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::ExtendedStat &xstat) {
+  xstat.stat.st_size = ptree.get<uint64_t>("size");
+  xstat.stat.st_mode = ptree.get<mode_t>("mode");
+  xstat.stat.st_ino   = ptree.get<ino_t>("fileid");
+  xstat.parent = ptree.get<ino_t>("parentfileid");
+  xstat.stat.st_atime = ptree.get<time_t>("atime");
+  xstat.stat.st_ctime = ptree.get<time_t>("ctime");
+  xstat.stat.st_mtime = ptree.get<time_t>("mtime");
+  xstat.stat.st_nlink = ptree.get<nlink_t>("nlink");
+  xstat.stat.st_gid = ptree.get<gid_t>("gid");
+  xstat.stat.st_uid = ptree.get<uid_t>("uid");
+  xstat.name = ptree.get<std::string>("name");
+  xstat.deserialize(ptree.get<std::string>("xattrs"));
+}
 
 inline dmlite::Pool deserializePool(boost::property_tree::ptree::const_iterator it) {
     using namespace dmlite;
