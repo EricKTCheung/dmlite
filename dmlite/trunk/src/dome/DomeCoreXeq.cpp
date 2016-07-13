@@ -1951,6 +1951,28 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
 
+    
+    // We retrieve the size of the remote file
+    int64_t filesz = 0LL;
+    {
+      DmStatus ret;
+      DomeMySql sql;
+      struct dmlite::ExtendedStat st;
+      ret = sql.getStatbyLFN(st, lfn);
+      if (ret.ok())
+        filesz = st.stat.st_size;
+      else {
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat and pull lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'.") );
+      }
+    }
+    
+    if (filesz == 0LL) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
+    }
+    
+    
+    // TODO: Make sure that there is enough space
+    
     // Let's just execute the external hook, passing the obvious parameters
 
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
@@ -1959,6 +1981,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
     params.push_back(lfn);
     params.push_back(pfn);
+    params.push_back(SSTR(filesz));
     int id = this->submitCmd(params);
 
     if (id < 0)
