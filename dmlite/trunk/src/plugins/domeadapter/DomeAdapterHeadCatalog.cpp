@@ -131,7 +131,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   }
 }
 
-ExtendedStat DomeAdapterHeadCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
+DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
@@ -142,13 +142,21 @@ ExtendedStat DomeAdapterHeadCatalog::extendedStat(const std::string& path, bool 
   }
 
   try {
-    ExtendedStat xstat;
+    xstat = ExtendedStat();
     ptree_to_xstat(talker.jresp(), xstat);
-    return xstat;
+    return DmStatus();
   }
   catch(boost::property_tree::ptree_error &e) {
+    if(talker.dmlite_code() == ENOENT) return DmStatus(ENOENT, SSTR(path << " not found"));
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
+}
+
+ExtendedStat DomeAdapterHeadCatalog::extendedStat(const std::string& path, bool follow) throw (DmException) {
+  ExtendedStat ret;
+  DmStatus st = this->extendedStat(ret, path, follow);
+  if(!st.ok()) throw st.exception();
+  return ret;
 }
 
 void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmException) {
