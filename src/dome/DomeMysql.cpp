@@ -927,14 +927,20 @@ DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, std::string path, b
   // We process only absolute paths here
   if (path[0] != '/' ) {
     
-    // TODO: return an error!
+    // return an error!
+    return DmStatus(ENOTDIR, "'" + meta.name + "' is not an absolute path.");
   }
   
+  DmStatus st = getStatbyParentFileid(meta, 0, "/");
+  if(!st.ok()) return st;
+  
+  parent = meta.stat.st_ino;
+  components.erase(components.begin());
   
   for (unsigned i = 0; i < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      return DmStatus(ENOTDIR, meta.name + " is not a directory, and is referenced by " + path + ". Internal DB error.");
+      return DmStatus(ENOTDIR, "'" + meta.name + "' is not a directory, and is referenced by '" + path + "'. Internal DB error.");
     
     // Pop next component
     c = components[i];
