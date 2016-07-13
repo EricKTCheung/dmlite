@@ -8,6 +8,6 @@
 # The companion pulling script will have to create such a file when invoked
 
 
-echo ">>>>> Size:123456"
+echo ">>>>> STAT 123456"
 
 
