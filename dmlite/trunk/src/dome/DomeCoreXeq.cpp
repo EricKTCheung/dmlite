@@ -830,6 +830,49 @@ std::vector<std::string> list_folders(const std::string &folder) {
   return ret;
 }
 
+int DomeCore::makespace(std::string fs, std::string voname, int size) {
+  // retrieve the list of folders and iterate over them, starting from the oldest
+  std::vector<std::string> folders = list_folders(fs + "/" + voname);
+  size_t folder = 0;
+  size_t evictions = 0;
+  int space_cleared = 0;
+
+  std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
+
+  while(size >= space_cleared && folder < folders.size()) {
+    DIR *d = opendir(folders[folder].c_str());
+    if(!d) break; // should not happen
+
+    while(size >= space_cleared) {
+      struct dirent *entry = readdir(d);
+      if(!entry) {
+        break;
+      }
+
+      if(entry->d_type == DT_REG) {
+        std::string victim = SSTR(folder << "/" << entry->d_name);
+        struct stat tmp;
+        if(stat(victim.c_str(), &tmp) != 0) continue; // should not happen
+
+        DomeTalker talker(*davixPool, NULL, domeurl,
+                          "POST", "dome_delreplica");
+
+        if(!talker.execute("pfn", victim, "server", status.myhostname)) {
+          Err(domelogname, talker.err()); // dark data? skip file
+          continue;
+        }
+
+        Log(Logger::Lvl1, domelogmask, domelogname, "Evicting replica '" << victim << "' of size " << tmp.st_size << "from volatile filesystem to make space");
+        evictions++;
+        space_cleared += tmp.st_size;
+      }
+    }
+    closedir(d);
+    folder++;
+  }
+  return space_cleared;
+}
+
 // semi-random. Depends in what order the filesystem returns the files, which
 // is implementation-defined
 std::pair<size_t, std::string> pick_a_file(const std::string &folder) {
@@ -1951,21 +1994,21 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
 
-    
+
     // We retrieve the size of the remote file
     int64_t filesz = 0LL;
     {
-      
+
       std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
-      
+
       DomeTalker talker(*davixPool, req.creds, domeurl,
                         "GET", "dome_getstatinfo");
-      
+
       if(!talker.execute(req.bodyfields)) {
         Err(domelogname, talker.err());
         return DomeReq::SendSimpleResp(request, 500, talker.err());
       }
-      
+
       try {
         filesz = talker.jresp().get<size_t>("size");
       }
@@ -1974,19 +2017,19 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
         Err("takeJSONbodyfields", errmsg);
         return DomeReq::SendSimpleResp(request, 500, errmsg);
       }
-      
+
     }
-    
+
     if (filesz == 0LL) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
     }
-    
+
     // TODO: Invoke dome_getspaceinfo on the headnode to doublecheck that this filesystem is volatile
-    
+
     // TODO: Make sure that there is enough space
-    
+
     // TODO: Make sure that the phys file does not already exist
-    
+
     // Let's just execute the external hook, passing the obvious parameters
 
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
@@ -3058,7 +3101,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         DomeMySql sql;
         ret = sql.getStatbyLFN(st, lfn);
     }
-    
+
     if (ret.code() == ENOENT) {
         // If the lfn maps to a pool that can pull files then we want to invoke
         // the external stat hook before concluding that the file is not available
@@ -3100,7 +3143,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   }
   else {
     DmStatus ret;
-    
+
     // Let's be kind with the client and also accept the rfio syntax
     if ( rfn.size() )  {
       pfn = DomeUtils::pfn_from_rfio_syntax(rfn);
