@@ -224,6 +224,9 @@ int DomeStatus::loadUsersGroups() {
 
   char *p, *q;
   char *user, *vo;
+  
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+  gridmap.clear();
 
   while (fgets(buf, sizeof(buf), mf)) {
     buf[strlen (buf) - 1] = '\0';
@@ -265,7 +268,8 @@ int DomeStatus::loadUsersGroups() {
     //mfe->voForDn[user] = vo;
 
     Log(Logger::Lvl5, domelogmask, domelogname, "Mapfile DN: " << user << " -> " << vo);
-    gridmap.insert ( std::pair<std::string,std::string>(user, vo) );
+
+    gridmap.insert( std::pair<std::string,std::string>(user, vo) );
     cnt++;
   }
 
