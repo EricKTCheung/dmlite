@@ -39,6 +39,7 @@ using namespace dmlite;
 
 
 DomeMySql::DomeMySql() {
+  this->transactionLevel_ = 0;
   conn_ = MySqlHolder::getMySqlPool().acquire();
 }
 
@@ -657,43 +658,43 @@ int DomeMySql::getPools(DomeStatus &st)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   if (st.role != DomeStatus::roleHead) return -1;
-  
+
   DomePoolInfo pinfo;
   int cnt = 0;
-  
+
   try {
     Statement stmt(conn_, "dpm_db",
                    "SELECT poolname, defsize, s_type FROM dpm_pool " );
     stmt.execute();
-    
+
     char bufpoolname[1024];
-    
+
     memset(bufpoolname, 0, sizeof(bufpoolname));
     stmt.bindResult(0, bufpoolname, 16);
-    
+
     stmt.bindResult(1, &pinfo.defsize);
-    
+
     stmt.bindResult(2, &pinfo.stype, 1);
-    
+
     {
       boost::unique_lock<boost::recursive_mutex> l(st);
       st.poolslist.clear();
       while ( stmt.fetch() ) {
-                  
+
           pinfo.poolname = bufpoolname;
-          
+
           Log(Logger::Lvl1, domelogmask, domelogname, " Fetched pool: '" << pinfo.poolname << "' defsize: " << pinfo.defsize <<
           " stype: '" << pinfo.stype << "'");
-          
+
           st.poolslist[bufpoolname] = pinfo;
-          
+
           cnt++;
-        
+
       }
     }
   }
   catch ( ... ) {}
-  
+
   Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
   return cnt;
 }
@@ -784,10 +785,10 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
 
     if ( (nrows = stmt.execute() == 0) )
       ok = false;
-    
+
     }
     catch(...) { ok = false; }
-  
+
     if (!ok) {
       Log(Logger::Lvl4, domelogmask, domelogname, "Could not insert new pool: '" << poolname << "' It likely already exists. nrows: " << nrows );
       Log(Logger::Lvl1, domelogmask, domelogname, "Trying to modify pool: '" << poolname << "'" );
@@ -807,9 +808,9 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
           ok = false;
       }
       catch(...) { ok = false; }
-      
+
     }
-  
+
 
   if (!ok) {
     Err(domelogname, "Could not insert or modify pool: '" << poolname << "' nrows:" << nrows );
