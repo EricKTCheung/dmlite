@@ -1981,6 +1981,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
     }
     
+    // TODO: Invoke dome_getspaceinfo on the headnode to doublecheck that this filesystem is volatile
     
     // TODO: Make sure that there is enough space
     
