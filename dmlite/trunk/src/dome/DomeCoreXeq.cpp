@@ -830,9 +830,9 @@ std::vector<std::string> list_folders(const std::string &folder) {
   return ret;
 }
 
-int DomeCore::makespace(std::string fs, std::string voname, int size) {
+int DomeCore::makespace(std::string fsplusvo, int size) {
   // retrieve the list of folders and iterate over them, starting from the oldest
-  std::vector<std::string> folders = list_folders(fs + "/" + voname);
+  std::vector<std::string> folders = list_folders(fsplusvo);
   size_t folder = 0;
   size_t evictions = 0;
   int space_cleared = 0;
@@ -1972,6 +1972,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(status.role == status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_pull only available on disk nodes");
   }
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
 
   try {
     //DmlitePoolHandler stack(status.dmpool);
@@ -1984,7 +1986,9 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
     }
-    if(!status.PfnMatchesAnyFS(status.myhostname, pfn)) {
+    
+    DomeFsInfo fsinfo;
+    if(!status.PfnMatchesAnyFS(status.myhostname, pfn, fsinfo)) {
       return DomeReq::SendSimpleResp(request, 422, "pfn does not match any of the filesystems of this server.");
     }
     if(lfn == "") {
@@ -2024,9 +2028,25 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
     }
 
-    // TODO: Invoke dome_getspaceinfo on the headnode to doublecheck that this filesystem is volatile
-
-    // TODO: Make sure that there is enough space
+    // TODO: Doublecheck that there is a suitable replica in P status for the file that we want to fetch
+        
+    
+    // Make sure that there is enough space to fit filesz bytes
+    if (fsinfo.freespace < filesz) {
+      std::vector<std::string> comps = Url::splitPath(pfn);
+      if (comps.size() < 3)
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pfn: '" << pfn << "'") );
+      
+      // Drop the last two tokens, to get the fs+vo prefix
+      comps.pop_back();
+      comps.pop_back();
+      
+      std::string fsvopfx = Url::joinPath(comps);
+      
+      int freed = makespace(fsvopfx, filesz);
+      if (freed < filesz)
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Volatile file purging failed. Not enough disk space to pull pfn: '" << pfn << "'") );
+    }
 
     // TODO: Make sure that the phys file does not already exist
 
