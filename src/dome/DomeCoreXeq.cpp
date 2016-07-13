@@ -1955,15 +1955,26 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     // We retrieve the size of the remote file
     int64_t filesz = 0LL;
     {
-      DmStatus ret;
-      DomeMySql sql;
-      struct dmlite::ExtendedStat st;
-      ret = sql.getStatbyLFN(st, lfn);
-      if (ret.ok())
-        filesz = st.stat.st_size;
-      else {
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat and pull lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'.") );
+      
+      std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
+      
+      DomeTalker talker(*davixPool, req.creds, domeurl,
+                        "GET", "dome_getstatinfo");
+      
+      if(!talker.execute(req.bodyfields)) {
+        Err(domelogname, talker.err());
+        return DomeReq::SendSimpleResp(request, 500, talker.err());
       }
+      
+      try {
+        filesz = talker.jresp().get<size_t>("size");
+      }
+      catch(boost::property_tree::ptree_error &e) {
+        std::string errmsg = SSTR("Received invalid json when talking to " << domeurl << ":" << e.what() << " '" << talker.response() << "'");
+        Err("takeJSONbodyfields", errmsg);
+        return DomeReq::SendSimpleResp(request, 500, errmsg);
+      }
+      
     }
     
     if (filesz == 0LL) {
