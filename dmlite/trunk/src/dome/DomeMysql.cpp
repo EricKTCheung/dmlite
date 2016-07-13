@@ -1200,7 +1200,7 @@ DmStatus DomeMySql::getStatbyRFN(dmlite::ExtendedStat &xstat, std::string rfn) {
     Err(domelogname, " Exception while reading stat of rfn " << rfn);
     return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
   }
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rfn:" << rfn << " name:" << xstat.name << " sz:" << xstat.size());
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rfn:" << rfn << " name:" << xstat.name << " sz:" << xstat.stat.st_size);
   return DmStatus();
 }
 
