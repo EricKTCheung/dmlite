@@ -249,6 +249,7 @@ int GenPrioQueue::tick() {
   for(it = timesort.begin(); it != timesort.end(); it++) {
     GenPrioQueueItem_ptr item = it->second;
     if(now.tv_sec > item->accesstime.tv_sec + timeout) {
+       Log(Logger::Lvl1, domelogmask, domelogname, " Queue item with key '" << item->namekey << "' timed out after " << timeout << " seconds.");
 
       // don't modify status through removal
       GenPrioQueueItem::QStatus status = item->status;
