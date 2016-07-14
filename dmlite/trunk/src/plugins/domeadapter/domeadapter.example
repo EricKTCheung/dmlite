@@ -1,4 +1,7 @@
-# Uncomment to enable dome adapter
+
+# LoadPlugin plugin_domeadapter_headcatalog /usr/lib64/dmlite/plugin_domeadapter.so
+# LoadPlugin plugin_domeadapter_diskcatalog /usr/lib64/dmlite/plugin_domeadapter.so
+
 LoadPlugin plugin_domeadapter_io /usr/lib64/dmlite/plugin_domeadapter.so
 LoadPlugin plugin_domeadapter_pools /usr/lib64/dmlite/plugin_domeadapter.so
 

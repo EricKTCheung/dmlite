@@ -496,7 +496,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_domeadapter.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/domeadapter.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/domeadapter.example
 
 %changelog
 * Mon Feb 15 2016  Andrea Manzi <amanzi@cern.ch> - 0.7.6-1
