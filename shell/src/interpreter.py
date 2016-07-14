@@ -3169,7 +3169,8 @@ The command accepts the following paramameter:
          getsubdirs = False
          if (len(given) == 2):
              getsubdirs = True
-             out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getsubdirs)
+
+         out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getsubdirs)
          try:
              data  = json.loads(out)
          except ValueError:
