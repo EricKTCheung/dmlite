@@ -52,7 +52,12 @@ namespace dmlite {
 
     virtual void setSize    (const std::string&, size_t) throw (DmException);
     virtual void setChecksum(const std::string&, const std::string&, const std::string&) throw (DmException);
-
+    virtual void getChecksum(const std::string& path,
+                             const std::string& csumtype,
+                             std::string& csumvalue,
+                             const std::string& pfn, const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+                             
+                             
     virtual void setAcl(const std::string&, const Acl&) throw (DmException);
 
     virtual void utime(const std::string&, const struct utimbuf*) throw (DmException);

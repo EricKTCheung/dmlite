@@ -1998,7 +1998,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 500, "File puller is disabled.");
     }
 
-
+    Log(Logger::Lvl4, domelogmask, domelogname, "Request to pull pfn: '" << pfn << "' lfn: '" << lfn << "'");
+    
     // We retrieve the size of the remote file
     int64_t filesz = 0LL;
     {
@@ -2024,6 +2025,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     }
 
+    Log(Logger::Lvl4, domelogmask, domelogname, "Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+    
     if (filesz == 0LL) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
     }
@@ -2033,6 +2036,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     
     // Make sure that there is enough space to fit filesz bytes
     if (fsinfo.freespace < filesz) {
+      Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << filesz << " ... trying to purge volatile files.");
       std::vector<std::string> comps = Url::splitPath(pfn);
       if (comps.size() < 3)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pfn: '" << pfn << "'") );
@@ -2050,6 +2054,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     // TODO: Make sure that the phys file does not already exist
 
+    Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+    
     // Let's just execute the external hook, passing the obvious parameters
 
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
