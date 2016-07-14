@@ -23,5 +23,5 @@ install (TARGETS       domeadapter
 #                 ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.conf
 #                 @ONLY)
 
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.example
+install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/domeadapter.example
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)
