@@ -39,9 +39,9 @@ public:
   std::vector<std::string> qualifiers;
   enum QStatus {
     Unknown = 0,
-    Waiting,
-    Running,
-    Finished
+    Waiting = 1,
+    Running = 2,
+    Finished = 3
   };
   QStatus status;
   GenPrioQueueItem() : status(Unknown) {}

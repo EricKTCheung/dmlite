@@ -192,8 +192,8 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
       item->update(namekey, status, priority, qualifiers);
       insertItem(item);
     }
-    // easy update - only change status
-    else if(status != item->status) {
+    // easy update - only progress status
+    else if(item->status < status) {
       updateStatus(item, status);
     }
     else {
