@@ -182,8 +182,16 @@ void DummyCatalog::setChecksum(const std::string& path,
   DELEGATE(setChecksum, path, csumtype, csumvalue);
 }
 
+void DummyCatalog::getChecksum(const std::string& path,
+                         const std::string& csumtype,
+                         std::string& csumvalue,
+                         const std::string& pfn, const bool forcerecalc, const int waitsecs) throw (DmException)
+{
 
-
+  DELEGATE(getChecksum, path, csumtype, csumvalue, pfn, forcerecalc, waitsecs);
+  
+}
+                         
 void DummyCatalog::setAcl(const std::string& path, const Acl& acls) throw (DmException)
 {
   DELEGATE(setAcl, path, acls);
