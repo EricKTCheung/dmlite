@@ -19,9 +19,9 @@ install (TARGETS       domeadapter
 
 
 # Configuration files
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/domeadapter.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.conf
-                @ONLY)
+# configure_file (${CMAKE_CURRENT_SOURCE_DIR}/domeadapter.example.in
+#                 ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.conf
+#                 @ONLY)
 
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.conf
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/domeadapter.example
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)
