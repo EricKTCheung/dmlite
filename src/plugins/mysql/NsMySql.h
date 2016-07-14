@@ -38,6 +38,7 @@ namespace dmlite {
     struct dirent ds;            ///< The structure used to hold the returned data.
     Statement    *stmt;          ///< The statement.
     bool          eod;           ///< True when end of dir is reached.
+    MYSQL *conn_;                ///< The connection the statement is relying on.
   };
 
   // Forward declaration
