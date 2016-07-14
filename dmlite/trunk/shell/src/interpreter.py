@@ -548,7 +548,7 @@ class InitCommand(ShellCommand):
       self.ok('Using configuration "' + configFile + '" as root.')
 
     if 'dpm2' not in sys.modules:
-        self.ok("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work: fsadd, fsdel, fsmodify (and qryconf partially).")
+        self.ok("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work properly: drainfs, drainpool, drainserver .")
 
     if log != '0':
         self.ok("Log Level set to %s." % log)
@@ -1658,6 +1658,8 @@ class QryConfCommand(ShellCommand):
         try:
             availability = pydmlite.PoolAvailability.kAny
             pools = self.interpreter.poolManager.getPools(availability)
+            info = self.interpreter.executor.getSpaceInfo(self.interpreter.domeheadurl)
+            data  = json.loads(info)
             for pool in pools:
                 output = "POOL %s " % (pool.name)
                 for key in ['defsize', 'gc_start_thresh', 'gc_stop_thresh', 'def_lifetime', 'defpintime', 'max_lifetime', 'maxpintime']:
@@ -1684,23 +1686,25 @@ class QryConfCommand(ShellCommand):
                     rate = 0
                 self.ok('\t\tCAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
 
-                if (pool.type == 'filesystem' and 'dpm2' in sys.modules):
-                    fileSystems = dpm2.dpm_getpoolfs(pool.name)
-                    for fs in fileSystems:
-                        if fs.capacity != 0:
-                            rate = round(float(100 * fs.free ) / fs.capacity,1)
-                        else:
-                            rate = 0
-                        if fs.status == 2:
-                            status = 'RDONLY'
-                        elif fs.status == 1:
-                            status = 'DISABLED'
-                        else:
-                            status = ''
-                        self.ok("\t%s %s CAPACITY %s FREE %s ( %.1f%%) %s" % (fs.server, fs.fs, self.prettySize(fs.capacity), self.prettySize(fs.free), rate, status))
-                elif (pool.type == 'filesystem' and 'dpm2' not in sys.modules):
-                    self.ok("\tCouldn't get any information about filesystems.")
-
+                for _pool in data['poolinfo'].keys():
+		    if _pool == pool.name:
+			try :
+			    for server in data['poolinfo'][_pool]['fsinfo'].keys():		
+			        for _fs in data['poolinfo'][_pool]['fsinfo'][server].keys():
+				    fs =  data['poolinfo'][_pool]['fsinfo'][server][_fs]
+                                    if int(fs['physicalsize']) != 0:
+                                        rate = round(float(100 * float(fs['freespace'])) / float(fs['physicalsize']),1)
+                                    else:
+                                        rate = 0
+                                    if int(fs['fsstatus']) == 2:
+                    		        status = 'RDONLY'
+                    	            elif int (fs['fsstatus']) == 1:
+                                        status = 'DISABLED'
+                                    else:
+                                        status = ''
+                                    self.ok("\t%s %s CAPACITY %s FREE %s ( %.1f%%) %s" % (server, _fs, self.prettySize(fs['physicalsize']), self.prettySize(fs['freespace']), rate, status))
+			except Exception, e:
+			    pass
             return self.ok()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
