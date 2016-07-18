@@ -31,9 +31,16 @@ namespace DomeUtils {
 
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 
+inline std::string trim_trailing_slashes(std::string str) {
+  while(str.size() > 0 && str[str.size()-1] == '/') {
+    str.erase(str.size()-1);
+  }
+  return str;
+}
+
 inline std::string join(const std::string &separator, const std::vector<std::string> &arr) {
   if(arr.empty()) return std::string();
-  
+
   std::stringstream ss;
   for(size_t i = 0; i < arr.size()-1; i++) {
     ss << arr[i];
