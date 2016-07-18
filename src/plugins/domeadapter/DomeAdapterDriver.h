@@ -74,7 +74,7 @@ namespace dmlite {
     std::string poolname_;
     DomeAdapterPoolDriver *driver_;
 
-    uint64_t getPoolField(std::string field) throw (DmException);
+    uint64_t getPoolField(const std::string &field, uint64_t def) throw (DmException);
   };
 }
 
