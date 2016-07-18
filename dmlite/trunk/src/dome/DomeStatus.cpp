@@ -224,7 +224,7 @@ int DomeStatus::loadUsersGroups() {
 
   char *p, *q;
   char *user, *vo;
-  
+
   boost::unique_lock<boost::recursive_mutex> l(*this);
   gridmap.clear();
 
@@ -757,22 +757,6 @@ int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolna
 
 static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
     return ( fsi.poolname == pool );
-}
-
-int DomeStatus::rmPoolfs(std::string &poolname) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Removing filesystems of pool: '" << poolname << "'");
-
-  // Lock status!
-  boost::unique_lock<boost::recursive_mutex> l(*this);
-
-  std::vector<DomeFsInfo>::iterator new_end;
-
-  new_end = std::remove_if(fslist.begin(), fslist.end(), boost::bind(&predFsMatchesPool, _1, poolname));
-  fslist.erase(new_end, fslist.end());
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Removed filesystems of pool: '" << poolname << "'");
-  return 0;
-
 }
 
 bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
