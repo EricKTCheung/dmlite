@@ -1972,7 +1972,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(status.role == status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_pull only available on disk nodes");
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
 
   try {
@@ -1986,7 +1986,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
     }
-    
+
     DomeFsInfo fsinfo;
     if(!status.PfnMatchesAnyFS(status.myhostname, pfn, fsinfo)) {
       return DomeReq::SendSimpleResp(request, 422, "pfn does not match any of the filesystems of this server.");
@@ -1999,7 +1999,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     }
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Request to pull pfn: '" << pfn << "' lfn: '" << lfn << "'");
-    
+
     // We retrieve the size of the remote file
     int64_t filesz = 0LL;
     {
@@ -2026,27 +2026,27 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     }
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
-    
+
     if (filesz == 0LL) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
     }
 
     // TODO: Doublecheck that there is a suitable replica in P status for the file that we want to fetch
-        
-    
+
+
     // Make sure that there is enough space to fit filesz bytes
     if (fsinfo.freespace < filesz) {
       Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << filesz << " ... trying to purge volatile files.");
       std::vector<std::string> comps = Url::splitPath(pfn);
       if (comps.size() < 3)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pfn: '" << pfn << "'") );
-      
+
       // Drop the last two tokens, to get the fs+vo prefix
       comps.pop_back();
       comps.pop_back();
-      
+
       std::string fsvopfx = Url::joinPath(comps);
-      
+
       int freed = makespace(fsvopfx, filesz);
       if (freed < filesz)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Volatile file purging failed. Not enough disk space to pull pfn: '" << pfn << "'") );
@@ -2055,7 +2055,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     // TODO: Make sure that the phys file does not already exist
 
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
-    
+
     // Let's just execute the external hook, passing the obvious parameters
 
     PendingPull pending(lfn, status.myhostname, pfn, req.creds, chksumtype);
@@ -2689,7 +2689,7 @@ int DomeCore::dome_rmpool(DomeReq &req, FCGX_Request &request) {
     return 1;
   }
 
-  status.rmPoolfs(poolname);
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, "Pool deleted.");
 }
 
