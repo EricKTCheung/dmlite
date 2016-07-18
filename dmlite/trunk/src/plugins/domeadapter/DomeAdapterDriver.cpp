@@ -182,7 +182,7 @@ void DomeAdapterPoolDriver::toBeDeleted(const Pool& pool) throw (DmException) {
   }
 }
 
-uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmException) {
+uint64_t DomeAdapterPoolHandler::getPoolField(const std::string &field, uint64_t def) throw (DmException) {
   DomeTalker talker(driver_->factory_->davixPool_, driver_->secCtx_, driver_->factory_->domehead_,
                     "GET", "dome_statpool");
 
@@ -191,26 +191,26 @@ uint64_t DomeAdapterPoolHandler::getPoolField(std::string field) throw (DmExcept
   }
 
   try {
-    return talker.jresp().get_child("poolinfo").begin()->second.get<uint64_t>(field);
+    return talker.jresp().get_child("poolinfo").begin()->second.get<uint64_t>(field, def);
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(DMLITE_NO_SUCH_POOL, SSTR("Pool " + poolname_ + " not found. (" << e.what() << ")"));
+    throw DmException(DMLITE_SYSERR(DMLITE_MALFORMED), SSTR("Error parsing json response when retrieving field '" << field << "'. Error: '" << e.what() << "' Response: '" << talker.response() << "'"));
   }
 }
 
 uint64_t DomeAdapterPoolHandler::getTotalSpace(void) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Entering ");
-  return this->getPoolField("physicalsize");
+  return this->getPoolField("physicalsize", 0);
 }
 
 uint64_t DomeAdapterPoolHandler::getFreeSpace(void) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Entering ");
-  return this->getPoolField("freespace");
+  return this->getPoolField("freespace", 0);
 }
 
 bool DomeAdapterPoolHandler::poolIsAvailable(bool write) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Entering ");
-  uint64_t poolstatus = this->getPoolField("poolstatus");
+  uint64_t poolstatus = this->getPoolField("poolstatus", std::numeric_limits<uint64_t>::max());
 
   if(poolstatus == FsStaticActive) {
     return true;
