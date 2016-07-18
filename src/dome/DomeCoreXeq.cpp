@@ -2785,16 +2785,7 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not add new pool - error code: " << rc));
   }
 
-  {
-    boost::unique_lock<boost::recursive_mutex> l(status);
-
-    DomePoolInfo pinfo;
-    pinfo.poolname = poolname;
-    pinfo.defsize = pool_defsize;
-    pinfo.stype = pool_stype[0];
-    status.poolslist[poolname] = pinfo;
-  }
-
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, "Pool was created.");
 }
 
@@ -2843,16 +2834,7 @@ int DomeCore::dome_modifypool(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Could not modify pool - error code: " << rc));
   }
 
-  {
-    boost::unique_lock<boost::recursive_mutex> l(status);
-
-    DomePoolInfo pinfo;
-    pinfo.poolname = poolname;
-    pinfo.defsize = pool_defsize;
-    pinfo.stype = pool_stype[0];
-    status.poolslist[poolname] = pinfo;
-  }
-
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, "Pool was modified.");
 }
 
@@ -2927,7 +2909,7 @@ int DomeCore::dome_addfstopool(DomeReq &req, FCGX_Request &request) {
     return 1;
   }
 
-  status.addPoolfs(server, newfs, poolname, (DomeFsInfo::DomeFsStatus)fsstatus);
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
 }
 
@@ -3007,28 +2989,7 @@ int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
     return 1;
   }
 
-  // Let's modify the fs in memory
-  {
-    // Lock status!
-    boost::unique_lock<boost::recursive_mutex> l(status);
-
-
-    for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-      if ( status.PfnMatchesFS(server, newfs, *fs) ) {
-        if (fs->fs.length() == newfs.length()) {
-          fs->poolname = poolname;
-          fs->status = (DomeFsInfo::DomeFsStatus)fsstatus;
-
-
-        }
-
-      }
-    }
-
-  }
-
-
-  status.addPoolfs(server, newfs, poolname, (DomeFsInfo::DomeFsStatus)fsstatus);
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
 }
 
@@ -3040,39 +3001,32 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   }
 
   std::string server =  req.bodyfields.get<std::string>("server", "");
-  std::string newfs =  req.bodyfields.get<std::string>("fs", "");
+  std::string newfs = req.bodyfields.get<std::string>("fs", "");
 
   Log(Logger::Lvl4, domelogmask, domelogname, " serrver: '" << server << "' fs: '" << newfs << "'");
 
-  if (!status.PfnMatchesAnyFS(server, newfs)) {
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
-  }
-
   int ndel = 0;
+  bool found = false;
   {
     // Lock status!
     boost::unique_lock<boost::recursive_mutex> l(status);
 
-    // Loop on the filesystems, looking for one that is a proper substring of the pfn
     for (std::vector<DomeFsInfo>::iterator fs = status.fslist.begin(); fs != status.fslist.end(); fs++) {
-      if (status.PfnMatchesFS(server, newfs, *fs)) {
-        status.fslist.erase(fs);
-        ndel++;
+      if(newfs == fs->fs) {
+        found = true;
         break;
       }
     }
   }
 
+  if(!found) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_NOT_FOUND, SSTR("Filesystem '" << newfs << "' not found on server '" << server << "'"));
+  }
 
-  // No matter how many deletions happened in the data structure,
-  // propagate anyway the deletion to the db
-    int rc;
+  int rc;
   {
   DomeMySql sql;
   DomeMySqlTrans  t(&sql);
-  std::string clientid = req.creds.clientName;
-  if (clientid.size() == 0) clientid = req.clientdn;
-  if (clientid.size() == 0) clientid = "(unknown)";
   rc =  sql.rmFs(server, newfs);
   if (!rc) t.Commit();
   }
@@ -3080,7 +3034,7 @@ int DomeCore::dome_rmfs(DomeReq &req, FCGX_Request &request) {
   if (rc)
     return DomeReq::SendSimpleResp(request, 422, SSTR("Failed deleting filesystem '" << newfs << "' of server '" << server << "'"));
 
-
+  status.loadFilesystems();
   return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted " << ndel << "filesystems matching '" << newfs << "' of server '" << server << "'"));
 }
 

@@ -291,9 +291,6 @@ public:
   /// Retrieves basic info about a named pool
   bool getPoolInfo(std::string &poolname, int64_t &pool_defsize, char &pool_stype);
 
-  /// Adds a filesystem to an existing pool
-  int addPoolfs(std::string &srv, std::string &fs, std::string &poolname, DomeFsInfo::DomeFsStatus status);
-
   // Utility ------------------------------------
   bool LfnMatchesAnyCanPullFS(std::string lfn, DomeFsInfo &fsinfo);
   bool PfnMatchesAnyFS(std::string &srv, std::string &pfn);
