@@ -2,9 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 
 include_directories(${Boost_INCLUDE_DIR} ${MYSQL_INCLUDE_DIR} ${DAVIX_PKG_INCLUDE_DIRS})
 
-set(Dome_SOURCES #dpmrest.cpp
-                 # DomeMain.cpp
-                 DomeGenQueue.cpp
+set(Dome_SOURCES DomeGenQueue.cpp
                  DomeCore.cpp
                  DomeCoreXeq.cpp
                  DomeLog.cpp
