@@ -1517,7 +1517,7 @@ def pprint_dictionary(dpool, indent=4):
         ret.write(": ")
         if type(value) is dict:
             ret.write(pprint_dictionary(value, indent+4))
-        elif type(value) is list:
+        elif type(value) is list and len(value) > 0 and type(value[0]) is dict:
             for item in value:
                 ret.write("\n")
                 ret.write(pprint_dictionary(item, indent+4))
@@ -1689,7 +1689,7 @@ class QryConfCommand(ShellCommand):
                 for _pool in data['poolinfo'].keys():
 		    if _pool == pool.name:
 			try :
-			    for server in data['poolinfo'][_pool]['fsinfo'].keys():		
+			    for server in data['poolinfo'][_pool]['fsinfo'].keys():
 			        for _fs in data['poolinfo'][_pool]['fsinfo'][server].keys():
 				    fs =  data['poolinfo'][_pool]['fsinfo'][server][_fs]
                                     if int(fs['physicalsize']) != 0:
