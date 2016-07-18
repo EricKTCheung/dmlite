@@ -124,7 +124,7 @@ std::string DomeTalker::err() {
     os << "DavixError: '" << err_->getErrMsg() << "'. ";
 
     if(response_.size() != 0) {
-      os << "Response: '" << response_ << "'.";
+      os << "Response (" << response_.size() << " bytes): '" << response_ << "'.";
     }
     else {
       os << "No response to show.";
