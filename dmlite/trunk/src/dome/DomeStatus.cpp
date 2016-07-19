@@ -128,7 +128,7 @@ int DomeStatus::loadFilesystems() {
                     "GET", "dome_getspaceinfo");
 
   if(!talker.execute()) {
-    Err(domelogname, "Error when issuing dome_getspaceinfo: " << talker.err());
+    Err(domelogname, talker.err());
     return -1;
   }
 
