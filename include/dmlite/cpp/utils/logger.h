@@ -9,6 +9,8 @@
 #include <map>
 #include <vector>
 
+#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
+
 #define Log(lvl, mymask, where, what) 												\
 do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\

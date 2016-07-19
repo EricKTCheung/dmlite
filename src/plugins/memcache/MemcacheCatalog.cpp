@@ -114,10 +114,20 @@ std::string MemcacheCatalog::getWorkingDir(void) throw (DmException)
 
 DmStatus MemcacheCatalog::extendedStat(ExtendedStat &xstat, const std::string &path, bool followSym) throw (DmException) {
   Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Entering, path = " << path << ". No exit log msg.");
-  if (this->memcachedPOSIX_)
-    return this->extendedStatSimplePOSIX(xstat, path, followSym);
-  else
-    return this->extendedStatNoPOSIX(xstat, path, followSym);
+  if (this->memcachedPOSIX_) {
+    DmStatus st = this->extendedStatSimplePOSIX(xstat, path, followSym);
+    if(!st.ok()) {
+      Log(Logger::Lvl1, Logger::unregistered, "extendedStat",   " Could not stat '" << path << "'");
+    }
+    return st;
+  }
+  else {
+    DmStatus st = this->extendedStatNoPOSIX(xstat, path, followSym);
+    if(!st.ok()) {
+      Log(Logger::Lvl1, Logger::unregistered, "extendedStat",   " Could not stat '" << path << "'");
+    }
+    return st;
+  }
 
   return DmStatus();
 }
