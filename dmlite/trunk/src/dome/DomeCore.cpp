@@ -203,6 +203,8 @@ void workerFunc(DomeCore *core, int myidx) {
             core->dome_statpfn(dreq, request);
         } else if ( dreq.domecmd == "dome_getstatinfo" ) {
             core->dome_getstatinfo(dreq, request);
+        } else if ( dreq.domecmd == "dome_getreplicainfo" ) {
+          core->dome_getreplicainfo(dreq, request);
         } else if ( dreq.domecmd == "dome_getdir" ) {
             core->dome_getdir(dreq, request);
         } else if ( dreq.domecmd == "dome_getuser" ) {

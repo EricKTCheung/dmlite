@@ -78,6 +78,9 @@ public:
   /// Extended stat for replica file names in rfio syntax
   dmlite::DmStatus getStatbyRFN(dmlite::ExtendedStat &st, std::string rfn);
   
+  /// Gets replica information
+  dmlite::DmStatus getReplicabyRFN(dmlite::Replica &rep, std::string rfn);
+  
   /// Adds or overwrites a quotatoken
   int setQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
   

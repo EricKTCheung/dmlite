@@ -3150,6 +3150,64 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 
 }
 
+
+
+
+
+
+/// Fecthes replica info from its rfn
+int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getstatinfo only available on head nodes.");
+  }
+  
+  std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " rfn: '" << rfn << "'");
+  
+  struct dmlite::Replica r;
+  
+   
+    DmStatus ret;
+    
+    if ( !rfn.size() )  {  
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
+    }
+    
+    {
+      DomeMySql sql;
+      ret = sql.getReplicabyRFN(r, rfn);
+    }
+    if (ret.code() != DMLITE_SUCCESS) {
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+  
+  
+  boost::property_tree::ptree jresp;
+  
+  jresp.put("replicaid", r.replicaid);
+  jresp.put("fileid", r.fileid);
+  jresp.put("nbaccesses", r.nbaccesses);
+  jresp.put("atime", r.atime);
+  jresp.put("ptime", r.ptime);
+  jresp.put("ltime", r.ltime);
+  jresp.put("status", r.status);
+  jresp.put("type", r.type);
+  jresp.put("pool", r.getString("pool"));
+  jresp.put("server", r.server);
+  jresp.put("filesystem", r.getString("filesystem"));
+  jresp.put("rfn", rfn);
+  jresp.put("setname", r.setname);
+  jresp.put("xattrs", r.serialize());
+    
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+  
+}
+
+
+
+
+
 /// Like an HTTP GET on a directory, gets all the content
 int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
