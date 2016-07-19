@@ -22,6 +22,9 @@ namespace dmlite {
     IODriver* createIODriver(PluginManager* pm) throw (DmException);
 
   private:
+    std::string tunnelling_protocol_;
+    std::string tunnelling_port_;
+
     std::string passwd_;
     bool        useIp_;
     std::string domedisk_;
@@ -33,7 +36,8 @@ namespace dmlite {
 
  class DomeIODriver: public IODriver {
    public:
-    DomeIODriver(std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool);
+    DomeIODriver(std::string tunnelling_protocol, std::string tunnelling_port,
+                 std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool);
     virtual ~DomeIODriver();
 
     std::string getImplId() const throw();
@@ -49,6 +53,9 @@ namespace dmlite {
    private:
     const SecurityContext* secCtx_;
     StackInstance* si_;
+
+    std::string tunnelling_protocol_;
+    std::string tunnelling_port_;
 
     std::string passwd_;
     bool        useIp_;

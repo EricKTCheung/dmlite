@@ -20,12 +20,11 @@
 using namespace dmlite;
 using namespace Davix;
 
-DomeIOFactory::DomeIOFactory(): passwd_("default"), useIp_(true), davixPool_(&davixFactory_, 10)
+DomeIOFactory::DomeIOFactory()
+: tunnelling_protocol_("http"), tunnelling_port_("80"), passwd_("default"), useIp_(true), davixPool_(&davixFactory_, 10)
 {
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
-  setenv("CSEC_MECH", "ID", 1);
-
 }
 
 DomeIOFactory::~DomeIOFactory()
@@ -64,6 +63,12 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
   else if (key == "DomeDisk") {
     domedisk_ = value;
   }
+  else if (key == "DomeAdapterTunnellingProtocol") {
+    tunnelling_protocol_ = value;
+  }
+  else if (key == "DomeAdapterTunnellingPort") {
+    tunnelling_port_ = value;
+  }
   // if parameter starts with "Davix", pass it on to the factory
   else if( key.find("Davix") != std::string::npos) {
     Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Received davix pool parameter: " << key << "," << value);
@@ -77,11 +82,13 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
 
 IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)
 {
-  return new DomeIODriver(passwd_, useIp_, domedisk_, davixPool_);
+  return new DomeIODriver(tunnelling_protocol_, tunnelling_port_, passwd_, useIp_, domedisk_, davixPool_);
 }
 
-DomeIODriver::DomeIODriver(std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool):
-  secCtx_(0), passwd_(passwd), useIp_(useIp), domedisk_(domedisk), davixPool_(davixPool)
+DomeIODriver::DomeIODriver(std::string tunnelling_protocol, std::string tunnelling_port,
+                           std::string passwd, bool useIp, std::string domedisk, DavixCtxPool &davixPool)
+: secCtx_(0), tunnelling_protocol_(tunnelling_protocol), tunnelling_port_(tunnelling_port),
+  passwd_(passwd), useIp_(useIp), domedisk_(domedisk), davixPool_(davixPool)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
@@ -127,13 +134,13 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
       // this request might either be coming from a regular user client,
       // or another disk server trying to do tunnelling. In the latter
       // case, the userId is simply "root"
-      if( dmlite::validateToken(extras.getString("token"),
-         "root", pfn, this->passwd_, flags != O_RDONLY) != kTokenOK &&
-
-          dmlite::validateToken(extras.getString("token"),
+      if(dmlite::validateToken(extras.getString("token"),
             userId,
             pfn, this->passwd_,
-            flags != O_RDONLY) != kTokenOK)
+            flags != O_RDONLY) != kTokenOK &&
+
+          dmlite::validateToken(extras.getString("token"),
+          "root", pfn, this->passwd_, flags != O_RDONLY) != kTokenOK)
 
         throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
             this->useIp_?"IP":"DN", pfn.c_str());
@@ -152,7 +159,8 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   // we are a disk server doing tunnelling, use "root" as userId
   std::string supertoken = dmlite::generateToken("root", path, this->passwd_, 50000, flags != O_RDONLY);
 
-  std::string url = SSTR("http://" << server << "/" << Uri::escapeString(path) << "?token=" << Uri::escapeString(supertoken));
+  std::string url = SSTR(tunnelling_protocol_ << "://" << server << ":" << tunnelling_port_
+                         << "/" << Uri::escapeString(path) << "?token=" << Uri::escapeString(supertoken));
   return new DomeTunnelHandler(davixPool_, url, flags, mode);
 }
 
