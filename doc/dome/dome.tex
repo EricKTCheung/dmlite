@@ -823,8 +823,8 @@ Request header:\\
 Params:
 \begin{itemize}
  \item poolname: the name of the pool
- \item pool_defsize: the default file size for new files, when their size is not known yet
- \item pool_stype: the space type for the pool. P=Permanent, V=Volatile
+ \item pool\_defsize: the default file size for new files, when their size is not known yet
+ \item pool\_stype: the space type for the pool. P\=Permanent, V\=Volatile
 \end{itemize}
 
 
@@ -925,6 +925,44 @@ Code: 200 or pending
  \item mode: unix flags
  \item isdir: tells if it's a directory
 \end{itemize}
+
+
+
+\subsubsection{dome\_getreplicainfo}
+Returns replica information about a replica, identified by its RFN.
+
+Command:
+\lstinline"GET /dome/command/dome_getreplicainfo"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item rfn: a physical file name in the rfio syntax.
+\end{itemize}
+
+Returns:
+Code: 200 or pending
+\begin{itemize}
+
+ \item replicaid
+ \item fileid
+ \item nbaccesses
+ \item atime
+ \item ptime
+ \item ltime
+ \item status
+ \item type
+ \item pool
+ \item server
+ \item filesystem
+ \item rfn
+ \item setname
+ \item xattrs: the replica's extended attributes in JSON format
+\end{itemize}
+
+
 
 \subsubsection{dome\_addfstopool}
 Adds a filesystem to a pool. This implicitely creates a pool with the given name if it did not already exist.\\

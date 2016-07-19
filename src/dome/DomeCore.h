@@ -150,6 +150,8 @@ public:
 
   /// Fecthes logical stat information for an LFN or file ID or a pfn
   int dome_getstatinfo(DomeReq &req, FCGX_Request &request);
+  /// Fecthes replica info from a rfn
+  int dome_getreplicainfo(DomeReq &req, FCGX_Request &request);
   /// Like an HTTP GET on a directory, gets all the content
   int dome_getdir(DomeReq &req, FCGX_Request &request);
   /// Get user information

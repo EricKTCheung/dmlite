@@ -1205,6 +1205,67 @@ DmStatus DomeMySql::getStatbyRFN(dmlite::ExtendedStat &xstat, std::string rfn) {
 }
 
 
+// Extended stat for replica file names in rfio syntax
+DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " rfn:" << rfn);
+  try {
+    Statement    stmt(conn_, "cns_db",   
+                      "SELECT rowid, fileid, nbaccesses,\
+                      atime, ptime, ltime,\
+                      status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
+                      FROM Cns_file_replica\
+                      WHERE sfn = ?");
+    
+    
+    stmt.bindParam(0, rfn);
+    
+    stmt.execute();
+    
+    r = Replica();
+    
+    char setnm[512];
+    char cpool[512];
+    char cserver[512];
+    char cfilesystem[512];
+    char crfn[4096];
+    char cmeta[4096];
+    char ctype, cstatus;
+    
+    stmt.bindResult( 0, &r.replicaid);
+    stmt.bindResult( 1, &r.fileid);
+    stmt.bindResult( 2, &r.nbaccesses);
+    stmt.bindResult( 3, &r.atime);
+    stmt.bindResult( 4, &r.ptime);
+    stmt.bindResult( 5, &r.ltime);
+    stmt.bindResult( 6, &cstatus, 1);
+    stmt.bindResult( 7, &ctype, 1);
+    stmt.bindResult( 8, setnm,       sizeof(setnm));
+    stmt.bindResult( 9, cpool,       sizeof(cpool));
+    stmt.bindResult(10, cserver,     sizeof(cserver));
+    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+    stmt.bindResult(12, crfn,        sizeof(crfn));
+    stmt.bindResult(13, cmeta,       sizeof(cmeta));
+    
+    if (!stmt.fetch())
+      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
+    
+    r.rfn           = crfn;
+    r.server        = cserver;
+    r.setname       = std::string(setnm);
+    r["pool"]       = std::string(cpool);
+    r["filesystem"] = std::string(cfilesystem);
+    r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
+    r.type          = static_cast<Replica::ReplicaType>(ctype);
+    r.deserialize(cmeta);
+  }
+  catch ( ... ) {
+    Err(domelogname, " Exception while reading stat of rfn " << rfn);
+    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
+  return DmStatus();
+}
 
 
 
