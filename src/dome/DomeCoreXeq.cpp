@@ -1041,10 +1041,7 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
 
   }
 
-
-  int rc = DomeReq::SendSimpleResp(request, 200, jresp);
-  Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
-  return rc;
+  return DomeReq::SendSimpleResp(request, 200, jresp);
 };
 
 
@@ -3066,7 +3063,6 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   std::string server =  req.bodyfields.get<std::string>("server", "");
   std::string pfn =  req.bodyfields.get<std::string>("pfn", "");
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
-
   std::string lfn =  req.bodyfields.get<std::string>("lfn", "");
 
   Log(Logger::Lvl4, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' rfn: '" << rfn << "' lfn: '" << lfn << "'");
@@ -3160,7 +3156,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getdir only available on head nodes.");
   }
 
-  std::string path =  req.bodyfields.get<std::string>("path", "");
+  std::string path = req.bodyfields.get<std::string>("path", "");
   bool statentries = req.bodyfields.get<bool>("statentries", false);
 
   if (!path.size()) {
@@ -3178,7 +3174,6 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
 
     struct dirent *dent;
     while ( (dent = stack->getCatalog()->readDir(d)) ) {
-
       boost::property_tree::ptree pt;
       pt.put("name", dent->d_name);
       pt.put("type", dent->d_type);

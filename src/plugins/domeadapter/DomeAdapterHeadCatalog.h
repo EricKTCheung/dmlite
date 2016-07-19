@@ -46,7 +46,9 @@ namespace dmlite {
 
     DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw (DmException);
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
-    
+
+    void changeDir(const std::string& path) throw (DmException);
+
     void deleteReplica(const Replica&) throw (DmException);
 
     virtual void getChecksum(const std::string& path,
@@ -56,6 +58,8 @@ namespace dmlite {
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
    private:
+    std::string cwdPath_;
+
     Catalog *decorated_;
     std::string decorated_id;
     const SecurityContext* secCtx_;

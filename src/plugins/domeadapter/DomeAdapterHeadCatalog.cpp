@@ -131,13 +131,41 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   }
 }
 
+void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "aaaaaaaaaaaa Entering. path: '" << path << "'");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. path: '" << path << "'");
+  if (path.empty()) {
+    this->cwdPath_.clear();
+    return;
+  }
+
+  this->extendedStat(path,true);
+  if (path[0] == '/')
+    this->cwdPath_ = path;
+  else
+    this->cwdPath_ = Url::normalizePath(this->cwdPath_ + "/" + path);
+}
+
 DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "ddddddd path: " << path << " follow (ignored) :" << follow);
+  std::string targetpath;
+
+  if ( (!path.empty() && path[0] == '/') || this->cwdPath_.empty()) {
+    targetpath = path;
+  }
+  else {
+    targetpath = SSTR(cwdPath_ << "/" << path);
+  }
+
+  if(targetpath.empty()) {
+    Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "qqqqqqqqqq  Was about to stat an empty path!!!! Stating '/' instead");
+    targetpath = "/";
+  }
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getstatinfo");
 
-  if(!talker.execute("lfn", path)) {
+  if(!talker.execute("lfn", targetpath)) {
     if(talker.dmlite_code() == ENOENT) return DmStatus(ENOENT, SSTR(path << " not found"));
     throw DmException(talker.dmlite_code(), talker.err());
   }
