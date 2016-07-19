@@ -227,6 +227,7 @@ DmStatus MemcacheCatalog::extendedStatPOSIX(ExtendedStat &meta, const std::strin
     else {
       cwdComponents.push_back(currentPathElem);
       cwd = Url::joinPath(cwdComponents);
+      if (cwd.empty()) cwd = "/";
       // Stat, this throws an Exception if the path doesn't exist
       DmStatus st = this->extendedStatNoCheck(meta, cwd, followSym);
       if(!st.ok()) return st;
