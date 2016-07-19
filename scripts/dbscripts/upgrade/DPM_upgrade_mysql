@@ -25,7 +25,6 @@ function upgrade_stop_services () {
  service dpm stop 
  service dpnsdaemon stop
  service httpd stop
- service xrootd stop
  service domehead stop
 }
 
@@ -36,9 +35,10 @@ function upgrade_start_services () {
  service srmv2.2 start
  service dpm-gsiftp start
  service httpd start
- service xrootd start 
  service domehead start
 }
+
+function upgrade () {
 
 DPM_DB_HOST=$1
 DPM_DB_USER=$2
@@ -97,10 +97,10 @@ if [ $dpmupdate -ne 0 ] || [ $cnsupdate -ne 0 ]; then
     tov=`echo $file | cut -d - -f 5 | cut -d . -f 1`
     if [ $tov -gt $dpmv ]; then
       echo "Upgrading DPM schema from $fromv to $tov"
-      ./$file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPM_DB} --verbose
+      /usr/bin/perl $file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPM_DB} --verbose
       if [ $? -ne 0 ]; then
         echo "Error upgrading DPM schema"
-        return 1
+	return 1
       fi
     fi
   done
@@ -114,10 +114,10 @@ if [ $dpmupdate -ne 0 ] || [ $cnsupdate -ne 0 ]; then
     tov=`echo $file | cut -d - -f 5 | cut -d . -f 1`
     if [ $tov -gt $cnsv ]; then
       echo "Upgrading DPNS schema from $fromv to $tov"
-      ./$file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPNS_DB} --verbose
+      /usr/bin/perl $file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPNS_DB} --verbose
       if [ $? -ne 0 ]; then
         echo "Error upgrading DPNS schema"
-        return 1
+	return 1
       fi
     fi
   done
@@ -135,3 +135,8 @@ if [ $dpmupdate -ne 0 ] || [ $cnsupdate -ne 0 ]; then
 else
   echo "No upgrades needed"
 fi
+return 0
+}
+
+
+upgrade $1 $2 $3 $4 $5 
