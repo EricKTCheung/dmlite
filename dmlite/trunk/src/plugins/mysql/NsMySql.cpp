@@ -607,7 +607,7 @@ DmStatus INodeMySql::extendedStat(ExtendedStat &xstat, ino_t parent, const std::
   bindMetadata(stmt, &cstat);
 
   if (!stmt.fetch())
-    return DmStatus(ENOENT, name + " not found");
+    return DmStatus(ENOENT, SSTR("'" << name << "' not found in parent directory id: " << parent));
 
   dumpCStat(cstat, &xstat);
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. parent:" << parent << " name:" << name << " sz:" << xstat.size());

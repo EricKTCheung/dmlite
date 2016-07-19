@@ -202,14 +202,20 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
     else if (c == "..") {
       parent = meta.parent;
       DmStatus st = this->si_->getINode()->extendedStat(meta, parent);
-      if(!st.ok()) return st;
+      if(!st.ok()) {
+        Log(Logger::Lvl1, Logger::unregistered, "extendedStat",   " Could not stat '" << path << "'");
+        return st;
+      }
     }
     // Regular entry
     else {
       // Stat, but capture ENOENT to improve error code
       DmStatus st = this->si_->getINode()->extendedStat(meta, parent, c);
       if(!st.ok()) {
-        if(st.code() != ENOENT) return st;
+        if(st.code() != ENOENT) {
+          Log(Logger::Lvl1, Logger::unregistered, "extendedStat",   " Could not stat '" << path << "'");
+          return st;
+        }
 
         while (i < components.size()) {
           components.pop_back();
@@ -228,8 +234,8 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
         ++symLinkLevel;
         if (symLinkLevel > this->symLinkLimit_) {
           return DmStatus(DMLITE_SYSERR(ELOOP),
-                           "Symbolic links limit exceeded: > %d",
-                           this->symLinkLimit_);
+                           "Symbolic links limit exceeded: > %d path:'%s'",
+                           this->symLinkLimit_, path.c_str());
         }
 
         // We have the symbolic link now. Split it and push
@@ -251,7 +257,10 @@ DmStatus BuiltInCatalog::extendedStat(ExtendedStat &meta, const std::string& pat
         // Stat the parent again!
         else {
           DmStatus st = this->si_->getINode()->extendedStat(meta, meta.parent);
-          if(!st.ok()) return st;
+          if(!st.ok()) {
+            Log(Logger::Lvl1, Logger::unregistered, "extendedStat",   " Could not stat '" << path << "'");
+            return st;
+          }
         }
 
         continue; // Jump directly to the beginning of the loop
