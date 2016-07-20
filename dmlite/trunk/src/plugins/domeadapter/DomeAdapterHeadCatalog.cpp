@@ -132,7 +132,6 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
 }
 
 void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "aaaaaaaaaaaa Entering. path: '" << path << "'");
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. path: '" << path << "'");
   if (path.empty()) {
     this->cwdPath_.clear();
@@ -147,7 +146,7 @@ void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmExcepti
 }
 
 DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "ddddddd path: " << path << " follow (ignored) :" << follow);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
   std::string targetpath;
 
   if ( (!path.empty() && path[0] == '/') || this->cwdPath_.empty()) {
@@ -155,11 +154,6 @@ DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::st
   }
   else {
     targetpath = SSTR(cwdPath_ << "/" << path);
-  }
-
-  if(targetpath.empty()) {
-    Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "qqqqqqqqqq  Was about to stat an empty path!!!! Stating '/' instead");
-    targetpath = "/";
   }
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,

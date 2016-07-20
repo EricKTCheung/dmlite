@@ -279,10 +279,12 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   // populate the list of candidate filesystems
   std::vector<DomeFsInfo> selectedfss = pickFilesystems(pool, host, fs);
 
-  // If no filesystems matched, return error "no filesystems match the given logical path and placement hints"
+  // no filesystems match? return error
   if ( !selectedfss.size() ) {
-    // Error!
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "No filesystems match the given logical path and placement hints. HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online.");
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST,
+           SSTR("No filesystems match the given logical path and placement hints. "
+                "HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online. "
+                "Selected pool: '" << pool << "'. Selected host: '" << host << "'. Selected fs: '" << fs << "'"));
   }
 
   // Remove the filesystems that have less then the minimum free space available
@@ -1612,9 +1614,6 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
   rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
-
-
-
 };
 
 int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
@@ -3160,20 +3159,20 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getstatinfo only available on head nodes.");
   }
-  
+
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " rfn: '" << rfn << "'");
-  
+
   struct dmlite::Replica r;
-  
-   
+
+
     DmStatus ret;
-    
-    if ( !rfn.size() )  {  
+
+    if ( !rfn.size() )  {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
     }
-    
+
     {
       DomeMySql sql;
       ret = sql.getReplicabyRFN(r, rfn);
@@ -3181,10 +3180,10 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
     if (ret.code() != DMLITE_SUCCESS) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
     }
-  
-  
+
+
   boost::property_tree::ptree jresp;
-  
+
   jresp.put("replicaid", r.replicaid);
   jresp.put("fileid", r.fileid);
   jresp.put("nbaccesses", r.nbaccesses);
@@ -3199,9 +3198,9 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("rfn", rfn);
   jresp.put("setname", r.setname);
   jresp.put("xattrs", r.serialize());
-    
+
   return DomeReq::SendSimpleResp(request, 200, jresp);
-  
+
 }
 
 
@@ -3256,7 +3255,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
 /// Get information about a user
 int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, 500, "dome_getuser only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getuser only available on head nodes.");
   }
 
   std::string username = req.bodyfields.get<std::string>("username", "");
