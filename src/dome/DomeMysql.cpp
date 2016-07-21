@@ -1290,13 +1290,13 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
     bindMetadata(stmt, &cstat);
 
     if (!stmt.fetch())
-      return DmStatus(ENOENT, SSTR(fileid + " not found"));
+      return DmStatus(ENOENT, SSTR(fileid << " not found"));
 
     dumpCStat(cstat, &xstat);
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading stat of parent_fileid " << fileid);
-    return DmStatus(ENOENT, " Exception while reading stat of parent_fileid " + fileid);
+    return DmStatus(ENOENT, SSTR(" Exception while reading stat of parent_fileid " << fileid));
   }
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. parent_fileid:" << fileid << " name:" << name << " sz:" << xstat.size());
   return DmStatus();
