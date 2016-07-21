@@ -149,6 +149,7 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
   std::vector<DomeFsInfo> selected;
 
   boost::unique_lock<boost::recursive_mutex> l(status);
+  Log(Logger::Lvl3, domelogmask, domelogname, "Picking from a list of " << status.fslist.size() << " filesystems to write into");
 
   for(unsigned int i = 0; i < status.fslist.size(); i++) {
     if(!status.fslist[i].isGoodForWrite()) {
