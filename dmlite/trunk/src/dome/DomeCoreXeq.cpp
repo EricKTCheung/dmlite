@@ -149,26 +149,34 @@ std::vector<DomeFsInfo> DomeCore::pickFilesystems(const std::string &pool,
   std::vector<DomeFsInfo> selected;
 
   boost::unique_lock<boost::recursive_mutex> l(status);
-  Log(Logger::Lvl3, domelogmask, domelogname, "Picking from a list of " << status.fslist.size() << " filesystems to write into");
+  Log(Logger::Lvl2, domelogmask, domelogname, "Picking from a list of " << status.fslist.size() << " filesystems to write into");
 
   for(unsigned int i = 0; i < status.fslist.size(); i++) {
+    std::string fsname = SSTR(status.fslist[i].server << ":" << status.fslist[i].fs);
+    Log(Logger::Lvl3, domelogmask, domelogname, "Checking '" << fsname << "' of pool '" << status.fslist[i].poolname << "'");
+
     if(!status.fslist[i].isGoodForWrite()) {
+      Log(Logger::Lvl3, domelogmask, domelogname, fsname << " ruled out - not good for write");
       continue;
     }
 
     if(!pool.empty() && status.fslist[i].poolname != pool) {
+      Log(Logger::Lvl3, domelogmask, domelogname, fsname << " ruled out - does not match pool hint");
       continue;
     }
 
     if(!host.empty() && status.fslist[i].server != host) {
+      Log(Logger::Lvl3, domelogmask, domelogname, fsname << " ruled out - does not match host hint");
       continue;
     }
 
     if(!fs.empty() && status.fslist[i].fs != fs) {
+      Log(Logger::Lvl3, domelogmask, domelogname, fsname << " ruled out - does not match fs hint");
       continue;
     }
 
     // fslist[i], you win
+    Log(Logger::Lvl3, domelogmask, domelogname, fsname << " has become a candidate for writing.");
     selected.push_back(status.fslist[i]);
   }
   return selected;
@@ -281,7 +289,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   std::vector<DomeFsInfo> selectedfss = pickFilesystems(pool, host, fs);
 
   // no filesystems match? return error
-  if ( !selectedfss.size() ) {
+  if (selectedfss.empty()) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST,
            SSTR("No filesystems match the given logical path and placement hints. "
                 "HINT: make sure that the correct pools are associated to the LFN, and that they are writable and online. "
