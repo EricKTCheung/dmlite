@@ -82,7 +82,7 @@ Replica DomeAdapterDiskCatalog::getReplicaByRFN(const std::string& rfn) throw (D
     return replica;
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+    throw DmException(EINVAL, SSTR("Error when parsing json response: '" << e.what() << "'. Contents: '" << talker.response() << "'"));
   }
 }
 
