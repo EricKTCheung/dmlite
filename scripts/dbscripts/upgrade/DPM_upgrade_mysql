@@ -46,35 +46,6 @@ DPM_DB_PASSWORD=$3
 DPM_DB=$4
 DPNS_DB=$5
 
-# Gets the cns and dpm db's schema version
-echo "Checking for database schema version... "
-
-aux=`mysql --skip-column-names -s -h ${DPM_DB_HOST} -u ${DPM_DB_USER} --pass="${DPM_DB_PASSWORD}" -e "use ${DPM_DB}; select * from schema_version_dpm;" 2> /dev/null`
-if [ $? -ne 0 ]; then
-  echo "No DPM database schema version information found. Exiting."
-  return 1
-fi
-dpmvdots=`echo $aux | awk '{print $1"."$2"."$3}'`
-dpmv=`echo $aux | awk '{print $1$2$3}'`
-
-aux=`mysql --skip-column-names -s -h ${DPM_DB_HOST} -u ${DPM_DB_USER} --pass="${DPM_DB_PASSWORD}" -e "use ${DPNS_DB}; select * from schema_version;" 2> /dev/null`
-if [ $? -ne 0 ]; then
-  echo "No DPNS database schema version information found. Exiting."
-  return 1
-fi
-cnsvdots=`echo $aux | awk '{print $1"."$2"."$3}'`
-cnsv=`echo $aux | awk '{print $1$2$3}'`
-
-echo "Database versions used: DPM $dpmvdots - DPNS $cnsvdots"
-
-# Good version?
-if [ $dpmv -lt 340 ]; then
-  echo "we only supports DPM database schema upgrade from versions 3.4.0 "
-  echo "If you have schema version less then 3.4.0 , then please contact the support"
-  return 1
-fi
-
-# Do we need to update?
 ls /usr/share/dmlite/dbscripts/upgrade/dpm-db-$dpmv-* &> /dev/null
 dpmupdate=$(($?==0))
 ls /usr/share/dmlite/dbscripts/upgrade/cns-db-$cnsv-* &> /dev/null
