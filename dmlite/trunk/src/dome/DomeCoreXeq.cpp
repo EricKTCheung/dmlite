@@ -3193,9 +3193,7 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("ltime", r.ltime);
   jresp.put("status", r.status);
   jresp.put("type", r.type);
-  jresp.put("pool", r.getString("pool"));
   jresp.put("server", r.server);
-  jresp.put("filesystem", r.getString("filesystem"));
   jresp.put("rfn", rfn);
   jresp.put("setname", r.setname);
   jresp.put("xattrs", r.serialize());

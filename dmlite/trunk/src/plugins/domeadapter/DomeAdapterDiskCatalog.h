@@ -45,6 +45,7 @@ namespace dmlite {
                   std::vector<GroupInfo>* groups) throw (DmException);
 
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
+    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
 
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
