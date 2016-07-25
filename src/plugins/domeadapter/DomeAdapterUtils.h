@@ -29,8 +29,13 @@ inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::R
   replica.atime = ptree.get<time_t>("atime");
   replica.ptime = ptree.get<time_t>("ptime");
   replica.ltime = ptree.get<time_t>("ltime");
-  replica.status = static_cast<dmlite::Replica::ReplicaStatus>(ptree.get<char>("status"));
-  replica.type = static_cast<dmlite::Replica::ReplicaType>(ptree.get<char>("type"));
+
+  char status = atoi(ptree.get<std::string>("status").c_str());
+  char type = atoi(ptree.get<std::string>("type").c_str());
+
+  replica.status = static_cast<dmlite::Replica::ReplicaStatus>(status);
+  replica.type = static_cast<dmlite::Replica::ReplicaType>(type);
+
   replica.server = ptree.get<std::string>("server");
   replica.setname = ptree.get<std::string>("setname");
   replica.deserialize(ptree.get<std::string>("xattrs"));
