@@ -5,6 +5,7 @@
 #define DOME_ADAPTER_UTILS_H
 
 #include <dmlite/cpp/poolmanager.h>
+#include <dmlite/cpp/inode.h>
 
 inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::ExtendedStat &xstat) {
   xstat.stat.st_size = ptree.get<uint64_t>("size");
@@ -19,6 +20,20 @@ inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
   xstat.stat.st_uid = ptree.get<uid_t>("uid");
   xstat.name = ptree.get<std::string>("name");
   xstat.deserialize(ptree.get<std::string>("xattrs"));
+}
+
+inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::Replica &replica) {
+  replica.replicaid = ptree.get<int64_t>("replicaid");
+  replica.fileid = ptree.get<int64_t>("fileid");
+  replica.nbaccesses = ptree.get<int64_t>("nbaccesses");
+  replica.atime = ptree.get<time_t>("atime");
+  replica.ptime = ptree.get<time_t>("ptime");
+  replica.ltime = ptree.get<time_t>("ltime");
+  replica.status = static_cast<dmlite::Replica::ReplicaStatus>(ptree.get<char>("status"));
+  replica.type = static_cast<dmlite::Replica::ReplicaType>(ptree.get<char>("type"));
+  replica.server = ptree.get<std::string>("server");
+  replica.setname = ptree.get<std::string>("setname");
+  replica.deserialize(ptree.get<std::string>("xattrs"));
 }
 
 inline dmlite::Pool deserializePool(boost::property_tree::ptree::const_iterator it) {
