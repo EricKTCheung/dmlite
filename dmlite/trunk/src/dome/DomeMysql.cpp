@@ -733,9 +733,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
     
     stmt.bindResult(3, (int *)&fs.status);
     
-    fs.poolname = bufpoolname;
-    fs.server = bufserver;
-    fs.fs = buffs;
+
     
     {
       boost::unique_lock<boost::recursive_mutex> l(st);
@@ -743,6 +741,11 @@ int DomeMySql::getFilesystems(DomeStatus &st)
       
       while ( stmt.fetch() ) {
         DomeFsInfo oldfs;
+        
+        fs.poolname = bufpoolname;
+        fs.server = bufserver;
+        fs.fs = buffs;
+        
         st.servers.insert(fs.server);
         
         // If the fs was already in memory, keep its status
