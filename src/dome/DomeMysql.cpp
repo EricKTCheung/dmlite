@@ -713,50 +713,58 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   DomeFsInfo fs;
   int cnt = 0;
-
+  
   try {
     Statement stmt(conn_, "dpm_db",
                    "SELECT poolname, server, fs, status "
                    "FROM dpm_fs " );
     stmt.execute();
-
+    
     char bufpoolname[1024], bufserver[1024], buffs[1024];
-
+    
     memset(bufpoolname, 0, sizeof(bufpoolname));
     stmt.bindResult(0, bufpoolname, 16);
-
+    
     memset(bufserver, 0, sizeof(bufserver));
     stmt.bindResult(1, bufserver, 64);
-
+    
     memset(buffs, 0, sizeof(buffs));
     stmt.bindResult(2, buffs, 80);
-
+    
     stmt.bindResult(3, (int *)&fs.status);
-
-
+    
+    fs.poolname = bufpoolname;
+    fs.server = bufserver;
+    fs.fs = buffs;
+    
     {
-    boost::unique_lock<boost::recursive_mutex> l(st);
-    st.fslist.clear();
-    while ( stmt.fetch() ) {
-      if ( !strcmp(bufserver, st.myhostname.c_str()) || (st.role == DomeStatus::roleHead) ) {
-
-        fs.poolname = bufpoolname;
-        fs.server = bufserver;
-        st.servers.insert(bufserver);
-        fs.fs = buffs;
-
+      boost::unique_lock<boost::recursive_mutex> l(st);
+      std::vector <DomeFsInfo> newfslist;
+      
+      while ( stmt.fetch() ) {
+        DomeFsInfo oldfs;
+        st.servers.insert(fs.server);
+        
+        // If the fs was already in memory, keep its status
+        if ( st.PfnMatchesAnyFS(fs.server, fs.fs, oldfs) ) {
+          fs.activitystatus = oldfs.activitystatus;
+        }
+        
         Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
         "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "'");
-
-        st.fslist.push_back(fs);
-
+        
+        newfslist.push_back(fs);
+        
         cnt++;
       }
+      
+      st.fslist = newfslist;
+      
     }
-    }
+    
   }
   catch ( ... ) {}
-
+  
   Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
   return cnt;
 }
