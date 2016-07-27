@@ -51,7 +51,7 @@ DavixCtxFactory::DavixCtxFactory() {
 
   // initialize default parameters
   struct timespec spec_timeout;
-  spec_timeout.tv_sec = 15;
+  spec_timeout.tv_sec = 300;
   spec_timeout.tv_nsec = 0;
   params_.setConnectionTimeout(&spec_timeout);
   params_.setOperationTimeout(&spec_timeout);
