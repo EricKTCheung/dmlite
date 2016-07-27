@@ -64,12 +64,12 @@ namespace dmlite {
     /// Acquires a free resource.
     E  acquire(bool block = true)
     {
-      bool found = false; 
+      bool found = false;
       E e;
-      
+
       { // lock scope
         boost::mutex::scoped_lock lock(mutex_);
-      
+
         // Wait for one free
         if (!block && (freeSlots_ == 0)) {
           throw DmException(DMLITE_SYSERR(EBUSY),
@@ -77,10 +77,10 @@ namespace dmlite {
         }
 
         boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(60);
-      
+
         while (freeSlots_ < 1) {
           if (boost::get_system_time() >= timeout) {
-            syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds", 60);
+            syslog(LOG_USER | LOG_WARNING, "Timeout...%d seconds in '%s'", 60, __PRETTY_FUNCTION__);
             break;
           }
           available_.timed_wait(lock, timeout);
@@ -98,14 +98,14 @@ namespace dmlite {
           else
             found = true;
         }
-      
+
       } // lock
 
       // We create a new element out of the lock. This may help for elements that need other elements
       // of the same type to be constructed (sigh)
-      if (!found) 
+      if (!found)
         e = factory_->create();
-    
+
       { // lock scope (again, sigh)
         boost::mutex::scoped_lock lock(mutex_);
         // Keep track of used
