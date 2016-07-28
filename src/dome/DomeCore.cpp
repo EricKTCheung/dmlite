@@ -424,7 +424,7 @@ int DomeCore::init(const char *cfgfile) {
                             CFG->GetString("head.db.user",     (char *)"guest"),
                             CFG->GetString("head.db.password", (char *)"none"),
                             CFG->GetLong  ("head.db.port",     0),
-                            CFG->GetLong  ("head.db.poolsz",   10) );
+                            CFG->GetLong  ("head.db.poolsz",   128) );
 
       // Try getting a db connection and use it. If it does not work
       // an exception will just kill us, which is what we want

@@ -751,6 +751,8 @@ int DomeMySql::getFilesystems(DomeStatus &st)
         // If the fs was already in memory, keep its status
         if ( st.PfnMatchesAnyFS(fs.server, fs.fs, oldfs) ) {
           fs.activitystatus = oldfs.activitystatus;
+          fs.freespace = oldfs.freespace;
+          fs.physicalsize = oldfs.physicalsize;
         }
         
         Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
