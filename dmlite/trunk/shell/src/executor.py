@@ -80,7 +80,7 @@ class DomeExecutor(object):
 
     def getquotatoken(self,url,lfn, getsubdirs):
         talker = DomeTalker(self.creds, url, "GET", "dome_getquotatoken")
-        return talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs })
+        return talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs, "getparentdirs": "true" })
 
     def setquotatoken(self,url,lfn,pool, space,desc):
         talker = DomeTalker(self.creds, url, "POST", "dome_setquotatoken")

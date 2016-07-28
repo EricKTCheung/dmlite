@@ -3177,7 +3177,12 @@ The command accepts the following paramameter:
              self.error("No quota token defined for the path: " +path)
              return
          for token in data.keys():
-             self.ok("****************************************")
+	     self.ok("\n")
+	     if path == data[token]['path']:
+		self.ok("****** The Quota Token associated to your folder ******")
+	     else:
+                self.ok("*******************************************************")
+             self.ok("\n")
              self.ok("Token Name:\t" + data[token]['quotatkname'])
              self.ok("Token Path:\t" + data[token]['path'])
              self.ok("Token Pool:\t" + data[token]['quotatkpoolname'])
