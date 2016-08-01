@@ -133,9 +133,6 @@ void Catalog::getChecksum(const std::string& path,
   if (!checksums::isChecksumFullName(k))
     throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
 
-  if (csumvalue.length() == 0)
-    throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
-
   csumvalue = ckx.getString((const std::string)k, "");
 
   if (csumvalue.length() > 0) return;
