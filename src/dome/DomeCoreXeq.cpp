@@ -1629,8 +1629,6 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
   // Crawl upwards the directory hierarchy of the given path
   // stopping when a matching one is found
-  // The result is a list, as more than one quotatoken can be
-  // assigned to a directory
   // The quota tokens indicate the pools that host the files written into
   // this directory subtree
 
@@ -1659,6 +1657,8 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   long long totspace = 0LL;
   long long usedspace = 0LL;
   long long poolfree = 0LL;
+  std::string tkname = "<unknown>";
+  std::string poolname = "<unknown>";
   // Crawl
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
@@ -1681,8 +1681,10 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
           Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
           it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);
+          
+          tkname = it->second.u_token;
+          poolname = it->second.poolname;
         }
-
 
         // Now get the size of this directory, using the dmlite catalog
         usedspace = 0;
@@ -1719,7 +1721,9 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("quotafreespace", (sp < 0 ? 0 : sp));
   jresp.put("poolfreespace", poolfree);
   jresp.put("usedspace", usedspace);
-
+  jresp.put("quotatoken", tkname);
+  jresp.put("poolname", poolname);
+  
   int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;

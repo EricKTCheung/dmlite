@@ -30,14 +30,14 @@
 \contentsline {subsubsection}{\nonumberline dome\_get}{25}
 \contentsline {subsubsection}{\nonumberline dome\_pullstatus}{25}
 \contentsline {subsubsection}{\nonumberline dome\_statpool}{26}
-\contentsline {subsubsection}{\nonumberline dome\_addpool}{27}
+\contentsline {subsubsection}{\nonumberline dome\_addpool}{28}
 \contentsline {subsubsection}{\nonumberline dome\_rmpool}{28}
 \contentsline {subsubsection}{\nonumberline dome\_addfstopool}{28}
 \contentsline {subsubsection}{\nonumberline dome\_rmfs}{29}
 \contentsline {subsubsection}{\nonumberline dome\_modifyfs}{29}
 \contentsline {subsubsection}{\nonumberline dome\_getstatinfo}{30}
-\contentsline {subsubsection}{\nonumberline dome\_getreplicainfo}{30}
-\contentsline {subsubsection}{\nonumberline dome\_addfstopool}{31}
+\contentsline {subsubsection}{\nonumberline dome\_getreplicainfo}{31}
+\contentsline {subsubsection}{\nonumberline dome\_addfstopool}{32}
 \contentsline {subsubsection}{\nonumberline dome\_getdir}{32}
 \contentsline {subsubsection}{\nonumberline dome\_getuser}{33}
 \contentsline {subsubsection}{\nonumberline dome\_updatexattr}{33}
