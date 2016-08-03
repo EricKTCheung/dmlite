@@ -1164,7 +1164,9 @@ no particular fields in the header\\
 Params:
 \begin{itemize}
  \item pfn: Physical filename
+ \item lfn: Logical filename
  \item checksum-type: a suggestion about the kind of checksum that the external file puller may want to calculate
+ \item neededspace: an estimation of the space that needs to be free to pull a file
 \end{itemize}
 
 Returns: 200 or various errors if the pull process cannot be started.

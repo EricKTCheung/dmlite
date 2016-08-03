@@ -2020,7 +2020,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.bodyfields.get<std::string>("lfn", "");
-
+    int64_t neededspace = req.bodyfields.get<int64_t>("neededspace", 0LL);
+    
     // Checksumtype in this case can be empty, as it's just a suggestion...
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
@@ -2073,18 +2074,20 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     // TODO: Doublecheck that there is a suitable replica in P status for the file that we want to fetch
 
-
-    // Get the default space for the pool
-    int64_t pool_defsize;
-    char pool_stype;
-    if (!status.getPoolInfo(fsinfo.poolname, pool_defsize, pool_stype)) {
-      Err("dome_pull", SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs));
-      return DomeReq::SendSimpleResp(request, 500, SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs) );
+    if (neededspace <= 0LL) {
+      // Try getting the default space for the pool
+      int64_t pool_defsize;
+      char pool_stype;
+      if (!status.getPoolInfo(fsinfo.poolname, pool_defsize, pool_stype)) {
+        Err("dome_pull", SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs));
+        return DomeReq::SendSimpleResp(request, 500, SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs) );
+      }
+      neededspace = pool_defsize*2;
     }
     
     // Make sure that there is enough space to fit filesz bytes
-    if (fsinfo.freespace < pool_defsize) {
-      Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << pool_defsize << " ... trying to purge volatile files.");
+    if (fsinfo.freespace < neededspace) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << neededspace << " ... trying to purge volatile files.");
       std::vector<std::string> comps = Url::splitPath(pfn);
       if (comps.size() < 3)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pfn: '" << pfn << "'") );
@@ -2095,14 +2098,14 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
       std::string fsvopfx = Url::joinPath(comps);
 
-      int freed = makespace(fsvopfx, pool_defsize);
-      if (freed < pool_defsize)
+      int freed = makespace(fsvopfx, neededspace);
+      if (freed < neededspace)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Volatile file purging failed. Not enough disk space to pull pfn: '" << pfn << "'") );
     }
 
     // TODO: Make sure that the phys file does not already exist
 
-    Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << pool_defsize << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+    Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << neededspace << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
 
     // Let's just execute the external hook, passing the obvious parameters
 
@@ -2112,7 +2115,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
     params.push_back(lfn);
     params.push_back(pfn);
-    params.push_back(SSTR(pool_defsize));
+    params.push_back(SSTR(neededspace));
     int id = this->submitCmd(params);
 
     if (id < 0)

@@ -46,7 +46,7 @@
 \contentsline {subsubsection}{\nonumberline dome\_makespace}{35}
 \contentsline {subsubsection}{\nonumberline dome\_dochksum}{35}
 \contentsline {subsubsection}{\nonumberline dome\_pull}{36}
-\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{36}
+\contentsline {subsubsection}{\nonumberline dome\_pfnrm}{37}
 \contentsline {subsubsection}{\nonumberline dome\_statpfn}{37}
 \contentsline {chapter}{\numberline {2}Configuration}{38}
 \contentsline {section}{\numberline {2.1}Command-line parameters}{38}
