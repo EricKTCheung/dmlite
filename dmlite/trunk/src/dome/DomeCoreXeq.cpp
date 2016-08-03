@@ -1094,10 +1094,12 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   // This simple implementation is like a put
   DomeFsInfo destfs;
   std::string destrfn;
+  
   bool success;
   dome_put(req, request, success, &destfs, &destrfn, true);
   if (!success)
     return 1; // means that a response has already been sent in the context of dome_put, btw it can only be an error
+
 
   // create queue entry
   GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
@@ -2012,43 +2014,52 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Request to pull pfn: '" << pfn << "' lfn: '" << lfn << "'");
 
-    // We retrieve the size of the remote file
-    int64_t filesz = 0LL;
-    {
-
-      std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
-
-      DomeTalker talker(*davixPool, req.creds, domeurl,
-                        "GET", "dome_getstatinfo");
-
-      if(!talker.execute(req.bodyfields)) {
-        Err(domelogname, talker.err());
-        return DomeReq::SendSimpleResp(request, 500, talker.err());
-      }
-
-      try {
-        filesz = talker.jresp().get<size_t>("size");
-      }
-      catch(boost::property_tree::ptree_error &e) {
-        std::string errmsg = SSTR("Received invalid json when talking to " << domeurl << ":" << e.what() << " '" << talker.response() << "'");
-        Err("takeJSONbodyfields", errmsg);
-        return DomeReq::SendSimpleResp(request, 500, errmsg);
-      }
-
-    }
-
-    Log(Logger::Lvl4, domelogmask, domelogname, "Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
-
-    if (filesz == 0LL) {
-      return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
-    }
+// Commented out because it's normal that a new file has 0 size until it is pulled
+//     // We retrieve the size of the remote file
+//     int64_t filesz = 0LL;
+//     {
+// 
+//       std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
+// 
+//       DomeTalker talker(*davixPool, req.creds, domeurl,
+//                         "GET", "dome_getstatinfo");
+// 
+//       if(!talker.execute(req.bodyfields)) {
+//         Err(domelogname, talker.err());
+//         return DomeReq::SendSimpleResp(request, 500, talker.err());
+//       }
+// 
+//       try {
+//         filesz = talker.jresp().get<size_t>("size");
+//       }
+//       catch(boost::property_tree::ptree_error &e) {
+//         std::string errmsg = SSTR("Received invalid json when talking to " << domeurl << ":" << e.what() << " '" << talker.response() << "'");
+//         Err("takeJSONbodyfields", errmsg);
+//         return DomeReq::SendSimpleResp(request, 500, errmsg);
+//       }
+// 
+//     }
+// 
+//     Log(Logger::Lvl4, domelogmask, domelogname, "Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+// 
+//     if (filesz == 0LL) {
+//       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
+//     }
 
     // TODO: Doublecheck that there is a suitable replica in P status for the file that we want to fetch
 
 
+    // Get the default space for the pool
+    int64_t pool_defsize;
+    char pool_stype;
+    if (!status.getPoolInfo(fsinfo.poolname, pool_defsize, pool_stype)) {
+      Err("dome_pull", SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs));
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs) );
+    }
+    
     // Make sure that there is enough space to fit filesz bytes
-    if (fsinfo.freespace < filesz) {
-      Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << filesz << " ... trying to purge volatile files.");
+    if (fsinfo.freespace < pool_defsize) {
+      Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << pool_defsize << " ... trying to purge volatile files.");
       std::vector<std::string> comps = Url::splitPath(pfn);
       if (comps.size() < 3)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pfn: '" << pfn << "'") );
@@ -2059,14 +2070,14 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
       std::string fsvopfx = Url::joinPath(comps);
 
-      int freed = makespace(fsvopfx, filesz);
-      if (freed < filesz)
+      int freed = makespace(fsvopfx, pool_defsize);
+      if (freed < pool_defsize)
         return DomeReq::SendSimpleResp(request, 422, SSTR("Volatile file purging failed. Not enough disk space to pull pfn: '" << pfn << "'") );
     }
 
     // TODO: Make sure that the phys file does not already exist
 
-    Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+    Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << pool_defsize << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
 
     // Let's just execute the external hook, passing the obvious parameters
 
@@ -2076,7 +2087,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     params.push_back(CFG->GetString("disk.filepuller.pullhook", (char *)""));
     params.push_back(lfn);
     params.push_back(pfn);
-    params.push_back(SSTR(filesz));
+    params.push_back(SSTR(pool_defsize));
     int id = this->submitCmd(params);
 
     if (id < 0)

@@ -107,6 +107,9 @@ public:
   /// Removes a fs
   int rmFs(std::string &server, std::string &fs);
   
+  /// Sets the file size given the LFN
+  dmlite::DmStatus setSize(std::string lfn, int64_t filesize);
+  
 protected:
   // The corresponding factory.
   //NsMySqlFactory* factory_;
