@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# @STARTUP_SCRIPT_NAME@            Startup script for the @STARTUP_SCRIPT_NAME@ server
+# @STARTUP_SCRIPT@            Startup script for the @STARTUP_SCRIPT@ server
 #
 # chkconfig: - 93 17
 # description: The dome daemon is central to the DPM system and aims to \
@@ -16,7 +16,7 @@ DOME_LANG=${DOME_LANG-"C"}
 DOME_USER=dpmmgr
 DOME_GROUP=dpmmgr
 
-instance="@STARTUP_SCRIPT_NAME@"
+instance="@STARTUP_SCRIPT@"
 
 dome=/var/www/fcgi-bin/dome
 pidfile=/var/run/${instance}.pid
