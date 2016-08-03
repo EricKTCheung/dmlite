@@ -470,7 +470,7 @@ void DomeStatus::tickFilepulls() {
     DomeTalker talker(*davixPool, &sec, diskurl,
                       "POST", "dome_pull");
 
-    if(!talker.execute("lfn", lfn, "pfn", DomeUtils::pfn_from_rfio_syntax(rfn)), "neededspace", pool_defsize) {
+    if(!talker.execute("lfn", lfn, "pfn", DomeUtils::pfn_from_rfio_syntax(rfn), "neededspace", pool_defsize)) {
       Err(domelogname, "ERROR when issuing dome_pull to diskserver: " << talker.err());
       continue;
     }
