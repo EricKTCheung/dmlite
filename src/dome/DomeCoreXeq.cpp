@@ -81,14 +81,24 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   components.pop_back();
 
   // Make sure that all the parent dirs exist
+  DomeMySql sql;
+  
   do {
 
     std::string ppath = Url::joinPath(components);
     ExtendedStat st;
 
     // Try to get the stat of the parent
-    try {
-      st = catalog->extendedStat(ppath);
+      DmStatus ret = sql.getStatbyLFN(st, ppath);
+      if (!ret.ok()) {
+        // No parent means that we have to create it later
+        Log(Logger::Lvl4, domelogmask, domelogname, "Path to create: '" << ppath << "'");
+        name = components.back();
+        components.pop_back();
+        
+        todo.push_back(ppath);
+      }
+      
       if (!parentok) {
         parentstat = st;
         parentpath = ppath;
@@ -99,14 +109,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
       }
 
 
-    } catch (DmException e) {
-      // No parent means that we have to create it later
-      Log(Logger::Lvl4, domelogmask, domelogname, "Path to create: '" << ppath << "'");
-      name = components.back();
-      components.pop_back();
 
-      todo.push_back(ppath);
-    }
 
   } while ( !components.empty() );
 
@@ -135,7 +138,10 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     catalog->setMode(filepath, 0664); // horrible workaround to make sure the memcached plugin
                                       // invalidates its previous contents. Necessary during the file
                                       // pulling workflow.
-    statinfo = catalog->extendedStat(filepath);
+    DmStatus st = sql.getStatbyLFN(statinfo, filepath);
+    if (!st.ok())
+      throw st.exception();
+    
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
     Err(domelogname, "Cannot create file '" << filepath << "'");
@@ -1206,7 +1212,14 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     Replica replica;
 
     // retrieve lfn checksum
-    ExtendedStat xstat = stack->getCatalog()->extendedStat(lfn);
+    ExtendedStat xstat;
+    {
+      DomeMySql sql;
+      DmStatus st = sql.getStatbyLFN(xstat, lfn);
+      if (!st.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "'"));
+    }
+    
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
       Log(Logger::Lvl3, domelogmask, domelogname, "Found lfn checksum in the db: " << lfnchecksum);
@@ -1327,7 +1340,15 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     }
     // still update if it's empty, though
     else {
-      ExtendedStat xstat = stack->getCatalog()->extendedStat(lfn);
+      // retrieve lfn checksum
+      ExtendedStat xstat;
+      {
+        DomeMySql sql;
+        DmStatus st = sql.getStatbyLFN(xstat, lfn);
+        if (!st.ok())
+          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "'"));
+      }
+
       if(!xstat.hasField(fullchecksum)) {
         stack->getCatalog()->setChecksum(lfn, fullchecksum, checksum);
       }
@@ -1693,14 +1714,18 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
         // Now get the size of this directory, using the dmlite catalog
         usedspace = 0;
-        DmlitePoolHandler stack(status.dmpool);
-        try {
-          struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
+
+        {
+          ExtendedStat st;
+
+          DomeMySql sql;
+          DmStatus sts = sql.getStatbyLFN(st, absPath);
+          if (!sts.ok())
+            Err(domelogname, "Ignore exception stat-ing '" << absPath << "'");
+
           usedspace = st.stat.st_size;
         }
-        catch (dmlite::DmException e) {
-          Err(domelogname, "Ignore exception stat-ing '" << absPath << "'");
-        }
+
 
         break;
       }
