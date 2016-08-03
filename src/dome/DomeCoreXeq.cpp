@@ -82,7 +82,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 
   // Make sure that all the parent dirs exist
   DomeMySql sql;
-  
+
   do {
 
     std::string ppath = Url::joinPath(components);
@@ -95,10 +95,10 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
         Log(Logger::Lvl4, domelogmask, domelogname, "Path to create: '" << ppath << "'");
         name = components.back();
         components.pop_back();
-        
+
         todo.push_back(ppath);
       }
-      
+
       if (!parentok) {
         parentstat = st;
         parentpath = ppath;
@@ -141,7 +141,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     DmStatus st = sql.getStatbyLFN(statinfo, filepath);
     if (!st.ok())
       throw st.exception();
-    
+
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
     Err(domelogname, "Cannot create file '" << filepath << "'");
@@ -1100,7 +1100,7 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   // This simple implementation is like a put
   DomeFsInfo destfs;
   std::string destrfn;
-  
+
   bool success;
   dome_put(req, request, success, &destfs, &destrfn, true);
   if (!success)
@@ -1219,7 +1219,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       if (!st.ok())
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "'"));
     }
-    
+
     if(xstat.hasField(fullchecksum)) {
       lfnchecksum = xstat.getString(fullchecksum);
       Log(Logger::Lvl3, domelogmask, domelogname, "Found lfn checksum in the db: " << lfnchecksum);
@@ -2021,7 +2021,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.bodyfields.get<std::string>("lfn", "");
     int64_t neededspace = req.bodyfields.get<int64_t>("neededspace", 0LL);
-    
+
     // Checksumtype in this case can be empty, as it's just a suggestion...
     if(pfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "pfn cannot be empty.");
@@ -2044,17 +2044,17 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 //     // We retrieve the size of the remote file
 //     int64_t filesz = 0LL;
 //     {
-// 
+//
 //       std::string domeurl = CFG->GetString("disk.headnode.domeurl", (char *)"(empty url)/");
-// 
+//
 //       DomeTalker talker(*davixPool, req.creds, domeurl,
 //                         "GET", "dome_getstatinfo");
-// 
+//
 //       if(!talker.execute(req.bodyfields)) {
 //         Err(domelogname, talker.err());
 //         return DomeReq::SendSimpleResp(request, 500, talker.err());
 //       }
-// 
+//
 //       try {
 //         filesz = talker.jresp().get<size_t>("size");
 //       }
@@ -2063,11 +2063,11 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 //         Err("takeJSONbodyfields", errmsg);
 //         return DomeReq::SendSimpleResp(request, 500, errmsg);
 //       }
-// 
+//
 //     }
-// 
+//
 //     Log(Logger::Lvl4, domelogmask, domelogname, "Remote size: " << filesz << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
-// 
+//
 //     if (filesz == 0LL) {
 //       return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot pull a 0-sized file. lfn: '" << lfn << "'") );
 //     }
@@ -2084,7 +2084,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       }
       neededspace = pool_defsize*2;
     }
-    
+
     // Make sure that there is enough space to fit filesz bytes
     if (fsinfo.freespace < neededspace) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << neededspace << " ... trying to purge volatile files.");
@@ -2106,6 +2106,14 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
     // TODO: Make sure that the phys file does not already exist
 
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting filepull. Remote size: " << neededspace << " for pfn: '" << pfn << "' lfn: '" << lfn << "'");
+
+    // Create the necessary directories, if needed
+    try {
+      DomeUtils::mkdirp(pfn);
+    }
+    catch(DmException &e) {
+      return DomeReq::SendSimpleResp(request, DOME_HTTP_INTERNAL_SERVER_ERROR, SSTR("Unable to create physical directories for '" << pfn << "'- internal error: '" << e.what() << "'"));
+    }
 
     // Let's just execute the external hook, passing the obvious parameters
 

@@ -29,6 +29,8 @@
 
 namespace DomeUtils {
 
+using namespace dmlite;
+
 inline std::string trim_trailing_slashes(std::string str) {
   while(str.size() > 0 && str[str.size()-1] == '/') {
     str.erase(str.size()-1);
@@ -58,6 +60,31 @@ inline std::vector<std::string> split(std::string data, std::string token) {
             data = data.substr(pos + token.size());
     } while (std::string::npos != pos);
     return output;
+}
+
+inline void mkdirp(const std::string& path) throw (DmException) {
+  std::vector<std::string> parts = split(path, "/");
+  std::ostringstream tocreate(parts[0]);
+
+  // rudimentary sanity protection: never try to create the top-level directory
+  for(std::vector<std::string>::iterator it = parts.begin()+1; it+1 != parts.end(); it++) {
+    tocreate << "/" + *it;
+
+    struct stat info;
+    if(::stat(tocreate.str().c_str(), &info) != 0) {
+      Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, " Creating directory: " << tocreate.str());
+
+      mode_t prev = umask(0);
+      int ret = ::mkdir(tocreate.str().c_str(), 0770);
+      umask(prev);
+
+      if(ret != 0) {
+        char errbuffer[128];
+        strerror_r(errno, errbuffer, sizeof(errbuffer));
+        throw DmException(errno, "Could not create directory: %s err: %s", tocreate.str().c_str(), errbuffer);
+      }
+    }
+  }
 }
 
 inline std::string bool_to_str(bool b) {
