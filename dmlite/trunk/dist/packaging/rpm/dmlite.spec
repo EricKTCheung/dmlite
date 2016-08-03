@@ -348,6 +348,13 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 
 make install DESTDIR=%{buildroot}
+# clean up the startup scripts we don't need - otherwise rpmbuild will fail
+# due to unpackaged files
+%if %systemd
+  rm -rf %{buildroot}/%{_sysconfdir}/init.d
+%else
+  rm -rf %{buildroot}/usr/lib/systemd
+%endif
 
 ## remote tests if not needed
 %if %{?dmlite_tests} == 0
@@ -415,8 +422,14 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %dir %{_localstatedir}/www/fcgi-bin
 %{_bindir}/dome-checksum
+%if %systemd
+/usr/lib/systemd/system/domehead.service
+/usr/lib/systemd/system/domedisk.service
+%else
 %{_sysconfdir}/rc.d/init.d/domehead
 %{_sysconfdir}/rc.d/init.d/domedisk
+%endif
+
 %{_localstatedir}/www/fcgi-bin/dome
 
 %files devel
