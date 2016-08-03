@@ -123,8 +123,6 @@ namespace dmlite {
   protected:
     int  fd_;
     bool eof_;
-  private:
-    void mkdirp(const std::string &path) throw (DmException);
   };
 
 }
