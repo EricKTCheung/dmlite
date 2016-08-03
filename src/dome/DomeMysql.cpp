@@ -1314,3 +1314,42 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. parent_fileid:" << fileid << " name:" << name << " sz:" << xstat.size());
   return DmStatus();
 }
+
+
+
+
+
+
+
+DmStatus DomeMySql::setSize(std::string lfn, int64_t filesize) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << lfn << "' size: " << filesize );
+  
+  bool ok = true;
+  long unsigned int nrows = 0;
+  dmlite::ExtendedStat st;
+  
+  // Do a stat to get the fileid
+  DmStatus ret = getStatbyLFN(st, lfn);
+  if (!ret.ok())
+    return ret;
+  
+  try {
+    // Just do the query on the fileid
+    Statement stmt(conn_, "cns_db",
+                   "UPDATE Cns_file_metadata SET filesize = ?, ctime = UNIX_TIMESTAMP() WHERE fileid = ?");
+    
+    stmt.bindParam(0, filesize);
+    stmt.bindParam(1, st.stat.st_ino);
+    
+    // If no rows are affected then error
+    if ( (nrows = stmt.execute() == 0) )
+      return DmStatus(EINVAL, SSTR("Cannot set filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << " nrows: " << nrows));
+    
+  }
+  catch (DmException e) {
+    Err(domelogname, " Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what());
+    return DmStatus(EINVAL, SSTR(" Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what()));
+  }
+  
+  return DmStatus();
+}
