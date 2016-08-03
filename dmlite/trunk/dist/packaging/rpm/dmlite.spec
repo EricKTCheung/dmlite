@@ -63,7 +63,7 @@ logic for data management and storage for the Lcg grid.
 
 
 
-%package dpm_head
+%package dpmhead
 Summary:  EMI DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
@@ -93,12 +93,12 @@ Requires: davix
 Obsoletes: emi-dpm_mysql
 
 
-%description dpm_head
+%description dpmhead
 The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
 
-%package dpm_disk
+%package dpmdisk
 Summary:  EMI DPM Disk Node
 Group:    Applications/Internet
 Requires: dpm%{?_isa} >= 1.9
@@ -123,7 +123,7 @@ Requires: davix
 
 Obsoletes: emi-dpm_disk
 
-%description dpm_disk
+%description dpmdisk
 The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as RFIO and SRM version 1, version 2 and version 2.2.
@@ -390,13 +390,13 @@ rm -rf %{buildroot}
 
 
 
-%files dpm_head
+%files dpmhead
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/dbscripts
 %{_prefix}/share/dmlite/filepull
 
 
-%files dpm_disk
+%files dpmdisk
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/filepull
 
