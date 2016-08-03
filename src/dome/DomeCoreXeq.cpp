@@ -2076,7 +2076,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
     if (neededspace <= 0LL) {
       // Try getting the default space for the pool
-      int64_t pool_defsize;
+      int64_t pool_defsize = 0LL;
       char pool_stype;
       if (!status.getPoolInfo(fsinfo.poolname, pool_defsize, pool_stype)) {
         Err("dome_pull", SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs));
