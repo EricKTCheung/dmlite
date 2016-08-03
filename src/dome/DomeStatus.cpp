@@ -447,7 +447,7 @@ void DomeStatus::tickFilepulls() {
     sec.credentials.clientName = qualifiers[5];
     sec.credentials.remoteAddress = qualifiers[6];
 
-    
+
     // Try getting the default space for the pool
     int64_t pool_defsize;
     char pool_stype;
@@ -460,17 +460,22 @@ void DomeStatus::tickFilepulls() {
       Err("dome_pull", SSTR("Can't get pool for fs: '" << fsinfo.server << ":" << fsinfo.fs));
       continue;
     }
-    
+
     // send pull command to the disk to initiate calculation
     Log(Logger::Lvl1, domelogmask, domelogname, "Contacting disk server " << server << " for pulling '" << rfn << "'");
     std::string diskurl = "https://" + server + "/domedisk/";
 
 
-    
+
     DomeTalker talker(*davixPool, &sec, diskurl,
                       "POST", "dome_pull");
 
-    if(!talker.execute("lfn", lfn, "pfn", DomeUtils::pfn_from_rfio_syntax(rfn), "neededspace", pool_defsize)) {
+    boost::property_tree::ptree params;
+    params.put("lfn", lfn);
+    params.put("pfn", DomeUtils::pfn_from_rfio_syntax(rfn));
+    params.put("neededspace", pool_defsize);
+
+    if(!talker.execute(params)) {
       Err(domelogname, "ERROR when issuing dome_pull to diskserver: " << talker.err());
       continue;
     }
