@@ -351,7 +351,7 @@ make install DESTDIR=%{buildroot}
 # clean up the startup scripts we don't need - otherwise rpmbuild will fail
 # due to unpackaged files
 %if %systemd
-  rm -rf %{buildroot}/%{_sysconfdir}/init.d
+  rm -rf %{buildroot}/%{_sysconfdir}/rc.d
 %else
   rm -rf %{buildroot}/usr/lib/systemd
 %endif
