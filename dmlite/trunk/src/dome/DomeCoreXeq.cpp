@@ -132,6 +132,9 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
   // If a miracle took us here, we only miss to create the final file
   try {
     catalog->create(filepath, 0664);
+    catalog->setMode(filepath, 0664); // horrible workaround to make sure the memcached plugin
+                                      // invalidates its previous contents. Necessary during the file
+                                      // pulling workflow.
     statinfo = catalog->extendedStat(filepath);
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
@@ -1681,7 +1684,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
           Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
           it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);
-          
+
           tkname = it->second.u_token;
           poolname = it->second.poolname;
         }
@@ -1723,7 +1726,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("usedspace", usedspace);
   jresp.put("quotatoken", tkname);
   jresp.put("poolname", poolname);
-  
+
   int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
