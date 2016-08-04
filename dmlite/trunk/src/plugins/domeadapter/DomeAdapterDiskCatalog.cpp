@@ -67,6 +67,50 @@ SecurityContext* DomeAdapterDiskCatalog::createSecurityContext(const SecurityCre
   return sec;
 }
 
+void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
+                                         const std::string& csumtype,
+                                         std::string& csumvalue,
+                                         const std::string& pfn,
+                                         const bool forcerecalc,
+                                         const int waitsecs) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path '"
+                                                            << path << "', csumtype '"
+                                                            << csumtype << "'");
+  time_t start = time(0);
+  bool recalc = forcerecalc;
+
+  while(true) {
+    DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
+                      "GET", "dome_chksum");
+
+    boost::property_tree::ptree params;
+    params.put("checksum-type", csumtype);
+    params.put("lfn", path);
+    params.put("force-recalc", DomeUtils::bool_to_str(recalc));
+    recalc = false; // no force-recalc in subsequent requests
+
+    if(!talker.execute(params)) {
+      throw DmException(EINVAL, talker.err());
+    }
+
+    // checksum calculation in progress
+    if(talker.status() == 202) {
+      if(time(0) - start >= waitsecs) return;
+      sleep(1);
+      continue;
+    }
+
+    try {
+      csumvalue = talker.jresp().get<std::string>("checksum");
+      return;
+    }
+    catch(boost::property_tree::ptree_error &e) {
+      throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+    }
+  }
+}
+
+
 Replica DomeAdapterDiskCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rfn: " << rfn);
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,

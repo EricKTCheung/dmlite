@@ -36,6 +36,12 @@ namespace dmlite {
     SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
     SecurityContext* createSecurityContext() throw (DmException);
 
+    virtual void getChecksum(const std::string& path,
+                             const std::string& csumtype,
+                             std::string& csumvalue,
+                             const std::string& pfn,
+                             const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
+                             
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string &) throw (DmException);
 
