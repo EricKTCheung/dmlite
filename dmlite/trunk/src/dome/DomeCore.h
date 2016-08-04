@@ -216,6 +216,8 @@ protected:
   void sendChecksumStatus(const PendingChecksum &pending, const DomeTask &task, bool completed);
 
   // Helper for file pulls
+  void touch_pull_queue(DomeReq &req, const std::string &lfn, const std::string &server, const std::string &fs,
+                                  const std::string &rfn);
   int enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn);
   void sendFilepullStatus(const PendingPull &pending, const DomeTask &task, bool completed);
 };
