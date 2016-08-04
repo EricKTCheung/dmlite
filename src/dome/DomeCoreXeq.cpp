@@ -1092,8 +1092,27 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
   return DomeReq::SendSimpleResp(request, 202, jresp);
 }
 
+void DomeCore::touch_pull_queue(DomeReq &req, const std::string &lfn, const std::string &server, const std::string &fs,
+                                  const std::string &rfn) {
+  // create or update queue entry
+  GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
+  std::vector<std::string> qualifiers;
 
+  qualifiers.push_back(""); // the first qualifier is common for all items,
+                            // so the global limit triggers
 
+  qualifiers.push_back(lfn); // lfn as second qualifier
+  qualifiers.push_back(server);
+  qualifiers.push_back(fs);
+
+  // necessary information to keep - order is important
+
+  qualifiers.push_back(rfn);
+  qualifiers.push_back(req.creds.clientName);
+  qualifiers.push_back(req.creds.remoteAddress);
+
+  status.filepullq->touchItemOrCreateNew(lfn, qstatus, 0, qualifiers);
+}
 
 int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) {
 
@@ -1106,26 +1125,7 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
   if (!success)
     return 1; // means that a response has already been sent in the context of dome_put, btw it can only be an error
 
-
-  // create queue entry
-  GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
-  std::string namekey = lfn;
-  std::vector<std::string> qualifiers;
-
-  qualifiers.push_back(""); // the first qualifier is common for all items,
-                            // so the global limit triggers
-
-  qualifiers.push_back(lfn); // lfn as second qualifier
-  qualifiers.push_back(destfs.server);
-  qualifiers.push_back(destfs.fs);
-
-  // necessary information to keep - order is important
-
-  qualifiers.push_back(destrfn);
-  qualifiers.push_back(req.creds.clientName);
-  qualifiers.push_back(req.creds.remoteAddress);
-
-  status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  touch_pull_queue(req, lfn, destfs.server, destfs.fs, destrfn);
 
   // TODO: Here we have to trigger the file pull in the disk server,
   // by sending a dome_pull request
@@ -1770,6 +1770,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
 
   bool canpull = status.LfnMatchesAnyCanPullFS(lfn, fs);
+  size_t pending_index = -1;
 
   DmlitePoolHandler stack(status.dmpool);
   try {
@@ -1798,6 +1799,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
       if (replicas[i].status == Replica::kBeingPopulated) {
         foundpending = true;
+        pending_index = i;
         continue;
       }
 
@@ -1811,6 +1813,15 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
     if (found)
       return DomeReq::SendSimpleResp(request, 200, jresp);
+
+    if(foundpending && canpull) {
+      std::string fs = replicas[pending_index].getString("filesystem");
+      touch_pull_queue(req, lfn, replicas[pending_index].server, fs, replicas[pending_index].rfn);
+      return DomeReq::SendSimpleResp(request, 202, SSTR("Refreshed file pull request for " << replicas[pending_index].server
+                                                     << ", path " << lfn
+                                                     << ", check back later.\r\nTotal pulls in queue right now: "
+                                                     << status.filepullq->nTotal()));
+    }
 
     if (foundpending)
       return DomeReq::SendSimpleResp(request, 202, "Only pending replicas are available. Please come back later.");
