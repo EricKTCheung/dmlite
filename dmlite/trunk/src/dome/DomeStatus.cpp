@@ -905,37 +905,70 @@ bool DomeStatus::whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &t
   return false;
 }
 
-bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size) {
-
-  Log(Logger::Lvl4, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size);
-
-  // need to get used space of quotatoken
-  long long totused;
-
-  DmlitePoolHandler stack(dmpool);
+long long DomeStatus::getDirUsedSpace(const std::string &path) {
   ExtendedStat st;
-  try {
-    st = stack->getCatalog()->extendedStat(token.path);
 
-    // What a nice hack, eh ?
-    // This is to make sure that we bypass a possible memcache plugin instance,
-    //  which would give the correct directory size only after a timeout
-    st = stack->getINode()->extendedStat(st.stat.st_ino);
-
-    totused = st.stat.st_size;
-
-  }
-  catch (DmException &e) {
-    Err(domelogname, "dmlite exception when trying to find used space of quotatoken for path'" << token.path << "' : " << e.code() << "-" << e.what());
-    return false;
+  DomeMySql sql;
+  DmStatus sts = sql.getStatbyLFN(st, path);
+  if (!sts.ok()) {
+    Err(domelogname, "Ignore exception stat-ing '" << path << "'");
+    return 0;
   }
 
-  Log(Logger::Lvl4, domelogmask, domelogname, "Used space for quotatoken '" << token.u_token << "': " << totused);
-  Log(Logger::Lvl4, domelogmask, domelogname, "Total space for quotatoken '" << token.u_token << "': " << token.t_space);
+  return st.stat.st_size;
+}
 
+static bool isSubdir(const std::string &child, const std::string &parent) {
+  if(child.size()+1 <= parent.size()) return false;
+
+  // needed to correctly handle the case of /dir12/test, /dir1, which should return false
+  if(child[child.size()-1] != '/' && child[parent.size()] != '/') return false;
+
+  // child must start with parent
+  if(child.compare(0, parent.size(), parent) != 0) return false;
+
+  return true;
+}
+
+long long DomeStatus::getQuotatokenUsedSpace(const DomeQuotatoken &token) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "tk: '" << token.u_token);
+
+  long long totused;
+  boost::unique_lock<boost::recursive_mutex> l(*this);
+
+  totused = getDirUsedSpace(token.path);
+  Log(Logger::Lvl4, domelogmask, domelogname, "directory usage for '" << token.path << "': " << totused);
+
+  typedef std::multimap<std::string, DomeQuotatoken>::iterator MapIter;
+  MapIter it = quotas.lower_bound(token.path);
+  if(it == quotas.end()) {
+    Err(domelogname, "Error: getQuotatokenUsedSpace called on invalid quotatoken with path '" << token.path << "'");
+    return -1;
+  }
+
+  it++; // it currently points to "token" itself - need to progress by one
+
+  while(it != quotas.end() && isSubdir(it->second.path, token.path)) {
+    Log(Logger::Lvl4, domelogmask, domelogname, "removing space of sub-quotatoken '" << it->second.u_token << "' (" << it->second.path << ")");
+    totused -= getDirUsedSpace(it->second.path);
+
+    // skip all potential subdirs of sub-quotatoken, or we'll seriously mess up the calculation
+    std::string skip = it->second.path;
+
+    it++;
+    while(it != quotas.end() && isSubdir(it->second.path, skip)) {
+      it++;
+    }
+  }
+  return totused;
+}
+
+bool DomeStatus::fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size) {
+  long long totused = getQuotatokenUsedSpace(token);
   bool rc = ((token.t_space > totused) && (token.t_space - totused > size));
+  Log(Logger::Lvl3, domelogmask, domelogname, "tk: '" << token.u_token << "' path: '" << token.path
+      << "' size:" << size << " totused: " << totused << " outcome: " << rc);
 
-  Log(Logger::Lvl3, domelogmask, domelogname, "tk: '" << token.u_token << "' size:" << size << " rc: " << rc);
   return rc;
 }
 
