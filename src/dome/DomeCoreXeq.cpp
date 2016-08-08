@@ -1682,6 +1682,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting spaces for path: '" << absPath << "'");
   long long totspace = 0LL;
   long long usedspace = 0LL;
+  long long quotausedspace = 0LL;
   long long poolfree = 0LL;
   std::string tkname = "<unknown>";
   std::string poolname = "<unknown>";
@@ -1710,23 +1711,9 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
 
           tkname = it->second.u_token;
           poolname = it->second.poolname;
+          quotausedspace = status.getQuotatokenUsedSpace(it->second);
+          usedspace = status.getDirUsedSpace(absPath);
         }
-
-        // Now get the size of this directory, using the dmlite catalog
-        usedspace = 0;
-
-        {
-          ExtendedStat st;
-
-          DomeMySql sql;
-          DmStatus sts = sql.getStatbyLFN(st, absPath);
-          if (!sts.ok())
-            Err(domelogname, "Ignore exception stat-ing '" << absPath << "'");
-
-          usedspace = st.stat.st_size;
-        }
-
-
         break;
       }
 
@@ -1749,8 +1736,9 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("quotatotspace", totspace);
   long long sp = (totspace - usedspace);
   jresp.put("quotafreespace", (sp < 0 ? 0 : sp));
+  jresp.put("quotausedspace", quotausedspace);
   jresp.put("poolfreespace", poolfree);
-  jresp.put("usedspace", usedspace);
+  jresp.put("dirusedspace", usedspace);
   jresp.put("quotatoken", tkname);
   jresp.put("poolname", poolname);
 

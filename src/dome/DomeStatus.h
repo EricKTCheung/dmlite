@@ -306,6 +306,10 @@ public:
   // TODO: honour the fact that multiple quotatokens may match
   bool whichQuotatokenForLfn(const std::string &lfn, DomeQuotatoken &token);
 
+  // calculate used space of a quotatoken
+  long long getQuotatokenUsedSpace(const DomeQuotatoken &token);
+  long long getDirUsedSpace(const std::string &path); 
+
   // does this file fit in our quotatoken?
   bool fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size);
 
