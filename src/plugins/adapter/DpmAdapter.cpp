@@ -84,6 +84,8 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                    
                                    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path:" << path);
                                    
+                                   setDpmApiIdentity();
+                                   
                                    ExtendedStat ckx = this->extendedStat(path, true);
                                    
                                    std::string k = csumtype;
