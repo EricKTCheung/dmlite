@@ -120,8 +120,10 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                        
                                        delete d;
                                        
-                                       // Now try to save the calculated value
-                                       setChecksum(path, csumtype, csumvalue);
+                                       // Now try to save the calculated value, but don't bother too much
+                                       try {
+                                        setChecksum(path, csumtype, csumvalue);
+                                       } catch (DmException e) {};
                                        
                                        return;
                                        
