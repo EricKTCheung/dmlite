@@ -104,7 +104,7 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                    if (si_) {
                                      try {
                                        h = si_->getIODriver();
-                                       d = h->createIOHandler(pfn, O_RDONLY, ckx, 0);
+                                       d = h->createIOHandler(pfn, IODriver::kInsecure | O_RDONLY, ckx, 0);
                                        
                                        if (strcmp("md5", k.c_str()) == 0) {
                                          csumvalue = dmlite::checksums::md5(d, 0, 0);
