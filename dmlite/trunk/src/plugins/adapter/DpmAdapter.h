@@ -26,7 +26,12 @@ namespace dmlite {
     void setSecurityContext(const SecurityContext*) throw (DmException); 
 
     void unlink(const std::string&) throw (DmException);
-
+    void getChecksum(const std::string& path,
+                     const std::string& csumtype,
+                     std::string& csumvalue,
+                     const std::string &pfn,
+                     const bool forcerecalc, const int waitsecs) throw (DmException);
+                     
   private:
     void setDpmApiIdentity();
 
