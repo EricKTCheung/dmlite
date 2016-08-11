@@ -119,6 +119,10 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                          throw DmException(EINVAL, "'" + csumtype + "' is unknown.");
                                        
                                        delete d;
+                                       
+                                       // Now try to save the calculated value
+                                       setChecksum(path, csumtype, csumvalue);
+                                       
                                        return;
                                        
                                      } catch (...) {
