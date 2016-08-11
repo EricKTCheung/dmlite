@@ -108,44 +108,11 @@ void Catalog::setChecksum(const std::string &path, const std::string &csumtype, 
 }
 
 
-void Catalog::getChecksum(const std::string& path,
+NOT_IMPLEMENTED(void Catalog::getChecksum(const std::string& path,
                           const std::string& csumtype,
                           std::string& csumvalue,
                           const std::string &pfn,
-                          const bool forcerecalc, const int waitsecs) throw (DmException) {
-                          // We can also pass a long checksum name (e.g. checksum.adler32)
-
-  // Gets a checksum of the required type. Utility function
-  // By default it is extracted from the extendedstat information.
-  // By default we assume that the backends are not able to calcolate it on the fly.
-  // Other backends (e.g. DOME) may  support calculating it on the fly. In this case this func will have to be specialised in a plugin
-
-  Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path:" << path);
-
-  ExtendedStat ckx = this->extendedStat(path);
-
-  std::string k = csumtype;
-
-  // If it looks like a legacy chksum then try to xlate its name
-  if (csumtype.length() == 2)
-    k = checksums::fullChecksumName(csumtype);
-
-  if (!checksums::isChecksumFullName(k))
-    throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
-
-  csumvalue = ckx.getString((const std::string)k, "");
-
-  if (csumvalue.length() > 0) return;
-
-  // If we did not find the wanted chksum in the hash, then we may want
-  // to calculate it in a plugin that is more specialized than this one
-  if (forcerecalc) {
-
-      throw DmException(EINVAL, "'" + csumtype + "' cannot be calculated by the base Catalog implementation. You may want to use a more specialized plugin.");
-
-  }
-
-}
+                          const bool forcerecalc, const int waitsecs) throw (DmException) );
 
 NOT_IMPLEMENTED(void Catalog::setAcl(const std::string&, const Acl&) throw (DmException));
 NOT_IMPLEMENTED(void Catalog::utime(const std::string&, const struct utimbuf*) throw (DmException));

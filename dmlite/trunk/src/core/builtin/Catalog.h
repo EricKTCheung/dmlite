@@ -40,6 +40,12 @@ namespace dmlite {
                               bool followSym = true) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
+    void getChecksum(const std::string& path,
+                                     const std::string& csumtype,
+                                     std::string& csumvalue,
+                                     const std::string &pfn,
+                                     const bool forcerecalc, const int waitsecs) throw (DmException);
+                                     
     bool access(const std::string& path, int mode) throw (DmException);
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
 
