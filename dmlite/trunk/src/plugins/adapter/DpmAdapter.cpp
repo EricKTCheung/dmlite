@@ -106,13 +106,13 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                        h = si_->getIODriver();
                                        d = h->createIOHandler(pfn, IODriver::kInsecure | O_RDONLY, ckx, 0);
                                        
-                                       if (strcmp("md5", k.c_str()) == 0) {
+                                       if (strcmp("checksum.md5", k.c_str()) == 0) {
                                          csumvalue = dmlite::checksums::md5(d, 0, 0);
                                        }                             
-                                       else if (strcmp("adler32", k.c_str()) == 0) {
+                                       else if (strcmp("checksum.adler32", k.c_str()) == 0) {
                                          csumvalue = dmlite::checksums::adler32(d, 0, 0);
                                        }
-                                       else if (strcmp("crc32", k.c_str()) == 0) {
+                                       else if (strcmp("checksum.crc32", k.c_str()) == 0) {
                                          csumvalue = dmlite::checksums::crc32(d, 0, 0);
                                        }
                                        else
