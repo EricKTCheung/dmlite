@@ -481,6 +481,7 @@ int DomeCore::init(const char *cfgfile) {
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
     ticker = new boost::thread(boost::bind(&DomeCore::tick, this, 0));
+    queueTicker = new boost::thread(boost::bind(&DomeStatus::queueTicker, &status));
 
     return 0;
   }

@@ -308,7 +308,7 @@ public:
 
   // calculate used space of a quotatoken
   long long getQuotatokenUsedSpace(const DomeQuotatoken &token);
-  long long getDirUsedSpace(const std::string &path); 
+  long long getDirUsedSpace(const std::string &path);
 
   // does this file fit in our quotatoken?
   bool fitsInQuotatoken(const DomeQuotatoken &token, const int64_t size);
@@ -332,6 +332,13 @@ public:
   void tickChecksums();
   /// Gives life to file pulls
   void tickFilepulls();
+
+  // monitor pull and checksum queues
+  void queueTicker();
+  boost::condition_variable queue_cond;
+  boost::mutex queue_mtx;
+
+  void notifyQueues();
 
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;

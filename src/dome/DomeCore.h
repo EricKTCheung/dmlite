@@ -186,6 +186,7 @@ private:
 
   /// The thread that ticks
   boost::thread *ticker;
+  boost::thread *queueTicker;
 
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   long getGlobalputcount();
