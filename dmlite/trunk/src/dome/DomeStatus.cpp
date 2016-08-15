@@ -366,6 +366,21 @@ bool DomeStatus::getPoolInfo(std::string &poolname, int64_t &pool_defsize, char 
   return false;
 }
 
+void DomeStatus::queueTicker() {
+  boost::unique_lock<boost::mutex> lock(queue_mtx);
+  while(true) {
+   queue_cond.wait(lock);
+
+   this->tickChecksums();
+   this->tickFilepulls();
+  }
+}
+
+void DomeStatus::notifyQueues() {
+  boost::unique_lock<boost::mutex> lock(queue_mtx);
+  queue_cond.notify_one();
+}
+
 int DomeStatus::tick(time_t timenow) {
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);

@@ -1083,6 +1083,7 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
   qualifiers.push_back(req.creds.remoteAddress);
 
   status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  status.notifyQueues();
 
   boost::property_tree::ptree jresp;
   jresp.put("status", "enqueued");
@@ -1126,6 +1127,7 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
     return 1; // means that a response has already been sent in the context of dome_put, btw it can only be an error
 
   touch_pull_queue(req, lfn, destfs.server, destfs.fs, destrfn);
+  status.notifyQueues();
 
   // TODO: Here we have to trigger the file pull in the disk server,
   // by sending a dome_pull request
@@ -1312,6 +1314,10 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     qualifiers.push_back(server);
     qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
     status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+
+    if(qstatus != GenPrioQueueItem::Running) {
+      status.notifyQueues();
+    }
 
     if(str_status == "aborted") {
       Log(Logger::Lvl1, domelogmask, domelogname, "Checksum calculation failed. LFN: " << lfn
@@ -1889,6 +1895,9 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     qualifiers.push_back("");
     qualifiers.push_back(server);
     status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+    if(qstatus != GenPrioQueueItem::Running) {
+      status.notifyQueues();
+    }
 
     if(str_status == "aborted") {
       Log(Logger::Lvl1, domelogmask, domelogname, "File pull failed. LFN: " << lfn
