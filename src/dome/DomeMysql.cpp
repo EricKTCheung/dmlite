@@ -216,7 +216,7 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
       qtk.poolname = buf3;
       qtk.s_token = buf4;
 
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid << " s_token:" << qtk.s_token <<
+      Log(Logger::Lvl2, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid << " s_token:" << qtk.s_token <<
       " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path);
 
       cnt++;
@@ -277,7 +277,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
       // parse the groups into a vector
       qt.groupsforwrite = DomeUtils::split(std::string(buf5), ",");
 
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid << " s_token:" << qt.s_token <<
+      Log(Logger::Lvl2, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qt.rowid << " s_token:" << qt.s_token <<
         " u_token:" << qt.u_token << " t_space:" << qt.t_space << " poolname: '" << qt.poolname <<
         "' groupsforwrite(" << qt.groupsforwrite.size() << ") : '" << buf5 <<
         "'  path:" << qt.path);
@@ -326,7 +326,7 @@ int DomeMySql::getGroups(DomeStatus &st)
         gi.xattr = buf2;
         gi.banned = (banned != 0);
 
-        Log(Logger::Lvl1, domelogmask, domelogname, " Fetched group. id:" << gi.groupid <<
+        Log(Logger::Lvl2, domelogmask, domelogname, " Fetched group. id:" << gi.groupid <<
         " groupname:" << gi.groupname << " banned:" << gi.banned << " xattr: '" << gi.xattr);
 
         st.insertGroup(gi);
@@ -378,7 +378,7 @@ int DomeMySql::getUsers(DomeStatus &st)
       ui.xattr = buf2;
       ui.banned = (banned != 0);
 
-      Log(Logger::Lvl1, domelogmask, domelogname, " Fetched user. id:" << ui.userid <<
+      Log(Logger::Lvl2, domelogmask, domelogname, " Fetched user. id:" << ui.userid <<
       " username:" << ui.username << " banned:" << ui.banned << " xattr: '" << ui.xattr);
 
       st.insertUser(ui);
