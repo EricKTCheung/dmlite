@@ -82,7 +82,7 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                    // By default we assume that the backends are not able to calcolate it on the fly.
                                    // Other backends (e.g. DOME) may  support calculating it on the fly. In this case this func will have to be specialised in a plugin
                                    
-                                   Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path:" << path);
+                                   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "csumtype:" << csumtype << " path:" << path);
                                    
                                    setDpmApiIdentity();
                                    

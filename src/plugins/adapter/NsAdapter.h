@@ -140,6 +140,8 @@ namespace dmlite {
     bool hostDnIsRoot_;
     std::string hostDn_;
 
+    std::string userId_;
+    
     const SecurityContext* secCtx_;
   };
 

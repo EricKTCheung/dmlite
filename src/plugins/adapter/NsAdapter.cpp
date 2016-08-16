@@ -70,7 +70,7 @@ void NsAdapterCatalog::setDpnsApiIdentity()
 
   // can not do any more if there is no security context
   if (!secCtx_) {
-    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "No security context. Exiting.");
+    Err(adapterlogmask, adapterlogname, "No security context. Exiting.");
     return;
   }
 
@@ -147,7 +147,8 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
   }
   this->fqans_ = NULL;
   this->nFqans_ = 0;
-
+  this->userId_.clear();
+  
   this->secCtx_ = ctx;
 
   if (!ctx) {
@@ -168,6 +169,8 @@ void NsAdapterCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmE
     this->fqans_[i] = new char [ctx->groups[i].name.length() + 1];
     strcpy(this->fqans_[i], ctx->groups[i].name.c_str());
   }
+  
+  this->userId_ = ctx->credentials.clientName;
   
   Log(Logger::Lvl3, adapterlogmask, adapterlogname, " fqan=" << ( (fqans_ && nFqans_) ? fqans_[0]:"none") );
 }
@@ -632,7 +635,10 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
                                                 const Extensible& attr) throw (DmException)
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " nattrs:" << attr.size() );
-  setDpnsApiIdentity();
+  
+  FunctionWrapper<int> reset(dpns_client_resetAuthorizationId);
+  reset();
+  //setDpnsApiIdentity();
 
   // At least one checksum.* attribute must be supported, but only those
   // of 2 bytes (legacy implementation!)
