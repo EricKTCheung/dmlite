@@ -636,9 +636,8 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
 {
   Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " nattrs:" << attr.size() );
   
-  FunctionWrapper<int> reset(dpns_client_resetAuthorizationId);
-  reset();
-  //setDpnsApiIdentity();
+
+  setDpnsApiIdentity();
 
   // At least one checksum.* attribute must be supported, but only those
   // of 2 bytes (legacy implementation!)
@@ -696,7 +695,8 @@ void NsAdapterCatalog::updateExtendedAttributes(const std::string& path,
       Log(Logger::Lvl4, adapterlogmask, adapterlogname, "path: " << path << " filesize:" << sz << " got from stat-ing the file.");
   }
       
-      
+  FunctionWrapper<int> reset(dpns_client_resetAuthorizationId);
+  reset();
       
   FunctionWrapper<int, const char*, dpns_fileid*, u_signed64, const char*, char*>
     (dpns_setfsizec, path.c_str(), NULL, sz,
