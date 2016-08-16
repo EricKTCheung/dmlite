@@ -70,7 +70,7 @@ void NsAdapterCatalog::setDpnsApiIdentity()
 
   // can not do any more if there is no security context
   if (!secCtx_) {
-    Err(adapterlogmask, adapterlogname, "No security context. Exiting.");
+    Err(adapterlogname, "No security context. Exiting.");
     return;
   }
 
