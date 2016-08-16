@@ -535,7 +535,7 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 
   if (size == 0) size = st.st_size;
 
-  if ( (unsigned)size != st.st_size ) {
+  if ( (off_t)size != st.st_size ) {
     std::ostringstream os;
     os << "Reported size (" << size << ") does not match with the size of the file (" << st.st_size << ")";
     Err(domelogname, os.str());
