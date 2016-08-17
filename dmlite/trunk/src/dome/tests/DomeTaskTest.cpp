@@ -77,7 +77,7 @@ public:
     }
 
   }
- 
+
   CPPUNIT_TEST_SUITE(DomeTaskTest);
   CPPUNIT_TEST(testSubmitCmd);
   CPPUNIT_TEST(testKill);

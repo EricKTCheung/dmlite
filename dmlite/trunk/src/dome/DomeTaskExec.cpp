@@ -35,6 +35,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
 #include <queue>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 using namespace boost;
 using namespace std;
@@ -254,6 +256,7 @@ void DomeTaskExec::run(DomeTask &task) {
   Log(Logger::Lvl4, domelogmask, "taskrun", "Finalizing key: " << task.key) ;
   {
     boost::unique_lock <boost::mutex> l(task);
+    waitpid(task.pid, 0, 0);
     task.finished = true;
     //endtime
     time(&task.endtime);
