@@ -1203,9 +1203,9 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
     }
 
-    std::string no_prefix = DomeUtils::remove_prefix_if_exists("checksum.", chksumtype);
+    std::string no_prefix = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
     if(no_prefix != "md5" && no_prefix != "crc32" && no_prefix != "adler32") {
-      return DomeReq::SendSimpleResp(request, 422, SSTR("unknown checksum type " << no_prefix));
+      return DomeReq::SendSimpleResp(request, 422, SSTR("unknown checksum type " << chksumtype));
     }
 
     if(forcerecalc) {
