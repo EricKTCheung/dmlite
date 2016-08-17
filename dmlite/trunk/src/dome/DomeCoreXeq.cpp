@@ -1193,6 +1193,8 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     DmlitePoolHandler stack(status.dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    chksumtype = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
+
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.bodyfields.get<std::string>("lfn", "");
@@ -1203,8 +1205,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, "checksum-type cannot be empty.");
     }
 
-    std::string no_prefix = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
-    if(no_prefix != "md5" && no_prefix != "crc32" && no_prefix != "adler32") {
+    if(chksumtype != "md5" && chksumtype != "crc32" && chksumtype != "adler32") {
       return DomeReq::SendSimpleResp(request, 422, SSTR("unknown checksum type " << chksumtype));
     }
 
@@ -1281,6 +1282,8 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     DmlitePoolHandler stack(status.dmpool);
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
+    chksumtype = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
+
     std::string fullchecksum = "checksum." + chksumtype;
     std::string pfn = req.bodyfields.get<std::string>("pfn", "");
     std::string lfn = req.bodyfields.get<std::string>("lfn", "");

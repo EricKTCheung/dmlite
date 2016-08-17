@@ -188,8 +188,12 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
     // difficult updates with consequences on internal data structures
     // need to remove and re-insert
     else if(priority != item->priority || qualifiers != item->qualifiers) {
+      // only allow forward changes to the status, even in this case
+      GenPrioQueueItem::QStatus newStatus = item->status;
+      if(status > item->status) newStatus = status;
+
       removeItem(namekey);
-      item->update(namekey, status, priority, qualifiers);
+      item->update(namekey, newStatus, priority, qualifiers);
       insertItem(item);
     }
     // easy update - only progress status
