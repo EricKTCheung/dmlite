@@ -170,7 +170,7 @@ void test5() {
   ASSERT(queue.nTotal() == 1);
 
   queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
-  ASSERT(queue.nWaiting() == 1);
+  ASSERT(queue.nWaiting() == 0);
   ASSERT(queue.nTotal() == 1);
 
   queue.touchItemOrCreateNew("1", GenPrioQueueItem::Finished, 0, v2("srv", "pool1")); // same as removeItem
@@ -232,6 +232,25 @@ void test8() {
   ASSERT(item1->namekey == "1");
 }
 
+void test9() {
+  DECLARE_TEST();
+
+  GenPrioQueue queue(1, simpleLimits());
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("123", "234"));
+  GenPrioQueueItem_ptr item1 = queue.getNextToRun();
+  ASSERT(item1->namekey == "1");
+  ASSERT(item1->status == GenPrioQueueItem::Running);
+
+  GenPrioQueueItem_ptr item_null = queue.getNextToRun();
+  ASSERT(queue.getNextToRun() == NULL);
+
+  queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("1234", "567"));
+
+  ASSERT(queue.getNextToRun() == NULL);
+  queue.tick();
+  ASSERT(queue.getNextToRun() == NULL);
+}
+
 int main() {
   test1();
   test2();
@@ -241,5 +260,6 @@ int main() {
   test6();
   test7();
   test8();
+  test9();
   return 0;
 }
