@@ -497,7 +497,8 @@ void DomeCore::tick(int parm) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
 
     status.tick(timenow);
-
+    DomeTaskExec::tick();
+    
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
 
