@@ -1,0 +1,32 @@
+# Load namespace only (LFC)
+LoadPlugin plugin_mysql_ns /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
+
+# Load namespace and pool manager (DPM)
+LoadPlugin plugin_mysql_dpm /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
+
+# Load the IO passthrough, e.g. to catch the size of new files being written
+LoadPlugin plugin_mysql_iopassthrough /usr/lib@LIB_SUFFIX@/dmlite/plugin_mysql.so
+
+# Number of dir levels touched by the directory space reporting
+# MySqlDirectorySpaceReportDepth 6
+
+# MySQL connection parameters
+MySqlHost localhost
+MySqlUsername dpmdbuser
+MySqlPassword change-this
+MySqlPort 0
+
+# NS database
+NsDatabase cns_db
+
+# DPM database
+DpmDatabase dpm_db
+
+# Connection pool size
+NsPoolSize 100
+
+# Grid mapfile
+MapFile /etc/lcgdm-mapfile
+
+# Give too access to the host DN
+HostDNIsRoot no
