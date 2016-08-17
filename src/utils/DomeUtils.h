@@ -31,6 +31,16 @@ namespace DomeUtils {
 
 using namespace dmlite;
 
+inline std::string remove_prefix_if_exists(const std::string &str, const std::string &prefix) {
+    if(prefix.size() > str.size()) return str;
+
+    if(std::equal(prefix.begin(), prefix.end(), str.begin())) {
+      return str.substr(prefix.size(), str.size()-prefix.size());
+    }
+
+    return str;
+}
+
 inline std::string trim_trailing_slashes(std::string str) {
   while(str.size() > 0 && str[str.size()-1] == '/') {
     str.erase(str.size()-1);
