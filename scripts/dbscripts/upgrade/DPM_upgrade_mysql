@@ -45,6 +45,8 @@ DPM_DB_USER=$2
 DPM_DB_PASSWORD=$3
 DPM_DB=$4
 DPNS_DB=$5
+dpmv=$6
+cnsv=$7
 
 ls /usr/share/dmlite/dbscripts/upgrade/dpm-db-$dpmv-* &> /dev/null
 dpmupdate=$(($?==0))
@@ -110,4 +112,4 @@ return 0
 }
 
 
-upgrade $1 $2 $3 $4 $5 
+upgrade $1 $2 $3 $4 $5 $6 $7
