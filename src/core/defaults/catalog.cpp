@@ -136,9 +136,11 @@ void Catalog::getChecksum(const std::string& path,
   if (!checksums::isChecksumFullName(k))
     throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
   
-  csumvalue = ckx.getString((const std::string)k, "");
-    
-  
+  if (!ckx.getchecksum(k, csumvalue))
+    throw DmException(ENOENT, SSTR("'" << path << "' does not have a checksum of type '" << k <<
+      "' (" << csumtype << ")" ) );
+
+  Log(Logger::Lvl3, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path: '" << path << "' csum: '" << csumvalue);
 }
 
 
