@@ -128,14 +128,7 @@ void Catalog::getChecksum(const std::string& path,
   ExtendedStat ckx = this->extendedStat(path);
   
   std::string k = csumtype;
-  
-  // If it looks like a legacy chksum then try to xlate its name
-  if (csumtype.length() == 2)
-    k = checksums::fullChecksumName(csumtype);
-  
-  if (!checksums::isChecksumFullName(k))
-    throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
-  
+   
   if (ckx.getchecksum(k, csumvalue))
     throw DmException(ENOENT, SSTR("'" << path << "' does not have a checksum of type '" << k <<
       "' (" << csumtype << ")" ) );
