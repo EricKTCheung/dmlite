@@ -32,15 +32,17 @@ void ExtendedStat::fixchecksums() {
 
 
 int ExtendedStat::getchecksum(std::string &cktype, std::string &ckvalue) {
-  if (csumtype.empty()) {
-    fixchecksums();
-    cktype = this->csumtype;
-    ckvalue = this->csumvalue;
-    return 0;
-  }
 
-  std::string key = "checksum." + cktype;
-  if ( !hasField(cktype) ) return -1;
+  fixchecksums();
+
+  std::string key = cktype;
+  
+  if (!checksums::isChecksumFullName(key)) {
+    key = checksums::fullChecksumName(cktype);
+  }
+  if (key.length() == 0) key = "checksum."+cktype;
+  
+  if ( !hasField(key) ) return -1;
 
   try {
     ckvalue = getString(key);
