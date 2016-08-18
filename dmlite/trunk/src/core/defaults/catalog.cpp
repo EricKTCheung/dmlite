@@ -130,8 +130,7 @@ void Catalog::getChecksum(const std::string& path,
   std::string k = csumtype;
    
   if (ckx.getchecksum(k, csumvalue))
-    throw DmException(ENOENT, SSTR("'" << path << "' does not have a checksum of type '" << k <<
-      "' (" << csumtype << ")" ) );
+    throw DmException(ENOENT, SSTR("'" << path << "' does not have a checksum of type '" << k << "'" ) );
 
   Log(Logger::Lvl3, Logger::unregistered, Logger::unregisteredname, "csumtype:" << csumtype << " path: '" << path << "' csum: '" << csumvalue);
 }
