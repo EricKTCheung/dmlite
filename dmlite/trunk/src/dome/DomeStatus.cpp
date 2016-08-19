@@ -38,7 +38,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <fstream>
 
 #include <sys/types.h>
@@ -1152,5 +1151,5 @@ std::string DomeQuotatoken::getGroupsString(bool putzeroifempty) {
   if (putzeroifempty && (groupsforwrite.size() == 0))
     return "0";
   
-  return boost::join(groupsforwrite, ",");
+  return DomeUtils::join(",", groupsforwrite);
 }
