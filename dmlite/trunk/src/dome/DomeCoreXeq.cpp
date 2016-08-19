@@ -408,7 +408,17 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
-
+  else
+    try {
+      lfnstat = stack->getCatalog()->extendedStat(lfn);
+    } catch (DmException &e) {
+      std::ostringstream os;
+      os << "Cannot add replica to '" << lfn << "' : " << e.code() << "-" << e.what();
+      
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, http_status(e), os);
+    }
+  
   // Create the replica in the catalog
   dmlite::Replica r;
   r.fileid = lfnstat.stat.st_ino;
