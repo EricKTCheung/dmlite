@@ -44,6 +44,9 @@ struct DomeCredentials {
   DomeCredentials(const SecurityContext *ctx) {
     if(ctx) {
       clientName = ctx->credentials.clientName;
+      if (!clientName.size())
+        clientName = ctx->user.name;
+      
       remoteAddress = ctx->credentials.remoteAddress;
 
       for(size_t i = 0; i < ctx->groups.size(); i++) {
