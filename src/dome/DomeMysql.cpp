@@ -182,11 +182,11 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
   int cnt = 0;
   try {
     Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-    char buf1[1024], buf2[1024], buf3[1024], buf4[1024];
+    char buf1[1024], buf2[1024], buf3[1024], buf4[1024], buf5[1024];
 
     // Get it from the DB, using path and poolname as keys
     Statement stmt(conn_, "dpm_db",
-                   "SELECT rowid, u_token, t_space, poolname, path, s_token\
+                   "SELECT rowid, u_token, t_space, poolname, path, s_token, groups\
                     FROM dpm_space_reserv WHERE path = ? AND poolname = ?"
     );
 
@@ -210,14 +210,20 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
     memset(buf4, 0, sizeof(buf4));
     stmt.bindResult(5, buf4, 256);
 
+    memset(buf5, 0, sizeof(buf4));
+    stmt.bindResult(6, buf5, 256);
+    
     while ( stmt.fetch() ) {
       qtk.u_token = buf1;
       qtk.path = buf2;
       qtk.poolname = buf3;
       qtk.s_token = buf4;
-
+      qtk.groupsforwrite = DomeUtils::split(std::string(buf5), ",");
+      
       Log(Logger::Lvl2, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid << " s_token:" << qtk.s_token <<
-      " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path);
+        " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path <<
+        " groups: '" << qtk.getGroupsString() << "'"
+      );
 
       cnt++;
     }
@@ -403,16 +409,17 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   long unsigned int nrows = 0;
 
   try {
-    // First try updating it. Makes sense just to overwrite only description, space and pool
+    // First try updating it. Makes sense just to overwrite only description, space and pool and groups
     Statement stmt(conn_, "dpm_db",
-                   "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, s_token = ?\
+                   "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, s_token = ?, groups = ? \
                     WHERE path = ? AND poolname = ?");
 
     stmt.bindParam(0, qtk.u_token);
     stmt.bindParam(1, qtk.t_space);
     stmt.bindParam(2, qtk.s_token);
-    stmt.bindParam(3, qtk.path);
-    stmt.bindParam(4, qtk.poolname);
+    stmt.bindParam(3, qtk.getGroupsString(true));
+    stmt.bindParam(4, qtk.path);
+    stmt.bindParam(5, qtk.poolname);
 
     // If no rows are affected then we should insert
     if ( (nrows = stmt.execute() == 0) )
@@ -427,11 +434,11 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         Statement stmt(conn_, "dpm_db",
                      "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
                      ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
-                     poolname, assign_time, expire_time, groups, path, s_token)\
+                     poolname, assign_time, expire_time, path, s_token, groups)\
                      VALUES (\
                      uuid(), ?, 0, 0,\
                      '_', 0, '-', ?, ?, ?, ?,\
-                     ?, ?, ?, '', ?, ?\
+                     ?, ?, ?, '0', ?, ?\
         )" );
 
         time_t timenow, exptime;
@@ -448,6 +455,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         stmt.bindParam(7, exptime);
         stmt.bindParam(8, qtk.path);
         stmt.bindParam(9, qtk.s_token);
+        stmt.bindParam(9, qtk.getGroupsString(true));
 
         ok = true;
         nrows = 0;
@@ -464,7 +472,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
           VALUES (\
           uuid(), ?, 0, 0,\
           '_', 0, '-', ?, ?, ?, ?,\
-          ?, ?, ?, '', ?\
+          ?, ?, ?, ?, ?\
           )" );
 
         time_t timenow, exptime;
@@ -479,7 +487,8 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         stmt.bindParam(5, qtk.poolname);
         stmt.bindParam(6, timenow);
         stmt.bindParam(7, exptime);
-        stmt.bindParam(8, qtk.path);
+        stmt.bindParam(8, qtk.getGroupsString(true));
+        stmt.bindParam(9, qtk.path);
 
         ok = true;
         nrows = 0;

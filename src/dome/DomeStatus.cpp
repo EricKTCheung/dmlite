@@ -38,6 +38,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <fstream>
 
 #include <sys/types.h>
@@ -208,6 +209,16 @@ int DomeStatus::loadUsersGroups() {
 
   sql.getGroups(*this);
 
+  // Make sure that group 0 (root) always exists
+  DomeGroupInfo gi;
+  if ( !getGroup(0, gi) ) {
+    gi.banned = 0;
+    gi.groupid = 0;
+    gi.groupname = "root";
+    gi.xattr = "";
+    insertGroup(gi);
+  }
+  
   // And now also load the gridmap file
   int cnt = 0;
   FILE *mf;
@@ -1135,4 +1146,11 @@ int DomeStatus::insertGroup(DomeGroupInfo &gi) {
   groupsbyname[gi.groupname] = gi;
 
   return 0;
+}
+
+std::string DomeQuotatoken::getGroupsString(bool putzeroifempty) {
+  if (putzeroifempty && (groupsforwrite.size() == 0))
+    return "0";
+  
+  return boost::join(groupsforwrite, ",");
 }
