@@ -304,7 +304,14 @@ Location DomeAdapterPoolHandler::whereToWrite(const std::string& lfn) throw (DmE
     single.size   = 0;
 
     single.url.query["sfn"]      = lfn;
-    single.url.query["token"]    = dmlite::generateToken(driver_->userId_, single.url.path,
+    
+    std::string userId1;
+    if (driver_->si_->contains("replicate"))
+      userId1 = dmlite::kGenericUser;
+    else
+      userId1 = driver_->userId_;
+    
+    single.url.query["token"]    = dmlite::generateToken(userId1, single.url.path,
                                                          driver_->factory_->tokenPasswd_,
                                                          driver_->factory_->tokenLife_, true);
     return Location(1, single);
