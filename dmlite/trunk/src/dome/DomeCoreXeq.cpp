@@ -204,7 +204,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   std::string fs = req.bodyfields.get<std::string>("fs", "");
 
   bool addreplica = false;
-  if ( (addreplica_ == "yes") || (addreplica_ == "1") || (addreplica_ == "on") )
+  if ( (addreplica_ == "true") || (addreplica_ == "yes") || (addreplica_ == "1") || (addreplica_ == "on") )
     addreplica = true;
 
   // Log the parameters, level 1
