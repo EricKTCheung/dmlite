@@ -5,6 +5,7 @@
 #include <dmlite/cpp/pooldriver.h>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
+#include <boost/any.hpp>
 
 #include "DomeAdapter.h"
 #include "DomeAdapterPools.h"
@@ -167,7 +168,35 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_put");
 
-  if(!talker.execute("lfn", path)) {
+  
+  boost::property_tree::ptree params;
+  try {
+    boost::any any = si_->get("replicate");
+    bool val = Extensible::anyToBoolean(any);
+    
+    if (val) params.put("additionalreplica", "true");
+  }
+  catch (...) {};
+  
+  try {
+    boost::any any = si_->get("pool");
+    std::string val = Extensible::anyToString(any);
+    
+    if (val.size()) params.put("pool", val);
+  }
+  catch (...) {};
+  
+  try {
+    boost::any any = si_->get("filesystem");
+    std::string val = Extensible::anyToString(any);
+    
+    if (val.size()) params.put("fs", val);
+  }
+  catch (...) {};
+  
+  params.put("lfn", path);
+  
+  if(!talker.execute(params)) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 

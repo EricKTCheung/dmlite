@@ -398,15 +398,16 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     }
   }
 
-  try {
-    mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
-  } catch (DmException &e) {
-    std::ostringstream os;
-    os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
+  if (!addreplica)
+    try {
+      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
+    } catch (DmException &e) {
+      std::ostringstream os;
+      os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
 
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, http_status(e), os);
-  }
+      Err(domelogname, os.str());
+      return DomeReq::SendSimpleResp(request, http_status(e), os);
+    }
 
   // Create the replica in the catalog
   dmlite::Replica r;
