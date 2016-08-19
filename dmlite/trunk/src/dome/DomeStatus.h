@@ -153,6 +153,8 @@ public:
   /// Groups that are allowed to write
   std::vector<std::string> groupsforwrite;
 
+  std::string getGroupsString(bool putzeroifempty = false);
+  
   /// uid/gid associated to this quotatoken
   /// Details are not very clear at this time
   int s_uid, s_gid;
