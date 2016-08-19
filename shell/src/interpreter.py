@@ -1491,10 +1491,16 @@ class ReplicaDelCommand(ShellCommand):
 ### Pools commands ###
 
 class PoolAddCommand(ShellCommand):
-    """Add a pool."""
+    """Add a pool.
+The pool_type values can be: 'filesystem', 'hdfs', 's3'
+
+the s_pace type values can be: V (for Volatile), D (for Durable), P (for Permanent) 
+or - (to accept any type).  The latter is the default.
+
+"""
 
     def _init(self):
-        self.parameters = ['?pool_name', '?s_type']
+        self.parameters = ['?pool_name', '?Opool_type:filesystem:hdfs:s3' ,'*Ospace_type:V:D:P:-']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1503,7 +1509,11 @@ class PoolAddCommand(ShellCommand):
         try:
             pool = pydmlite.Pool()
             pool.name = given[0]
-            pool.setString("s_type", given[1])
+            pool.type = given[1]
+	    if len(given) > 2:
+                pool.setString("s_type", given[2])
+            else:
+                pool.setString("s_type", '-')
             self.interpreter.poolManager.newPool(pool)
             return self.ok()
         except Exception, e:
