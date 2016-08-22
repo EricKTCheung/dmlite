@@ -168,34 +168,34 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
   DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                     "POST", "dome_put");
 
-  
+
   boost::property_tree::ptree params;
   try {
     boost::any any = si_->get("replicate");
     bool val = Extensible::anyToBoolean(any);
-    
+
     if (val) params.put("additionalreplica", "true");
   }
   catch (...) {};
-  
+
   try {
     boost::any any = si_->get("pool");
     std::string val = Extensible::anyToString(any);
-    
+
     if (val.size()) params.put("pool", val);
   }
   catch (...) {};
-  
+
   try {
     boost::any any = si_->get("filesystem");
     std::string val = Extensible::anyToString(any);
-    
+
     if (val.size()) params.put("fs", val);
   }
   catch (...) {};
-  
+
   params.put("lfn", path);
-  
+
   if(!talker.execute(params)) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
@@ -206,7 +206,14 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 
     Chunk chunk(host+":"+pfn, 0, 0);
     chunk.url.query["sfn"] = path;
-    chunk.url.query["token"] = dmlite::generateToken(userId_, pfn, factory_->tokenPasswd_, factory_->tokenLife_, true);
+
+    std::string userId1;
+    if (si_->contains("replicate"))
+      userId1 = dmlite::kGenericUser;
+    else
+      userId1 = userId_;
+
+    chunk.url.query["token"] = dmlite::generateToken(userId1, pfn, factory_->tokenPasswd_, factory_->tokenLife_, true);
     return Location(1, chunk);
   }
   catch(boost::property_tree::ptree &err) {
