@@ -874,10 +874,10 @@ std::vector<Replica> INodeMySql::getReplicas(ino_t inode) throw (DmException)
     replica.status = static_cast<Replica::ReplicaStatus>(cstatus);
     replica.type   = static_cast<Replica::ReplicaType>(ctype);
     replica.setname       = std::string(setnm);
+    replica.deserialize(cmeta);
+
     replica["pool"]       = std::string(cpool);
     replica["filesystem"] = std::string(cfilesystem);
-
-    replica.deserialize(cmeta);
 
     replicas.push_back(replica);
     ++i;
@@ -928,11 +928,12 @@ Replica INodeMySql::getReplica(int64_t rid) throw (DmException)
   r.rfn           = crfn;
   r.server        = cserver;
   r.setname       = std::string(setnm);
-  r["pool"]       = std::string(cpool);
-  r["filesystem"] = std::string(cfilesystem);
   r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
   r.type          = static_cast<Replica::ReplicaType>(ctype);
   r.deserialize(cmeta);
+
+  r["pool"]       = std::string(cpool);
+  r["filesystem"] = std::string(cfilesystem);
 
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. rid:" << rid << " repl:" << r.rfn);
 
@@ -980,11 +981,12 @@ DmStatus INodeMySql::getReplica(Replica &r, const std::string& rfn) throw (DmExc
   r.rfn           = crfn;
   r.server        = cserver;
   r.setname       = std::string(setnm);
-  r["pool"]       = std::string(cpool);
-  r["filesystem"] = std::string(cfilesystem);
   r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
   r.type          = static_cast<Replica::ReplicaType>(ctype);
   r.deserialize(cmeta);
+
+  r["pool"]       = std::string(cpool);
+  r["filesystem"] = std::string(cfilesystem);
 
   Log(Logger::Lvl3, mysqllogmask, mysqllogname, "Exiting. repl:" << r.rfn);
   return DmStatus();
