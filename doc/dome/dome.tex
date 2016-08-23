@@ -33,8 +33,24 @@
 \maketitle
 
 \begin{abstract}
-This is a preliminary project document whose goal is to drive the development of DOME. Expect very pragmatic prose. Together with
-the development itself, the content of the document will converge to becoming a white paper containing the documentation of DOME.
+
+
+The DPM (Disk Pool Manager) project is the most widely deployed solution for storage of large
+data repositories on Grid sites, and is completing the most important upgrade in its history,
+with the aim of bringing important new features, performance and easier long term maintainability.
+Work has been done to make the so-called "legacy stack" optional, and substitute it with
+an advanced implementation that is based on the fastCGI and RESTful technologies.
+Beside the obvious gain in making optional several legacy components that are difficult
+to maintain, this step brings important features together with performance enhancements.
+Among the most important features we can cite the simplification of the configuration,
+the possibility of working in a totally SRM-free mode, the implementation of quotas,
+free/used space on directories, and the implementation of volatile pools that
+can pull files from external sources, which can be used to deploy simple data caches.
+
+Moreover, the communication with the new core, called DOME (Disk Operations Management Engine)
+now happens through secure HTTPS channels through an extensively documented,
+industry-compliant protocol.
+
 \end{abstract}
 
 
@@ -54,6 +70,8 @@ the development itself, the content of the document will converge to becoming a 
 
 \chapter{Dome}
 
+DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the FastCGI technology,
+and uses HTTP and JSON to communicate with clients.
 This initiative aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
 implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. Among our goals we cite:
 
@@ -72,11 +90,10 @@ The DOME component has the shape of a \textit{fastCGI} daemon, and has to be tri
 in all the DPM disk servers. A configuration option defines whether it is running as head node or disk server.
 
 For simplicity of expression, in this document we may refer to these modalities as two different components, named \textit{DOMEhead} and \textit{DOMEdisk}.
-In practice, these are the same component which has been given a different command-line flag to enable/disable a different command set,
-implemented in the same software skeleton.
+In practice, these refer to the same component which has been given a different command-line flag to enable/disable a different command set,
+implemented in the same software skeleton.\\
 
-DOME is a client of the \textit{dmlite} framework, in particular for the features that now are fulfilled by dpnsdaemon. It's also a
-service provider for the dmlite framework, through the dmlite plugin \textit{adapter\_rest}, described later.
+DOME is primarily a service provider for the \textit{dmlite} framework, through the dmlite plugin called DOMEAdapter.\\
 
 \section{DOME: Main features}
 DOME has two modalities: headnode and disknode, which respectively represent evolutions of the \textit{dpm} daemon and of \textit{rfiod}, together with \textit{libshift} and \textit{Csec}.
@@ -89,19 +106,24 @@ The functionalities are roughly as follows:
  \subitem keeps an in memory status of the ongoing asynchronous file callouts
  \subitem queues and dispatches to disk nodes the requests for asynchronous checksum calculations that have to be delayed for load balancing reasons
  \subitem queues and dispatches to disk nodes the requests for asynchronous file callouts that have to be delayed for load balancing reasons
- \subitem uses the dmlite library to access logical information about pools/filesystems and name space content
 
  \item disknode: local disk and space-related services
  \subitem Allows to \textit{stat} individual physical files and directories
- \subitem Allows to \textit{statfs} filesystems to get size and free space
+ \subitem Allows to \textit{statfs} filesystems to get used and free space
  \subitem Allows the local submission of checksum calculations
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
+The historical tunnelling feature provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios)
+is implemented by DOMEAdapter directly on the top of HTTP, hence namely it does not use the DOME server.\\
+
+
 The main difference from the legacy components is that DOME does not apply authorization again for individual user file
 access, as this task is already accomplished by the dmlite frontends. DOME only checks that the sender of a request is authorized to
 send requests, in a way that is similar to the libshift "root mode". DOME applies strong, industry standard authentication protocols to this task.\\
-Authentication in DOME must be zero-config for the regular cases (one head node and multiple disk servers), and flexible enough to add arbitrary identities that will be allowed to send commands to it.\\
+Authentication in DOME is zero-config for the regular cases (one head node and multiple disk servers), and flexible enough
+to add arbitrary identities that will be allowed to send commands to it.\\
+
 \textbf{DOME is protocol-agnostic. Its concepts of logical file name and physical file name are not linked to a particular data/metadata transfer protocol.
 DOME manages paths and filenames, not URLs. URLs can be constructed by the DPM frontends starting from the pfn or lfn information given by DOME.}
 
@@ -110,39 +132,45 @@ DOME manages paths and filenames, not URLs. URLs can be constructed by the DPM f
 Historically, DPM does space accounting through a set of individual named space reservations, kept in the DB in the head node, and associated to pools.\\
 Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
+
 One of the weakest points in this schema is that the writer has to know technical details of the destination storage, to be able to write
 and be properly accounted for.\\
-Another historical weak point is that calculating good numbers for the space occupancies can be a challenging exercise, especially if the pools have been modified in the years.\\
+
+Another historical weak point is that calculating good numbers for the space occupancies can be a challenging exercise, especially if the structure of the pools
+has been modified in the years.\\
 The development direction of DOME is to evolve this mechanism towards \textit{subdirectory-based space accounting}, instead than pool-based.\\
 
-In the current production version of the dmlite framework (0.7.3, Sept 2015), space accounting on the first levels of directories
-is a feature that is already available. DOME has access to this information through the normal dmlite Catalog API.\\
+In subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept updated with the total size of the replicas
+of files that reside in that directory subtree.\\
+
+This \textit{subdirectory size} together with the information on free/used space in the pools associated to these subdirectory tree
+can then be used to compute the needed space occupancy numbers.
 
 DOME uses the records describing spacetokens that are kept in the head node DB, with minimal modification. Their meaning is slightly changed,
-into semantically representing a quota on one and only one directory subtree.\\
+into semantically representing a quota on one and only one directory subtree. From this point on, we will refer to them as \textit{quotatokens},
+whose behavior is similar to that of an old spacetoken associated to a directory.\\
 
-For simplicity of management, a quota token attached to a directory subtree \textbf{overrides others that may be attached to its parents}. This also helps reducing the complexity of the checks.\\
-If a directory content (counting all the replicas) exceeds the quota, then new PUT requests on that dir will be denied.\\
+A \textit{quotatoken} attached to a directory subtree \textbf{overrides others that may be attached to its parents}.\\
+If a directory content (counting all the replicas) exceeds the quota spacified by the quotatoken that influences it,
+then new PUT requests on that dir will be denied.\\
 
-In the most common DPM setups, legacy spacetokens are de facto used to assign space limits to a VO or to one of its service directories, named after space tokens.\\
-The described semantic evolution is supposed to be crafted in order not to interfere with the spacetoken support implemented by the legacy components in the cases
-where space tokens were used in that way.
-
+As a summary, the meaning of a quotatoken specifying a quota of N on poolX, associated to directory "/dir1" is \textit{give poolX as
+space for hosting the files that will be written into /dir1. Do not allow more than N terabytes to be hosted there.\\
 
 \subsection{Pools and filesystems}
 A pool is a logical group of mount points in individual disk servers that are used to store replicas.\\
 
 DOME uses the same concept of Pool than the historical DPM, hence the "Pool management" functionalities
-of the legacy lcg-dm components will continue to work mostly as they are.\\
+of the legacy lcg-dm components continue to work mostly as they were.\\
 
-DOME considers pools as referred to path prefixes, that is directory subtrees. A pool assigned to a directory
-completely overrides pool assignments that belong to its parent directories.\\
+A Pool can be associated to a directory subtree by creating suitable quotatokens that describe the individual associations.\\
 
 A Pool assigned to a subtree acts as a sort of "replication domain". Replicas of files belonging to that subtree
 are stored in filesystems belonging to this pool. Multiple replicas are spread through different file systems.\\
 
-For internal performance and accounting coherency reasons, only one pool can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch).
-Writes into this subtree will be space-balanced between all the filesystems composing the pool assigned to it.\\
+We would like to emphasize that only one pool can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch).
+Writes into this subtree will be space-balanced between all the filesystems composing the pool assigned to it. A pool instead can be associated
+to any number of quotatokens (and hence, directories).\\
 
 \subsection{Open checksumming}
 DOME supports requests for checksums of arbitrary kind. It can:\\
@@ -162,8 +190,8 @@ calculations do not end correctly, or some machines are restarted.
 
 \section{Tech}
 
-The architecture of DOME has to be expandable, which does not necessarily mean that it's excessively plugin-based. Where to add the implementation of a new request must be clear and simple to understand, in order to guarantee easier maintenance for the future.\\
-DOME is a client of dmlite, i.e. it can invoke the dmlite catalogue, pool, etc. functions.\\
+The architecture of DOME is expandable, through the usage of an open, human-readable protocol (JSON) and through proper design.\\
+
 
 \subsection{Architecture}
 Deployment diagram
@@ -313,10 +341,10 @@ relies on the services of dmlite and DOME in the background.
 
 NOTES:
 \begin{itemize}
- \item chksum calculation/mgmt is incomplete, in the best cases it's inflexible
- \item NOTE: the PUT polling mechanism is among the main responsibles for the latency of writes into DPM
- \item NOTE: many of these requests have been exposed through the SRM layer. It's unclear what influenced what. We should feel free to be non-SRMish
- \item The DPM daemon uses rfio as generic subsystem for inter-cluster communication and data sharing
+ \item chksum calculation/mgmt is inflexible and supports only one value per file
+ \item NOTE: the PUT polling mechanism is among the main responsibles for the latency of writes into DPM (almost 1sec per write, in the optimal case)
+ \item NOTE: the PUT polling mechanism is responsible of a much higher load on the head node, as multiple polling sycles have to be performed for every request
+  \item The DPM daemon uses rfio as generic subsystem for inter-cluster communication and data sharing
 \end{itemize}
 
 
@@ -1418,21 +1446,40 @@ Maximum time, in seconds, that an entry about a checksum that is being calculate
 Checksums that have been dispatched and that do not send the heartbeat will be internally treated as failed for unknown reasons.\\
 Default: 60\\
 
-\subsubsection{head.maxchecksums}
-
-Maximum number of checksums that can be run concurrently in this DPM instance. Additional requests will be queued until the condition is met.\\
-
-\subsubsection{head.maxcallouts}
+\subsubsection{head.checksum.maxtotal}
 
 Maximum number of file callouts that can be run concurrently in this DPM instance. Additional requests will be queued until the condition is met.\\
+Default: 10\\
 
-\subsubsection{head.maxchecksumspernode}
-
-Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
-
-\subsubsection{head.maxcalloutspernode}
+\subsubsection{head.checksum.maxpernode}
 
 Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
+Default: 2\\
+
+
+\subsubsection{head.checksum.qtmout}
+
+Maximum time an entry in the internal file pulls queue will remain alive if not referenced either by clients or by servers while they process it.\\
+Default: 180 secs\\
+
+
+
+
+\subsubsection{head.filepulls.maxtotal}
+
+Maximum number of file callouts that can be run concurrently in this DPM instance. Additional requests will be queued until the condition is met.\\
+Default: 10\\
+
+\subsubsection{head.filepulls.maxpernode}
+
+Maximum number of checksums that can be assigned to a single disk node. Additional requests will be queued until the condition is met.\\
+Default: 2\\
+
+
+\subsubsection{head.filepulls.qtmout}
+
+Maximum time an entry in the internal file pulls queue will remain alive if not referenced either by clients or by servers while they process it.\\
+Default: 180 secs\\
 
 
 \subsubsection{head.gridmapfile}
