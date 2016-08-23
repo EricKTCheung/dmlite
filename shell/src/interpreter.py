@@ -2086,6 +2086,7 @@ class Util(object):
                     try:
                         interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,
                                                      2)
+			return 0
                     except Exception:
                         interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
                 else:
