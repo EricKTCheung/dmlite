@@ -416,7 +416,7 @@ int DomeCore::init(const char *cfgfile) {
     limits.clear();
     limits.push_back( CFG->GetLong("head.filepulls.maxtotal", 10) );
     limits.push_back( CFG->GetLong("head.filepulls.maxpernode", 2) );
-    status.filepullq = new GenPrioQueue(CFG->GetLong("head.filepulls.qtmout", 30), limits);
+    status.filepullq = new GenPrioQueue(CFG->GetLong("head.filepulls.qtmout", 180), limits);
 
     // Allocate the mysql factory and configure it
     if(status.role == status.roleHead) {

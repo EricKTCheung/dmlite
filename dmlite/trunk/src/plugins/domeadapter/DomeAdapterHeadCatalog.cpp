@@ -149,13 +149,17 @@ DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::st
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
   std::string targetpath;
 
-  if ( (!path.empty() && path[0] == '/') || this->cwdPath_.empty()) {
+  if (path[0] == '/') {
+    // path is absolute
     targetpath = path;
   }
   else {
+    // path is relative, no matter what the current path is
+    // we can prefix the / anyway
     targetpath = SSTR(cwdPath_ << "/" << path);
   }
-
+    
+  
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getstatinfo");
 

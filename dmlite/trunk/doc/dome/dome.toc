@@ -79,15 +79,17 @@
 \contentsline {subsubsection}{\nonumberline glb.workers}{43}
 \contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{44}
 \contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{44}
-\contentsline {subsubsection}{\nonumberline head.maxchecksums}{44}
-\contentsline {subsubsection}{\nonumberline head.maxcallouts}{44}
-\contentsline {subsubsection}{\nonumberline head.maxchecksumspernode}{44}
-\contentsline {subsubsection}{\nonumberline head.maxcalloutspernode}{44}
-\contentsline {subsubsection}{\nonumberline head.gridmapfile}{44}
+\contentsline {subsubsection}{\nonumberline head.checksum.maxtotal}{44}
+\contentsline {subsubsection}{\nonumberline head.checksum.maxpernode}{44}
+\contentsline {subsubsection}{\nonumberline head.checksum.qtmout}{44}
+\contentsline {subsubsection}{\nonumberline head.filepulls.maxtotal}{44}
+\contentsline {subsubsection}{\nonumberline head.filepulls.maxpernode}{45}
+\contentsline {subsubsection}{\nonumberline head.filepulls.qtmout}{45}
+\contentsline {subsubsection}{\nonumberline head.gridmapfile}{45}
 \contentsline {subsubsection}{\nonumberline head.filepuller.stathook}{45}
 \contentsline {subsubsection}{\nonumberline head.filepuller.stathooktimeout}{45}
-\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{45}
-\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{45}
-\contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{45}
+\contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{46}
+\contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{46}
+\contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{46}
 \contentsline {subsubsection}{\nonumberline disk.filepuller.pullhook}{46}
 \contentsline {chapter}{\numberline {3}subsystems and development tasks}{47}
