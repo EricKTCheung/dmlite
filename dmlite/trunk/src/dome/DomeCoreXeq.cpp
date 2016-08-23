@@ -414,11 +414,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot add replica to '" << lfn << "' : " << e.code() << "-" << e.what();
-      
+
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, http_status(e), os);
     }
-  
+
   // Create the replica in the catalog
   dmlite::Replica r;
   r.fileid = lfnstat.stat.st_ino;
@@ -639,7 +639,6 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // use the rfio syntax.
   std::string rfn = server + ":" + pfn;
 
-
   dmlite::Replica rep;
   try {
     rep = stack->getCatalog()->getReplicaByRFN(rfn);
@@ -715,7 +714,10 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // Update the replica values, including the checksum
   rep.ptime = rep.ltime = rep.atime = time(0);
   rep.status = dmlite::Replica::kAvailable;
-  rep[chktype] = chkval;
+  if(!chktype.empty()) {
+    Log(Logger::Lvl4, domelogmask, domelogname, " setting checksum: " << chktype << "," << chkval);
+    rep[chktype] = chkval;
+  }
 
   try {
     stack->getCatalog()->updateReplica(rep);

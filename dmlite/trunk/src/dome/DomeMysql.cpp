@@ -212,14 +212,14 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
 
     memset(buf5, 0, sizeof(buf4));
     stmt.bindResult(6, buf5, 256);
-    
+
     while ( stmt.fetch() ) {
       qtk.u_token = buf1;
       qtk.path = buf2;
       qtk.poolname = buf3;
       qtk.s_token = buf4;
       qtk.groupsforwrite = DomeUtils::split(std::string(buf5), ",");
-      
+
       Log(Logger::Lvl2, domelogmask, domelogname, " Fetched quotatoken. rowid:" << qtk.rowid << " s_token:" << qtk.s_token <<
         " u_token:" << qtk.u_token << " t_space:" << qtk.t_space << " poolname: '" << qtk.poolname << "' path:" << qtk.path <<
         " groups: '" << qtk.getGroupsString() << "'"
@@ -722,63 +722,63 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
   DomeFsInfo fs;
   int cnt = 0;
-  
+
   try {
     Statement stmt(conn_, "dpm_db",
                    "SELECT poolname, server, fs, status "
                    "FROM dpm_fs " );
     stmt.execute();
-    
+
     char bufpoolname[1024], bufserver[1024], buffs[1024];
-    
+
     memset(bufpoolname, 0, sizeof(bufpoolname));
     stmt.bindResult(0, bufpoolname, 16);
-    
+
     memset(bufserver, 0, sizeof(bufserver));
     stmt.bindResult(1, bufserver, 64);
-    
+
     memset(buffs, 0, sizeof(buffs));
     stmt.bindResult(2, buffs, 80);
-    
-    stmt.bindResult(3, (int *)&fs.status);
-    
 
-    
+    stmt.bindResult(3, (int *)&fs.status);
+
+
+
     {
       boost::unique_lock<boost::recursive_mutex> l(st);
       std::vector <DomeFsInfo> newfslist;
-      
+
       while ( stmt.fetch() ) {
         DomeFsInfo oldfs;
-        
+
         fs.poolname = bufpoolname;
         fs.server = bufserver;
         fs.fs = buffs;
-        
+
         st.servers.insert(fs.server);
-        
+
         // If the fs was already in memory, keep its status
         if ( st.PfnMatchesAnyFS(fs.server, fs.fs, oldfs) ) {
           fs.activitystatus = oldfs.activitystatus;
           fs.freespace = oldfs.freespace;
           fs.physicalsize = oldfs.physicalsize;
         }
-        
+
         Log(Logger::Lvl1, domelogmask, domelogname, " Fetched filesystem. server: '" << fs.server <<
         "' fs: '" << fs.fs << "' st: " << fs.status << " pool: '" << fs.poolname << "'");
-        
+
         newfslist.push_back(fs);
-        
+
         cnt++;
       }
-      
+
       st.fslist = newfslist;
-      
+
     }
-    
+
   }
   catch ( ... ) {}
-  
+
   Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Elements read:" << cnt);
   return cnt;
 }
@@ -1274,11 +1274,12 @@ DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
     r.rfn           = crfn;
     r.server        = cserver;
     r.setname       = std::string(setnm);
-    r["pool"]       = std::string(cpool);
-    r["filesystem"] = std::string(cfilesystem);
     r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
     r.type          = static_cast<Replica::ReplicaType>(ctype);
     r.deserialize(cmeta);
+
+    r["pool"]       = std::string(cpool);
+    r["filesystem"] = std::string(cfilesystem);
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading stat of rfn " << rfn);
@@ -1332,33 +1333,33 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
 
 DmStatus DomeMySql::setSize(std::string lfn, int64_t filesize) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << lfn << "' size: " << filesize );
-  
+
   bool ok = true;
   long unsigned int nrows = 0;
   dmlite::ExtendedStat st;
-  
+
   // Do a stat to get the fileid
   DmStatus ret = getStatbyLFN(st, lfn);
   if (!ret.ok())
     return ret;
-  
+
   try {
     // Just do the query on the fileid
     Statement stmt(conn_, "cns_db",
                    "UPDATE Cns_file_metadata SET filesize = ?, ctime = UNIX_TIMESTAMP() WHERE fileid = ?");
-    
+
     stmt.bindParam(0, filesize);
     stmt.bindParam(1, st.stat.st_ino);
-    
+
     // If no rows are affected then error
     if ( (nrows = stmt.execute() == 0) )
       return DmStatus(EINVAL, SSTR("Cannot set filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << " nrows: " << nrows));
-    
+
   }
   catch (DmException e) {
     Err(domelogname, " Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what());
     return DmStatus(EINVAL, SSTR(" Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what()));
   }
-  
+
   return DmStatus();
 }
