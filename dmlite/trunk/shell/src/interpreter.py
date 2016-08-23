@@ -1510,7 +1510,7 @@ or - (to accept any type).  The latter is the default.
             pool = pydmlite.Pool()
             pool.name = given[0]
             pool.type = given[1]
-	    if len(given) > 2:
+            if len(given) > 2:
                 pool.setString("s_type", given[2])
             else:
                 pool.setString("s_type", '-')
@@ -1697,24 +1697,24 @@ class QryConfCommand(ShellCommand):
                 self.ok('\t\tCAPACITY %s FREE %s ( %.1f%%)' % (self.prettySize(capacity), self.prettySize(free), rate))
 
                 for _pool in data['poolinfo'].keys():
-		    if _pool == pool.name:
-			try :
-			    for server in data['poolinfo'][_pool]['fsinfo'].keys():
-			        for _fs in data['poolinfo'][_pool]['fsinfo'][server].keys():
-				    fs =  data['poolinfo'][_pool]['fsinfo'][server][_fs]
+                    if _pool == pool.name:
+                        try:
+                            for server in data['poolinfo'][_pool]['fsinfo'].keys():
+                                for _fs in data['poolinfo'][_pool]['fsinfo'][server].keys():
+                                    fs =  data['poolinfo'][_pool]['fsinfo'][server][_fs]
                                     if int(fs['physicalsize']) != 0:
                                         rate = round(float(100 * float(fs['freespace'])) / float(fs['physicalsize']),1)
                                     else:
                                         rate = 0
                                     if int(fs['fsstatus']) == 2:
-                    		        status = 'RDONLY'
-                    	            elif int (fs['fsstatus']) == 1:
+                                        status = 'RDONLY'
+                                    elif int (fs['fsstatus']) == 1:
                                         status = 'DISABLED'
                                     else:
                                         status = ''
                                     self.ok("\t%s %s CAPACITY %s FREE %s ( %.1f%%) %s" % (server, _fs, self.prettySize(fs['physicalsize']), self.prettySize(fs['freespace']), rate, status))
-			except Exception, e:
-			    pass
+                        except Exception, e:
+                            pass
             return self.ok()
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -1994,12 +1994,10 @@ class FsModifyCommand(ShellCommand):
     """Modify a filesystem. Dome needs to be installed and running. (package dmlite-dome)
 
 Status must have one of the following values: 0 for ENABLED, 1 for DISABLED, 2 for RDONLY.
-stype: 'P' for permanent, 'V' for volatile
 
-NOTE: This command will change defsize and stype for ALL filesystems in selected pool.
 """
     def _init(self):
-        self.parameters = ['?filesystem name', '?server', '?pool name', '?status', '?defsize', '?stype']
+        self.parameters = ['?filesystem name', '?server', '?pool name', '?status']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -2010,14 +2008,12 @@ NOTE: This command will change defsize and stype for ALL filesystems in selected
             server = given[1]
             pool = given[2]
             status = int(given[3])
-            defsize = int(given[4])
-            stype = given[5]
 
             if status > 2 or status < 0:
                 return self.error('Unknown status value: ' + str(status))
 
             out = self.interpreter.executor.modifyFs(self.interpreter.domeheadurl, fs, pool, server,
-                                                     status, defsize, stype)
+                                                     status)
             print(out)
             return self.ok(restart_dpm_reminder)
         except Exception, e:
@@ -2079,6 +2075,22 @@ class Util(object):
                 print 'No HostCertificate defined on the configuration files'
 
             return adminUserName
+
+        @staticmethod
+        def setFSReadonly(dpm2,interpreter,sourceFS):
+            if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
+                return 0
+            else:
+                #check if the SERRNO is 1018 -> Communication error and assume if DPM is down we are using DOME
+                if  dpm2.cvar.serrno == 1018:
+                    try:
+                        interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,
+                                                     2)
+                    except Exception:
+                        interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
+                else:
+                    interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
+                return 1
 
         @staticmethod
         def printComments(interpreter):
@@ -2402,11 +2414,8 @@ ex:
 
             #set as READONLY the FS  to drain
             if not parameters['dryrun']:
-                if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
-                   pass
-                else:
-                   self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
-                   return
+                if Util.setFSReadonly(dpm2,self.interpreter,sourceFS):
+                    return
             else:
                 Util.printComments(self.interpreter)
 
@@ -2481,6 +2490,8 @@ The replicate command accepts the following parameters:
         parameters = {}
         self.interpreter.replicaQueueLock = threading.Lock()
         filename = given[0]
+        if filename.endswith('/'):
+            return self.error("The File to replicate cannot end with /: " +filename+"\n")
         if not filename.startswith('/'):
             filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
         parameters['filename'] = filename
@@ -2896,14 +2907,11 @@ The drainpool command accepts the following parameters:
 
                 #step 1 : set as READONLY all FS in the pool to drain
                 if not parameters['dryrun']:
-                         for fs in listFStoDrain:
-                                if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
-                                        pass
-                                else:
-                                        self.error('Not possible to set Filesystem '+ fs.server +"/" +fs.name + " To ReadOnly. Exiting.")
+                        for fs in listFStoDrain:
+                                if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
                                         return
                 else:
-                         Util.printComments(self.interpreter)
+                        Util.printComments(self.interpreter)
                 self.ok("Calculating Replicas to Drain..")
                 self.ok()
 
@@ -3015,10 +3023,7 @@ The drainfs command accepts the following parameters:
 
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
-                       if not dpm2.dpm_modifyfs(fsToDrain.server, fsToDrain.name, 2, fsToDrain.weight):
-                                pass
-                       else:
-                                self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
+                        if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
                                 return
                 else:
                         Util.printComments(self.interpreter)
@@ -3135,12 +3140,9 @@ The drainserver command accepts the following parameters:
                                 return self.error("The specified server has not been found in the DPM configuration")
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
-                         for fs in db.getFilesystemsInServer(servername):
-                                if not dpm2.dpm_modifyfs(fs.server, fs.name, 2, fs.weight):
-                                        pass
-                                else:
-                                        self.error('Not possible to set Filesystem '+ fsToDrain.server +"/" +fsToDrain.name + " To ReadOnly. Exiting.")
-                                        return
+                        for fs in db.getFilesystemsInServer(servername):
+                                if Util.setFSReadonly(dpm2,self.interpreter,fs):
+                                        return        
                 else:
                         Util.printComments(self.interpreter)
                 self.ok("Calculating Replicas to Drain..")

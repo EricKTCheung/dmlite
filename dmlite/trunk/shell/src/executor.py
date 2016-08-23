@@ -60,11 +60,10 @@ class DomeExecutor(object):
         return talker.execute({"fs" : fs, "poolname" : pool, "server" : server,
                                "status" : status})
 
-    def modifyFs(self,url,fs,pool,server,status,defsize,stype):
+    def modifyFs(self,url,fs,pool,server,status):
         talker = DomeTalker(self.creds, url, "POST", "dome_modifyfs")
         return talker.execute({"fs" : fs, "poolname" : pool, "server" : server,
-                               "status" : status, "pool_defsize" : defsize,
-                               "pool_stype" : stype})
+                               "status" : status})
 
     def rmFs(self,url,fs,server):
         talker = DomeTalker(self.creds, url, "POST", "dome_rmfs")
