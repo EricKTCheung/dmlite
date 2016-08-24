@@ -131,19 +131,11 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
       else
         userId = this->secCtx_->credentials.clientName;
 
-      // this request might either be coming from a regular user client,
-      // or another disk server trying to do tunnelling. In the latter
-      // case, the userId is simply "root"
-      if(dmlite::validateToken(extras.getString("token"),
-            userId,
-            pfn, this->passwd_,
-            flags != O_RDONLY) != kTokenOK &&
-
-          dmlite::validateToken(extras.getString("token"),
-          "root", pfn, this->passwd_, flags != O_RDONLY) != kTokenOK)
-
+      if(dmlite::validateToken(extras.getString("token"), userId, pfn,
+                               this->passwd_, flags != O_RDONLY) != kTokenOK) {
         throw DmException(EACCES, "Token does not validate (using %s) on pfn %s",
             this->useIp_?"IP":"DN", pfn.c_str());
+      }
   }
 
   // Create - local or tunneled?
@@ -156,8 +148,8 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   std::string server = DomeUtils::server_from_rfio_syntax(pfn);
   std::string path = DomeUtils::pfn_from_rfio_syntax(pfn);
 
-  // we are a disk server doing tunnelling, use "root" as userId
-  std::string supertoken = dmlite::generateToken("root", path, this->passwd_, 50000, flags != O_RDONLY);
+  // we are a disk server doing tunnelling, use kGeneircUser as userId which is accepted always
+  std::string supertoken = dmlite::generateToken(dmlite::kGenericUser, path, this->passwd_, 50000, flags != O_RDONLY);
 
   std::string url = SSTR(tunnelling_protocol_ << "://" << server << ":" << tunnelling_port_
                          << "/" << Uri::escapeString(path) << "?token=" << Uri::escapeString(supertoken));
