@@ -2078,18 +2078,20 @@ class Util(object):
 
         @staticmethod
         def setFSReadonly(dpm2,interpreter,sourceFS):
-            if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
-                return 0
-            else:
-                #check if the SERRNO is 1018 -> Communication error and assume if DPM is down we are using DOME
-                if  dpm2.cvar.serrno == 1018:
-                    try:
-                        interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,
-                                                     2)
-                        return 0
-                    except Exception:
-                        interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
+            #check which implementations are loaded 
+            
+            catalogImpl = interpreter.catalog.getImplId()
+            if 'DomeAdapterHeadCatalog' not in catalogImpl:
+                if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
+                    return 0
                 else:
+                    interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
+                    return 1
+            else:
+                try:
+                    interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,2)
+                    return 0
+                except Exception:
                     interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
                 return 1
 
