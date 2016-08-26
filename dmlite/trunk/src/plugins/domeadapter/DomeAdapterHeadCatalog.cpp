@@ -29,6 +29,7 @@ DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(CatalogFactory *nes
 DomeAdapterHeadCatalogFactory::~DomeAdapterHeadCatalogFactory()
 {
   // Nothing
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " ");
 }
 
 void DomeAdapterHeadCatalogFactory::configure(const std::string& key, const std::string& value) throw (DmException)
