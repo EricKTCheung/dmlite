@@ -305,7 +305,7 @@ int dmlite_getchecksum(dmlite_context* context, const char* path,
     std::string spath, scsumtype, spfn;
     spath = path;
     scsumtype = csumtype;
-    spfn = pfn;
+    if (pfn) spfn = pfn;
     
     dmlite::Catalog *c = context->stack->getCatalog();
     c->getChecksum(spath, scsumtype, csval, spfn, forcerecalc, waitsecs);
