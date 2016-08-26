@@ -138,7 +138,7 @@ and be properly accounted for.\\
 
 Another historical weak point is that calculating good numbers for the space occupancies can be a challenging exercise, especially if the structure of the pools
 has been modified in the years.\\
-The development direction of DOME is to evolve this mechanism towards \textit{subdirectory-based space accounting}, instead than pool-based.\\
+The development direction of DOME is to evolve this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based.\\
 
 In subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept updated with the total size of the replicas
 of files that reside in that directory subtree.\\
@@ -155,7 +155,7 @@ If a directory content (counting all the replicas) exceeds the quota spacified b
 then new PUT requests on that dir will be denied.\\
 
 As a summary, the meaning of a quotatoken specifying a quota of N on poolX, associated to directory "/dir1" is \textit{give poolX as
-space for hosting the files that will be written into /dir1. Do not allow more than N terabytes to be hosted there.\\
+space for hosting the files that will be written into \/dir1. Do not allow more than N terabytes to be hosted there}.\\
 
 \subsection{Pools and filesystems}
 A pool is a logical group of mount points in individual disk servers that are used to store replicas.\\
