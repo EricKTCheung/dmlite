@@ -296,37 +296,24 @@ int dmlite_getchecksum(dmlite_context* context, const char* path,
                  const char* csumtype, char* csumvalue, int maxcksumlen,
                  const char* pfn, const int forcerecalc, const int waitsecs) {
   
-  try {
-    NOT_NULL(context);
-    context->errorCode = DMLITE_SUCCESS;
-    context->errorString.clear();
-    
-    //TRY(context, getchecksum)
+  
+    TRY(context, getchecksum)
     NOT_NULL(path);
     NOT_NULL(csumtype);
     NOT_NULL(csumvalue);
     std::string csval;
+    std::string spath, scsumtype, spfn;
+    spath = path;
+    scsumtype = csumtype;
+    spfn = pfn;
     
     dmlite::Catalog *c = context->stack->getCatalog();
-    c->getChecksum(path, csumtype, csval, pfn, forcerecalc, waitsecs);
+    c->getChecksum(spath, scsumtype, csval, spfn, forcerecalc, waitsecs);
     
     strncpy(csumvalue, csval.c_str(), maxcksumlen-1);
     csumvalue[maxcksumlen-1] = '\0';
-    //CATCH(context, getchecksum)
+    CATCH(context, getchecksum)
     
-    
-    return DMLITE_SUCCESS;
-  } catch (dmlite::DmException& e) {
-    if (!context) return EFAULT;
-    context->errorCode   = DMLITE_ERRNO(e.code()) ? e.code() : e.code()|DMLITE_UNKNOWN_ERROR;
-    context->errorString = e.what();
-    return context->errorCode;
-  } catch (...) {
-    if (!context) return EFAULT;
-    context->errorCode   = DMLITE_SYSERR(DMLITE_UNEXPECTED_EXCEPTION);
-    context->errorString = "An unexpected exception was thrown while executing ";
-    return context->errorCode;
-  }
 }
 
 int dmlite_setacl(dmlite_context* context, const char* path, unsigned nEntries,
