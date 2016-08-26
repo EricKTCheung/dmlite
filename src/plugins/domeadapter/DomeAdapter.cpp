@@ -70,22 +70,34 @@ Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException) {
 }
 
 static void registerDomeAdapterDiskCatalog(PluginManager* pm) throw(DmException) {
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "registerDomeAdapterDiskCatalog");
+  
   DomeAdapterFactory *dmFactory = new DomeAdapterFactory();
   pm->registerCatalogFactory(dmFactory);
   pm->registerAuthnFactory(dmFactory);
 }
 
 static void registerIOPlugin(PluginManager* pm) throw (DmException) {
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "registerIOPlugin");
+  
   pm->registerIODriverFactory(new DomeIOFactory());
 }
 
 static void registerDomeAdapterPools(PluginManager* pm) throw (DmException) {
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "registerDomeAdapterPools");
+  
   DomeAdapterFactory *dmFactory = new DomeAdapterFactory();
   pm->registerPoolManagerFactory(dmFactory);
   pm->registerPoolDriverFactory(dmFactory);
 }
 
 static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException) {
+  domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "registerDomeAdapterHeadCatalog");
+  
   CatalogFactory* nestedCAT = pm->getCatalogFactory();
 
   if (nestedCAT == NULL)
