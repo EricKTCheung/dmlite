@@ -143,8 +143,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     if (!st.ok())
       throw st.exception();
     
-    // Set proper default ownership taken from the parent dir
-    catalog->setOwner(filepath, statinfo.stat.st_uid, statinfo.stat.st_gid);
+    
 
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
