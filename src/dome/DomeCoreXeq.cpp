@@ -122,7 +122,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 
     // Try to get the stat of the parent
     try {
-      catalog->makeDir(p, 0664);
+      catalog->makeDir(p, 0774);
     } catch (DmException e) {
       // If we can't create the dir then this is a serious error, unless it already exists
       Err(domelogname, "Cannot create path '" << p << "' err: " << e.code() << "-" << e.what());
