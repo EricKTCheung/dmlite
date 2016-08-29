@@ -86,7 +86,12 @@ void DpmAdapterCatalog::getChecksum(const std::string& path,
                                    
                                    setDpmApiIdentity();
                                    
-                                   ExtendedStat ckx = this->extendedStat(path, true);
+                                   ExtendedStat ckx;
+                                   
+                                   if (!path.empty())
+                                    ckx = this->extendedStat(path, true);
+                                   else
+                                     ckx = this->extendedStatByRFN(pfn);
                                    
                                    std::string k = csumtype;
                                    
