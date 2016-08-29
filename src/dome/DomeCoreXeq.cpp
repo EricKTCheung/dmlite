@@ -130,7 +130,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     }
 
     // Set proper ownership
-    catalog->setOwner(parentpath, parentstat.stat.st_uid, parentstat.stat.st_gid);
+    //catalog->setOwner(parentpath, parentstat.stat.st_uid, parentstat.stat.st_gid);
   }
 
   // If a miracle took us here, we only miss to create the final file
