@@ -58,7 +58,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
                          const std::string& filepath,
                          std::string  &parentpath,
                          ExtendedStat &parentstat,
-                         ExtendedStat &statinfo, int uid) throw (DmException) {
+                         ExtendedStat &statinfo) throw (DmException) {
 
   if (filepath.empty())
     throw DmException(EINVAL, "Empty path. Internal error ?");
@@ -130,7 +130,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     }
 
     // Set proper ownership
-    catalog->setOwner(parentpath, uid, parentstat.stat.st_gid);
+    catalog->setOwner(parentpath, parentstat.stat.st_uid, parentstat.stat.st_gid);
   }
 
   // If a miracle took us here, we only miss to create the final file
@@ -143,8 +143,8 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     if (!st.ok())
       throw st.exception();
     
-    // Set proper ownership
-    catalog->setOwner(filepath, uid, statinfo.stat.st_gid);
+    // Set proper default ownership taken from the parent dir
+    catalog->setOwner(filepath, statinfo.stat.st_uid, statinfo.stat.st_gid);
 
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
@@ -404,18 +404,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   if (!addreplica)
     try {
-      int uid, gid;
-      DomeUserInfo ui;
-      if (!status.getUser(req.creds.clientName, ui)) {
-      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat, ui.userid);
-      }
-      else {
-        std::ostringstream os;
-        os << "Cannot find user to create new file for dn: '" << req.creds.clientName << "' addr: '" << req.creds.remoteAddress;
-        
-        Err(domelogname, os.str());
-        return DomeReq::SendSimpleResp(request, 422, os);
-      }
+
+      
+      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
+
+      
       
 
     } catch (DmException &e) {
