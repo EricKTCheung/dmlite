@@ -58,7 +58,7 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
                          const std::string& filepath,
                          std::string  &parentpath,
                          ExtendedStat &parentstat,
-                         ExtendedStat &statinfo) throw (DmException) {
+                         ExtendedStat &statinfo, int uid) throw (DmException) {
 
   if (filepath.empty())
     throw DmException(EINVAL, "Empty path. Internal error ?");
@@ -129,7 +129,8 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
       if (e.code() != EEXIST) throw;
     }
 
-
+    // Set proper ownership
+    catalog->setOwner(parentpath, uid, parentstat.stat.st_gid);
   }
 
   // If a miracle took us here, we only miss to create the final file
@@ -141,6 +142,9 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     DmStatus st = sql.getStatbyLFN(statinfo, filepath);
     if (!st.ok())
       throw st.exception();
+    
+    // Set proper ownership
+    catalog->setOwner(filepath, uid, statinfo.stat.st_gid);
 
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
@@ -400,7 +404,20 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   if (!addreplica)
     try {
-      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
+      int uid, gid;
+      DomeUserInfo ui;
+      if (!status.getUser(req.creds.clientName, ui)) {
+      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat, ui.userid);
+      }
+      else {
+        std::ostringstream os;
+        os << "Cannot find user to create new file for dn: '" << req.creds.clientName << "' addr: '" << req.creds.remoteAddress;
+        
+        Err(domelogname, os.str());
+        return DomeReq::SendSimpleResp(request, 422, os);
+      }
+      
+
     } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
