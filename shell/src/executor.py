@@ -77,9 +77,9 @@ class DomeExecutor(object):
         talker = DomeTalker(self.creds, url, "GET", "dome_statpool")
         return talker.execute({"poolname" : pool})
 
-    def getquotatoken(self,url,lfn, getsubdirs):
+    def getquotatoken(self,url,lfn, getparentdirs,getsubdirs):
         talker = DomeTalker(self.creds, url, "GET", "dome_getquotatoken")
-        return talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs, "getparentdirs": "true" })
+        return talker.execute( { "path" : lfn, "getsubdirs" : getsubdirs, "getparentdirs": getparentdirs })
 
     def setquotatoken(self,url,lfn,pool, space,desc):
         talker = DomeTalker(self.creds, url, "POST", "dome_setquotatoken")
