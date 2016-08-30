@@ -3182,10 +3182,12 @@ The command accepts the following paramameter:
              return self.error("Incorrect number of parameters")
          path = given[0]
          getsubdirs = False
+         getparentdirs = True 
          if (len(given) == 2):
              getsubdirs = True
+             getparentdirs = False
 
-         out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getsubdirs)
+         out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getparentdirs,getsubdirs)
          try:
              data  = json.loads(out)
          except ValueError:
