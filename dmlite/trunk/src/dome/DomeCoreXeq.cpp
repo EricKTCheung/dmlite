@@ -3207,7 +3207,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
           std::string err;
           if (extract_stat(this->getTask(id)->stdout, err, st) <= 0) {
             Err(domelogname, "Failed stating lfn: '" << lfn << "' err: '" << err << "'");
-            return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
+            return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot remotely stat lfn: '" << lfn << "'"));
           }
 
         }
