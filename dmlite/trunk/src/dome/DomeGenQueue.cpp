@@ -209,10 +209,12 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
 }
 
 size_t GenPrioQueue::nWaiting() {
+  scoped_lock(*this);
   return waiting.size();
 }
 
 size_t GenPrioQueue::nTotal() {
+  scoped_lock(*this);
   return items.size();
 }
 
