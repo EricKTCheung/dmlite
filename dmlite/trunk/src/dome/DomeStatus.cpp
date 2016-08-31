@@ -542,8 +542,8 @@ void DomeStatus::tickChecksums() {
       Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling calculation of checksum: " << next->namekey);
 
     // parse queue item contents
-      std::vector<std::string> qualifiers = next->qualifiers;
-      std::vector<std::string> namekey = DomeUtils::split(next->namekey, "[#]");
+      qualifiers = next->qualifiers;
+      namekey = DomeUtils::split(next->namekey, "[#]");
     
 
       if(namekey.size() != 3) {
