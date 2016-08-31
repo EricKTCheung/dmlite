@@ -376,30 +376,41 @@ bool DomeStatus::getPoolInfo(std::string &poolname, int64_t &pool_defsize, char 
   return false;
 }
 
-void DomeStatus::queueTicker() {
-  boost::unique_lock<boost::mutex> lock(queue_mtx);
-  while(true) {
-   queue_cond.timed_wait(lock, boost::posix_time::milliseconds(300));
 
-   this->tickChecksums();
-   this->tickFilepulls();
-  }
-}
 
 void DomeStatus::notifyQueues() {
+  //boost::unique_lock<boost::mutex> lock(queue_mtx);
   queue_cond.notify_one();
+}
+
+void DomeStatus::waitQueues() {
+  
+  boost::unique_lock<boost::mutex> lock(queue_mtx);
+  int dur = (int)CFG->GetLong("glb.tickfreq", 10);
+  boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::seconds(dur);
+  queue_cond.timed_wait(lock, timeout);
+
+}
+
+int DomeStatus::tickQueues(time_t timenow) {
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
+  
+  // Give life to the queues
+  checksumq->tick();
+  filepullq->tick();
+  
+  this->tickChecksums();
+  this->tickFilepulls();
+  
+  
 }
 
 int DomeStatus::tick(time_t timenow) {
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
 
-  // Give life to the queues
-  checksumq->tick();
-  filepullq->tick();
 
-  this->tickChecksums();
-  this->tickFilepulls();
   // -----------------------------------
   // Actions to be performed less often...
   // -----------------------------------

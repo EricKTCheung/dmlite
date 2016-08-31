@@ -481,7 +481,7 @@ int DomeCore::init(const char *cfgfile) {
     // Start the ticker
     Log(Logger::Lvl1, domelogmask, domelogname, "Starting ticker.");
     ticker = new boost::thread(boost::bind(&DomeCore::tick, this, 0));
-    queueTicker = new boost::thread(boost::bind(&DomeStatus::queueTicker, &status));
+    queueTicker = new boost::thread(boost::bind(&DomeCore::queueTick, this, 0));
 
     return 0;
   }
@@ -504,6 +504,17 @@ void DomeCore::tick(int parm) {
 
 }
 
+void DomeCore::queueTick(int parm) {
+  
+  while(! this->terminationrequested) {
+    time_t timenow = time(0);
+    status.waitQueues();
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
+    status.tickQueues(timenow);
+
+  }
+}
 
 /// Send a notification to the head node about the completion of this task
 void DomeCore::onTaskCompleted(DomeTask &task) {

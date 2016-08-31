@@ -97,7 +97,7 @@ public:
   /// Ticking this gives life to the objects belonging to this class
   /// This is useful for managing things that expire, pings or periodic checks
   virtual void tick(int parm);
-
+  virtual void queueTick(int parm);
 
 
   /// Requests calls. These parse the request, do actions and send the response, using the original fastcgi func
@@ -187,7 +187,12 @@ private:
   /// The thread that ticks
   boost::thread *ticker;
   boost::thread *queueTicker;
-
+  
+  // monitor pull and checksum queues
+  void TickQueuesFast();
+  boost::condition_variable tickqueue_cond;
+  boost::mutex tickqueue_mtx;
+  
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   long getGlobalputcount();
 
