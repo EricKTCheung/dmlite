@@ -1088,23 +1088,31 @@ int DomeCore::dome_getspaceinfo(DomeReq &req, FCGX_Request &request) {
 
 
 int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string lfn, Replica replica, std::string checksumtype, bool updateLfnChecksum) {
-  // create queue entry
-  GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
-  std::string namekey = lfn + "[#]" + replica.rfn + "[#]" + checksumtype;
-  std::vector<std::string> qualifiers;
-
-  qualifiers.push_back(""); // the first qualifier is common for all items,
-                            // so the global limit triggers
-
-  qualifiers.push_back(replica.server); // server name as second qualifier, so
-                                        // the per-node limit triggers
-
-  // necessary information to keep when sending dochksum - order is important
-  qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
-  qualifiers.push_back(req.creds.clientName);
-  qualifiers.push_back(req.creds.remoteAddress);
-
-  status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  
+  
+  {
+    // Against the evil side effects of returning a shared_ptr
+    scoped_lock(*status.checksumq);
+    
+    // create queue entry
+    GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
+    std::string namekey = lfn + "[#]" + replica.rfn + "[#]" + checksumtype;
+    std::vector<std::string> qualifiers;
+    
+    qualifiers.push_back(""); // the first qualifier is common for all items,
+    // so the global limit triggers
+    
+    qualifiers.push_back(replica.server); // server name as second qualifier, so
+    // the per-node limit triggers
+    
+    // necessary information to keep when sending dochksum - order is important
+    qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
+    qualifiers.push_back(req.creds.clientName);
+    qualifiers.push_back(req.creds.remoteAddress);
+    
+    status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+  }
+  
   status.notifyQueues();
 
   boost::property_tree::ptree jresp;
@@ -1343,7 +1351,11 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     qualifiers.push_back("");
     qualifiers.push_back(server);
     qualifiers.push_back(DomeUtils::bool_to_str(updateLfnChecksum));
-    status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+    {
+      // Against the evil side effects of returning a shared_ptr
+      scoped_lock(*status.checksumq);
+      status.checksumq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+    }
 
     if(qstatus != GenPrioQueueItem::Running) {
       status.notifyQueues();
@@ -1905,28 +1917,36 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     if(lfn == "") {
       return DomeReq::SendSimpleResp(request, 422, "lfn cannot be empty.");
     }
+    
+    {
+      // Against the evil side effects of returning a shared_ptr
+      scoped_lock(*status.filepullq);
+      GenPrioQueueItem::QStatus qstatus;
 
-    GenPrioQueueItem::QStatus qstatus;
+      if(str_status == "pending") {
+        qstatus = GenPrioQueueItem::Running;
+      }
+      else if(str_status == "done" || str_status == "aborted") {
+        qstatus = GenPrioQueueItem::Finished;
+      }
+      else {
+        return DomeReq::SendSimpleResp(request, 422, "The status provided is not recognized.");
+      }
 
-    if(str_status == "pending") {
-      qstatus = GenPrioQueueItem::Running;
-    }
-    else if(str_status == "done" || str_status == "aborted") {
-      qstatus = GenPrioQueueItem::Finished;
-    }
-    else {
-      return DomeReq::SendSimpleResp(request, 422, "The status provided is not recognized.");
-    }
+      // modify the queue as needed
+      std::string namekey = lfn;
+      std::vector<std::string> qualifiers;
 
-    // modify the queue as needed
-    std::string namekey = lfn;
-    std::vector<std::string> qualifiers;
+      qualifiers.push_back("");
+      qualifiers.push_back(server);
+    
 
-    qualifiers.push_back("");
-    qualifiers.push_back(server);
-    status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
-    if(qstatus != GenPrioQueueItem::Running) {
-      status.notifyQueues();
+      status.filepullq->touchItemOrCreateNew(namekey, qstatus, 0, qualifiers);
+      if(qstatus != GenPrioQueueItem::Running) {
+        status.notifyQueues();
+      }
+      
+      // We want to be sure that qstatus is destroyed here
     }
 
     if(str_status == "aborted") {
