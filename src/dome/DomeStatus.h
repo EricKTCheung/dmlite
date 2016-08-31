@@ -335,13 +335,11 @@ public:
   /// Gives life to file pulls
   void tickFilepulls();
 
-  // monitor pull and checksum queues
-  void queueTicker();
-  boost::condition_variable queue_cond;
-  boost::mutex queue_mtx;
+
 
   void notifyQueues();
-
+  void waitQueues();
+  
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;
 
@@ -351,9 +349,14 @@ public:
 
   /// The status lives
   int tick(time_t timenow);
-
+  int tickQueues(time_t timenow);
+  
   DmlitePool *dmpool;
 private:
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
+  
+  // For the queue ticker
+  boost::condition_variable queue_cond;
+  boost::mutex queue_mtx;
 };
