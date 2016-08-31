@@ -3203,10 +3203,10 @@ The command accepts the following paramameter:
              self.ok("Token Name:\t" + data[token]['quotatkname'])
              self.ok("Token Path:\t" + data[token]['path'])
              self.ok("Token Pool:\t" + data[token]['quotatkpoolname'])
-             self.ok("Token Total Space:\t" + data[token]['quotatktotspace'] + ' bytes')
-             self.ok("Pool Total Space:\t" + data[token]['pooltotspace'] + ' bytes')
-             self.ok("Path Used Space:\t" + data[token]['pathusedspace'] + ' bytes')
-             self.ok("Path Free Space:\t" + data[token]['pathfreespace'] + ' bytes')
+             self.ok("Token Total Space:\t" + self.interpreter.prettySize(data[token]['quotatktotspace']))
+             self.ok("Pool Total Space:\t" + self.interpreter.prettySize(data[token]['pooltotspace']))
+             self.ok("Path Used Space:\t" + self.interpreter.prettySize(data[token]['pathusedspace']))
+             self.ok("Path Free Space:\t" + self.interpreter.prettySize(data[token]['pathfreespace']))
              self.ok("Groups:")#sometimes the groups are not avaialble immediately after a quotatoken is created
              try:
                 for group in data[token]['groups'].keys():
