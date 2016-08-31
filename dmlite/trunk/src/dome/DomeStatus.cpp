@@ -379,7 +379,7 @@ bool DomeStatus::getPoolInfo(std::string &poolname, int64_t &pool_defsize, char 
 void DomeStatus::queueTicker() {
   boost::unique_lock<boost::mutex> lock(queue_mtx);
   while(true) {
-   queue_cond.wait(lock);
+   queue_cond.timed_wait(lock, boost::posix_time::milliseconds(300));
 
    this->tickChecksums();
    this->tickFilepulls();
@@ -387,7 +387,6 @@ void DomeStatus::queueTicker() {
 }
 
 void DomeStatus::notifyQueues() {
-  boost::unique_lock<boost::mutex> lock(queue_mtx);
   queue_cond.notify_one();
 }
 
