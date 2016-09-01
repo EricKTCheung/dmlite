@@ -191,7 +191,6 @@ void test6() {
   queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
   queue.touchItemOrCreateNew("1", GenPrioQueueItem::Waiting, 0, v2("srv", "pool1"));
 
-  ASSERT(queue.removeItem("adf") == NULL);
 
   GenPrioQueueItem_ptr item1 = queue.getNextToRun();
   ASSERT(item1->namekey == "1");
