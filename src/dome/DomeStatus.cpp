@@ -535,8 +535,8 @@ void DomeStatus::tickChecksums() {
       // Get the next to run and extract the relevant fields
       scoped_lock(*(this->checksumq));
       {
-        GenPrioQueueItem_ptr next;
-        next = checksumq->getNextToRun();
+        GenPrioQueueItem_ptr next(checksumq->getNextToRun());
+        
         if (next == NULL) return;
         
         Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling calculation of checksum: " << next->namekey);
