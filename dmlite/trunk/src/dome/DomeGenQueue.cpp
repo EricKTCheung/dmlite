@@ -38,7 +38,6 @@ using boost::recursive_mutex;
 
 
 void GenPrioQueueItem::update(std::string name, GenPrioQueueItem::QStatus st, int prio, const std::vector<std::string> &qual) {
-  
   namekey = name;
   status = st;
   priority = prio;
@@ -56,7 +55,7 @@ GenPrioQueue::GenPrioQueue(int timeoutsecs, std::vector<size_t> qualifiercountli
 GenPrioQueue::~GenPrioQueue() {
 }
 
-void GenPrioQueue::addToTimesort(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::addToTimesort(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   accesstimeKey key;
   key.accesstime = item->accesstime;
@@ -64,7 +63,7 @@ void GenPrioQueue::addToTimesort(GenPrioQueueItem_ptr item) {
   timesort[key] = item;
 }
 
-void GenPrioQueue::removeFromTimesort(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::removeFromTimesort(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   accesstimeKey key;
   key.accesstime = item->accesstime;
@@ -72,7 +71,7 @@ void GenPrioQueue::removeFromTimesort(GenPrioQueueItem_ptr item) {
   timesort.erase(key);
 }
 
-void GenPrioQueue::updateAccessTime(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::updateAccessTime(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   struct timespec newtime;
   clock_gettime(CLOCK_MONOTONIC, &newtime);
@@ -87,7 +86,7 @@ void GenPrioQueue::updateAccessTime(GenPrioQueueItem_ptr item) {
   timesort[key] = item;
 }
 
-int GenPrioQueue::insertItem(GenPrioQueueItem_ptr item) {
+int GenPrioQueue::insertItem(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   clock_gettime(CLOCK_MONOTONIC, &item->insertiontime);
   item->accesstime = item->insertiontime;
@@ -108,7 +107,7 @@ int GenPrioQueue::insertItem(GenPrioQueueItem_ptr item) {
   return 0;
 }
 
-void GenPrioQueue::updateStatus(GenPrioQueueItem_ptr item, GenPrioQueueItem::QStatus status) {
+void GenPrioQueue::updateStatus(GenPrioQueueItem_ptr &item, GenPrioQueueItem::QStatus status) {
   scoped_lock(*this);
   
   if(item->status == status) return;
@@ -132,20 +131,20 @@ void GenPrioQueue::updateStatus(GenPrioQueueItem_ptr item, GenPrioQueueItem::QSt
   item->status = status;
 }
 
-void GenPrioQueue::addToWaiting(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::addToWaiting(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   waitingKey key(item->priority, item->insertiontime, item->namekey);
   waiting[key] = item;
 }
 
-void GenPrioQueue::removeFromWaiting(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::removeFromWaiting(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   waitingKey key(item->priority, item->insertiontime, item->namekey);
   waiting.erase(key);
 }
 
 // this function makes no checks if the limits are violated - it is intentional
-void GenPrioQueue::addToRunning(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::addToRunning(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
@@ -153,7 +152,7 @@ void GenPrioQueue::addToRunning(GenPrioQueueItem_ptr item) {
   }
 }
 
-void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr item) {
+void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
@@ -165,7 +164,7 @@ void GenPrioQueue::removeFromRunning(GenPrioQueueItem_ptr item) {
   }
 }
 
-bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
+bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr &item) {
   scoped_lock(*this);
   for(unsigned int i = 0; i < item->qualifiers.size(); i++) {
     if(i >= limits.size()) break;
