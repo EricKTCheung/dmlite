@@ -44,7 +44,8 @@ void GenPrioQueueItem::update(std::string name, GenPrioQueueItem::QStatus st, in
   qualifiers = qual;
 }
 
-GenPrioQueue::GenPrioQueue(int timeoutsecs, std::vector<size_t> qualifiercountlimits): timeout(timeoutsecs),limits(qualifiercountlimits) {
+GenPrioQueue::GenPrioQueue(int timeoutsecs, std::vector<size_t> qualifiercountlimits): timeout(timeoutsecs),
+limits(qualifiercountlimits), boost::recursive_mutex() {
   scoped_lock(*this);
   // populate the active structure
   for(unsigned int i = 0; i < limits.size(); i++) {
