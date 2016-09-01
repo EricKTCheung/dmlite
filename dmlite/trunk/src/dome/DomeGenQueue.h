@@ -103,23 +103,23 @@ public:
 
 private:
   /// insert item into the internal data structures
-  int insertItem(GenPrioQueueItem_ptr &);
+  int insertItem(GenPrioQueueItem_ptr);
 
-  void updateStatus(GenPrioQueueItem_ptr &, GenPrioQueueItem::QStatus);
+  void updateStatus(GenPrioQueueItem_ptr, GenPrioQueueItem::QStatus);
 
-  void addToWaiting(GenPrioQueueItem_ptr &);
-  void addToRunning(GenPrioQueueItem_ptr &);
-  void addToTimesort(GenPrioQueueItem_ptr &);
+  void addToWaiting(GenPrioQueueItem_ptr);
+  void addToRunning(GenPrioQueueItem_ptr);
+  void addToTimesort(GenPrioQueueItem_ptr);
 
-  void removeFromWaiting(GenPrioQueueItem_ptr &);
-  void removeFromRunning(GenPrioQueueItem_ptr &);
-  void removeFromTimesort(GenPrioQueueItem_ptr &);
+  void removeFromWaiting(GenPrioQueueItem_ptr);
+  void removeFromRunning(GenPrioQueueItem_ptr);
+  void removeFromTimesort(GenPrioQueueItem_ptr);
 
   /// verifies that adding this item doesn't violate a limit
-  bool possibleToRun(GenPrioQueueItem_ptr &);
+  bool possibleToRun(GenPrioQueueItem_ptr);
 
   /// updates access time to now
-  void updateAccessTime(GenPrioQueueItem_ptr &);
+  void updateAccessTime(GenPrioQueueItem_ptr);
 
   int timeout;
   std::vector<size_t> limits;
