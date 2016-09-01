@@ -397,8 +397,8 @@ int DomeStatus::tickQueues(time_t timenow) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
   
   // Give life to the queues
-  checksumq->tick();
-  filepullq->tick();
+  //checksumq->tick();
+  //filepullq->tick();
   
   this->tickChecksums();
   this->tickFilepulls();
