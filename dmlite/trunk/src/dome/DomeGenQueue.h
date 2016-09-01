@@ -87,7 +87,7 @@ public:
   int touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers);
 
   /// Removes a specific item from the queue, whatever the status is. Gives back a reference to the item
-  GenPrioQueueItem_ptr removeItem(std::string namekey);
+  void removeItem(std::string namekey);
 
   /// Gets the next item that can transition to status running. Automatically sets it to running too if it can
   GenPrioQueueItem_ptr getNextToRun();
