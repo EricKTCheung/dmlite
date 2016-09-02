@@ -403,7 +403,7 @@ int DomeStatus::tickQueues(time_t timenow) {
   this->tickChecksums();
   this->tickFilepulls();
   
-  
+  return 0;
 }
 
 int DomeStatus::tick(time_t timenow) {
