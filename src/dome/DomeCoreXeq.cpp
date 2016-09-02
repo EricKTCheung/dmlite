@@ -1092,7 +1092,7 @@ int DomeCore::calculateChecksum(DomeReq &req, FCGX_Request &request, std::string
   
   {
     // Against the evil side effects of returning a shared_ptr
-    scoped_lock(*status.checksumq);
+    mtxlock(status.checksumq);
     {
     // create queue entry
     GenPrioQueueItem::QStatus qstatus = GenPrioQueueItem::Waiting;
@@ -1333,7 +1333,7 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
 
     {
       // Against the evil side effects of returning a shared_ptr
-      scoped_lock(*status.checksumq);
+      mtxlock(status.checksumq);
       
       {
         GenPrioQueueItem::QStatus qstatus;
@@ -1927,7 +1927,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     
     {
       // Against the evil side effects of returning a shared_ptr
-      scoped_lock(*status.filepullq);
+      mtxlock(status.filepullq);
       GenPrioQueueItem::QStatus qstatus;
 
       if(str_status == "pending") {

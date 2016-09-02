@@ -175,4 +175,21 @@ private:
   std::map<accesstimeKey, GenPrioQueueItem_ptr> timesort;
 };
 
+
+
+
+
+class mtxlock {
+private:
+  boost::recursive_mutex *mtx;
+public:
+  mtxlock(boost::recursive_mutex *m) {
+    m->lock();
+    mtx=m;
+  }
+  ~mtxlock() {
+    mtx = NULL;
+    mtx->unlock();
+  }
+};
 #endif
