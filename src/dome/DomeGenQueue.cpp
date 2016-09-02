@@ -273,9 +273,6 @@ int GenPrioQueue::tick() {
   {
     std::map<accesstimeKey, GenPrioQueueItem_ptr>::iterator it;
     
-    bool restart = false;
-    
-    do {
       for(it = timesort.begin(); it != timesort.end(); it++) {
         GenPrioQueueItem_ptr item = it->second;
         if(now.tv_sec > item->accesstime.tv_sec + timeout) {
@@ -285,16 +282,12 @@ int GenPrioQueue::tick() {
           GenPrioQueueItem::QStatus status = item->status;
           removeItem(item->namekey);
           item->status = status;
-          restart = true;
-          break;
         }
         else {
           return 0; // the rest of the items are guaranteed to be newer
         }
       }
    
-    
-    } while (restart);
     
   }
   
