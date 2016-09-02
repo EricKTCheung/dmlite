@@ -273,20 +273,28 @@ int GenPrioQueue::tick() {
   {
     std::map<accesstimeKey, GenPrioQueueItem_ptr>::iterator it;
     
-    for(it = timesort.begin(); it != timesort.end(); it++) {
-      GenPrioQueueItem_ptr item = it->second;
-      if(now.tv_sec > item->accesstime.tv_sec + timeout) {
-        Log(Logger::Lvl1, domelogmask, domelogname, " Queue item with key '" << item->namekey << "' timed out after " << timeout << " seconds.");
-        
-        // don't modify status through removal
-        GenPrioQueueItem::QStatus status = item->status;
-        removeItem(item->namekey);
-        item->status = status;
+    bool restart = false;
+    
+    do {
+      for(it = timesort.begin(); it != timesort.end(); it++) {
+        GenPrioQueueItem_ptr item = it->second;
+        if(now.tv_sec > item->accesstime.tv_sec + timeout) {
+          Log(Logger::Lvl1, domelogmask, domelogname, " Queue item with key '" << item->namekey << "' timed out after " << timeout << " seconds.");
+          
+          // don't modify status through removal
+          GenPrioQueueItem::QStatus status = item->status;
+          removeItem(item->namekey);
+          item->status = status;
+          restart = true;
+          break;
+        }
+        else {
+          return 0; // the rest of the items are guaranteed to be newer
+        }
       }
-      else {
-        return 0; // the rest of the items are guaranteed to be newer
-      }
-    }
+   
+    
+    } while (restart);
     
   }
   
