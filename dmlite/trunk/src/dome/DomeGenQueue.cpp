@@ -272,6 +272,7 @@ int GenPrioQueue::tick() {
   mtxlock(this);
   {
     std::map<accesstimeKey, GenPrioQueueItem_ptr>::iterator it;
+    std::vector<std::string> todelete;
 
       for(it = timesort.begin(); it != timesort.end(); it++) {
         GenPrioQueueItem_ptr item = it->second;
@@ -280,15 +281,19 @@ int GenPrioQueue::tick() {
 
           // don't modify status through removal
           GenPrioQueueItem::QStatus status = item->status;
-          removeItem(item->namekey);
+          todelete.push_back(item->namekey);
+          // removeItem(item->namekey);
           item->status = status;
         }
         else {
+          break; // the rest of the items are guaranteed to be newer
           return 0; // the rest of the items are guaranteed to be newer
         }
       }
 
-
+     for(std::vector<std::string>::iterator it = todelete.begin(); it != todelete.end(); it++) {
+       removeItem(*it);
+     }
   }
 
   return 0;
