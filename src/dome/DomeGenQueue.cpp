@@ -110,7 +110,7 @@ int GenPrioQueue::insertItem(GenPrioQueueItem_ptr item) {
 
 void GenPrioQueue::updateStatus(GenPrioQueueItem_ptr item, GenPrioQueueItem::QStatus status) {
   mtxlock(this);
-  
+
   if(item->status == status) return;
 
   if(item->status == GenPrioQueueItem::Waiting) {
@@ -178,15 +178,15 @@ bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
 }
 
 int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, " Touching new item to the queue with name: " << namekey << ", status: " << status <<
       "priority: " << priority);
 
   mtxlock(this);
   {
-    
+
     GenPrioQueueItem_ptr item = items[namekey];
-    
+
     // is this a new item to add to the queue?
     if(item == NULL) {
       item = boost::make_shared<GenPrioQueueItem>();
@@ -196,7 +196,7 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
     // nope, but maybe I need to update it
     else {
       updateAccessTime(item);
-      
+
       // is it finished? remove the item
       if(status == GenPrioQueueItem::Finished) {
         removeItem(namekey);
@@ -207,13 +207,13 @@ int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QS
         // only allow forward changes to the status, even in this case
       //  GenPrioQueueItem::QStatus newStatus = item->status;
       //  if(status > item->status) newStatus = status;
-        
+
       //  removeItem(namekey);
       //  item->update(namekey, newStatus, priority, qualifiers);
       //  insertItem(item);
       //}
       // easy update - only progress status
-      else if(item->status != status) {
+      else if(item->status < status) {
         updateStatus(item, status);
       }
       else {
@@ -245,7 +245,7 @@ void GenPrioQueue::removeItem(std::string namekey) {
     removeFromTimesort(item);
     items.erase(namekey);
   }
-  
+
 }
 
 GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
@@ -254,7 +254,7 @@ GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
     std::map<waitingKey, GenPrioQueueItem_ptr>::iterator it;
     for(it = waiting.begin(); it != waiting.end(); it++) {
       GenPrioQueueItem_ptr item = it->second;
-  
+
       if(possibleToRun(item)) {
         updateStatus(item, GenPrioQueueItem::Running);
         return item;
@@ -265,19 +265,19 @@ GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
 }
 
 int GenPrioQueue::tick() {
-  
+
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
-  
+
   mtxlock(this);
   {
     std::map<accesstimeKey, GenPrioQueueItem_ptr>::iterator it;
-    
+
       for(it = timesort.begin(); it != timesort.end(); it++) {
         GenPrioQueueItem_ptr item = it->second;
         if(now.tv_sec > item->accesstime.tv_sec + timeout) {
           Log(Logger::Lvl1, domelogmask, domelogname, " Queue item with key '" << item->namekey << "' timed out after " << timeout << " seconds.");
-          
+
           // don't modify status through removal
           GenPrioQueueItem::QStatus status = item->status;
           removeItem(item->namekey);
@@ -287,11 +287,11 @@ int GenPrioQueue::tick() {
           return 0; // the rest of the items are guaranteed to be newer
         }
       }
-   
-    
+
+
   }
-  
+
   return 0;
-  
-  
+
+
 }
