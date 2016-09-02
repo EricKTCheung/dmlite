@@ -2628,7 +2628,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
 
-  dmlite::INode *ino;
+  dmlite::INode *ino = NULL;
   try {
     ino = stack->getINode();
     if (!ino)
