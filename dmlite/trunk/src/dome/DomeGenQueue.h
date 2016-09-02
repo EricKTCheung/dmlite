@@ -188,8 +188,9 @@ public:
     mtx=m;
   }
   ~mtxlock() {
-    mtx = NULL;
+    
     mtx->unlock();
+    mtx = NULL;
   }
 };
 #endif
