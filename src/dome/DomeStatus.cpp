@@ -403,7 +403,7 @@ int DomeStatus::tickQueues(time_t timenow) {
   this->tickChecksums();
   this->tickFilepulls();
   
-  return 0;
+  
 }
 
 int DomeStatus::tick(time_t timenow) {
@@ -527,35 +527,22 @@ void DomeStatus::tickChecksums() {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
-  
-  while(1) {
-    std::vector<std::string> qualifiers;
-    std::vector<std::string> namekey;
-    {
-      // Get the next to run and extract the relevant fields
-      scoped_lock(*(this->checksumq));
-      {
-        GenPrioQueueItem_ptr next(checksumq->getNextToRun());
-        
-        if (next == NULL) return;
-        
-        Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling calculation of checksum: " << next->namekey);
-        
-        // parse queue item contents
-        qualifiers = next->qualifiers;
-        namekey = DomeUtils::split(next->namekey, "[#]");
-        
-        
-        if(namekey.size() != 3) {
-          Log(Logger::Lvl1, domelogmask, domelogname, "INCONSISTENCY in the internal checksum queue. Invalid namekey: " << next->namekey);
-          continue;
-        }
-        
-        if(qualifiers.size() != 5) {
-          Log(Logger::Lvl1, domelogmask, domelogname, "INCONSISTENCY in the internal checksum queue. Invalid size of qualifiers: " << qualifiers.size());
-          continue;
-        }
-      }
+  GenPrioQueueItem_ptr next;
+  while((next = checksumq->getNextToRun()) != NULL) {
+    Log(Logger::Lvl3, domelogmask, domelogname, "Scheduling calculation of checksum: " << next->namekey);
+
+    // parse queue item contents
+    std::vector<std::string> qualifiers = next->qualifiers;
+    std::vector<std::string> namekey = DomeUtils::split(next->namekey, "[#]");
+
+    if(namekey.size() != 3) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "INCONCISTENCY in the internal checksum queue. Invalid namekey: " << next->namekey);
+      continue;
+    }
+
+    if(qualifiers.size() != 5) {
+      Log(Logger::Lvl1, domelogmask, domelogname, "INCONCISTENCY in the internal checksum queue. Invalid size of qualifiers: " << qualifiers.size());
+      continue;
     }
 
     std::string lfn = namekey[0];
