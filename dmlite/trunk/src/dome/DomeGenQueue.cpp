@@ -165,7 +165,7 @@ bool GenPrioQueue::possibleToRun(GenPrioQueueItem_ptr item) {
 }
 
 int GenPrioQueue::touchItemOrCreateNew(std::string namekey, GenPrioQueueItem::QStatus status, int priority, const std::vector<std::string> &qualifiers) {
-  scoped_lock(*this);
+  scoped_lock lock(*this);
   Log(Logger::Lvl4, domelogmask, domelogname, " Touching new item to the queue with name: " << namekey << ", status: " << status <<
       "priority: " << priority);
 
@@ -217,7 +217,7 @@ size_t GenPrioQueue::nTotal() {
 }
 
 GenPrioQueueItem_ptr GenPrioQueue::removeItem(std::string namekey) {
-  scoped_lock(*this);
+  scoped_lock lock(*this);
 
   GenPrioQueueItem_ptr item = items[namekey];
   if(item == NULL) return item;
@@ -230,7 +230,7 @@ GenPrioQueueItem_ptr GenPrioQueue::removeItem(std::string namekey) {
 }
 
 GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
-  scoped_lock(*this);
+  scoped_lock lock(*this);
   std::map<waitingKey, GenPrioQueueItem_ptr>::iterator it;
   for(it = waiting.begin(); it != waiting.end(); it++) {
     GenPrioQueueItem_ptr item = it->second;
@@ -244,7 +244,7 @@ GenPrioQueueItem_ptr GenPrioQueue::getNextToRun() {
 }
 
 int GenPrioQueue::tick() {
-  scoped_lock(*this);
+  scoped_lock lock(*this);
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
 
