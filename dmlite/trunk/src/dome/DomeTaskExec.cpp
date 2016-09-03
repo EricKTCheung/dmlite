@@ -446,7 +446,7 @@ void DomeTaskExec::tick() {
           tasks.erase(i);
           Log(Logger::Lvl3, domelogmask, "tick", "Task with id  " << i->first << " purged");
         }
-        else if (!terminated && !i->second->finished)
+        else if (!terminated)
           notifq_running.push_back( i->second );
       }
       
