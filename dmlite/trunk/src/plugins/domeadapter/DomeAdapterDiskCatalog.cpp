@@ -99,7 +99,7 @@ void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
     // checksum calculation in progress
     if(talker.status() == 202) {
       if(time(0) - start >= waitsecs1) return;
-      sleep(1);
+      sleep(5);
       continue;
     }
 
