@@ -98,7 +98,8 @@ void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
 
     // checksum calculation in progress
     if(talker.status() == 202) {
-      if(time(0) - start >= waitsecs1) return;
+      if(time(0) - start >= waitsecs1)
+        throw DmException(EAGAIN, SSTR(waitsecs << "s were not sufficient to checksum '" << csumtype << ":" << path << "'. Try again later."));
       sleep(5);
       continue;
     }
