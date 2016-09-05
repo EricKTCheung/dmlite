@@ -78,7 +78,10 @@ void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
                                                             << csumtype << "'");
   time_t start = time(0);
   bool recalc = forcerecalc;
-
+  
+  int waitsecs1 = waitsecs;
+  if (waitsecs1 == 0) waitsecs1 = 1800;
+  
   while(true) {
     DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                       "GET", "dome_chksum");
@@ -95,7 +98,7 @@ void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
 
     // checksum calculation in progress
     if(talker.status() == 202) {
-      if(time(0) - start >= waitsecs) return;
+      if(time(0) - start >= waitsecs1) return;
       sleep(1);
       continue;
     }
