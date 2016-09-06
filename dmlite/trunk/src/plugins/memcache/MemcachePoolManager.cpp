@@ -226,7 +226,10 @@ void MemcachePoolManager::cancelWrite(const Location& loc) throw (DmException)
   DELEGATE_RETURN(cancelWrite, loc);
 }
 
-
+void MemcachePoolManager::getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException)
+{
+  DELEGATE(getDirSpaces, path, totalfree, used);
+}
 
 inline void MemcachePoolManager::incrementFunctionCounter(const int funcName)
 {
