@@ -42,6 +42,8 @@ namespace dmlite {
       Location whereToWrite(const std::string& path) throw (DmException);
 
       void cancelWrite(const Location& loc) throw (DmException);
+      
+      void getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException);
 
     protected:
 
