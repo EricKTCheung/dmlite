@@ -449,7 +449,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         stmt.bindParam(1, qtk.u_token);
         stmt.bindParam(2, qtk.t_space);
         stmt.bindParam(3, qtk.t_space);
-        stmt.bindParam(4, qtk.t_space);
+        stmt.bindParam(4, 0);
         stmt.bindParam(5, qtk.poolname);
         stmt.bindParam(6, timenow);
         stmt.bindParam(7, exptime);
