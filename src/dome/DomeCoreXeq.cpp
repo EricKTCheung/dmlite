@@ -2280,9 +2280,8 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   DomeQuotatoken mytk;
 
-  mytk.path = req.bodyfields.get("path", "");
+  mytk.path = DomeUtils::trim_trailing_slashes(req.bodyfields.get("path", ""));
   mytk.poolname = req.bodyfields.get("poolname", "");
-
 
   if (!status.existsPool(mytk.poolname)) {
     std::ostringstream os;
@@ -2290,12 +2289,6 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
-  }
-
-
-  // Remove any trailing slash
-  while (mytk.path[ mytk.path.size()-1 ] == '/') {
-    mytk.path.erase(mytk.path.size() - 1);
   }
 
   DmlitePoolHandler stack(status.dmpool);
@@ -2343,7 +2336,7 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
     return 1;
   }
 
-  status.insertQuotatoken(mytk);
+  status.loadQuotatokens();
   return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken written. poolname: '" << mytk.poolname
       << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
 
