@@ -111,5 +111,17 @@ fi
 return 0
 }
 
+#default values
+dpmv='340'
+dpnsv='320'
+dpm_db='dpm_db'
+dpns_db='cns_db'
 
-upgrade $1 $2 $3 $4 $5 $6 $7
+if [ "$#" -gt 3 ]; then
+  dpm_db=$4
+  dpns_db=$5
+  dpmv=$6
+  dpnsv=$7  
+fi
+
+upgrade $1 $2 $3 $dpm_db $dpns_db $dpmv $dpnsv
