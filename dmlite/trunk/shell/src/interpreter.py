@@ -139,6 +139,26 @@ class DMLiteInterpreter:
         prettySize = '%.2fPB' % (size / 1024. / 1024. / 1024. / 1024. / 1024.)
       return prettySize
 
+  def prettyInputSize(self, prettysize):
+      if 'PB' in prettysize:
+        prettysize = prettysize.replace('PB','')
+        size = int(prettysize) * 1024 * 1024 * 1024 * 1024 * 1024
+      elif 'TB' in prettysize:
+        prettysize = prettysize.replace('TB','')
+        size = int(prettysize) * 1024 * 1024 * 1024 * 1024
+      elif 'GB' in prettysize:
+        prettysize = prettysize.replace('GB','')
+        size = int(prettysize) * 1024 * 1024 * 1024
+      elif 'MB' in prettysize:
+        prettysize = prettysize.replace('MB','')
+        size = int(prettysize) * 1024 * 1024
+      elif 'KB' in prettysize:
+        prettysize = prettysize.replace('kB','')
+        size = int(prettysize) * 1024
+      else:
+        size = int(prettysize)
+      return size
+
   def listDirectory(self, directory, readComments = False):
     # list information about files in a directory
     try:
@@ -3224,7 +3244,7 @@ The command accepts the following parameter:
 
 * <path>             : the path
 * pool <poolname>    : the pool name associated to the token
-* size <size>        : the quota size expressed in bytes
+* size <size>        : the quota size and the corresponding unit of measure (kB, MB, GB, TB, PB), e.g. 2TB , 45GB
 * desc <description> : a description of the token"""
 
 
@@ -3237,12 +3257,16 @@ The command accepts the following parameter:
         if len(given) < 4:
             return self.error("Incorrect number of parameters")
         lfn = given[0]
+        if lfn.endswith('/'):
+            return self.error("The path cannot end with /: " +lfn+"\n")
+        if not lfn.startswith('/'):
+            lfn = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), lfn))
         try:
             for i in range(1, len(given),2):
                 if given[i] == "pool":
                     pool =  given[i+1]
                 elif given[i] == "size":
-                    size = int(given[i+1])
+                    size = self.interpreter.prettyInputSize(given[i+1])
                     if size < 0:
                         return self.error("Incorrect size: it must be a positive integer")
                 elif given[i] == "desc":
