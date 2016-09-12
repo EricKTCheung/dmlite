@@ -433,11 +433,11 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         // If the client also gave an s_token (usually an uuid) then use it, because likely the
         // client wants to recreate a quotatk for files that already exist in the db
         Statement stmt(conn_, "dpm_db",
-                     "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
+                     "INSERT INTO dpm_space_reserv(client_dn, s_uid, s_gid,\
                      ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
                      poolname, assign_time, expire_time, path, s_token, groups)\
                      VALUES (\
-                     uuid(), ?, 0, 0,\
+                     ?, 0, 0,\
                      '_', 0, '-', ?, ?, ?, ?,\
                      ?, ?, ?, '0', ?, ?\
         )" );
