@@ -2328,11 +2328,22 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   set_if_field_exists(mytk.u_token, req.bodyfields, "description");
   set_if_field_exists(mytk.s_token, req.bodyfields, "uniqueid");
 
-  // mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
-  // mytk.u_token = req.bodyfields.get("description", "(unnamed)");
-  //
-  // // Allow changing the uniqueid (s_token)
-  // mytk.s_token = req.bodyfields.get("uniqueid", "");
+  if(req.bodyfields.count("groups") != 0) {
+    std::vector<std::string> groupnames = DomeUtils::split(req.bodyfields.get("groups", ""), ",");
+    mytk.groupsforwrite.clear();
+    mytk.groupsforwrite.push_back("0"); // not really sure if necessary
+
+    // map group names to ids
+    for(size_t i = 0; i < groupnames.size(); i++) {
+      DomeGroupInfo tmp;
+
+      if(status.getGroup(groupnames[i], tmp) == 0) {
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to write quotatoken - invalid group: " << groupnames[i]));
+      }
+
+      mytk.groupsforwrite.push_back(SSTR(tmp.groupid));
+    }
+  }
 
   // First we write into the db, if it goes well then we update the internal map
   int rc;
