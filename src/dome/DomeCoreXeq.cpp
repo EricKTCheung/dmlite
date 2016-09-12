@@ -142,8 +142,8 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
     DmStatus st = sql.getStatbyLFN(statinfo, filepath);
     if (!st.ok())
       throw st.exception();
-    
-    
+
+
 
   } catch (DmException e) {
     // If we can't create the file then this is a serious error
@@ -404,11 +404,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   if (!addreplica)
     try {
 
-      
+
       mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
 
-      
-      
+
+
 
     } catch (DmException &e) {
       std::ostringstream os;
@@ -2182,167 +2182,91 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
 };
 
+// returns true if str1 is a strict subdir of str2
+// both arguments are assumed not to have trailing slashes
+static bool is_subdir(const std::string &str1, const std::string &str2) {
+  size_t pos = str1.find(str2);
+  return pos == 0 && str1.length() > str2.length() && str1[str2.length()] == '/';
+}
+
 int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
-
-
-  // Remove any trailing slash
-  std::string absPath = req.bodyfields.get<std::string>("path", "");
-  while (absPath[ absPath.size()-1 ] == '/') {
-    absPath.erase(absPath.size() - 1);
-  }
-
+  std::string absPath = DomeUtils::trim_trailing_slashes(req.bodyfields.get<std::string>("path", ""));
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
   bool getsubdirs = req.bodyfields.get<bool>("getsubdirs", false);
   bool getparentdirs = req.bodyfields.get<bool>("getparentdirs", false);
 
-
-
   // Get the ones that match the object of the query
-
   boost::property_tree::ptree jresp;
   int cnt = 0;
 
-
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
-    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getparentdirs: " << getparentdirs);
-    // If we can find the quotatoken path into the query...
-    size_t pos = absPath.find(it->second.path);
-    if ( pos == 0 ) {
+    bool match = false;
 
+    if(absPath == it->second.path) {
+      match = true; // perfect match, exact directory we're looking for
+    }
+    else if(getparentdirs && is_subdir(absPath, it->second.path)) {
+      match = true; // parent dir match
+    }
+    else if(getsubdirs && is_subdir(it->second.path, absPath)) {
+      match = true; // subdir match
+    }
 
+    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getparentdirs: " << getparentdirs << " getsubdirs: " << getsubdirs << " match: " << match);
+    if(!match) continue;
 
-      // If the query is longer than the tk then it's not matching if getsubdirs is false
-      if ((absPath.length() > it->second.path.length()) && (!getparentdirs)) continue;
+    // Get the used space for this path
+    long long pathfree = 0LL;
+    long long pathused = 0LL;
+    DmlitePoolHandler stack(status.dmpool);
+    try {
+      struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
+      pathused = st.stat.st_size;
+    }
+    catch (dmlite::DmException e) {
+      std::ostringstream os;
+      os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
 
-      // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
-      if ( (absPath.length() != it->second.path.length()) && (absPath[it->second.path.length()] != '/') ) continue;
+      Err(domelogname, os.str());
+      continue;
+    }
 
-      // Get the used space for this path
-      long long pathfree = 0LL;
-      long long pathused = 0LL;
-      DmlitePoolHandler stack(status.dmpool);
-      try {
-        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
-        pathused = st.stat.st_size;
-      }
-      catch (dmlite::DmException e) {
-        std::ostringstream os;
-        os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
+    // Now find the free space in the mentioned pool
+    long long ptot, pfree;
+    int poolst;
+    status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
 
-        Err(domelogname, os.str());
-        continue;
-      }
+    pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
+    if (pathfree < 0) pathfree = 0;
 
-      // Now find the free space in the mentioned pool
-      long long ptot, pfree;
-      int poolst;
-      status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
+    Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
+    it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
+    " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
 
-      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
-      if (pathfree < 0) pathfree = 0;
+    boost::property_tree::ptree pt, grps;
+    pt.put("path", it->second.path);
+    pt.put("quotatkname", it->second.u_token);
+    pt.put("quotatkpoolname", it->second.poolname);
+    pt.put("quotatktotspace", it->second.t_space);
+    pt.put("pooltotspace", ptot);
+    pt.put("pathusedspace", pathused);
+    pt.put("pathfreespace", pathfree);
 
-      Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
-      it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
-      " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
+    // Push the groups array into the response
+    for (unsigned i = 0; i < it->second.groupsforwrite.size(); i++) {
+      DomeGroupInfo gi;
+      int thisgid = atoi(it->second.groupsforwrite[i].c_str());
 
-      boost::property_tree::ptree pt, grps;
-      pt.put("path", it->second.path);
-      pt.put("quotatkname", it->second.u_token);
-      pt.put("quotatkpoolname", it->second.poolname);
-      pt.put("quotatktotspace", it->second.t_space);
-      pt.put("pooltotspace", ptot);
-      pt.put("pathusedspace", pathused);
-      pt.put("pathfreespace", pathfree);
+      if (!status.getGroup(thisgid, gi))
+        grps.push_back(std::make_pair(it->second.groupsforwrite[i], "<unknown>"));
+      else
+        grps.push_back(std::make_pair(it->second.groupsforwrite[i], gi.groupname));
+    }
+    pt.push_back(std::make_pair("groups", grps));
 
-      // Push the groups array into the response
-      for (unsigned i = 0; i < it->second.groupsforwrite.size(); i++) {
-        DomeGroupInfo gi;
-        int thisgid = atoi(it->second.groupsforwrite[i].c_str());
-
-        if (!status.getGroup(thisgid, gi))
-          grps.push_back(std::make_pair(it->second.groupsforwrite[i], "<unknown>"));
-        else
-          grps.push_back(std::make_pair(it->second.groupsforwrite[i], gi.groupname));
-      }
-      pt.push_back(std::make_pair("groups", grps));
-
-      jresp.push_back(std::make_pair(it->second.s_token, pt));
-      cnt++;
-    } // if
-  } // for
-
-
-  if (getsubdirs) {
-    // Here we want to match abspaths that are shorter than the quotatokens. Shorter but not equal.
-      for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
-    Log(Logger::Lvl4, domelogmask, domelogname, "Checking: '" << it->second.path << "' versus '" << absPath << "' getsubdirs: " << getsubdirs);
-    // If we can find the abspath into the token then we are selecting tokens that are equal or longer
-    size_t pos = it->second.path.find(absPath);
-    if ( pos == 0 ) {
-
-
-            // Get the used space for this path
-      long long pathfree = 0LL;
-      long long pathused = 0LL;
-      DmlitePoolHandler stack(status.dmpool);
-      try {
-        struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(it->second.path);
-        pathused = st.stat.st_size;
-      }
-      catch (dmlite::DmException e) {
-        std::ostringstream os;
-        os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
-
-        Err(domelogname, os.str());
-        continue;
-      }
-
-      // If the lengths are not the same, then there should be a slash in the right place in the tk for it to be a subdir
-      if ( (absPath.length() != it->second.path.length()) && (it->second.path[absPath.length()] != '/') ) continue;
-
-      // If the lengths are the same then we don't want it, as we look for proper subdirs here
-      if ( absPath.length() == it->second.path.length() ) continue;
-
-      // Now find the free space in the mentioned pool
-      long long ptot, pfree;
-      int poolst;
-      status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
-
-      pathfree = ( (it->second.t_space - pathused < ptot - pathused) ? it->second.t_space - pathused : ptot - pathused );
-      if (pathfree < 0) pathfree = 0;
-
-      Log(Logger::Lvl4, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
-      it->second.poolname << "' matches path '" << absPath << "' quotatktotspace: " << it->second.t_space <<
-      " pooltotspace: " << ptot << " pathusedspace: " << pathused << " pathfreespace: " << pathfree );
-
-      boost::property_tree::ptree pt, grps;
-      pt.put("path", it->second.path);
-      pt.put("quotatkname", it->second.u_token);
-      pt.put("quotatkpoolname", it->second.poolname);
-      pt.put("quotatktotspace", it->second.t_space);
-      pt.put("pooltotspace", ptot);
-      pt.put("pathusedspace", pathused);
-      pt.put("pathfreespace", pathfree);
-
-      // Push the groups array into the response
-      for (unsigned i = 0; i < it->second.groupsforwrite.size(); i++) {
-        DomeGroupInfo gi;
-        int thisgid = atoi(it->second.groupsforwrite[i].c_str());
-
-        if (!status.getGroup(thisgid, gi))
-          grps.push_back(std::make_pair(it->second.groupsforwrite[i], "<unknown>"));
-        else
-          grps.push_back(std::make_pair(it->second.groupsforwrite[i], gi.groupname));
-      }
-      pt.push_back(std::make_pair("groups", grps));
-
-      jresp.push_back(std::make_pair(it->second.s_token, pt));
-      cnt++;
-    } // if
-  } // for
+    jresp.push_back(std::make_pair(it->second.s_token, pt));
+    cnt++;
   }
-
-
 
   if (cnt > 0) {
     return DomeReq::SendSimpleResp(request, 200, jresp);
