@@ -152,7 +152,7 @@ CREATE TABLE dpm_space_reserv (
        poolname VARCHAR(15) BINARY,
        assign_time INTEGER,
        expire_time INTEGER,
-       groups VARCHAR(255) BINARY
+       groups VARCHAR(255) BINARY,
        path VARCHAR(255) BINARY)
 	ENGINE = InnoDB;
 
