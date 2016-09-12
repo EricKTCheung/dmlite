@@ -50,7 +50,7 @@ echo "Database versions used: DPM $dpmvdots - DPNS $cnsvdots"
 
 upgrade=0
 if [ $dpmv -lt $DPM_VERSION ]; then
-  echo "DPM DB need to be upgraded... "
+  echo "DPM DB needs to be upgraded... "
   upgrade=1
 fi
 
@@ -62,5 +62,17 @@ fi
 return $upgrade
 }
 
+#default values
+dpmv='350'
+dpnsv='320'
+dpm_db='dpm_db'
+dpns_db='cns_db'
+ 
+if [ "$#" -gt 3 ]; then
+        dpm_db=$4
+        dpns_db=$5
+	dpmv=$6
+        dpnsv=$7  
+fi
 
-check_schema $1 $2 $3 $4 $5 $6 $7
+check_schema $1 $2 $3 $dpm_db $dpns_db $dpmv $dpnsv
