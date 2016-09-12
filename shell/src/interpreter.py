@@ -249,7 +249,9 @@ class ShellCommand:
     if parameter.startswith('*'):
       return '[ ' + self.prettyParameter(parameter[1:]) + ' ]'
     if parameter.lower().startswith('o'):
-      parameter = parameter.split(':')[0]
+      parameter = parameter.split(':')
+      del parameter[0]
+      return '/'.join(p for p in parameter)
     return '<' + parameter[1:] + '>'
 
   def prettySize(self, size=0):
