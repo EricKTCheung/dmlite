@@ -2275,6 +2275,14 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatokens match path '" << absPath << "'"));
 
 };
+
+template<class T>
+static void set_if_field_exists(T& target, const boost::property_tree::ptree &bodyfields, const std::string &key) {
+  if(bodyfields.count(key) != 0) {
+    target = bodyfields.get<T>(key);
+  }
+}
+
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
 
@@ -2304,19 +2312,27 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
 
   }
 
-
   // We fetch the values that we may have in the internal map, using the keys
   if ( status.getQuotatoken(mytk.path, mytk.poolname, mytk) ) {
     std::ostringstream os;
     Log(Logger::Lvl1, domelogmask, domelogname, "No quotatoken found for pool: '" <<
       mytk.poolname << "' path '" << mytk.path << "'. Creating new one.");
+
+    // set default values
+    mytk.t_space = 0LL;
+    mytk.u_token = "(unnamed)";
+    mytk.s_token = "";
   }
 
-  mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
-  mytk.u_token = req.bodyfields.get("description", "(unnamed)");
+  set_if_field_exists(mytk.t_space, req.bodyfields, "quotaspace");
+  set_if_field_exists(mytk.u_token, req.bodyfields, "description");
+  set_if_field_exists(mytk.s_token, req.bodyfields, "uniqueid");
 
-  // Allow changing the uniqueid (s_token)
-  mytk.s_token = req.bodyfields.get("uniqueid", "");
+  // mytk.t_space = req.bodyfields.get("quotaspace", 0LL);
+  // mytk.u_token = req.bodyfields.get("description", "(unnamed)");
+  //
+  // // Allow changing the uniqueid (s_token)
+  // mytk.s_token = req.bodyfields.get("uniqueid", "");
 
   // First we write into the db, if it goes well then we update the internal map
   int rc;
