@@ -1516,7 +1516,7 @@ class PoolAddCommand(ShellCommand):
     """Add a pool.
 The pool_type values can be: 'filesystem', 'hdfs', 's3'
 
-the s_pace type values can be: V (for Volatile), D (for Durable), P (for Permanent) 
+the s_pace type values can be: V (for Volatile), D (for Durable), P (for Permanent)
 or - (to accept any type).  The latter is the default.
 
 """
@@ -2100,8 +2100,8 @@ class Util(object):
 
         @staticmethod
         def setFSReadonly(dpm2,interpreter,sourceFS):
-            #check which implementations are loaded 
-            
+            #check which implementations are loaded
+
             catalogImpl = interpreter.catalog.getImplId()
             if 'DomeAdapterHeadCatalog' not in catalogImpl:
                 if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
@@ -3167,7 +3167,7 @@ The drainserver command accepts the following parameters:
                 if not parameters['dryrun']:
                         for fs in db.getFilesystemsInServer(servername):
                                 if Util.setFSReadonly(dpm2,self.interpreter,fs):
-                                        return        
+                                        return
                 else:
                         Util.printComments(self.interpreter)
                 self.ok("Calculating Replicas to Drain..")
@@ -3204,7 +3204,7 @@ The command accepts the following paramameter:
              return self.error("Incorrect number of parameters")
          path = given[0]
          getsubdirs = False
-         getparentdirs = True 
+         getparentdirs = True
          if (len(given) == 2):
              getsubdirs = True
              getparentdirs = False
@@ -3245,13 +3245,15 @@ The command accepts the following parameter:
 * <path>             : the path
 * pool <poolname>    : the pool name associated to the token
 * size <size>        : the quota size and the corresponding unit of measure (kB, MB, GB, TB, PB), e.g. 2TB , 45GB
-* desc <description> : a description of the token"""
+* desc <description> : a description of the token
+* groups <groups>    : a comma-separated list of the groups that have write access to this quotatoken"""
 
 
     def _init(self):
         self.parameters = ['Dpath','Oparameter:pool:size:desc',  '*?value',
-                                       'Oparameter:pool:size:desc',  '*?value',
-                                       'Oparameter:pool:size:desc',  '*?value' ]
+                                       'Oparameter:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:pool:size:desc:groups',  '*?value' ]
 
     def _execute(self, given):
         if len(given) < 4:
@@ -3271,10 +3273,12 @@ The command accepts the following parameter:
                         return self.error("Incorrect size: it must be a positive integer")
                 elif given[i] == "desc":
                     desc = given[i+1]
+                elif given[i] == "groups":
+                    groups = given[i+1]
         except Exception, e:
           return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-        self.ok(self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc))
+        self.ok(self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc,groups))
 
 class QuotaTokenDelCommand(ShellCommand):
     """Del the quota token for the given path
