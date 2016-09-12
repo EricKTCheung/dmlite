@@ -272,6 +272,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
 
     stmt.bindResult(8, &qt.s_gid);
 
+    std::vector<DomeQuotatoken> tokens;
     while ( stmt.fetch() ) {
       boost::unique_lock<boost::recursive_mutex> l(st);
 
@@ -288,10 +289,10 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
         "' groupsforwrite(" << qt.groupsforwrite.size() << ") : '" << buf5 <<
         "'  path:" << qt.path);
 
-      st.insertQuotatoken(qt);
-
+      tokens.push_back(qt);
       cnt++;
     }
+    st.updateQuotatokens(tokens);
   }
   catch ( ... ) {}
 

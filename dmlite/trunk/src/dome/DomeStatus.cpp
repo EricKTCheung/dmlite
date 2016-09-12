@@ -217,7 +217,7 @@ int DomeStatus::loadUsersGroups() {
     gi.xattr = "";
     insertGroup(gi);
   }
-  
+
   // And now also load the gridmap file
   int cnt = 0;
   FILE *mf;
@@ -289,26 +289,15 @@ int DomeStatus::loadUsersGroups() {
   return 1;
 }
 
-int DomeStatus::insertQuotatoken(DomeQuotatoken &mytk) {
-
+void DomeStatus::updateQuotatokens(const std::vector<DomeQuotatoken> &tokens) {
    boost::unique_lock<boost::recursive_mutex> l(*this);
 
-    // Insert this quota, by overwriting any other quota that has the same path and same pool
-    std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
-    myintv = quotas.equal_range(mytk.path);
+   // overwrite all quotatokens with those in the vector
+   quotas.clear();
 
-    for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first;
-       it != myintv.second;
-       ++it) {
-          if (it->second.poolname == mytk.poolname) {
-            quotas.erase(it);
-            break;
-          }
-        }
-
-    quotas.insert( std::pair<std::string, DomeQuotatoken>(mytk.path, mytk) );
-
-    return 0;
+   for(size_t i = 0; i < tokens.size(); i++) {
+     quotas.insert(std::pair<std::string, DomeQuotatoken>(tokens[i].path, tokens[i]));
+   }
 }
 
 int DomeStatus::getPoolSpaces(std::string &poolname, long long &total, long long &free, int &poolstatus) {
@@ -384,7 +373,7 @@ void DomeStatus::notifyQueues() {
 }
 
 void DomeStatus::waitQueues() {
-  
+
   boost::unique_lock<boost::mutex> lock(queue_mtx);
   int dur = (int)CFG->GetLong("glb.tickfreq", 10);
   boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::seconds(dur);
@@ -393,17 +382,17 @@ void DomeStatus::waitQueues() {
 }
 
 int DomeStatus::tickQueues(time_t timenow) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Tick. Now: " << timenow);
-  
+
   // Give life to the queues
   checksumq->tick();
   filepullq->tick();
-  
+
   this->tickChecksums();
   this->tickFilepulls();
-  
-  
+
+
 }
 
 int DomeStatus::tick(time_t timenow) {
@@ -1160,6 +1149,6 @@ int DomeStatus::insertGroup(DomeGroupInfo &gi) {
 std::string DomeQuotatoken::getGroupsString(bool putzeroifempty) {
   if (putzeroifempty && (groupsforwrite.size() == 0))
     return "0";
-  
+
   return DomeUtils::join(",", groupsforwrite);
 }

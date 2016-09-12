@@ -154,7 +154,7 @@ public:
   std::vector<std::string> groupsforwrite;
 
   std::string getGroupsString(bool putzeroifempty = false);
-  
+
   /// uid/gid associated to this quotatoken
   /// Details are not very clear at this time
   int s_uid, s_gid;
@@ -274,8 +274,8 @@ public:
   /// Helper function that reloads all the users from the DB
   int loadUsersGroups();
 
-  /// Helper function that inserts a quotatoken or overwrites an existing one
-  int insertQuotatoken(DomeQuotatoken &tk);
+  /// Helper function that updates all quotatokens
+  void updateQuotatokens(const std::vector<DomeQuotatoken> &tokens);
 
   /// Helper function that gets a quotatoken given the keys
   int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
@@ -339,7 +339,7 @@ public:
 
   void notifyQueues();
   void waitQueues();
-  
+
   /// The queue holding file pull requests
   GenPrioQueue *filepullq;
 
@@ -350,12 +350,12 @@ public:
   /// The status lives
   int tick(time_t timenow);
   int tickQueues(time_t timenow);
-  
+
   DmlitePool *dmpool;
 private:
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
-  
+
   // For the queue ticker
   boost::condition_variable queue_cond;
   boost::mutex queue_mtx;
