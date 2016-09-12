@@ -3229,6 +3229,7 @@ The command accepts the following paramameter:
              self.ok("Pool Total Space:\t" + self.interpreter.prettySize(data[token]['pooltotspace']))
              self.ok("Path Used Space:\t" + self.interpreter.prettySize(data[token]['pathusedspace']))
              self.ok("Path Free Space:\t" + self.interpreter.prettySize(data[token]['pathfreespace']))
+             self.ok("Token ID:\t" + token)
              self.ok("Groups:")#sometimes the groups are not avaialble immediately after a quotatoken is created
              try:
                 for group in data[token]['groups'].keys():
