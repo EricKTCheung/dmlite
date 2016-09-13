@@ -134,6 +134,8 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
 
 void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. path: '" << path << "'");
+  this->decorated_->changeDir(path);
+
   if (path.empty()) {
     this->cwdPath_.clear();
     return;
@@ -159,8 +161,8 @@ DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::st
     // we can prefix the / anyway
     targetpath = SSTR(cwdPath_ << "/" << path);
   }
-    
-  
+
+
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getstatinfo");
 
