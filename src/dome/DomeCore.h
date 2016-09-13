@@ -107,6 +107,7 @@ public:
   int dome_getspaceinfo(DomeReq &req, FCGX_Request &request);
   int dome_getquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_setquotatoken(DomeReq &req, FCGX_Request &request);
+  int dome_modquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_delquotatoken(DomeReq &req, FCGX_Request &request);
   int dome_chksum(DomeReq &req, FCGX_Request &request);
   int dome_chksumstatus(DomeReq &req, FCGX_Request &request);
@@ -187,12 +188,12 @@ private:
   /// The thread that ticks
   boost::thread *ticker;
   boost::thread *queueTicker;
-  
+
   // monitor pull and checksum queues
   void TickQueuesFast();
   boost::condition_variable tickqueue_cond;
   boost::mutex tickqueue_mtx;
-  
+
   /// Atomically increment and returns the number of put requests that this server saw since the last restart
   long getGlobalputcount();
 

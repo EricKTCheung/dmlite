@@ -277,6 +277,9 @@ public:
   /// Helper function that updates all quotatokens
   void updateQuotatokens(const std::vector<DomeQuotatoken> &tokens);
 
+  /// Helper function that gets a quotatoken given its s_token
+  bool getQuotatoken(const std::string &s_token, DomeQuotatoken &tk);
+
   /// Helper function that gets a quotatoken given the keys
   int getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk);
 

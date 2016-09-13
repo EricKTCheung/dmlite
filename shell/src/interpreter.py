@@ -3238,6 +3238,53 @@ The command accepts the following paramameter:
                 pass
 
 
+class QuotaTokenModCommand(ShellCommand):
+    """Modify a quota token, given its id
+
+The command accepts the following parameters:
+
+* token_id           : the token id
+* <path>             : the path
+* pool <poolname>    : the pool name associated to the token
+* size <size>        : the quota size and the corresponding unit of measure (kB, MB, GB, TB, PB), e.g. 2TB , 45GB
+* desc <description> : a description of the token
+* groups <groups>    : a comma-separated list of the groups that have write access to this quotatoken"""
+
+    def _init(self):
+        self.parameters = ['*?value',  'Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       'Oparameter:path:pool:size:desc:groups',  '*?value' ]
+
+    def _execute(self, given):
+        if len(given) < 5:
+            return self.error("Incorrect number of parameters")
+        s_token = given[0]
+        try:
+            for i in range(1, len(given),2):
+                if given[i] == "pool":
+                    pool =  given[i+1]
+                elif given[i] == "size":
+                    size = self.interpreter.prettyInputSize(given[i+1])
+                    if size < 0:
+                        return self.error("Incorrect size: it must be a positive integer")
+                elif given[i] == "desc":
+                    desc = given[i+1]
+                elif given[i] == "groups":
+                    groups = given[i+1]
+                elif given[i] == "path":
+                    lfn = given[i+1]
+                    if lfn.endswith('/'):
+                        return self.error("The path cannot end with /: " +lfn+"\n")
+                    if not lfn.startswith('/'):
+                        lfn = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), lfn))
+                    
+        except Exception, e:
+          return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        self.ok(self.interpreter.executor.modquotatoken(self.interpreter.domeheadurl,s_token,lfn,pool,size,desc,groups))
+
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
 

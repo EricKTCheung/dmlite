@@ -402,6 +402,43 @@ int DomeMySql::getUsers(DomeStatus &st)
   return cnt;
 }
 
+int DomeMySql::setQuotatokenByStoken(DomeQuotatoken &qtk) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+    " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+
+  bool ok = false;
+  long unsigned int nrows = 0;
+
+  try {
+    Statement stmt(conn_, "dpm_db",
+                   "UPDATE dpm_space_reserv SET u_token = ?, t_space = ?, groups = ?, "
+                   "path = ?, poolname = ? WHERE s_token = ?");
+
+    stmt.bindParam(0, qtk.u_token);
+    stmt.bindParam(1, qtk.t_space);
+    stmt.bindParam(2, qtk.getGroupsString(true));
+    stmt.bindParam(3, qtk.path);
+    stmt.bindParam(4, qtk.poolname);
+    stmt.bindParam(5, qtk.s_token);
+
+    nrows = stmt.execute();
+    ok = (nrows != 0);
+  }
+  catch (...) {
+    ok = false;
+  }
+
+  if(!ok) {
+    Err( domelogname, "Could not set quotatoken s_token: '" << qtk.s_token << "' u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows );
+    return 1;
+  }
+
+  Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken set. s_token: '" << qtk.s_token << "' u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' nrows: " << nrows; );
+  return 0;
+}
+
 int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
@@ -439,7 +476,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
                      VALUES (\
                      ?, 0, 0,\
                      '_', 0, '-', ?, ?, ?, ?,\
-                     ?, ?, ?, '0', ?, ?\
+                     ?, ?, ?, '0', ?, ?, ?\
         )" );
 
         time_t timenow, exptime;
@@ -456,7 +493,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
         stmt.bindParam(7, exptime);
         stmt.bindParam(8, qtk.path);
         stmt.bindParam(9, qtk.s_token);
-        stmt.bindParam(9, qtk.getGroupsString(true));
+        stmt.bindParam(10, qtk.getGroupsString(true));
 
         ok = true;
         nrows = 0;
@@ -1335,7 +1372,6 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
 DmStatus DomeMySql::setSize(std::string lfn, int64_t filesize) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << lfn << "' size: " << filesize );
 
-  bool ok = true;
   long unsigned int nrows = 0;
   dmlite::ExtendedStat st;
 

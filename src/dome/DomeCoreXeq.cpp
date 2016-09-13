@@ -2283,6 +2283,23 @@ static void set_if_field_exists(T& target, const boost::property_tree::ptree &bo
   }
 }
 
+static bool translate_group_names(DomeStatus &status, const std::string &groupnames, std::vector<std::string> &ids, std::string &err) {
+  std::vector<std::string> groupnames_vec = DomeUtils::split(groupnames, ",");
+
+  ids.clear();
+  ids.push_back("0"); // not really sure if necessary
+
+  for(size_t i = 0; i < groupnames_vec.size(); i++) {
+    DomeGroupInfo tmp;
+    if(status.getGroup(groupnames_vec[i], tmp) == 0) {
+      err = SSTR("Invalid group name: " << groupnames_vec[i]);
+      return false;
+    }
+    ids.push_back(SSTR(tmp.groupid));
+  }
+  return true;
+}
+
 int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering.");
 
@@ -2329,19 +2346,9 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
   set_if_field_exists(mytk.s_token, req.bodyfields, "uniqueid");
 
   if(req.bodyfields.count("groups") != 0) {
-    std::vector<std::string> groupnames = DomeUtils::split(req.bodyfields.get("groups", ""), ",");
-    mytk.groupsforwrite.clear();
-    mytk.groupsforwrite.push_back("0"); // not really sure if necessary
-
-    // map group names to ids
-    for(size_t i = 0; i < groupnames.size(); i++) {
-      DomeGroupInfo tmp;
-
-      if(status.getGroup(groupnames[i], tmp) == 0) {
-        return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to write quotatoken - invalid group: " << groupnames[i]));
-      }
-
-      mytk.groupsforwrite.push_back(SSTR(tmp.groupid));
+    std::string err;
+    if(!translate_group_names(status, req.bodyfields.get("groups", ""), mytk.groupsforwrite, err)) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to write quotatoken - " << err));
     }
   }
 
@@ -2426,7 +2433,52 @@ int DomeCore::dome_delquotatoken(DomeReq &req, FCGX_Request &request) {
 
 };
 
+int DomeCore::dome_modquotatoken(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_modquotatoken only available on head nodes");
+  }
 
+  std::string tokenid = req.bodyfields.get<std::string>("tokenid", "");
+  if(tokenid.empty()) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("tokenid is empty."));
+  }
+
+  DomeQuotatoken mytk;
+  if(!status.getQuotatoken(tokenid, mytk)) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("No quotatoken with id '" << tokenid << "' could be found"));
+  }
+
+  set_if_field_exists(mytk.t_space, req.bodyfields, "quotaspace");
+  set_if_field_exists(mytk.u_token, req.bodyfields, "description");
+  set_if_field_exists(mytk.path, req.bodyfields, "path");
+  set_if_field_exists(mytk.poolname, req.bodyfields, "poolname");
+
+  if(req.bodyfields.count("groups") != 0) {
+    std::string err;
+    if(!translate_group_names(status, req.bodyfields.get("groups", ""), mytk.groupsforwrite, err)) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to write quotatoken - " << err));
+    }
+  }
+
+  // First we write into the db, if it goes well then we update the internal map
+  int rc;
+  {
+  DomeMySql sql;
+  DomeMySqlTrans  t(&sql);
+  rc =  sql.setQuotatokenByStoken(mytk);
+  if (!rc) t.Commit();
+  }
+
+  if (rc) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot write quotatoken into the DB. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+    return 1;
+  }
+
+  status.loadQuotatokens();
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Quotatoken written. poolname: '" << mytk.poolname
+      << "' t_space: " << mytk.t_space << " u_token: '" << mytk.u_token << "'"));
+}
 
 
 int DomeCore::dome_pfnrm(DomeReq &req, FCGX_Request &request) {

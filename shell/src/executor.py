@@ -86,6 +86,11 @@ class DomeExecutor(object):
         return talker.execute({ "path" : lfn, "poolname" : pool,
                           "quotaspace" : space, "description" : desc, "groups" : groups})
 
+    def modquotatoken(self,url,s_token,lfn,pool,space,desc,groups):
+        talker = DomeTalker(self.creds, url, "POST", "dome_modquotatoken")
+        return talker.execute({ "tokenid" : s_token, "path" : lfn, "poolname" : pool,
+                          "quotaspace" : space, "description" : desc, "groups" : groups})
+
     def getdirspaces(self,url,lfn):
         talker = DomeTalker(self.creds, url, "GET", "dome_getdirspaces")
         return talker.execute({ "path" : lfn})
