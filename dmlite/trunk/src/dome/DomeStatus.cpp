@@ -738,8 +738,15 @@ void DomeStatus::checkDiskSpaces() {
 }
 
 
-
-
+bool DomeStatus::getQuotatoken(const std::string &s_token, DomeQuotatoken &tk) {
+  for(std::multimap<std::string, DomeQuotatoken>::iterator it = quotas.begin(); it != quotas.end(); it++) {
+    if(it->second.s_token == s_token) {
+      tk = it->second;
+      return true;
+    }
+  }
+  return false;
+}
 
 int DomeStatus::getQuotatoken(const std::string &path, const std::string &poolname, DomeQuotatoken &tk) {
 

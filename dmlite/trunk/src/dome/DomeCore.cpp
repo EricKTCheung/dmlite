@@ -287,6 +287,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if(dreq.domecmd == "dome_makespace") {
           core->dome_makespace(dreq, request);
         }
+        else if(dreq.domecmd == "dome_modquotatoken") {
+          core->dome_modquotatoken(dreq, request);
+        }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
 
@@ -498,18 +501,18 @@ void DomeCore::tick(int parm) {
 
     status.tick(timenow);
     DomeTaskExec::tick();
-    
+
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
 
 }
 
 void DomeCore::queueTick(int parm) {
-  
+
   while(! this->terminationrequested) {
     time_t timenow = time(0);
     status.waitQueues();
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Tick");
     status.tickQueues(timenow);
 
