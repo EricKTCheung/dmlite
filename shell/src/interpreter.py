@@ -3222,6 +3222,7 @@ The command accepts the following paramameter:
              else:
                  self.ok("*******************************************************")
              self.ok("\n")
+             self.ok("Token ID:\t" + token)
              self.ok("Token Name:\t" + data[token]['quotatkname'])
              self.ok("Token Path:\t" + data[token]['path'])
              self.ok("Token Pool:\t" + data[token]['quotatkpoolname'])
@@ -3229,7 +3230,6 @@ The command accepts the following paramameter:
              self.ok("Pool Total Space:\t" + self.interpreter.prettySize(data[token]['pooltotspace']))
              self.ok("Path Used Space:\t" + self.interpreter.prettySize(data[token]['pathusedspace']))
              self.ok("Path Free Space:\t" + self.interpreter.prettySize(data[token]['pathfreespace']))
-             self.ok("Token ID:\t" + token)
              self.ok("Groups:")#sometimes the groups are not avaialble immediately after a quotatoken is created
              try:
                 for group in data[token]['groups'].keys():
@@ -3244,14 +3244,14 @@ class QuotaTokenModCommand(ShellCommand):
 The command accepts the following parameters:
 
 * token_id           : the token id
-* <path>             : the path
+* path <path>        : the path
 * pool <poolname>    : the pool name associated to the token
 * size <size>        : the quota size and the corresponding unit of measure (kB, MB, GB, TB, PB), e.g. 2TB , 45GB
 * desc <description> : a description of the token
 * groups <groups>    : a comma-separated list of the groups that have write access to this quotatoken"""
 
     def _init(self):
-        self.parameters = ['*?value',  'Oparameter:path:pool:size:desc:groups',  '*?value',
+        self.parameters = ['?token_id',  'Oparameter:path:pool:size:desc:groups',  '*?value',
                                        '*Oparameter:path:pool:size:desc:groups',  '*?value',
                                        '*Oparameter:path:pool:size:desc:groups',  '*?value',
                                        '*Oparameter:path:pool:size:desc:groups',  '*?value',
