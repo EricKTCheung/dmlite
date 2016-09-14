@@ -3252,15 +3252,21 @@ The command accepts the following parameters:
 
     def _init(self):
         self.parameters = ['*?value',  'Oparameter:path:pool:size:desc:groups',  '*?value',
-                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
-                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
-                                       'Oparameter:path:pool:size:desc:groups',  '*?value',
-                                       'Oparameter:path:pool:size:desc:groups',  '*?value' ]
+                                       '*Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       '*Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       '*Oparameter:path:pool:size:desc:groups',  '*?value',
+                                       '*Oparameter:path:pool:size:desc:groups',  '*?value' ]
 
     def _execute(self, given):
-        if len(given) < 5:
+        if len(given) < 3 or len(given) % 2 == 0:
             return self.error("Incorrect number of parameters")
         s_token = given[0]
+        lfn = None
+        pool = None
+        size = None
+        desc = None
+        groups = None
+
         try:
             for i in range(1, len(given),2):
                 if given[i] == "pool":
@@ -3279,7 +3285,7 @@ The command accepts the following parameters:
                         return self.error("The path cannot end with /: " +lfn+"\n")
                     if not lfn.startswith('/'):
                         lfn = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), lfn))
-                    
+
         except Exception, e:
           return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 

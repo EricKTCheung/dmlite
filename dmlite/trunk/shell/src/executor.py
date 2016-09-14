@@ -14,6 +14,13 @@ class DomeCredentials(object):
         self.clientDN = clientDN
         self.clientAddress = clientAddress
 
+# filter out all keys for which the value is None
+def filterDict(params):
+    newdict = {}
+    for key, value in params.items():
+        if value: newdict[key] = value
+    return newdict
+
 class DomeTalker(object):
     """Issues requests to Dome"""
 
@@ -28,6 +35,7 @@ class DomeTalker(object):
         self.uri = uri
         self.verb = verb
         self.cmd = cmd
+
     def execute(self, data):
         cmd = ["davix-http"]
         if self.creds.cert:
@@ -41,7 +49,7 @@ class DomeTalker(object):
         if self.creds.capath:
             cmd += ["--capath", self.creds.capath]
 
-        cmd += ["--data", json.dumps(data)]
+        cmd += ["--data", json.dumps(filterDict(data))]
         cmd += ["--request", self.verb]
 
         cmd.append(DomeTalker.build_url(self.uri, self.cmd))
