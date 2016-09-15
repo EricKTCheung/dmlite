@@ -19,6 +19,9 @@ import stat
 import sys
 import re
 import textwrap
+import json
+import subprocess
+import random
 from urlparse import urlparse
 
 EX_OK              = 0
@@ -31,6 +34,7 @@ DOME_MAX_RESPONSE_SIZE = 1024 * 1024 * 5
 TEST_TIMEOUT = 10
 TEST_CLEANUP = True
 TEST_VERBOSE = False
+TEST_IGNORE_ERRORS = False
 USE_COLORS = True
 USE_XML = False
 
@@ -75,11 +79,21 @@ class Color(object):
     def gray(s): return Color.colorize("gray", s)
 
 CANCEL = False
+IMPATIENCE = 0
 def ctrlc(signal, frame):
-    print(Color.red("Received ctrl-c, will halt after cleaning up testfiles .."))
+    global IMPATIENCE
+    IMPATIENCE += 1
 
     global CANCEL
     CANCEL = True
+
+    if IMPATIENCE == 1:
+        print(Color.red("\nReceived ctrl-c, will halt after cleaning up testfiles .."))
+    elif IMPATIENCE < 5:
+        print(Color.red("\nhit ctrl-c {0} more times to terminate forcefully".format(5 - IMPATIENCE)))
+    elif IMPATIENCE == 5:
+        print(Color.red("\nterminating forcefully".format(5 - IMPATIENCE)))
+        sys.exit(1)
 
 def printable_outcome(outcome):
     if outcome == EX_OK:
@@ -183,7 +197,7 @@ class TestResult:
         self.output.append(result)
 
         # did I survive after absorbing another test result?
-        return self.outcome == EX_UNKNOWN or self.outcome == EX_OK
+        return self.alive()
 
     def write(self, s):
         if s:
@@ -195,10 +209,13 @@ class TestResult:
     def ok(self):
         return self.outcome == EX_OK
 
+    def alive(self):
+        return self.outcome == EX_UNKNOWN or self.outcome == EX_OK
+
     @staticmethod
     def show_pending(prefix, name, indent=""):
         if USE_XML: return
-        print(indent + "running .. {0} :: {1}".format(colorize_prefix(prefix), name), end="\r")
+        print(indent + ".... => {0} :: {1}".format(colorize_prefix(prefix), name), end="\r")
         sys.stdout.flush()
 
     def get_status_line(self, indent=""):
@@ -318,7 +335,6 @@ def make_gfal_result(function, arguments):
 
     result = TestResult("gfal", function.__name__)
     result.write(arguments)
-    # result.write("\n")
     return result
 
 def run_gfal_expect_ok(function, arguments):
@@ -332,16 +348,6 @@ def run_gfal_expect_exception(function, arguments, extype=None, excode=None):
     result.status = raw_run_gfal(function, arguments)
     if not expect_exception(result.status, result, extype=extype, excode=excode): return result
     return result.success()
-
-# Wrapper to run a gfal function. It catches exceptions and enforces a timeout
-def run_gfal(function, arguments):
-    thread = ThreadExc(function, arguments)
-    thread.daemon = True
-    thread.start()
-    thread.join(TEST_TIMEOUT)
-
-    return GfalStatus(thread.output, thread.exception, thread.traceback,
-                      thread.is_alive())
 
 def run_expect_ok(result, function, args):
     status = run_gfal(function, args)
@@ -359,10 +365,83 @@ def get_caller_name():
     caller_function_name = inspect.stack()[2][3]
     return caller_function_name.replace("_", " ")
 
+def create_random_file(location, nbytes):
+    with open(location, "wb") as f:
+        with open("/dev/urandom", "rb") as f2:
+            f.write(f2.read(nbytes))
+
+# returns the filenames and checksums
+def create_random_files(location_prefix, sizes):
+    locations = []
+    checksums = []
+    for i in range(0, len(sizes)):
+        locations.append(f("{location_prefix}{i}"))
+        create_random_file(locations[-1], sizes[i])
+        checksums.append(calculate_checksum("md5", locations[-1]))
+    return (locations, checksums)
+
+# Poor man's python 3.6 f-strings
+# Uses local variables to format a string, ie
+# b = 1, c = 2
+# f("{b} {c}") => "1 2"
+# When in 15 years python 3.6 becomes the minimum version to support,
+# all invocations f("something") could be replaced with f"something"
+def f(s):
+    return s.format(**inspect.currentframe().f_back.f_locals)
+
+class DomeCredentials(object):
+    """Stores all credentials needed for a dome request"""
+    def __init__(self, clientDN, clientAddress):
+        self.clientDN = clientDN
+        self.clientAddress = clientAddress
+
+class DomeTalker:
+    """Issues requests to Dome"""
+
+    @staticmethod
+    def build_url(url, command):
+        while url.endswith("/"):
+            url = url[:-1]
+        return "{0}/command/{1}".format(url, command)
+
+    def __init__(self, creds, uri):
+        self.creds = creds
+        self.uri = uri
+
+    def execute(self, verb, domecmd, data):
+        result = TestResult("DomeTalker", f("Issuing: {verb} {domecmd}"))
+
+        cmd = ["davix-http"]
+        if self.creds.clientDN:
+            cmd += ["--header", "remoteclientdn: {0}".format(self.creds.clientDN)]
+        if self.creds.clientAddress:
+            cmd += ["--header", "remoteclientaddr: {0}".format(self.creds.clientAddress)]
+        cmd += ["-P grid"]
+
+        cmd += ["--data", json.dumps(data)]
+        cmd += ["--request", verb]
+
+        cmd.append(DomeTalker.build_url(self.uri, domecmd))
+
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result.status = proc.communicate()
+
+        if proc.returncode != 0 or "(Davix::HttpRequest)" in result.status[1] or "Error" in result.status[1]:
+            result.failure()
+        else:
+            result.success()
+
+        result.write(f("Request body: {data}"))
+        result.write(f("Response - stdout: {result.status[0]}"))
+        result.write(f("Response - stderr: {result.status[1]}"))
+        result.write(f("Davix exit code: {proc.returncode}"))
+        return result
+
 class DomeTester:
     def __init__(self, uri):
         self.uri = uri
         self.ctx = gfal2.creat_context()
+        self.talker = DomeTalker(DomeCredentials(None, None), uri)
 
     def new_result(self, desc=None):
         result = TestResult("dome", get_caller_name())
@@ -372,19 +451,70 @@ class DomeTester:
     def command_url(self, s):
         return self.uri + "command/" + s
 
-    def Info(self):
-        desc = """Calls dome_info, a simple ping to make sure dome is alive"""
-        result = self.new_result(desc)
+    def setquotatoken(self, description, path, poolname, space):
+        result = TestResult("dome", f("New quotatoken at {path} for {space} bytes"))
 
-        res = run_gfal_expect_ok(self.ctx.open, [self.command_url("dome_info"), 'r'])
+        res = self.talker.execute("POST", "dome_setquotatoken",
+                                      { "description" : description,
+                                        "path" : path,
+                                        "poolname" : poolname,
+                                        "quotaspace" : space})
+        if result.absorb(res): return result.success()
+        return result
+
+    def delquotatoken(self, path, poolname):
+        result = TestResult("dome", f("Delete quotatoken at {path} (pool: {poolname})"))
+
+        res = self.talker.execute("POST", "dome_delquotatoken",
+                                          { "path" : path, "poolname" : poolname})
+
         if not result.absorb(res): return result
-        f = res.status.output
+        return result.success()
 
-        res = run_gfal_expect_ok(f.read, [DOME_MAX_RESPONSE_SIZE])
+    def checksum(self, lfn, chtype, expected, nchecks, check_interval):
+        result = TestResult("dome", f("Calculate {chtype} checksum on {lfn} through dome"))
+
+        for i in range(0, nchecks):
+            res = self.talker.execute("GET", "dome_chksum",
+                                      { "lfn" : lfn,
+                                        "checksum-type" : chtype})
+
+            if not result.absorb(res): return result
+            response = json.loads(res.status[0])
+
+            if "checksum" in response:
+                resp = response["checksum"]
+                if resp == expected:
+                    return result.success(f("Checksum verified: {expected}"))
+                return result.failure(f('Error: expected checksum {expected}, received {resp}'))
+
+            if i != nchecks - 1:
+                result.write(f("Result not available yet, trying again in {check_interval} seconds.."))
+                time.sleep(check_interval)
+
+        return result.failure("Checksum not found.")
+
+    def info(self):
+        result = TestResult("dome", "Call dome_info, test if we have access")
+
+        res = self.talker.execute("GET", "dome_info", {})
         if not result.absorb(res): return result
-        content = res.status.output
 
-        return result.success(content)
+        if "ACCESS TO DOME GRANTED" in res.status[0]:
+            return result.success()
+        return result.failure()
+
+    def parallel_checksums(self, lfns, expected, nchecks, check_interval):
+        nfiles = len(lfns)
+        assert nfiles == len(expected)
+        result = TestResult("dome", f("Verify {nfiles} checksums in parallel."))
+
+        functions = [self.checksum] * nfiles
+        arguments = []
+        for (lfn, exp) in zip(lfns, expected):
+            arguments.append([extract_path(lfn), "md5", exp, nchecks, check_interval])
+
+        return hammer_tester(functions, arguments)
 
 def ensure_safe_path(path):
     if "dpm-test" not in path and "dpmtest" not in path:
@@ -395,12 +525,39 @@ def ensure_safe_path(path):
 # assumption: second will always contain a single chunk, ie don't pass
 # "/dir1/" along with "/dir2/file"
 def path_join(first, second):
-    if first.startswith("davs") or first.startswith("gsiftp"):
-        second = urllib.quote(second)
+    second = urllib.quote(second)
 
     if first.endswith("/"):
         return first + second
     return "{0}/{1}".format(first, second)
+
+def hammer_tester(functions, arguments):
+    assert len(functions) == len(arguments)
+    result = TestResult("HammerTester", "{0} functions in parallel".format(len(functions)))
+
+    threads = []
+    for (function, args) in zip(functions, arguments):
+        thread = ThreadExc(function, args)
+        thread.daemon = True
+        thread.start()
+
+        threads.append(thread)
+
+    for thread in threads:
+        # should never block indefinitely, since the individual tests will
+        # eventually timeout
+        thread.join()
+
+        if thread.output:
+            result.absorb(thread.output)
+        else:
+            result.write(thread.output)
+            result.write(thread.exception)
+            result.write(thread.traceback)
+            result.failure("No output")
+
+    if result.alive(): result.success()
+    return result
 
 class ProtocolTester:
     def __init__(self, testcase):
@@ -430,38 +587,36 @@ class ProtocolTester:
     def Create_directory(self, directory):
         return self.forward(run_gfal_expect_ok(self.ctx.mkdir, [directory, 0]))
 
-    def Upload_testfile(self, source, destination, spacetoken=None):
-        desc = """Upload local file '{0}' to '{1}'""".format(source, destination)
+    def Upload_testfile(self, source, destination, spacetoken=None, expect_failure=False):
         params = self.ctx.transfer_parameters()
         if spacetoken:
             params.dst_spacetoken = spacetoken
 
+        if expect_failure:
+            return self.forward(run_gfal_expect_exception(self.ctx.filecopy, [params, source, destination]))
+
         return self.forward(run_gfal_expect_ok(self.ctx.filecopy, [params, source, destination]))
 
     def Download_testfile(self, source, destination):
+        self.ctx = gfal2.creat_context() # prevents client-side caching in gridftp..
         params = self.ctx.transfer_parameters()
         params.overwrite = True
         return self.forward(run_gfal_expect_ok(self.ctx.filecopy, [params, source, destination]))
 
     def Verify_downloaded_contents_are_the_same(self, original, downloaded):
-        desc = """Compare the contents of '{0}' and '{1}' for equality""".format(original, downloaded)
-
-        result = self.new_result(desc)
+        result = self.new_result(f("Compare the contents of '{original}' and '{downloaded}' for equality"))
         if not filecmp.cmp(original, downloaded):
             return result.failure("The two files differ!")
 
         return result.success()
 
     def Verify_checksum(self, target, checksumtype, checksum):
-        desc = """Verify that the {0} checksum of '{1}' is '{2}'""".format(checksumtype, target, checksum)
-
-        result = self.new_result(desc)
-
+        result = self.new_result(f("Verify the {checksumtype} checksum of '{target}' is '{checksum}'"))
         res = run_gfal_expect_ok(self.ctx.checksum, [target, checksumtype])
         if not result.absorb(res): return result
 
         if checksum != res.status.output:
-            return result.failure("Checksum mismatch! Expected '{0}', received '{1}'".format(checksum, status.output))
+            return result.failure(f("Checksum mismatch! Expected '{checksum}', received '{res.status.output}'"))
         return result.success()
 
     def Verify_listing(self, target, listing, totalsize):
@@ -494,16 +649,37 @@ class ProtocolTester:
 
         return result.success()
 
-    def Verify_size(self, target, size):
+    def Verify_size(self, target, size, directory=False, count=11):
         result = self.new_result("")
         result.write("Verify the size of '{0}' is '{1}'\n""".format(target, size))
 
-        res = run_gfal_expect_ok(self.ctx.stat, [target])
-        if not result.absorb(res): return result
+        # gsiftp works in mysterious ways and globus callbacks,
+        # which has a consequence that updates are delayed in some cases
+        # Try again with an exponential backoff if size verification fails
+        sleeptime = 0.05
+        for i in range(0, count):
+            res = run_gfal_expect_ok(self.ctx.stat, [target])
+            if not result.absorb(res): return result
 
-        if res.status.output.st_size != size:
-            return result.failure("Filesize mismatch! Expected '{0}', received '{1}'".format(size, res.status.output.st_size))
-        return result.success()
+            if res.status.output.st_size == size:
+                return result.success(f("Size ({size}) successfully verified."))
+
+            result.write(f("Verify size failed, expected {size}, received {res.status.output.st_size}."))
+            if i != count-1:
+                if directory:
+                    result.write("Renaming directory to potentially refresh memcache contents..")
+
+                    res = run_gfal_expect_ok(self.ctx.rename, [target, target + "-tmp"])
+                    if not result.absorb(res): return result
+
+                    res = run_gfal_expect_ok(self.ctx.rename, [target + "-tmp", target])
+                    if not result.absorb(res): return result
+
+                result.write(f("Trying again after sleeping {sleeptime} seconds"))
+                time.sleep(sleeptime)
+                sleeptime *= 2
+
+        return result.failure(f("Could not verify size after {count} attempts"))
 
     def Verify_directory_space_accounting(self, source, destdir, count=10, spacetoken=None):
         desc = """Upload '{0}' to '{1}/##' {2} times, verify space accounting at each step""".format(source, destdir, count)
@@ -515,19 +691,8 @@ class ProtocolTester:
             res = self.Upload_testfile(source, "{0}/{1}".format(destdir, i), spacetoken=spacetoken)
             if not result.absorb(res): return result
 
-            # gsiftp works with globus callbacks, which has a consequence that
-            # updates are delayed in some cases
-            # Try again with an exponential backoff if size verification fails
-            sleeptime = 0.01
-            while True:
-                res = self.Verify_size(destdir, (i+1)*st.st_size)
-                result.absorb(res, status_change=False)
-                if res.ok(): break # success!
-
-                result.write("Verify size failed, trying again with a sleep time of {0}..\n".format(sleeptime))
-                if sleeptime > TEST_TIMEOUT: return result.failure("Wrong directory size!") # we've waited long enough
-                time.sleep(sleeptime)
-                sleeptime *= 2
+            res = self.Verify_size(destdir, (i+1)*st.st_size, directory=True)
+            if not result.absorb(res): return result
 
         return result.success()
 
@@ -590,11 +755,35 @@ class ProtocolTester:
         ensure_safe_path(target)
         return self.forward(run_gfal_expect_ok(self.ctx.rmdir, [target]))
 
-def getargs():
-    class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
-        pass
+    def Upload_files_in_parallel(self, sources, directory):
+        functions = [self.Upload_testfile] * len(sources)
+        arguments = []
+        for i in range(0, len(sources)):
+            arguments.append([add_file_prefix(sources[i]), path_join(directory, "f{0}".format(i))])
 
-    parser = argparse.ArgumentParser(formatter_class=CustomFormatter,
+        return hammer_tester(functions, arguments)
+
+    def Upload_delete_loop(self, source, destination, ntimes):
+        result = self.new_result()
+        result.write(f("{source} => {destination}"))
+        result.write("Not all performed operations are shown. This test could run "
+                     "the loop hundrends of thousands of times, and displaying them all would be a bad idea. "
+                     "Only the first failure will be shown. If empty, assume everything worked.")
+
+        for i in range(0, ntimes):
+            res = self.Upload_testfile(source, destination)
+            if not res.ok():
+                result.absorb(res)
+                return result
+
+            res = self.Remove_file(destination)
+            if not res.ok():
+                result.absorb(res)
+                return result
+        return result.success()
+
+def getargs():
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="Verifies the correct operation of a DPM instance using gfal2.\n",
                                      epilog="The currently supported sets of tests are:\n"
                                             "\tdavs, root, gsiftp, srm: runs a series of tests using the corresponding protocol\n"
@@ -604,7 +793,7 @@ def getargs():
     parser.add_argument('--host', type=str, required=True, help="The hostname of the head node")
     parser.add_argument('--path', type=str, default="/dpm/{host_domain}/home/dteam/", help="The base path")
     parser.add_argument('--testdir', type=str, default="dpm-tests", help="The directory in which all tests will be performed. (should not exist beforehand)")
-    parser.add_argument('--timeout', type=int, default=10, help="Test timeout")
+    parser.add_argument('--timeout', type=int, default=30, help="Test timeout")
     parser.add_argument('--tests', type=str, nargs="+", default=["davs", "root", "gsiftp"], help="The sets of tests to run.")
     parser.add_argument('--cert', type=str, help="The path to the certificate to use - key must be supplied seperately.")
     parser.add_argument('--key', type=str, help="The path to the key to use - certificate must be supplied seperately.")
@@ -626,6 +815,24 @@ def getargs():
     parser.add_argument('--root-port', type=int, default=1094, help="Supply this option if you have configured xrootd on a non-default port")
     parser.add_argument('--gsiftp-port', type=int, default=2811, help="Supply this option if you have configured gsiftp on a non-default port")
     parser.add_argument('--srm-port', type=int, default=8446, help="Supply this option if you have configured srm on a non-default port")
+
+    parser.add_argument('--dome-nchecksums', type=int, default=10, help="Number of parallel checksum calculations to launch in the dome test. Use 0 to disable.")
+    parser.add_argument('--dome-poolname', type=str, help="Supply the name of a pool for quotatoken testing - it's important the pool is configured with a defsize of 1.")
+
+    parser.add_argument('--hammer-parallel-uploads', type=int, default=10, help="The hammer test will upload that many files "
+                        "in parallel. Warning: setting this option too high can incur heavy load on the entire storage system. "
+                        "It is not recommended to use a high value when testing production instances. You might also want to increase "
+                        "the timeout value. Use 0 to disable entirely.")
+
+    parser.add_argument('--upload-delete-loop', type=int, default=5, help="The upload-delete-loop test will upload and delete the same file that many times, under the same filename. "
+                                                                    " Run with a high number to detect memory leaks.")
+
+    parser.add_argument('--enable-dir-accounting', dest='dir_accounting', action='store_true',
+                        help="Enable directory accounting tests. (only works on very recent versions of DPM)")
+    parser.set_defaults(dir_accounting=False)
+
+    parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true')
+    parser.set_defaults(ignore_errors=False)
 
     args = parser.parse_args()
     if not args.path.endswith("/"):
@@ -691,7 +898,7 @@ class Orchestrator:
             if (alive and not CANCEL) or always_run:
                 if test[2]: TestResult.show_pending(self.prefix, test[2])
                 result = test[0](*test[1])
-                alive = result.ok()
+                alive = result.ok() or TEST_IGNORE_ERRORS
 
                 # If a name was given, override the result object returned by
                 # the function
@@ -823,8 +1030,6 @@ def cross_protocol_tests(args):
     orch.run()
 
 def build_base_url(args, scheme):
-    host_domain = ".".join(args.host.split(".")[-2:])
-
     # determine port
     if scheme == "davs":
         port = args.davs_port
@@ -837,14 +1042,19 @@ def build_base_url(args, scheme):
     else:
         raise ValueError("invalid argument")
 
-    # if the user has overriden the default args.path, {host_domain}
-    # might not be there - that's perfectly ok
-    path = args.path.format(host_domain=host_domain)
+    path = build_base_path(args)
 
     if scheme == "srm":
         return "{0}://{1}:{2}/srm/managerv2?SFN={3}".format(scheme, args.host, port, path)
 
     return "{0}://{1}:{2}{3}".format(scheme, args.host, port, path)
+
+def build_base_path(args):
+    host_domain = ".".join(args.host.split(".")[-2:])
+
+    # if the user has overriden the default args.path, {host_domain}
+    # might not be there - that's perfectly ok
+    return args.path.format(host_domain=host_domain)
 
 def build_target_url(args, scheme):
     return path_join(build_base_url(args, scheme), args.testdir)
@@ -855,9 +1065,12 @@ def extract_path(url):
 def extract_file(url):
     return urllib.unquote(url.split("/")[-1])
 
-def single_protocol_tests(scope, base, target):
+def single_protocol_tests(args, scope):
     tester = ProtocolTester(scope)
     orch = Orchestrator(scope)
+
+    base = build_base_url(args, scope)
+    target = build_target_url(args, scope)
 
     descr = "Verify base exists: " + extract_path(base)
     orch.add_initialization(tester.Verify_base_directory_exists, [base], descr)
@@ -875,7 +1088,18 @@ def single_protocol_tests(scope, base, target):
         evil_filename = """evil filename-!@#%^_-+=:][}{><'" #$&*)("""
         orch.add(play_with_file(scope, tester, "/etc/services", path_join(target, evil_filename)).run)
 
-    orch.add(test_space_accounting(scope, tester, path_join(target, "spc-accounting")).run)
+        if args.dir_accounting:
+            orch.add(test_space_accounting(scope, tester, path_join(target, "spc-accounting")).run)
+
+    nfiles = args.hammer_parallel_uploads
+    if nfiles > 0:
+        descr = "Hammer test - upload {0} files in parallel: {1}".format(nfiles, extract_path(target))
+        orch.add(tester.Upload_files_in_parallel, [ ["/etc/services"]*nfiles, target], descr)
+
+    ntimes = args.upload_delete_loop
+    if ntimes > 0:
+        descr = f("Upload and delete the same file {ntimes} times")
+        orch.add(tester.Upload_delete_loop, ["file:///etc/services", path_join(target, "upload-delete-loop"), ntimes], descr)
 
     descr = "Recursively remove contents: " + extract_path(target)
     orch.add_cleanup(tester.Recursively_remove_files, [target], descr)
@@ -929,6 +1153,119 @@ def set_global_flags(args):
     USE_XML = args.xml
     if USE_XML: USE_COLORS = False
 
+    global TEST_IGNORE_ERRORS
+    TEST_IGNORE_ERRORS = args.ignore_errors
+
+def get_varying_filesizes(n, seed=1):
+    ret = [1, 2, 4, 7, 8, 16, 32, 64, 100, 200, 1000, 5000, 15000, 75000, 90000, 1, 50000, 1024*1024, 2*1024*1024, 10*1024*1024-1]
+
+    random.seed(seed)
+    for i in range(0, n-len(ret)):
+        ret.append(random.randint(1, 10000))
+
+    return ret[0:n]
+
+def test_dome(args):
+    domehead = f("https://{args.host}/domehead/")
+
+    orch = Orchestrator("dome")
+    dometester = DomeTester(domehead)
+    tester = ProtocolTester("dome")
+
+    target = build_target_url(args, "davs")
+    tokendir = path_join(target, "tokendir")
+
+    target_path = extract_path(target)
+
+    orch.add_initialization(dometester.info, [])
+    orch.add(tester.Create_directory, [target], f("Create directory: {target_path}"))
+
+    # checksum tests
+    nfiles = args.dome_nchecksums
+    if nfiles > 0:
+        sizes = get_varying_filesizes(nfiles)
+        (locations, checksums) = create_random_files("/tmp/dpm-tests-checksums", sizes)
+        lfns = []
+
+        for i in range(0, len(locations)):
+            lfns.append(path_join(target, f("f{i}")))
+
+        interval = 10
+        checks = 200
+
+        orch.add(tester.Upload_files_in_parallel, [locations, target],
+                "Upload {0} files of varying sizes in parallel".format(len(sizes)))
+
+        orch.add(dometester.parallel_checksums, [lfns, checksums, checks, interval],
+                f("Calculate checksums in parallel, {checks} checks spaced {interval} seconds apart"))
+
+    # quotatoken tests
+    if args.dome_poolname:
+        sizes = [1, 1024*1024, 1024*1024-2, 1024*1024-3]
+        (locations, checksums) = create_random_files("/tmp/dpm-tests-qt", sizes)
+
+        tokendir_path = extract_path(tokendir)
+        orch.add(tester.Create_directory, [tokendir], f("Create directory: {tokendir_path}"))
+
+        orch.add(dometester.setquotatoken, ["DPM_TESTER_QUOTATOKEN", tokendir_path, args.dome_poolname, 1024*1024])
+        orch.add(tester.Upload_testfile, [f("file://{locations[1]}"), path_join(tokendir, "1mb")],
+                 "Upload file with size equal to quota")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b"), None, True],
+                 "Upload 1-byte file, expect it to fail")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1mb-2"), None, True],
+                 "Upload file with size equal to quota again, expect it to fail")
+
+        orch.add(tester.Recursively_remove_files, [tokendir],
+                 "Remove any previous files")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b-2")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b-3")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Recursively_remove_files, [tokendir],
+                 "Remove any previous files")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[2]}"), path_join(tokendir, "1mb-m2")],
+                 "Upload file with size equal to quota minus 2 bytes")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b-2"), None, True],
+                 "Upload 1-byte file, expect it to fail")
+
+        orch.add(tester.Recursively_remove_files, [tokendir],
+                 "Remove any previous files")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[3]}"), path_join(tokendir, "1mb-m3")],
+                 "Upload file with size equal to quota minus 3 bytes")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b-2")],
+                 "Upload 1-byte file")
+
+        orch.add(tester.Upload_testfile, [f("file://{locations[0]}"), path_join(tokendir, "1b-3"), None, True],
+                 "Upload 1-byte file, expect it to fail")
+
+        orch.add_cleanup(dometester.delquotatoken, [tokendir_path, args.dome_poolname])
+
+    orch.add_cleanup(tester.Recursively_remove_files, [target],
+                     f("Recursively remove contents: {target_path}"))
+
+    orch.add_cleanup(tester.Remove_directory, [target],
+                     f("Remove directory: {target_path}"))
+
+    orch.run()
+
 def main():
     signal.signal(signal.SIGINT, ctrlc)
     args = getargs()
@@ -938,23 +1275,15 @@ def main():
 
     if USE_XML: xml_start()
 
-    for t in args.tests:
+    for testset in args.tests:
         if CANCEL: break
 
-        if t == "dome":
-            t = Color.green(t)
-            target = "https://{0}/domehead/".format(args.host)
-            tester = DomeTester(target)
-            tester.Info().show()
-            continue
-
-        if t == "combined":
+        if testset == "dome":
+            test_dome(args)
+        elif testset == "combined":
             cross_protocol_tests(args)
-            continue
-
-        base = build_base_url(args, t)
-        target = build_target_url(args, t)
-        single_protocol_tests(t, base, target)
+        else:
+            single_protocol_tests(args, testset)
 
     if USE_XML: xml_end()
 
