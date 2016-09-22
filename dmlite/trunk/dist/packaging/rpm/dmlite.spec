@@ -87,7 +87,6 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: lcg-expiregridmapdir
 Requires: davix
 
 Obsoletes: emi-dpm_mysql
@@ -118,7 +117,6 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: lcg-expiregridmapdir
 Requires: davix
 
 Obsoletes: emi-dpm_disk
