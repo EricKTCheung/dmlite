@@ -260,7 +260,7 @@ provides multiple performance measurement tools for dmlite.
 
 
 %package plugins-librarian
-Summary:                        Libarrian plugin for dmlite
+Summary:                        Libarian plugin for dmlite
 Group:                          Applications/Internet
 Requires:                       %{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -276,16 +276,16 @@ This package provides the librarian plug-in for dmlite.
 %package shell
 Summary:			Shell environment for dmlite
 Group:				Applications/Internet
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildArch:			noarch
-%endif
+#%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
+#BuildArch:			noarch
+#%endif
 
 Requires:			python-dateutil
 Requires:			python-dmlite = %{version}
 Requires:                       MySQL-python
 Requires:                       python-pycurl
 
-Obsoletes:			dmlite-shell < 0.7.0-1
+Obsoletes:			dmlite-shell < %{version}-%{release}
 
 %description shell
 This package provides a shell environment for dmlite. It includes useful
