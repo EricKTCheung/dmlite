@@ -601,11 +601,25 @@ Returns: 200 if OK. Other HTTP codes for the corresponding errors. If the quota 
 A file write is accounted in the directory tree that contains the logical file name. A quotatoken must be assigned to one of the parent directories to tell DOME which pool the physical write should be directed to.
 At the same time, the quotatoken will also set a limit (quota) to the maximum number of bytes that can be written into the directory it's assigned to.
 
+\subsubsection{dome\_modquotatoken}
+Modifies a quota token, using the token id as a key. Allows you to change the path prefix and the poolname, which setquotatoken does not.
+
+Params:
+\begin{itemize}
+ \item tokenid: the token id, used as key.
+ \item quotaspace: the new quotatoken space
+ \item description: the new human readable description
+ \item path: the new path
+ \item poolname: the new poolname
+\end{itemize}
+
+Returns: 200 if OK. Other HTTP codes for the corresponding errors.
+
 \subsubsection{dome\_delquotatoken}
 Deletes a quota token, using the path prefix and a poolname as a key. The path prefix must be an existing directory.
 
 Command:
-\lstinline"POST /dome/command/dome_delquotatoken"\\
+\lstinline"POST /dome/command/dome\_delquotatoken"\\
 
 Request header:\\
 no particular fields in the header\\
