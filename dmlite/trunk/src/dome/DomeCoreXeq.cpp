@@ -308,7 +308,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
                 "Selected pool: '" << pool << "'. Selected host: '" << host << "'. Selected fs: '" << fs << "'"));
   }
 
-  // Remove the filesystems that have less then the minimum free space available
+  // Remove the filesystems that have less than the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
     if (selectedfss[i].freespace < minfreespace_bytes) {
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<

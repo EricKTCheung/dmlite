@@ -214,7 +214,7 @@ The typical configuration uses HTTPS in the frontend configuration, to enforce t
  Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances constantly update the head node about the running checksums, hance there is no need for persistence,
  and the system will self-heal on restarts of the head node. When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
  Eventually in the future memcached can be used for queue synchronization purposes. This evenience would require more development effort, and would have the
- advantage of making the DOME service able to scale horizontally. So far, we have no evidence that the DOME service needs that.\\
+ advantage of making the DOME service able to scale horizontally.\\
 
 \subsection{File pulls queuer}
 DOME internally on the head node queues and schedules requests for file pulls from external locations
@@ -223,29 +223,24 @@ DOME internally on the head node queues and schedules requests for file pulls fr
  No more than M pulls will be run in total\\
 
 The pull itself is implemented as a simple callout in the disk server, that can invoke any file movement mechanism, from
-dd to create an empty file to a simple copy to uber-complex multi hop FTS xfers.
+\textit{dd} to create an empty file to a simple copy to ultracomplex multi hop FTS xfers.
 The pull callout in the disk server is complemented by a stat callout, which is able to stat an external system for the presence of an offline file.\\
 This mechanism should be polished enough to support the construction of simple file caches,
 without necessarily needing external, complex components. Invoking FTS instead than \textit{dd} or \textit{davix-get} must be an option.\\
 
 
-Pull requests are queued in memory and dispatched to disk nodes that match the request and become available. Please note that stat requests are not queued. Please also note that the DOME API has no stat primitive.\\
+Pull requests are queued in memory and dispatched to disk nodes that match the request and become available. Please note that stat requests to external systems are not queued.\\
 The disk nodes instances constantly update the head node on the running callouts, hance there is no need for persistence,
 and the system will self-heal on restarts of the head node. When finished pulling a file, a disk node will notify the head node and pass the result (or failure).\\
 
 Eventually memcached can be used for queue synchronization purposes, only if it turns out that even in SOME cases the code is not totally
 preventing the spawning of new processes (which has never to happen!!!). This evenience would require more development effort, and would have the
-advantage of making the dpm service able to scale horizontally. So far, we have no evidence that the dpm service needs to scale horizontally the head node.\\
+advantage of making the dpm service able to scale horizontally.\\
 
 \subsection{Only one process}
- The fastcgi app named DOME has only have one process and multiple internal thread pools. This simplifies a lot the development.\\
+ The fastcgi app named DOME consists in one process which manages multiple internal thread pools.\\
 
-
-
-
- NB: lcg-dm contains generic utilities too, sql stuff, DB upgrade scripts, metapackages etc. These things should be moved somewhere else,
- possibly a place that refers to a part of the project that is not optional and that has low maintenance needs.\\
-
+ 
 
 
 \section{Application programming interface}
@@ -380,23 +375,20 @@ NOTES:
 \end{itemize}
 
 
-\section{Command sets of DOME}
+\section{Command set of DOME}
 Goals:
 
 \begin{itemize}
 \item keep the system architecture, databases, format of the physical file names
 \item coherent support for multiple types of checksums
 \item substitute dpmd, libshift and rfio, in favor of HTTP and REST
-\item simplify the semantics of the commands with respect to the SRM-ish one
+\item simplify the semantics of the commands with respect to the SRM-ish one of the legacy daemons
 \end{itemize}
 
 
 Each command is encoded as an HTTPS request that is inspired by the RESTful paradigm, where only the command name is URL-encoded, and every other dpm-specific parameter is encoded in a JSON snippet supplied as BODY of the request.\\
 
-A legitimate response can be a 202-Accepted, with means that the client should retry the same request later to get the final result or another 202 response.
-
-Each client request is implemented on a simplified client API based on davix.
-Each command is ALSO implemented on a command line tool that has the same name, the same parameters and prints the output in a pretty and readable way.\\
+A legitimate response can be a 202-Accepted, with means that the client should retry the same request later to get the final result or another 202 response.\\
 
 \subsection{Common header fields}
 
@@ -1153,7 +1145,7 @@ Params:
 
 \subsubsection{dome\_dochksum}
  Immediately start an external process that calculates the checksum and returns it (or error).
- Upon return (or error), the the disk node invokes dome\_checksumstatus in the head node with the result.
+ Upon return (or error), the disk node invokes dome\_checksumstatus to inform the head node of the result.
 
  The DOME disk node is responsible for keeping the head node
  informed of the checksums being calculated at regular intervals,
@@ -1276,7 +1268,9 @@ Here we list all the directives and parameters of DOME for both disk and head mo
 
 \section{Command-line parameters}
 
-Coming soon\\
+ Dome has only one command-line parameter, which is the absolute path of its config file.
+ 
+ The command-line parameter can be omitted if 
 
 \section{Configuration file: Structure and location}
 The path and filename of the main configuration file is specified as a command-line parameter in the command that starts DOME. A common
