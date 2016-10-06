@@ -195,9 +195,38 @@ The architecture of DOME is expandable, through the usage of an open, human-read
 
 
 \subsection{Architecture}
-Deployment diagram
-adapter\_rest
-take Eric's picture and comments
+Figure \ref{figdomedisk} shows the main components of DOME that are in action in a disk server.\\
+Requests come through Apache already authenticated and referring to the two possible paths that
+refer either to the filesystems or to the dome command path which starts with \lstinline{/domedisk}.
+Another detail that characterizes a disk server for DOME is the ability to execute tasks like checksum calculations
+and file pulls from external sources. These tasks, following a logic that is based on time, report their status
+to the head node, which uses this information to keep its queues updated.\\
+ 
+\begin{figure}
+\begin{center}
+ \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_disk.eps}
+ % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+ \caption{Simplified diagram of DOME in a disk node}
+ \label{figdomedisk}
+\end{center}
+\end{figure}
+
+A DOME head node is slightly more complex than a disk server, and its internal structure is
+visible in Figure \ref{figdomehead}.\\
+Requests come through Apache already authenticated and referring to the two possible paths that
+refer either to the logical name space ( \lstinline{/dpm} ) or to the dome command path which starts with \lstinline{/domehead}.
+A head node can contact external systems to get information about remote files, and queues in memory the requests for checksum calculations and remote file pulling.\\
+
+
+\begin{figure}
+\begin{center}
+ \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_head.eps}
+ % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+ \caption{Simplified diagram of DOME in a head node}
+ \label{figdomehead}
+\end{center}
+
+\end{figure}
 
 \subsection{Security}
 DOME by default accepts requests from the disk servers of the cluster it manages. This mechanism is based on secure HTTPS handshakes.\\
@@ -1534,7 +1563,7 @@ Default: 10\\
 
 \subsubsection{disk.filepuller.pullhook}
 
-Absolute path to an executable that can ppull a file identified by a logical file name by contacting an external system. This exacutable
+Absolute path to an executable that can pull a file identified by a logical file name by contacting an external system. This exacutable
 will be invoked passing the LFN as the first parameter, and the PFN as second parameter.\\
 
 Example:\\
