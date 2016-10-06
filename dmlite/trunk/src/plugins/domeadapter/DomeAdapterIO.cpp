@@ -143,6 +143,12 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
     return new DomeIOHandler(pfn, flags, mode);
   }
 
+  // there is still the possibility the target machine is us, so we'd be tunnelling
+  // to ourselves. Let's avoid this case.
+  if(Davix::Uri(domedisk_).getHost() == DomeUtils::server_from_rfio_syntax(pfn)) {
+    return new DomeIOHandler(DomeUtils::pfn_from_rfio_syntax(pfn), flags, mode);
+  }
+
   // tunneled I/O
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Creating tunnel handler for " << pfn);
   std::string server = DomeUtils::server_from_rfio_syntax(pfn);
