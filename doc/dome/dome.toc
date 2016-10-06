@@ -93,4 +93,3 @@
 \contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{47}
 \contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{47}
 \contentsline {subsubsection}{\nonumberline disk.filepuller.pullhook}{47}
-\contentsline {chapter}{\numberline {3}subsystems and development tasks}{48}
