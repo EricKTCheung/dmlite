@@ -28,6 +28,7 @@
 \title{DOME\\A rest-inspired engine for DPM}
 \author{}
 
+\subtitle{DMLite 0.8.0}
 
 \begin{document}
 \maketitle
@@ -603,6 +604,9 @@ At the same time, the quotatoken will also set a limit (quota) to the maximum nu
 
 \subsubsection{dome\_modquotatoken}
 Modifies a quota token, using the token id as a key. Allows you to change the path prefix and the poolname, which setquotatoken does not.
+
+Command:
+\lstinline"POST /dome/command/dome\_modquotatoken"\\
 
 Params:
 \begin{itemize}
@@ -1451,6 +1455,7 @@ Default value: 300\\
 
 \subsubsection{head.chksumstatus.heartbeattimeout}
 Maximum time, in seconds, that an entry about a checksum that is being calculated will stay in memory.\\
+Checksum requests that are queued will be dequeued if the client does not repeat the same request at regular intervals.\\
 Checksums that have been dispatched and that do not send the heartbeat will be internally treated as failed for unknown reasons.\\
 Default: 60\\
 
@@ -1498,8 +1503,8 @@ Absolute path to the gridmap file. The default value is /etc/lcgdm-gridmap
 
 Absolute path to an executable that can produce stat information for a logical file name by contacting an external system. This exacutable
 will be invoked passing the LFN as the only parameter.\\
-The stat information has to be produced as a text line in the standard output, prefixed by the string \lstinline">>>>>"
-Example:
+The stat information has to be produced as a text line in the standard output, prefixed by the string \lstinline">>>>>" \\
+Example:\\
 \lstinline"glb.filepuller.stathook: /usr/bin/externalstat.py"\\
 Example output:\\
 \lstinline">>>>> Size:898945"
@@ -1521,7 +1526,9 @@ Example:\\
 \lstinline"disk.headnode.DOMEurl: https://dpmhead-rc.cern.ch/DOME"\\
 
 \subsubsection{disk.cksummgr.heartbeatperiod}
+
 Number of seconds between notifications to the head node about the status of the checksum calculations that are being calculated.\\
+
 Default: 10\\
 
 
@@ -1535,51 +1542,5 @@ Example:\\
 
 DOME does not provide any such executable.\\
 
-\chapter{subsystems and development tasks}
-This section will not be part of the official documentation. It's here for organization purposes.\\
 
-\begin{itemize}
- \item server
- \subitem server skeleton
- \subitem db pools (borrowed from dmlite)
- \subitem logger (borrowed from dmlite)
- \subitem config subsystem copied from ugr
- \subitem one class containing the internal status. Same ticker-alive objects approach like ugr. A singleton approach seems reasonable and will reduce the dev effort.
- \subsubitem one class describing the status of pools and filesystems, able to gather it through dmlite, refreshing every N seconds
- \subitem one class describing a request. Is boost::propertytree fine or over-engineered project poison ?
- \subitem checksum queuer and manager for running chacksums
-  This class will need some unit tests, working locally with no setup\\
-
- \subitem file pull queuer, to queue callout requests and manage the running ones
- This class will need some unit tests, working locally with no setup\\
-
- The tech description of the chksum and filepull queuers is very similar. I am not convinced yet that it can be factorized into one class.
- \subitem One class that manages a set of spawned commandlines, regularly checks if they are alive and sends the pending notifications to the head node
- This class will need some unit tests, working locally with no setup\\
-
- \subitem if DOME needs to talk to the db and do queries, it will do it directly, eventually using the same components used by dmlite-mysql
- \subitem Question: do we still need to keep in the DB the log of all the PUTs ?
-
- \item c++ client class
- \subitem Maximum simplicity, just a set of calls wrapping requests and responses
- \subitem Call signature must be synchronous. Result is always the error code.
- \subitem New eventual purely async calls must be an easy addition if needed one day
-
- \subitem \textit{Used in DOME\_adapter, avoid things that are not dmlite-friendly}
- \subitem \textit{Used inside dopmrest to communicate between head and disknodes}
-
- \subitem Uses davix to communicate
- \subitem Investigate on advantage of libs to build/parse json. There are many, I like boost property tree. The advantagte over a 20 lines implementation is not clear to me.
-
- \item DOME\_adapter, which uses the client class
- \subitem implements the calls that are already there, using the current adapter as reference
-
- \item command line interface, as a set of executables that also constitute a big part of the tests!!
-
- \item scheduled tests that use the command line to do operations towards one of the testbeds
-
-\end{itemize}
-
-
-NOTE: investigate on possibility to add a list primitive that works on the physical namespace. An alternative could be to do it through Apache/webdav without passing for DOME.
 \end{document}
