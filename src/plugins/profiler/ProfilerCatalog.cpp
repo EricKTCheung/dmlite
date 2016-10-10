@@ -71,6 +71,13 @@ std::string ProfilerCatalog::getWorkingDir(void) throw(DmException)
 }
 
 
+DmStatus ProfilerCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException)
+{
+  Log(Logger::Lvl4, profilerlogmask, profilerlogname, "path: " << path << ", follow: " << follow);
+  //sendUserIdentOrNOP();
+  //reportXrdRedirCmd(path, XROOTD_MON_STAT);
+  PROFILE_RETURN(DmStatus, extendedStat, xstat, path, follow);
+}
 
 ExtendedStat ProfilerCatalog::extendedStat(const std::string& path, bool follow) throw (DmException)
 {
