@@ -32,6 +32,9 @@ namespace dmlite {
     void        changeDir     (const std::string&) throw (DmException);
     std::string getWorkingDir (void)               throw (DmException);
 
+    DmStatus extendedStat(ExtendedStat &xstat, const std::string& path,
+                          bool followSym = true) throw (DmException);
+                          
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn) throw (DmException);
 
