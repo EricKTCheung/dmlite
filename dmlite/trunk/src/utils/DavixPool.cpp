@@ -55,6 +55,7 @@ DavixCtxFactory::DavixCtxFactory() {
   spec_timeout.tv_nsec = 0;
   params_.setConnectionTimeout(&spec_timeout);
   params_.setOperationTimeout(&spec_timeout);
+  params_.addCertificateAuthorityPath("/etc/grid-security/certificates");
 
   // Nothing
 }
