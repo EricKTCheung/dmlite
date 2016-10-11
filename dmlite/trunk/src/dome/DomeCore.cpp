@@ -340,7 +340,7 @@ static Davix::RequestParams getDavixParams() {
   Log(Logger::Lvl1, domelogmask, domelogname, "SSL CA check for davix is set to  " + std::string((ssl_check) ? "TRUE" : "FALSE"));
 
   // ca check
-  std::string ca_path = CFG->GetString("glb.restclient.ca_path", (char *)"/etc/grid/security/certificates");
+  std::string ca_path = CFG->GetString("glb.restclient.ca_path", (char *)"/etc/grid-security/certificates");
   if( !ca_path.empty()) {
     Log(Logger::Lvl1, domelogmask, domelogname, "CA Path :  " << ca_path);
     params.addCertificateAuthorityPath(ca_path);
