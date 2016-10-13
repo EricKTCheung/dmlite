@@ -472,7 +472,15 @@ rm -rf %{buildroot}
 
 
 
+%files dpmhead-dome
+%defattr(-,root,root,-)
+%{_prefix}/share/dmlite/dbscripts
+%{_prefix}/share/dmlite/filepull
 
+
+%files dpmdisk-dome
+%defattr(-,root,root,-)
+%{_prefix}/share/dmlite/filepull
 
 
 
@@ -591,6 +599,9 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/dmlite.conf.d/domeadapter.example
 
 %changelog
+* Thu Oct 13 2016  Fabrizio Furano <furano@cern.ch> - 0.8.1
+- Add metapackages for dome flavour setup
+
 * Mon Feb 15 2016  Andrea Manzi <amanzi@cern.ch> - 0.7.6-1
 - Added move replicat to dmlite-shell
 - fix crash in dmlite-plugins-mysql
