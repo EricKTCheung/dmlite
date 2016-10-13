@@ -1,0 +1,35 @@
+PUT:
+./dome.py -e put --url https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/andrea12
+
+PUTDONE:
+./dome.py -e putdone --url https://domedisk-trunk.cern.ch/domedisk --pfn  /srv/dpm/01/dteam/2016-04-11/testfab-006.5.1460390261 --size 641064
+
+GET:
+./dome.py -e get -u  https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam/gridftp-f1458221342620113120 --pfn /srv/dpm/01/dteam/2016-03-17/gridftp-f1458221342620113120.6.1458221894 --server domehead-disk.cern.ch --fs /srv/dpm/01
+
+
+GETSPACEINFO:
+./dome.py -e getspaceinfo -u https://domehead-trunk.cern.ch/domehead
+
+./dome.py -e getspaceinfo -u https://domedisk-trunk.cern.ch/domedisk
+
+GETDIRSPACES:
+./dome.py -e getdirspaces -u https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam
+
+STATPOOL
+./dome.py -e statpool -u https://domehead-trunk.cern.ch/domehead --pool pool01
+
+GETQUOTATOKEN
+./dome.py -e getquotatoken -u  https://domehead-trunk.cern.ch/domehead --lfn /dpm/cern.ch/home/dteam
+
+SETQUOTATOKEN
+./dome.py -e setquotatoken -u  https://domehead-trunk.cern.ch/domehead   --lfn /dpm/cern.ch/home/dteam/andrea --pool pool01 --space 10000000000000 --desc TEST_TOKEN
+
+DELQUOTATOKEN
+./dome.py -e delquotatoken -u  https://domehead-trunk.cern.ch/domehead   --lfn /dpm/cern.ch/home/dteam --pool pool01
+
+DELREPLICA
+./dome.py -e delreplica -u  https://domehead-trunk.cern.ch/domehead --pfn /srv/dpm/01/dteam/2016-02-15/catarro8.1.1455555502 --server domedisk-trunk.cern.ch
+
+PFNRM
+./dome.py -e pfnrm -u  https://domedisk-trunk.cern.ch/domedisk --pfn/srv/dpm/01/dteam/2016-02-15/catarro8.1.1455555502
