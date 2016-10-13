@@ -63,6 +63,85 @@ logic for data management and storage for the Lcg grid.
 
 
 
+
+
+
+
+%package dpmhead-dome
+Summary:  DPM Head Node (MySQL)
+Group:    Applications/Internet
+Requires: bdii
+
+Requires: dpm-dsi%{?_isa}
+Requires: dmlite-plugins-domeadapter = %{version}
+Requires: dmlite-dome = %{version}
+Requires: dmlite-shell = %{version}
+Requires: dmlite-plugins-mysql = %{version}
+Requires: edg-mkgridmap
+Requires: fetch-crl
+Requires: finger
+Requires: lcgdm-dav
+Requires: lcgdm-dav-server
+Requires: davix
+
+Obsoletes: emi-dpm_mysql
+Obsoletes: dpmhead
+Obsoletes: dpm%{?_isa}
+Obsoletes: dpm-devel%{?_isa}
+Obsoletes: dpm-name-server-mysql%{?_isa}
+Obsoletes: dpm-perl%{?_isa}
+Obsoletes: dpm-python%{?_isa}
+Obsoletes: dpm-rfio-server%{?_isa}
+Obsoletes: dpm-server-mysql%{?_isa}
+Obsoletes: dpm-srm-server-mysql%{?_isa}
+Obsoletes: dmlite-plugins-adapter
+
+%description dpmhead-dome
+The Disk Pool Manager (DPM) creates a Grid storage element from a set
+of disk servers. It provides several interfaces for storing and retrieving
+data such as HTTP, Xrootd, GridFTP
+This is a metapackage providing all required daemons for a DPM Head Node.
+
+%package dpmdisk-dome
+Summary:  DPM Disk Node
+Group:    Applications/Internet
+
+Requires: dpm-dsi%{?_isa}
+
+Requires: dmlite-plugins-domeadapter = %{version}
+Requires: dmlite-dome = %{version}
+Requires: edg-mkgridmap
+Requires: fetch-crl
+Requires: finger
+Requires: lcgdm-dav
+Requires: lcgdm-dav-server
+Requires: davix
+
+Obsoletes: emi-dpm_disk
+Obsoletes: dpmdisk
+Obsoletes: dpm%{?_isa}
+Obsoletes: dpm-devel%{?_isa}
+Obsoletes: dpm-perl%{?_isa}
+Obsoletes: dpm-python%{?_isa}
+Obsoletes: dpm-rfio-server%{?_isa}
+Obsoletes: dmlite-plugins-adapter = %{version}
+
+%description dpmdisk-dome
+The Disk Pool Manager (DPM) creates a Grid storage element from a set
+of disk servers. It provides several interfaces for storing and retrieving
+data such as HTTP, Xrootd, GridFTP
+This is a metapackage providing all required daemons for a DPM
+Disk Node.
+
+
+
+
+
+
+
+
+
+
 %package dpmhead
 Summary:  EMI DPM Head Node (MySQL)
 Group:    Applications/Internet
@@ -93,9 +172,11 @@ Obsoletes: emi-dpm_mysql
 
 
 %description dpmhead
-The LCG Disk Pool Manager (DPM) creates a storage element from a set
-of disks. It provides several interfaces for storing and retrieving
+The Disk Pool Manager (DPM) creates a Grid storage element from a set
+of disk servers. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
+This is a metapackage providing all required daemons for a DPM Head Node, including
+legacy components like SRM, RFIO, libshift, CSec, dpm, dpnsdaemon.
 
 %package dpmdisk
 Summary:  EMI DPM Disk Node
@@ -126,7 +207,7 @@ The LCG Disk Pool Manager (DPM) creates a storage element from a set
 of disks. It provides several interfaces for storing and retrieving
 data such as RFIO and SRM version 1, version 2 and version 2.2.
 This is a virtual package providing all required daemons for a DPM
-Disk Node.
+Disk Node, including legacy components like RFIO, libshift, CSec.
 
 
 
