@@ -86,15 +86,15 @@ Requires: davix
 
 Obsoletes: emi-dpm_mysql
 Obsoletes: dpmhead
-Obsoletes: dpm%{?_isa}
-Obsoletes: dpm-devel%{?_isa}
-Obsoletes: dpm-name-server-mysql%{?_isa}
-Obsoletes: dpm-perl%{?_isa}
-Obsoletes: dpm-python%{?_isa}
-Obsoletes: dpm-rfio-server%{?_isa}
-Obsoletes: dpm-server-mysql%{?_isa}
-Obsoletes: dpm-srm-server-mysql%{?_isa}
-Obsoletes: dmlite-plugins-adapter
+Conflicts: dpm%{?_isa}
+Conflicts: dpm-devel%{?_isa}
+Conflicts: dpm-name-server-mysql%{?_isa}
+Conflicts: dpm-perl%{?_isa}
+Conflicts: dpm-python%{?_isa}
+Conflicts: dpm-rfio-server%{?_isa}
+Conflicts: dpm-server-mysql%{?_isa}
+Conflicts: dpm-srm-server-mysql%{?_isa}
+Conflicts: dmlite-plugins-adapter
 
 %description dpmhead-dome
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
@@ -119,12 +119,12 @@ Requires: davix
 
 Obsoletes: emi-dpm_disk
 Obsoletes: dpmdisk
-Obsoletes: dpm%{?_isa}
-Obsoletes: dpm-devel%{?_isa}
-Obsoletes: dpm-perl%{?_isa}
-Obsoletes: dpm-python%{?_isa}
-Obsoletes: dpm-rfio-server%{?_isa}
-Obsoletes: dmlite-plugins-adapter = %{version}
+Conflicts: dpm%{?_isa}
+Conflicts: dpm-devel%{?_isa}
+Conflicts: dpm-perl%{?_isa}
+Conflicts: dpm-python%{?_isa}
+Conflicts: dpm-rfio-server%{?_isa}
+Conflicts: dmlite-plugins-adapter = %{version}
 
 %description dpmdisk-dome
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
