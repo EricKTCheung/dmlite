@@ -150,7 +150,7 @@ IOHandler* DomeIODriver::createIOHandler(const std::string& pfn,
   }
 
   // tunneled I/O
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Creating tunnel handler for " << pfn);
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, " Creating tunnel handler for " << pfn);
   std::string server = DomeUtils::server_from_rfio_syntax(pfn);
   std::string path = DomeUtils::pfn_from_rfio_syntax(pfn);
 
