@@ -13,7 +13,7 @@
 
 
 Name:					dmlite
-Version:				0.8.1
+Version:				0.8.2
 Release:				1%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
@@ -72,7 +72,7 @@ Summary:  DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
 
-Requires: dpm-dsi%{?_isa}
+Requires: dpm-dsi%{?_isa} >= 1.9.10
 Requires: dmlite-plugins-domeadapter = %{version}
 Requires: dmlite-dome = %{version}
 Requires: dmlite-shell = %{version}
@@ -106,7 +106,7 @@ This is a metapackage providing all required daemons for a DPM Head Node.
 Summary:  DPM Disk Node
 Group:    Applications/Internet
 
-Requires: dpm-dsi%{?_isa}
+Requires: dpm-dsi%{?_isa} >= 1.9.10
 
 Requires: dmlite-plugins-domeadapter = %{version}
 Requires: dmlite-dome = %{version}
@@ -148,7 +148,7 @@ Group:    Applications/Internet
 Requires: bdii
 Requires: dpm%{?_isa} >= 1.9
 Requires: dpm-devel%{?_isa} >= 1.9
-Requires: dpm-dsi%{?_isa}
+Requires: dpm-dsi%{?_isa} >= 1.9.10
 Requires: dpm-name-server-mysql%{?_isa} >= 1.9
 Requires: dpm-perl%{?_isa} >= 1.9
 Requires: dpm-python%{?_isa} >= 1.9
@@ -183,7 +183,7 @@ Summary:  EMI DPM Disk Node
 Group:    Applications/Internet
 Requires: dpm%{?_isa} >= 1.9
 Requires: dpm-devel%{?_isa} >= 1.9
-Requires: dpm-dsi%{?_isa}
+Requires: dpm-dsi%{?_isa} >= 1.9.10
 Requires: dpm-perl%{?_isa} >= 1.9
 Requires: dpm-python%{?_isa} >= 1.9
 Requires: dpm-rfio-server%{?_isa} >= 1.9
@@ -234,6 +234,9 @@ Obsoletes:			dmlite-shell-debuginfo < 0.7.0-1
 
 # This was due to the switch to boost 1.48, linked to the bugs in propertytree
 Conflicts:      dpm-xrootd <= 3.6.0
+
+# Not really necessary, just better to limit the space for mistakes
+Conflicts:      dpm-dsi < 1.9.10
 
 # Versions prior to this one do not properly do accounting on directories
 Conflicts:      lcgdm-libs <= 1.8
