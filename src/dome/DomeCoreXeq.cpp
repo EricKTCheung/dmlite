@@ -388,10 +388,11 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     SecurityCredentials cred;
     cred.clientName = (std::string) req.creds.clientName;
     cred.remoteAddress = req.creds.remoteAddress;
+    cred.fqans = req.creds.groups;
 
     try {
       stack->setSecurityCredentials(cred);
-    } catch (DmException e) {
+    } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot set security credentials. dn: '" << req.creds.clientName << "' addr: '" <<
             req.creds.remoteAddress << "' - " << e.code() << "-" << e.what();
