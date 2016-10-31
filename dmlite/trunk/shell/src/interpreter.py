@@ -3353,7 +3353,7 @@ The command accepts the following parameter:
          self.ok(self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool))
 
 class FindCommand(ShellCommand):
-    """Find a file in the namespace based"""
+    """Find a file in the namespace based on the given pattern"""
 
     def _init(self):
          self.parameters = ['?name','*?folder']

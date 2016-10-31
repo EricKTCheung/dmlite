@@ -302,7 +302,7 @@ class DPMDB(object):
 	        except MySQLdb.Error, e:
 	                print "Error %d: %s" % (e.args[0], e.args[1])
                         print "Error in getLFNFromSFN with sfn " + sfn
-			raise 3
+			raise e
 	        except ValueError,v:
 	                print "Path %s does not exist" % sfn
 			raise v
