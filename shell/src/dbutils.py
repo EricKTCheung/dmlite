@@ -51,7 +51,8 @@ class DPMDB(object):
                 	nsdb = MySQLdb.connect(host=host, user=username, passwd=password, db=nsDBName,port= port )
                 	self.nsdb_c = nsdb.cursor()
         	except MySQLdb.Error, e:
-                	sys.exit("Error %d: %s" % (e.args[0], e.args[1]))
+                	print "Error %d: %s" % (e.args[0], e.args[1])
+                        raise e
 
 	def getReplicasInServer(self,server):
   		"""Method to get all the file replica for a single server."""
@@ -69,7 +70,7 @@ class DPMDB(object):
 	   	except MySQLdb.Error, e:
       			print "Error %d: %s" % (e.args[0], e.args[1])
                         print "Error in getReplicasInServer"
-      			sys.exit(1)  
+      			raise e 
 
 	def getReplicasInFS(self,fsname,server):
                 """Method to get all the file replica for a FS."""
@@ -86,7 +87,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getReplicaInFSFolder(self,fsname,server,folder):
 		"""Method to get all the file replica for a FS folder"""
@@ -104,7 +105,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 
 	def getReplicasInPool(self,poolname):
@@ -122,7 +123,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getPoolFromReplica(self,sfn):
 		"""Method to get the pool name from a sfn"""
@@ -138,7 +139,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 
         def getFilesystems(self, poolname):
@@ -155,7 +156,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getFilesystemsInServer(self, server):
                 """get all filesystems in a server"""
@@ -171,7 +172,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getServers(self, pool):
                 """get all server in a server"""
@@ -187,9 +188,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
-
-
+                        raise e
 
 	def getPoolFromFS(self, server, fsname):
                 """get the pool related to FS"""
@@ -205,7 +204,7 @@ class DPMDB(object):
                         return ret
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getGroupByGID(self, gid):
 		"""get groupname by gid """
@@ -220,7 +219,7 @@ class DPMDB(object):
                         	return row[0]
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
+                        raise e
 
 	def getGroupIdByName(self, groupname):
                 """get groupid by name """
@@ -235,8 +234,49 @@ class DPMDB(object):
                                 return row[0]
                 except MySQLdb.Error, e:
                         print "Error %d: %s" % (e.args[0], e.args[1])
-                        sys.exit(1)
-
+                        raise e
+        
+        def find(self, pattern, folder):
+                """retrieve a list of sfn matching a pattern"""
+                filemodeprefix = '33'
+                ret = list()
+		if folder:
+                        filemodeprefix = '16'
+			        
+                try:
+                        self.nsdb_c.execute('''
+			select name, fileid,parent_fileid, filemode from Cns_file_metadata
+			where name like '%%%(pattern)s%%' and filemode like '%(filemodeprefix)s%%'
+			''' % {"pattern" : pattern, "filemodeprefix" :filemodeprefix })
+			for row in self.nsdb_c.fetchall():
+			    namelist = ['']
+                            namelist.append(str(row[0]))
+                            parent_fileid = row[2]
+                            while parent_fileid > 0:
+                                     try:
+                                             item = self.dirhash[str(parent_fileid)]
+                                             parent_fileid = item[1]
+                                             namelist.append(str(item[0]))
+                                     except:
+                                             self.nsdb_c.execute('''select parent_fileid, name from Cns_file_metadata where Cns_file_metadata.fileid = %s''' % parent_fileid)
+					     (name,) = self.nsdb_c.fetchall()
+                                             self.dirhash[str(parent_fileid)] = (name[1],name[0])
+                                             namelist.append(str(name[1]))
+                                             parent_fileid = name[0]
+                            namelist.reverse() #put entries in "right" order for joining together
+                            name = '/'.join(namelist)[1:]#and sfn and print dpns name (minus srm bits)
+                            ret.append(name[:-1]) #remove last "/"
+			return ret
+                except MySQLdb.Error, e:
+                        print "Error %d: %s" % (e.args[0], e.args[1])
+                        print "Error in find with pattern: " + pattern
+                        print e.__str__()
+                        raise e
+                except ValueError,v:
+                        print "Error evaluating the pattern: " + pattern
+			print v.__str__()
+                        raise v
+                       
 	def getLFNFromSFN(self, sfn):
 		"""get LFN from sfn"""
 		namelist = ['']
@@ -262,10 +302,10 @@ class DPMDB(object):
 	        except MySQLdb.Error, e:
 	                print "Error %d: %s" % (e.args[0], e.args[1])
                         print "Error in getLFNFromSFN with sfn " + sfn
-	                return 0
+			raise 3
 	        except ValueError,v:
 	                print "Path %s does not exist" % sfn
-                        return 0
+			raise v
 	        namelist.reverse() #put entries in "right" order for joining together
 		name = '/'.join(namelist)[1:]#and sfn and print dpns name (minus srm bits)
 		return name[:-1] #remove last "/"
