@@ -3337,10 +3337,10 @@ The command accepts the following parameter:
 class QuotaTokenDelCommand(ShellCommand):
     """Del the quota token for the given path
 
-The command accepts the following parameter:
+The command accepts the following parameters:
 
 * <path>        : the path to remove the quota from
-* <pool>          : the pool associated to the quota token to remove"""
+* <pool>        : the pool associated to the quota token to remove"""
 
     def _init(self):
          self.parameters = ['Dpath','?pool']
@@ -3353,7 +3353,22 @@ The command accepts the following parameter:
          self.ok(self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool))
 
 class FindCommand(ShellCommand):
-    """Find a file in the namespace based on the given pattern"""
+    """Find a file in the namespace based on the given pattern
+
+The command accepts the following parameters:
+
+* <patter>  : the string to look for in the namespace
+* <folder>  : retrieve folder instead of files (default is file)
+
+in order to retrieve all the namespace elemenent yuo can use this options
+
+find ""
+
+for folders
+
+find "" folders
+"""
+
 
     def _init(self):
          self.parameters = ['?name','*?folder']
