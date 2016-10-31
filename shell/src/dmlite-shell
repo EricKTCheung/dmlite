@@ -7,7 +7,6 @@ via the Python module pydmlite.
 """
 import os
 import sys
-import readline
 import atexit
 import ConfigParser
 import sys
@@ -65,6 +64,7 @@ def main():
         print
 
     else:
+        import readline
         # init dmlite shell
         init_history()
 
