@@ -3347,7 +3347,52 @@ The command accepts the following parameter:
 
     def _execute(self, given):
          if len(given) < 2:
-            return self.error("Incorrect number of parameters")
+             return self.error("Incorrect number of parameters")
          lfn = given[0]
          pool = given[1]
          self.ok(self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool))
+
+class FindCommand(ShellCommand):
+    """Find a file in the namespace based"""
+
+    def _init(self):
+         self.parameters = ['?name','*?folder']
+
+    def _execute(self, given):
+         if len(given) < 1:
+             return self.error("Incorrect number of parameters")
+         pattern = given[0]
+         folder = False
+         if len(given) > 1:
+             folder = True;
+         ret = list()
+         try:
+             db = DPMDB()
+             ret = db.find(pattern,folder)
+         except Exception, e:
+            return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+         if ret != None:
+             if len(ret) > 0:
+                 return self.ok(('\n'.join(ret)))
+             else:
+                 return self.error("Cannot find files with the given pattern")
+         else: 
+             return self.error("Cannot find files with the given pattern")
+
+class GetLfnCommand(ShellCommand):
+    """Retrieve the LFN associated to the given SFN"""
+  
+    def _init(self):
+         self.parameters = ['?sfn']
+
+    def _execute(self, given):
+         if len(given) < 1:
+             return self.error("Incorrect number of parameters")
+         sfn = given[0]
+         lfn = ""
+         try:
+             db = DPMDB()
+             lfn = db.getLFNFromSFN(sfn)
+         except Exception, e:
+             return self.error("Cannot find the given SFN")
+         self.ok(lfn)
