@@ -64,7 +64,7 @@ def main():
         print
 
     else:
-        import readline
+	import readline
         # init dmlite shell
         init_history()
 
@@ -107,6 +107,7 @@ def main():
     sys.exit(interpreter2.failed)
 
 def init_history():
+    import readline
     # init the shell history functionality
     # the history is saved in ~/.dmlite_history
     history_file = os.path.join(os.path.expanduser('~'), '.dmlite_history')
