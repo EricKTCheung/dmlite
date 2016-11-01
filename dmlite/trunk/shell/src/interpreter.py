@@ -1066,14 +1066,14 @@ class ChGrpCommand(ShellCommand):
 class GetChecksumCommand(ShellCommand):
   """Get or calculate file checksum"""
   def _init(self):
-    self.parameters = ['Dfile', '?checksumtype', '*?forcerecalc' '*?pfn']
+    self.parameters = ['Dfile', '?checksumtype', '*?forcerecalc', '*?pfn']
 
   def _execute(self, given):
     if self.interpreter.authn is None:
       return self.error('There is no Authentification interface.')
 
     forcerecalc = False
-    if len(given) > 2 and (given[2] == "false" or given[2] == "1"):
+    if len(given) > 2 and (given[2] == "true" or given[2] == "1"):
         forcerecalc = True
 
     pfn = ""
