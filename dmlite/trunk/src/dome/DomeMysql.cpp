@@ -785,6 +785,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
     {
       boost::unique_lock<boost::recursive_mutex> l(st);
       std::vector <DomeFsInfo> newfslist;
+      st.servers.clear();
 
       while ( stmt.fetch() ) {
         DomeFsInfo oldfs;
