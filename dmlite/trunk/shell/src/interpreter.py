@@ -1410,9 +1410,9 @@ class ReplicaAddCommand(ShellCommand):
     myreplica.type = rtype
     myreplica.rfn = given[3]
 
-    if len(given) == 6:
+    if len(given) == 5:
       myreplica.server = given[4]
-    elif given[4].find(':/') != -1:
+    elif given[3].find(':/') != -1:
       myreplica.server = given[3].split(':/')[0]
     else:
       return self.syntaxError('Invalid rfn field. Expected: server:/path/file')
