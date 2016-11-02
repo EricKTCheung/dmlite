@@ -391,7 +391,15 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     cred.fqans = req.creds.groups;
 
     try {
-      stack->setSecurityCredentials(cred);
+      if(!addreplica) {
+        stack->setSecurityCredentials(cred);
+      }
+      else {
+        // empty security context => root
+        SecurityContext *context = stack->getAuthn()->createSecurityContext();
+        stack->setSecurityContext(*context);
+        delete context;
+      }
     } catch (DmException &e) {
       std::ostringstream os;
       os << "Cannot set security credentials. dn: '" << req.creds.clientName << "' addr: '" <<
