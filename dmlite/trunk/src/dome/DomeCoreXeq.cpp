@@ -320,7 +320,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
       bool dropfs = false;
       
       // Loop on the replicas
-      for(size_t j = 0; i < replicas.size(); i++) {
+      for(size_t j = 0; j < replicas.size(); j++) {
         std::string rfn = replicas[j].rfn;
         std::string pfn;
         size_t pos = rfn.find(":");
