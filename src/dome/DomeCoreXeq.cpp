@@ -308,6 +308,48 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
                 "Selected pool: '" << pool << "'. Selected host: '" << host << "'. Selected fs: '" << fs << "'"));
   }
 
+  
+  // If we are replicating an existing file, the new replica must go into a filesystem that
+  // does not contain it already
+  DmlitePoolHandler stack(status.dmpool);
+  if (addreplica) {
+    // Get the list of the replicas of this lfn
+    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+    // remove from the fslist the filesystems that match with any replica
+    for (size_t  i = selectedfss.size()-1; i >= 0; i--) {
+      bool dropfs = false;
+      
+      // Loop on the replicas
+      for(size_t j = 0; i < replicas.size(); i++) {
+        std::string rfn = replicas[j].rfn;
+        std::string pfn;
+        size_t pos = rfn.find(":");
+        if (pos == std::string::npos) pfn = rfn;
+        else
+          pfn = rfn.substr(rfn.find(":")+1, rfn.size());
+        
+        if (status.PfnMatchesFS(replicas[j].server, pfn, selectedfss[i])) {
+          dropfs = true;
+          break;
+        }
+      }
+      
+      if (dropfs) {
+        Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
+        "' already has a replica of '" << lfn << "', skipping");
+        selectedfss.erase(selectedfss.begin()+i);
+      }
+    }
+    
+  }
+  
+  // If no filesystems remain, return error "filesystems full for path ..."
+  if ( !selectedfss.size() ) {
+    // Error!
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE,
+           SSTR("No filesystems can host an additional replica for lfn:'" << lfn));
+  }
+  
   // Remove the filesystems that have less than the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
     if (selectedfss[i].freespace < minfreespace_bytes) {
@@ -323,6 +365,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     return DomeReq::SendSimpleResp(request, DOME_HTTP_INSUFFICIENT_STORAGE, "All matching filesystems are full.");
   }
 
+  
   // Sort the selected filesystems by decreasing free space
   std::sort(selectedfss.begin(), selectedfss.end(), DomeFsInfo::pred_decr_freespace());
 
@@ -379,7 +422,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   // Create the logical catalog entry, if not already present. We also create the parent dirs
   // if they are absent
 
-  DmlitePoolHandler stack(status.dmpool);
+  
   ExtendedStat parentstat, lfnstat;
   std::string parentpath;
 
@@ -987,7 +1030,7 @@ int DomeCore::dome_makespace(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, SSTR("Could not find filesystem '" << fs << "'"));
   }
   if(size <= 0) {
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, SSTR("Selected fs already has enough space. (" << status.fslist[i].freespace << ")"));
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, SSTR("Selected fs " << status.fslist[selected_fs].server << ":" << status.fslist[selected_fs].fs << "' has enough space. (" << status.fslist[i].freespace << ")"));
   }
   }
 
