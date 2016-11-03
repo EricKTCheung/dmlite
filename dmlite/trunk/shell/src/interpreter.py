@@ -519,7 +519,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.8.0 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.8.3 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
@@ -3194,10 +3194,10 @@ class QuotaTokenGetCommand(ShellCommand):
 The command accepts the following paramameter:
 
 * <path>        : the path
-* getsubdirs    : the command will print the quota token associated to the subfolders of the given path (optional)"""
+* -s            : the command will print the quota token associated to the subfolders of the given path (optional)"""
 
     def _init(self):
-         self.parameters = ['Dpath','*?getsubdirs']
+         self.parameters = ['Dpath','*O--subfolders:-s']
 
     def _execute(self, given):
          if len(given) < 1:
@@ -3205,7 +3205,7 @@ The command accepts the following paramameter:
          path = given[0]
          getsubdirs = False
          getparentdirs = True
-         if (len(given) == 2):
+         if (len(given) == 2 and given[1].lower() in ['-s', '--subfolders']):
              getsubdirs = True
              getparentdirs = False
 
@@ -3358,7 +3358,7 @@ class FindCommand(ShellCommand):
 The command accepts the following parameters:
 
 * <patter>  : the string to look for in the namespace
-* <folder>  : retrieve folder instead of files (default is file)
+* -d        : retrieve folder instead of files (default is file)
 
 in order to retrieve all the namespace elemenent yuo can use this options
 
@@ -3366,19 +3366,19 @@ find ""
 
 for folders
 
-find "" folders
+find "" -d
 """
 
 
     def _init(self):
-         self.parameters = ['?name','*?folder']
+         self.parameters = ['?name','*?-d']
 
     def _execute(self, given):
          if len(given) < 1:
              return self.error("Incorrect number of parameters")
          pattern = given[0]
          folder = False
-         if len(given) > 1:
+         if (len(given) > 1 and given[1].lower() in ['-d']) :
              folder = True;
          ret = list()
          try:
