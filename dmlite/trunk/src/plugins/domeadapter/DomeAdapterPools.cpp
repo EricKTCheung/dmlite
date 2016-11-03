@@ -246,11 +246,8 @@ void DomeAdapterPoolManager::getDirSpaces(const std::string& path, int64_t &tota
 
   try {
     // extract info
-
     totalfree = talker.jresp().get<int64_t>("quotafreespace");
-    used = talker.jresp().get<int64_t>("usedspace");
-
-
+    used = talker.jresp().get<int64_t>("quotausedspace");
   }
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));

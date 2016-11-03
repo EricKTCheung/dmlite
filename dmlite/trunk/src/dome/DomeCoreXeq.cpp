@@ -1741,7 +1741,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
       std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
       myintv = status.quotas.equal_range(absPath);
 
-      if (myintv.first != status.quotas.end()) {
+      if (myintv.first != myintv.second) {
         for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
           totspace += it->second.t_space;
 
