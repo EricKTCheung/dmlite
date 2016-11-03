@@ -316,7 +316,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     // Get the list of the replicas of this lfn
     std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
     // remove from the fslist the filesystems that match with any replica
-    for (size_t  i = selectedfss.size()-1; i >= 0; i--) {
+    for (int i = selectedfss.size()-1; i >= 0; i--) {
       bool dropfs = false;
       
       // Loop on the replicas
