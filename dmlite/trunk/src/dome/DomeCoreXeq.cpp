@@ -312,36 +312,42 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   // If we are replicating an existing file, the new replica must go into a filesystem that
   // does not contain it already
   DmlitePoolHandler stack(status.dmpool);
-  if (addreplica) {
-    // Get the list of the replicas of this lfn
-    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
-    // remove from the fslist the filesystems that match with any replica
-    for (int i = selectedfss.size()-1; i >= 0; i--) {
-      bool dropfs = false;
-      
-      // Loop on the replicas
-      for(size_t j = 0; j < replicas.size(); j++) {
-        std::string rfn = replicas[j].rfn;
-        std::string pfn;
-        size_t pos = rfn.find(":");
-        if (pos == std::string::npos) pfn = rfn;
-        else
-          pfn = rfn.substr(rfn.find(":")+1, rfn.size());
+  try {
+    if (addreplica) {
+      // Get the list of the replicas of this lfn
+      std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+      // remove from the fslist the filesystems that match with any replica
+      for (int i = selectedfss.size()-1; i >= 0; i--) {
+        bool dropfs = false;
         
-        if (status.PfnMatchesFS(replicas[j].server, pfn, selectedfss[i])) {
-          dropfs = true;
-          break;
+        // Loop on the replicas
+        for(size_t j = 0; j < replicas.size(); j++) {
+          std::string rfn = replicas[j].rfn;
+          std::string pfn;
+          size_t pos = rfn.find(":");
+          if (pos == std::string::npos) pfn = rfn;
+          else
+            pfn = rfn.substr(rfn.find(":")+1, rfn.size());
+          
+          if (status.PfnMatchesFS(replicas[j].server, pfn, selectedfss[i])) {
+            dropfs = true;
+            break;
+          }
+        }
+        
+        if (dropfs) {
+          Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
+          "' already has a replica of '" << lfn << "', skipping");
+          selectedfss.erase(selectedfss.begin()+i);
         }
       }
       
-      if (dropfs) {
-        Log(Logger::Lvl4, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
-        "' already has a replica of '" << lfn << "', skipping");
-        selectedfss.erase(selectedfss.begin()+i);
-      }
     }
+  } catch (DmException e) {
+    
     
   }
+  
   
   // If no filesystems remain, return error "filesystems full for path ..."
   if ( !selectedfss.size() ) {
