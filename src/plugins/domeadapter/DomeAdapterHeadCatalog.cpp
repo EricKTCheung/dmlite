@@ -101,6 +101,9 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
   time_t start = time(0);
   bool recalc = forcerecalc;
 
+  int waitsecs1 = waitsecs;
+  if (waitsecs1 == 0) waitsecs1 = 1800;
+
   while(true) {
     DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                       "GET", "dome_chksum");
@@ -117,8 +120,9 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
 
     // checksum calculation in progress
     if(talker.status() == 202) {
-      if(time(0) - start >= waitsecs) return;
-      sleep(1);
+      if(time(0) - start >= waitsecs1)
+        throw DmException(EAGAIN, SSTR(waitsecs << "s were not sufficient to checksum '" << csumtype << ":" << path << "'. Try again later."));
+      sleep(5);
       continue;
     }
 
