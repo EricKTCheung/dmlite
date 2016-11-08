@@ -294,7 +294,7 @@ dmlite plugins only, no API compatibility is guaranteed on these headers.
 Summary:      The dpm tester tool
 Group:        Applications/Internet
 Requires:     python
-Requires:     gfal2
+Requires:     gfal2-python
 
 %description dpm-tester
 Tool that is useful to test the main features of a DPM setup
