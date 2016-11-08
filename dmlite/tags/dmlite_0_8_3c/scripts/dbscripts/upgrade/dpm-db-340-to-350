@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+# Adds the pooltype and poolmeta fields used by dmlite to support
+# multiple pool types.
+# Updates schema_version_dpm table
+# i.e. the update from schema 3.3.0 to 3.4.0
+use Common;
+use strict;
+use warnings;
+
+sub update_mysql($) {
+        my ($dbh_dpm) = @_;
+
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD COLUMN path VARCHAR(255)");
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD UNIQUE (path)");
+        
+        $dbh_dpm->do ("UPDATE schema_version_dpm SET major = 3, minor = 5, patch = 0");
+
+        $dbh_dpm->commit;
+}
+
+sub update_oracle($) {
+        my ($dbh_dpm) = @_;
+
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD path VARCHAR2(255)");
+        $dbh_dpm->do ("ALTER TABLE dpm_space_reserv ADD UNIQUE (path)");
+        
+        $dbh_dpm->do ("UPDATE schema_version_dpm SET major = 3, minor = 5, patch = 0");
+
+        $dbh_dpm->commit;
+}
+
+# Main method
+my ($vendor, $connection) = Common::main();
+
+if ($vendor eq "MySQL") {
+  update_mysql($connection);
+}
+if ($vendor eq "Oracle") {
+  update_oracle($connection);
+}
+
+$connection->disconnect();
+

@@ -1,0 +1,13 @@
+[Unit]
+Description=Startup script for dome, running with config /etc/@STARTUP_SCRIPT@.conf
+
+[Service]
+User=dpmmgr
+Group=dpmmgr
+Type=forking
+
+ExecStart=/var/www/fcgi-bin/dome /etc/@STARTUP_SCRIPT@.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
