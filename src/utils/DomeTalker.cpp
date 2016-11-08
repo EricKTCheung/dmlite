@@ -149,7 +149,8 @@ static struct StatusCodePair pairs[] = {
   { DOME_HTTP_BAD_REQUEST,          EINVAL          },
   { DOME_HTTP_NOT_FOUND,            ENOENT          },
   { DOME_HTTP_CONFLICT,             EEXIST          },
-  { DOME_HTTP_INSUFFICIENT_STORAGE, ENOSPC          }
+  { DOME_HTTP_INSUFFICIENT_STORAGE, ENOSPC          },
+  { DOME_HTTP_DENIED,               EACCES          }
 };
 
 int dmlite::http_status(const dmlite::DmException &e) {
