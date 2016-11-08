@@ -34,6 +34,7 @@
 #include "DomeLog.h"
 #include "utils/Config.hh"
 #include "DomeDmlitePool.h"
+#include "cpp/authn.h"
 
 
 using namespace dmlite;
@@ -75,6 +76,12 @@ StackInstance* DmlitePool::GetStackInstance(bool cancreate) {
   }
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Got stack instance " << si);
+
+  // reset the security credentials
+  SecurityContext *context = si->getAuthn()->createSecurityContext();
+  si->setSecurityContext(*context);
+  delete context;
+
   return si;
 }
 
