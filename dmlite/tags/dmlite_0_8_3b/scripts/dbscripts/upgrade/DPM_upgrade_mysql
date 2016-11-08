@@ -1,0 +1,127 @@
+#!/bin/bash
+##############################################################################
+# Copyright (c) Members of the EGEE Collaboration. 2004.
+# See http://www.eu-egee.org/partners/ for details on the copyright
+# holders.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+function upgrade_stop_services () {
+ echo "Stopping DPM services"
+ service dpm-gsiftp stop 
+ service srmv2.2 stop 
+ service dpm stop 
+ service dpnsdaemon stop
+ service httpd stop
+ service domehead stop
+}
+
+function upgrade_start_services () {
+ echo "Starting up the DPM services"
+ service dpnsdaemon start
+ service dpm start
+ service srmv2.2 start
+ service dpm-gsiftp start
+ service httpd start
+ service domehead start
+}
+
+function upgrade () {
+
+DPM_DB_HOST=$1
+DPM_DB_USER=$2
+DPM_DB_PASSWORD=$3
+DPM_DB=$4
+DPNS_DB=$5
+dpmv=$6
+cnsv=$7
+
+ls /usr/share/dmlite/dbscripts/upgrade/dpm-db-$dpmv-* &> /dev/null
+dpmupdate=$(($?==0))
+ls /usr/share/dmlite/dbscripts/upgrade/cns-db-$cnsv-* &> /dev/null
+cnsupdate=$(($?==0))
+if [ $dpmupdate -ne 0 ] || [ $cnsupdate -ne 0 ]; then
+  # Stop the services
+  upgrade_stop_services
+
+  # Store password
+  passfile=`mktemp /tmp/dpm_upgrade.XXXXXX`
+  echo "$DPM_DB_PASSWORD" > $passfile
+
+  # Change working directory
+  cd /usr/share/dmlite/dbscripts/upgrade/ &> /dev/null
+
+  # Update DPM Schema
+  for file in `ls dpm-db-*`
+  do
+    fromv=`echo $file | cut -d - -f 3`
+    tov=`echo $file | cut -d - -f 5 | cut -d . -f 1`
+    if [ $tov -gt $dpmv ]; then
+      echo "Upgrading DPM schema from $fromv to $tov"
+      /usr/bin/perl $file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPM_DB} --verbose
+      if [ $? -ne 0 ]; then
+        echo "Error upgrading DPM schema"
+	return 1
+      fi
+    fi
+  done
+
+  echo "DPM schema up to date"
+
+  # Update DPNS Schema
+  for file in `ls cns-db-*`
+  do
+    fromv=`echo $file | cut -d - -f 3`
+    tov=`echo $file | cut -d - -f 5 | cut -d . -f 1`
+    if [ $tov -gt $cnsv ]; then
+      echo "Upgrading DPNS schema from $fromv to $tov"
+      /usr/bin/perl $file --db-vendor MySQL --db-host ${DPM_DB_HOST} --user ${DPM_DB_USER} --pwd-file ${passfile} --db ${DPNS_DB} --verbose
+      if [ $? -ne 0 ]; then
+        echo "Error upgrading DPNS schema"
+	return 1
+      fi
+    fi
+  done
+
+  echo "DPNS schema up to date"
+
+  # Return to previous directory
+  cd - &> /dev/null
+
+  # Remove password
+  rm -f ${passfile}
+
+  # Restart
+  upgrade_start_services
+else
+  echo "No upgrades needed"
+fi
+return 0
+}
+
+#default values
+dpmv='340'
+dpnsv='320'
+dpm_db='dpm_db'
+dpns_db='cns_db'
+
+if [ "$#" -gt 3 ]; then
+  dpm_db=$4
+  dpns_db=$5
+  dpmv=$6
+  dpnsv=$7  
+fi
+
+upgrade $1 $2 $3 $dpm_db $dpns_db $dpmv $dpnsv
