@@ -170,29 +170,20 @@ Location DomeAdapterPoolManager::whereToWrite(const std::string& path) throw (Dm
 
 
   boost::property_tree::ptree params;
-  try {
-    boost::any any = si_->get("replicate");
-    bool val = Extensible::anyToBoolean(any);
-
+  if(si_->contains("replicate")) {
+    bool val = Extensible::anyToBoolean(si_->get("replicate"));
     if (val) params.put("additionalreplica", "true");
   }
-  catch (...) {};
 
-  try {
-    boost::any any = si_->get("pool");
-    std::string val = Extensible::anyToString(any);
-
+  if(si_->contains("pool")) {
+    std::string val = Extensible::anyToString(si_->get("pool"));
     if (val.size()) params.put("pool", val);
   }
-  catch (...) {};
 
-  try {
-    boost::any any = si_->get("filesystem");
-    std::string val = Extensible::anyToString(any);
-
+  if(si_->contains("filesystem")) {
+    std::string val = Extensible::anyToString(si_->get("filesystem"));
     if (val.size()) params.put("fs", val);
   }
-  catch (...) {};
 
   params.put("lfn", path);
 
