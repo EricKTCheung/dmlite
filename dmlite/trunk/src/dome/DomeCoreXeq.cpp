@@ -2899,7 +2899,7 @@ int DomeCore::dome_addpool(DomeReq &req, FCGX_Request &request) {
   if (pool_defsize < 1024*1024) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid defsize: " << pool_defsize));
   }
-  if(pool_stype != "P" || pool_stype != "V") {
+  if(pool_stype != "P" && pool_stype != "V") {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid pool_stype: " << pool_stype));
   }
 
