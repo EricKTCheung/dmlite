@@ -105,7 +105,7 @@ def printable_outcome(outcome):
     if outcome == EX_UNKNOWN:
         return "UNKNOWN"
     if outcome == EX_SKIPPED:
-        return "SKIPPED"
+        return "SKIP"
     raise ValueError("invalid argument")
 
 def colored_outcome(outcome):
@@ -120,7 +120,7 @@ def colored_outcome(outcome):
     if outcome == EX_UNKNOWN:
         return Color.purple(pt)
     if outcome == EX_SKIPPED:
-        return Color.purple(pt)
+        return Color.yellow(pt)
     raise ValueError("invalid argument")
 
 def duration_in_sec(start, end):
@@ -217,6 +217,15 @@ class TestResult:
         if USE_XML: return
         print(indent + ".... => {0} :: {1}".format(colorize_prefix(prefix), name), end="\r")
         sys.stdout.flush()
+
+    @staticmethod
+    def show_skipped(prefix, name, indent=""):
+        if USE_XML:
+            print("""<testcase name="{0:02d} {1}" classname="{2}" time="0">""".format(get_test_number(), urllib.quote(name), prefix))
+            print("""<skipped/></testcase>""")
+            return
+
+        print(indent + "{0} => {1} :: {2}".format(colored_outcome(EX_SKIPPED), colorize_prefix(prefix), name))
 
     def get_status_line(self, indent=""):
         result = colored_outcome(self.outcome)
@@ -867,6 +876,25 @@ def calculate_checksum(checksumtype, filename):
     if checksumtype == "md5":
         return hashlib.md5(open(filename, 'rb').read()).hexdigest()
 
+class Runner:
+    def __init__(self, function, args, name):
+        self.function = function
+        self.args = args
+        self.name = name
+
+    def run(self, prefix):
+        result = self.function(*self.args)
+
+        # Override the name of this result object
+        result.reset_name(prefix, self.name)
+        return result
+
+    def show_pending(self, prefix):
+        TestResult.show_pending(prefix, self.name)
+
+    def show_skipped(self, prefix):
+        TestResult.show_skipped(prefix, self.name)
+
 # Run a series of tests, optionally with initialization and cleanup.
 # You can also nest orchestrators together, but be careful.
 class Orchestrator:
@@ -879,16 +907,30 @@ class Orchestrator:
         self.outcome = EX_UNKNOWN
 
     # if any of the initialization tests fail, no cleanup is necessary
-    def add_initialization(self, function, args=[], name=""):
-        self.initialization.append((function, args, name))
+    def add_initialization(self, function, args, name):
+        self.initialization.append(Runner(function, args, name))
 
     # add a regular test
-    def add(self, function, args=[], name=""):
-        self.tests.append((function, args, name))
+    def add(self, function, args, name):
+        self.tests.append(Runner(function, args, name))
 
     # add cleanup function
-    def add_cleanup(self, function, args=[], name=""):
-        self.cleanup.append((function, args, name))
+    def add_cleanup(self, function, args, name):
+        self.cleanup.append(Runner(function, args, name))
+
+    # add a nested orchestrator
+    def add_nested(self, orchestrator):
+        self.tests.append(orchestrator)
+
+    # show that a list of tests has been skipped
+    def skip_list(self, test_list):
+        for test in test_list:
+            test.show_skipped(self.prefix)
+
+    def show_skipped(self, ignored):
+        self.skip_list(self.initialization)
+        self.skip_list(self.tests)
+        self.skip_list(self.cleanup)
 
     # run list of tests
     def run_list(self, test_list, always_run=False):
@@ -896,21 +938,21 @@ class Orchestrator:
 
         for test in test_list:
             if (alive and not CANCEL) or always_run:
-                if test[2]: TestResult.show_pending(self.prefix, test[2])
-                result = test[0](*test[1])
+                test.show_pending(self.prefix)
+                result = test.run(self.prefix)
                 alive = result.ok() or TEST_IGNORE_ERRORS
-
-                # If a name was given, override the result object returned by
-                # the function
-                if test[2]:
-                    result.reset_name(self.prefix, test[2])
                 result.show()
+            else:
+                test.show_skipped(self.prefix)
+
         return alive
 
     # run everything
-    def run(self):
+    def run(self, ignored_arg=""):
         # if initialization fails, no need to cleanup
         if CANCEL or not self.run_list(self.initialization):
+            self.skip_list(self.tests)
+            self.skip_list(self.cleanup)
             return self
 
         # run main tests
@@ -918,6 +960,9 @@ class Orchestrator:
             self.outcome = EX_CRITICAL
 
         # run cleanup
+        if not TEST_CLEANUP:
+            self.skip_list(self.cleanup)
+
         if TEST_CLEANUP and not self.run_list(self.cleanup, always_run=True):
             self.outcome = EX_CRITICAL
 
@@ -926,8 +971,12 @@ class Orchestrator:
 
         return self
 
-    # show a breakdown of results
+    # no-op
     def show(self):
+        pass
+
+    # no-op
+    def show_pending(self, ignored):
         pass
 
     def ok(self):
@@ -1023,7 +1072,7 @@ def cross_protocol_tests(args):
             target1 = path_join(build_target_url(args, t1), foldername)
             target2 = path_join(build_target_url(args, t2), foldername)
 
-            orch.add(test_space_accounting("combined", tester, target1, target2).run)
+            orch.add_nested(test_space_accounting("combined", tester, target1, target2))
 
     descr = "Remove directory: " + extract_path(testdir)
     orch.add_cleanup(tester.Remove_directory, [testdir], descr)
@@ -1082,14 +1131,14 @@ def single_protocol_tests(args, scope):
     orch.add(tester.Create_directory, [target], descr)
 
     # adds another orchestrator
-    orch.add(play_with_file(scope, tester, "/etc/services", "{0}/services".format(target)).run)
+    orch.add_nested(play_with_file(scope, tester, "/etc/services", "{0}/services".format(target)))
 
     if scope != "srm":
         evil_filename = """evil filename-!@#%^_-+=:][}{><'" #$&*)("""
-        orch.add(play_with_file(scope, tester, "/etc/services", path_join(target, evil_filename)).run)
+        orch.add_nested(play_with_file(scope, tester, "/etc/services", path_join(target, evil_filename)))
 
         if args.dir_accounting:
-            orch.add(test_space_accounting(scope, tester, path_join(target, "spc-accounting")).run)
+            orch.add_nested(test_space_accounting(scope, tester, path_join(target, "spc-accounting")))
 
     nfiles = args.hammer_parallel_uploads
     if nfiles > 0:
