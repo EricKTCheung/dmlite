@@ -44,6 +44,9 @@ void DomeAdapterFactory::configure(const std::string& key, const std::string& va
   else if (key == "TokenLife") {
     this->tokenLife_ = (unsigned)atoi(value.c_str());
   }
+  else if (key == "DavixPoolSize") {
+    davixPool_.resize((unsigned)atoi(value.c_str()));
+  }
   else if( key.find("Davix") != std::string::npos) {
     davixFactory_.configure(key, value);
   }
