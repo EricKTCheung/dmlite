@@ -64,7 +64,8 @@
 \contentsline {subsubsection}{\nonumberline head.db.password}{44}
 \contentsline {subsubsection}{\nonumberline head.db.port}{44}
 \contentsline {subsubsection}{\nonumberline head.db.poolsz}{44}
-\contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{44}
+\contentsline {subsubsection}{\nonumberline glb.restclient.poolsize}{44}
+\contentsline {subsubsection}{\nonumberline glb.restclient.conn\_timeout}{45}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ops\_timeout}{45}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ssl\_check}{45}
 \contentsline {subsubsection}{\nonumberline glb.restclient.ca\_path}{45}
@@ -72,23 +73,23 @@
 \contentsline {subsubsection}{\nonumberline glb.restclient.cli\_private\_key}{45}
 \contentsline {subsubsection}{\nonumberline glb.reloadfsquotas}{45}
 \contentsline {subsubsection}{\nonumberline glb.reloadusersgroups}{45}
-\contentsline {subsubsection}{\nonumberline glb.role}{45}
+\contentsline {subsubsection}{\nonumberline glb.role}{46}
 \contentsline {subsubsection}{\nonumberline glb.auth.authorizeDN[]}{46}
 \contentsline {subsubsection}{\nonumberline head.put.minfreespace\_mb}{46}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.configfile}{46}
 \contentsline {subsubsection}{\nonumberline glb.dmlite.poolsize}{46}
-\contentsline {subsubsection}{\nonumberline glb.workers}{46}
+\contentsline {subsubsection}{\nonumberline glb.workers}{47}
 \contentsline {subsection}{\numberline {2.3.2}Specific to head nodes}{47}
 \contentsline {subsubsection}{\nonumberline head.chksumstatus.heartbeattimeout}{47}
 \contentsline {subsubsection}{\nonumberline head.checksum.maxtotal}{47}
 \contentsline {subsubsection}{\nonumberline head.checksum.maxpernode}{47}
 \contentsline {subsubsection}{\nonumberline head.checksum.qtmout}{47}
-\contentsline {subsubsection}{\nonumberline head.filepulls.maxtotal}{47}
+\contentsline {subsubsection}{\nonumberline head.filepulls.maxtotal}{48}
 \contentsline {subsubsection}{\nonumberline head.filepulls.maxpernode}{48}
 \contentsline {subsubsection}{\nonumberline head.filepulls.qtmout}{48}
 \contentsline {subsubsection}{\nonumberline head.gridmapfile}{48}
 \contentsline {subsubsection}{\nonumberline head.filepuller.stathook}{48}
-\contentsline {subsubsection}{\nonumberline head.filepuller.stathooktimeout}{48}
+\contentsline {subsubsection}{\nonumberline head.filepuller.stathooktimeout}{49}
 \contentsline {subsection}{\numberline {2.3.3}Specific to disk nodes}{49}
 \contentsline {subsubsection}{\nonumberline disk.headnode.domeurl}{49}
 \contentsline {subsubsection}{\nonumberline disk.cksummgr.heartbeatperiod}{49}
