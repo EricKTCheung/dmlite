@@ -440,7 +440,7 @@ int DomeCore::init(const char *cfgfile) {
     // Configure the davix pool
     davixFactory = new dmlite::DavixCtxFactory();
     davixFactory->setRequestParams(getDavixParams());
-    davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 128));
+    davixPool = new dmlite::DavixCtxPool(davixFactory, CFG->GetLong("glb.restclient.poolsize", 64));
     status.setDavixPool(davixPool);
 
     // Load filesystems

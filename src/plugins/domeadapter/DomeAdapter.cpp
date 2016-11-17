@@ -16,7 +16,7 @@ using namespace dmlite;
 Logger::bitmask dmlite::domeadapterlogmask = ~0;
 Logger::component dmlite::domeadapterlogname = "DomeAdapter";
 
-DomeAdapterFactory::DomeAdapterFactory() throw (DmException) : davixPool_(&davixFactory_, 128) {
+DomeAdapterFactory::DomeAdapterFactory() throw (DmException) : davixPool_(&davixFactory_, 64) {
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
 
 }
