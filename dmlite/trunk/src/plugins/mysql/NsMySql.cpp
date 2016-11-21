@@ -757,7 +757,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
   }
 
   // Subtract this filesize to the size of its parent dirs, only the first N levels
-  {
+  if (replica.status == Replica::kAvailable) {
 
 
     // Start transaction
