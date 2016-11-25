@@ -1690,7 +1690,7 @@ class QryConfCommand(ShellCommand):
         try:
             availability = pydmlite.PoolAvailability.kAny
             pools = self.interpreter.poolManager.getPools(availability)
-            info = self.interpreter.executor.getSpaceInfo(self.interpreter.domeheadurl)
+            info,err = self.interpreter.executor.getSpaceInfo(self.interpreter.domeheadurl)
             data  = json.loads(info)
             for pool in pools:
                 output = "POOL %s " % (pool.name)
