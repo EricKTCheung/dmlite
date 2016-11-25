@@ -1516,13 +1516,13 @@ class PoolAddCommand(ShellCommand):
     """Add a pool.
 The pool_type values can be: 'filesystem', 'hdfs', 's3'
 
-the s_pace type values can be: V (for Volatile), D (for Durable), P (for Permanent)
-or - (to accept any type).  The latter is the default.
+the s_pace type values can be: V (for Volatile), P (for Permanent).
+The latter is the default.
 
 """
 
     def _init(self):
-        self.parameters = ['?pool_name', '?Opool_type:filesystem:hdfs:s3' ,'*Ospace_type:V:D:P:-']
+        self.parameters = ['?pool_name', 'Opool_type:filesystem:hdfs:s3' ,'*Ospace_type:V:P']
 
     def _execute(self, given):
         if self.interpreter.poolManager is None:
@@ -1535,7 +1535,7 @@ or - (to accept any type).  The latter is the default.
             if len(given) > 2:
                 pool.setString("s_type", given[2])
             else:
-                pool.setString("s_type", '-')
+                pool.setString("s_type", 'P')
             self.interpreter.poolManager.newPool(pool)
             return self.ok()
         except Exception, e:
