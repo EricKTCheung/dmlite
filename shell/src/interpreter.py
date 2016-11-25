@@ -2005,9 +2005,12 @@ class FsAddCommand(ShellCommand):
             pool = given[1]
             server = given[2]
 
-            out = self.interpreter.executor.addFsToPool(self.interpreter.domeheadurl, fs, pool, server, status)
-            print(out)
-            return self.ok(restart_dpm_reminder)
+            out,err = self.interpreter.executor.addFsToPool(self.interpreter.domeheadurl, fs, pool, server, status)
+            if err:
+                return self.error(out)
+            else:
+                print(out)
+                return self.ok(restart_dpm_reminder)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2034,10 +2037,13 @@ Status must have one of the following values: 0 for ENABLED, 1 for DISABLED, 2 f
             if status > 2 or status < 0:
                 return self.error('Unknown status value: ' + str(status))
 
-            out = self.interpreter.executor.modifyFs(self.interpreter.domeheadurl, fs, pool, server,
+            out,err = self.interpreter.executor.modifyFs(self.interpreter.domeheadurl, fs, pool, server,
                                                      status)
-            print(out)
-            return self.ok(restart_dpm_reminder)
+            if err:
+                return self.error(out)
+            else:
+                print(out)
+                return self.ok(restart_dpm_reminder)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2055,10 +2061,12 @@ class FsDelCommand(ShellCommand):
             fs = given[0]
             server = given[1]
 
-            out = self.interpreter.executor.rmFs(self.interpreter.domeheadurl, fs, server)
-            print(out)
-            return self.ok(restart_dpm_reminder)
-
+            out,err = self.interpreter.executor.rmFs(self.interpreter.domeheadurl, fs, server)
+            if err:
+                return self.error(out)
+            else:
+                print(out)
+                return self.ok(restart_dpm_reminder)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2110,12 +2118,12 @@ class Util(object):
                     interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
                     return 1
             else:
-                try:
-                    interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,2)
-                    return 0
-                except Exception:
-                    interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
-                return 1
+                    out, err = interpreter.executor.modifyFs(interpreter.domeheadurl, sourceFS.name, sourceFS.poolname, sourceFS.server,2)
+                    if err:
+                        interpreter.error('Not possible to set Filesystem '+ sourceFS.server +"/" +sourceFS.name + " To ReadOnly. Exiting.")
+                        return 1
+                    else:
+                        return 0
 
         @staticmethod
         def printComments(interpreter):
@@ -3209,7 +3217,7 @@ The command accepts the following paramameter:
              getsubdirs = True
              getparentdirs = False
 
-         out =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getparentdirs,getsubdirs)
+         out,err =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getparentdirs,getsubdirs)
          try:
              data  = json.loads(out)
          except ValueError:
@@ -3289,7 +3297,11 @@ The command accepts the following parameters:
         except Exception, e:
           return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-        self.ok(self.interpreter.executor.modquotatoken(self.interpreter.domeheadurl,s_token,lfn,pool,size,desc,groups))
+        out, err = self.interpreter.executor.modquotatoken(self.interpreter.domeheadurl,s_token,lfn,pool,size,desc,groups)
+        if err:
+            self.error(out)
+        else:
+            self.ok(out)
 
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
@@ -3332,7 +3344,11 @@ The command accepts the following parameter:
         except Exception, e:
           return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-        self.ok(self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc,groups))
+        out, err = self.interpreter.executor.setquotatoken(self.interpreter.domeheadurl,lfn,pool,size,desc,groups)
+        if err:
+            self.error(out)
+        else:
+            self.ok(out)
 
 class QuotaTokenDelCommand(ShellCommand):
     """Del the quota token for the given path
@@ -3350,8 +3366,12 @@ The command accepts the following parameters:
              return self.error("Incorrect number of parameters")
          lfn = given[0]
          pool = given[1]
-         self.ok(self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool))
-
+         out, err = self.interpreter.executor.delquotatoken(self.interpreter.domeheadurl,lfn,pool)
+         if err:
+            self.error(out)
+         else:
+            self.ok(out)
+ 
 class FindCommand(ShellCommand):
     """Find a file in the namespace based on the given pattern
 

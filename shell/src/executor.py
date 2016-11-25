@@ -56,7 +56,10 @@ class DomeTalker(object):
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = proc.communicate()[0]
-        return out
+        err = False
+        if "(Davix::HttpRequest) Error:" in out:
+            err = True
+        return (out,err)
 
 class DomeExecutor(object):
     """Wrapper around DomeTalker"""
