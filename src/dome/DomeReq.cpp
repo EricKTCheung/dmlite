@@ -126,9 +126,19 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
   }
 
   // We prefer to log all the responses
-  if (logwhereiam)
-    Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
-  else
-    Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
+  if (logwhereiam) {
+
+    if (Logger::get()->getLevel() >= 2)
+       Log(Logger::Lvl2, domelogmask, logwhereiam, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
+    else
+       Log(Logger::Lvl1, domelogmask, logwhereiam, "Exiting: code: " << httpcode);
+
+  } else
+
+    if (Logger::get()->getLevel() >= 2)
+       Log(Logger::Lvl2, domelogmask, domelogname, "Exiting: code: " << httpcode << " body: '" << fixed_body << "'");
+    else
+       Log(Logger::Lvl1, domelogmask, domelogname, "Exiting: code: " << httpcode);
+
   return 1;
 }

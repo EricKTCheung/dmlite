@@ -120,11 +120,11 @@ void workerFunc(DomeCore *core, int myidx) {
     }
 
     DomeReq dreq(request);
-    Log(Logger::Lvl1, domelogmask, domelogname, "--------- New request. Worker: " << myidx <<
+    Log(Logger::Lvl4, domelogmask, domelogname, "-PreReq- idx: " << myidx <<
     " clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
     "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
 
-    Log(Logger::Lvl1, domelogmask, domelogname, "Worker: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
+    Log(Logger::Lvl4, domelogmask, domelogname, "-PreReq- idx: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
 
 
     // -------------------------
@@ -159,7 +159,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
       if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
         // Authorize if the client DN can be found in the config whitelist
-        Log(Logger::Lvl1, domelogmask, domelogname, "DN '" << dn << "' authorized by whitelist.");
+        Log(Logger::Lvl2, domelogmask, domelogname, "idx: " << myidx << " DN '" << dn << "' authorized by whitelist.");
         authorize = true;
         break;
       }
@@ -175,7 +175,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
       authorize = core->status.isDNaKnownServer(dreq.clientdn);
       if (authorize)
-        Log(Logger::Lvl1, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
+        Log(Logger::Lvl2, domelogmask, domelogname, "idx: " << myidx << "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
     }
 
     // -------------------------
@@ -183,6 +183,15 @@ void workerFunc(DomeCore *core, int myidx) {
     // -------------------------
 
     if (authorize) {
+
+      // Client was authorized. We log the request
+      Log(Logger::Lvl1, domelogmask, domelogname, "-Req- idx: " << myidx <<
+          " clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
+          "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
+
+      Log(Logger::Lvl1, domelogmask, domelogname, "-Req- idx: " << myidx << " req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
+
+
       // First discriminate on the HTTP request: GET/POST, etc..
       if(dreq.verb == "GET") {
 
@@ -303,7 +312,7 @@ void workerFunc(DomeCore *core, int myidx) {
         core->dome_info(dreq, request, myidx, authorize);
       }
       else {
-        Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
+        Err(domelogname, "idx: " << myidx << "DN '" << dreq.clientdn << " has NOT been authorized.");
         DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
       }
     }
