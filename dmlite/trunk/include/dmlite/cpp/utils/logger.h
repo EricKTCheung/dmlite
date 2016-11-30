@@ -2,6 +2,7 @@
 #define Logger_HH
 
 #include <syslog.h>
+#include <pthread.h>
 
 #include <sstream>
 #include <string>
@@ -16,7 +17,7 @@ do{                                											\
 	if (Logger::get()->getLevel() >= lvl && Logger::get()->isLogged(mymask)) 	\
 	{    																	\
 		std::ostringstream outs;                                   			\
-		outs << "[" << lvl << "] dmlite " << where << " " << __func__ << " : " << what;                      			\
+		outs << "{" << pthread_self() << "}" << "[" << lvl << "] dmlite " << where << " " << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)lvl, outs.str());    				\
 	}                                                             			\
 }while(0)                                                               			\
@@ -25,7 +26,7 @@ do{                                											\
 #define Err(where, what) 												\
 do{                                											\
 		std::ostringstream outs;                                   			\
-		outs << "dmlite " << where << " !! " << __func__ << " : " << what;                      			\
+		outs << "{" << pthread_self() << "}" << "!!! dmlite " << where << __func__ << " : " << what;                      			\
 		Logger::get()->log((Logger::Level)0, outs.str());    				\
 }while(0)
 

@@ -175,7 +175,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
       authorize = core->status.isDNaKnownServer(dreq.clientdn);
       if (authorize)
-        Log(Logger::Lvl2, domelogmask, domelogname, "idx: " << myidx << "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
+        Log(Logger::Lvl2, domelogmask, domelogname, "idx: " << myidx << " DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
     }
 
     // -------------------------
