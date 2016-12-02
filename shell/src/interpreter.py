@@ -720,7 +720,7 @@ class MkDirCommand(ShellCommand):
     return self.ok()
 
 class UnlinkCommand(ShellCommand):
-  """Remove a file from the database."""
+  """Remove a file from the system."""
   def _init(self):
     self.parameters = ['Dfile','*Oforce:f:force:-f:--force']
 
