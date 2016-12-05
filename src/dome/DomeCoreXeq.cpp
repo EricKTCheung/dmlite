@@ -2676,10 +2676,6 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
 
 
-
-    InodeTrans trans(ino);
-
-
     // Get the file size :-(
     int64_t sz = 0;
     dmlite::ExtendedStat st;
@@ -2714,7 +2710,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
       } catch (DmException e) {
         std::ostringstream os;
-        os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
+        os << "Cannot unlink fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
         Err(domelogname, os.str());
         //return DomeReq::SendSimpleResp(request, 404, os);
       }
@@ -2779,7 +2775,6 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     }*/
 
 
-
     // For backward compatibility with the DPM daemon, we also update its
     // spacetoken counters, adjusting u_space
     {
@@ -2794,6 +2789,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
         DomeMySqlTrans  t(&sql);
         // Free some space
         sql.addtoQuotatokenUspace(rep.setname, sz);
+        t.Commit();
       }
 
     }
