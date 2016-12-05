@@ -1489,7 +1489,7 @@ class ReplicaDelCommand(ShellCommand):
     try:
       self.interpreter.catalog.getReplicas
       replicas = self.interpreter.catalog.getReplicas(given[0])
-
+      sz = len(replicas)
       for r in replicas:
         if given[1] in (str(r.replicaid), r.rfn):
           # found specified replica. delete it!
@@ -1498,13 +1498,20 @@ class ReplicaDelCommand(ShellCommand):
           poolHandler.removeReplica(r)
           try:
           #remove also from catalog to clean memcache
-              self.interpreter.catalog.deleteReplica(r)
+            self.interpreter.catalog.deleteReplica(r)
           except Exception:
           #do nothing cause if it fails does not hurt
-              pass
+            pass
           break
-      else:
-        return self.error('The specified replica was not found.')
+        else:
+            return self.error('The specified replica was not found.')
+      if sz == 1:
+        try:
+          #remove also from catalog to clean memcache
+          self.interpreter.catalog.unlink(given[0])
+        except Exception:
+          #do nothing cause if it fails does not hurt
+          pass
       return self.ok()
 
     except Exception, e:
