@@ -283,8 +283,11 @@ int DomeStatus::loadUsersGroups() {
     cnt++;
   }
 
+  
   Log(Logger::Lvl1, domelogmask, domelogname, "Loaded " << cnt << " mapfile entries.");
 
+  if (fclose(mf))
+    Err(domelogname, "Error closing file '" << gridmapfile.c_str() << "'");
 
   return 1;
 }
@@ -408,7 +411,7 @@ int DomeStatus::tick(time_t timenow) {
 
 
   // Actions to be performed less often...
-  if ( this->role == this->roleHead && timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) {
+  if ( this->role == this->roleHead && (timenow - lastreload >= CFG->GetLong("glb.reloadfsquotas", 60)) ) {
     // At regular intervals, one minute or so,
     // reloading the filesystems and the quotatokens is a good idea
     Log(Logger::Lvl4, domelogmask, domelogname, "Reloading quotas.");
@@ -417,7 +420,7 @@ int DomeStatus::tick(time_t timenow) {
     lastreload = timenow;
   }
 
-  if ( this->role == this->roleHead && timenow - lastreloadusersgroups >= CFG->GetLong("glb.reloadusersgroups", 60)) {
+  if ( this->role == this->roleHead && (timenow - lastreloadusersgroups >= CFG->GetLong("glb.reloadusersgroups", 60)) ) {
     // At regular intervals, one minute or so,
     // reloading the users and groups tables is a good idea
     Log(Logger::Lvl4, domelogmask, domelogname, "Reloading users/groups.");
