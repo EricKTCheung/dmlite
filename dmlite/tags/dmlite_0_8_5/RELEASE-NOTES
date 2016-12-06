@@ -1,0 +1,31 @@
+* Wed Dec 19 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.6.0
+- https://its.cern.ch/jira/browse/LCGDM/fixforversion/10721
+  - Token validation when doing i/o is now optional
+  - Removed context object dependency from all i/o calls
+  - Added pread/pwrite, readv/writev, fstat, rstatx
+  - Host certificate location is now configurable
+  - Added call for aborting a transfer (used mostly for cleanup on failure)
+  - Added base implementation for all interfaces (which plugins should extend)
+  - Added ability to pass port and protocol along with location
+  - Added mapping to nobody/nogroup when no match from credential
+  - New call for fetching loaded configuration
+
+* Wed Sep 26 2012 Ricardo Rocha <ricardo.rocha@cern.ch> - 0.4.0
+- Added a generic map class
+- Added dmlite_get with inode parameter
+- Moved get/put to the PoolManager interface
+- Added extensibility to UserInfo, GroupInfo and other classes requiring metadata
+- Added == and != operators to data structs
+- Added methods to retrieve all users, and to query by extra field (example is id)
+- PoolHandler API now returns all locations
+- Added pool management methods (add, update, delete)
+- Merged Pool and PoolMetadata objects
+- Merged getPools and getAvailablePools
+- deleteReplica now takes a single parameter
+- addReplica now takes a Replica object
+- Dropped getWorkingDir
+- Dropped put with guid
+- Fixed bugs:
+  LCGDM-661: unlink does not work with relative paths
+  LCGDM-664: extendedStat throws exception when the target of the symlink does not exist
+
