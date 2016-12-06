@@ -1,0 +1,124 @@
+#! /usr/bin/env python
+# dmliteshell.py
+"""
+This file implements the DMLite shell.
+The shell provides an easy access to many features of the DMLite library
+via the Python module pydmlite.
+"""
+import os
+import sys
+import atexit
+import ConfigParser
+import sys
+from optparse import OptionParser
+
+from dmliteshell import interpreter
+
+def main():
+    sys.settrace
+    # parse options
+    parser = OptionParser("%prog [options]")
+    parser.add_option("-c", "--config", dest="configfile", help="define the configuration file before launching the shell (default value is /etc/dmlite.conf)", default = "/etc/dmlite.conf")
+    parser.add_option("-e", "--execute", dest="command", help="execute the given command and exit", default = '')
+    parser.add_option("-s", "--script", dest="scriptfile", help="execute the given script file line by line and exit", default = '')
+    parser.add_option("-l", "--logfile", dest="logfile", help="write the logs to the specified file", default = '')
+    (options, args) = parser.parse_args()
+    if args:
+        parser.error("Incorrect number of arguments")
+
+    # init interpreter
+    quietMode = (options.command) or (options.scriptfile) or (not sys.__stdin__.isatty())
+    if options.logfile:
+     	try:
+        	log = open(options.logfile, 'w+')
+		interpreter2 = interpreter.DMLiteInterpreter(log.write, options.configfile, quietMode)
+		print "Logs are now printed to " + options.logfile
+        except Exception, e:
+                print e.__str__()
+                print "Cannot open file " + options.logfile +" for logging, continue logging to stdout"
+		interpreter2 = interpreter.DMLiteInterpreter(sys.stdout.write, options.configfile, quietMode)
+
+    else:
+    	interpreter2 = interpreter.DMLiteInterpreter(sys.stdout.write, options.configfile, quietMode)
+    if interpreter2.failed: # initialisation failed
+        return
+
+    if options.command:
+        interpreter2.execute(options.command)
+        print
+
+    elif options.scriptfile:
+        try:
+            for line in open(options.scriptfile, 'r'):
+                line = line.strip()
+                interpreter2.execute(line)
+
+                # in non-interactive mode an error stops execution
+                if interpreter2.failed:
+                    break
+
+        except Exception, e:
+            interpreter2.error('Error while trying to execute file "' + options.scriptfile + '":\n' + e.args[1])
+
+        # exit... clear line
+        print
+
+    else:
+	import readline
+        # init dmlite shell
+        init_history()
+
+        # init the shell auto completion functionality
+        readline.set_completer_delims(' \t//')
+        readline.set_completer((lambda text, state: interpreter2.completer(readline.get_line_buffer(), state)))
+        readline.parse_and_bind('tab: complete')
+
+        # dmlite shell loop
+        while not interpreter2.exit:
+
+            # get next command
+            try:
+                if sys.__stdin__.isatty():
+                    cmdline = raw_input('> ')
+                else:
+                    cmdline = raw_input()
+                cmdline = cmdline.strip()
+            except EOFError:
+                # all commands from input have been executed, exit...
+                break 
+            except KeyboardInterrupt:
+                # on CTRL-C
+                if readline.get_line_buffer() == '':
+                    # exit if CTRL-C on empty line
+                    break
+                else:
+                    print
+                    continue
+
+            # execute next command
+            interpreter2.execute(cmdline)
+
+            # in non-interactive mode an error stops execution
+            if (not sys.__stdin__.isatty()) and interpreter2.failed:
+                break
+
+        # exit... clear line
+        print
+    sys.exit(interpreter2.failed)
+
+def init_history():
+    import readline
+    # init the shell history functionality
+    # the history is saved in ~/.dmlite_history
+    history_file = os.path.join(os.path.expanduser('~'), '.dmlite_history')
+    try:
+        readline.read_history_file(history_file)
+    except IOError:
+        pass
+
+    atexit.register(readline.write_history_file, history_file)
+
+
+# this is an executable module
+if __name__ == '__main__':
+    main()
