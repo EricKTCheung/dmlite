@@ -31,7 +31,9 @@ namespace dmlite {
     Location whereToRead (ino_t inode)             throw (DmException);
     Location whereToWrite(const std::string& path) throw (DmException);
     
-
+    
+    void getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException);
+    
    protected:
     PoolManager* decorated_;
     char*        decoratedId_;
