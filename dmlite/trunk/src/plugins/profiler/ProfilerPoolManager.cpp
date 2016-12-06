@@ -123,3 +123,9 @@ Location ProfilerPoolManager::whereToWrite(const std::string& path) throw (DmExc
   Log(Logger::Lvl3, profilerlogmask, profilerlogname, "return: " << ret.toString());
   return ret;
 }
+
+
+void ProfilerPoolManager::getDirSpaces(const std::string& path, int64_t &totalfree, int64_t &used) throw (DmException)
+{
+  PROFILE(getDirSpaces, path, totalfree, used);
+}
