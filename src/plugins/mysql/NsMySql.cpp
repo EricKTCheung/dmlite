@@ -802,7 +802,7 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
       for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-factory_->dirspacereportdepth); i--) {
         Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Inode: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] - sz);
         try {
-          setSize(hierarchy[i], MAX(0, hierarchysz[i] - sz));
+          setSize( hierarchy[i], ((hierarchysz[i] < (size_t)sz) ? 0 : (hierarchysz[i] - sz)) );
         }
         catch (DmException& e) {
           Err( "FilesystemPoolHandler::removeReplica" , " Cannot setSize inode " << hierarchy[i] << " to " << MAX(0, hierarchysz[i] - sz));
