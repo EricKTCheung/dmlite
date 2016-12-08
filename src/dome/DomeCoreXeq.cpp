@@ -2234,7 +2234,7 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
 
 };
 
-// returns true if str1 is a strict subdir of str2
+// returns true if str2 is a strict subdir of str1
 // both arguments are assumed not to have trailing slashes
 static bool is_subdir(const std::string &str1, const std::string &str2) {
   size_t pos = str1.find(str2);
@@ -2251,7 +2251,14 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
   boost::property_tree::ptree jresp;
   int cnt = 0;
 
-  for (std::multimap<std::string, DomeQuotatoken>::iterator it = status.quotas.begin(); it != status.quotas.end(); ++it) {
+  // Make a local copy of the quotas to loop on
+  std::multimap <std::string, DomeQuotatoken> localquotas;
+  {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    localquotas = status.quotas;
+  }
+  
+  for (std::multimap<std::string, DomeQuotatoken>::iterator it = localquotas.begin(); it != localquotas.end(); ++it) {
     bool match = false;
 
     if(absPath == it->second.path) {
