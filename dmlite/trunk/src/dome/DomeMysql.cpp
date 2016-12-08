@@ -894,7 +894,7 @@ int DomeMySql::addFs(DomeFsInfo &newfs) {
                    "INSERT INTO dpm_fs\
                    (poolname, server, fs, status, weight)\
                    VALUES \
-                   (?, ?, ?, 0, 0)");
+                   (?, ?, ?, 0, 1)");
 
     stmt.bindParam(0, newfs.poolname);
     stmt.bindParam(1, newfs.server);
