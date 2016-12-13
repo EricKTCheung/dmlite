@@ -821,7 +821,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   // Add this filesize to the size of its parent dirs, only the first N levels
   {
-
+    boost::lock_guard<boost::mutex> lock(update_filesizes_mutex);
 
     // Start transaction
     InodeTrans trans(inodeintf);
@@ -2257,7 +2257,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     boost::unique_lock<boost::recursive_mutex> l(status);
     localquotas = status.quotas;
   }
-  
+
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = localquotas.begin(); it != localquotas.end(); ++it) {
     bool match = false;
 
