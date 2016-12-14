@@ -821,16 +821,9 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   // Add this filesize to the size of its parent dirs, only the first N levels
   {
-    boost::lock_guard<boost::mutex> lock(update_filesizes_mutex);
-
-    // Start transaction
-    InodeTrans trans(inodeintf);
-
     off_t sz = size;
 
-
     ino_t hierarchy[128];
-    size_t hierarchysz[128];
     unsigned int idx = 0;
     while (st.parent) {
 
@@ -845,7 +838,6 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       }
 
       hierarchy[idx] = st.stat.st_ino;
-      hierarchysz[idx] = st.stat.st_size;
 
       Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
       " is " << st.stat.st_size << " with idx " << idx);
@@ -858,23 +850,23 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
       }
     }
 
+    DomeMySql sql;
+    DomeMySqlTrans  t(&sql);
+
     // Update the filesize in the first levels
     // Avoid the contention on /dpm/voname/home
     if (idx > 0) {
       Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
       for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Inide: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] + sz);
-        inodeintf->setSize(hierarchy[i], sz + hierarchysz[i]);
+        Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << sz);
+        sql.addtoDirectorySize(hierarchy[i], sz);
       }
     }
     else {
       Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
     }
 
-
-    // Commit the local trans object
-    // This also releases the connection back to the pool
-    trans.Commit();
+    t.Commit();
   }
 
 

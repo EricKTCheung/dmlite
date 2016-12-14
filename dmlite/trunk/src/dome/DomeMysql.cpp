@@ -617,7 +617,36 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   return 0;
 };
 
+int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' increment: " << increment );
+  bool ok = true;
+  long unsigned int nrows;
 
+  try {
+    Statement stmt(conn_, "cns_db",
+                   "UPDATE Cns_file_metadata\
+                    SET filesize = filesize + ( ? )\
+                    WHERE fileid = ?");
+
+    stmt.bindParam(0, increment);
+    stmt.bindParam(1, fileid);
+
+    if( (nrows = stmt.execute() == 0) )
+      ok = false;
+  }
+  catch ( ... ) { ok = false; }
+
+  if (!ok) {
+    Err( domelogname, "Could not update directory size from DB. s_token: '" << fileid <<
+      "' increment: " << increment << " nrows: " << nrows );
+    return 1;
+  }
+
+  Log(Logger::Lvl3, domelogmask, domelogname, "Directory size updated. fileid: '" << fileid <<
+  "' increment: " << increment << " nrows: " << nrows );
+
+  return 0;
+}
 
 /// Add/subtract an integer to the u_space of a quota(space)token
 /// u_space is the free space for the legacy DPM daemon, to be decremented on write
