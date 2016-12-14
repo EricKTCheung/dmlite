@@ -617,6 +617,35 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   return 0;
 };
 
+/// Delete a replica
+int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
+  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' rfn: " << rfn);
+  bool ok = true;
+  long unsigned int nrows = 0;
+
+  try {
+    Statement stmt(conn_, "cns_db",
+                   "DELETE FROM Cns_file_replica "
+                   "WHERE fileid = ? AND sfn = ?");
+
+    stmt.bindParam(0, fileid);
+    stmt.bindParam(1, rfn);
+
+    if ( (nrows = stmt.execute() == 0) ) ok = false;
+  }
+  catch ( ... ) { ok = false; }
+
+  if (!ok) {
+    Err( domelogname, "Could not delete replica from DB. fileid: '" << fileid << "' rfn: " << rfn << " nrows: " << nrows);
+    return 1;
+  }
+
+  Log(Logger::Lvl3, domelogmask, domelogname, "Replica deleted. fileid: '" << fileid << "' rfn: " << rfn
+      << " nrows: " << nrows; );
+
+  return 0;
+}
+
 int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' increment: " << increment );
   bool ok = true;
