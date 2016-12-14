@@ -57,7 +57,7 @@ const char* STMT_SET_GUID =
     "UPDATE Cns_file_metadata\
         SET guid = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?";
-const char* STMT_SET_XATTR = 
+const char* STMT_SET_XATTR =
     "UPDATE Cns_file_metadata\
         SET xattr = ?\
         WHERE fileid = ?";
@@ -153,6 +153,10 @@ const char* STMT_CHANGE_SIZE =
   "UPDATE Cns_file_metadata\
         SET filesize = ?, ctime = UNIX_TIMESTAMP()\
         WHERE fileid = ?";
+const char* STMT_INCREMENT_SIZE =
+  "UPDATE Cns_file_metadata\
+        SET filesize = filesize + ?, ctime = UNIX_TIMESTAMP()\
+        WHERE fileid = ?";
 const char* STMT_CHANGE_CHECKSUM =
   "UPDATE Cns_file_metadata\
         SET ctime = UNIX_TIMESTAMP(), csumtype = ?, csumvalue = ?\
@@ -211,7 +215,7 @@ const char* STMT_INSERT_GROUP =
           (gid, groupname, banned)\
         VALUES\
           (?, ?, ?)";
-const char* STMT_UPDATE_GROUP = 
+const char* STMT_UPDATE_GROUP =
     "UPDATE Cns_groupinfo\
         SET banned = ?, xattr = ?\
         WHERE groupname = ?";
@@ -233,7 +237,7 @@ const char* STMT_GET_POOL =
         gc_policy, mig_policy, rs_policy, groups, ret_policy, s_type,\
         COALESCE(pooltype, 'filesystem'), COALESCE(poolmeta, '')\
         FROM dpm_pool where poolname = ?";
-const char* STMT_INSERT_POOL = 
+const char* STMT_INSERT_POOL =
     "INSERT INTO dpm_pool\
         (poolname, defsize, gc_start_thresh, gc_stop_thresh,\
         def_lifetime, defpintime, max_lifetime, maxpintime, fss_policy,\
@@ -252,6 +256,6 @@ const char* STMT_UPDATE_POOL =
             mig_policy = ?, rs_policy = ?, groups = ?, ret_policy = ?,\
             s_type = ?, pooltype = ?, poolmeta = ?\
         WHERE poolname = ?";
-const char* STMT_DELETE_POOL = 
+const char* STMT_DELETE_POOL =
     "DELETE FROM dpm_pool\
         WHERE poolname = ?";
