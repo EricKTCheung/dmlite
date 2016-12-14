@@ -641,6 +641,57 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, talker.response());
 }
 
+// Add this filesize to the size of its parent dirs, only the first N levels
+bool DomeCore::addFilesizeToDirs(INode *inodeintf, ExtendedStat file, int64_t size) {
+  const size_t MAX_HIERARCHY_SIZE = 128;
+  ino_t hierarchy[MAX_HIERARCHY_SIZE];
+  unsigned int idx = 0;
+
+  ExtendedStat st = file;
+  while (st.parent) {
+    Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+
+    try {
+      st = inodeintf->extendedStat(st.parent);
+    }
+    catch (DmException& e) {
+      Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+      return false;
+    }
+
+    hierarchy[idx] = st.stat.st_ino;
+
+    Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
+    " is " << st.stat.st_size << " with idx " << idx);
+
+    idx++;
+
+    if (idx >= MAX_HIERARCHY_SIZE) {
+      Err( domelogname , " Too many parent directories for file " << file.stat.st_ino);
+      return false;
+    }
+  }
+
+  DomeMySql sql;
+  DomeMySqlTrans t(&sql);
+
+  // Update the filesize in the first levels
+  // Avoid the contention on /dpm/voname/home
+  if (idx > 0) {
+    Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
+    for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << size);
+      sql.addtoDirectorySize(hierarchy[i], size);
+    }
+  }
+  else {
+    Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
+  }
+
+  t.Commit();
+  return true;
+}
+
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
 
@@ -818,57 +869,9 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   }
 
-
-  // Add this filesize to the size of its parent dirs, only the first N levels
-  {
-    off_t sz = size;
-
-    ino_t hierarchy[128];
-    unsigned int idx = 0;
-    while (st.parent) {
-
-      Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-
-      try {
-        st = inodeintf->extendedStat(st.parent);
-      }
-      catch (DmException& e) {
-        Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
-        return -1;
-      }
-
-      hierarchy[idx] = st.stat.st_ino;
-
-      Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
-      " is " << st.stat.st_size << " with idx " << idx);
-
-      idx++;
-
-      if (idx >= sizeof(hierarchy)) {
-        Err( domelogname , " Too many parent directories for replica " << rfn);
-        return -1;
-      }
-    }
-
-    DomeMySql sql;
-    DomeMySqlTrans  t(&sql);
-
-    // Update the filesize in the first levels
-    // Avoid the contention on /dpm/voname/home
-    if (idx > 0) {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
-      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << sz);
-        sql.addtoDirectorySize(hierarchy[i], sz);
-      }
-    }
-    else {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
-    }
-
-    t.Commit();
+  if(!addFilesizeToDirs(inodeintf, st, size)) {
+    Err(domelogname, SSTR("Unable to add filesize to parent directories of  " << st.stat.st_ino << ". Directory sizes will be inconsistent."));
   }
-
 
   // For backward compatibility with the DPM daemon, we also update its
   // spacetoken counters, adjusting u_space
@@ -2663,14 +2666,16 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   if (ino) {
     Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
     // And now remove the replica
-    try {
-      ino->deleteReplica(rep);
-    } catch (DmException e) {
+    DomeMySql sql;
+    DomeMySqlTrans t(&sql);
+    // Free some space
+    if(sql.delReplica(rep.fileid, rfiopath) != 0) {
       std::ostringstream os;
-      os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
+      os << "Cannot delete replica '" << rfiopath;
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 404, os);
     }
+    t.Commit();
 
     Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
 
@@ -2715,64 +2720,9 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-/*
-    // Subtract this filesize to the size of its parent dirs, only the first N levels
-    {
-
-
-      // Start transaction
-      InodeTrans trans(ino);
-
-      sz = st.stat.st_size;
-
-      ino_t hierarchy[128];
-      size_t hierarchysz[128];
-      unsigned int idx = 0;
-      while (st.parent) {
-
-        Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-
-        try {
-          st = ino->extendedStat(st.parent);
-        }
-        catch (DmException& e) {
-          Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
-          return -1;
-        }
-
-        hierarchy[idx] = st.stat.st_ino;
-        hierarchysz[idx] = st.stat.st_size;
-
-        Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
-        " is " << st.stat.st_size << " with idx " << idx);
-
-        idx++;
-
-        if (idx >= sizeof(hierarchy)) {
-          Err( domelogname , " Too many parent directories for replica " << rep.rfn);
-          return -1;
-        }
-      }
-
-      // Update the filesize in the first levels
-      // Avoid the contention on /dpm/voname/home
-      if (idx > 0) {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
-        for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
-          Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] - sz);
-          ino->setSize(hierarchy[i], hierarchysz[i] - sz);
-        }
-      }
-      else {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
-      }
-
-
-      // Commit the local trans object
-      // This also releases the connection back to the pool
-      trans.Commit();
-    }*/
-
+    if(!addFilesizeToDirs(ino, st, -sz)) {
+      Err(domelogname, SSTR("Unable to remove filesize from parent directories of  " << st.stat.st_ino << ". Directory sizes will be inconsistent."));
+    }
 
     // For backward compatibility with the DPM daemon, we also update its
     // spacetoken counters, adjusting u_space

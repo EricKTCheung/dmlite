@@ -88,6 +88,9 @@ public:
   /// Deletes a quotatoken
   int delQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
 
+  /// Deletes a replica
+  int delReplica(int64_t replicaid, const std::string &rfn);
+
   /// Add/subtract an integer to used space of a directory
   int addtoDirectorySize(int64_t fileid, int64_t increment);
 

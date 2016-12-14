@@ -170,6 +170,7 @@ public:
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
 
   int makespace(std::string fsplusvo, int size);
+  bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
 
 private:
   bool initdone, terminationrequested;
