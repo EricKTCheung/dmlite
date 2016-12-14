@@ -88,6 +88,9 @@ public:
   /// Deletes a quotatoken
   int delQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
 
+  /// Add/subtract an integer to used space of a directory
+  int addtoDirectorySize(int64_t fileid, int64_t increment);
+
   /// Add/subtract an integer to the u_space of a quota(space)token
   /// u_space is the free space, to be DEcremented on write
   int addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment);
