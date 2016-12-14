@@ -37,6 +37,7 @@ extern const char* STMT_CHANGE_PARENT;
 extern const char* STMT_UTIME;
 extern const char* STMT_UPDATE_REPLICA;
 extern const char* STMT_CHANGE_SIZE;
+extern const char* STMT_INCREMENT_SIZE;
 extern const char* STMT_CHANGE_CHECKSUM;
 
 // Authn

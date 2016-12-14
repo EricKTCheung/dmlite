@@ -767,7 +767,6 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
 
 
     ino_t hierarchy[128];
-    size_t hierarchysz[128];
     int idx = 0;
     while (st.parent) {
 
@@ -782,7 +781,6 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
       }
 
       hierarchy[idx] = st.stat.st_ino;
-      hierarchysz[idx] = st.stat.st_size;
 
       Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Size of inode " << st.stat.st_ino <<
       " is " << st.stat.st_size << " with idx " << idx);
@@ -800,12 +798,16 @@ void INodeMySql::deleteReplica(const Replica& replica) throw (DmException)
     if (idx > 0) {
       Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Going to set sizes. Max depth found: " << idx);
       for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-factory_->dirspacereportdepth); i--) {
-        Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Inode: " << hierarchy[i] << " Size: " << hierarchysz[i] << "-->" <<  hierarchysz[i] - sz);
+        Log(Logger::Lvl4, mysqllogmask, mysqllogname, " Inode: " << hierarchy[i] << " Decrementing size: " << sz);
         try {
-          setSize( hierarchy[i], ((hierarchysz[i] < (size_t)sz) ? 0 : (hierarchysz[i] - sz)) );
+          PoolGrabber<MYSQL*> conn(MySqlHolder::getMySqlPool());
+          Statement stmt(conn, this->nsDb_, STMT_INCREMENT_SIZE);
+          stmt.bindParam(0, -sz);
+          stmt.bindParam(1, hierarchy[i]);
+          stmt.execute();
         }
         catch (DmException& e) {
-          Err( "FilesystemPoolHandler::removeReplica" , " Cannot setSize inode " << hierarchy[i] << " to " << MAX(0, hierarchysz[i] - sz));
+          Err( "FilesystemPoolHandler::removeReplica" , " Cannot update size of inode " << hierarchy[i]);
           return;
         }
       }
