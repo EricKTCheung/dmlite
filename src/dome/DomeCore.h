@@ -175,7 +175,6 @@ private:
   bool initdone, terminationrequested;
   boost::recursive_mutex mtx;
   boost::mutex accept_mutex;
-  boost::mutex update_filesizes_mutex;
   int fcgi_listenSocket;
 
 
