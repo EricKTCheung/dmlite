@@ -90,6 +90,7 @@ void MemcacheCatalog::changeDir(const std::string& path) throw (DmException)
 
   if (path.empty()) {
     this->cwd_.clear();
+    return;
   }
 
   ExtendedStat meta;
