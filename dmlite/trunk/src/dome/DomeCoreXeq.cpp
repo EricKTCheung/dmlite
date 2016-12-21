@@ -3142,6 +3142,7 @@ static void xstat_to_ptree(const dmlite::ExtendedStat& xstat, boost::property_tr
   ptree.put("uid", xstat.stat.st_uid);
   ptree.put("gid", xstat.stat.st_gid);
   ptree.put("nlink", xstat.stat.st_nlink);
+  ptree.put("acl", xstat.acl.serialize());
   ptree.put("name", xstat.name);
   ptree.put("xattrs", xstat.serialize());
 }
