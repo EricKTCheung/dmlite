@@ -6,6 +6,7 @@
 
 #include <dmlite/cpp/poolmanager.h>
 #include <dmlite/cpp/inode.h>
+#include <dmlite/cpp/utils/security.h>
 
 inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::ExtendedStat &xstat) {
   xstat.stat.st_size = ptree.get<uint64_t>("size");
@@ -19,6 +20,7 @@ inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
   xstat.stat.st_gid = ptree.get<gid_t>("gid");
   xstat.stat.st_uid = ptree.get<uid_t>("uid");
   xstat.name = ptree.get<std::string>("name");
+  xstat.acl = dmlite::Acl(ptree.get<std::string>("acl"));
   xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
