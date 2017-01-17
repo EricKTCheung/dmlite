@@ -150,19 +150,21 @@ The activity of DOME is not linked to any particular data access protocol. Its c
 
 \subsection{From spacetokens to quota tokens}
 Historically, DPM manages space accounting through a set of individual named space reservations that are associated to pools. This follows the
-philosophy of the SRM specifications.\\
-Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
+philosophy of the SRM specification \cite{BIB}.\\
+Semantically, SRM space reservations are named reservations of a part of the space of a disk pool. When  writing data
+inworkflows that involve SRM, requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
 
 One of the weakest points in this schema is that the remote client willing to write a file
 has to know the name of a suitable space reservation in the destination system, to be able to write
-and be properly accounted for. This information is not necessarily and represents a technical detail
-of the destination storage.\\
+and be properly accounted for. This information represents a technical detail
+of the destination storage, and it can also  be provided wrongly, for example accounting
+a file into the wrong spacetoken (e.g. "scratch" versus "production").\\
 
-Another historical weak point is that calculating precise results for the space occupancies can be a challenging exercise,
+Another related, historical weak point of this workflow is that calculating precise results for the space occupancies can be a challenging exercise,
 especially if the structure of the pools has been modified in the years, following additions of new storage space or
 even failures.\\
-DOME is based on an evolution of this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based, in a way
+DOME models an evolution of this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based, in a way
 that is compatible with the older one and can coexist with it.\\
 
 When considering subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept
