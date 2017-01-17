@@ -80,7 +80,7 @@ system, while supporting all the advanced features that are needed by the Grid c
 helping sites to incrementally renew their setups.
 This effort is also dictated by the difficulty of maintaining software libraries that have been
 written in the 80s and 90s, over which the oldest core components of DPM are based.\\
-Work had been done in the last years to create the \textit{dmlite} \cite{BIB} framework and a set of plugins
+Work had been done in the last years to create the \textit{dmlite} \cite{dpmfuture} \cite{dpmnew} framework and a set of plugins
 that started complementing the core features of DPM by giving support for the more recent
 data access protocols used by HEP (\textit{HTTP with multi-range requests} and \textit{xrootd}),
 while keeping the older core components as an internal coordination layer that includes
@@ -94,7 +94,7 @@ older one in various ways.
 
 \section{Dome}
 
-DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{BIB} technology,
+DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{fastcgi} technology,
 and uses HTTP and JSON to communicate with clients.
 The adoption of DOME aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
 implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. We can summarize the
@@ -170,11 +170,11 @@ that is compatible with the older one and can coexist with it.\\
 When considering subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept
 updated with the total size of the replicas of files that reside in that directory subtree.
 This \textit{subdirectory size} together with the information on free/used space in the pools associated to these subdirectory tree
-can then be used to compute the needed space occupancy numbers.\\
+can then be used to compute the final space occupancy numbers.\\
 
-DOME uses the records describing spacetokens that are kept in the head node DB, with minimal modification. Their meaning is slightly changed,
+DOME uses the same spacetokens descriptions that are kept in the head node DB, with little information added. Their meaning is slightly changed,
 into semantically representing a quota on one and only one directory subtree. From this point on, we will refer to them as \textit{quotatokens},
-whose behavior is similar to that of an old spacetoken associated to a directory.\\
+whose behavior is very similar to that of an old spacetoken associated to a directory.\\
 
 A \textit{quotatoken} attached to a directory subtree \textbf{overrides others that may be attached to its parents}.\\
 If a directory content (counting all the replicas) exceeds the quota spacified by the quotatoken that influences it,
@@ -269,7 +269,24 @@ blah\\
 
 \section*{References}
 \begin{thebibliography}{9}
-\bibitem{iopartnum} IOP Publishing is to grateful Mark A Caprio, Center for Theoretical Physics, Yale University, for permission to include the {\tt iopart-num} \BibTeX package (version 2.0, December 21, 2006) with  this documentation. Updates and new releases of {\tt iopart-num} can be found on \verb"www.ctan.org" (CTAN). 
+
+\bibitem{xrdwan} Scalla/xrootd WAN globalization tools: Where we are
+Fabrizio Furano and Andrew Hanushevsky 2010 J. Phys.: Conf. Ser. 219 072005
+\verb"http://iopscience.iop.org/1742-6596/219/7/072005/"
+
+\bibitem{xrd} The xrootd.org homepage
+\verb"http://www.xrootd.org"
+
+\bibitem{dpmfuture} DPM: Future Proof Storage
+Alejandro Alvarez, Alexandre Beche, Fabrizio Furano, Martin Hellmich, Oliver Keeble, Ricardo Rocha
+CHEP2012
+
+\bibitem{dpmnew} Web enabled data management with DPM \& LFC
+Alejandro Alvarez Ayllon, Alexandre Beche, Fabrizio Furano, Martin Hellmich, Oliver Keeble and Ricardo Brito Da Rocha
+CHEP2012
+
+\bibitem{fastcgi} Paul Heinlein. 1998. FastCGI. Linux J. 1998, 55es, Article 1 (November 1998).
+
 \end{thebibliography}
 
 \end{document}
