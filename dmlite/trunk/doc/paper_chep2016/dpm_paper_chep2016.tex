@@ -69,36 +69,56 @@ and here we report about the technical choices and the first site experiences.
 %	TABLE OF CONTENTS
 %----------------------------------------------------------------------------------------
 
+\section{Introduction}
+The Disk Pool Manager (DPM) is a lightweight solution for grid enabled disk storage
+management. Operated at around 150 sites, it has the widest distribution of all grid storage
+solutions in the WLCG infrastructure. It provides an easy way to manage and configure disk
+pools, and exposes multiple interfaces for data access (xrootd, GridFTP and HTTP/WebDAV)
+and control (SRM).\\
+The development direction of the last years has been towards simplifying the
+system, while supporting all the advanced features that are needed by the Grid computing and
+helping sites to incrementally renew their setups.
+This effort is also dictated by the difficulty of maintaining software libraries that have been
+written in the 80s and 90s, over which the oldest core components of DPM are based.\\
+Work had been done in the last years to create the \textit{dmlite} \cite{BIB} framework and a set of plugins
+that started complementing the core features of DPM by giving support for the more recent
+data access protocols used by HEP (\textit{HTTP with multi-range requests} and \textit{xrootd}),
+while keeping the older core components as an internal coordination layer that includes
+support for the SRM protocols.\\
+The development cycle that ended in Q4/2017 has successfully removed this functional
+dependency, making the usage of the older cmoponents optional, and linked to the
+foreseen phase-out of the usage of the SRM protocol in the Grid. This was accomplished by
+writing a brand new core component that acts as coordination layer and can coexist with the
+older one in various ways.
+
 
 \section{Dome}
 
-DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the FastCGI technology,
+DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{BIB} technology,
 and uses HTTP and JSON to communicate with clients.
-This initiative aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
-implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. Among our goals we cite:
+The adoption of DOME aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
+implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. We can summarize the
+main goals of DOME as:
 
 \begin{itemize}
  \item Making optional all the so-called legacy components that are provided by the \textit{lcg-dm} code tree, namely \textit{libshift}, \textit{rfiod},
  \textit{dpm(daemon)}, \textit{dpnsdaemon}, \textit{CSec} and others.
- \item provide a software infrastructure where adding new coordination features is easier than with \textit{lcg-dm}
+ \item provide a software infrastructure where adding new coordination features is easier than with the historical one
  \item provide full support for asynchronous calculation of file checksums of multiple types
  \item provide support for checking the consistence of replicas through their checksums
- \item provide structure, hooks and callouts that allow the usage of DPM as a fast and large \textit{file cache}
- \item having a unified configuration file that is readable and synthetic, as opposed to the \textit{lcg-dm} approach of having several configuration
- files here and there, all with differently over-simplified syntax rules (or no syntax at all, e.g. \textit{/etc/NSCONFIG})
+ \item provide structure, hooks and callouts that allow the usage of DPM disk pools as large \textit{file caches}
+ \item having a unified configuration file that is readable and synthetic, as opposed to the previous approach of having several
+ sparse configuration files, all with differently over-simplified syntax rules (or no syntax at all, e.g. \textit{/etc/NSCONFIG})
 \end{itemize}
 
 The DOME component has the shape of a \textit{fastCGI} daemon, and has to be triggered by the Apache instances running in the DPM head node and
 in all the DPM disk servers. A configuration option defines whether it is running as head node or disk server.
 
-For simplicity of expression, in this document we may refer to these modalities as two different components, named \textit{DOMEhead} and \textit{DOMEdisk}.
-In practice, these refer to the same component which has been given a different command-line flag to enable/disable a different command set,
-implemented in the same software skeleton.\\
-
-DOME is primarily a service provider for the \textit{dmlite} framework, through the dmlite plugin called DOMEAdapter.\\
+Architecurally speaking, DOME is primarily a service provider for the \textit{dmlite} framework, through a new dmlite plugin called \textit{DOMEAdapter}.\\
 
 \section{DOME: Main features}
-DOME has two modalities: headnode and disknode, which respectively represent evolutions of the \textit{dpm} daemon and of \textit{rfiod}, together with \textit{libshift} and \textit{Csec}.
+DOME has two modalities: headnode and disknode, which respectively represent
+simplified evolutions of the \textit{dpm} daemon and of \textit{rfiod}, together with \textit{libshift} and \textit{Csec}.
 The functionalities are roughly as follows:
 \begin{itemize}
  \item headnode: general coordination function
@@ -116,37 +136,39 @@ The functionalities are roughly as follows:
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
-The historical tunnelling feature provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios)
-is implemented by DOMEAdapter directly on the top of HTTP, hence namely it does not use the DOME server.\\
+The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{BIB}
+is implemented by DOMEAdapter directly on the top of HTTPS, hence namely it does not use the DOME server.\\
 
-
-The main difference from the legacy components is that DOME does not apply authorization again for individual user file
-access, as this task is already accomplished by the dmlite frontends. DOME only checks that the sender of a request is authorized to
-send requests, in a way that is similar to the libshift "root mode". DOME applies strong, industry standard authentication protocols to this task.\\
+The main difference from the legacy components is that DOME does not apply user authorization again for individual internal
+transactions, as the task of authenticating/authorizing remote users is already accomplished by the dmlite frontends.
+DOME instead checks that the sender of a request (e.g. a disk server) is authorized to
+send requests. DOME applies strong, industry standard authentication protocols to this task.\\
 Authentication in DOME is zero-config for the regular cases (one head node and multiple disk servers), and flexible enough
 to add arbitrary identities that will be allowed to send commands to it.\\
-
-\textbf{DOME is protocol-agnostic. Its concepts of logical file name and physical file name are not linked to a particular data/metadata transfer protocol.
-DOME manages paths and filenames, not URLs. URLs can be constructed by the DPM frontends starting from the pfn or lfn information given by DOME.}
+The activity of DOME is not linked to any particular data access protocol. Its concepts of logical file name and physical file name are not linked to a particular data/metadata transfer protocol.
 
 
 \subsection{From spacetokens to quota tokens}
-Historically, DPM does space accounting through a set of individual named space reservations, kept in the DB in the head node, and associated to pools.\\
+Historically, DPM manages space accounting through a set of individual named space reservations that are associated to pools. This follows the
+philosophy of the SRM specifications.\\
 Semantically, space reservations are named reservations of a part of the space of a disk pool. Requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
 
-One of the weakest points in this schema is that the writer has to know technical details of the destination storage, to be able to write
-and be properly accounted for.\\
+One of the weakest points in this schema is that the remote client willing to write a file
+has to know the name of a suitable space reservation in the destination system, to be able to write
+and be properly accounted for. This information is not necessarily and represents a technical detail
+of the destination storage.\\
 
-Another historical weak point is that calculating good numbers for the space occupancies can be a challenging exercise, especially if the structure of the pools
-has been modified in the years.\\
-The development direction of DOME is to evolve this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based.\\
+Another historical weak point is that calculating precise results for the space occupancies can be a challenging exercise,
+especially if the structure of the pools has been modified in the years, following additions of new storage space or
+even failures.\\
+DOME is based on an evolution of this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based, in a way
+that is compatible with the older one and can coexist with it.\\
 
-In subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept updated with the total size of the replicas
-of files that reside in that directory subtree.\\
-
+When considering subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept
+updated with the total size of the replicas of files that reside in that directory subtree.
 This \textit{subdirectory size} together with the information on free/used space in the pools associated to these subdirectory tree
-can then be used to compute the needed space occupancy numbers.
+can then be used to compute the needed space occupancy numbers.\\
 
 DOME uses the records describing spacetokens that are kept in the head node DB, with minimal modification. Their meaning is slightly changed,
 into semantically representing a quota on one and only one directory subtree. From this point on, we will refer to them as \textit{quotatokens},
@@ -154,25 +176,10 @@ whose behavior is similar to that of an old spacetoken associated to a directory
 
 A \textit{quotatoken} attached to a directory subtree \textbf{overrides others that may be attached to its parents}.\\
 If a directory content (counting all the replicas) exceeds the quota spacified by the quotatoken that influences it,
-then new PUT requests on that dir will be denied.\\
+then new PUT requests on that directory will be denied.\\
 
-As a summary, the meaning of a quotatoken specifying a quota of N on poolX, associated to directory "/dir1" is \textit{give poolX as
+As a summary, the meaning of a quotatoken specifying a quota of N terabytes on poolX, associated to directory "/dir1" is \textit{give poolX as
 space for hosting the files that will be written into \/dir1. Do not allow more than N terabytes to be hosted there}.\\
-
-\subsection{Pools and filesystems}
-A pool is a logical group of mount points in individual disk servers that are used to store replicas.\\
-
-DOME uses the same concept of Pool than the historical DPM, hence the "Pool management" functionalities
-of the legacy lcg-dm components continue to work mostly as they were.\\
-
-A Pool can be associated to a directory subtree by creating suitable quotatokens that describe the individual associations.\\
-
-A Pool assigned to a subtree acts as a sort of "replication domain". Replicas of files belonging to that subtree
-are stored in filesystems belonging to this pool. Multiple replicas are spread through different file systems.\\
-
-We would like to emphasize that only one pool can be assigned to the same directory subtree (e.g. /dpm/cern/ch/home/dteam/scratch).
-Writes into this subtree will be space-balanced between all the filesystems composing the pool assigned to it. A pool instead can be associated
-to any number of quotatokens (and hence, directories).\\
 
 \subsection{Open checksumming}
 DOME supports requests for checksums of arbitrary kind. It can:\\
@@ -183,19 +190,12 @@ DOME supports requests for checksums of arbitrary kind. It can:\\
  \item force the recalculation of the checksum and store it into the name space
 \end{itemize}
 
-The checksum calculation request may be queued in the head node, in memory. The architecture is designed to be self-healing in the case the checksum
-calculations do not end correctly, or some machines are restarted.
+The checksum calculation requests are queued in the head node, in memory. The architecture of the queue
+is designed to be self-healing in the case the checksum calculations do not end correctly, or some machines are restarted,
+including the head node itself.
 
 
-
-
-
-\section{Tech}
-
-The architecture of DOME is expandable, through the usage of an open, human-readable protocol (JSON) and through proper design.\\
-
-
-\subsection{Architecture}
+\section{Architecture}
 Figure \ref{figdomedisk} shows the main components of DOME that are in action in a disk server.\\
 Requests come through Apache already authenticated and referring to the two possible paths that
 refer either to the filesystems or to the dome command path which starts with \lstinline{/domedisk}.
@@ -229,63 +229,41 @@ A head node can contact external systems to get information about remote files, 
 
 \end{figure}
 
-\subsection{Security}
-DOME by default accepts requests from the disk servers of the cluster it manages. This mechanism is based on secure HTTPS handshakes.\\
-Additionally, the configuration file can specify criteria to accept requests that come to DOME. These criteria have the form
-of a list of allowed DNs (taken from X509 certificates).\\
-
-The typical configuration uses HTTPS in the frontend configuration, to enforce the usage of a valid certificate.\\
-
 \subsection{Checksum queuer}
- DOME internally queues and schedules checksum calculation requests in the head node.\\
- No more than N checksums will be run per disk mount\\
- No more than L checksums will be run per disk server\\
- No more than M checksums will be run in total\\
-
- Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances constantly update the head node about the running checksums, hance there is no need for persistence,
- and the system will self-heal on restarts of the head node. When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
- Eventually in the future memcached can be used for queue synchronization purposes. This evenience would require more development effort, and would have the
- advantage of making the DOME service able to scale horizontally.\\
-
-\subsection{File pulls queuer}
-DOME internally on the head node queues and schedules requests for file pulls from external locations
- No more than N pulls will be run per disk mount\\
- No more than L pulls will be run per disk server\\
- No more than M pulls will be run in total\\
-
-The pull itself is implemented as a simple callout in the disk server, that can invoke any file movement mechanism, from
-\textit{dd} to create an empty file to a simple copy to ultracomplex multi hop FTS xfers.
-The pull callout in the disk server is complemented by a stat callout, which is able to stat an external system for the presence of an offline file.\\
-This mechanism should be polished enough to support the construction of simple file caches,
-without necessarily needing external, complex components. Invoking FTS instead than \textit{dd} or \textit{davix-get} must be an option.\\
-
-
-Pull requests are queued in memory and dispatched to disk nodes that match the request and become available. Please note that stat requests to external systems are not queued.\\
-The disk nodes instances constantly update the head node on the running callouts, hance there is no need for persistence,
-and the system will self-heal on restarts of the head node. When finished pulling a file, a disk node will notify the head node and pass the result (or failure).\\
-
-Eventually memcached can be used for queue synchronization purposes, only if it turns out that even in SOME cases the code is not totally
-preventing the spawning of new processes (which has never to happen!!!). This evenience would require more development effort, and would have the
-advantage of making the dpm service able to scale horizontally.\\
-
-\subsection{Only one process}
- The fastcgi app named DOME consists in one process which manages multiple internal thread pools.\\
-
+ DOME internally queues and schedules checksum calculation requests in the head node. We can summarize the applied behaviour as:
+ \begin{itemize}
+  \item No more than N checksums will be run per disk mount\\
+  \item No more than L checksums will be run per disk server\\
+  \item No more than M checksums will be run in total\\
+ \end{itemize}
  
+ Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances
+ constantly update the head node about the running checksums, hence the system will self-heal on restarts of the head node.\\
+ When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
+ 
+\subsection{File pulls queuer}
+DOME internally on the head node queues and schedules requests for file pulls from external locations. We can summarize the applied behaviour as:
+ \begin{itemize}
+  \item No more than N pulls will be run per disk mount\\
+  \item No more than L pulls will be run per disk server\\
+  \item No more than M pulls will be run in total\\
+ \end{itemize}
+ 
+The fiel pull itself is implemented as a simple callout in the disk server, that can invoke any file movement mechanism.
+The pull callout in the disk server is complemented by a stat callout, which is able to get information from
+an external system for the presence of an offline file.\\
 
+Pull requests are queued in memory and dispatched to disk nodes that match the request and become available.
+The disk nodes instances constantly update the head node on the running callouts, and the system will self-heal
+on restarts of the head node. When finished pulling a file, a disk node will notify the head node and pass the result (or failure).\\
 
-\section{Application programming interface}
+\section{Conclusion}
 
-Historically DPM implements low level functionality that is used by frontends to coordinate
-their activities of exposing data access protocols to clients.\\
-In some cases, the historical DPM API has been also exposed to clients/users, eventually through a
-Storage Resource Manager (SRM) server.
+technical step for the obsolescence of the legacy components has been done\\
+the removal from production will follow the pace at which HEP experiments abandon SRM\\
 
-DOME is not supposed to be used by remote clients and users. Users interact with DPM through a suitable frontend (e.g. gridFTP, xrootd, Apache) that
-relies on the services of dmlite and DOME in the background.
-
-
-
+blah\\
+blah\\
 
 \section*{References}
 \begin{thebibliography}{9}
