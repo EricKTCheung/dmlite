@@ -136,7 +136,7 @@ The functionalities are roughly as follows:
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
-The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{BIB}
+The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{rfiowan}
 is implemented by DOMEAdapter directly on the top of HTTPS, hence namely it does not use the DOME server.\\
 
 The main difference from the legacy components is that DOME does not apply user authorization again for individual internal
@@ -150,7 +150,7 @@ The activity of DOME is not linked to any particular data access protocol. Its c
 
 \subsection{From spacetokens to quota tokens}
 Historically, DPM manages space accounting through a set of individual named space reservations that are associated to pools. This follows the
-philosophy of the SRM specification \cite{BIB}.\\
+philosophy of the SRM specification \cite{srm}.\\
 Semantically, SRM space reservations are named reservations of a part of the space of a disk pool. When  writing data
 inworkflows that involve SRM, requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
@@ -207,7 +207,7 @@ to the head node, which uses this information to keep its queues updated.\\
  
 \begin{figure}
 \begin{center}
- \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_disk.eps}
+ \includegraphics[width=11cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_disk.eps}
  % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
  \caption{Simplified diagram of DOME in a disk node}
  \label{figdomedisk}
@@ -223,7 +223,7 @@ A head node can contact external systems to get information about remote files, 
 
 \begin{figure}
 \begin{center}
- \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_head.eps}
+ \includegraphics[width=11cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_head.eps}
  % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
  \caption{Simplified diagram of DOME in a head node}
  \label{figdomehead}
@@ -286,6 +286,10 @@ Alejandro Alvarez Ayllon, Alexandre Beche, Fabrizio Furano, Martin Hellmich, Oli
 CHEP2012
 
 \bibitem{fastcgi} Paul Heinlein. 1998. FastCGI. Linux J. 1998, 55es, Article 1 (November 1998).
+
+\bibitem{rfiowan} R. Kalmady, B. Tierney, A comparison of GSIFTP and RFIO on a WAN, in: Proceedings of CHEP'01, September 3-7, Beijing, China, 2001
+
+\bibitem{srm} The Scientific Data Management Research Group, SRM specifications: https://sdm.lbl.gov/twiki/bin/view/Projects/SRMwg/Specifications/WebHome
 
 \end{thebibliography}
 
