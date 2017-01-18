@@ -72,21 +72,21 @@ and here we report about the technical choices and the first site experiences.
 \section{Introduction}
 The Disk Pool Manager (DPM) is a lightweight solution for grid enabled disk storage
 management. Operated at around 150 sites, it has the widest distribution of all grid storage
-solutions in the WLCG infrastructure. It provides an easy way to manage and configure disk
-pools, and exposes multiple interfaces for data access (xrootd, GridFTP and HTTP/WebDAV)
-and control (SRM).\\
+solutions in the WLCG infrastructure, and in total it manages around 70PB of data. DPM provides
+an easy way to manage and configure disk pools, and exposes multiple interfaces for
+data access (xrootd, GridFTP and HTTP/WebDAV) and control (SRM).\\
 The development direction of the last years has been towards simplifying the
 system, while supporting all the advanced features that are needed by the Grid computing and
 helping sites to incrementally renew their setups.
 This effort is also dictated by the difficulty of maintaining software libraries that have been
 written in the 80s and 90s, over which the oldest core components of DPM are based.\\
-Work had been done in the last years to create the \textit{dmlite} \cite{BIB} framework and a set of plugins
+Work had been done in the last years to create the \textit{dmlite} \cite{dpmfuture} framework and a set of plugins
 that started complementing the core features of DPM by giving support for the more recent
 data access protocols used by HEP (\textit{HTTP with multi-range requests} and \textit{xrootd}),
 while keeping the older core components as an internal coordination layer that includes
 support for the SRM protocols.\\
 The development cycle that ended in Q4/2016 has successfully removed this functional
-dependency, making the usage of the older cmoponents optional, and linked to the
+dependency, making the usage of the older components optional, and linked to the
 foreseen phase-out of the usage of the SRM protocol in the Grid. This was accomplished by
 writing a brand new core component that acts as coordination layer and can coexist with the
 older one in various ways.
@@ -94,7 +94,7 @@ older one in various ways.
 
 \section{Dome}
 
-DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{BIB} technology,
+DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{fastcgi} technology,
 and uses HTTP and JSON to communicate with clients.
 The adoption of DOME aims at augmenting the Disk Pool Manager (DPM) system so that its core coordination functions and inter-cluster communication paths are
 implemented through open components, and following contemporary development approaches headed to performance, scalability and maintainability. We can summarize the
@@ -117,7 +117,7 @@ in all the DPM disk servers. A configuration option defines whether it is runnin
 Architecurally speaking, DOME is primarily a service provider for the \textit{dmlite} framework, through a new dmlite plugin called \textit{DOMEAdapter}.\\
 
 \section{DOME: Main features}
-DOME has two modalities: headnode and disknode, which respectively represent
+DOME has two modalities: \textit{headnode} and \textit{disknode}, which respectively represent
 simplified evolutions of the \textit{dpm} daemon and of \textit{rfiod}, together with \textit{libshift} and \textit{Csec}.
 The functionalities are roughly as follows:
 \begin{itemize}
@@ -136,7 +136,7 @@ The functionalities are roughly as follows:
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
-The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{BIB}
+The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{rfio}
 is implemented by DOMEAdapter directly on the top of HTTPS, hence namely it does not use the DOME server.\\
 
 The main difference from the legacy components is that DOME does not apply user authorization again for individual internal
@@ -150,7 +150,7 @@ The activity of DOME is not linked to any particular data access protocol. Its c
 
 \subsection{From spacetokens to quota tokens}
 Historically, DPM manages space accounting through a set of individual named space reservations that are associated to pools. This follows the
-philosophy of the SRM specification \cite{BIB}.\\
+philosophy of the SRM specification \cite{srm}.\\
 Semantically, SRM space reservations are named reservations of a part of the space of a disk pool. When  writing data
 inworkflows that involve SRM, requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
@@ -262,12 +262,35 @@ on restarts of the head node. When finished pulling a file, a disk node will not
 \section{Conclusion}
 
 The introduction of Dome represents the final component in DPM's definitve architecture. The project's
-platform for the future is thus now complete. With a fully modernised, maintainable stack, scaleable architecture and rich protocol support, DPM is able to protect the investment of the large number of sites who have entrusted their data to it and can expect to absorb future data volumes without major architectural modifications.
+platform for the future has now reached its final shape and foresees just components consolidations.
+With a fully modernised, maintainable stack, scaleable architecture
+and rich protocol support, DPM is able to protect the investment of the large number of sites who have
+entrusted their data to it and can expect to absorb future data volumes without major architectural modifications.
 
 
 \section*{References}
 \begin{thebibliography}{9}
-\bibitem{iopartnum} IOP Publishing is to grateful Mark A Caprio, Center for Theoretical Physics, Yale University, for permission to include the {\tt iopart-num} \BibTeX package (version 2.0, December 21, 2006) with  this documentation. Updates and new releases of {\tt iopart-num} can be found on \verb"www.ctan.org" (CTAN). 
+
+\bibitem{xrdwan} Scalla/xrootd WAN globalization tools: Where we are
+Fabrizio Furano and Andrew Hanushevsky 2010 J. Phys.: Conf. Ser. 219 072005
+\verb"http://iopscience.iop.org/1742-6596/219/7/072005/"
+
+\bibitem{xrd} The xrootd.org homepage
+\verb"http://www.xrootd.org"
+
+\bibitem{dpmfuture} DPM: Future Proof Storage
+Alejandro Alvarez, Alexandre Beche, Fabrizio Furano, Martin Hellmich, Oliver Keeble, Ricardo Rocha
+CHEP2012
+
+\bibitem{dpmnew} Web enabled data management with DPM \& LFC
+Alejandro Alvarez Ayllon, Alexandre Beche, Fabrizio Furano, Martin Hellmich, Oliver Keeble and Ricardo Brito Da Rocha
+CHEP2012
+
+\bibitem{fastcgi} Paul Heinlein. 1998. FastCGI. Linux J. 1998, 55es, Article 1 (November 1998).
+
+\bibitem{srm} Storage Resource Management (SRM) Working Group, Storage Resource Management (SRM) Working Group
+
+\bibitem{rfio} R. Kalmady, B. Tierney, A comparison of GSIFTP and RFIO on a WAN, in: Proceedings of CHEP'01, September 3-7, Beijing, China, 2001.
 \end{thebibliography}
 
 \end{document}
