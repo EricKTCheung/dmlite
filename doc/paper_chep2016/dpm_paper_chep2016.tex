@@ -11,21 +11,6 @@
 \begin{document}
 
 
-\lstset{frame=tb,
-  language=perl,
-  aboveskip=3mm,
-  belowskip=3mm,
-  showstringspaces=false,
-  columns=flexible,
-  basicstyle={\small\ttfamily},
-  numbers=none,
-  breaklines=true,
-  breakatwhitespace=true,
-  breaklines=true,
-  frame=none
-}
-
-
 % Title Page
 \title{
 DPM Evolution: a Disk Operations Management Engine for DPM}
@@ -56,7 +41,7 @@ Moreover, the communication with the new core, called DOME
 through an extensively documented, industry-compliant protocol.
 For this leap, referred to with the codename "DPM Evolution", the help of the
 DPM collaboration has been very important in the beta testing phases,
-and here we report about the technical choices and the first site experiences.
+and here we report about the technical choices.
 
 \end{abstract}
 
@@ -92,7 +77,7 @@ writing a brand new core component that acts as coordination layer and can coexi
 older one in various ways.
 
 
-\section{Dome}
+\section{DOME}
 
 DOME (Disk operations Management Engine) is a robust, high performance server that manages the operations of a DPM cluster. DOME is built on the \textit{FastCGI} \cite{fastcgi} technology,
 and uses HTTP and JSON to communicate with clients.
@@ -152,7 +137,7 @@ The activity of DOME is not linked to any particular data access protocol. Its c
 Historically, DPM manages space accounting through a set of individual named space reservations that are associated to pools. This follows the
 philosophy of the SRM specification \cite{srm}.\\
 Semantically, SRM space reservations are named reservations of a part of the space of a disk pool. When  writing data
-inworkflows that involve SRM, requests to write a replica specify a pool
+in workflows that involve SRM, requests to write a replica specify a pool
 that has to host the replica, hence ultimately the replica will be subject to the space reservations.\\
 
 One of the weakest points in this schema is that the remote client willing to write a file
@@ -164,7 +149,7 @@ a file into the wrong spacetoken (e.g. "scratch" versus "production").\\
 Another related, historical weak point of this workflow is that calculating precise results for the space occupancies can be a challenging exercise,
 especially if the structure of the pools has been modified in the years, following additions of new storage space or
 even failures.\\
-DOME models an evolution of this mechanism towards \textit{subdirectory\-based space accounting}, instead than pool-based, in a way
+DOME models an evolution of this mechanism towards \textit{subdirectory-based space accounting}, instead than pool-based, in a way
 that is compatible with the older one and can coexist with it.\\
 
 When considering subdirectory-based space accounting, every subdirectory at less than N levels from the root is kept
@@ -172,15 +157,15 @@ updated with the total size of the replicas of files that reside in that directo
 This \textit{subdirectory size} together with the information on free/used space in the pools associated to these subdirectory tree
 can then be used to compute the needed space occupancy numbers.\\
 
-DOME uses the records describing spacetokens that are kept in the head node DB, with minimal modification. Their meaning is slightly changed,
+DOME uses the records describing spacetokens that are kept in the head node DB with minimal modification. Their meaning is slightly changed,
 into semantically representing a quota on one and only one directory subtree. From this point on, we will refer to them as \textit{quotatokens},
 whose behavior is similar to that of an old spacetoken associated to a directory.\\
 
 A \textit{quotatoken} attached to a directory subtree \textbf{overrides others that may be attached to its parents}.\\
-If a directory content (counting all the replicas) exceeds the quota spacified by the quotatoken that influences it,
+If a directory content (counting all the replicas) exceeds the quota specified by the quotatoken that influences it,
 then new PUT requests on that directory will be denied.\\
 
-As a summary, the meaning of a quotatoken specifying a quota of N terabytes on poolX, associated to directory "/dir1" is \textit{give poolX as
+As a summary, the meaning of a quotatoken specifying a quota of N terabytes on pool X, associated to directory "/dir1" is \textit{use pool X as
 space for hosting the files that will be written into \/dir1. Do not allow more than N terabytes to be hosted there}.\\
 
 \subsection{Open checksumming}
@@ -200,7 +185,7 @@ including the head node itself.
 \section{Architecture}
 Figure \ref{figdomedisk} shows the main components of DOME that are in action in a disk server.\\
 Requests come through Apache already authenticated and referring to the two possible paths that
-refer either to the filesystems or to the dome command path which starts with \lstinline{/domedisk}.
+are associated either to the filesystems or to the dome command path which starts with \lstinline{/domedisk}.
 Another detail that characterizes a disk server for DOME is the ability to execute tasks like checksum calculations
 and file pulls from external sources. These tasks, following a logic that is based on time, report their status
 to the head node, which uses this information to keep its queues updated.\\
@@ -258,6 +243,33 @@ an external system for the presence of an offline file.\\
 Pull requests are queued in memory and dispatched to disk nodes that match the request and become available.
 The disk nodes instances constantly update the head node on the running callouts, and the system will self-heal
 on restarts of the head node. When finished pulling a file, a disk node will notify the head node and pass the result (or failure).\\
+
+\section{Transitioning steps}
+As we remarked, the new components are totally compatible with the older ones and can coexist with them, if
+properly configured. This has been an important design decision.\\
+With this in mind, one can write a reasonably exhaustive set of steps, through which a DPM site will
+likely decide to incrementally upgrade their deployments. The goal is to stay up-to-date with the
+latest developments and with the features that the LHC experiments ask for, like for example a more reliable
+and precise storage accounting scheme.\\
+\begin{itemize}
+ \item Starting with the release of DPM 1.9 (which includes DOME) that happened in Q4/2017, the sites can start upgrading
+head nodes and disk servers at the pace that they prefer. It may be likely that most of the sites will have upgraded
+during 2017. At this stage, the features will be the same as before, with the addition of a more powerful \textit{dmlite-shell}.
+ \item When the whole cluster has been updated, the administrator can prime the space report counters, following the updated
+setup instructions. From this moment on, the site will precisely keep track of the disk space used (not the free space yet).
+ \item The next step will be to use the dmlite-shell and associate each of the existing spacetokens to a suitable directory
+in the logical name space of the Virtual Organization they belong to.
+ \item The successive step is to re-run the configuration step, and notify to the system that it can fully enable
+all the features of DOME.
+\end{itemize}
+
+When these steps are completed, the system is running both the historical software stack and the new one, at the same time.
+All the recent features are enabled, including the ability of producing sophisticated per-directory free/used space reports.\\
+At this point the older stack will be used only for SRM services. Once the SRM services are not used anymore, the
+system administrator can safely choose to uninstall the older components.
+
+
+
 
 \section{Conclusion}
 
