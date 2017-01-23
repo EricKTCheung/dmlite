@@ -90,7 +90,7 @@ main goals of DOME as:
  \textit{dpm(daemon)}, \textit{dpnsdaemon}, \textit{CSec} and others.
  \item provide a software infrastructure where adding new coordination features is easier than with the historical one
  \item provide full support for asynchronous calculation of file checksums of multiple types
- \item provide support for checking the consistence of replicas through their checksums
+ \item provide support for checking the consistency of replicas through their checksums
  \item provide structure, hooks and callouts that allow the usage of DPM disk pools as large \textit{file caches}
  \item having a unified configuration file that is readable and synthetic, as opposed to the previous approach of having several
  sparse configuration files, all with differently over-simplified syntax rules (or no syntax at all, e.g. \textit{/etc/NSCONFIG})
@@ -99,7 +99,7 @@ main goals of DOME as:
 The DOME component has the shape of a \textit{fastCGI} daemon, and has to be triggered by the Apache instances running in the DPM head node and
 in all the DPM disk servers. A configuration option defines whether it is running as head node or disk server.
 
-Architecurally speaking, DOME is primarily a service provider for the \textit{dmlite} framework, through a new dmlite plugin called \textit{DOMEAdapter}.\\
+Architecturally speaking, DOME is primarily a service provider for the \textit{dmlite} framework, through a new dmlite plugin called \textit{DOMEAdapter}.\\
 
 \section{DOME: Main features}
 DOME has two modalities: \textit{headnode} and \textit{disknode}, which respectively represent
@@ -108,21 +108,21 @@ The functionalities are roughly as follows:
 \begin{itemize}
  \item headnode: general coordination function
  \subitem spreads load (PUT, GET, checksums) towards the available disk nodes
- \subitem keeps an in memory status of the DPM disk/pool topology with disk sizes and free space
- \subitem keeps an in memory status of the ongoing asynchronous checksum calculations
- \subitem keeps an in memory status of the ongoing asynchronous file callouts
+ \subitem keeps an in-memory status of the DPM disk/pool topology with disk sizes and free space
+ \subitem keeps an in-memory status of the ongoing asynchronous checksum calculations
+ \subitem keeps an in-memory status of the ongoing asynchronous file callouts
  \subitem queues and dispatches to disk nodes the requests for asynchronous checksum calculations that have to be delayed for load balancing reasons
  \subitem queues and dispatches to disk nodes the requests for asynchronous file callouts that have to be delayed for load balancing reasons
 
  \item disknode: local disk and space-related services
- \subitem Allows to \textit{stat} individual physical files and directories
- \subitem Allows to \textit{statfs} filesystems to get used and free space
+ \subitem Allows the \textit{stat} of individual physical files and directories
+ \subitem Allows the \textit{statfs} of the filesystems to get used and free space
  \subitem Allows the local submission of checksum calculations
  \subitem Allows the local submission of file callouts
 \end{itemize}
 
-The historical data tunnelling features provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{rfio}
-is implemented by DOMEAdapter directly on the top of HTTPS, hence namely it does not use the DOME server.\\
+The historical data tunnelling feature provided by the \textit{rfio} infrastructure (and used by gridftp in some boundary scenarios) \cite{rfio}
+is implemented by DOMEAdapter directly on the top of HTTPS, hence it does not use the DOME server.\\
 
 The main difference from the legacy components is that DOME does not apply user authorization again for individual internal
 transactions, as the task of authenticating/authorizing remote users is already accomplished by the dmlite frontends.
@@ -219,21 +219,21 @@ A head node can contact external systems to get information about remote files, 
 \subsection{Checksum queuer}
  DOME internally queues and schedules checksum calculation requests in the head node. We can summarize the applied behaviour as:
  \begin{itemize}
-  \item No more than N checksums will be run per disk mount\\
   \item No more than L checksums will be run per disk server\\
   \item No more than M checksums will be run in total\\
+  \item No more than N checksums will be run per disk mount\\
  \end{itemize}
  
- Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the mentioned criteria. The disk nodes instances
+ Checksum requests are queued in memory and dispatched to suitable disk nodes that become available with respect to the aforementioned criteria. The disk node instances
  constantly update the head node about the running checksums, hence the system will self-heal on restarts of the head node.\\
  When finished calculating a checksum, a disk node will notify the head node and pass the result (or failure).\\
  
 \subsection{File pull queuer}
-DOME internally on the head node queues and schedules requests for file pulls from external locations. We can summarize the applied behaviour as:
+DOME allows the DPM to be configured as a data cache. When absent data is requested, DOME on the head node queues and schedules requests for file pulls from external locations. We can summarize the applied behaviour as:
  \begin{itemize}
-  \item No more than N pulls will be run per disk mount\\
   \item No more than L pulls will be run per disk server\\
   \item No more than M pulls will be run in total\\
+  \item No more than N pulls will be run per disk mount\\
  \end{itemize}
  
 The file pull itself is implemented as a simple callout in the disk server, that can invoke any file movement mechanism.
@@ -273,8 +273,8 @@ system administrator can safely choose to uninstall the older components.
 
 \section{Conclusion}
 
-The introduction of Dome represents the final component in DPM's definitve architecture. The project's
-platform for the future has now reached its final shape and foresees just components consolidations.
+The introduction of DOME represents the final component in DPM's definitive architecture. The project's
+platform for the future has now reached its final shape and foresees just component consolidations.
 With a fully modernised, maintainable stack, scaleable architecture
 and rich protocol support, DPM is able to protect the investment of the large number of sites who have
 entrusted their data to it and can expect to absorb future data volumes without major architectural modifications.
