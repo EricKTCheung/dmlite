@@ -1,0 +1,20 @@
+Version 0.7.3 :
+    * Added replication and drain commandsvia http 
+    * Added log to file option
+Version 0.2.1 :
+    * [LCGDM-1072] - add mkdir -p command to the shell
+    * [LCGDM-1074] - make the dmlite-shell exit with non-zero exit code on failure
+    * [LCGDM-979] - Add addpool command to the shell
+    * [LCGDM-980] - Add rmpool command to the shell
+    * [LCGDM-1017] - Add getImplementationID command to the shell
+
+
+
+
+
+
+
+
+
+
+
