@@ -81,6 +81,15 @@ public:
   /// Gets replica information
   dmlite::DmStatus getReplicabyRFN(dmlite::Replica &rep, std::string rfn);
 
+  /// Extended stat for inodes
+  dmlite::DmStatus getStatbyFileid(dmlite::ExtendedStat &xstat, int64_t fileid );
+  
+  /// Extended stat for parent inodes
+  dmlite::DmStatus getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name);
+  
+  /// Read a link
+  dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
+  
   /// Adds or overwrites a quotatoken
   int setQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
   int setQuotatokenByStoken(DomeQuotatoken &qtk);
@@ -99,23 +108,29 @@ public:
   int addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment);
   int addtoQuotatokenUspace(std::string &s_token, int64_t increment);
 
-  /// Removes a pool and all the related filesystems
-  int rmPool(std::string &poolname);
 
   /// Adds a new filesystem to a pool that may or may not exist
   int addFs(DomeFsInfo &newfs);
 
-  /// Modify an existing filesystem, which points to a pool that may or may not exist
-  int modifyFs(DomeFsInfo &newfs);
+
 
   /// Add a new, empty pool
   int addPool(std::string &poolname, long defsize, char stype);
 
+  /// Modify an existing filesystem, which points to a pool that may or may not exist
+  int modifyFs(DomeFsInfo &newfs);
+  
   /// Removes a fs
   int rmFs(std::string &server, std::string &fs);
-
+  
+  /// Removes a pool and all the related filesystems
+  int rmPool(std::string &poolname);
+  
   /// Sets the file size given the LFN
   dmlite::DmStatus setSize(std::string lfn, int64_t filesize);
+  
+  /// Removes a logical file entry
+  dmlite::DmStatus unlink(std::string lfn);
 
 protected:
   // The corresponding factory.
@@ -124,10 +139,7 @@ protected:
   /// Transaction level, so begins and commits can be nested.
   unsigned transactionLevel_;
 
-  /// Extended stat for inodes
-  dmlite::DmStatus getStatbyFileid(dmlite::ExtendedStat &xstat, int64_t fileid );
-  dmlite::DmStatus getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name);
-  dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
+
 private:
 
   // Connection
