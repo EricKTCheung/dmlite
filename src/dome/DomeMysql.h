@@ -127,11 +127,17 @@ public:
   int rmPool(std::string &poolname);
   
   /// Sets the file size given the LFN
-  dmlite::DmStatus setSize(std::string lfn, int64_t filesize);
+  dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
   
   /// Removes a logical file entry
-  dmlite::DmStatus unlink(std::string lfn);
-
+  dmlite::DmStatus unlink(ino_t inode);
+  
+  /// Add a symlink
+  dmlite::DmStatus symlink(ino_t inode, const std::string &link);
+  
+  /// Get all the Replicas
+  dmlite::DmStatus getReplicas(std::vector<dmlite::Replica> &reps, ino_t inode);
+  
 protected:
   // The corresponding factory.
   //NsMySqlFactory* factory_;
