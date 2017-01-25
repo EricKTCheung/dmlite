@@ -10,6 +10,7 @@ set(Dome_SOURCES DomeGenQueue.cpp
                  DomeReq.cpp
                  DomeMysql.cpp
                  DomeMysql_cns.cpp
+                 DomeMysql_authn.cpp
                  DomeStatus.cpp
                  DomeDmlitePool.cpp
                  ../utils/MySqlPools.cpp

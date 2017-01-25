@@ -121,112 +121,6 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 
 
 
-int DomeMySql::getGroups(DomeStatus &st)
-{
-  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-  int cnt = 0;
-
-  try {
-    Statement stmt(conn_, CNS_DB,
-                   "SELECT gid, groupname, banned, xattr\
-                    FROM Cns_groupinfo"
-    );
-    stmt.execute();
-
-    DomeGroupInfo gi;
-    char buf1[1024], buf2[1024];
-    int banned;
-
-    stmt.bindResult(0, &gi.groupid);
-
-    memset(buf1, 0, sizeof(buf1));
-    stmt.bindResult(1, buf1, 256);
-
-    stmt.bindResult(2, &banned);
-
-    memset(buf2, 0, sizeof(buf2));
-    stmt.bindResult(3, buf2, 256);
-
-    {
-      boost::unique_lock<boost::recursive_mutex> l(st);
-      while ( stmt.fetch() ) {
-        gi.groupname = buf1;
-        gi.xattr = buf2;
-        gi.banned = (banned != 0);
-
-        Log(Logger::Lvl2, domelogmask, domelogname, " Fetched group. id:" << gi.groupid <<
-        " groupname:" << gi.groupname << " banned:" << gi.banned << " xattr: '" << gi.xattr);
-
-        st.insertGroup(gi);
-
-        cnt++;
-      }
-    }
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading groups. Groups read:" << cnt);
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Groups read:" << cnt);
-  return cnt;
-}
-
-
-int DomeMySql::getUsers(DomeStatus &st)
-{
-  int cnt = 0;
-  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-
-  try {
-    Statement stmt(conn_, CNS_DB,
-                   "SELECT userid, username, banned, xattr\
-                    FROM Cns_userinfo"
-    );
-    stmt.execute();
-
-    DomeUserInfo ui;
-    char buf1[1024], buf2[1024];
-    int banned;
-
-    stmt.bindResult(0, &ui.userid);
-
-    memset(buf1, 0, sizeof(buf1));
-    stmt.bindResult(1, buf1, 256);
-
-    stmt.bindResult(2, &banned);
-
-    memset(buf2, 0, sizeof(buf2));
-    stmt.bindResult(3, buf2, 256);
-
-    {
-    boost::unique_lock<boost::recursive_mutex> l(st);
-
-    while ( stmt.fetch() ) {
-      ui.username = buf1;
-      ui.xattr = buf2;
-      ui.banned = (banned != 0);
-
-      Log(Logger::Lvl2, domelogmask, domelogname, " Fetched user. id:" << ui.userid <<
-      " username:" << ui.username << " banned:" << ui.banned << " xattr: '" << ui.xattr);
-
-      st.insertUser(ui);
-
-      cnt++;
-    }
-    }
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading users. Users read:" << cnt);
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Users read:" << cnt);
-  return cnt;
-}
-
-
-
-
-
 /// Delete a replica
 int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' rfn: " << rfn);
@@ -584,6 +478,7 @@ DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
   return DmStatus();
 }
+
 
 
 
