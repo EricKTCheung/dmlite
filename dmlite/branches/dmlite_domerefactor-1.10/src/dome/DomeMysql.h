@@ -54,7 +54,8 @@ public:
   int rollback();
   int commit();
 
-  // All the helper primitives are here, for quick usage
+  // ------------------------------------------
+  // ---------------- Functions for internal DOME usage
 
   /// Loads spaces and quotas into the given status. Thread safe.
   int getSpacesQuotas(DomeStatus &st);
@@ -64,6 +65,17 @@ public:
   /// Loads users into the given DOME status. Thread safe.
   int getUsers(DomeStatus &st);
   
+  /// Load from the DB, matching the given poolname and path
+  int getQuotaTokenByKeys(DomeQuotatoken &qtk);
+  
+  /// Load the defined pools
+  int getPools(DomeStatus &st);
+  
+  /// Loads the defined filesystems, parses them into server names, etc. into the status
+  int getFilesystems(DomeStatus &st);
+
+  // ------------------------------------------
+  // ------------------ dmlite authn functions
   /// Loads the groups into the given vector for DmLite consumption
   dmlite::DmStatus getGroupsVec(std::vector<dmlite::GroupInfo> &groups);
   /// Loads the users into the given vector for DmLite consumption
@@ -77,20 +89,31 @@ public:
   dmlite::DmStatus newGroup(dmlite::GroupInfo &group, const std::string& gname);
   /// Add a new user
   dmlite::DmStatus newUser(dmlite::UserInfo &user, const std::string& uname);
+  dmlite::DmStatus updateUser(const dmlite::UserInfo& user);
+  dmlite::DmStatus deleteUser(const std::string& userName);
+  dmlite::DmStatus updateGroup(const dmlite::GroupInfo& group);
+  dmlite::DmStatus deleteGroup(const std::string& groupName);
+  // ----------------------------------------
   
+
   
-  /// Load from the DB, matching the given poolname and path
-  int getQuotaTokenByKeys(DomeQuotatoken &qtk);
-
-  /// Load the defined pools
-  int getPools(DomeStatus &st);
-
-  /// Loads the defined filesystems, parses them into server names, etc. into the status
-  int getFilesystems(DomeStatus &st);
-
+  // --------------------------------------------
+  // ---------- Namespace functions
+  
   /// Extended stat for logical file names
   dmlite::DmStatus getStatbyLFN(dmlite::ExtendedStat &st, std::string lfn, bool followSym = false);
-
+  /// Sets the file size given the LFN
+  dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
+  
+  /// Removes a logical file entry
+  dmlite::DmStatus unlink(ino_t inode);
+  
+  /// Add a symlink
+  dmlite::DmStatus symlink(ino_t inode, const std::string &link);
+  
+  /// Get all the Replicas
+  dmlite::DmStatus getReplicas(std::vector<dmlite::Replica> &reps, ino_t inode);
+  
   /// Extended stat for replica file names in rfio syntax
   dmlite::DmStatus getStatbyRFN(dmlite::ExtendedStat &st, std::string rfn);
 
@@ -105,6 +128,8 @@ public:
   
   /// Read a link
   dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
+  
+  // --------------------------------------------------
   
   /// Adds or overwrites a quotatoken
   int setQuotatoken(DomeQuotatoken &qtk, std::string &clientid);
@@ -142,17 +167,7 @@ public:
   /// Removes a pool and all the related filesystems
   int rmPool(std::string &poolname);
   
-  /// Sets the file size given the LFN
-  dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
-  
-  /// Removes a logical file entry
-  dmlite::DmStatus unlink(ino_t inode);
-  
-  /// Add a symlink
-  dmlite::DmStatus symlink(ino_t inode, const std::string &link);
-  
-  /// Get all the Replicas
-  dmlite::DmStatus getReplicas(std::vector<dmlite::Replica> &reps, ino_t inode);
+
   
 protected:
   // The corresponding factory.

@@ -181,6 +181,59 @@ DmStatus DomeMySql::newUser(UserInfo &user, const std::string& uname)
   return DmStatus();
 }
 
+
+DmStatus DomeMySql::updateUser(const UserInfo& user)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << user.name);
+  
+  try {
+    Statement stmt(conn_, CNS_DB, "UPDATE Cns_userinfo\
+    SET banned = ?, xattr = ?\
+    WHERE username = ?");
+    
+    stmt.bindParam(0, user.getLong("banned"));
+    UserInfo u = user;
+    u.erase("uid");
+    u.erase("banned");
+    stmt.bindParam(1, u.serialize());
+    stmt.bindParam(2, user.name);
+    
+    stmt.execute();
+  }
+  catch (DmException e) {
+    return DmStatus(EINVAL, SSTR("Cannot update user: '" << user.name << "' err: '" << e.what()));
+  }
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. usr:" << user.name << " ban:" << boost::any_cast<bool>(user["banned"]) );
+  return DmStatus();
+}
+
+
+DmStatus DomeMySql::deleteUser(const std::string& userName)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << userName);
+  
+  try {
+    
+    Statement stmt(conn_, CNS_DB, "DELETE FROM Cns_userinfo\
+    WHERE username = ?");
+    
+    stmt.bindParam(0, userName);
+    
+    stmt.execute();
+    
+  }
+  catch (DmException e) {
+    return DmStatus(EINVAL, SSTR("Cannot delete user: '" << userName << "' err: '" << e.what()));
+  }
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting user:" << userName);
+  return DmStatus();
+}
+
+
+
+
 DmStatus DomeMySql::newGroup(GroupInfo &group, const std::string& gname)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, "group:" << gname);
@@ -237,6 +290,57 @@ DmStatus DomeMySql::newGroup(GroupInfo &group, const std::string& gname)
   Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. group: '" << gname << "' gid:" << gid);
   return DmStatus();
 }
+
+
+DmStatus DomeMySql::updateGroup(const GroupInfo& group)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, "grp:" << group.name);
+  
+  try {
+  Statement stmt(conn_, CNS_DB, "UPDATE Cns_groupinfo\
+  SET banned = ?, xattr = ?\
+  WHERE groupname = ?");
+  
+  stmt.bindParam(0, group.getLong("banned"));
+  GroupInfo g = group;
+  g.erase("gid");
+  g.erase("banned");
+  stmt.bindParam(1, g.serialize());
+  stmt.bindParam(2, group.name);
+  
+  stmt.execute();
+  }
+  catch (DmException e) {
+    return DmStatus(EINVAL, SSTR("Cannot update group: '" << group.name << "' err: '" << e.what()));
+  }
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. group:" << group.name);
+  return DmStatus();
+}
+
+
+
+
+DmStatus DomeMySql::deleteGroup(const std::string& groupName)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, "grp:" << groupName);
+  try {
+    
+    Statement stmt(conn_, CNS_DB, "DELETE FROM Cns_groupinfo\
+    WHERE groupname = ?");
+    
+    stmt.bindParam(0, groupName);
+    
+    stmt.execute();
+  }
+  catch (DmException e) {
+    return DmStatus(EINVAL, SSTR("Cannot delete group: '" << groupName << "' err: '" << e.what()));
+  }
+  
+  Log(Logger::Lvl2, domelogmask, domelogname, "Exiting. group:" << groupName);
+  return DmStatus();
+}
+
 
 
 
