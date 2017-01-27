@@ -59,10 +59,26 @@ public:
   /// Loads spaces and quotas into the given status. Thread safe.
   int getSpacesQuotas(DomeStatus &st);
 
-  /// Loads users and groups into the given status. Thread safe.
+  /// Loads groups into the given DOME status. Thread safe.
   int getGroups(DomeStatus &st);
+  /// Loads users into the given DOME status. Thread safe.
   int getUsers(DomeStatus &st);
-
+  
+  /// Loads the groups into the given vector for DmLite consumption
+  dmlite::DmStatus getGroupsVec(std::vector<dmlite::GroupInfo> &groups);
+  /// Loads the users into the given vector for DmLite consumption
+  dmlite::DmStatus getUsersVec(std::vector<dmlite::UserInfo> &users);
+  
+  /// Get a group by name for DmLite consumption
+  dmlite::DmStatus getGroupbyName(dmlite::GroupInfo &grp, const std::string& groupName);
+  /// Get a group by name for DmLite consumption
+  dmlite::DmStatus getGroupbyGid(dmlite::GroupInfo &grp, gid_t gid);
+  /// Add a new group
+  dmlite::DmStatus newGroup(dmlite::GroupInfo &group, const std::string& gname);
+  /// Add a new user
+  dmlite::DmStatus newUser(dmlite::UserInfo &user, const std::string& uname);
+  
+  
   /// Load from the DB, matching the given poolname and path
   int getQuotaTokenByKeys(DomeQuotatoken &qtk);
 
