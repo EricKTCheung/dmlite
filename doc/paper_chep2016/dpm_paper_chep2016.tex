@@ -247,12 +247,12 @@ on restarts of the head node. When finished pulling a file, a disk node will not
 \section{Transitioning steps}
 As we remarked, the new components are totally compatible with the older ones and can coexist with them, if properly configured. This was an important design decision.\\ Care has been taken to allow sites to schedule the activation of DOME at their convenience, decoupled both from the deployment of the relevant update (DOME can remain dormant) and from synchronising with experiments.
 
-The transition steps enumerated below each represent a working system which could be maintined indefinitely.
+The transition steps enumerated below each represent a working system which could be maintained indefinitely.
 
 \begin{itemize}
  \item Starting with the release of DPM 1.9 (which includes DOME) in Q4 2016, the sites can start upgrading
 head nodes and disk servers at the pace that they prefer. This allows deployment, in a dormant state, of DOME. 
- \item Dome can be configured, while disabled, giving access to a more powerful \textit{dmlite-shell} adminitration utility.
+ \item Dome can be configured, while disabled, giving access to a more powerful \textit{dmlite-shell} administration utility.
  \item The space reporting counters can now be primed. From this moment on, the site will precisely keep track of the disk space used (not the free space yet).
  \item The dmlite-shell can be used to associate each of the existing spacetokens to a suitable directory
 in the logical name space of the Virtual Organization they belong to.
