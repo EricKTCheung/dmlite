@@ -100,11 +100,17 @@ public:
   // --------------------------------------------
   // ---------- Namespace functions
   
+  /// Add a new namespace entity. Fills the new fileid directly into the stat struct
+  dmlite::DmStatus create(dmlite::ExtendedStat& nf);
+  
+  dmlite::DmStatus getComment(std::string &comment, ino_t inode);
+  dmlite::DmStatus setComment(ino_t inode, const std::string& comment);
+  
   /// Extended stat for logical file names
   dmlite::DmStatus getStatbyLFN(dmlite::ExtendedStat &st, std::string lfn, bool followSym = false);
   /// Sets the file size given the LFN
   dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
-  
+  dmlite::DmStatus setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const dmlite::Acl& acl);
   /// Removes a logical file entry
   dmlite::DmStatus unlink(ino_t inode);
   
@@ -126,9 +132,16 @@ public:
   /// Extended stat for parent inodes
   dmlite::DmStatus getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name);
   
+  /// Move an entity to a different parent dir
+  dmlite::DmStatus move(ino_t inode, ino_t dest);
+  
   /// Read a link
   dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
   
+  /// Add a replica
+  dmlite::DmStatus addReplica(const dmlite::Replica& replica);
+  
+  dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
   // --------------------------------------------------
   
   /// Adds or overwrites a quotatoken
