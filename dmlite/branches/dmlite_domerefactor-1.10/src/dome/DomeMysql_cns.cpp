@@ -120,6 +120,423 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 
 
 
+DmStatus DomeMySql::create(ExtendedStat& nf)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, "Creating new namespace entity. name: '" << nf.name <<
+    "' parent: " << nf.parent << " flags: " << nf.stat.st_mode);
+  
+  ExtendedStat parentMeta;
+  DmStatus r;
+  
+  // Get parent metadata, if it is not root
+  if (nf.parent > 0) {
+    r = this->getStatbyFileid(parentMeta, nf.parent);
+    if (!r.ok()) return r;
+  }
+  
+  // Fetch the new file ID
+  ino_t newFileId = 0;
+  
+  // Start transaction
+  DomeMySqlTrans trans(this);
+  
+  try {
+    
+    
+    {
+      // Scope to make sure that the local objects that involve mysql
+      // are destroyed before the transaction is closed
+      
+      
+      Statement uniqueId(conn_, CNS_DB, "SELECT id FROM Cns_unique_id FOR UPDATE");
+      
+      uniqueId.execute();
+      uniqueId.bindResult(0, &newFileId);
+      
+      // Update the unique ID
+      if (uniqueId.fetch()) {
+        Statement updateUnique(conn_, CNS_DB, "UPDATE Cns_unique_id SET id = ?");
+        ++newFileId;
+        updateUnique.bindParam(0, newFileId);
+        updateUnique.execute();
+      }
+      // Couldn't get, so insert
+      else {
+        Statement insertUnique(conn_, CNS_DB, "INSERT INTO Cns_unique_id (id) VALUES (?)");
+        newFileId = 1;
+        insertUnique.bindParam(0, newFileId);
+        insertUnique.execute();
+      }
+      
+      
+      // Closing the scope here makes sure that no local mysql-involving objects
+      // are still around when we close the transaction
+    }
+    
+    
+    // Regular files start with 1 link. Directories 0.
+    unsigned    nlink   = S_ISDIR(nf.stat.st_mode) ? 0 : 1;
+    std::string aclStr  = nf.acl.serialize();
+    char        cstatus = static_cast<char>(nf.status);
+    
+    // Create the entry
+    Statement fileStmt(this->conn_, CNS_DB, "INSERT INTO Cns_file_metadata\
+    (fileid, parent_fileid, name, filemode, nlink, owner_uid, gid,\
+    filesize, atime, mtime, ctime, fileclass, status,\
+    csumtype, csumvalue, acl, xattr)\
+    VALUES\
+    (?, ?, ?, ?, ?, ?, ?,\
+    ?, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), ?, ?,\
+    ?, ?, ?, ?)");
+    
+    fileStmt.bindParam( 0, newFileId);
+    fileStmt.bindParam( 1, nf.parent);
+    fileStmt.bindParam( 2, nf.name);
+    fileStmt.bindParam( 3, nf.stat.st_mode);
+    fileStmt.bindParam( 4, nlink);
+    fileStmt.bindParam( 5, nf.stat.st_uid);
+    fileStmt.bindParam( 6, nf.stat.st_gid);
+    fileStmt.bindParam( 7, nf.stat.st_size);
+    fileStmt.bindParam( 8, 0);
+    fileStmt.bindParam( 9, std::string(&cstatus, 1));
+    fileStmt.bindParam(10, nf.csumtype);
+    fileStmt.bindParam(11, nf.csumvalue);
+    fileStmt.bindParam(12, aclStr);
+    fileStmt.bindParam(13, nf.serialize());
+    
+    fileStmt.execute();
+    
+    // Increment the parent nlink
+    if (nf.parent > 0) {
+      Statement nlinkStmt(this->conn_, CNS_DB, "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE");
+      nlinkStmt.bindParam(0, nf.parent);
+      nlinkStmt.execute();
+      nlinkStmt.bindResult(0, &parentMeta.stat.st_nlink);
+      nlinkStmt.fetch();
+      
+      Statement nlinkUpdateStmt(this->conn_, CNS_DB, "UPDATE Cns_file_metadata\
+      SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
+      WHERE fileid = ?");
+      
+      parentMeta.stat.st_nlink++;
+      nlinkUpdateStmt.bindParam(0, parentMeta.stat.st_nlink);
+      nlinkUpdateStmt.bindParam(1, parentMeta.stat.st_ino);
+      
+      nlinkUpdateStmt.execute();
+    }
+    
+    // Closing the scope here makes sure that no local mysql-involving objects
+    // are still around when we close the transaction
+    // Commit the local trans object
+    // This also releases the connection back to the pool
+    trans.Commit();
+    
+    
+  }
+  catch (DmException e) {
+    if (e.code() | DMLITE_DATABASE_ERROR) {
+      int c = e.code() ^ DMLITE_DATABASE_ERROR;
+      if (c == 1062) // mysql duplicate key
+        return DmStatus(EEXIST, SSTR("File '" << nf.name << "' parent: " << nf.parent << " already exists - mysql duplicate key. err: 1062-" << e.what()));
+    }
+    return DmStatus(e);
+  }
+  
+  nf.stat.st_ino = newFileId;
+  
+  if (S_ISDIR(nf.stat.st_mode))
+    Log(Logger::Lvl1, domelogmask, domelogname, "Created new directory. name: '" << nf.name <<
+      "' parent: " << nf.parent << " flags: " << nf.stat.st_mode << " fileid: " << newFileId);
+  else
+    Log(Logger::Lvl1, domelogmask, domelogname, "Created new file. name: '" << nf.name <<
+      "' parent: " << nf.parent << " flags: " << nf.stat.st_mode << " fileid: " << newFileId);
+    
+  return DmStatus();
+}
+
+
+
+DmStatus DomeMySql::getComment(std::string &comment, ino_t inode)
+{
+  char c[1024];
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode);
+  
+  try {
+    Statement stmt(conn_, CNS_DB, "SELECT comments\
+    FROM Cns_user_metadata\
+    WHERE u_fileid = ?");
+  
+    stmt.bindParam(0, inode);
+    stmt.execute();
+  
+    stmt.bindResult(0, c, sizeof(c));
+    if (!stmt.fetch())
+      c[0] = '\0';
+  
+    comment = c;
+
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+  
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " comment:'" << comment << "'");
+  return DmStatus();
+}
+
+
+
+DmStatus DomeMySql::setComment(ino_t inode, const std::string& comment)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " comment:'" << comment << "'");
+  
+  // Try to set first
+  try {
+    Statement stmt(conn_, CNS_DB, "UPDATE Cns_user_metadata\
+    SET comments = ?\
+    WHERE u_fileid = ?");
+    
+    stmt.bindParam(0, comment);
+    stmt.bindParam(1, inode);
+    
+    if (stmt.execute() == 0) {
+      // No update! Try inserting
+      Statement stmti(conn_, CNS_DB, "INSERT INTO Cns_user_metadata\
+      (u_fileid, comments)\
+      VALUES\
+      (?, ?)");
+      
+      stmti.bindParam(0, inode);
+      stmti.bindParam(1, comment);
+      
+      stmti.execute();
+    }
+    
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " comment:'" << comment << "'");
+  return DmStatus();
+}
+
+
+
+DmStatus DomeMySql::setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const Acl& acl) {
+  // uhm
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " mode:" << mode);
+  
+  // Clean type bits
+  mode &= ~S_IFMT;
+  try {
+    // Update DB
+    Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET owner_uid = if(? = -1, owner_uid, ?),\
+    gid = if(? = -1, gid, ?),\
+    filemode = ((filemode & 61440) | ?),\
+    acl = if(length(?) = 0, acl, ?),\
+    ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?"); // 61440 is ~S_IFMT in decimal
+    stmt.bindParam(0, uid);
+    stmt.bindParam(1, uid);
+    stmt.bindParam(2, gid);
+    stmt.bindParam(3, gid);
+    stmt.bindParam(4, mode);
+    stmt.bindParam(5, acl.serialize());
+    stmt.bindParam(6, acl.serialize());
+    stmt.bindParam(7, inode);
+    stmt.execute();
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " mode:" << mode);
+  return DmStatus();
+}
+
+
+
+DmStatus DomeMySql::move(ino_t inode, ino_t dest)
+{
+  Log(Logger::Lvl3, domelogmask, domelogname, " inode:" << inode << " dest:" << dest);
+  DmStatus r;
+  
+  
+  // All preconditions are good! Start transaction.
+  // Start transaction
+  DomeMySqlTrans trans(this);
+  try {
+    // Scope to make sure that the local objects that involve mysql
+    // are destroyed before the transaction is closed
+    
+    // Metadata
+    ExtendedStat file;
+    r = this->getStatbyFileid(file, inode);
+    if (!r.ok()) return r;
+    
+    // Make sure the destiny is a dir!
+    ExtendedStat newParent;
+    r = this->getStatbyFileid(newParent, dest);
+    if (!r.ok()) {
+      Err("move", "Trouble looking for fileid " << dest);
+      return r;
+    }
+    
+    if (!S_ISDIR(newParent.stat.st_mode))
+      throw DmException(ENOTDIR, "Inode %ld is not a directory", dest);
+    
+    // Change parent
+    Statement changeParentStmt(this->conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET parent_fileid = ?, ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?");
+    
+    changeParentStmt.bindParam(0, dest);
+    changeParentStmt.bindParam(1, inode);
+    
+    if (changeParentStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+                        "Could not update the parent ino!");
+      
+    // Reduce nlinks from old parent
+    ExtendedStat oldParent;
+    r= this->getStatbyFileid(oldParent, file.parent);
+    if (!r.ok()) {
+      Err("move", "trouble looking for fileid " << file.parent << "  parent of fileid " << file.stat.st_ino);
+      return r;
+    }
+      
+      Statement oldNlinkStmt(this->conn_, CNS_DB, "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE");
+    oldNlinkStmt.bindParam(0, oldParent.stat.st_ino);
+    oldNlinkStmt.execute();
+    oldNlinkStmt.bindResult(0, &oldParent.stat.st_nlink);
+    oldNlinkStmt.fetch();
+    
+    Statement oldNlinkUpdateStmt(this->conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?");
+    
+    oldParent.stat.st_nlink--;
+    oldNlinkUpdateStmt.bindParam(0, oldParent.stat.st_nlink);
+    oldNlinkUpdateStmt.bindParam(1, oldParent.stat.st_ino);
+    
+    if (oldNlinkUpdateStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+                        "Could not update the old parent nlink!");
+      
+      // Increment from new
+      Statement newNlinkStmt(this->conn_, CNS_DB, "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE");
+    newNlinkStmt.bindParam(0, newParent.stat.st_ino);
+    newNlinkStmt.execute();
+    newNlinkStmt.bindResult(0, &newParent.stat.st_nlink);
+    newNlinkStmt.fetch();
+    
+    Statement newNlinkUpdateStmt(this->conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET nlink = ?, mtime = UNIX_TIMESTAMP(), ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?");
+    
+    newParent.stat.st_nlink++;
+    newNlinkUpdateStmt.bindParam(0, newParent.stat.st_nlink);
+    newNlinkUpdateStmt.bindParam(1, newParent.stat.st_ino);
+    
+    if (newNlinkUpdateStmt.execute() == 0)
+      throw DmException(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR),
+                        "Could not update the new parent nlink!");
+      
+      
+    trans.Commit();
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+  
+  
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting.  inode:" << inode << " dest:" << dest);
+  return DmStatus();
+}
+
+
+
+DmStatus DomeMySql::addReplica(const Replica& replica)
+{
+  std::string  host;
+  char         cstatus, ctype;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " replica:" << replica.rfn);
+  
+  // Make sure fileid exists and is a regular file
+  ExtendedStat s;
+  DmStatus res = this->getStatbyFileid(s, replica.fileid);
+  if (!res.ok())
+    return res;
+  
+  if (!S_ISREG(s.stat.st_mode))
+    return DmStatus(EINVAL,
+                    SSTR("Inode " << replica.fileid << " is not a regular file"));
+    
+  // The replica should not exist already
+  Replica tmp;
+  res = this->getReplicabyRFN(tmp, replica.rfn);
+  if(res.ok()) {
+    throw DmException(EEXIST,
+                      "Replica %s already registered", replica.rfn.c_str());
+  }
+  else if(res.code() != DMLITE_NO_SUCH_REPLICA) {
+    return res;
+  }
+  
+  // If server is empty, parse the surl
+  if (replica.server.empty()) {
+    Url u(replica.rfn);
+    host = u.domain;
+  }
+  else {
+    host = replica.server;
+  }
+  
+  cstatus = static_cast<char>(replica.status);
+  ctype   = static_cast<char>(replica.type);
+  
+  // Add it
+  try {
+    Statement statement(conn_, CNS_DB, "INSERT INTO Cns_file_replica\
+    (fileid, nbaccesses,\
+    ctime, atime, ptime, ltime,\
+    r_type, status, f_type,\
+    setname, poolname, host, fs, sfn, xattr)\
+    VALUES\
+    (?, 0,\
+    UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),\
+    ?, ?, ?,\
+    ?, ?, ?, ?, ?, ?)");
+    
+    statement.bindParam(0, replica.fileid);
+    statement.bindParam(1, NULL, 0);
+    statement.bindParam(2, std::string(&cstatus, 1));
+    statement.bindParam(3, std::string(&ctype, 1));
+    
+    if (replica.setname.size() == 0)
+      statement.bindParam(4, NULL, 0);
+    else
+      statement.bindParam(4, replica.setname);
+    
+    statement.bindParam(5, replica.getString("pool"));
+    statement.bindParam(6, host);
+    statement.bindParam(7, replica.getString("filesystem"));
+    statement.bindParam(8, replica.rfn);
+    statement.bindParam(9, replica.serialize());
+    
+    statement.execute();
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+    
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. replica:" << replica.rfn);
+  return DmStatus();
+}
 
 /// Delete a replica
 int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
@@ -722,7 +1139,55 @@ DmStatus DomeMySql::unlink(ino_t inode)
 
 
 
-
+DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " nattrs:" << attr.size() );
+  
+  // If there were any checksums in list of attributes which have a legacy short
+  // type name set the first of them in the legacy csumtype, csumvalue columns
+  std::vector<std::string> keys = attr.getKeys();
+  std::string shortCsumType;
+  std::string csumValue;
+  
+  for (unsigned i = 0; i < keys.size(); ++i) {
+    if (checksums::isChecksumFullName(keys[i])) {
+      std::string csumXattr = keys[i];
+      shortCsumType = checksums::shortChecksumName(csumXattr);
+      if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
+        csumValue     = attr.getString(csumXattr);
+        break;
+      }
+    }
+  }
+  
+  if (!csumValue.empty()) {
+    Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " contextually setting short checksum:" << shortCsumType << ":" << csumValue );
+    Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET xattr = ?, csumtype = ?, csumvalue = ?\
+    WHERE fileid = ?");
+    
+    stmt.bindParam(0, attr.serialize());
+    stmt.bindParam(1, shortCsumType);
+    stmt.bindParam(2, csumValue);
+    stmt.bindParam(3, inode);
+    
+    stmt.execute();
+  }
+  else {
+      
+      Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
+      SET xattr = ?\
+      WHERE fileid = ?");
+      
+      stmt.bindParam(0, attr.serialize());
+      stmt.bindParam(1, inode);
+      
+      stmt.execute();
+    }
+  
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
+}
 
 
 
