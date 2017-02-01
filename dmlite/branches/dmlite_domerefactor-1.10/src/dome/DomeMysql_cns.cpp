@@ -538,6 +538,61 @@ DmStatus DomeMySql::addReplica(const Replica& replica)
   return DmStatus();
 }
 
+
+
+
+DmStatus DomeMySql::updateReplica(const Replica& rdata)
+{
+  Log(Logger::Lvl4, domelogmask, domelogname, " rdata:" << rdata.rfn);
+  
+  // Update
+  char status = static_cast<char>(rdata.status);
+  char type   = static_cast<char>(rdata.type);
+  
+  try {
+    Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_replica\
+    SET nbaccesses = ?, ctime = UNIX_TIMESTAMP(), atime = ?, ptime = ?, ltime = ?, \
+    f_type = ?, status = ?, poolname = ?, \
+    host = ?, fs = ?, sfn = ?, xattr = ?, setname = ?\
+    WHERE rowid = ?");
+    
+    stmt.bindParam(0, rdata.nbaccesses);
+    stmt.bindParam(1, rdata.atime);
+    stmt.bindParam(2, rdata.ptime);
+    stmt.bindParam(3, rdata.ltime);
+    stmt.bindParam(4, std::string(&type, 1));
+    stmt.bindParam(5, std::string(&status, 1));
+    stmt.bindParam(6, rdata.getString("pool"));
+    stmt.bindParam(7, rdata.server);
+    stmt.bindParam(8, rdata.getString("filesystem"));
+    stmt.bindParam(9, rdata.rfn);
+    stmt.bindParam(10, rdata.serialize());
+    
+    if (rdata.setname.size() == 0) {
+      stmt.bindParam(11, NULL, 0);
+    }
+    else {
+      stmt.bindParam(11, rdata.setname);
+      
+    }
+    
+    stmt.bindParam(12, rdata.replicaid);
+    
+    stmt.execute();
+  }
+  catch ( DmException e ) {
+    return DmStatus(e);
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rdata:" << rdata.rfn);
+  return DmStatus();
+}
+
+
+
+
+
+
 /// Delete a replica
 int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' rfn: " << rfn);
