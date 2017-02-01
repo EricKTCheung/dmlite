@@ -140,7 +140,10 @@ public:
   
   /// Add a replica
   dmlite::DmStatus addReplica(const dmlite::Replica& replica);
+  /// Updates the fields of a replica
+  dmlite::DmStatus updateReplica(const dmlite::Replica& rdata);
   
+  /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
   dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
   // --------------------------------------------------
   
