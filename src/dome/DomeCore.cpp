@@ -194,7 +194,11 @@ void workerFunc(DomeCore *core, int myidx) {
       if(dreq.verb == "GET") {
 
         // Now dispatch based on the actual command name
-        if ( dreq.domecmd == "dome_getspaceinfo" ) {
+        if ( dreq.domecmd == "dome_access" ) {
+          core->dome_access(dreq, request);
+        } else if ( dreq.domecmd == "dome_accessreplica" ) {
+          core->dome_accessreplica(dreq, request);
+        } else if ( dreq.domecmd == "dome_getspaceinfo" ) {
           core->dome_getspaceinfo(dreq, request);
         } else if(dreq.domecmd == "dome_chksum") {
           core->dome_chksum(dreq, request);

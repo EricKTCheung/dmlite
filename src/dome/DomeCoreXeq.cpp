@@ -549,8 +549,10 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
 int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
   std::string absPath = DomeUtils::trim_trailing_slashes(req.bodyfields.get<std::string>("path", ""));
-  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
-  int mode = req.bodyfields.get<int>("mode", false);
+  int mode = req.bodyfields.get<int>("mode", 0);
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "' mode: " << mode);
+  
   
   ExtendedStat xstat;
   boost::property_tree::ptree jresp;  
@@ -581,12 +583,66 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
   if (!ok)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
   
-  return DomeReq::SendSimpleResp(request, 200, jresp);
+  return DomeReq::SendSimpleResp(request, 200, "");
 };
 
 
 
 
+
+int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
+{
+  std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
+  int mode = req.bodyfields.get<int>("mode", 0);
+  DmStatus ret;
+  struct dmlite::Replica r;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << rfn << "' mode: " << mode);
+  
+  if ( !rfn.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
+  }
+  
+  DomeMySql sql;
+  ret = sql.getReplicabyRFN(r, rfn);
+  
+  if (ret.code() != DMLITE_SUCCESS) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  
+  ExtendedStat xstat;
+  ret = sql.getStatbyFileid(xstat, r.fileid);
+  if (ret.code() != DMLITE_SUCCESS) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << r.fileid << " of rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  
+  bool replicaAllowed = true;
+  mode_t perm = 0;
+  
+  if (mode & R_OK)
+    perm  = S_IREAD;
+  
+  if (mode & W_OK) {
+    perm |= S_IWRITE;
+    replicaAllowed = (r.status == Replica::kBeingPopulated);
+  }
+  
+  if (mode & X_OK)
+    perm |= S_IEXEC;
+  
+  SecurityContext ctx;
+  req.fillSecurityContext(ctx);
+  bool ok = false;
+  
+  try {
+    ok = !checkPermissions(&ctx, xstat.acl, xstat.stat, perm);
+  } catch (DmException e) {}
+  
+  if (!ok || !replicaAllowed)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
 
 
 
