@@ -536,6 +536,74 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   return rc;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
+  std::string absPath = DomeUtils::trim_trailing_slashes(req.bodyfields.get<std::string>("path", ""));
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
+  int mode = req.bodyfields.get<int>("mode", false);
+  
+  ExtendedStat xstat;
+  boost::property_tree::ptree jresp;  
+  DmStatus ret;
+  {
+    DomeMySql sql;
+    ret = sql.getStatbyLFN(xstat, absPath);
+  }
+  if (!ret.ok()) {
+    if (ret.code() == ENOENT)
+      return DomeReq::SendSimpleResp(request, 404, SSTR("File not found '" << absPath << "'"));
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
+  }
+  
+  mode_t perm = 0;
+  if (mode & R_OK) perm  = S_IREAD;
+  if (mode & W_OK) perm |= S_IWRITE;
+  if (mode & X_OK) perm |= S_IEXEC;
+                                     
+  SecurityContext ctx;
+  req.fillSecurityContext(ctx);
+  bool ok = false;
+  
+  try {
+    ok = !checkPermissions(&ctx, xstat.acl, xstat.stat, perm);
+  } catch (DmException e) {}
+  
+  if (!ok)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
+  
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 
 
