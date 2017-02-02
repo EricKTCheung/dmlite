@@ -59,12 +59,12 @@ The Disk Pool Manager (DPM) is a lightweight solution for grid enabled disk stor
 management. Operated at around 150 sites, it has the widest distribution of all grid storage
 solutions in the WLCG infrastructure, and in total it manages around 70PB of data. DPM provides
 an easy way to manage and configure disk pools, and exposes multiple interfaces for
-data access (xrootd, GridFTP and HTTP/WebDAV) and control (SRM).\\
+data access (\textit{xrootd} \cite{xrd}, \textit{GridFTP} and \textit{HTTP/WebDAV}) and control (SRM).\\
 The development direction of the last years has been towards simplifying the
 system, while supporting all the advanced features that are needed by the Grid computing and
 helping sites to incrementally renew their setups.
 This effort is also dictated by the difficulty of maintaining software libraries that have been
-written in the 80s and 90s, over which the oldest core components of DPM are based.\\
+written in the 80s and 90s \cite{libshift}, over which the oldest core components of DPM are based.\\
 Work had been done in the last years to create the \textit{dmlite} \cite{dpmfuture} framework and a set of plugins
 that started complementing the core features of DPM by giving support for the more recent
 data access protocols used by HEP (\textit{HTTP with multi-range requests} and \textit{xrootd}),
@@ -86,7 +86,7 @@ implemented through open components, and following contemporary development appr
 main goals of DOME as:
 
 \begin{itemize}
- \item Making optional all the so-called legacy components that are provided by the \textit{lcg-dm} code tree, namely \textit{libshift}, \textit{rfiod},
+ \item Making optional all the so-called legacy components that are provided by the \textit{lcg-dm} code tree, namely \textit{libshift} \cite{libshift}, \textit{rfiod},
  \textit{dpm(daemon)}, \textit{dpnsdaemon}, \textit{CSec} and others.
  \item provide a software infrastructure where adding new coordination features is easier than with the historical one
  \item provide full support for asynchronous calculation of file checksums of multiple types
@@ -192,7 +192,7 @@ to the head node, which uses this information to keep its queues updated.\\
  
 \begin{figure}
 \begin{center}
- \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_disk.eps}
+ \includegraphics[width=10cm,keepaspectratio=true,angle=-90]{./pics/domepics_disk.eps}
  % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
  \caption{Simplified diagram of DOME in a disk node}
  \label{figdomedisk}
@@ -208,7 +208,7 @@ A head node can contact external systems to get information about remote files, 
 
 \begin{figure}
 \begin{center}
- \includegraphics[width=10cm,keepaspectratio=true,angle=-90,origin=c]{./pics/domepics_head.eps}
+ \includegraphics[width=10cm,keepaspectratio=true,angle=-90]{./pics/domepics_head.eps}
  % domepics_disk.ps: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
  \caption{Simplified diagram of DOME in a head node}
  \label{figdomehead}
@@ -294,6 +294,9 @@ CHEP2012
 \bibitem{srm} Storage Resource Management (SRM) Working Group, Storage Resource Management (SRM) Working Group
 
 \bibitem{rfio} R. Kalmady, B. Tierney, A comparison of GSIFTP and RFIO on a WAN, in: Proceedings of CHEP'01, September 3-7, Beijing, China, 2001.
+
+\bibitem{libshift} Baud J-P et al. 1991 SHIFT, the Scalable Heterogeneous Integrated Facility Proc. of the Int. Conf. on CHEP'91, Univ. Acad. Press, Tokyo 571-82
+
 \end{thebibliography}
 
 \end{document}
