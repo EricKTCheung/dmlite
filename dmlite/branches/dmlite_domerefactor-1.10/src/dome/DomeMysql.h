@@ -145,6 +145,9 @@ public:
   
   /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
   dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
+  
+  /// Utility to check perms for a directory tree. Tells if a certain user can reach a certain file
+  dmlite::DmStatus traverseBackwards(const dmlite::SecurityContext &secctx, dmlite::ExtendedStat& meta);
   // --------------------------------------------------
   
   /// Adds or overwrites a quotatoken
