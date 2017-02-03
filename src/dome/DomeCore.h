@@ -171,9 +171,13 @@ public:
   
   int dome_access(DomeReq &req, FCGX_Request &request);
   int dome_accessreplica(DomeReq &req, FCGX_Request &request);
-
+  int dome_addreplica(DomeReq &req, FCGX_Request &request);
+  
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
+  
+  
+  
 
 private:
   bool initdone, terminationrequested;

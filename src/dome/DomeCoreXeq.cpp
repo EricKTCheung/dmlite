@@ -52,8 +52,9 @@
 
 using namespace dmlite;
 
-// Creates a new logical file entry, and all its parent directories
 
+
+/// Creates a new logical file entry, and all its parent directories
 int mkdirminuspandcreate(dmlite::Catalog *catalog,
                          const std::string& filepath,
                          std::string  &parentpath,
@@ -650,6 +651,70 @@ int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
 
 
 
+
+
+
+int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
+{
+  struct dmlite::Replica r;
+  r.rfn =  req.bodyfields.get<std::string>("rfn", "");
+  r.fileid =  req.bodyfields.get<int64_t>("fileid", 0);
+  r.status = static_cast<dmlite::Replica::ReplicaStatus>(
+    req.bodyfields.get<char>("status", (char)dmlite::Replica::kAvailable) );
+  r.type = static_cast<dmlite::Replica::ReplicaType>(
+    req.bodyfields.get<char>("type", (char)dmlite::Replica::kPermanent) );
+  r.setname =  req.bodyfields.get<std::string>("setname", "");
+  SecurityContext ctx;
+  req.fillSecurityContext(ctx);
+  
+  DmStatus ret;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << r.rfn << "' fileid: " << r.fileid);
+  
+  if ( !r.rfn.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
+  }
+  
+  DomeMySql sql;
+
+  ExtendedStat xstat;
+  ret = sql.getStatbyFileid(xstat, r.fileid);
+  if (!ret.ok()) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << r.fileid << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  if (!S_ISREG(xstat.stat.st_mode))
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << r.fileid << " is not a regular file"));
+  
+  // Check perms on the parents
+  ret = sql.traverseBackwards(ctx, xstat);
+  if (!ret.ok()) {
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on fileid " << xstat.stat.st_ino
+      << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
+      << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    
+  // If server is empty, parse the surl
+  std::string host;
+  if (r.server.empty()) {
+    Url u(r.rfn);
+    host = u.domain;
+  }
+  else {
+    host = r.server;
+  }
+  
+  ret = sql.addReplica(r);
+  if (!ret.ok()) {
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot add replica " << xstat.stat.st_ino
+    << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
 
 
 

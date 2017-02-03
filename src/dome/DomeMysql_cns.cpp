@@ -118,6 +118,21 @@ static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
 
 
 
+/// Utility to check perms for a directory tree. Tells if a certain user can reach a certain file
+dmlite::DmStatus DomeMySql::traverseBackwards(const SecurityContext &secctx, dmlite::ExtendedStat& meta) {
+  ExtendedStat current = meta;
+  dmlite::DmStatus res;
+  // We want to check if we can arrive here...
+  while (current.parent != 0) {
+    
+    res = getStatbyFileid(current, current.parent);
+    if (checkPermissions(&secctx, current.acl, current.stat, S_IEXEC))
+      throw DmException(EACCES,
+                        "Can not access #%ld", current.stat.st_ino);
+  }
+}
+
+
 
 
 DmStatus DomeMySql::create(ExtendedStat& nf)
