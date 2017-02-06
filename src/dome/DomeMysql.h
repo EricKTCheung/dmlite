@@ -84,9 +84,9 @@ public:
   dmlite::DmStatus getUsersVec(std::vector<dmlite::UserInfo> &users);
   
   /// Get a group by name for DmLite consumption
-  dmlite::DmStatus getGroupbyName(dmlite::GroupInfo &grp, const std::string& groupName);
+  dmlite::DmStatus getGroupbyName(DomeGroupInfo &grp, const std::string& groupName);
   /// Get a group by name for DmLite consumption
-  dmlite::DmStatus getGroupbyGid(dmlite::GroupInfo &grp, gid_t gid);
+  dmlite::DmStatus getGroupbyGid(DomeGroupInfo &grp, gid_t gid);
   /// Add a new group
   dmlite::DmStatus newGroup(DomeGroupInfo &group, const std::string& gname);
   /// Add a new user

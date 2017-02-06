@@ -44,7 +44,7 @@ using namespace dmlite;
 
 
 
-DmStatus DomeMySql::getGroupbyName(GroupInfo &group, const std::string& groupName)
+DmStatus DomeMySql::getGroupbyName(DomeGroupInfo &group, const std::string& groupName)
 {
   gid_t     gid;
   int       banned;
@@ -52,7 +52,6 @@ DmStatus DomeMySql::getGroupbyName(GroupInfo &group, const std::string& groupNam
   
   Log(Logger::Lvl4, domelogmask, domelogname, "group:" << groupName);
   
-  group.clear();
   
   try {
     Statement stmt(conn_, CNS_DB, "SELECT gid, groupname, banned, COALESCE(xattr, '')\
@@ -72,10 +71,10 @@ DmStatus DomeMySql::getGroupbyName(GroupInfo &group, const std::string& groupNam
       return DmStatus(DMLITE_NO_SUCH_GROUP, SSTR("Group " << groupName.c_str() << " not found."));
     }
     
-    group.name      = groupname;
-    group["gid"]    = gid;
-    group["banned"] = banned;
-    group.deserialize(meta);
+    group.groupname      = groupname;
+    group.groupid        = gid;
+    group.banned         = banned;
+    group.xattr = meta;
   } catch ( ... ) {
     Err(domelogname, SSTR("Exception while reading group '" << groupName << "'"));
   }
@@ -85,36 +84,35 @@ DmStatus DomeMySql::getGroupbyName(GroupInfo &group, const std::string& groupNam
 }
 
 
-DmStatus DomeMySql::getGroupbyGid(GroupInfo &group, gid_t gid)
+DmStatus DomeMySql::getGroupbyGid(DomeGroupInfo &group, gid_t gid)
 {
-
+  
   int       banned;
   char      groupname[256], meta[1024];
   
   Log(Logger::Lvl4, domelogmask, domelogname, "gid:" << gid);
-  group.clear();
-
+  
   try {
-  Statement stmt(conn_, CNS_DB, "SELECT gid, groupname, banned, COALESCE(xattr, '')\
-  FROM Cns_groupinfo\
-  WHERE gid = ?");
-  
-  stmt.bindParam(0, gid);
-  stmt.execute();
-  
-  stmt.bindResult(0, &gid);
-  stmt.bindResult(1, groupname, sizeof(groupname));
-  stmt.bindResult(2, &banned);
-  stmt.bindResult(3, meta, sizeof(meta));
-  
-  if (!stmt.fetch())
-    return DmStatus(DMLITE_NO_SUCH_GROUP, SSTR("Group gid " << gid << " not found"));
-  
-  group.name      = groupname;
-  group["gid"]    = gid;
-  group["banned"] = banned;
-  group.deserialize(meta);
-  
+    Statement stmt(conn_, CNS_DB, "SELECT gid, groupname, banned, COALESCE(xattr, '')\
+    FROM Cns_groupinfo\
+    WHERE gid = ?");
+    
+    stmt.bindParam(0, gid);
+    stmt.execute();
+    
+    stmt.bindResult(0, &gid);
+    stmt.bindResult(1, groupname, sizeof(groupname));
+    stmt.bindResult(2, &banned);
+    stmt.bindResult(3, meta, sizeof(meta));
+    
+    if (!stmt.fetch())
+      return DmStatus(DMLITE_NO_SUCH_GROUP, SSTR("Group gid " << gid << " not found"));
+    
+    group.groupname      = groupname;
+    group.groupid        = gid;
+    group.banned         = banned;
+    group.xattr = meta;
+    
   } catch ( DmException e ) {
     return DmStatus(EINVAL, SSTR("Cannot access group with gid " << gid << " err: " << e.what()));
     

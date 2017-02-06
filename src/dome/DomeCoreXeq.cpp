@@ -3802,6 +3802,54 @@ int DomeCore::dome_deletegroup(DomeReq &req, FCGX_Request &request) {
   }
 }
 
+/// Get information about a user
+int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getgroup only available on head nodes.");
+  }
+  
+  std::string groupname = req.bodyfields.get<std::string>("groupname", "");
+  int gid = req.bodyfields.get<int>("groupname", 0);
+  if (!groupname.size() && !gid) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Groupname or gid not specified"));
+  }
+  
+  
+  boost::property_tree::ptree jresp;
+  
+  try {
+    DomeMySql sql;
+    DmStatus st;
+    DomeGroupInfo grp;
+
+    // If a gid was not specified then get it b gid
+    if (gid) {
+      st = sql.getGroupbyGid(grp, gid);
+      if (!st.ok())
+        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find group gid:" << gid));
+      
+    } else {
+      st = sql.getGroupbyName(grp, groupname);
+      if (!st.ok())
+        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find group name:'" << groupname << "'"));
+    }
+      
+      
+    
+    boost::property_tree::ptree pt;
+    pt.put("groupname", grp.groupname);
+    pt.put("gid", grp.groupid);
+    pt.put("banned", grp.banned);
+    pt.put("xattr", grp.xattr);
+    return DomeReq::SendSimpleResp(request, 200, pt);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get group info: '" << groupname << "' err: " << e.code() << " what: '" << e.what()));
+  }
+}
+
+
+
 
 int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
   if(status.role != status.roleHead) {
