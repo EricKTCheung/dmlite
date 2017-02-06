@@ -161,6 +161,8 @@ public:
   int dome_deleteuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
+  /// Delete a group
+  int dome_deletegroup(DomeReq &req, FCGX_Request &request);
   /// Get id mapping
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
   /// Update extended attributes
