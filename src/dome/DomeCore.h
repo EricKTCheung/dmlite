@@ -182,6 +182,8 @@ public:
   /// Create a new file
   int dome_create(DomeReq &req, FCGX_Request &request);
   
+  int dome_getcomment(DomeReq &req, FCGX_Request &request);
+  
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
   /// Utility: fill a dmlite security context with ALL the information we have

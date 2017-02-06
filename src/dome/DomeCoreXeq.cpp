@@ -3802,3 +3802,47 @@ int DomeCore::dome_deletegroup(DomeReq &req, FCGX_Request &request) {
   }
 }
 
+
+int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getcomment only available on head nodes.");
+  }
+  std::string fname, comm;
+  ino_t fid;
+  
+  using namespace boost::property_tree;
+  
+  try {
+    // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
+    fname = req.bodyfields.get<std::string>("lfn", "");
+    fid = req.bodyfields.get<ino_t>("fileid", 0);
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  
+  try {
+    DomeMySql sql;
+    ExtendedStat st;
+    // If a fileid was not specified then get it
+    if (!fid) {
+      DmStatus ret = sql.getStatbyLFN(st, fname);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << fname << "'"));
+      fid = st.stat.st_ino;
+    }
+    
+    if (sql.getComment(comm, fid).ok()) {
+      boost::property_tree::ptree pt;
+      pt.put("comment", comm);
+      return DomeReq::SendSimpleResp(request, 200,  pt);
+    }
+    else 
+      return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find comment for fileid: " << fid));
+  }
+    
+  
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
+  }
+}
