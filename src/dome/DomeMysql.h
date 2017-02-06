@@ -32,10 +32,12 @@
 #include "inode.h"
 
 
+
 class DomeStatus;
 class DomeQuotatoken;
 class DomeFsInfo;
-
+class DomeGroupInfo;
+class DomeUserInfo;
 
 class DomeMySql {
 public:
@@ -86,9 +88,9 @@ public:
   /// Get a group by name for DmLite consumption
   dmlite::DmStatus getGroupbyGid(dmlite::GroupInfo &grp, gid_t gid);
   /// Add a new group
-  dmlite::DmStatus newGroup(dmlite::GroupInfo &group, const std::string& gname);
+  dmlite::DmStatus newGroup(DomeGroupInfo &group, const std::string& gname);
   /// Add a new user
-  dmlite::DmStatus newUser(dmlite::UserInfo &user, const std::string& uname);
+  dmlite::DmStatus newUser(DomeUserInfo &user, const std::string& uname);
   dmlite::DmStatus updateUser(const dmlite::UserInfo& user);
   dmlite::DmStatus deleteUser(const std::string& userName);
   dmlite::DmStatus updateGroup(const dmlite::GroupInfo& group);
@@ -107,7 +109,13 @@ public:
   dmlite::DmStatus setComment(ino_t inode, const std::string& comment);
   
   /// Extended stat for logical file names
-  dmlite::DmStatus getStatbyLFN(dmlite::ExtendedStat &st, std::string lfn, bool followSym = false);
+  dmlite::DmStatus getStatbyLFN(dmlite::ExtendedStat &st, const std::string lfn, bool followSym = false);
+  /// Get information about the parent directory
+  dmlite::DmStatus getParent(dmlite::ExtendedStat &statinfo,
+                                const std::string& path,
+                                std::string &parentPath,
+                                std::string &name);
+  
   /// Sets the file size given the LFN
   dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
   dmlite::DmStatus setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const dmlite::Acl& acl);

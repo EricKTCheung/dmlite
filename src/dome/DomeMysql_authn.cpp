@@ -125,7 +125,7 @@ DmStatus DomeMySql::getGroupbyGid(GroupInfo &group, gid_t gid)
 
 
 
-DmStatus DomeMySql::newUser(UserInfo &user, const std::string& uname)
+DmStatus DomeMySql::newUser(DomeUserInfo &user, const std::string& uname)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << uname);
   uid_t uid=-1;
@@ -169,9 +169,9 @@ DmStatus DomeMySql::newUser(UserInfo &user, const std::string& uname)
     
     // Build and return the UserInfo
     
-    user.name      = uname;
-    user["uid"]    = uid;
-    user["banned"] = 0;
+    user.username      = uname;
+    user.userid        = uid;
+    user.banned        = 0;
   }
   catch (DmException e) {
     return DmStatus(EINVAL, SSTR("Cannot create new user: '" << uname << "' err: '" << e.what()));
@@ -234,7 +234,7 @@ DmStatus DomeMySql::deleteUser(const std::string& userName)
 
 
 
-DmStatus DomeMySql::newGroup(GroupInfo &group, const std::string& gname)
+DmStatus DomeMySql::newGroup(DomeGroupInfo &group, const std::string& gname)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, "group:" << gname);
   gid_t gid = -1;
@@ -279,9 +279,9 @@ DmStatus DomeMySql::newGroup(GroupInfo &group, const std::string& gname)
     
     
     // Build and return the GroupInfo
-    group.name      = gname;
-    group["gid"]    = gid;
-    group["banned"] = 0;
+    group.groupname      = gname;
+    group.groupid        = gid;
+    group.banned         = 0;
   }
   catch (DmException e) {
     return DmStatus(EINVAL, SSTR("Cannot create new group: '" << gname << "' err: '" << e.what()));
