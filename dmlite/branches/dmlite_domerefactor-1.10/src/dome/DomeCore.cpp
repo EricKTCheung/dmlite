@@ -302,7 +302,10 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_modquotatoken(dreq, request);
         }
         else if(dreq.domecmd == "dome_create") {
-          core->dome_create(dreq, request);
+          core->dome_create(dreq, request); 
+        }
+        else if(dreq.domecmd == "dome_deleteuser") {
+          core->dome_deleteuser(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));

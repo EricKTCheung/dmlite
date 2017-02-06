@@ -157,6 +157,8 @@ public:
   int dome_getdir(DomeReq &req, FCGX_Request &request);
   /// Get user information
   int dome_getuser(DomeReq &req, FCGX_Request &request);
+  /// Delete an user
+  int dome_deleteuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
   /// Get id mapping
@@ -169,14 +171,20 @@ public:
   /// Send a simple info message
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
   
+  /// Tells if a n user can access a file
   int dome_access(DomeReq &req, FCGX_Request &request);
+  /// Tells if an user can access a replica
   int dome_accessreplica(DomeReq &req, FCGX_Request &request);
+  /// Add a replica to a file
   int dome_addreplica(DomeReq &req, FCGX_Request &request);
+  /// Create a new file
   int dome_create(DomeReq &req, FCGX_Request &request);
+  
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
   /// Utility: fill a dmlite security context with ALL the information we have
   /// about the client that is sending the request and the user that originated it
+  /// NOTE: This is a relevant part of the authorization policy for users
   void fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req);
   
   
