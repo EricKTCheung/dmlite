@@ -3773,3 +3773,32 @@ int DomeCore::dome_deleteuser(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
   }
 }
+
+
+
+int DomeCore::dome_deletegroup(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_deletegroup only available on head nodes.");
+  }
+  std::string gname;
+  using namespace boost::property_tree;
+  
+  try {
+    gname = req.bodyfields.get<std::string>("groupname");
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  
+  try {
+    DomeMySql sql;
+    if (!sql.deleteGroup(gname).ok())
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Can't delete user '" << gname << "'"));
+    
+    return DomeReq::SendSimpleResp(request, 200,  "");
+  }
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
+  }
+}
+
