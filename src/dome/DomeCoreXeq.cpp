@@ -574,7 +574,7 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
   if (mode & X_OK) perm |= S_IEXEC;
                                      
   SecurityContext ctx;
-  req.fillSecurityContext(ctx);
+  fillSecurityContext(ctx, req);
   bool ok = false;
   
   try {
@@ -632,7 +632,7 @@ int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
     perm |= S_IEXEC;
   
   SecurityContext ctx;
-  req.fillSecurityContext(ctx);
+  fillSecurityContext(ctx, req);
   bool ok = false;
   
   try {
@@ -665,7 +665,7 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
     req.bodyfields.get<char>("type", (char)dmlite::Replica::kPermanent) );
   r.setname =  req.bodyfields.get<std::string>("setname", "");
   SecurityContext ctx;
-  req.fillSecurityContext(ctx);
+  fillSecurityContext(ctx, req);
   
   DmStatus ret;
   
@@ -676,41 +676,48 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
   }
   
   DomeMySql sql;
-
-  ExtendedStat xstat;
-  ret = sql.getStatbyFileid(xstat, r.fileid);
-  if (!ret.ok()) {
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << r.fileid << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-  }
-  if (!S_ISREG(xstat.stat.st_mode))
-    return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << r.fileid << " is not a regular file"));
   
-  // Check perms on the parents
-  ret = sql.traverseBackwards(ctx, xstat);
-  if (!ret.ok()) {
-    return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on fileid " << xstat.stat.st_ino
-      << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-  }
-  if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
+  try {
+    
+    ExtendedStat xstat;
+    ret = sql.getStatbyFileid(xstat, r.fileid);
     if (!ret.ok()) {
-      return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << r.fileid << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    if (!S_ISREG(xstat.stat.st_mode))
+      return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << r.fileid << " is not a regular file"));
+    
+    // Check perms on the parents
+    ret = sql.traverseBackwards(ctx, xstat);
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on fileid " << xstat.stat.st_ino
+      << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
+      if (!ret.ok()) {
+        return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
+        << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+      }
+      
+      // If server is empty, parse the surl
+      std::string host;
+    if (r.server.empty()) {
+      Url u(r.rfn);
+      host = u.domain;
+    }
+    else {
+      host = r.server;
+    }
+    
+    ret = sql.addReplica(r);
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot add replica " << xstat.stat.st_ino
       << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
     }
     
-  // If server is empty, parse the surl
-  std::string host;
-  if (r.server.empty()) {
-    Url u(r.rfn);
-    host = u.domain;
-  }
-  else {
-    host = r.server;
-  }
-  
-  ret = sql.addReplica(r);
-  if (!ret.ok()) {
-    return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot add replica " << xstat.stat.st_ino
-    << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  } catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot add replica rfn: '" <<
+      r.rfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
   
   return DomeReq::SendSimpleResp(request, 200, "");
@@ -3733,6 +3740,34 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
   }
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
+  }
+}
+
+
+
+int DomeCore::dome_deleteuser(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_deleteuser only available on head nodes.");
+  }
+  std::string username;
+  using namespace boost::property_tree;
+  
+  try {
+    username = req.bodyfields.get<std::string>("username");
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  
+  try {
+    DomeMySql sql;
+    if (!sql.deleteUser(username).ok())
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Can't delete user '" << username << "'"));
+    
+    return DomeReq::SendSimpleResp(request, 200,  "");
   }
   catch(DmException &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
