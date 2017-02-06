@@ -127,9 +127,11 @@ dmlite::DmStatus DomeMySql::traverseBackwards(const SecurityContext &secctx, dml
     
     res = getStatbyFileid(current, current.parent);
     if (checkPermissions(&secctx, current.acl, current.stat, S_IEXEC))
-      throw DmException(EACCES,
-                        "Can not access #%ld", current.stat.st_ino);
+      return DmStatus(EACCES, SSTR("Can not access fileid " << current.stat.st_ino <<
+        " user: '" << secctx.user.name << "'"));
   }
+  
+  return DmStatus();
 }
 
 
@@ -1258,7 +1260,7 @@ DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr
     
   }
   catch ( ... ) {
-    return DmStatus(EINVAL, SSTR("Cannot symlink fileid: " << inode << " to link '" << link << "'"));
+    return DmStatus(EINVAL, SSTR("Cannot update xattrs for fileid: " << inode << " xattrs: '" << attr.serialize() << "'"));
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );

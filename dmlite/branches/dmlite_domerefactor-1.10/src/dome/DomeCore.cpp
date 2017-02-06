@@ -226,7 +226,9 @@ void workerFunc(DomeCore *core, int myidx) {
             core->dome_info(dreq, request, myidx, authorize);
         } else if (dreq.domecmd == "dome_getcomment") {
           core->dome_getcomment(dreq, request);
-        } else {
+        } else if (dreq.domecmd == "dome_getgroup") {
+          core->dome_getgroup(dreq, request);
+        }  else {
             DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
         }
 
