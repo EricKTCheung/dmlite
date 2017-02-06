@@ -684,7 +684,7 @@ int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
 
 
 
-DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, std::string path, bool followSym) {
+DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, const std::string path, bool followSym) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << path << "'" );
 
 
@@ -1213,37 +1213,38 @@ DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr
 {
   Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " nattrs:" << attr.size() );
   
-  // If there were any checksums in list of attributes which have a legacy short
-  // type name set the first of them in the legacy csumtype, csumvalue columns
-  std::vector<std::string> keys = attr.getKeys();
-  std::string shortCsumType;
-  std::string csumValue;
-  
-  for (unsigned i = 0; i < keys.size(); ++i) {
-    if (checksums::isChecksumFullName(keys[i])) {
-      std::string csumXattr = keys[i];
-      shortCsumType = checksums::shortChecksumName(csumXattr);
-      if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
-        csumValue     = attr.getString(csumXattr);
-        break;
+  try {
+    // If there were any checksums in list of attributes which have a legacy short
+    // type name set the first of them in the legacy csumtype, csumvalue columns
+    std::vector<std::string> keys = attr.getKeys();
+    std::string shortCsumType;
+    std::string csumValue;
+    
+    for (unsigned i = 0; i < keys.size(); ++i) {
+      if (checksums::isChecksumFullName(keys[i])) {
+        std::string csumXattr = keys[i];
+        shortCsumType = checksums::shortChecksumName(csumXattr);
+        if (!shortCsumType.empty() && shortCsumType.length() <= 2) {
+          csumValue     = attr.getString(csumXattr);
+          break;
+        }
       }
     }
-  }
-  
-  if (!csumValue.empty()) {
-    Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " contextually setting short checksum:" << shortCsumType << ":" << csumValue );
-    Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
-    SET xattr = ?, csumtype = ?, csumvalue = ?\
-    WHERE fileid = ?");
     
-    stmt.bindParam(0, attr.serialize());
-    stmt.bindParam(1, shortCsumType);
-    stmt.bindParam(2, csumValue);
-    stmt.bindParam(3, inode);
-    
-    stmt.execute();
-  }
-  else {
+    if (!csumValue.empty()) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " contextually setting short checksum:" << shortCsumType << ":" << csumValue );
+      Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
+      SET xattr = ?, csumtype = ?, csumvalue = ?\
+      WHERE fileid = ?");
+      
+      stmt.bindParam(0, attr.serialize());
+      stmt.bindParam(1, shortCsumType);
+      stmt.bindParam(2, csumValue);
+      stmt.bindParam(3, inode);
+      
+      stmt.execute();
+    }
+    else {
       
       Statement stmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
       SET xattr = ?\
@@ -1254,9 +1255,14 @@ DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr
       
       stmt.execute();
     }
-  
+    
+  }
+  catch ( ... ) {
+    return DmStatus(EINVAL, SSTR("Cannot symlink fileid: " << inode << " to link '" << link << "'"));
+  }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
+  return DmStatus();
 }
 
 
@@ -1285,3 +1291,25 @@ DmStatus DomeMySql::symlink(ino_t inode, const std::string &link)
   
   return DmStatus();
 }
+
+
+DmStatus DomeMySql::getParent(ExtendedStat &statinfo,
+                              const std::string& path,
+                              std::string &parentPath,
+                              std::string &name) {
+    if (path.empty())
+      return DmStatus(EINVAL, "Empty path");
+      
+    std::vector<std::string> components = Url::splitPath(path);
+    
+    name = components.back();
+    components.pop_back();
+    
+    parentPath = Url::joinPath(components);
+    
+    // Get the files now
+    return this->getStatbyLFN(statinfo, parentPath);
+    
+  }
+                                  
+                                  

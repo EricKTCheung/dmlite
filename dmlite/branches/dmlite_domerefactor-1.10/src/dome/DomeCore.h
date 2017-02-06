@@ -172,10 +172,12 @@ public:
   int dome_access(DomeReq &req, FCGX_Request &request);
   int dome_accessreplica(DomeReq &req, FCGX_Request &request);
   int dome_addreplica(DomeReq &req, FCGX_Request &request);
-  
+  int dome_create(DomeReq &req, FCGX_Request &request);
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
-  
+  /// Utility: fill a dmlite security context with ALL the information we have
+  /// about the client that is sending the request and the user that originated it
+  void fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req);
   
   
 

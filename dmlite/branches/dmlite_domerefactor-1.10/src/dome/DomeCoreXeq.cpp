@@ -725,6 +725,115 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
 
 
 
+int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
+{
+  struct dmlite::ExtendedStat f;
+  std::string path = req.bodyfields.get<std::string>("path", "");
+  mode_t mode = req.bodyfields.get<mode_t>("mode", 0);
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << path << "' mode: " << mode);
+  
+  DomeMySql sql;
+  ExtendedStat parent;
+  std::string parentPath, name;
+  DmStatus ret = sql.getParent(parent, path, parentPath, name);
+
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  
+  
+  
+  if ( !path.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty path"));
+  }
+    
+  // Need to be able to write to the parent
+  if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentPath.c_str() << "'"));
+
+  ExtendedStat fstat;
+  // Check that the file does not exist, or it has no replicas. The query by parent fileid is faster
+  ret = sql.getStatbyParentFileid(fstat, parent.stat.st_ino, name);
+  
+  if(ret.ok()) {
+    std::vector <Replica> reps;
+    sql.getReplicas(reps, fstat.stat.st_ino);
+    
+    if (reps.size() > 0)
+      DomeReq::SendSimpleResp(request, 403, SSTR("Exists and has replicas. Can not truncate '" << path << "'"));
+      else if (S_ISDIR(fstat.stat.st_mode))
+        throw DmException(EISDIR,
+                          "%s is a directory. Can not truncate", path.c_str());
+  }
+  else {
+    if(ret.code() != ENOENT) DomeReq::SendSimpleResp(request, 422, SSTR("Unexpected error on path '" << path <<
+      "' err: " << ret.code() << "'" << ret.what() << "'"));
+  }
+  
+  
+  // Effective gid
+  gid_t egid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
+    mode |= S_ISGID;
+  }
+  else {
+    // We take the gid of the first group of the user
+    // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
+    // and I don't really know what to do
+    egid = ctx.groups[0].getUnsigned("gid");
+  }
+  
+  
+  // Create new
+  if (ret.code() == ENOENT) {
+    ExtendedStat newFile;
+    newFile.parent       = parent.stat.st_ino;
+    newFile.name         = name;
+    newFile.stat.st_mode = (mode & ~S_IFMT) | S_IFREG;
+    newFile.stat.st_size = 0;
+    newFile.stat.st_uid  = ctx.user.getUnsigned("uid");
+    newFile.stat.st_gid  = egid;
+    newFile.status       = ExtendedStat::kOnline;
+    
+    // Generate inherited ACL's if there are defaults
+    if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj))
+      newFile.acl = Acl(parent.acl,
+                        ctx.user.getUnsigned("uid"),
+                        egid,
+                        mode,
+                        &newFile.stat.st_mode);
+      
+      sql.create(newFile);
+  }
+  
+  // Truncate
+  else {
+    if (ctx.user.getUnsigned("uid") != fstat.stat.st_uid &&
+      checkPermissions(&ctx, fstat.acl, fstat.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to truncate '" << path.c_str() << "'"));
+    
+    sql.setSize(fstat.stat.st_ino, 0);
+  }
+    
+    
+    
+    
+    
+    
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
+
+
+
+
+
+
+
+
+
 int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 
 
