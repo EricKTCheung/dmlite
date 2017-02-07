@@ -342,9 +342,9 @@ DmStatus DomeMySql::deleteGroup(const std::string& groupName)
 
 
 
-DmStatus DomeMySql::getGroupsVec(std::vector<GroupInfo> &groups)
+DmStatus DomeMySql::getGroupsVec(std::vector<DomeGroupInfo> &groups)
 {
-  GroupInfo group;
+  DomeGroupInfo group;
   groups.clear();
   
   Log(Logger::Lvl4, domelogmask, domelogname, "");
@@ -364,16 +364,16 @@ DmStatus DomeMySql::getGroupsVec(std::vector<GroupInfo> &groups)
     stmt.bindResult(3, meta, sizeof(meta));
     
     while (stmt.fetch()) {
-      group.clear();
-      group.name      = gname;
-      group["gid"]    = gid;
-      group["banned"] = banned;
-      group.deserialize(meta);
+      group.groupname      = gname;
+      group.groupid        = gid;
+      group.banned         = banned;
+      group.xattr = meta;
       groups.push_back(group);
     }
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading groups. Groups read:" << groups.size());
+    
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. ngroups:" << groups.size());
@@ -431,10 +431,10 @@ int DomeMySql::getGroups(DomeStatus &st)
   return cnt;
 }
 
-DmStatus DomeMySql::getUsersVec(std::vector<UserInfo> &users)
+DmStatus DomeMySql::getUsersVec(std::vector<DomeUserInfo> &users)
 {
   
-  UserInfo user;
+  DomeUserInfo user;
   
   Log(Logger::Lvl4, domelogmask, domelogname, "");
   
@@ -454,13 +454,12 @@ DmStatus DomeMySql::getUsersVec(std::vector<UserInfo> &users)
     stmt.bindResult(4, meta, sizeof(meta));
     
     while (stmt.fetch()) {
-      user.clear();
       
-      user.name      = uname;
-      user["uid"]    = uid;
-      user["banned"] = banned;
-      user["ca"]     = std::string(ca);
-      user.deserialize(meta);
+      user.username      = uname;
+      user.userid        = uid;
+      user.banned        = banned;
+      user.ca            = std::string(ca);
+      user.xattr = meta;
       
       users.push_back(user);
     }

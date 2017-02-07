@@ -757,7 +757,7 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
-    return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentPath.c_str() << "'"));
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentPath << "'"));
 
   ExtendedStat fstat;
   // Check that the file does not exist, or it has no replicas. The query by parent fileid is faster
@@ -812,14 +812,16 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
                         mode,
                         &newFile.stat.st_mode);
       
-      sql.create(newFile);
+      ret = sql.create(newFile);
+    if (!ret.ok())
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Can't create file '" << path << "'")); 
   }
   
   // Truncate
   else {
     if (ctx.user.getUnsigned("uid") != fstat.stat.st_uid &&
       checkPermissions(&ctx, fstat.acl, fstat.stat, S_IWRITE) != 0)
-      return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to truncate '" << path.c_str() << "'"));
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to truncate '" << path << "'"));
     
     sql.setSize(fstat.stat.st_ino, 0);
   }
@@ -3650,31 +3652,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
 
 }
 
-/// Get information about a user
-int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
-  if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getuser only available on head nodes.");
-  }
 
-  std::string username = req.bodyfields.get<std::string>("username", "");
-  if (!username.size()) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Username not specified"));
-  }
-
-  DmlitePoolHandler stack(status.dmpool);
-  boost::property_tree::ptree jresp;
-
-  try {
-    UserInfo userinfo = stack->getAuthn()->getUser(username);
-    boost::property_tree::ptree pt;
-    pt.put("uid", userinfo.getLong("uid"));
-    pt.put("banned", userinfo.getLong("banned"));
-    return DomeReq::SendSimpleResp(request, 200, pt);
-  }
-  catch (DmException e) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get user info: '" << username << "' err: " << e.code() << " what: '" << e.what()));
-  }
-}
 
 /// Get id mapping
 int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
@@ -3894,3 +3872,316 @@ int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
   }
 }
+
+
+
+
+
+int DomeCore::dome_getgroupsvec(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getgroupsvec only available on head nodes.");
+  }
+  
+  
+  boost::property_tree::ptree jresp, jresp2;
+  
+  try {
+    DomeMySql sql;
+    DmStatus st;
+    std::vector<DomeGroupInfo> groups;
+    
+    // Get all the groups and build a json array response
+    st = sql.getGroupsVec(groups);
+    if (!st.ok())
+      return DomeReq::SendSimpleResp(request, 400, "Can't get groups.");
+      
+    for (uint ii = 0; ii < groups.size(); ii++) {
+      boost::property_tree::ptree pt;
+      
+      pt.put("groupname", groups[ii].groupname);
+      pt.put("gid", groups[ii].groupid);
+      pt.put("banned", groups[ii].banned);
+      pt.put("xattr", groups[ii].xattr);
+      jresp2.push_back(std::make_pair("", pt));
+    }
+    jresp.push_back(std::make_pair("groups", jresp2));
+    
+    return DomeReq::SendSimpleResp(request, 200, jresp);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get groups. err:" <<
+      e.code() << " what: '" << e.what()));
+  }
+}
+
+int DomeCore::dome_getusersvec(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getusersvec only available on head nodes.");
+  }
+  
+  
+  boost::property_tree::ptree jresp, jresp2;
+  
+  try {
+    DomeMySql sql;
+    DmStatus st;
+    std::vector<DomeUserInfo> users;
+    
+    // Get all the groups and build a json array response
+    st = sql.getUsersVec(users);
+    if (!st.ok())
+      return DomeReq::SendSimpleResp(request, 400, "Can't get userss.");
+    
+    for (uint ii = 0; ii < users.size(); ii++) {
+      boost::property_tree::ptree pt;
+      
+      pt.put("username", users[ii].username);
+      pt.put("userid", users[ii].userid);
+      pt.put("banned", users[ii].banned);
+      pt.put("xattr", users[ii].xattr);
+      jresp2.push_back(std::make_pair("", pt));
+    }
+    jresp.push_back(std::make_pair("users", jresp2));
+    
+    return DomeReq::SendSimpleResp(request, 200, jresp);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get groups. err:" <<
+    e.code() << " what: '" << e.what()));
+  }
+}
+
+int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getreplicavec only available on head nodes.");
+  }
+  
+  using namespace boost::property_tree;
+  
+  ino_t fid;
+  try {
+    fid = req.bodyfields.get<ino_t>("fileid", 0);
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+
+  boost::property_tree::ptree jresp, jresp2;
+  std::vector<Replica> reps;
+  
+  try {
+    DomeMySql sql;
+    DmStatus st;
+    ExtendedStat xst;
+
+    st = sql.getReplicas(reps, fid);
+    if (!st.ok())
+      return DomeReq::SendSimpleResp(request, 400, SSTR("Can't get replicas of fileid " << fid <<
+        " err: " << st.code() << " what:" << st.what()) );
+    
+    
+    for (uint ii = 0; ii < reps.size(); ii++) {
+      boost::property_tree::ptree pt;
+      
+      pt.put("replicaid", reps[ii].replicaid);
+      pt.put("fileid", reps[ii].fileid);
+      pt.put("nbaccesses", reps[ii].nbaccesses);
+      pt.put("atime", reps[ii].atime);
+      pt.put("ptime", reps[ii].ptime);
+      pt.put("ltime", reps[ii].ltime);
+      pt.put("status", reps[ii].status);
+      pt.put("type", reps[ii].type);
+      pt.put("server", reps[ii].server);
+      pt.put("rfn", reps[ii].rfn);
+      pt.put("setname", reps[ii].setname);
+      pt.put("xattrs", reps[ii].serialize());
+      jresp2.push_back(std::make_pair("", pt));
+    }
+    jresp.push_back(std::make_pair("replicas", jresp2));
+    
+    return DomeReq::SendSimpleResp(request, 200, jresp);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get replicas. err:" <<
+    e.code() << " what: '" << e.what()));
+  }
+}
+
+
+
+
+int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getuser only available on head nodes.");
+  }
+
+  using namespace boost::property_tree;
+  int uid;
+  std::string username;
+  ptree jresp;
+  try {
+    uid = req.bodyfields.get<int>("userid", -1);
+    username = req.bodyfields.get<std::string>("username", "");
+  }
+  catch(ptree_error &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+  }
+  
+  if ( (uid < 0) && (!username.size()) )
+    return DomeReq::SendSimpleResp(request, 400, SSTR("It's a hard life without userid or username, dear friend."));
+  
+  try {
+    DmStatus st;
+    DomeUserInfo ui;
+    
+    // Get the user directly from the internal hashes
+    {
+    boost::unique_lock<boost::recursive_mutex> l(status);
+    if (uid >= 0) {
+      if (!status.getUser(uid, ui))
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find userid " << uid));
+    }
+    else if (!status.getUser(username, ui))
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find username '" << username << "'"));
+    }
+
+    jresp.put("groupname", ui.username);
+    jresp.put("gid", ui.userid);
+    jresp.put("banned", ui.banned);
+    jresp.put("xattr", ui.xattr);
+    
+    return DomeReq::SendSimpleResp(request, 200, jresp);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get groups. err:" <<
+    e.code() << " what: '" << e.what()));
+  }
+}
+
+
+int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
+  
+  std::string parentpath, path;
+  mode_t mode;
+  
+  path = req.bodyfields.get<std::string>("path", "");
+  mode = req.bodyfields.get<mode_t>("mode", -1);
+  
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << path << "' mode: " << mode);
+  
+  if (mode < 0)
+    return DomeReq::SendSimpleResp(request, 422, SSTR("No mode specified"));
+  if (path.length() < 0)
+    return DomeReq::SendSimpleResp(request, 422, SSTR("No path specified"));
+  
+  
+  SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  DomeMySql sql;
+  ExtendedStat parent;
+  std::string dname;
+  DmStatus ret = sql.getParent(parent, path, parentpath, dname);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << path << "'"));
+  
+  // Need to be able to write to the parent
+  if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentpath << "'"));
+  
+  // Create the folder
+  ExtendedStat newFolder;
+  // zero stat structure
+  memset(&newFolder.stat, 0, sizeof(newFolder.stat));
+  newFolder.parent      = parent.stat.st_ino;
+  newFolder.name        = dname;
+  newFolder.stat.st_uid = ctx.user.getUnsigned("uid");
+  newFolder.status      = ExtendedStat::kOnline;    
+  // Mode
+  newFolder.stat.st_mode = (mode & ~S_IFMT) | S_IFDIR;
+  
+  // Effective gid
+  gid_t egid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
+    newFolder.stat.st_mode |= S_ISGID;
+  }
+  else {
+    // We take the gid of the first group of the user
+    // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
+    // and I don't really know what to do
+    egid = ctx.groups[0].getUnsigned("gid");
+  }
+  newFolder.stat.st_gid = egid;
+  
+  
+  
+  // Generate inherited ACL's if there are defaults
+  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
+    newFolder.acl = Acl(parent.acl,
+                        ctx.user.getUnsigned("uid"),
+                        egid,
+                        mode,
+                        &newFolder.stat.st_mode);
+    
+  // Register
+  ret = sql.create(newFolder);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't create folder '" << path << "'")); 
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
+
+
+
+
+
+int DomeCore::dome_newgroup(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_newgroup only available on head nodes.");
+  }
+  
+  std::string grpname = req.bodyfields.get<std::string>("groupname", "");
+  boost::property_tree::ptree pt;
+  
+  DomeMySql sql;
+  DmStatus st;
+  DomeGroupInfo g;
+  // Get all the groups and build a json array response
+  st = sql.newGroup(g, grpname);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Can't create group '" << grpname <<
+      "' err:" << st.code() << " '" << st.what()));
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+  
+}
+
+
+
+
+int DomeCore::dome_newuser(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_newuser only available on head nodes.");
+  }
+  
+  std::string usname = req.bodyfields.get<std::string>("username", "");
+  boost::property_tree::ptree pt;
+  
+  DomeMySql sql;
+  DmStatus st;
+  DomeUserInfo u;
+  // Get all the groups and build a json array response
+  st = sql.newUser(u, usname);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Can't create user '" << usname <<
+      "' err:" << st.code() << " '" << st.what()));
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+  
+}
+
+
+
+

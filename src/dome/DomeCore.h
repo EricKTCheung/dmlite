@@ -149,20 +149,33 @@ public:
   int dome_modifyfs(DomeReq &req, FCGX_Request &request);
 
 
+  /// Creates a directory
+  int dome_makedir(DomeReq &req, FCGX_Request &request);
+  
   /// Fecthes logical stat information for an LFN or file ID or a pfn
   int dome_getstatinfo(DomeReq &req, FCGX_Request &request);
   /// Fecthes replica info from a rfn
   int dome_getreplicainfo(DomeReq &req, FCGX_Request &request);
+  /// Get all the replicas of a given file
+  int dome_getreplicavec(DomeReq &req, FCGX_Request &request);
   /// Like an HTTP GET on a directory, gets all the content
   int dome_getdir(DomeReq &req, FCGX_Request &request);
   /// Get user information
   int dome_getuser(DomeReq &req, FCGX_Request &request);
+  /// Get all the uses in one shot
+  int dome_getusersvec(DomeReq &req, FCGX_Request &request);
+  /// Adds an user
+  int dome_newuser(DomeReq &req, FCGX_Request &request);
   /// Delete an user
   int dome_deleteuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
+  /// Get all the groups in one shot
+  int dome_getgroupsvec(DomeReq &req, FCGX_Request &request);
   /// Delete a group
   int dome_deletegroup(DomeReq &req, FCGX_Request &request);
+  /// Create a new group
+  int dome_newgroup(DomeReq &req, FCGX_Request &request);
   /// Get id mapping
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
   /// Update extended attributes
