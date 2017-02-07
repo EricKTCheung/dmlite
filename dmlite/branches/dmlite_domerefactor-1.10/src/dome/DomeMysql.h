@@ -78,14 +78,14 @@ public:
 
   // ------------------------------------------
   // ------------------ dmlite authn functions
-  /// Loads the groups into the given vector for DmLite consumption
-  dmlite::DmStatus getGroupsVec(std::vector<dmlite::GroupInfo> &groups);
-  /// Loads the users into the given vector for DmLite consumption
-  dmlite::DmStatus getUsersVec(std::vector<dmlite::UserInfo> &users);
+  /// Loads the groups into the given vector
+  dmlite::DmStatus getGroupsVec(std::vector<DomeGroupInfo> &groups);
+  /// Loads the users into the given vector
+  dmlite::DmStatus getUsersVec(std::vector<DomeUserInfo> &users);
   
-  /// Get a group by name for DmLite consumption
+  /// Get a group by name
   dmlite::DmStatus getGroupbyName(DomeGroupInfo &grp, const std::string& groupName);
-  /// Get a group by name for DmLite consumption
+  /// Get a group by name
   dmlite::DmStatus getGroupbyGid(DomeGroupInfo &grp, gid_t gid);
   /// Add a new group
   dmlite::DmStatus newGroup(DomeGroupInfo &group, const std::string& gname);

@@ -29,11 +29,11 @@
 #include "DomeGenQueue.h"
 #include "utils/DavixPool.h"
 #include "DomeDmlitePool.h"
+#include "dmlite/cpp/authn.h"
 
 class DomeReq;
 class DomeQuotatoken;
 class DomeStatus;
-
 
 class DomePoolInfo {
 
@@ -167,6 +167,8 @@ public:
 
   DomeUserInfo(): userid(-1), banned(false) {};
 
+  dmlite::UserInfo getDmLiteUser();
+  
   /// The user id
   int16_t userid;
 
@@ -175,6 +177,9 @@ public:
 
   /// Tha banned status
   bool banned;
+  
+  /// What's this?
+  std::string ca;
 
   /// additional info
   std::string xattr;
@@ -186,6 +191,8 @@ public:
 
   DomeGroupInfo(): groupid(-1), banned(false) {};
 
+  dmlite::GroupInfo getDmLiteGroup();
+  
   /// The user id
   int16_t groupid;
 

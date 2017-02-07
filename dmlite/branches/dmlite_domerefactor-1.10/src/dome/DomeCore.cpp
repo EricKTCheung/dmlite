@@ -220,6 +220,8 @@ void workerFunc(DomeCore *core, int myidx) {
             core->dome_getdir(dreq, request);
         } else if ( dreq.domecmd == "dome_getuser" ) {
             core->dome_getuser(dreq, request);
+        } else if ( dreq.domecmd == "dome_getusersvec" ) {
+          core->dome_getusersvec(dreq, request);
         } else if ( dreq.domecmd == "dome_getidmap" ) {
             core->dome_getidmap(dreq, request);
         } else if (dreq.domecmd == "dome_info") {
@@ -228,8 +230,12 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_getcomment(dreq, request);
         } else if (dreq.domecmd == "dome_getgroup") {
           core->dome_getgroup(dreq, request);
-        }  else {
-            DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
+        } else if (dreq.domecmd == "dome_getgroupsvec") {
+          core->dome_getgroupsvec(dreq, request);
+        } else if (dreq.domecmd == "dome_getreplicavec") {
+          core->dome_getreplicavec(dreq, request);
+        } else {
+          DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
         }
 
       } else if(dreq.verb == "HEAD"){ // meaningless placeholder
@@ -308,11 +314,17 @@ void workerFunc(DomeCore *core, int myidx) {
         else if(dreq.domecmd == "dome_create") {
           core->dome_create(dreq, request); 
         }
+        else if(dreq.domecmd == "dome_makedir") {
+          core->dome_makedir(dreq, request); 
+        }
         else if(dreq.domecmd == "dome_deleteuser") {
           core->dome_deleteuser(dreq, request);
         }
         else if(dreq.domecmd == "dome_deletegroup") {
           core->dome_deletegroup(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_newgroup") {
+          core->dome_newgroup(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
