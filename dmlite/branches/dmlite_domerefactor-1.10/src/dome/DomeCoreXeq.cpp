@@ -743,7 +743,7 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
   DomeMySql sql;
   ExtendedStat parent;
   std::string parentPath, name;
-  DmStatus ret = sql.getParent(parent, path, parentPath, name);
+  
 
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
@@ -755,6 +755,7 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty path"));
   }
     
+  DmStatus ret = sql.getParent(parent, path, parentPath, name);
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentPath << "'"));
@@ -788,7 +789,7 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
   else {
     // We take the gid of the first group of the user
     // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
-    // and I don't really know what to do
+    // and I don't really know what to do with this sneaky assumption
     egid = ctx.groups[0].getUnsigned("gid");
   }
   
@@ -4184,4 +4185,91 @@ int DomeCore::dome_newuser(DomeReq &req, FCGX_Request &request) {
 
 
 
+int DomeCore::dome_readlink(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_readlink only available on head nodes.");
+  }
+  std::string lfn = req.bodyfields.get<std::string>("lfn", "");
+  
+  DomeMySql sql;
+  ExtendedStat xstat;
+  DmStatus st = sql.getStatbyLFN(xstat, lfn);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "'"));
+  
+  if (!S_ISLNK(xstat.stat.st_mode))
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Not a symlink lfn: '" <<
+      lfn << "'"));
+  
+  SymLink l;
+  st = sql.readLink(l, xstat.stat.st_ino);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot get link lfn: '" << lfn <<
+    "' fileid: " << xstat.stat.st_ino));
+  
+  boost::property_tree::ptree jresp;
+  jresp.put("link", l.link);
+  return DomeReq::SendSimpleResp(request, 200, jresp);
+}
 
+
+int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_removedir only available on head nodes.");
+  }
+  std::string path = req.bodyfields.get<std::string>("path", "");
+  
+  std::string parentPath, name;
+  DomeMySql sql;
+  
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  // Fail inmediately with '/'
+  if ((path == "/") || (path == ""))
+    throw DmException(EINVAL, "Can not remove '/'");
+  
+  // Get the parent of the new folder
+  ExtendedStat parent;
+  DmStatus ret = sql.getParent(parent, path, parentPath, name);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot get parent of path: '" << path << "' err: " << ret.code() << " what: '" << ret.what() << "'") );
+  
+  
+  // Get the file starting from the parent, and check it is a directory and it is empty
+  ExtendedStat entry;
+  ret = sql.getStatbyParentFileid(entry, parent.stat.st_ino, name);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unexpected error on path '" << path <<
+  "' err: " << ret.code() << "'" << ret.what() << "'"));
+  
+  
+  if (!S_ISDIR(entry.stat.st_mode))
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Not a directory. Can not remove path '" << path << "'"));
+          
+  if (entry.stat.st_nlink > 0)
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Not empty. Can not remove path '" << path << "'"));
+        
+        // Check we can remove it
+  if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
+    // Sticky bit set
+    if ( (ctx.user.getUnsigned("uid") != entry.stat.st_uid) &&
+         (ctx.user.getUnsigned("uid") != parent.stat.st_uid) &&
+         checkPermissions(&ctx, entry.acl, entry.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403,
+                                     SSTR("Not enough permissions to remove '" << path <<
+                                     "' (sticky bit set)") );
+  }
+  else {
+    // No sticky bit
+    if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to remove " << path));
+  }
+  
+  ret = sql.unlink(entry.stat.st_ino);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to remove path '" << path <<
+    "' err: " << ret.code() << "'" << ret.what() << "'"));
+        
+  return DomeReq::SendSimpleResp(request, 200, "");
+}

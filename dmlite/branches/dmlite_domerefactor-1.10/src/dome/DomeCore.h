@@ -194,8 +194,12 @@ public:
   int dome_addreplica(DomeReq &req, FCGX_Request &request);
   /// Create a new file
   int dome_create(DomeReq &req, FCGX_Request &request);
-  
+  /// Get the comment associated to a file
   int dome_getcomment(DomeReq &req, FCGX_Request &request);
+  /// Get the destination of a symlink
+  int dome_readlink(DomeReq &req, FCGX_Request &request);
+  /// Remove a directory
+  int dome_removedir(DomeReq &req, FCGX_Request &request);
   
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
