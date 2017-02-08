@@ -234,6 +234,8 @@ void workerFunc(DomeCore *core, int myidx) {
           core->dome_getgroupsvec(dreq, request);
         } else if (dreq.domecmd == "dome_getreplicavec") {
           core->dome_getreplicavec(dreq, request);
+        } else if (dreq.domecmd == "dome_readlink") {
+          core->dome_readlink(dreq, request);
         } else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
         }
@@ -328,6 +330,9 @@ void workerFunc(DomeCore *core, int myidx) {
         }
         else if(dreq.domecmd == "dome_newgroup") {
           core->dome_newgroup(dreq, request);
+        }
+        else if (dreq.domecmd == "dome_removedir") {
+          core->dome_removedir(dreq, request);
         }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));

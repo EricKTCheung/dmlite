@@ -804,7 +804,7 @@ DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, const std::string p
 
 
 
-dmlite::DmStatus DomeMySql::readLink(SymLink link, int64_t fileid)
+dmlite::DmStatus DomeMySql::readLink(SymLink &link, int64_t fileid)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
 

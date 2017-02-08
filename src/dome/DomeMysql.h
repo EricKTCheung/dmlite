@@ -144,7 +144,7 @@ public:
   dmlite::DmStatus move(ino_t inode, ino_t dest);
   
   /// Read a link
-  dmlite::DmStatus readLink(dmlite::SymLink link, int64_t fileid);
+  dmlite::DmStatus readLink(dmlite::SymLink &link, int64_t fileid);
   
   /// Add a replica
   dmlite::DmStatus addReplica(const dmlite::Replica& replica);
