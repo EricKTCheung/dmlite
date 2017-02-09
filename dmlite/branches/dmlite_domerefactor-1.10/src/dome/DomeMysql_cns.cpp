@@ -33,7 +33,8 @@
 #include "inode.h"
 #include "utils/urls.h"
 
-#include "boost/thread.hpp"
+#include <boost/thread.hpp>
+#include <time.h>
 
 using namespace dmlite;
 
@@ -1298,20 +1299,83 @@ DmStatus DomeMySql::symlink(ino_t inode, const std::string &link)
 DmStatus DomeMySql::getParent(ExtendedStat &statinfo,
                               const std::string& path,
                               std::string &parentPath,
-                              std::string &name) {
-    if (path.empty())
-      return DmStatus(EINVAL, "Empty path");
-      
-    std::vector<std::string> components = Url::splitPath(path);
+                              std::string &name)
+{
+  if (path.empty())
+    return DmStatus(EINVAL, "Empty path");
+  
+  std::vector<std::string> components = Url::splitPath(path);
+  
+  name = components.back();
+  components.pop_back();
+  
+  parentPath = Url::joinPath(components);
+  
+  // Get the files now
+  return this->getStatbyLFN(statinfo, parentPath);
+  
+}
+
+
+
+DmStatus DomeMySql::rename(ino_t inode, const std::string& name) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " name:" << name);
+  
+  try {
+    Statement changeNameStmt(conn_, CNS_DB, "UPDATE Cns_file_metadata\
+    SET name = ?, ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?");
     
-    name = components.back();
-    components.pop_back();
+    changeNameStmt.bindParam(0, name);
+    changeNameStmt.bindParam(1, inode);
     
-    parentPath = Url::joinPath(components);
+    if (changeNameStmt.execute() == 0)
+      return DmStatus(DMLITE_SYSERR(DMLITE_INTERNAL_ERROR), SSTR("Could not change the name of inode " <<
+      inode << " name '" << name << "'"));
     
-    // Get the files now
-    return this->getStatbyLFN(statinfo, parentPath);
     
   }
-                                  
-                                  
+  catch ( ... ) {
+    return DmStatus(EINVAL, SSTR("Cannot rename fileid: " << inode << " to name '" << name << "'"));
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode << " name:" << name);
+  
+  return DmStatus();
+}
+
+
+dmlite::DmStatus DomeMySql::utime(ino_t inode, const utimbuf *buf) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode);
+  
+  try {
+    // If NULL, current time.
+    struct utimbuf internal;
+    if (buf == NULL) {
+      buf = &internal;
+      internal.actime  = time(NULL);
+      internal.modtime = time(NULL);
+    }
+    
+    // Change
+    
+    Statement stmt(conn_, CNS_DB,     "UPDATE Cns_file_metadata\
+    SET atime = ?, mtime = ?, ctime = UNIX_TIMESTAMP()\
+    WHERE fileid = ?");
+    stmt.bindParam(0, buf->actime);
+    stmt.bindParam(1, buf->modtime);
+    stmt.bindParam(2, inode);
+    
+    stmt.execute();
+    
+  }
+  catch ( ... ) {
+    return DmStatus(EINVAL, SSTR("Cannot set time to fileid: " << inode));
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode);
+  
+  return DmStatus();
+}
+
+

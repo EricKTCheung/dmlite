@@ -142,7 +142,8 @@ public:
   
   /// Move an entity to a different parent dir
   dmlite::DmStatus move(ino_t inode, ino_t dest);
-  
+  /// Change the name of a file
+  dmlite::DmStatus rename(ino_t inode, const std::string& name);
   /// Read a link
   dmlite::DmStatus readLink(dmlite::SymLink &link, int64_t fileid);
   
@@ -150,6 +151,9 @@ public:
   dmlite::DmStatus addReplica(const dmlite::Replica& replica);
   /// Updates the fields of a replica
   dmlite::DmStatus updateReplica(const dmlite::Replica& rdata);
+  
+  /// Updates the time fields. Set buffer to NULL to set with the current time
+  dmlite::DmStatus utime(ino_t inode, const utimbuf *utim);
   
   /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
   dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
