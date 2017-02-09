@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <functional>
+#include <time.h>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -980,23 +981,25 @@ bool DomeCore::addFilesizeToDirs(INode *inodeintf, ExtendedStat file, int64_t si
     }
   }
 
-  DomeMySql sql;
-  DomeMySqlTrans t(&sql);
+  {
+    DomeMySql sql;
+    DomeMySqlTrans t(&sql);
 
-  // Update the filesize in the first levels
-  // Avoid the contention on /dpm/voname/home
-  if (idx > 0) {
-    Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
-    for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << size);
-      sql.addtoDirectorySize(hierarchy[i], size);
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    if (idx > 0) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
+        Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << size);
+        sql.addtoDirectorySize(hierarchy[i], size);
+      }
     }
-  }
-  else {
-    Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
-  }
+    else {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
+    }
 
-  t.Commit();
+    t.Commit();
+  }
   return true;
 }
 
@@ -4227,7 +4230,7 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
   
   // Fail inmediately with '/'
   if ((path == "/") || (path == ""))
-    throw DmException(EINVAL, "Can not remove '/'");
+    return DomeReq::SendSimpleResp(request, 422, "Can not remove '/' or empty paths.");
   
   // Get the parent of the new folder
   ExtendedStat parent;
@@ -4273,3 +4276,158 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
         
   return DomeReq::SendSimpleResp(request, 200, "");
 }
+
+
+
+
+int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
+
+  std::string oldPath = req.bodyfields.get<std::string>("oldpath", "");
+  std::string newPath = req.bodyfields.get<std::string>("newpath", "");
+  std::string oldParentPath, newParentPath;
+  std::string oldName,       newName;
+
+  
+  // Do not even bother with '/'
+  if (oldPath == "/" || oldPath == ""|| newPath == "/" || newPath == "")
+      return DomeReq::SendSimpleResp(request, 422, "Cannot process empty paths or '/'");
+
+  DomeMySql sql;
+  
+  // Get source and destination parent
+  ExtendedStat oldParent, newParent;
+  DmStatus ret = sql.getParent(oldParent, oldPath, oldParentPath, oldName);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << oldPath << "'"));
+  
+  ret = sql.getParent(newParent, newPath, oldParentPath, newName);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << newPath << "'"));
+  
+  // Stat source
+  ExtendedStat old;
+  ret = sql.getStatbyParentFileid(old, oldParent.stat.st_ino, oldName);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot stat path '" << oldPath <<
+    "' err: " << ret.code() << "'" << ret.what() << "'"));
+               
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  // Need write permissions in both origin and destination
+  if (checkPermissions(&ctx, oldParent.acl, oldParent.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403,
+                                   SSTR("Not enough permissions on origin path '" << oldParentPath << "'"));
+                                
+  if (checkPermissions(&ctx, newParent.acl, newParent.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403,
+                                   SSTR("Not enough permissions on destination path '" << newParentPath << "'"));
+                                  
+  // If source is a directory, need write permissions there too
+  if (S_ISDIR(old.stat.st_mode)) {
+    if (checkPermissions(&ctx, old.acl, old.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403,
+                                     SSTR("Not enough permissions on path '" << oldPath << "'"));
+                                      
+    // AND destination can not be a child
+    ExtendedStat aux = newParent;
+                                    
+    while (aux.parent > 0) {
+      if (aux.stat.st_ino == old.stat.st_ino)
+        return DomeReq::SendSimpleResp(request, 422, "Destination is descendant of source");
+      
+      ret = sql.getStatbyFileid(aux, aux.parent);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot stat fileid '" << aux.parent <<
+        "' err: " << ret.code() << "'" << ret.what() << "'"));
+    }
+  }
+                                  
+  // Check sticky
+  if (oldParent.stat.st_mode & S_ISVTX &&
+      ctx.user.getUnsigned("uid") != oldParent.stat.st_uid &&
+      ctx.user.getUnsigned("uid") != old.stat.st_uid &&
+      checkPermissions(&ctx, old.acl, old.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403,
+      "Sticky bit set on the parent, and not enough permissions");
+    
+  // If the destination exists...
+    
+  ExtendedStat newF;
+  ret = sql.getStatbyParentFileid(newF, newParent.stat.st_ino, newName);
+  if ( (!ret.ok()) && (ret.code() != ENOENT) )
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot stat destination path '" << oldPath <<
+    "' err: " << ret.code() << "'" << ret.what() << "'"));
+  
+  if (ret.ok()) { // The file was found
+    // If it is the same, leave the function
+    if (newF.stat.st_ino == old.stat.st_ino)
+      return DomeReq::SendSimpleResp(request, 200,
+                                     "Source is the same as destination, that's funny.");
+    
+    // It does! It has to be the same type
+    if ((newF.stat.st_mode & S_IFMT) != (old.stat.st_mode & S_IFMT)) {
+      if (S_ISDIR(old.stat.st_mode))
+        return DomeReq::SendSimpleResp(request, 422,
+                          "Source is a directory and destination is not.");
+      else
+        return DomeReq::SendSimpleResp(request, 422,
+                          "Source is not directory and destination is.");
+    }
+    
+    // And it has to be empty. Just call remove or unlink
+    // and they will fail if it is not
+    if (S_ISDIR(newF.stat.st_mode)) {
+      if (newF.stat.st_nlink > 0)
+        return DomeReq::SendSimpleResp(request, 422,
+                                       SSTR("The destination directory '" << newPath << "' is not empty"));
+    }
+    else {
+      // Check there are no replicas
+      if (!S_ISLNK(newF.stat.st_mode)) {
+        std::vector<Replica> reps;
+        ret = sql.getReplicas(reps, newF.stat.st_ino);
+        if (reps.size() > 0)
+          return DomeReq::SendSimpleResp(request, 422,
+                                         SSTR("The destination file '" << newPath << "' exists and has replicas."));
+      
+      }
+      // It's safe to remove it
+      sql.unlink(newF.stat.st_ino);
+    }
+  }
+  
+  
+  // We are good, so we can move now
+  {
+    DomeMySqlTrans t(&sql);
+    
+    // Change the name if needed
+    if (newName != oldName) {
+      ret = sql.rename(old.stat.st_ino, newName);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot rename path '" << oldPath <<
+        "' err: " << ret.code() << "'" << ret.what() << "'"));
+      
+      // Change the parent if needed
+      if (newParent.stat.st_ino != oldParent.stat.st_ino) {
+        ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
+        if (!ret.ok())
+          return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
+          "' err: " << ret.code() << "'" << ret.what() << "'"));
+      }
+    }
+    else {
+      // Parent is the same, but change its mtime
+      struct utimbuf utim;
+      utim.actime  = time(NULL);
+      utim.modtime = utim.actime;
+      sql.utime(oldParent.stat.st_ino, &utim);
+    }
+    
+    t.Commit();
+  }
+  // Done!
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
+
