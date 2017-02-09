@@ -736,7 +736,7 @@ std::string oldParentPath, newParentPath;
 
   // Get source and destination parent
   ExtendedStat oldParent = this->getParent(oldPath, &oldParentPath, &oldName);
-  ExtendedStat newParent = this->getParent(newPath, &oldParentPath, &newName);
+  ExtendedStat newParent = this->getParent(newPath, &newParentPath, &newName);
 
   // Source
   ExtendedStat old = this->si_->getINode()->extendedStat(oldParent.stat.st_ino, oldName);
