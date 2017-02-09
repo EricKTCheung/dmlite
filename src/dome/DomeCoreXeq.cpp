@@ -4281,7 +4281,10 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
 
 
 int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
-
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
+  }
+  
   std::string oldPath = req.bodyfields.get<std::string>("oldpath", "");
   std::string newPath = req.bodyfields.get<std::string>("newpath", "");
   std::string oldParentPath, newParentPath;
@@ -4431,3 +4434,96 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
+
+int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_removedir only available on head nodes.");
+  }
+  
+  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  std::string sacl = req.bodyfields.get<std::string>("acl", "");
+  
+  // Fail inmediately with ''
+  if (path == "")
+    return DomeReq::SendSimpleResp(request, 422, "Empty lfn.");
+  if (sacl == "")
+    return DomeReq::SendSimpleResp(request, 422, "Empty acl.");
+  
+  Acl acl;
+  try {
+    Acl acl1(sacl);
+    acl = acl1;
+  } catch( ... ) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Incorrect acl: '" << sacl << "'"));
+  }
+  
+  DomeMySql sql;
+  ExtendedStat meta;
+  DmStatus st = sql.getStatbyLFN(meta, path);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << path << "'"));
+  
+  SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  // Check we can change it
+  if (ctx.user.getUnsigned("uid") != meta.stat.st_uid &&
+    ctx.user.getUnsigned("uid") != 0)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Only the owner or root can set the ACL of '" << path << "'"));
+    
+  
+  Acl aclCopy(acl);
+  
+  // Make sure the owner and group matches!
+  for (size_t i = 0; i < aclCopy.size(); ++i) {
+    if (aclCopy[i].type == AclEntry::kUserObj)
+      aclCopy[i].id = meta.stat.st_uid;
+    else if (aclCopy[i].type == AclEntry::kGroupObj)
+      aclCopy[i].id = meta.stat.st_gid;
+    else if (aclCopy[i].type & AclEntry::kDefault && !S_ISDIR(meta.stat.st_mode))
+      return DomeReq::SendSimpleResp(request, 422, "Defaults can be only applied to directories");
+  }
+  
+  // Validate the ACL
+  try {
+    aclCopy.validate();
+  } catch( DmException e ) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot validate acl: '" << sacl << "' err:" <<
+      e.code() << ":" << e.what()));
+  }
+
+  // Update the file mode
+  for (size_t i = 0; i < aclCopy.size(); ++i) {
+    switch (aclCopy[i].type) {
+      case AclEntry::kUserObj:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177077) |
+        (aclCopy[i].perm << 6);
+        break;
+      case AclEntry::kGroupObj:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177707) |
+        (aclCopy[i].perm << 3);
+        break;
+      case AclEntry::kMask:
+        meta.stat.st_mode = (meta.stat.st_mode & ~070) |
+        (meta.stat.st_mode & aclCopy[i].perm << 3);
+        break;
+      case AclEntry::kOther:
+        meta.stat.st_mode = (meta.stat.st_mode & 0177770) |
+        (aclCopy[i].perm);
+        break;
+      default:
+        continue;
+    }
+  }
+  
+  // Update the file
+  st = sql.setMode(meta.stat.st_ino,
+                   meta.stat.st_uid, meta.stat.st_gid,
+                   meta.stat.st_mode,
+                   aclCopy);
+  if (!st.ok())
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set acl '" << sacl << "' to lfn: '" << path <<
+    "' err:" << st.code() << " '" << st.what()));
+  
+  return DomeReq::SendSimpleResp(request, 200, ""); 
+}
