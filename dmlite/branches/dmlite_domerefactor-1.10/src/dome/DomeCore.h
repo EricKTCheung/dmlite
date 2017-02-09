@@ -202,6 +202,8 @@ public:
   int dome_removedir(DomeReq &req, FCGX_Request &request);
   /// Like the unix command 'mv'
   int dome_rename(DomeReq &req, FCGX_Request &request);
+  /// Oh no! Setting an Acl can perturb the Universe!
+  int dome_setacl(DomeReq &req, FCGX_Request &request);
   
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
