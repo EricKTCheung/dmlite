@@ -4647,3 +4647,105 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   
   return DomeReq::SendSimpleResp(request, 200, ""); 
 }
+
+
+
+
+
+
+int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
+  }
+  uid_t newUid;
+  gid_t newGid;
+  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  try {
+    newUid = req.bodyfields.get<uid_t>("uid");
+    newGid = req.bodyfields.get<gid_t>("gid");
+  }
+  catch ( ... ) {
+    return DomeReq::SendSimpleResp(request, 422, "Can't find uid or gid.");
+  }
+  bool followSymLink = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("gid", "false"));
+  
+  if(path == "") {
+    return DomeReq::SendSimpleResp(request, 422, "Lfn cannot be empty.");
+  }
+  
+  // Check that uid and gid are known
+  DomeUserInfo ui;
+  DomeGroupInfo gi;
+  if (!status.getUser(newUid, ui))
+    return DomeReq::SendSimpleResp(request, 422, "Invalid uid");
+  if (!status.getGroup(newGid, gi))
+    return DomeReq::SendSimpleResp(request, 422, "Invalid gid");
+  
+  DomeMySql sql;
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  ExtendedStat meta;
+  DmStatus ret = sql.getStatbyLFN(meta, path, followSymLink);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << path << "'"));
+  
+  // If -1, no changes
+  if (newUid == (uid_t)-1)
+    newUid = meta.stat.st_uid;
+  if (newGid == (gid_t)-1)
+    newGid = meta.stat.st_gid;
+  
+  // Make sense to do anything?
+  if (newUid == meta.stat.st_uid && newGid == meta.stat.st_gid)
+    return DomeReq::SendSimpleResp(request, 200, "");
+  
+  // If root, skip all checks
+  if (ctx.user.getUnsigned("uid") != 0) {
+    // Only root can change the owner
+    if (meta.stat.st_uid != newUid)
+      return DomeReq::SendSimpleResp(request, 403, "Only root can set the owner");
+    // If the group is changing...
+    if (meta.stat.st_gid != newGid) {
+      // The user has to be the owner
+      if (meta.stat.st_uid != ctx.user.getUnsigned("uid"))
+        return DomeReq::SendSimpleResp(request, 403, "Only root can set the group");
+      // AND it has to belong to that group
+      if (!hasGroup(ctx.groups, newGid))
+        return DomeReq::SendSimpleResp(request, 403,
+                                       SSTR("The user does not belong to the group " << newGid <<
+                                       " '" << gi.groupname << "'"));
+        // If it does, the group exists :)
+    }
+  }
+  
+  // Update the ACL's if there is any
+  if (!meta.acl.empty()) {
+    for (size_t i = 0; i < meta.acl.size(); ++i) {
+      if (meta.acl[i].type == AclEntry::kUserObj)
+        meta.acl[i].id = newUid;
+      else if (meta.acl[i].type == AclEntry::kGroupObj)
+        meta.acl[i].id = newGid;
+    }
+  }
+  
+  // Change!
+  sql.setMode(meta.stat.st_ino,
+              newUid, newGid, meta.stat.st_mode,
+              meta.acl);
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
