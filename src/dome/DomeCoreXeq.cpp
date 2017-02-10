@@ -3629,6 +3629,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
 
   Directory *d;
   try {
+    DomeMySql sql;
 
     d = stack->getCatalog()->openDir(path);
     stack->getCatalog()->changeDir(path);
@@ -3641,6 +3642,7 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
 
       if (statentries) {
         struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(dent->d_name);
+        checksums::fillChecksumInXattr(st);
         xstat_to_ptree(st, pt);
       }
 
@@ -3831,6 +3833,124 @@ int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
 }
 
 
+
+int DomeCore::dome_setcomment(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_getcomment only available on head nodes.");
+  }
+  std::string fname, comm;
+  ino_t fid;
+  
+  using namespace boost::property_tree;
+  
+  // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
+  fname = req.bodyfields.get<std::string>("lfn", "");
+  fid = req.bodyfields.get<ino_t>("fileid", 0);
+  comm = req.bodyfields.get<std::string>("comment", "");
+  
+  if (fname == "" && fid == 0)
+    return DomeReq::SendSimpleResp(request, 422, "Cannot process empty paths.");
+  
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  try {
+    DomeMySql sql;
+    ExtendedStat st;
+        
+    
+    // Gather the stat info, precedence to the fileid
+    if (!fid) {
+      DmStatus ret = sql.getStatbyLFN(st, fname);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << fname << "'"));
+
+    }
+    else {
+      DmStatus ret = sql.getStatbyFileid(st, fid);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find fileid: " << fid));
+    }
+    
+    // Need write permissions in both origin and destination
+    if (checkPermissions(&ctx, st.acl, st.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403,
+                                     SSTR("Not enough permissions on fileid '" << st.stat.st_ino << "' lfn: '" << fname << "'"));
+      
+      
+    if (sql.setComment(fid = st.stat.st_ino, comm).ok()) {
+      boost::property_tree::ptree pt;
+      pt.put("comment", comm);
+      return DomeReq::SendSimpleResp(request, 200,  pt);
+    }
+    else 
+      return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set comment for fileid: " << st.stat.st_ino));
+  }
+  
+  
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update comment: '" << e.code() << " what: '" << e.what()));
+  }
+}
+
+
+
+int DomeCore::dome_setmode(DomeReq &req, FCGX_Request &request) {
+  if(status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_setmode only available on head nodes.");
+  }
+  std::string fname;
+  ino_t fid;
+  mode_t md;
+  
+  using namespace boost::property_tree;
+  
+  // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
+  fname = req.bodyfields.get<std::string>("lfn", "");
+  fid = req.bodyfields.get<ino_t>("fileid", 0);
+  md = req.bodyfields.get<mode_t>("mode", 0);
+  
+  if (fname == "" && fid == 0)
+    return DomeReq::SendSimpleResp(request, 422, "Cannot process empty path and no fileid");
+  
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  try {
+    DomeMySql sql;
+    ExtendedStat st;
+    
+    // Gather the stat info, precedence to the fileid
+    if (!fid) {
+      DmStatus ret = sql.getStatbyLFN(st, fname);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << fname << "'"));
+    }
+    else {
+      DmStatus ret = sql.getStatbyFileid(st, fid);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find fileid: " << fid));
+    }
+    
+    // Need write permissions
+    if (checkPermissions(&ctx, st.acl, st.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403,
+                                     SSTR("Not enough permissions on fileid '" << st.stat.st_ino << "' lfn: '" << fname << "'"));
+      
+      
+      if (sql.setMode(st.stat.st_ino, st.stat.st_uid, st.stat.st_gid, md, st.acl).ok()) {
+
+        return DomeReq::SendSimpleResp(request, 200,  "");
+      }
+      else 
+        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set mode for fileid: " << fid));
+  }
+  
+  
+  catch(DmException &e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable toset mode: '" << e.code() << " what: '" << e.what()));
+  }
+}
 
 
 int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {

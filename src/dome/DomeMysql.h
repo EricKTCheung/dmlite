@@ -118,6 +118,7 @@ public:
   
   /// Sets the file size given the LFN
   dmlite::DmStatus setSize(ino_t fileid, int64_t filesize);
+  /// Sets various file metadata fields
   dmlite::DmStatus setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const dmlite::Acl& acl);
   /// Removes a logical file entry
   dmlite::DmStatus unlink(ino_t inode);

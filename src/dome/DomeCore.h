@@ -204,6 +204,12 @@ public:
   int dome_rename(DomeReq &req, FCGX_Request &request);
   /// Oh no! Setting an Acl can perturb the Universe!
   int dome_setacl(DomeReq &req, FCGX_Request &request);
+  /// Set a comment
+  int dome_setcomment(DomeReq &req, FCGX_Request &request);
+  /// Sets various file metadata fields
+  int dome_setmode(DomeReq &req, FCGX_Request &request);
+  
+  
   
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
