@@ -208,7 +208,8 @@ public:
   int dome_setcomment(DomeReq &req, FCGX_Request &request);
   /// Sets various file metadata fields
   int dome_setmode(DomeReq &req, FCGX_Request &request);
-  
+  /// Set the uid/gid
+  int dome_setowner(DomeReq &req, FCGX_Request &request);
   
   
   int makespace(std::string fsplusvo, int size);
