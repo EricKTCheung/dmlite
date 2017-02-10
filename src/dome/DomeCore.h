@@ -210,7 +210,8 @@ public:
   int dome_setmode(DomeReq &req, FCGX_Request &request);
   /// Set the uid/gid
   int dome_setowner(DomeReq &req, FCGX_Request &request);
-  
+  /// Set the size of a file
+  int dome_setsize(DomeReq &req, FCGX_Request &request);
   
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);

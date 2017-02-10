@@ -4740,6 +4740,42 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
 
 
 
+int DomeCore::dome_setsize(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
+  }
+
+  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  if(path == "") {
+    return DomeReq::SendSimpleResp(request, 422, "Lfn cannot be empty.");
+  }
+  
+  int64_t newSize = req.bodyfields.get<int64_t>("size", -1);
+  if (newSize < 0)
+    return DomeReq::SendSimpleResp(request, 422, "Wrong or missing filesize");
+  
+  
+  DomeMySql sql;
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  ExtendedStat meta;
+  DmStatus ret = sql.getStatbyLFN(meta, path);
+  if (!ret.ok())
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << path << "'"));
+  
+  
+  if (ctx.user.getUnsigned("uid") != meta.stat.st_uid &&
+    checkPermissions(&ctx, meta.acl, meta.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Can not set the size of '" << path << "'"));
+    
+  DmStatus dmst = sql.setSize(meta.stat.st_ino, newSize);
+  if (dmst.ok())
+    return DomeReq::SendSimpleResp(request, 200, "");
+  
+  return DomeReq::SendSimpleResp(request, 422, SSTR("Can not set the size of '" << path << "' err:" <<
+    dmst.code() << ":" << dmst.what()));
+}
 
 
 
