@@ -4779,6 +4779,79 @@ int DomeCore::dome_setsize(DomeReq &req, FCGX_Request &request) {
 
 
 
+int DomeCore::dome_symlink(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
+  }
+  
+  std::string oldPath = req.bodyfields.get<std::string>("oldpath", "");
+  std::string newPath = req.bodyfields.get<std::string>("newpath", "");
+  std::string parentPath, symName;
+  
+  // Fail inmediately with ''
+  if (oldPath == "")
+    return DomeReq::SendSimpleResp(request, 422, "Empty oldpath.");
+  if (newPath == "")
+    return DomeReq::SendSimpleResp(request, 422, "Empty newpath.");
+  
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  // Get the parent of the destination and file
+  ExtendedStat parent;
+  DomeMySql sql;
+  DmStatus ret = sql.getParent(parent, newPath, parentPath, symName);
+  if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot get parent of '" <<
+    newPath << "' : " << ret.code() << "-" << ret.what()));
+  
+  // Check we have write access for the parent
+  if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE | S_IEXEC) != 0)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions on '" << parentPath << "'"));
+    
+  // Effective gid
+  gid_t  egid;
+  mode_t mode = 0777;
+  
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
+    mode |= S_ISGID;
+  }
+  else {
+    egid = ctx.groups[0].getUnsigned("gid");;
+  }
+  
+  {
+    DomeMySqlTrans t(&sql);
+    
+    // Create file
+    ExtendedStat newLink;
+    
+    newLink.parent = parent.stat.st_ino;
+    newLink.name   = symName;
+    newLink.stat.st_mode = mode | S_IFLNK;
+    newLink.stat.st_size = 0;
+    newLink.status       = ExtendedStat::kOnline;
+    newLink.stat.st_uid  = ctx.groups[0].getUnsigned("uid");
+    newLink.stat.st_gid  = egid;
+    
+    ret = sql.create(newLink);
+    if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot create link '" <<
+      newPath << "' : " << ret.code() << "-" << ret.what()));
+    
+    // Create symlink
+    ret = sql.symlink(newLink.stat.st_ino, oldPath);
+    if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot symlink to '" <<
+      oldPath << "' : " << ret.code() << "-" << ret.what()));
+    
+    
+    t.Commit();
+    
+  }
+  
+  return DomeReq::SendSimpleResp(request, 200, "");
+}
+
+
 
 
 
