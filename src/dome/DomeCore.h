@@ -134,7 +134,8 @@ public:
   int dome_pfnrm(DomeReq &req, FCGX_Request &request);
   /// Disk server only. Removes a replica, both from the catalog and the disk
   int dome_delreplica(DomeReq &req, FCGX_Request &request);
-
+  /// Updates the fields of a replica
+  int dome_updatereplica(DomeReq &req, FCGX_Request &request);
   /// Adds a new pool
   int dome_addpool(DomeReq &req, FCGX_Request &request);
   /// Modify an existing pool
@@ -168,8 +169,12 @@ public:
   int dome_newuser(DomeReq &req, FCGX_Request &request);
   /// Delete an user
   int dome_deleteuser(DomeReq &req, FCGX_Request &request);
+  /// Update an user
+  int dome_updateuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
+  /// Update a group
+  int dome_updategroup(DomeReq &req, FCGX_Request &request);
   /// Get all the groups in one shot
   int dome_getgroupsvec(DomeReq &req, FCGX_Request &request);
   /// Delete a group
@@ -214,6 +219,9 @@ public:
   int dome_setsize(DomeReq &req, FCGX_Request &request);
   /// Create a symlink
   int dome_symlink(DomeReq &req, FCGX_Request &request);
+  /// Delete a file and all its replicas
+  int dome_unlink(DomeReq &req, FCGX_Request &request);
+  
   
   int makespace(std::string fsplusvo, int size);
   bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);

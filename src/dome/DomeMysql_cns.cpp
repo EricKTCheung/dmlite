@@ -41,8 +41,6 @@ using namespace dmlite;
 #define CNS_DB "cns_db"
 
 
-
-
 /// Struct used internally to bind when reading
 struct CStat {
   ino_t       parent;
@@ -56,6 +54,32 @@ struct CStat {
   char        acl[300 * 13]; // Maximum 300 entries of 13 bytes each
   char        xattr[1024];
 };
+
+
+/// Class used internally to read drectories.
+class DomeMySqlDir {
+public:
+  DomeMySqlDir() {
+    stmt = NULL;
+    entry = 0;
+  };
+  virtual ~DomeMySqlDir() {
+    if (stmt) delete stmt;
+  };
+private:
+  ExtendedStat  dir;           ///< Directory being read.
+  std::string   path;          ///< Path being read
+  CStat         cstat;         ///< Used for the binding
+  ExtendedStat  current;       ///< Current entry metadata.
+  Statement    *stmt;          ///< The statement.
+  bool          eod;           ///< True when end of dir is reached.
+  int32_t       entry;         ///< Counts the entries being read
+  
+  friend class DomeMySql;
+};
+
+
+
 
 
 /// Takes the content of a CStat structure, as it comes from the queries
@@ -948,7 +972,7 @@ DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
     stmt.bindResult(13, cmeta,       sizeof(cmeta));
 
     if (!stmt.fetch())
-      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
+      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica '%s' not found", rfn.c_str());
 
     r.rfn           = crfn;
     r.server        = cserver;
@@ -965,6 +989,70 @@ DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
     return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
   }
 
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
+  return DmStatus();
+}
+
+
+// Extended stat for replica file names in rfio syntax
+DmStatus DomeMySql::getReplicabyId(dmlite::Replica &r, int64_t repid) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " repid:" << repid);
+  try {
+    Statement    stmt(conn_, CNS_DB,
+                      "SELECT rowid, fileid, nbaccesses,\
+                      atime, ptime, ltime,\
+                      status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
+                      FROM Cns_file_replica\
+                      WHERE rowid = ?");
+    
+    
+    stmt.bindParam(0, repid);
+    
+    stmt.execute();
+    
+    r = Replica();
+    
+    char setnm[512];
+    char cpool[512];
+    char cserver[512];
+    char cfilesystem[512];
+    char crfn[4096];
+    char cmeta[4096];
+    char ctype, cstatus;
+    
+    stmt.bindResult( 0, &r.replicaid);
+    stmt.bindResult( 1, &r.fileid);
+    stmt.bindResult( 2, &r.nbaccesses);
+    stmt.bindResult( 3, &r.atime);
+    stmt.bindResult( 4, &r.ptime);
+    stmt.bindResult( 5, &r.ltime);
+    stmt.bindResult( 6, &cstatus, 1);
+    stmt.bindResult( 7, &ctype, 1);
+    stmt.bindResult( 8, setnm,       sizeof(setnm));
+    stmt.bindResult( 9, cpool,       sizeof(cpool));
+    stmt.bindResult(10, cserver,     sizeof(cserver));
+    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+    stmt.bindResult(12, crfn,        sizeof(crfn));
+    stmt.bindResult(13, cmeta,       sizeof(cmeta));
+    
+    if (!stmt.fetch())
+      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %lld not found", repid);
+    
+    r.rfn           = crfn;
+    r.server        = cserver;
+    r.setname       = std::string(setnm);
+    r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
+    r.type          = static_cast<Replica::ReplicaType>(ctype);
+    r.deserialize(cmeta);
+    
+    r["pool"]       = std::string(cpool);
+    r["filesystem"] = std::string(cfilesystem);
+  }
+  catch ( ... ) {
+    Err(domelogname, " Exception while reading stat of replica id " << repid);
+    return DmStatus(EINVAL, SSTR(" Exception while reading stat of replica id " << repid));
+  }
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
   return DmStatus();
 }
@@ -1379,3 +1467,103 @@ dmlite::DmStatus DomeMySql::utime(ino_t inode, const utimbuf *buf) {
 }
 
 
+
+
+DmStatus DomeMySql::opendir(DomeMySqlDir *&dir, const std::string& path) {
+  Log(Logger::Lvl4, domelogmask, domelogname, " path: '" << path << "'");
+  
+  dir = NULL;
+  ExtendedStat meta;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " path:" << path);
+  
+  // Get the directory
+  DmStatus st = getStatbyLFN(meta, path);
+  if (!st.ok())
+    return st;
+  
+  if (!S_ISDIR(meta.stat.st_mode))
+    return DmStatus(ENOTDIR, "path %s is not a directory", path);
+  
+  // Create the handle
+  dir = new DomeMySqlDir();
+  dir->dir = meta;
+  dir->path = path;
+  
+  try {
+    dir->stmt = new Statement(conn_, CNS_DB,
+                              "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
+                              filesize, atime, mtime, ctime, fileclass, status,\
+                              csumtype, csumvalue, acl, xattr\
+                              FROM Cns_file_metadata \
+                              WHERE parent_fileid = ?\
+                              ORDER BY name ASC");
+
+    dir->stmt->bindParam(0, meta.stat.st_ino);
+    dir->stmt->execute();
+    bindMetadata(*dir->stmt, &dir->cstat);
+    
+    dir->eod = !dir->stmt->fetch();
+  }
+  catch (...) {
+    Err(domelogname, " Exception while opening dir '" << path << "'");   
+    delete dir;
+    dir = NULL;
+    return DmStatus(EINVAL, SSTR(" Exception while opening dir '" << path << "'"));
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. path: '" << path << "'");
+  
+  return DmStatus();
+}
+
+
+DmStatus DomeMySql::closedir(DomeMySqlDir *&dir) {
+  if (!dir) {
+    Err(domelogname, " Trying to close a NULL dir. Not fatal, quite ugly.");   
+    return DmStatus();
+  }
+  
+  std::string logpath = dir->path;
+  int32_t entries = dir->entry;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Closing dir '" << logpath << "'");
+  
+  delete dir;
+  dir = NULL;
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. Read entries: " << entries <<
+      " dir: '" << logpath << "'"); 
+  return DmStatus();
+}
+
+
+ExtendedStat* DomeMySql::readdirx(DomeMySqlDir *&dir) {
+  if (!dir) {
+    Err(domelogname, " Trying to read a NULL dir.");   
+    return NULL;
+  }
+  
+  std::string logpath = dir->path;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Reading dir '" << logpath << "'");
+  
+  try {
+    
+    if (!dir->eod) {
+      dir->entry++;
+      
+      dumpCStat(dir->cstat, &dir->current);   
+      dir->eod = !dir->stmt->fetch();
+      
+      Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. item:" << dir->current.name); 
+      return &dir->current;
+    }
+    
+  }
+  catch ( DmException e ) {
+    Err(domelogname, " Exception while reading dir '" << dir->path << "' err: " << e.code() <<
+      ":" << e.what() );   
+    delete dir;
+    dir = NULL;
+  }
+  return NULL;
+}

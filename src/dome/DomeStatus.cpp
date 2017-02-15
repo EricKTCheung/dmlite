@@ -809,9 +809,9 @@ int DomeStatus::delQuotatoken(const std::string &path, const std::string &poolna
 }
 
 
-static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
-    return ( fsi.poolname == pool );
-}
+// static bool predFsMatchesPool(DomeFsInfo &fsi, std::string &pool) {
+//     return ( fsi.poolname == pool );
+// }
 
 bool DomeStatus::PfnMatchesFS(std::string &server, std::string &pfn, DomeFsInfo &fs) {
 
