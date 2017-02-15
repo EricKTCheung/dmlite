@@ -1483,7 +1483,7 @@ DmStatus DomeMySql::opendir(DomeMySqlDir *&dir, const std::string& path) {
     return st;
   
   if (!S_ISDIR(meta.stat.st_mode))
-    return DmStatus(ENOTDIR, "path %s is not a directory", path);
+    return DmStatus(ENOTDIR, SSTR("Not a directory '" << path << "'"));
   
   // Create the handle
   dir = new DomeMySqlDir();
