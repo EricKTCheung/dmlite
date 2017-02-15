@@ -67,8 +67,8 @@ DmStatus DomeMySql::getGroupbyName(DomeGroupInfo &group, const std::string& grou
     stmt.bindResult(3, meta, sizeof(meta));
     
     if (!stmt.fetch()) {
-      Err("DomeMySql::getGroup", "Group '" << groupName.c_str() << "' not found.");
-      return DmStatus(DMLITE_NO_SUCH_GROUP, SSTR("Group " << groupName.c_str() << " not found."));
+      Err("DomeMySql::getGroup", "Group '" << groupName << "' not found.");
+      return DmStatus(DMLITE_NO_SUCH_GROUP, SSTR("Group " << groupName << " not found."));
     }
     
     group.groupname      = groupname;
@@ -122,6 +122,75 @@ DmStatus DomeMySql::getGroupbyGid(DomeGroupInfo &group, gid_t gid)
 }
 
 
+
+DmStatus DomeMySql::getUser(DomeUserInfo &user, const std::string& username) {
+  char       ca[1024], uname[256], meta[1024];
+  int ban;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << username);
+  
+    // Search in the DB
+    
+    Statement stmt(conn_, CNS_DB, "SELECT userid, username, user_ca, banned, COALESCE(xattr, '')\
+      FROM Cns_userinfo\
+      WHERE username = ?");
+    
+    stmt.bindParam(0, username);
+    stmt.execute();
+    
+    stmt.bindResult(0, &user.userid);
+    stmt.bindResult(1, uname, sizeof(uname));
+    stmt.bindResult(2, ca, sizeof(ca));
+    stmt.bindResult(3, &ban);
+    stmt.bindResult(4, meta, sizeof(meta));
+    
+    if (!stmt.fetch()) {
+      Err("DomeMySql::getUser", "User '" << username << "' not found.");
+      return DmStatus(DMLITE_NO_SUCH_USER, SSTR("User '" << username << "' not found."));
+    }
+    
+    user.username      = uname;
+    user.xattr = meta;
+    user.banned = ban;
+  
+  
+    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. usr:" << username << " uid:" << user.userid << " ban:" << ban);
+  return DmStatus();
+}
+
+
+DmStatus DomeMySql::getUser(DomeUserInfo &user, int uid) {
+  char       ca[1024], uname[256], meta[1024];
+  int ban;
+  Log(Logger::Lvl4, domelogmask, domelogname, "Userid: " << uid);
+  
+  // Search in the DB
+  
+  Statement stmt(conn_, CNS_DB, "SELECT userid, username, user_ca, banned, COALESCE(xattr, '')\
+  FROM Cns_userinfo\
+  WHERE userid = ?");
+  
+  stmt.bindParam(0, uid);
+  stmt.execute();
+  
+  stmt.bindResult(0, &user.userid);
+  stmt.bindResult(1, uname, sizeof(uname));
+  stmt.bindResult(2, ca, sizeof(ca));
+  stmt.bindResult(3, &ban);
+  stmt.bindResult(4, meta, sizeof(meta));
+  
+  if (!stmt.fetch()) {
+    Err("DomeMySql::getUser", "Userid '" << uid << "' not found.");
+    return DmStatus(DMLITE_NO_SUCH_USER, SSTR("Userid '" << uid << "' not found."));
+  }
+  
+  user.username      = uname;
+  user.xattr = meta;
+  user.banned = ban;
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. usr:" << uname << " uid:" << uid << " ban:" << ban);
+  return DmStatus();
+}
 
 DmStatus DomeMySql::newUser(DomeUserInfo &user, const std::string& uname)
 {
@@ -180,29 +249,26 @@ DmStatus DomeMySql::newUser(DomeUserInfo &user, const std::string& uname)
 }
 
 
-DmStatus DomeMySql::updateUser(const UserInfo& user)
+DmStatus DomeMySql::updateUser(const DomeUserInfo& user)
 {
-  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << user.name);
+  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << user.username);
   
   try {
     Statement stmt(conn_, CNS_DB, "UPDATE Cns_userinfo\
     SET banned = ?, xattr = ?\
     WHERE username = ?");
     
-    stmt.bindParam(0, user.getLong("banned"));
-    UserInfo u = user;
-    u.erase("uid");
-    u.erase("banned");
-    stmt.bindParam(1, u.serialize());
-    stmt.bindParam(2, user.name);
+    stmt.bindParam(0, user.banned);
+    stmt.bindParam(1, user.xattr);
+    stmt.bindParam(2, user.username);
     
     stmt.execute();
   }
   catch (DmException e) {
-    return DmStatus(EINVAL, SSTR("Cannot update user: '" << user.name << "' err: '" << e.what()));
+    return DmStatus(EINVAL, SSTR("Cannot update user: '" << user.username << "' err: '" << e.what()));
   }
   
-  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. usr:" << user.name << " ban:" << boost::any_cast<bool>(user["banned"]) );
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. usr:" << user.username << " ban:" << boost::any_cast<bool>(user.banned) );
   return DmStatus();
 }
 
@@ -290,29 +356,26 @@ DmStatus DomeMySql::newGroup(DomeGroupInfo &group, const std::string& gname)
 }
 
 
-DmStatus DomeMySql::updateGroup(const GroupInfo& group)
+DmStatus DomeMySql::updateGroup(const DomeGroupInfo& group)
 {
-  Log(Logger::Lvl4, domelogmask, domelogname, "grp:" << group.name);
+  Log(Logger::Lvl4, domelogmask, domelogname, "grp:" << group.groupname);
   
   try {
   Statement stmt(conn_, CNS_DB, "UPDATE Cns_groupinfo\
   SET banned = ?, xattr = ?\
   WHERE groupname = ?");
   
-  stmt.bindParam(0, group.getLong("banned"));
-  GroupInfo g = group;
-  g.erase("gid");
-  g.erase("banned");
-  stmt.bindParam(1, g.serialize());
-  stmt.bindParam(2, group.name);
+  stmt.bindParam(0, group.banned);
+  stmt.bindParam(1, group.xattr);
+  stmt.bindParam(2, group.groupname);
   
   stmt.execute();
   }
   catch (DmException e) {
-    return DmStatus(EINVAL, SSTR("Cannot update group: '" << group.name << "' err: '" << e.what()));
+    return DmStatus(EINVAL, SSTR("Cannot update group: '" << group.groupname << "' err: '" << e.what()));
   }
   
-  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. group:" << group.name);
+  Log(Logger::Lvl1, domelogmask, domelogname, "Exiting. group:" << group.groupname);
   return DmStatus();
 }
 

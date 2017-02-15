@@ -38,6 +38,12 @@ class DomeQuotatoken;
 class DomeFsInfo;
 class DomeGroupInfo;
 class DomeUserInfo;
+class DomeMySqlDir;
+
+
+
+
+
 
 class DomeMySql {
 public:
@@ -91,9 +97,12 @@ public:
   dmlite::DmStatus newGroup(DomeGroupInfo &group, const std::string& gname);
   /// Add a new user
   dmlite::DmStatus newUser(DomeUserInfo &user, const std::string& uname);
-  dmlite::DmStatus updateUser(const dmlite::UserInfo& user);
+  
+  dmlite::DmStatus updateUser(const DomeUserInfo& user);
   dmlite::DmStatus deleteUser(const std::string& userName);
-  dmlite::DmStatus updateGroup(const dmlite::GroupInfo& group);
+  dmlite::DmStatus getUser(DomeUserInfo &user, const std::string& username);
+  dmlite::DmStatus getUser(DomeUserInfo &user, const int uid);
+  dmlite::DmStatus updateGroup(const DomeGroupInfo& group);
   dmlite::DmStatus deleteGroup(const std::string& groupName);
   // ----------------------------------------
   
@@ -134,7 +143,8 @@ public:
 
   /// Gets replica information
   dmlite::DmStatus getReplicabyRFN(dmlite::Replica &rep, std::string rfn);
-
+  /// Gets replica information
+  dmlite::DmStatus getReplicabyId(dmlite::Replica &r, int64_t repid);
   /// Extended stat for inodes
   dmlite::DmStatus getStatbyFileid(dmlite::ExtendedStat &xstat, int64_t fileid );
   
@@ -147,6 +157,13 @@ public:
   dmlite::DmStatus rename(ino_t inode, const std::string& name);
   /// Read a link
   dmlite::DmStatus readLink(dmlite::SymLink &link, int64_t fileid);
+  
+  /// Start reading a dir
+  dmlite::DmStatus opendir(DomeMySqlDir *&dir, const std::string& path);
+  /// Close a dir
+  dmlite::DmStatus closedir(DomeMySqlDir *&dir);
+  /// Read an item from a dir
+  dmlite::ExtendedStat* readdirx(DomeMySqlDir *&dir);
   
   /// Add a replica
   dmlite::DmStatus addReplica(const dmlite::Replica& replica);
