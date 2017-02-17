@@ -30,15 +30,17 @@ MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
 
 const std::string MemcacheCommon::computeMd5(const std::string& key)
 {
-    unsigned char digest[16];
+    const size_t nbytes = 16;
+    size_t size = key.size();
+    unsigned char digest[nbytes];
     EVP_MD_CTX ctx;
     EVP_MD_CTX_init(&ctx);
     EVP_DigestInit(&ctx, EVP_md5());
-    EVP_DigestUpdate(&ctx, key.c_str(), key.size()); 
-    EVP_DigestFinal(&ctx, digest, (unsigned int *) key.size());
+    EVP_DigestUpdate(&ctx, key.c_str(), size); 
+    unsigned * usize = (unsigned int *) &size;
+    EVP_DigestFinal(&ctx, digest, usize);
 
-    const size_t nbytes = 33;
-    char  buffer[nbytes];
+    char  buffer[nbytes * 2 + 1 ];
     char *p;
 
     p = buffer;
