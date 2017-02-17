@@ -31,10 +31,11 @@ MemcacheCommon::MemcacheCommon(PoolContainer<memcached_st*>& connPool,
 const std::string MemcacheCommon::computeMd5(const std::string& key)
 {
     unsigned char digest[16];
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, key.c_str(), key.size());
-    MD5_Final(digest, &ctx);
+    EVP_MD_CTX ctx;
+    EVP_MD_CTX_init(&ctx);
+    EVP_DigestInit(&ctx, EVP_md5());
+    EVP_DigestUpdate(&ctx, key.c_str(), key.size()); 
+    EVP_DigestFinal(&ctx, digest, (unsigned int *) key.size());
 
     const size_t nbytes = 33;
     char  buffer[nbytes];
