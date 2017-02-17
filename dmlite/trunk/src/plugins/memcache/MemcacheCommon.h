@@ -18,7 +18,7 @@
 #include "MemcacheFunctionCounter.h"
 #include "Memcache.pb.h"
 #include <stdio.h>
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 #include "utils/logger.h"
 
 namespace dmlite {
