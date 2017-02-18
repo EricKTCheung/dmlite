@@ -49,7 +49,6 @@ const std::string MemcacheCommon::computeMd5(const std::string& key)
     #else
     EVP_MD_CTX_free(ctx);
     #endif
-    EVP_cleanup();
 
     char  buffer[nbytes * 2 + 1 ];
     char *p;
