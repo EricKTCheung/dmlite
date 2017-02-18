@@ -150,7 +150,6 @@ static void md5DigestFinal(unsigned char* output, size_t* osize, void* udata)
   #else
   EVP_MD_CTX_free(ctx);
   #endif
-  EVP_cleanup();
 }
 
 
