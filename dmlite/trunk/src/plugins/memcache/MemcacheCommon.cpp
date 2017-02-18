@@ -33,12 +33,23 @@ const std::string MemcacheCommon::computeMd5(const std::string& key)
     const size_t nbytes = 16;
     size_t size = key.size();
     unsigned char digest[nbytes];
-    EVP_MD_CTX ctx;
-    EVP_MD_CTX_init(&ctx);
-    EVP_DigestInit(&ctx, EVP_md5());
-    EVP_DigestUpdate(&ctx, key.c_str(), size); 
-    unsigned * usize = (unsigned int *) &size;
-    EVP_DigestFinal(&ctx, digest, usize);
+    
+    EVP_MD_CTX  * ctx;
+    #if OPENSSL_VERSION_NUMBER < 0x10100000
+    ctx = EVP_MD_CTX_create();
+    #else
+    ctx = EVP_MD_CTX_new();
+    #endif
+    EVP_DigestInit(ctx, EVP_md5());
+    EVP_DigestUpdate(ctx, key.c_str(), size); 
+    unsigned usize = (unsigned ) size;
+    EVP_DigestFinal(ctx, digest, &usize);
+    #if OPENSSL_VERSION_NUMBER < 0x10100000
+    EVP_MD_CTX_destroy(ctx);
+    #else
+    EVP_MD_CTX_free(ctx);
+    #endif
+    EVP_cleanup();
 
     char  buffer[nbytes * 2 + 1 ];
     char *p;

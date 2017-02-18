@@ -145,21 +145,31 @@ static void md5DigestFinal(unsigned char* output, size_t* osize, void* udata)
   unsigned uOsize = *osize;
   EVP_DigestFinal(ctx, output, &uOsize);
   *osize = uOsize;
+  #if OPENSSL_VERSION_NUMBER < 0x10100000
+  EVP_MD_CTX_destroy(ctx);
+  #else
+  EVP_MD_CTX_free(ctx);
+  #endif
+  EVP_cleanup();
 }
 
 
 
 std::string dmlite::checksums::md5(IOHandler* io, off_t offset, off_t size)
 {
-  EVP_MD_CTX ctx;
-
-  EVP_MD_CTX_init(&ctx);
-  EVP_DigestInit(&ctx, EVP_md5());
+ 
+  EVP_MD_CTX  * ctx;
+  #if OPENSSL_VERSION_NUMBER < 0x10100000
+  ctx = EVP_MD_CTX_create();
+  #else 
+  ctx = EVP_MD_CTX_new();
+  #endif
+  EVP_DigestInit(ctx, EVP_md5());
 
   return digest(io, offset, size,
                 md5DigestUpdate, md5DigestFinal,
                 hexPrinter,
-                &ctx);
+                ctx);
 }
 
 
