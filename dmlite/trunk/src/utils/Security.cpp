@@ -590,10 +590,9 @@ std::string dmlite::getCertificateSubject(const std::string& path)
                       "Could not read the certificate (X509: %s)",
                       cpath);
   }
-  char *line;
-  line = X509_NAME_oneline(X509_get_subject_name(certificate), 0, 0);
-  std::string subject = std::string(line);
-  OPENSSL_free(line);
+  char * subj = X509_NAME_oneline(X509_get_subject_name(certificate), NULL, 0);
+  std::string subject = std::string(subj);
+  OPENSSL_free(subj);
   X509_free(certificate);
 
   return subject;
