@@ -47,7 +47,7 @@ BuildRequires:			lcgdm-devel
 BuildRequires:			libmemcached-devel
 BuildRequires:			mysql-devel
 BuildRequires:			protobuf-devel
-BuildRequires:		        davix-devel
+BuildRequires:		        davix-devel >= 0.6.5
 BuildRequires:			fcgi-devel
 
 %description
@@ -82,7 +82,7 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: davix
+Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_mysql
 Obsoletes: dpmhead
@@ -115,7 +115,7 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: davix
+Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_disk
 Obsoletes: dpmdisk
@@ -166,7 +166,7 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: davix
+Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_mysql
 
@@ -198,7 +198,7 @@ Requires: fetch-crl
 Requires: finger
 Requires: lcgdm-dav
 Requires: lcgdm-dav-server
-Requires: davix
+Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_disk
 
