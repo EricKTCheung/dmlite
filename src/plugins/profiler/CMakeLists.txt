@@ -20,8 +20,8 @@ install(TARGETS       profiler
         LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/)
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/profiler.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf.example
                 @ONLY)
 
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/profiler.conf.example
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)
