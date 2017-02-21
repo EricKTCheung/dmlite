@@ -56,7 +56,7 @@ DavixCtxFactory::DavixCtxFactory() {
   params_.setConnectionTimeout(&spec_timeout);
   params_.setOperationTimeout(&spec_timeout);
   params_.addCertificateAuthorityPath("/etc/grid-security/certificates");
-  params_.setOperationRetry(0);
+  params_.setAcceptedRetry(0);
 
   // Nothing
 }
