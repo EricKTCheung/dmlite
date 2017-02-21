@@ -27,8 +27,8 @@ install(TARGETS       memcache
         LIBRARY       DESTINATION ${INSTALL_PFX_LIB}/dmlite/)
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/memcache.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
+                ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf.example
                 @ONLY)
 
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/zmemcache.conf.example
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)
