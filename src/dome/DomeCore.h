@@ -224,7 +224,7 @@ public:
   
   
   int makespace(std::string fsplusvo, int size);
-  bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
+  bool addFilesizeToDirs(DomeMySql &sql, dmlite::ExtendedStat file, int64_t size);
   /// Utility: fill a dmlite security context with ALL the information we have
   /// about the client that is sending the request and the user that originated it
   /// NOTE: This is a relevant part of the authorization policy for users

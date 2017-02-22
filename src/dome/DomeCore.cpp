@@ -185,7 +185,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
       // Client was authorized. We log the request
       Log(Logger::Lvl1, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
-          "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
+          "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress << "'");
 
       Log(Logger::Lvl1, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
 
@@ -637,6 +637,16 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
   // Take the info coming from the request
   req.fillSecurityContext(ctx);
   
+  Log(Logger::Lvl4, domelogmask, domelogname,
+      "clientdn: '" << ctx.credentials.clientName << "' " <<
+      "clienthost: '" << ctx.credentials.remoteAddress << "' " <<
+      "ctx.user.name: '" << ctx.user.name << "' " <<
+      "ctx.groups: " << ctx.groups.size() << "(size) "
+  );
+  
+  
+  
+  
   // Now map uid and gids into the (horrible) extensible
   DomeUserInfo u;
   if (status.getUser(ctx.user.name, u)) {
@@ -645,7 +655,7 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
   } else {
     // Maybe we have to do something if the user was unknown?
     DomeMySql sql;
-    if (sql.newUser(u, ctx.user.name).ok()) {
+    if ((ctx.user.name.length() > 0) && sql.newUser(u, ctx.user.name).ok()) {
       ctx.user["uid"] = u.userid;
       ctx.user["banned"] = u.banned;
     }
@@ -661,7 +671,7 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
     } else {
       // Maybe we have to do something if the group was unknown?
       DomeMySql sql;
-      if (sql.newGroup(g, ctx.groups[i].name).ok()) {
+      if ((ctx.groups[i].name.length() > 0) && sql.newGroup(g, ctx.groups[i].name).ok()) {
         ctx.groups[i]["gid"] = g.groupid;
         ctx.groups[i]["banned"] = g.banned;
       }

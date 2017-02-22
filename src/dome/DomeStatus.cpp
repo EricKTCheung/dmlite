@@ -50,6 +50,8 @@
 #include "cpp/dmlite.h"
 #include "cpp/catalog.h"
 
+#include "DomeMysql.h"
+
 using namespace dmlite;
 
 
@@ -97,7 +99,7 @@ DomeStatus::DomeStatus() {
   Log(Logger::Lvl1, domelogmask, domelogname, "Overriding my hostname to: " << myhostname);
 
   // Create a dmlite pool
-  dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
+  //dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 
 }
 long DomeStatus::getGlobalputcount() {
@@ -1039,12 +1041,10 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
-
   // True if one of the groups of the remote user matches the quotatk
   // Loop on the gids written in the quotatoken
   // For each of them, check if the user belongs to it
   for (unsigned int i = 0; i < token.groupsforwrite.size(); i++) {
-    DmlitePoolHandler stack(dmpool);
 
     DomeGroupInfo gi;
     char *endptr;
@@ -1161,4 +1161,106 @@ std::string DomeQuotatoken::getGroupsString(bool putzeroifempty) {
     return "0";
 
   return DomeUtils::join(",", groupsforwrite);
+}
+
+
+
+
+
+DmStatus DomeStatus::getIdMap(const std::string& userName,
+                          const std::vector<std::string>& groupNames,
+                          DomeUserInfo &user,
+                          std::vector<DomeGroupInfo> &groups)
+{
+  std::string vo;
+  DomeGroupInfo group;
+  DmStatus st;
+  
+  // Clear
+  groups.clear();
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << userName);
+  
+  // user mapping
+  if (!getUser(userName, user)) {
+    DomeMySql sql;
+    // lock status
+    boost::unique_lock<boost::recursive_mutex> l(*this);
+    
+    Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown user: '" << userName << "'");
+    st = sql.newUser(user, userName);
+    if (!st.ok()) {
+      Err(domelogname, "Cannot add user '" << userName << "' err: " << st.code() << "' what: " << st.what());
+      return st;
+    }
+    insertUser(user);
+  }
+  
+  
+  
+  
+  
+  // No VO information, so use the mapping file to get the group
+  if (groupNames.empty()) {
+    std::pair<std::multimap<std::string, std::string>::iterator,
+              std::multimap<std::string, std::string>::iterator> ppp;
+
+    {          
+      // lock status
+      boost::unique_lock<boost::recursive_mutex> l(*this);
+      ppp = gridmap.equal_range(userName);
+    }
+    
+    // Now loop on the matches and get the relevant groups
+    for (std::multimap<std::string, std::string>::iterator it2 = ppp.first;
+         it2 != ppp.second; ++it2) {
+      
+      Log(Logger::Lvl4, domelogmask, domelogname, "User: '" << userName << "' is a member of '" << (*it2).second); 
+    
+      if (!getGroup((*it2).second, group)) {
+        Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << (*it2).second << "'");
+        // lock status
+        boost::unique_lock<boost::recursive_mutex> l(*this);
+        
+        DomeMySql sql;
+        st = sql.newGroup(group, (*it2).second);
+        if (!st.ok()) {
+          Err(domelogname, "Cannot add group '" << (*it2).second << "' err: " << st.code() << "' what: " << st.what());
+          return st;
+        }
+        insertGroup(group);
+
+      }
+      
+      groups.push_back(group);
+    }
+         
+    
+  }
+  else {
+    // Get group info, typically this is the case for VOMS proxy certificates
+    std::vector<std::string>::const_iterator i;
+    for (i = groupNames.begin(); i != groupNames.end(); ++i) {
+      vo = dmlite::voFromRole(*i);
+      
+      if (!getGroup(*i, group)) {
+        Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << *i << "'");
+        // lock status
+        boost::unique_lock<boost::recursive_mutex> l(*this);
+        
+        DomeMySql sql;
+        st = sql.newGroup(group, *i);
+        if (!st.ok()) {
+          Err(domelogname, "Cannot add group '" << *i << "' err: " << st.code() << "' what: " << st.what());
+          return st;
+        }
+        insertGroup(group);
+        
+      }
+      
+      groups.push_back(group);
+    }
+  }
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. usr:" << userName);
 }

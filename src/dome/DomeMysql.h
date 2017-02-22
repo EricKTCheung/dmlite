@@ -113,7 +113,8 @@ public:
   
   /// Add a new namespace entity. Fills the new fileid directly into the stat struct
   dmlite::DmStatus create(dmlite::ExtendedStat& nf);
-  
+  dmlite::DmStatus makedir(const dmlite::ExtendedStat &parent, std::string dname, mode_t mode, int uid, int gid);
+  dmlite::DmStatus createfile(const dmlite::ExtendedStat &parent, std::string fname, mode_t mode, int uid, int gid);
   dmlite::DmStatus getComment(std::string &comment, ino_t inode);
   dmlite::DmStatus setComment(ino_t inode, const std::string& comment);
   
@@ -137,6 +138,8 @@ public:
   
   /// Get all the Replicas
   dmlite::DmStatus getReplicas(std::vector<dmlite::Replica> &reps, ino_t inode);
+  /// Get all the Replicas
+  dmlite::DmStatus getReplicas(std::vector<dmlite::Replica> &reps, std::string lfn);
   
   /// Extended stat for replica file names in rfio syntax
   dmlite::DmStatus getStatbyRFN(dmlite::ExtendedStat &st, std::string rfn);
@@ -175,6 +178,8 @@ public:
   
   /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
   dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
+  /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
+  dmlite::DmStatus setChecksum(const ino_t fid, const std::string &csumtype, const std::string &csumvalue);
   
   /// Utility to check perms for a directory tree. Tells if a certain user can reach a certain file
   dmlite::DmStatus traverseBackwards(const dmlite::SecurityContext &secctx, dmlite::ExtendedStat& meta);

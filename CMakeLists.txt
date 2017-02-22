@@ -65,7 +65,7 @@ set (Boost_ADDITIONAL_VERSIONS "1.48" "1.48.0")
 #needed for GCC6
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 
-find_package (Boost 1.41 COMPONENTS date_time system thread regex REQUIRED)
+find_package (Boost 1.48 COMPONENTS date_time system thread regex REQUIRED)
 
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
