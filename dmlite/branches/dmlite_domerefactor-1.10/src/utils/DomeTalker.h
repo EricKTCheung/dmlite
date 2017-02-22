@@ -76,7 +76,10 @@ enum DomeHttpCode {
   DOME_HTTP_INSUFFICIENT_STORAGE = 507
 };
 
-int http_status(const dmlite::DmException &e);
+int http_status(const DmException &e);
+
+class DmStatus;
+int http_status(const DmStatus &e);
 
 class DomeTalker {
 public:

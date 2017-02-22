@@ -28,7 +28,7 @@
 \title{DOME\\A rest-inspired engine for DPM}
 \author{}
 
-\subtitle{DMLite 0.8.0}
+\subtitle{DMLite 1.10.0}
 
 \begin{document}
 \maketitle
@@ -429,8 +429,44 @@ The DN of the original client that submitted the request. Typically, a Grid user
 \subsubsection{remoteclienthost}
 The hostname of the original client that submitted the request.
 
+\subsubsection{remoteclientgroups}
+The groups of the original client that submitted the request.
 
 \subsection{Head node operation}
+
+
+\subsubsection{dome\_access}
+Tells if the identity of the remote client can access a logical file or a directory for r/w/x operations.
+
+Command:
+\lstinline"GET /dome/command/dome_access"\\
+Request header:\\
+ no particular fields in the header\\
+Params:
+\begin{itemize}
+ \item path: logical file name of the entry
+ \item mode: the POSIX mode bits to check for access
+\end{itemize}
+
+Returns 200 if the access can be granted, 403 if it's denied. Other HTTP codes for the corresponding errors.\\
+
+
+\subsubsection{dome\_accessreplica}
+Tells if the identity of the remote client can access a logical file or a directory. 
+
+Command:
+\lstinline"GET /dome/command/dome_access"\\
+Request header:\\
+ no particular fields in the header\\
+Params:
+\begin{itemize}
+ \item rfn: logical file name of the entry
+ \item mode: the POSIX mode bits to check for access
+\end{itemize}
+
+Returns 200 if the access can be granted, 403 if it's denied. Other HTTP codes for the corresponding errors.\\
+
+
 
 \subsubsection{dome\_put}
 initiates a replica upload. The client is given a location where to write the replica (redirection)

@@ -30,6 +30,7 @@
 #include "utils/DavixPool.h"
 #include "DomeDmlitePool.h"
 #include "dmlite/cpp/authn.h"
+#include "status.h"
 
 class DomeReq;
 class DomeQuotatoken;
@@ -215,10 +216,10 @@ public:
   DomeStatus();
   ~DomeStatus() {
 
-    if(dmpool) {
-      delete dmpool;
-      dmpool = NULL;
-    }
+    //if(dmpool) {
+    //  delete dmpool;
+    //  dmpool = NULL;
+    //}
   }
 
   // Head node or disk server ?
@@ -253,7 +254,12 @@ public:
   std::map <std::string, DomeUserInfo> usersbyname;
   std::map <int, DomeGroupInfo> groupsbygid;
   std::map <std::string, DomeGroupInfo> groupsbyname;
-
+  
+  dmlite::DmStatus getIdMap(const std::string& userName,
+                    const std::vector<std::string>& groupNames,
+                    DomeUserInfo &user,
+                    std::vector<DomeGroupInfo> &groups);
+  
   /// Inserts/overwrites an user
   int insertUser(DomeUserInfo &ui);
   /// Inserts/overwrites a group
@@ -361,7 +367,7 @@ public:
   int tick(time_t timenow);
   int tickQueues(time_t timenow);
 
-  DmlitePool *dmpool;
+  //DmlitePool *dmpool;
 private:
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;

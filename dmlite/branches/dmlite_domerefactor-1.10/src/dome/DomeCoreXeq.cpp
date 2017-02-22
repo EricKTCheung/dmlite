@@ -56,34 +56,26 @@ using namespace dmlite;
 
 
 /// Creates a new logical file entry, and all its parent directories
-int mkdirminuspandcreate(dmlite::Catalog *catalog,
-                         const std::string& filepath,
+DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
+                         const std::string& path,
                          std::string  &parentpath,
                          ExtendedStat &parentstat,
                          ExtendedStat &statinfo) throw (DmException) {
 
-  if (filepath.empty())
-    throw DmException(EINVAL, "Empty path. Internal error ?");
-
-  // Get the absolute path
-  std::string path = filepath;
-  if ( filepath[0] != '/' )
-    path = catalog->getWorkingDir() + "/" + filepath;
-
-  if ( path[0] != '/' )
-    path.insert(0, "/");
+  if (path.empty())
+    return DmStatus(EINVAL, "mkdirminuspandcreate - Empty path. Internal error ?");
+  if (path[0] != '/')
+    return DmStatus(EINVAL, "mkdirminuspandcreate - Paths must be absolute.");
 
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. Absolute path: '" << path << "'");
 
   std::vector<std::string> components = Url::splitPath(path);
   std::vector<std::string> todo;
   std::string name;
-  bool parentok = false;
-
+  
   components.pop_back();
 
   // Make sure that all the parent dirs exist
-  DomeMySql sql;
 
   do {
 
@@ -100,13 +92,12 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 
         todo.push_back(ppath);
       }
-
-      if (!parentok) {
+      else {
         parentstat = st;
         parentpath = ppath;
         // This means that we successfully processed at least the parent dir
         // that we have to return
-        parentok = true;
+        
         break;
       }
 
@@ -118,42 +109,47 @@ int mkdirminuspandcreate(dmlite::Catalog *catalog,
 
   // Here we have a todo list of directories that we have to create
   // .... so we do it
+  
+  // But first check the permissions
+  // Need to be able to write to the parent
+  if (checkPermissions(&ctx, parentstat.acl, parentstat.stat, S_IWRITE) != 0)
+    return DmStatus(EPERM, SSTR("Need write access on '" << parentpath << "'"));
+  
   while (!todo.empty()) {
     std::string p = todo.back();
     todo.pop_back();
 
-    // Try to get the stat of the parent
-    try {
-      catalog->makeDir(p, 0774);
-    } catch (DmException e) {
+    
+    
+    DmStatus ret = sql.makedir(parentstat, p, 0774, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
+    if (!ret.ok()) {
       // If we can't create the dir then this is a serious error, unless it already exists
-      Err(domelogname, "Cannot create path '" << p << "' err: " << e.code() << "-" << e.what());
-      if (e.code() != EEXIST) throw;
+      Err(domelogname, "Cannot create path '" << parentpath << "' token: '" << p << "' err: " << ret.code() << "-" << ret.what());
+      return ret;
     }
 
     // Set proper ownership
     //catalog->setOwner(parentpath, parentstat.stat.st_uid, parentstat.stat.st_gid);
+    
+    // Update the parent for the next round
+    ret = sql.getStatbyParentFileid(parentstat, parentstat.stat.st_ino, p);
+    if (!ret.ok()) {
+      // If we can't create the dir then this is a serious error, unless it already exists
+      Err(domelogname, "Cannot stat path '" << parentpath << "' token: '" << p << "' err: " << ret.code() << "-" << ret.what());
+      return ret;
+    }
   }
 
   // If a miracle took us here, we only miss to create the final file
-  try {
-    catalog->create(filepath, 0664);
-    catalog->setMode(filepath, 0664); // horrible workaround to make sure the memcached plugin
-                                      // invalidates its previous contents. Necessary during the file
-                                      // pulling workflow.
-    DmStatus st = sql.getStatbyLFN(statinfo, filepath);
-    if (!st.ok())
-      throw st.exception();
 
+  DmStatus ret = sql.createfile(parentstat, path, 0664, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
+    if (!ret.ok() && (ret.code() != EEXIST)) {
+      // If we can't create the dir then this is a serious error, unless it already exists
+      Err(domelogname, "Cannot create file '" << path << "' err: " << ret.code() << "-" << ret.what());
+      return ret;
+    }
 
-
-  } catch (DmException e) {
-    // If we can't create the file then this is a serious error
-    Err(domelogname, "Cannot create file '" << filepath << "'");
-    throw;
-  }
-
-  return 0;
+  return DmStatus();
 }
 
 // pick from the list of appropriate filesystems, given the hints
@@ -216,8 +212,33 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   Log(Logger::Lvl1, domelogmask, domelogname, "Entering. lfn: '" << lfn <<
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
-
-
+  
+  if(status.role == status.roleDisk) {
+    return DomeReq::SendSimpleResp(request, 500, "dome_put only available on head nodes");
+  }
+  
+  // Fill the security context
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  DmStatus ret;
+  DomeMySql sql;
+  {   
+    ExtendedStat parent;
+    std::string parentPath, name;
+    ret = sql.getParent(parent, lfn, parentPath, name);
+    if (!ret.ok())
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
+    
+    ret = sql.traverseBackwards(ctx, parent);
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    // Need to be able to read the parent
+    if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Need WRITE access on '" << parentPath << "'"));
+  }
+  
   // if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
   //   return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
   // }
@@ -313,11 +334,19 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   // If we are replicating an existing file, the new replica must go into a filesystem that
   // does not contain it already
-  DmlitePoolHandler stack(status.dmpool);
+
   try {
     if (addreplica) {
       // Get the list of the replicas of this lfn
-      std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+      std::vector<Replica> replicas;
+      ret = sql.getReplicas(replicas, lfn);
+      if (!ret.ok()) {
+        if (ret.code() == ENOENT)
+          return DomeReq::SendSimpleResp(request, 404, SSTR("File not found '" << lfn << "'"));
+        return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << lfn << "' err: " <<
+        ret.code() << ":" << ret.what()));
+      }
+      
       // remove from the fslist the filesystems that match with any replica
       for (int i = selectedfss.size()-1; i >= 0; i--) {
         bool dropfs = false;
@@ -434,52 +463,29 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   ExtendedStat parentstat, lfnstat;
   std::string parentpath;
 
-  {
-    // Security credentials are mandatory, and they have to carry the identity of the remote client
-    SecurityCredentials cred;
-    cred.clientName = (std::string) req.creds.clientName;
-    cred.remoteAddress = req.creds.remoteAddress;
-    cred.fqans = req.creds.groups;
+  if (!addreplica) {
 
-    try {
-      if(!addreplica) {
-        stack->setSecurityCredentials(cred);
+
+
+      ret = mkdirminuspandcreate(ctx, sql, lfn, parentpath, parentstat, lfnstat);
+
+
+      if (!ret.ok()) {
+        std::ostringstream os;
+        os << "Cannot create logical directories for '" << lfn << "' : " << ret.code() << "-" << ret.what();
+
+        Err(domelogname, os.str());
+        return DomeReq::SendSimpleResp(request, 422, os);
       }
-    } catch (DmException &e) {
-      std::ostringstream os;
-      os << "Cannot set security credentials. dn: '" << req.creds.clientName << "' addr: '" <<
-            req.creds.remoteAddress << "' - " << e.code() << "-" << e.what();
-
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, http_status(e), os);
-    }
   }
-
-  if (!addreplica)
-    try {
-
-
-      mkdirminuspandcreate(stack->getCatalog(), lfn, parentpath, parentstat, lfnstat);
-
-
-
-
-    } catch (DmException &e) {
-      std::ostringstream os;
-      os << "Cannot create logical directories for '" << lfn << "' : " << e.code() << "-" << e.what();
-
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, http_status(e), os);
-    }
   else
-    try {
-      lfnstat = stack->getCatalog()->extendedStat(lfn);
-    } catch (DmException &e) {
+    ret = sql.getStatbyLFN(lfnstat, lfn);
+    if (!ret.ok()) {
       std::ostringstream os;
-      os << "Cannot add replica to '" << lfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot add replica to '" << lfn << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, http_status(e), os);
+      return DomeReq::SendSimpleResp(request, http_status(ret), os);
     }
 
   // Create the replica in the catalog
@@ -495,13 +501,13 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   r["filesystem"] = selectedfss[fspos].fs;
   r.setname = token.s_token;
   r["accountedspacetokenname"] = token.u_token;
-  try {
-    stack->getCatalog()->addReplica(r);
-  } catch (DmException &e) {
+  
+  ret = sql.addReplica(r);
+  if (!ret.ok()) {
     std::ostringstream os;
-    os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << e.code() << "-" << e.what();
+    os << "Cannot create replica '" << r.rfn << "' for '" << lfn << "' : " << ret.code() << "-" << ret.what();
     Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, http_status(e), os);
+    return DomeReq::SendSimpleResp(request, http_status(ret), os);
   }
 
   // Here we are assuming that some frontend will soon start to write a new replica
@@ -550,11 +556,19 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
 
 int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_access only available on head nodes.");
+  }
+  
   std::string absPath = DomeUtils::trim_trailing_slashes(req.bodyfields.get<std::string>("path", ""));
   int mode = req.bodyfields.get<int>("mode", 0);
   
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "' mode: " << mode);
   
+  
+  if ( !absPath.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
+  }
   
   ExtendedStat xstat;
   boost::property_tree::ptree jresp;  
@@ -566,7 +580,7 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
   if (!ret.ok()) {
     if (ret.code() == ENOENT)
       return DomeReq::SendSimpleResp(request, 404, SSTR("File not found '" << absPath << "'"));
-    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
   }
   
   mode_t perm = 0;
@@ -594,6 +608,10 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
 
 int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
 {
+  if (status.role != status.roleHead) {
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_accessreplica only available on head nodes.");
+  }
+  
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
   int mode = req.bodyfields.get<int>("mode", 0);
   DmStatus ret;
@@ -640,8 +658,10 @@ int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
     ok = !checkPermissions(&ctx, xstat.acl, xstat.stat, perm);
   } catch (DmException e) {}
   
-  if (!ok || !replicaAllowed)
-    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
+  if (!ok)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << rfn << "'"));
+  if (!replicaAllowed)
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible with replica status " << r.status << " '" << rfn << "'"));
   
   return DomeReq::SendSimpleResp(request, 200, "");
 }
@@ -954,19 +974,19 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
 }
 
 // Add this filesize to the size of its parent dirs, only the first N levels
-bool DomeCore::addFilesizeToDirs(INode *inodeintf, ExtendedStat file, int64_t size) {
+bool DomeCore::addFilesizeToDirs(DomeMySql &sql, ExtendedStat file, int64_t size) {
   const size_t MAX_HIERARCHY_SIZE = 128;
   ino_t hierarchy[MAX_HIERARCHY_SIZE];
   unsigned int idx = 0;
-
+  DmStatus ret;
+  
   ExtendedStat st = file;
   while (st.parent) {
     Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
 
-    try {
-      st = inodeintf->extendedStat(st.parent);
-    }
-    catch (DmException& e) {
+    
+    ret = sql.getStatbyFileid(st, st.parent);
+    if (!ret.ok()) {
       Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
       return false;
     }
@@ -985,7 +1005,6 @@ bool DomeCore::addFilesizeToDirs(INode *inodeintf, ExtendedStat file, int64_t si
   }
 
   {
-    DomeMySql sql;
     DomeMySqlTrans t(&sql);
 
     // Update the filesize in the first levels
@@ -1009,12 +1028,6 @@ bool DomeCore::addFilesizeToDirs(INode *inodeintf, ExtendedStat file, int64_t si
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
 
-  DmlitePoolHandler stack(status.dmpool);
-  INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
-  if (!inodeintf) {
-    Err( domelogname , " Cannot retrieve inode interface. Fatal.");
-    return -1;
-  }
 
   // The command takes as input server and pfn, separated
   // in order to put some distance from rfio concepts, at least in the api
@@ -1065,16 +1078,20 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   // use the rfio syntax.
   std::string rfn = server + ":" + pfn;
 
+  DomeMySql sql;
   dmlite::Replica rep;
-  try {
-    rep = stack->getCatalog()->getReplicaByRFN(rfn);
-  } catch (DmException e) {
-    std::ostringstream os;
-    os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 404, os);
+  DmStatus ret;
+  
+  ret = sql.getReplicabyRFN(rep, rfn);
+  if (!ret.ok()) {
+    if (ret.code() == ENOENT) {
+      Err(domelogname, "Replica not found '" << rfn << "'");
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Replica not found '" << rfn << "'"));
+    }
+    Err(domelogname, "Not accessible '" << rfn << "' err: "<< ret.what());
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
   }
+  
 
   if (rep.status != dmlite::Replica::kBeingPopulated) {
 
@@ -1087,15 +1104,17 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   }
 
   dmlite::ExtendedStat st;
-  try {
-    st = inodeintf->extendedStat(rep.fileid);
-  } catch (DmException e) {
-    std::ostringstream os;
-    os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-
-    Err(domelogname, os.str());
-    return DomeReq::SendSimpleResp(request, 422, os);
+  ret = sql.getStatbyFileid(st, rep.fileid);
+  if (!ret.ok()) {
+    if (ret.code() == ENOENT) {
+      Err(domelogname, "Cannot fetch logical entry for replica '" << rfn << "'");
+      return DomeReq::SendSimpleResp(request, 422, SSTR("File not found '" << rfn << "'"));
+    }
+    Err(domelogname, "Cannot fetch logical entry for replica '" << rfn << "' err: "<< ret.what());
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
   }
+  
+
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
   if (size == 0) {
@@ -1144,17 +1163,16 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Log(Logger::Lvl4, domelogmask, domelogname, " setting checksum: " << chktype << "," << chkval);
     rep[chktype] = chkval;
   }
-
-  try {
-    stack->getCatalog()->updateReplica(rep);
-  } catch (DmException e) {
+  
+  ret = sql.updateReplica(rep);
+  if (!ret.ok()) {
     std::ostringstream os;
-    os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
-
+    os << "Cannot update replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
+    
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 500, os);
   }
-
+  
   // If the checksum of the main entry is different, just output a bad warning in the log
   std::string ck;
   if ( !st.getchecksum(chktype, ck) && (ck != chkval) ) {
@@ -1164,26 +1182,23 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
 
   // Anyway propagate the checksum to the main stat
-  inodeintf->setChecksum(st.stat.st_ino, chktype, chkval);
-  inodeintf->setSize(st.stat.st_ino, size);
+
+  sql.setChecksum(st.stat.st_ino, chktype, chkval);
+  sql.setSize(st.stat.st_ino, size);
 
   // Now update the space counters for the parent directories!
   // Please note that this substitutes the IOPassthrough plugin in the disk's dmlite stack
   if (st.parent <= 0) {
 
-    try {
       Log(Logger::Lvl4, domelogmask, domelogname, " Looking up parent of inode " << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
-      st = inodeintf->extendedStat(st.stat.st_ino);
+      ret = sql.getStatbyFileid(st, st.stat.st_ino);
+      if (!ret.ok())
+        Err( domelogname , " Cannot retrieve parent for inode:" << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
       Log(Logger::Lvl4, domelogmask, domelogname, " Ok. Parent of  inode " << st.stat.st_ino << " is " << st.parent);
-    }
-    catch (DmException& e) {
-      Err( domelogname , " Cannot retrieve parent for inode:" << st.stat.st_ino << " " << " main entry for replica: '" << rfn << "'");
-      return -1;
-    }
 
   }
 
-  if(!addFilesizeToDirs(inodeintf, st, size)) {
+  if(!addFilesizeToDirs(sql, st, size)) {
     Err(domelogname, SSTR("Unable to add filesize to parent directories of  " << st.stat.st_ino << ". Directory sizes will be inconsistent."));
   }
 
@@ -1521,8 +1536,10 @@ int DomeCore::enqfilepull(DomeReq &req, FCGX_Request &request, std::string lfn) 
                                                      << status.filepullq->nTotal()));
 }
 
-static Replica pickReplica(std::string lfn, std::string rfn, DmlitePoolHandler &stack) {
-  std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+static Replica pickReplica(std::string lfn, std::string rfn, DomeMySql &sql) {
+  DmStatus ret;
+  std::vector<Replica> replicas;
+  ret = sql.getReplicas(replicas, lfn);
   if(replicas.size() == 0) {
     throw DmException(DMLITE_CFGERR(ENOENT), "The provided LFN does not have any replicas");
   }
@@ -1573,7 +1590,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    DmlitePoolHandler stack(status.dmpool);
+    DomeMySql sql;
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     chksumtype = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
@@ -1593,7 +1610,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
     }
 
     if(forcerecalc) {
-      Replica replica = pickReplica(lfn, pfn, stack);
+      Replica replica = pickReplica(lfn, pfn, sql);
       return calculateChecksum(req, request, lfn, replica, chksumtype, updateLfnChecksum);
     }
 
@@ -1621,7 +1638,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
 
     // retrieve pfn checksum
     if(pfn != "") {
-      replica = pickReplica(lfn, pfn, stack);
+      replica = pickReplica(lfn, pfn, sql);
       if(replica.hasField(fullchecksum)) {
         pfnchecksum = replica.getString(fullchecksum);
         Log(Logger::Lvl3, domelogmask, domelogname, "Found pfn checksum in the db: " << pfnchecksum);
@@ -1641,7 +1658,7 @@ int DomeCore::dome_chksum(DomeReq &req, FCGX_Request &request) {
 
     // something is missing, need to calculate
     if(pfn == "") {
-      replica = pickReplica(lfn, pfn, stack);
+      replica = pickReplica(lfn, pfn, sql);
     }
 
     return calculateChecksum(req, request, lfn, replica, chksumtype, updateLfnChecksum);
@@ -1662,7 +1679,8 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
   }
 
   try {
-    DmlitePoolHandler stack(status.dmpool);
+    DomeMySql sql;
+    DmStatus ret;
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     chksumtype = DomeUtils::remove_prefix_if_exists(chksumtype, "checksum.");
@@ -1727,13 +1745,21 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     }
 
     // replace pfn checksum
-    Replica replica = pickReplica(lfn, pfn, stack);
+    Replica replica = pickReplica(lfn, pfn, sql);
     replica[fullchecksum] = checksum;
-    stack->getCatalog()->updateReplica(replica);
+   
+    ret = sql.updateReplica(replica);
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot update replica rfn: '" << replica.rfn << "'"));
+    }
+    
 
     // replace lfn checksum?
     if(updateLfnChecksum) {
-      stack->getCatalog()->setChecksum(lfn, fullchecksum, checksum);
+      ret = sql.setChecksum(replica.fileid, fullchecksum, checksum);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot update checksum on fileid: " << replica.fileid << " rfn: '" << replica.rfn << "'"));
+
     }
     // still update if it's empty, though
     else {
@@ -1747,7 +1773,9 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
       }
 
       if(!xstat.hasField(fullchecksum)) {
-        stack->getCatalog()->setChecksum(lfn, fullchecksum, checksum);
+        ret = sql.setChecksum(xstat.stat.st_ino, fullchecksum, checksum);
+        if (!ret.ok())
+          return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot update checksum on fileid: " << xstat.stat.st_ino << " lfn: '" << lfn << "'"));
       }
     }
 
@@ -2156,10 +2184,16 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
 
   bool canpull = status.LfnMatchesAnyCanPullFS(lfn, fs);
   size_t pending_index = -1;
-
-  DmlitePoolHandler stack(status.dmpool);
+  DmStatus ret;
+  DomeMySql sql;
+  std::vector <Replica > replicas;
   try {
-    std::vector<Replica> replicas = stack->getCatalog()->getReplicas(lfn);
+    
+    ret = sql.getReplicas(replicas, lfn);
+    if (!ret.ok())
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of '" << lfn <<
+      "' err: " << ret.code() << " what:" << ret.what()) );
+    
     using boost::property_tree::ptree;
     ptree jresp;
     bool found = false;
@@ -2240,12 +2274,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
 
   try {
-    DmlitePoolHandler stack(status.dmpool);
-    INode *inodeintf = dynamic_cast<INode *>(stack->getINode());
-    if (!inodeintf) {
-      Err( domelogname , " Cannot retrieve inode interface. Fatal.");
-      return -1;
-    }
+    DomeMySql sql;
 
     std::string chksumtype = req.bodyfields.get<std::string>("checksum-type", "");
     std::string fullchecksum = "checksum." + chksumtype;
@@ -2316,14 +2345,15 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
 
 
     dmlite::Replica rep;
-    try {
-      rep = stack->getCatalog()->getReplicaByRFN(rfn);
-    } catch (DmException e) {
+    DmStatus ret;
+    
+    ret = sql.getReplicabyRFN(rep, rfn);
+    if (!ret.ok()) {
       std::ostringstream os;
-      os << "Cannot find replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot find replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 404, os);
+      return DomeReq::SendSimpleResp(request, http_status(ret), os);
     }
 
     if (rep.status != dmlite::Replica::kBeingPopulated) {
@@ -2337,11 +2367,11 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     }
 
     dmlite::ExtendedStat st;
-    try {
-      st = inodeintf->extendedStat(rep.fileid);
-    } catch (DmException e) {
+    
+    ret = sql.getStatbyFileid(st, rep.fileid);
+    if (!ret.ok()) {
       std::ostringstream os;
-      os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot fetch logical entry for replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 422, os);
@@ -2355,12 +2385,10 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     // If a miracle took us here, the size has been confirmed
     Log(Logger::Lvl1, domelogmask, domelogname, " Final size:   " << size );
 
-
-    try {
-      stack->getCatalog()->setSize(lfn, size);
-    } catch (DmException e) {
+    ret = sql.setSize(rep.fileid, size);
+    if (ret.ok()) {
       std::ostringstream os;
-      os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot update replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 500, os);
@@ -2374,11 +2402,11 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     if (checksum.size() && chksumtype.size())
       rep[fullchecksum] = checksum;
 
-    try {
-      stack->getCatalog()->updateReplica(rep);
-    } catch (DmException e) {
+    ret = sql.updateReplica(rep);
+      
+    if (!ret.ok()) {
       std::ostringstream os;
-      os << "Cannot update replica '"<< rfn << "' : " << e.code() << "-" << e.what();
+      os << "Cannot update replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
       return DomeReq::SendSimpleResp(request, 500, os);
@@ -2567,6 +2595,9 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     localquotas = status.quotas;
   }
 
+  DomeMySql sql;
+  DmStatus ret;
+  
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = localquotas.begin(); it != localquotas.end(); ++it) {
     bool match = false;
 
@@ -2586,19 +2617,20 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     // Get the used space for this path
     long long pathfree = 0LL;
     long long pathused = 0LL;
-    DmlitePoolHandler stack(status.dmpool);
-    try {
-      struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(absPath);
-      pathused = st.stat.st_size;
-    }
-    catch (dmlite::DmException e) {
+    
+    struct dmlite::ExtendedStat st;
+    ret = sql.getStatbyLFN(st, absPath);  
+
+    if (!ret.ok()) {
       std::ostringstream os;
-      os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << e.code() << "-" << e.what();
+      os << "Found quotatokens for non-existing path '"<< it->second.path << "' : " << ret.code() << "-" << ret.what();
 
       Err(domelogname, os.str());
       continue;
     }
 
+    pathused = st.stat.st_size;
+    
     // Now find the free space in the mentioned pool
     long long ptot, pfree;
     int poolst;
@@ -2684,17 +2716,17 @@ int DomeCore::dome_setquotatoken(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
-  DmlitePoolHandler stack(status.dmpool);
-  try {
-    struct dmlite::ExtendedStat st = stack->getCatalog()->extendedStat(mytk.path);
-  }
-  catch (dmlite::DmException e) {
+  DomeMySql sql;
+  DmStatus ret;
+
+  struct dmlite::ExtendedStat st;
+  ret = sql.getStatbyLFN(st, mytk.path);
+  if (!ret.ok()) {
     std::ostringstream os;
     os << "Cannot find logical path: '" << mytk.path << "'";
 
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
-
   }
 
   // We fetch the values that we may have in the internal map, using the keys
@@ -2938,20 +2970,50 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
 
   // Get the replica. Unfortunately to delete it we must first fetch it
-  DmlitePoolHandler stack(status.dmpool);
+
   std::string rfiopath = srv + ":" + absPath;
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting replica: '" << rfiopath);
   dmlite::Replica rep;
-  try {
-    rep = stack->getCatalog()->getReplicaByRFN(rfiopath);
-  } catch (DmException e) {
+  
+  DomeMySql sql;
+  DmStatus ret;
+  ret = sql.getReplicabyRFN(rep, rfiopath);
+    
+  if (!ret.ok()) {
     std::ostringstream os;
-    os << "Cannot find replica '"<< rfiopath << "' : " << e.code() << "-" << e.what();
+    os << "Cannot find replica '"<< rfiopath << "' : " << ret.code() << "-" << ret.what();
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 404, os);
   }
 
-
+  // Now check the perms
+  SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  ExtendedStat xstat;
+  
+  ret = sql.getStatbyFileid(xstat, rep.fileid);
+  if (!ret.ok()) {
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << rep.fileid << " of rfn: '" << rep.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  if (!S_ISREG(xstat.stat.st_mode))
+    return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << rep.fileid << " is not a regular file"));
+  
+  // Check perms on the parents
+  ret = sql.traverseBackwards(ctx, xstat);
+  if (!ret.ok()) {
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on fileid " << xstat.stat.st_ino
+    << " of rfn: '" << rep.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
+      << " of rfn: '" << rep.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    
+  
+  
+  
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
   std::string diskurl = "https://" + srv + "/domedisk/";
@@ -2965,77 +3027,51 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, talker.err());
   }
 
-  dmlite::INode *ino;
-  try {
-    ino = stack->getINode();
-    if (!ino)
-      Err(domelogname, "Cannot retrieve inode interface.");
-  } catch (DmException e) {
-    std::ostringstream os;
-    os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
-    Err(domelogname, os.str());
-    //return DomeReq::SendSimpleResp(request, 404, os);
-  }
 
-  if (ino) {
+
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Removing replica: '" << rep.rfn);
     // And now remove the replica
-    DomeMySql sql;
-    DomeMySqlTrans t(&sql);
-    // Free some space
-    if(sql.delReplica(rep.fileid, rfiopath) != 0) {
-      std::ostringstream os;
-      os << "Cannot delete replica '" << rfiopath;
-      Err(domelogname, os.str());
-      return DomeReq::SendSimpleResp(request, 404, os);
-    }
-    t.Commit();
 
+    {
+      DomeMySqlTrans t(&sql);
+      // Free some space
+      if(sql.delReplica(rep.fileid, rfiopath) != 0) {
+        std::ostringstream os;
+        os << "Cannot delete replica '" << rfiopath;
+        Err(domelogname, os.str());
+        return DomeReq::SendSimpleResp(request, 404, os);
+      }
+      t.Commit();
+    }
     Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
 
 
     // Get the file size :-(
-    int64_t sz = 0;
-    dmlite::ExtendedStat st;
-    try {
-      st = ino->extendedStat(rep.fileid);
-      sz = st.stat.st_size;
-
-    } catch (DmException e) {
-      std::ostringstream os;
-      os << "Cannot fetch logical entry for replica '"<< rep.rfn << "' Id: " << rep.fileid << " : " << e.code() << "-" << e.what();
-
-      Err(domelogname, os.str());
-    }
+    int64_t sz = xstat.stat.st_size;
+    
 
     std::vector<Replica> repls;
-    try {
 
-      repls = ino->getReplicas(rep.fileid);
-
-    } catch (DmException e) {
-      std::ostringstream os;
-      os << "Cannot find replicas for fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
-      Err(domelogname, os.str());
-      //return DomeReq::SendSimpleResp(request, 404, os);
-    }
+      ret = sql.getReplicas(repls, rep.fileid);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of fileid '" << rep.fileid <<
+        "' err: " << ret.code() << " what:" << ret.what()) );
 
     if (repls.size() == 0) {
       // Delete the logical entry if this was the last replica
-      try {
+      ret = sql.unlink(rep.fileid);
 
-        ino->unlink(rep.fileid);
-
-      } catch (DmException e) {
+      if (!ret.ok()) {
         std::ostringstream os;
-        os << "Cannot unlink fileid: '"<< rep.fileid << "' : " << e.code() << "-" << e.what();
+        os << "Cannot unlink fileid: '"<< rep.fileid << "' : " << ret.code() << "-" << ret.what();
         Err(domelogname, os.str());
         //return DomeReq::SendSimpleResp(request, 404, os);
       }
     }
 
-    if(!addFilesizeToDirs(ino, st, -sz)) {
-      Err(domelogname, SSTR("Unable to remove filesize from parent directories of  " << st.stat.st_ino << ". Directory sizes will be inconsistent."));
+    if(!addFilesizeToDirs(sql, xstat, -sz)) {
+      Err(domelogname, SSTR("Unable to decrease filesize from parent directories of fileid: " << xstat.stat.st_ino ));
     }
 
     // For backward compatibility with the DPM daemon, we also update its
@@ -3057,7 +3093,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
     }
 
-  }
+  
 
 
 return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
@@ -3480,17 +3516,18 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
   
-
+  DmStatus ret;
+  
   // If lfn is filled then we stat the logical file
   if (lfn.size()) {
-    DmStatus ret;
+    
 
     {
         DomeMySql sql;
         
         ExtendedStat parent;
         std::string parentPath, name;
-        DmStatus ret = sql.getParent(parent, lfn, parentPath, name);
+        ret = sql.getParent(parent, lfn, parentPath, name);
         if (!ret.ok())
           return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
         
@@ -3712,42 +3749,43 @@ int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getidmap only available on head nodes.");
   }
-
+  
   using namespace boost::property_tree;
-
+  
   try {
     std::string username = req.bodyfields.get<std::string>("username");
     std::vector<std::string> groupnames;
-
+    
     boost::optional<ptree&> groups_in = req.bodyfields.get_child_optional("groupnames");
     if(groups_in) {
       for(ptree::const_iterator it = groups_in->begin(); it != groups_in->end(); it++) {
         groupnames.push_back(it->second.get_value<std::string>());
       }
     }
-
-    UserInfo userinfo;
-    std::vector<GroupInfo> groupinfo;
-
-    DmlitePoolHandler stack(status.dmpool);
-    stack->getAuthn()->getIdMap(username, groupnames, &userinfo, &groupinfo);
-
-    ptree resp;
-    resp.put("uid", userinfo.getLong("uid"));
-    resp.put("banned", userinfo.getLong("banned"));
-
-    for(std::vector<GroupInfo>::iterator it = groupinfo.begin(); it != groupinfo.end(); it++) {
-      resp.put(boost::property_tree::ptree::path_type("groups^" + it->name + "^gid", '^'), it->getLong("gid"));
-      resp.put(boost::property_tree::ptree::path_type("groups^" + it->name + "^banned", '^'), it->getLong("banned"));
+    
+    DomeUserInfo userinfo;
+    std::vector<DomeGroupInfo> groupinfo;
+    
+    DmStatus st = status.getIdMap(username, groupnames, userinfo, groupinfo);
+    if (!st.ok()) {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get id mapping: " << st.code() << " what: '" << st.what() << "'"));
     }
-
+    
+    ptree resp;
+    resp.put("uid", userinfo.userid);
+    resp.put("banned", userinfo.banned);
+    
+    for(std::vector<DomeGroupInfo>::iterator it = groupinfo.begin(); it != groupinfo.end(); it++) {
+      resp.put(boost::property_tree::ptree::path_type("groups^" + it->groupname + "^gid", '^'), it->groupid);
+      resp.put(boost::property_tree::ptree::path_type("groups^" + it->groupname + "^banned", '^'), it->banned);
+    }
+    
     return DomeReq::SendSimpleResp(request, 200, resp);
+    
   }
   catch(ptree_error e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
-  }
-  catch(DmException e) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get id mapping: " << e.code() << " what: '" << e.what() << "'"));
+    
   }
 }
 
@@ -4277,47 +4315,17 @@ int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentpath << "'"));
   
-  // Create the folder
-  ExtendedStat newFolder;
-  // zero stat structure
-  memset(&newFolder.stat, 0, sizeof(newFolder.stat));
-  newFolder.parent      = parent.stat.st_ino;
-  newFolder.name        = dname;
-  newFolder.stat.st_uid = ctx.user.getUnsigned("uid");
-  newFolder.status      = ExtendedStat::kOnline;    
-  // Mode
-  newFolder.stat.st_mode = (mode & ~S_IFMT) | S_IFDIR;
-  
-  // Effective gid
-  gid_t egid;
-  if (parent.stat.st_mode & S_ISGID) {
-    egid = parent.stat.st_gid;
-    newFolder.stat.st_mode |= S_ISGID;
+  ret = sql.makedir(parent, dname, mode, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
+  if (!ret.ok()) {
+    std::ostringstream os;
+    os << "Cannot create dir '" << path << "' - " << ret.code() << "-" << ret.what();
+    Err(domelogname, os.str());
+    return DomeReq::SendSimpleResp(request, http_status(ret), os);
   }
-  else {
-    // We take the gid of the first group of the user
-    // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
-    // and I don't really know what to do
-    egid = ctx.groups[0].getUnsigned("gid");
-  }
-  newFolder.stat.st_gid = egid;
-  
-  
-  
-  // Generate inherited ACL's if there are defaults
-  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
-    newFolder.acl = Acl(parent.acl,
-                        ctx.user.getUnsigned("uid"),
-                        egid,
-                        mode,
-                        &newFolder.stat.st_mode);
-    
-  // Register
-  ret = sql.create(newFolder);
-  if (!ret.ok())
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't create folder '" << path << "'")); 
   
   return DomeReq::SendSimpleResp(request, 200, "");
+  
+  
 }
 
 

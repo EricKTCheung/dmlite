@@ -159,8 +159,56 @@ dmlite::DmStatus DomeMySql::traverseBackwards(const SecurityContext &secctx, dml
   return DmStatus();
 }
 
-
-
+DmStatus DomeMySql::createfile(const dmlite::ExtendedStat &parent, std::string fname, mode_t mode, int uid, int gid) {
+  DmStatus ret;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << fname << "' mode: " << mode);
+  
+  // Create the folder
+  ExtendedStat newFile;
+  // zero stat structure
+  memset(&newFile.stat, 0, sizeof(newFile.stat));
+  newFile.parent      = parent.stat.st_ino;
+  newFile.name        = fname;
+  newFile.stat.st_uid = uid;
+  newFile.status      = ExtendedStat::kOnline;    
+  // Mode
+  newFile.stat.st_mode = (mode & ~S_IFMT);
+  
+  // Effective gid
+  gid_t egid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
+    newFile.stat.st_mode |= S_ISGID;
+  }
+  else {
+    // We take the gid of the first group of the user
+    // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
+    // and I don't really know what to do
+    egid = gid;
+  }
+  newFile.stat.st_gid = egid;
+  
+  
+  
+  // Generate inherited ACL's if there are defaults
+  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
+    newFile.acl = Acl(parent.acl,
+                        uid,
+                        egid,
+                        mode,
+                      &newFile.stat.st_mode);
+    
+    // Register
+    ret = this->create(newFile);
+  if (!ret.ok())
+    return DmStatus(EINVAL, SSTR("Can't create folder '" << fname << "'")); 
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Created: '" << fname << "' mode: " << mode);
+  
+  return DmStatus();
+  
+}
 
 DmStatus DomeMySql::create(ExtendedStat& nf)
 {
@@ -293,6 +341,57 @@ DmStatus DomeMySql::create(ExtendedStat& nf)
     Log(Logger::Lvl1, domelogmask, domelogname, "Created new file. name: '" << nf.name <<
       "' parent: " << nf.parent << " flags: " << nf.stat.st_mode << " fileid: " << newFileId);
     
+  return DmStatus();
+}
+
+
+DmStatus DomeMySql::makedir(const ExtendedStat &parent, std::string dname, mode_t mode, int uid, int gid) {
+  DmStatus ret;
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << dname << "' mode: " << mode);
+  
+  // Create the folder
+  ExtendedStat newFolder;
+  // zero stat structure
+  memset(&newFolder.stat, 0, sizeof(newFolder.stat));
+  newFolder.parent      = parent.stat.st_ino;
+  newFolder.name        = dname;
+  newFolder.stat.st_uid = uid;
+  newFolder.status      = ExtendedStat::kOnline;    
+  // Mode
+  newFolder.stat.st_mode = (mode & ~S_IFMT) | S_IFDIR;
+  
+  // Effective gid
+  gid_t egid;
+  if (parent.stat.st_mode & S_ISGID) {
+    egid = parent.stat.st_gid;
+    newFolder.stat.st_mode |= S_ISGID;
+  }
+  else {
+    // We take the gid of the first group of the user
+    // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
+    // and I don't really know what to do
+    egid = gid;
+  }
+  newFolder.stat.st_gid = egid;
+  
+  
+  
+  // Generate inherited ACL's if there are defaults
+  if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj) > -1)
+    newFolder.acl = Acl(parent.acl,
+                        uid,
+                        egid,
+                        mode,
+                        &newFolder.stat.st_mode);
+    
+    // Register
+    ret = this->create(newFolder);
+  if (!ret.ok())
+    return DmStatus(EINVAL, SSTR("Can't create folder '" << dname << "'")); 
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Created: '" << dname << "' mode: " << mode);
+  
   return DmStatus();
 }
 
@@ -1059,7 +1158,15 @@ DmStatus DomeMySql::getReplicabyId(dmlite::Replica &r, int64_t repid) {
 
 
 
-
+DmStatus DomeMySql::getReplicas(std::vector<Replica> &reps, std::string lfn) {
+  ExtendedStat meta;
+  // Get the directory
+  DmStatus st = getStatbyLFN(meta, lfn);
+  if (!st.ok())
+    return st;
+  
+  return getReplicas(reps, meta.stat.st_ino);
+}
 
 DmStatus DomeMySql::getReplicas(std::vector<Replica> &reps, ino_t inode)
 {
@@ -1154,7 +1261,7 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
     bindMetadata(stmt, &cstat);
 
     if (!stmt.fetch())
-      return DmStatus(ENOENT, SSTR(fileid << " not found"));
+      return DmStatus(ENOENT, SSTR(fileid << ":'" << name << "' not found"));
 
     dumpCStat(cstat, &xstat);
   }
@@ -1567,3 +1674,56 @@ ExtendedStat* DomeMySql::readdirx(DomeMySqlDir *&dir) {
   }
   return NULL;
 }
+
+
+
+
+DmStatus DomeMySql::setChecksum(const ino_t fid, const std::string &csumtype, const std::string &csumvalue) {
+  
+  // This is a convenience function, which could be overridden, but normally should not
+  // We translate a legacy checksum (e.g. AD for adler32)  into the proper extended xattrs to be set
+  // (e.g. checksum.adler32)
+  // We can also pass a long checksum name (e.g. checksum.adler32)
+  
+  Log(Logger::Lvl4, domelogmask, domelogname, " fileid: " << fid << " csumtype:" << csumtype << " csumvalue:" << csumvalue);
+  
+  ExtendedStat ckx;
+  DmStatus ret = this->getStatbyFileid(ckx, fid);
+  if (ret.ok())
+    return ret;
+  
+  std::string k = csumtype;
+  
+  // If it looks like a legacy chksum then try to xlate its name
+  if (csumtype.length() == 2)
+    k = checksums::fullChecksumName(csumtype);
+  
+  if (!checksums::isChecksumFullName(k))
+    throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
+  
+  if (csumvalue.length() == 0)
+    throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
+  
+  
+  ckx[k] = csumvalue;
+  updateExtendedAttributes(fid, ckx);
+  
+  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid: " << fid);
+  
+  return DmStatus();
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
