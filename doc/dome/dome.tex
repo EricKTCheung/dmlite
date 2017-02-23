@@ -1028,7 +1028,15 @@ Code: 200 or pending
  \item parentfileid: private DPM core information
  \item size: file size
  \item mode: unix flags
- \item isdir: tells if it's a directory
+ \item atime: access time
+ \item mtime: modification time
+ \item ctime: creation time
+ \item uid: user id
+ \item gid: group id
+ \item nlink: numbe of child entries
+ \item acl: access control list in string format
+ \item name: the name
+ \item xattrs: the extended attributes in JSON format
 \end{itemize}
 
 
@@ -1098,20 +1106,27 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
- \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
- \item server: the server part of a physical file name. Can be omitted if a logical file name is provided.
- \item pfn: the path/filename part of a physical file name. Can be omitted if a logical file name is provided.
- \item rfn: a physical file name in the rfio syntax. Can be omitted if a logical file name is provided.
+ \item path: a logical path to return information about
+
 \end{itemize}
 
 Returns:
-Code: 200 or pending
+Code: 200 if OK
+A JSON array containing the entries of that listing. Each entry has the following fields
 \begin{itemize}
  \item fileid: private DPM core information
  \item parentfileid: private DPM core information
  \item size: file size
  \item mode: unix flags
- \item isdir: tells if it's a directory
+ \item atime: access time
+ \item mtime: modification time
+ \item ctime: creation time
+ \item uid: user id
+ \item gid: group id
+ \item nlink: numbe of child entries
+ \item acl: access control list in string format
+ \item name: the name
+ \item xattrs: the extended attributes in JSON format
 \end{itemize}
 
 
@@ -1204,6 +1219,25 @@ Example response:\\
 }
 \end{lstlisting}
 
+
+\subsubsection{dome\_unlink}
+
+Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_unlink"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: absolute lfn
+\end{itemize}
+
+Returns:
+\begin{itemize}
+ \item
+\end{itemize}
 
 \subsection{Disk node operation}
 The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not

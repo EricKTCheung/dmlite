@@ -4943,7 +4943,7 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
   ExtendedStat parent;
   DomeMySql sql;
   DmStatus ret = sql.getParent(parent, path, parentPath, name);
-  if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot get parent of '" <<
+  if (!ret.ok()) return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot get parent of '" <<
     path << "' : " << ret.code() << "-" << ret.what()));
   
   // Check we have write access for the parent
@@ -4952,7 +4952,7 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
   
   ExtendedStat file;
   ret = sql.getStatbyParentFileid(file, parent.stat.st_ino, name);
-  if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot stat '" <<
+  if (!ret.ok()) return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat '" <<
     path << "' : " << ret.code() << "-" << ret.what()));
   
   // Directories can not be removed with this method!
