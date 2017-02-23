@@ -3044,7 +3044,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       }
       t.Commit();
     }
-    Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical file entry: '" << rep.fileid);
+    Log(Logger::Lvl4, domelogmask, domelogname, "Check if we have to remove the logical fileid " << rep.fileid);
 
 
     // Get the file size :-(
@@ -3055,8 +3055,8 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
       ret = sql.getReplicas(repls, rep.fileid);
       if (!ret.ok())
-        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of fileid '" << rep.fileid <<
-        "' err: " << ret.code() << " what:" << ret.what()) );
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of fileid " << rep.fileid <<
+        " err: " << ret.code() << " what:" << ret.what()) );
 
     if (repls.size() == 0) {
       // Delete the logical entry if this was the last replica
