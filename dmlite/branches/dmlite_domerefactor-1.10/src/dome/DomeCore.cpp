@@ -334,6 +334,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if (dreq.domecmd == "dome_removedir") {
           core->dome_removedir(dreq, request);
         }
+        else if (dreq.domecmd == "dome_unlink") {
+          core->dome_unlink(dreq, request);
+        }
         else {
           DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
 

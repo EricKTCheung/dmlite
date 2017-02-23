@@ -1342,13 +1342,34 @@ DmStatus DomeMySql::unlink(ino_t inode)
     {
       // Scope to make sure that the local objects that involve mysql
       // are destroyed before the transaction is closed
+      Log(Logger::Lvl4, domelogmask, domelogname, "Deleting symlinks, comments, replicas.  inode:" << inode);
+      
+      // Remove associated symlink
+      Statement delSymlink(conn_, CNS_DB, "DELETE FROM Cns_symlinks WHERE fileid = ?");
+      delSymlink.bindParam(0, inode);
+      delSymlink.execute();
+      
+      // Remove associated comments
+      Statement delComment(conn_, CNS_DB, "DELETE FROM Cns_user_metadata WHERE u_fileid = ?");
+      delComment.bindParam(0, inode);
+      delComment.execute();
+      
+      // Remove replicas
+      Statement delReplicas(conn_, CNS_DB, "DELETE FROM Cns_file_replica\
+      WHERE fileid = ?");
+      delReplicas.bindParam(0, inode);
+      delReplicas.execute();
       
       // Remove file itself
+      Log(Logger::Lvl4, domelogmask, domelogname, "Deleting file entry.  inode:" << inode);
+      
       Statement delFile(this->conn_, CNS_DB, "DELETE FROM Cns_file_metadata WHERE fileid = ?");
       delFile.bindParam(0, inode);
       delFile.execute();
       
       // Decrement parent nlink
+      Log(Logger::Lvl4, domelogmask, domelogname, "Fixing parent nlink.  inode:" << inode << " parent: " << parent.stat.st_ino);
+      
       Statement nlinkStmt(this->conn_, CNS_DB, "SELECT nlink FROM Cns_file_metadata WHERE fileid = ? FOR UPDATE");
       nlinkStmt.bindParam(0, parent.stat.st_ino);
       nlinkStmt.execute();
@@ -1373,33 +1394,8 @@ DmStatus DomeMySql::unlink(ino_t inode)
     return DmStatus(EINVAL, SSTR("Cannot unlink fileid: " << inode << "err: '" << e.what()));
   }
   
-  Log(Logger::Lvl4, domelogmask, domelogname, "Deleting symlinks, comments, replicas.  inode:" << inode);
   
-  try {
-    // Scope to make sure that the local objects that involve mysql
-    // are destroyed before the transaction is closed
-    
-    // Remove associated symlink
-    Statement delSymlink(conn_, CNS_DB, "DELETE FROM Cns_symlinks WHERE fileid = ?");
-    delSymlink.bindParam(0, inode);
-    delSymlink.execute();
-    
-    // Remove associated comments
-    Statement delComment(conn_, CNS_DB, "DELETE FROM Cns_user_metadata WHERE u_fileid = ?");
-    delComment.bindParam(0, inode);
-    delComment.execute();
-    
-    // Remove replicas
-    Statement delReplicas(conn_, CNS_DB, "DELETE FROM Cns_file_replica\
-    WHERE fileid = ?");
-    delReplicas.bindParam(0, inode);
-    delReplicas.execute();
-    
-    
-  }
-  catch ( DmException e ) {
-    return DmStatus(EINVAL, SSTR("Cannot remove symlinks, comments or replicas of fileid: " << inode << "err: '" << e.what()));
-  }
+
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode);
   return DmStatus();
