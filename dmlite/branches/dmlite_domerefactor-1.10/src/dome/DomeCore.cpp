@@ -647,39 +647,50 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
   
   
   
-  // Now map uid and gids into the (horrible) extensible
-  DomeUserInfo u;
-  if (status.getUser(ctx.user.name, u)) {
-    ctx.user["uid"] = u.userid;
-    ctx.user["banned"] = u.banned;
-  } else {
-    // Maybe we have to do something if the user was unknown?
-    DomeMySql sql;
-    if ((ctx.user.name.length() > 0) && sql.newUser(u, ctx.user.name).ok()) {
+  // Now map uid and gids into the spooky extensible
+  
+  if (ctx.user.name == "") {
+    // This is a rotten legacy from lcg-dm
+    // A client can connect ONLY if it has the right identity, i.e.
+    // it's a machine in the cluster
+    // If such a client claims to be root by not giving any remote identity then he is root
+    ctx.user["uid"] = 0;
+    ctx.user["banned"] = false;
+  }
+  else {
+    DomeUserInfo u;
+    if (status.getUser(ctx.user.name, u)) {
       ctx.user["uid"] = u.userid;
       ctx.user["banned"] = u.banned;
-    }
-    else
-      Err(domelogname, "Cannot add unknown user '" << ctx.user.name << "'");
-  }
-  
-  DomeGroupInfo g;
-  for(size_t i = 0; i < ctx.groups.size(); i++) {
-    if (status.getGroup(ctx.groups[i].name, g)) {
-      ctx.groups[i]["gid"] = g.groupid;
-      ctx.groups[i]["banned"] = g.banned;
     } else {
-      // Maybe we have to do something if the group was unknown?
+      // Maybe we have to do something if the user was unknown?
       DomeMySql sql;
-      if ((ctx.groups[i].name.length() > 0) && sql.newGroup(g, ctx.groups[i].name).ok()) {
-        ctx.groups[i]["gid"] = g.groupid;
-        ctx.groups[i]["banned"] = g.banned;
+      if ((ctx.user.name.length() > 0) && sql.newUser(u, ctx.user.name).ok()) {
+        ctx.user["uid"] = u.userid;
+        ctx.user["banned"] = u.banned;
       }
       else
-        Err(domelogname, "Cannot add unknown group '" << ctx.groups[i].name << "'");
+        Err(domelogname, "Cannot add unknown user '" << ctx.user.name << "'");
     }
     
-    
+    DomeGroupInfo g;
+    for(size_t i = 0; i < ctx.groups.size(); i++) {
+      if (status.getGroup(ctx.groups[i].name, g)) {
+        ctx.groups[i]["gid"] = g.groupid;
+        ctx.groups[i]["banned"] = g.banned;
+      } else {
+        // Maybe we have to do something if the group was unknown?
+        DomeMySql sql;
+        if ((ctx.groups[i].name.length() > 0) && sql.newGroup(g, ctx.groups[i].name).ok()) {
+          ctx.groups[i]["gid"] = g.groupid;
+          ctx.groups[i]["banned"] = g.banned;
+        }
+        else
+          Err(domelogname, "Cannot add unknown group '" << ctx.groups[i].name << "'");
+      }
+      
+      
+    }
   }
   
 }
