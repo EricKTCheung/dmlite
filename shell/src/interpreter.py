@@ -2111,7 +2111,7 @@ class Util(object):
             return adminUserName
 
         @staticmethod
-        def setFSReadonly(dpm2,interpreter,sourceFS):
+        def setFSReadonly(interpreter,sourceFS):
             #check which implementations are loaded
 
             catalogImpl = interpreter.catalog.getImplId()
@@ -2454,7 +2454,7 @@ ex:
 
             #set as READONLY the FS  to drain
             if not parameters['dryrun']:
-                if Util.setFSReadonly(dpm2,self.interpreter,sourceFS):
+                if Util.setFSReadonly(self.interpreter,sourceFS):
                     return
             else:
                 Util.printComments(self.interpreter)
@@ -2946,7 +2946,7 @@ The drainpool command accepts the following parameters:
                 #step 1 : set as READONLY all FS in the pool to drain
                 if not parameters['dryrun']:
                         for fs in listFStoDrain:
-                                if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
+                                if Util.setFSReadonly(self.interpreter,fsToDrain):
                                         return
                 else:
                         Util.printComments(self.interpreter)
@@ -3059,7 +3059,7 @@ The drainfs command accepts the following parameters:
 
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
-                        if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
+                        if Util.setFSReadonly(self.interpreter,fsToDrain):
                                 return
                 else:
                         Util.printComments(self.interpreter)
@@ -3175,7 +3175,7 @@ The drainserver command accepts the following parameters:
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
                         for fs in db.getFilesystemsInServer(servername):
-                                if Util.setFSReadonly(dpm2,self.interpreter,fs):
+                                if Util.setFSReadonly(self.interpreter,fs):
                                         return
                 else:
                         Util.printComments(self.interpreter)
