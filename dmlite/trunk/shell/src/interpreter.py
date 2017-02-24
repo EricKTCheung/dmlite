@@ -1586,6 +1586,8 @@ class PoolInfoCommand(ShellCommand):
             availability = PoolInfoCommand.mapping['']
         pools = self.interpreter.poolManager.getPools(availability)
         for pool in pools:
+            if pool is None:
+                return self.ok("No Pool configured")
             dpool = json.loads(pool.serialize())
             self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint_dictionary(dpool)))
         return self.ok()
@@ -1695,6 +1697,10 @@ class QryConfCommand(ShellCommand):
             availability = pydmlite.PoolAvailability.kAny
             pools = self.interpreter.poolManager.getPools(availability)
             info,err = self.interpreter.executor.getSpaceInfo(self.interpreter.domeheadurl)
+            if err:
+                return self.error("Error while querying for Pools/FSs information")
+            if info is None:
+                return self.ok("No Pool configured") 
             data  = json.loads(info)
             for pool in pools:
                 output = "POOL %s " % (pool.name)
