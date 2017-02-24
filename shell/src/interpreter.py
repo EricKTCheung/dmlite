@@ -3465,6 +3465,8 @@ class GetLfnCommand(ShellCommand):
          try:
              db = DPMDB()
              lfn = db.getLFNFromSFN(sfn)
+             if lfn is None:
+                 return self.error("Cannot find the given SFN")
          except Exception, e:
              return self.error("Cannot find the given SFN")
          self.ok(lfn)
