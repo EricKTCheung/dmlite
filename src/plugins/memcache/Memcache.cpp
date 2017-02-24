@@ -190,11 +190,11 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
     // will be treated as a timestamp by memcached
     // >= 0 is implicit because it's an unsigned value
     if (expLimit < 60*60*24*30) {
-      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << expLimit);
+      Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << expLimit);
       this->memcachedExpirationLimit_ = expLimit;
     }
     else {
-      Log(Logger::Lvl1, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << DEFAULT_MEMCACHED_EXPIRATION);
+      Log(Logger::Lvl4, memcachelogmask, memcachelogname, "Setting MemcachedExpirationLimit :" << DEFAULT_MEMCACHED_EXPIRATION);
       this->memcachedExpirationLimit_ = DEFAULT_MEMCACHED_EXPIRATION;
     }
 
