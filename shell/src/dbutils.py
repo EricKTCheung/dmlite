@@ -238,16 +238,16 @@ class DPMDB(object):
         
         def find(self, pattern, folder):
                 """retrieve a list of sfn matching a pattern"""
-                filemodeprefix = '33'
+                comparison = '='
                 ret = list()
 		if folder:
-                        filemodeprefix = '16'
+                        comparison = '!='
 			        
                 try:
                         self.nsdb_c.execute('''
 			select name, fileid,parent_fileid, filemode from Cns_file_metadata
-			where name like '%%%(pattern)s%%' and filemode like '%(filemodeprefix)s%%'
-			''' % {"pattern" : pattern, "filemodeprefix" :filemodeprefix })
+			where name like '%%%(pattern)s%%' and filemode&32768%(comparison)s32768
+			''' % {"pattern" : pattern, "comparison" :comparison })
 			for row in self.nsdb_c.fetchall():
 			    namelist = ['']
                             namelist.append(str(row[0]))
