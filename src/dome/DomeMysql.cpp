@@ -593,7 +593,7 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   try {
     Statement stmt(conn_, "dpm_db",
                    "UPDATE dpm_space_reserv\
-                    SET u_space = u_space + ( ? )\
+                    SET u_space = u_space + cast(? AS SIGNED)\
                     WHERE path = ? AND poolname = ?");
     stmt.bindParam(0, increment);
     stmt.bindParam(1, qtk.path);
@@ -654,7 +654,7 @@ int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
   try {
     Statement stmt(conn_, "cns_db",
                    "UPDATE Cns_file_metadata\
-                    SET filesize = filesize + ( ? )\
+                    SET filesize = filesize + cast( ? AS SIGNED)\
                     WHERE fileid = ?");
 
     stmt.bindParam(0, increment);
