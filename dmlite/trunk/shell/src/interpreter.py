@@ -569,9 +569,6 @@ class InitCommand(ShellCommand):
     if not self.interpreter.quietMode:
       self.ok('Using configuration "' + configFile + '" as root.')
 
-    if 'dpm2' not in sys.modules:
-        self.ok("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work properly: drainfs, drainpool, drainserver .")
-
     if log != '0':
         self.ok("Log Level set to %s." % log)
 
@@ -2119,6 +2116,9 @@ class Util(object):
 
             catalogImpl = interpreter.catalog.getImplId()
             if 'DomeAdapterHeadCatalog' not in catalogImpl:
+                if 'dpm2' not in sys.modules:
+                    self.error("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work: drainfs, drainpool, drainserver.")
+                    return 1
                 if not dpm2.dpm_modifyfs(sourceFS.server, sourceFS.name, 2, sourceFS.weight):
                     return 0
                 else:
@@ -2878,8 +2878,6 @@ The drainpool command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
@@ -2990,8 +2988,6 @@ The drainfs command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
@@ -3105,8 +3101,6 @@ The drainserver command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
