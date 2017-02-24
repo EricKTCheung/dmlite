@@ -246,7 +246,7 @@ void MemcacheFactory::configure(const std::string& key, const std::string& value
   else gotit = false;
 
   if (gotit)
-    LogCfgParm(Logger::Lvl1,  memcachelogmask, memcachelogname, key, value);
+    LogCfgParm(Logger::Lvl4,  memcachelogmask, memcachelogname, key, value);
 }
 
 
