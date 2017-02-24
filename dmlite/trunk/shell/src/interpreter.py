@@ -2872,13 +2872,16 @@ The drainpool command accepts the following parameters:
 * group         <groupname>     : the group the files to drain belongs to  (optional, default = ALL)
 * size          <size>          : the percentage of size to drain (optional, default = 100)
 * nthreads      <threads>       : the number of threads to use in the drain process (optional, default = 5)
-* dryrun        <true/false>    : if set to true just print the drain statistics (optional, default = true)"""
+* dryrun        <true/false>    : if set to true just print the drain statistics (optional, default = true)
+* force         <true/false>    : force the drain process to run with more than the max nthread configurable(10)"""
 
     def _init(self):
-        self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
+        self.parameters = ['?poolname', '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                '*Oparameter:group:size:nthreads:dryrun:force',  '*?value' ]
+
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
@@ -2900,6 +2903,7 @@ The drainpool command accepts the following parameters:
         parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
         parameters['move'] = False
+        force = False
 
         try:
                 poolname = given[0]
@@ -2913,14 +2917,22 @@ The drainpool command accepts the following parameters:
                                 parameters['size']  = size
                         elif given[i] == "nthreads":
                                 nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 10:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
                                 parameters['nthreads'] = nthreads
                         elif given[i] == "dryrun":
                                 if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
                                         parameters['dryrun'] = False
+                        elif given[i] == "force":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        force = True
+                        
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        #check nthreads and force params
+        if parameters['nthreads'] < 1:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
+        if parameters['nthreads'] > 10 and  not force:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
 
         #instantiating DPMDB
         try:
@@ -2981,14 +2993,16 @@ The drainfs command accepts the following parameters:
 * <servername>                          : the FQDN of the server to drain
 * group         <groupname>             : the group the files to drain belongs to  (optional, default = ALL)
 * size          <size>                  : the percentage of size to drain (optional, default = 100)
-* nthreads      <threads>               : the number of threads to use in the drain process (optional, default = 5)
-* dryrun        <true/false>            : if set to true just print the drain statistics (optional, default = true)"""
+* nthreads      <threads>               : the number of threads to use in the drain process (optional, default = 5) 
+* dryrun        <true/false>            : if set to true just print the drain statistics (optional, default = true)
+* force         <true/false>            : force the drain process to run with more than the max nthreads configurable(10)"""
 
     def _init(self):
-        self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                        '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                        '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                        '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
+        self.parameters = ['?server', '?filesystem' , '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                        '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                        '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                        '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                        '*Oparameter:group:size:nthreads:dryrun:force',  '*?value' ]
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
             return self.error('There is no stack Instance.')
@@ -3010,6 +3024,7 @@ The drainfs command accepts the following parameters:
         parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
         parameters['move'] = False
+        force = False
 
         try:
                 servername = given[0]
@@ -3023,16 +3038,22 @@ The drainfs command accepts the following parameters:
                                         return self.error("Incorrect Drain size: it must be between 1 and 100")
                                 parameters['size'] = size
                         elif given[i] == "nthreads":
-                                nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 10:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
-                                parameters['nthreads'] = nthreads
+                                parameters['nthreads'] = int(given[i+1])
                         elif given[i] == "dryrun":
                                 if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
                                         parameters['dryrun'] = False
+                        elif given[i] == "force":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        force = True
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
+        #check nthreads and force params
+        if parameters['nthreads'] < 1:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
+        if parameters['nthreads'] > 10 and  not force:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
+        
         #instantiating DPMDB
         try:
                 db = DPMDB()
@@ -3094,13 +3115,16 @@ The drainserver command accepts the following parameters:
 * group         <groupname>     : the group the files to drain belongs to (optional, default = ALL)
 * size          <size>          : the percentage of size to drain (optional, default = 100)
 * nthreads      <threads>       : the number of threads to use in the drain process (optional, default = 5)
-* dryrun        <true/false>    : if set to true just print the drain statistics (optional, default = true)"""
+* dryrun        <true/false>    : if set to true just print the drain statistics (optional, default = true)
+* force         <true/false>    : force the drain process to run with more than the max nthreads configurable(10)"""
 
     def _init(self):
-        self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                                       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                                       '*Oparameter:group:size:nthreads:dryrun',  '*?value',
-                                       '*Oparameter:group:size:nthreads:dryrun',  '*?value' ]
+        self.parameters = ['?server',  '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun:force',  '*?value',
+                                       '*Oparameter:group:size:nthreads:dryrun:force',  '*?value'] 
+                                                                                           
 
     def _execute(self, given):
         if self.interpreter.stackInstance is None:
@@ -3123,6 +3147,7 @@ The drainserver command accepts the following parameters:
         parameters['dryrun'] = True
         parameters['adminUserName'] = adminUserName
         parameters['move'] = False
+        force = False
 
         try:
                 servername = given[0]
@@ -3135,16 +3160,21 @@ The drainserver command accepts the following parameters:
                                         return self.error("Incorrect Drain size: it must be between 1 and 100")
                                 parameters['size'] = size
                         elif given[i] == "nthreads":
-                                nthreads = int(given[i+1])
-                                if nthreads < 1 or nthreads > 10:
-                                        return self.error("Incorrect number of Threads: it must be between 1 and 10")
-                                parameters['nthreads'] = nthreads
+                                parameters['nthreads'] = int(given[i+1])
                         elif given[i] == "dryrun":
                                 if given[i+1] == "False" or given[i+1] == "false" or given[i+1] == "0":
                                         parameters['dryrun'] = False
-
+                        elif given[i] == "force":
+                                if given[i+1] == "True" or given[i+1] == "true" or given[i+1] == "1":
+                                        force = True
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
+
+        #check nthreads and force params
+        if parameters['nthreads'] < 1:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
+        if parameters['nthreads'] > 10 and  not force:
+            return self.error("Incorrect number of Threads: it must be between 1 and 10")
 
         #instantiating DPMDB
         try:
