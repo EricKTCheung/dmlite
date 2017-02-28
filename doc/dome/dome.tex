@@ -519,6 +519,53 @@ Params:
 Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
 
 
+\subsubsection{dome\_addreplica}
+Adds a replica metadata entry to a logical file
+
+Command:
+\lstinline"GET /dome/command/dome_addreplica"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: a logical file name
+ \item fileid: a fileid (as an alternative to the lfn)
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+The body is a JSON vector of replica elements defined as follows:
+\begin{itemize}
+ \item rfn
+ \item fileid
+ \item status
+ \item type
+ \item setname
+ \item xattrs: the replica's extended attributes in JSON format
+\end{itemize}
+
+
+\subsubsection{dome\_create}
+Adds a logical file (or directory) metadata entry
+
+Command:
+\lstinline"POST /dome/command/dome_create"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: a logical file name, can be a directory
+ \item mode: UNIX mode bits (drwxrwxrwx) for the entry
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+
+
 \subsubsection{dome\_delreplica}
 
 Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
@@ -1001,6 +1048,49 @@ Params:
  \item pool\_stype: the space type of the pool this filesystem belongs to. P=permanent, V=volatile. Default is P. This value will affect all the filesystems belonging to the same pool.
 \end{itemize}
 
+\subsubsection{dome\_setcomment}
+
+Sets the comment of a file
+
+Command:
+\lstinline"POST /dome/command/dome_setcomment"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: the logical file name to set the comment to
+ \item fileid: the fileid to set the comment to. A fileid has precedence over an lfn.
+ \item comment: ... guess what
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+\subsubsection{dome\_getcomment}
+
+Get information about a user
+
+Command:
+\lstinline"GET /dome/command/dome_getcomment"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: the logical file name to extract information about
+ \item fileid: the fileid to extract information about. A fileid has precedence over an lfn.
+\end{itemize}
+
+Returns:
+Code: 200 or error
+\begin{itemize}
+ \item comment: the comment we are looking for
+\end{itemize}
+
 
 \subsubsection{dome\_getstatinfo}
 Returns stat information about a logical or physical file managed by DPM.
@@ -1077,6 +1167,43 @@ Code: 200 or pending
 
 
 
+\subsubsection{dome\_getreplicavec}
+Returns replica information about all the replicas of a file, identified by its fileid or lfn.
+
+Command:
+\lstinline"GET /dome/command/dome_getreplicainfo"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item lfn: a logical file name
+ \item fileid: a fileid (as an alternative to the lfn)
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+The body is a JSON vector of replica elements defined as follows:
+\begin{itemize}
+
+ \item replicaid
+ \item fileid
+ \item nbaccesses
+ \item atime
+ \item ptime
+ \item ltime
+ \item status
+ \item type
+ \item pool
+ \item server
+ \item filesystem
+ \item rfn
+ \item setname
+ \item xattrs: the replica's extended attributes in JSON format
+\end{itemize}
+
+
 \subsubsection{dome\_addfstopool}
 Adds a filesystem to a pool. This implicitely creates a pool with the given name if it did not already exist.\\
 
@@ -1151,6 +1278,85 @@ Code: 200 or error
  \item uid: the user's uid
  \item banned: whether the user is banned or not
 \end{itemize}
+
+
+\subsubsection{dome\_newuser}
+
+Creates a new user. By default a new user is not banned.
+
+Command:
+\lstinline"POST /dome/command/dome_newgroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item username: the name of the user to create
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+\subsubsection{dome\_deleteuser}
+
+Deletes an user
+
+Command:
+\lstinline"POST /dome/command/dome_deleteuser"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item username: the name of the user to delete
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
+\subsubsection{dome\_newgroup}
+
+Creates a new group
+
+Command:
+\lstinline"POST /dome/command/dome_newgroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item groupname: the name of the group to create
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+\subsubsection{dome\_deletegroup}
+
+Deletes a group
+
+Command:
+\lstinline"POST /dome/command/dome_deletegroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item groupname: the name of the group to delete
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
 
 \subsubsection{dome\_updatexattr}
 
