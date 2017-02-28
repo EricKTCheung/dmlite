@@ -1230,7 +1230,8 @@ DmStatus DomeMySql::getReplicas(std::vector<Replica> &reps, ino_t inode)
       ++i;
     };
     
-    
+    if (!i)
+      return DmStatus(DMLITE_NO_SUCH_REPLICA, SSTR("No replicas for fileid " << inode));
   }
   catch ( ... ) {
     Err(domelogname, " Exception while getting replicas of fileid " << inode);

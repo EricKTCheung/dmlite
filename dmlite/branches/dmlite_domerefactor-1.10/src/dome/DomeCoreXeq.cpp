@@ -851,11 +851,6 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     sql.setSize(fstat.stat.st_ino, 0);
   }
     
-    
-    
-    
-    
-    
   
   return DomeReq::SendSimpleResp(request, 200, "");
 }
@@ -4184,8 +4179,10 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
   using namespace boost::property_tree;
   
   ino_t fid;
+  std::string lfn;
   try {
     fid = req.bodyfields.get<ino_t>("fileid", 0);
+    lfn = req.bodyfields.get<std::string>("lfn", "");
   }
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
@@ -4199,11 +4196,18 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
     DmStatus st;
     ExtendedStat xst;
 
-    st = sql.getReplicas(reps, fid);
-    if (!st.ok())
-      return DomeReq::SendSimpleResp(request, 400, SSTR("Can't get replicas of fileid " << fid <<
+    if (lfn.size() > 0) {
+      st = sql.getReplicas(reps, lfn);
+      if (!st.ok())
+        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't get replicas of lfn " << lfn <<
         " err: " << st.code() << " what:" << st.what()) );
-    
+    }
+    else {
+      st = sql.getReplicas(reps, fid);
+      if (!st.ok())
+        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't get replicas of fileid " << fid <<
+        " err: " << st.code() << " what:" << st.what()) );
+    }
     
     for (uint ii = 0; ii < reps.size(); ii++) {
       boost::property_tree::ptree pt;
@@ -4343,7 +4347,12 @@ int DomeCore::dome_newgroup(DomeReq &req, FCGX_Request &request) {
   DomeMySql sql;
   DmStatus st;
   DomeGroupInfo g;
-  // Get all the groups and build a json array response
+  
+  if ( !grpname.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty groupname"));
+  }
+  
+  // Create the damn group
   st = sql.newGroup(g, grpname);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 400, SSTR("Can't create group '" << grpname <<
@@ -4367,6 +4376,11 @@ int DomeCore::dome_newuser(DomeReq &req, FCGX_Request &request) {
   DomeMySql sql;
   DmStatus st;
   DomeUserInfo u;
+  
+  if ( !usname.size() )  {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Empty username"));
+  }
+  
   // Get all the groups and build a json array response
   st = sql.newUser(u, usname);
   if (!st.ok())
