@@ -262,6 +262,9 @@ void workerFunc(DomeCore *core, int myidx) {
         else if ( dreq.domecmd == "dome_setquotatoken" ) {
           core->dome_setquotatoken(dreq, request);
         }
+        else if ( dreq.domecmd == "dome_addreplica" ) {
+          core->dome_addreplica(dreq, request);
+        }
         else if ( dreq.domecmd == "dome_delreplica" ) {
           core->dome_delreplica(dreq, request);
         }
