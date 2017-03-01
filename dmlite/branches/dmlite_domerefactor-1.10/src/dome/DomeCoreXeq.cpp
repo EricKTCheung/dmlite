@@ -3627,32 +3627,42 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 
 
 
-/// Fecthes replica info from its rfn
+/// Fecthes replica info from its rfn or its Id
 int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getstatinfo only available on head nodes.");
   }
 
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
+  int64_t replicaid = req.bodyfields.get<int64_t>("replicaid", 0);
 
-  Log(Logger::Lvl4, domelogmask, domelogname, " rfn: '" << rfn << "'");
+  Log(Logger::Lvl4, domelogmask, domelogname, " rfn: '" << rfn << "' replicaid: " << replicaid);
 
   struct dmlite::Replica r;
 
 
     DmStatus ret;
 
-    if ( !rfn.size() )  {
-      return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
+    if ( !rfn.size() && !replicaid )  {
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Need a replica filename or a replicaid"));
     }
 
     {
       DomeMySql sql;
-      ret = sql.getReplicabyRFN(r, rfn);
+      if (replicaid) {
+        ret = sql.getReplicabyId(r, replicaid);
+        if (ret.code() != DMLITE_SUCCESS) {
+          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot retrieve replicaid: " << replicaid << " err: " << ret.code() << " what: '" << ret.what() << "'"));
+        }
+      }
+      else {
+        ret = sql.getReplicabyRFN(r, rfn);
+        if (ret.code() != DMLITE_SUCCESS) {
+          return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot retrieve rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+        }
+      }
     }
-    if (ret.code() != DMLITE_SUCCESS) {
-      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-    }
+    
 
 
   boost::property_tree::ptree jresp;
@@ -3882,14 +3892,14 @@ int DomeCore::dome_deletegroup(DomeReq &req, FCGX_Request &request) {
   }
 }
 
-/// Get information about a user
+/// Get information about a group
 int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getgroup only available on head nodes.");
   }
   
   std::string groupname = req.bodyfields.get<std::string>("groupname", "");
-  int gid = req.bodyfields.get<int>("groupname", 0);
+  int gid = req.bodyfields.get<int>("groupid", 0);
   if (!groupname.size() && !gid) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Groupname or gid not specified"));
   }
@@ -3902,16 +3912,16 @@ int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
     DmStatus st;
     DomeGroupInfo grp;
 
-    // If a gid was not specified then get it b gid
+    // If a gid was specified then get it by gid
     if (gid) {
       st = sql.getGroupbyGid(grp, gid);
       if (!st.ok())
-        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find group gid:" << gid));
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find group gid:" << gid));
       
     } else {
       st = sql.getGroupbyName(grp, groupname);
       if (!st.ok())
-        return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find group name:'" << groupname << "'"));
+        return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find group name:'" << groupname << "'"));
     }
       
       
@@ -4150,7 +4160,8 @@ int DomeCore::dome_getusersvec(DomeReq &req, FCGX_Request &request) {
     // Get all the groups and build a json array response
     st = sql.getUsersVec(users);
     if (!st.ok())
-      return DomeReq::SendSimpleResp(request, 400, "Can't get userss.");
+      return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot get users. err:" <<
+      st.code() << " what: '" << st.what()));
     
     for (uint ii = 0; ii < users.size(); ii++) {
       boost::property_tree::ptree pt;
@@ -4166,7 +4177,7 @@ int DomeCore::dome_getusersvec(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
-    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get groups. err:" <<
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get users. err:" <<
     e.code() << " what: '" << e.what()));
   }
 }
@@ -4274,15 +4285,15 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find username '" << username << "'"));
     }
 
-    jresp.put("groupname", ui.username);
-    jresp.put("gid", ui.userid);
+    jresp.put("username", ui.username);
+    jresp.put("uid", ui.userid);
     jresp.put("banned", ui.banned);
     jresp.put("xattr", ui.xattr);
     
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
-    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get groups. err:" <<
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to get user. err:" <<
     e.code() << " what: '" << e.what()));
   }
 }
@@ -4301,7 +4312,7 @@ int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
   
   if (mode < 0)
     return DomeReq::SendSimpleResp(request, 422, SSTR("No mode specified"));
-  if (path.length() < 0)
+  if (path.length() <= 0)
     return DomeReq::SendSimpleResp(request, 422, SSTR("No path specified"));
   
   
@@ -4416,7 +4427,7 @@ int DomeCore::dome_readlink(DomeReq &req, FCGX_Request &request) {
     "' fileid: " << xstat.stat.st_ino));
   
   boost::property_tree::ptree jresp;
-  jresp.put("link", l.link);
+  jresp.put("target", l.link);
   return DomeReq::SendSimpleResp(request, 200, jresp);
 }
 
@@ -4448,7 +4459,7 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
   ExtendedStat entry;
   ret = sql.getStatbyParentFileid(entry, parent.stat.st_ino, name);
   if (!ret.ok())
-    return DomeReq::SendSimpleResp(request, 500, SSTR("Unexpected error on path '" << path <<
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat path '" << path <<
   "' err: " << ret.code() << "'" << ret.what() << "'"));
   
   
@@ -4508,7 +4519,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << oldPath << "'"));
   
-  ret = sql.getParent(newParent, newPath, oldParentPath, newName);
+  ret = sql.getParent(newParent, newPath, newParentPath, newName);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << newPath << "'"));
   
@@ -4616,14 +4627,14 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot rename path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
-      
-      // Change the parent if needed
-      if (newParent.stat.st_ino != oldParent.stat.st_ino) {
-        ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
-        if (!ret.ok())
-          return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
-          "' err: " << ret.code() << "'" << ret.what() << "'"));
-      }
+    }
+    
+    // Change the parent if needed
+    if (newParent.stat.st_ino != oldParent.stat.st_ino) {
+      ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
+      if (!ret.ok())
+        return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
+        "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
     else {
       // Parent is the same, but change its mtime
@@ -4869,15 +4880,15 @@ int DomeCore::dome_symlink(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
   }
   
-  std::string oldPath = req.bodyfields.get<std::string>("oldpath", "");
-  std::string newPath = req.bodyfields.get<std::string>("newpath", "");
+  std::string oldPath = req.bodyfields.get<std::string>("target", "");
+  std::string newPath = req.bodyfields.get<std::string>("link", "");
   std::string parentPath, symName;
   
   // Fail inmediately with ''
   if (oldPath == "")
-    return DomeReq::SendSimpleResp(request, 422, "Empty oldpath.");
+    return DomeReq::SendSimpleResp(request, 422, "Empty link target.");
   if (newPath == "")
-    return DomeReq::SendSimpleResp(request, 422, "Empty newpath.");
+    return DomeReq::SendSimpleResp(request, 422, "Empty link name.");
   
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
