@@ -565,6 +565,69 @@ Params:
 Returns:
 Code: 200 or other errors
 
+\subsubsection{dome\_makedir}
+Adds a logical directory metadata entry
+
+Command:
+\lstinline"POST /dome/command/dome_makedir"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item path: a logical file name, can be a directory
+ \item mode: UNIX mode bits (drwxrwxrwx) for the entry
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+
+
+
+\subsubsection{dome\_symlink}
+Creates a symbolic link to a file or directory
+
+Command:
+\lstinline"POST /dome/command/dome_symlink"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item target: a logical file name, can be a directory
+ \item link: a logical file name for the new link
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+
+
+
+
+
+\subsubsection{dome\_readlink}
+Retrieves the target of a symbolic link
+
+Command:
+\lstinline"POST /dome/command/dome_readlink"\\
+
+Request header:\\
+\begin{itemize}
+ \item link: path to the link to be read
+\end{itemize}
+
+Params:
+\begin{itemize}
+ \item target: the target logical file name, can be a directory
+\end{itemize}
+
+Returns:
+Code: 200 or other errors
+
+
+
 
 \subsubsection{dome\_delreplica}
 
@@ -1132,7 +1195,7 @@ Code: 200 or pending
 
 
 \subsubsection{dome\_getreplicainfo}
-Returns replica information about a replica, identified by its RFN.
+Returns replica information about a replica, identified by its RFN or its replicaid
 
 Command:
 \lstinline"GET /dome/command/dome_getreplicainfo"\\
@@ -1142,7 +1205,8 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
- \item rfn: a physical file name in the rfio syntax.
+ \item rfn: a physical file name in the rfio syntax
+ \item replicaid: a numerical replica id
 \end{itemize}
 
 Returns:
@@ -1270,13 +1334,40 @@ no particular fields in the header\\
 Params:
 \begin{itemize}
  \item username: the username to extract information about
+ \item userid: the uid to extract information about
 \end{itemize}
 
 Returns:
 Code: 200 or error
 \begin{itemize}
+ \item username: the user name
  \item uid: the user's uid
  \item banned: whether the user is banned or not
+ \item xattr: extended attributes in JSON format
+\end{itemize}
+
+
+\subsubsection{dome\_getusersvec}
+
+Get information about all the known users
+
+Command:
+\lstinline"GET /dome/command/dome_getusersvec"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+no parameters\\
+
+Returns:
+Code: 200 or error\\
+A JSON array of:
+\begin{itemize}
+ \item username: the user name
+ \item uid: the user's uid
+ \item banned: whether the user is banned or not
+ \item xattr: extended attributes in JSON format
 \end{itemize}
 
 
@@ -1318,6 +1409,79 @@ Returns:
 Code: 200 or error
 
 
+\subsubsection{dome\_deletegroup}
+
+Deletes a group
+
+Command:
+\lstinline"POST /dome/command/dome_deletegroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item groupname: the name of the group to delete
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
+
+\subsubsection{dome\_getgroup}
+
+Retrieves information about a group
+
+Command:
+\lstinline"POST /dome/command/dome_getgroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item groupname: the name of the group to fetch (in the absence of a gid)
+ \item groupid: the gid of the group to fetch
+\end{itemize}
+
+Returns:
+Code: 200 or error
+\begin{itemize}
+ \item groupname: the name of the group to fetch (in the absence of a gid)
+ \item gid: the gid of the group to fetch
+ \item banned
+ \item xattr: JSON-formatted string containing free extended attributes
+\end{itemize}
+
+
+
+\subsubsection{dome\_getgroupsvec}
+
+Retrieves information about all the groups
+
+Command:
+\lstinline"POST /dome/command/dome_getgroupsvec"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+no parameters\\
+
+Returns:
+Code: 200 or error\\
+A JSON arrray of group information:\\
+\begin{itemize}
+ \item groupname: the name of the group to fetch (in the absence of a gid)
+ \item gid: the gid of the group to fetch
+ \item banned
+ \item xattr: JSON-formatted string containing free extended attributes
+\end{itemize}
+
+
+
 
 \subsubsection{dome\_newgroup}
 
@@ -1337,24 +1501,6 @@ Params:
 Returns:
 Code: 200 or error
 
-
-\subsubsection{dome\_deletegroup}
-
-Deletes a group
-
-Command:
-\lstinline"POST /dome/command/dome_deletegroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item groupname: the name of the group to delete
-\end{itemize}
-
-Returns:
-Code: 200 or error
 
 
 
@@ -1441,9 +1587,51 @@ Params:
 \end{itemize}
 
 Returns:
+Code: 200 or error
+
+
+
+
+
+\subsubsection{dome\_removedir}
+
+Removes a non empty directory. Valid only in head nodes.\\
+Command:
+\lstinline"POST /dome/command/dome_removedir"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
 \begin{itemize}
- \item
+ \item path: absolute path
 \end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
+\subsubsection{dome\_rename}
+
+Renames a file or directory.\\
+Command:
+\lstinline"POST /dome/command/dome_rename"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item newpath: source absolute path name
+ \item oldpath: destination absolute path name
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
 
 \subsection{Disk node operation}
 The purpose of DOME being executed in the disk node is to give the rfio functionalities that are not
