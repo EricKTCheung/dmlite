@@ -1503,6 +1503,48 @@ Code: 200 or error
 
 
 
+\subsubsection{dome\_setacl}
+
+Update the ACL of a file or directory
+
+Command:
+\lstinline"GET /dome/command/dome_setacl"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+  \item path: absolute path to the file/directory
+  \item acl: the ACL in the same format returned by dome\_getstatinfo
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
+\subsubsection{dome\_setmode}
+
+Update the mode of a file or directory
+
+Command:
+\lstinline"GET /dome/command/dome_setmode"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+  \item path: absolute path to the file/directory
+  \item fileid: fileid of the file/directory
+  \item mode: the mode to set
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
 
 \subsubsection{dome\_updatexattr}
 

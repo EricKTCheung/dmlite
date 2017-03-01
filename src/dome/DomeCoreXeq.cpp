@@ -4012,7 +4012,7 @@ int DomeCore::dome_setmode(DomeReq &req, FCGX_Request &request) {
   using namespace boost::property_tree;
   
   // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
-  fname = req.bodyfields.get<std::string>("lfn", "");
+  fname = req.bodyfields.get<std::string>("path", "");
   fid = req.bodyfields.get<ino_t>("fileid", 0);
   md = req.bodyfields.get<mode_t>("mode", 0);
   
@@ -4653,10 +4653,10 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
 
 int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
-    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_removedir only available on head nodes.");
+    return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_setacl only available on head nodes.");
   }
   
-  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  std::string path = req.bodyfields.get<std::string>("path", "");
   std::string sacl = req.bodyfields.get<std::string>("acl", "");
   
   // Fail inmediately with ''
@@ -4677,7 +4677,7 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   ExtendedStat meta;
   DmStatus st = sql.getStatbyLFN(meta, path);
   if (!st.ok())
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << path << "'"));
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat path: '" << path << "'"));
   
   SecurityContext ctx;
   fillSecurityContext(ctx, req);

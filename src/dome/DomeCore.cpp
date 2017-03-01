@@ -355,8 +355,12 @@ void workerFunc(DomeCore *core, int myidx) {
               else if (dreq.domecmd == "dome_rename") {
                 core->dome_rename(dreq, request);
               }
-
-              else {
+              else if (dreq.domecmd == "dome_setacl") {
+                core->dome_setacl(dreq, request);
+              }
+              else if (dreq.domecmd == "dome_setmode") {
+                core->dome_setmode(dreq, request);
+              } else {
                 DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
                 
               }
