@@ -1192,6 +1192,46 @@ Code: 200 or pending
  \item xattrs: the extended attributes in JSON format
 \end{itemize}
 
+\subsubsection{dome\_updatereplica}
+Overwrites the fields of a replica with the given ones. The replica is identified by its RFN or its replicaid.
+
+Command:
+\lstinline"POST /dome/command/dome_updatereplica"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item rfn: a physical file name in the rfio syntax
+ \item replicaid: a numerical replica id
+ \item status: the new status (default: dmlite::Replica::kAvailable)
+ \item type: the new status (default: dmlite::Replica::kPermanent)
+ \item setname: the new setname, used for spacetoke accounting (default: empty string)
+ \item xattr: replica extended attributes
+\end{itemize}
+
+Returns:
+Code: 200 or pending
+\begin{itemize}
+
+ \item replicaid
+ \item fileid
+ \item nbaccesses
+ \item atime
+ \item ptime
+ \item ltime
+ \item status
+ \item type
+ \item pool
+ \item server
+ \item filesystem
+ \item rfn
+ \item setname
+ \item xattrs: the replica's extended attributes in JSON format
+\end{itemize}
+
+
 
 
 \subsubsection{dome\_getreplicainfo}
@@ -1409,6 +1449,29 @@ Returns:
 Code: 200 or error
 
 
+\subsubsection{dome\_updateuser}
+
+Changes information in an existing user record
+
+Command:
+\lstinline"POST /dome/command/dome_updateuser"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item username: the name of the group to fetch (in the absence of a gid)
+ \item userid: the gid of the group to fetch
+ \item banned
+ \item xattr: JSON-formatted string containing free extended attributes
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+
 \subsubsection{dome\_deletegroup}
 
 Deletes a group
@@ -1454,6 +1517,28 @@ Code: 200 or error
  \item banned
  \item xattr: JSON-formatted string containing free extended attributes
 \end{itemize}
+
+
+\subsubsection{dome\_updategroup}
+
+Changes information ni an existing group
+
+Command:
+\lstinline"POST /dome/command/dome_updategroup"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+ \item groupname: the name of the group to fetch (in the absence of a gid)
+ \item groupid: the gid of the group to fetch
+ \item banned
+ \item xattr: JSON-formatted string containing free extended attributes
+\end{itemize}
+
+Returns:
+Code: 200 or error
 
 
 
@@ -1545,10 +1630,52 @@ Returns:
 Code: 200 or error
 
 
+\subsubsection{dome\_setowner}
+
+Update the owner and main group of a file or directory
+
+Command:
+\lstinline"GET /dome/command/dome_setowner"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+  \item path: absolute path to the file/directory
+  \item uid: userid of the new owner
+  \item gid: groupid if the new main group
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
+\subsubsection{dome\_setsize}
+
+Update the size of a file or directory. NB: changing the size of a directory
+should be considered as a maintenance operation rather than the normality.
+
+Command:
+\lstinline"GET /dome/command/dome_setsize"\\
+
+Request header:\\
+no particular fields in the header\\
+
+Params:
+\begin{itemize}
+  \item path: absolute path to the file/directory
+  \item size: new size
+\end{itemize}
+
+Returns:
+Code: 200 or error
+
+
 
 \subsubsection{dome\_updatexattr}
 
-Update the extended attributes associated with a file.
+Update the extended attributes associated with a file or directory.
 
 Command:
 \lstinline"GET /dome/command/dome_updatexattr"\\
@@ -1558,12 +1685,18 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
-  \item lfn: the lfn
-  \item xattr: the serialized extended attributes
+  \item fileid: the fileid of the file to modify
+  \item lfn: the file name of the entry to modify
+  \item xattr: the serialized extended attributes to apply
 \end{itemize}
 
 Returns:
 Code: 200 or error
+
+
+
+
+
 
 \subsubsection{dome\_getidmap}
 
