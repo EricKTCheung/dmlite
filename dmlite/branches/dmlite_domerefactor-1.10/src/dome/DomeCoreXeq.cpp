@@ -3673,8 +3673,8 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("atime", r.atime);
   jresp.put("ptime", r.ptime);
   jresp.put("ltime", r.ltime);
-  jresp.put("status", r.status);
-  jresp.put("type", r.type);
+  jresp.put("status", (char)r.status);
+  jresp.put("type", (char)r.type);
   jresp.put("server", r.server);
   jresp.put("rfn", rfn);
   jresp.put("setname", r.setname);
@@ -3806,10 +3806,16 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
   std::string xattr = req.bodyfields.get<std::string>("xattr", "");
   
   if (!lfn.length() && !fileid)
-    return DomeReq::SendSimpleResp(request, 422, "No lfn or fileid specified.");
+    return DomeReq::SendSimpleResp(request, 422, "No path or fileid specified.");
   
   dmlite::Extensible e;
-  e.deserialize(xattr);
+  try {
+    e.deserialize(xattr);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
+    xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
+  }
   
   dmlite::ExtendedStat xstat;
   DomeMySql sql;
@@ -3818,16 +3824,25 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
   if (!fileid) {
     ret = sql.getStatbyLFN(xstat, lfn);
     if (!ret.ok())
-      return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to stat lfn '" << lfn <<
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to stat path '" << lfn <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
   else {
     ret = sql.getStatbyFileid(xstat, fileid);
     if (!ret.ok())
-      return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to stat fileid " << fileid <<
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to stat fileid " << fileid <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
   
+  // Fill the security context
+  dmlite::SecurityContext ctx;
+  fillSecurityContext(ctx, req);
+  
+  // Need write permissions
+  if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
+    return DomeReq::SendSimpleResp(request, 403,
+                                   SSTR("Not enough permissions on fileid '" << xstat.stat.st_ino << "' path: '" << lfn << "'"));
+    
   ret = sql.updateExtendedAttributes(xstat.stat.st_ino, e);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattrs on fileid " << fileid <<
@@ -4229,8 +4244,8 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
       pt.put("atime", reps[ii].atime);
       pt.put("ptime", reps[ii].ptime);
       pt.put("ltime", reps[ii].ltime);
-      pt.put("status", reps[ii].status);
-      pt.put("type", reps[ii].type);
+      pt.put("status", (char)reps[ii].status);
+      pt.put("type", (char)reps[ii].type);
       pt.put("server", reps[ii].server);
       pt.put("rfn", reps[ii].rfn);
       pt.put("setname", reps[ii].setname);
@@ -4755,18 +4770,18 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
   }
   uid_t newUid;
   gid_t newGid;
-  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  std::string path = req.bodyfields.get<std::string>("path", "");
   try {
     newUid = req.bodyfields.get<uid_t>("uid");
     newGid = req.bodyfields.get<gid_t>("gid");
   }
   catch ( ... ) {
-    return DomeReq::SendSimpleResp(request, 422, "Can't find uid or gid.");
+    return DomeReq::SendSimpleResp(request, 422, "Can't find uid or gid or path.");
   }
   bool followSymLink = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("gid", "false"));
   
   if(path == "") {
-    return DomeReq::SendSimpleResp(request, 422, "Lfn cannot be empty.");
+    return DomeReq::SendSimpleResp(request, 422, "Path cannot be empty.");
   }
   
   // Check that uid and gid are known
@@ -4841,9 +4856,9 @@ int DomeCore::dome_setsize(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
   }
 
-  std::string path = req.bodyfields.get<std::string>("lfn", "");
+  std::string path = req.bodyfields.get<std::string>("path", "");
   if(path == "") {
-    return DomeReq::SendSimpleResp(request, 422, "Lfn cannot be empty.");
+    return DomeReq::SendSimpleResp(request, 422, "Path cannot be empty.");
   }
   
   int64_t newSize = req.bodyfields.get<int64_t>("size", -1);
@@ -5062,12 +5077,23 @@ int DomeCore::dome_updategroup(DomeReq &req, FCGX_Request &request) {
   }
   
   std::string groupname = req.bodyfields.get<std::string>("groupname", "");
-  int gid = req.bodyfields.get<int>("gid", 0);
+  int gid = req.bodyfields.get<int>("groupid", 0);
   if((groupname == "") && !gid) {
     return DomeReq::SendSimpleResp(request, 422, "No group specified.");
   }
   
   std::string xattr = req.bodyfields.get<std::string>("xattr", "");
+  
+  // Validate the xattr string, to avoid inserting junk into the db
+  dmlite::Extensible e;
+  try {
+    e.deserialize(xattr);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
+    xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
+  }
+  
   int banned = req.bodyfields.get<int>("banned", 0);
   
   DomeGroupInfo group;
@@ -5103,7 +5129,7 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
   // Get all the parameters
   Replica r;
   r.rfn =  req.bodyfields.get<std::string>("rfn", "");
-  r.fileid =  req.bodyfields.get<int64_t>("fileid", 0);
+  r.replicaid =  req.bodyfields.get<int64_t>("replicaid", 0);
   r.status = static_cast<dmlite::Replica::ReplicaStatus>(
     req.bodyfields.get<char>("status", (char)dmlite::Replica::kAvailable) );
   r.type = static_cast<dmlite::Replica::ReplicaType>(
@@ -5129,8 +5155,9 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
   }
   else {
     ret = sql.getReplicabyRFN(rdata, r.rfn);
-    return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to get replica '" << r.rfn <<
-    " err: " << ret.code() << " what: '" << ret.what() << "'"));
+    if (!ret.ok())
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to get replica '" << r.rfn <<
+      "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
   
   ret = sql.getStatbyFileid(meta, rdata.fileid);
@@ -5191,6 +5218,17 @@ int DomeCore::dome_updateuser(DomeReq &req, FCGX_Request &request) {
     if (!ret.ok())
       return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get user '" << username <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+  }
+  
+  
+  // Validate the xattr string, to avoid inserting junk into the db
+  dmlite::Extensible e;
+  try {
+    e.deserialize(xattr);
+  }
+  catch (DmException e) {
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
+    xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
   
   user.xattr = xattr;

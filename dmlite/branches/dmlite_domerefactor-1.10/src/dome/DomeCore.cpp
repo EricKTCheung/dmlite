@@ -337,11 +337,17 @@ void workerFunc(DomeCore *core, int myidx) {
               else if(dreq.domecmd == "dome_newuser") {
                 core->dome_newuser(dreq, request);
               }
+              else if(dreq.domecmd == "dome_updateuser") {
+                core->dome_updateuser(dreq, request);
+              }
               else if(dreq.domecmd == "dome_deletegroup") {
                 core->dome_deletegroup(dreq, request);
               }
               else if(dreq.domecmd == "dome_newgroup") {
                 core->dome_newgroup(dreq, request);
+              }
+              else if(dreq.domecmd == "dome_updategroup") {
+                core->dome_updategroup(dreq, request);
               }
               else if(dreq.domecmd == "dome_setcomment") {
                 core->dome_setcomment(dreq, request);
@@ -360,7 +366,17 @@ void workerFunc(DomeCore *core, int myidx) {
               }
               else if (dreq.domecmd == "dome_setmode") {
                 core->dome_setmode(dreq, request);
-              } else {
+              }
+              else if (dreq.domecmd == "dome_setowner") {
+                core->dome_setowner(dreq, request);
+              }
+              else if (dreq.domecmd == "dome_setsize") {
+                core->dome_setsize(dreq, request);
+              }
+              else if (dreq.domecmd == "dome_updatereplica") {
+                core->dome_updatereplica(dreq, request);
+              }
+              else {
                 DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
                 
               }
