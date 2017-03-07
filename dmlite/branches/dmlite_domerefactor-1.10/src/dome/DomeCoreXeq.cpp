@@ -2182,12 +2182,18 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   DmStatus ret;
   DomeMySql sql;
   std::vector <Replica > replicas;
-  try {
     
-    ret = sql.getReplicas(replicas, lfn);
-    if (!ret.ok())
-      return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of '" << lfn <<
-      "' err: " << ret.code() << " what:" << ret.what()) );
+  ret = sql.getReplicas(replicas, lfn);
+  
+  // Return immediately on errors that are not 'file not found'
+  if (!ret.ok() && (ret.code() != ENOENT))
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of '" << lfn <<
+    "' err: " << ret.code() << " what:" << ret.what()) );
+  
+  if (ret.ok()) {
+    // We found the file... normal processing of its replicas
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, "Found " << replicas.size() << " replicas lfn:'" << lfn << "'");
     
     using boost::property_tree::ptree;
     ptree jresp;
@@ -2240,16 +2246,16 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     if (foundpending)
       return DomeReq::SendSimpleResp(request, 500, "Only pending replicas are available.");
   }
-  catch (dmlite::DmException e) {
 
-    // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
-    if (e.code() == ENOENT) {
-      Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << lfn << "'");
 
-    }
-    else
-      return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << lfn << "'"));
+  // The lfn does not seemm to exist ? We may have to pull the file from elsewhere
+  if (ret.code() == ENOENT) {
+    Log(Logger::Lvl1, domelogmask, domelogname, "Lfn not found: '" << lfn << "'");
+
   }
+  else
+    return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to find replicas for '" << lfn << "'"));
+
 
   // Here we have to trigger the file pull and tell to the client to come back later
   if (canpull) {
