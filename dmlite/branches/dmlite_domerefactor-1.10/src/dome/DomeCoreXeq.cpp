@@ -2183,6 +2183,27 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   DomeMySql sql;
   std::vector <Replica > replicas;
     
+  // Check the perms on the parent folder
+  {
+    dmlite::SecurityContext ctx;
+    fillSecurityContext(ctx, req);
+    
+    ExtendedStat parent;
+    std::string parentPath, name;
+    ret = sql.getParent(parent, lfn, parentPath, name);
+    if (!ret.ok())
+      return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
+    
+    ret = sql.traverseBackwards(ctx, parent);
+    if (!ret.ok()) {
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+    }
+    // Need to be able to read the parent
+    if (checkPermissions(&ctx, parent.acl, parent.stat, S_IREAD) != 0)
+      return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on '" << parentPath << "'"));
+  }
+  
+  // And now get the replicas of the file
   ret = sql.getReplicas(replicas, lfn);
   
   // Return immediately on errors that are not 'file not found'
@@ -2193,7 +2214,7 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   if (ret.ok()) {
     // We found the file... normal processing of its replicas
     
-    Log(Logger::Lvl4, domelogmask, domelogname, "Found " << replicas.size() << " replicas lfn:'" << lfn << "'");
+    Log(Logger::Lvl4, domelogmask, domelogname, "Found " << replicas.size() << " replicas. lfn:'" << lfn << "'");
     
     using boost::property_tree::ptree;
     ptree jresp;
