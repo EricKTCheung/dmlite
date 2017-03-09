@@ -587,7 +587,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_mysql.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf.example
 
 %files plugins-adapter
 %defattr(-,root,root,-)
