@@ -558,7 +558,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_memcache.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/zmemcache.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/zmemcache.conf.example
 
 %files plugins-profiler
 %defattr(-,root,root,-)
@@ -593,7 +593,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_adapter.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf.example
 
 %files plugins-domeadapter
 %defattr(-,root,root,-)
