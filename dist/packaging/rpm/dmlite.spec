@@ -564,7 +564,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_profiler.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf.example
 
 %files plugins-librarian
 %defattr(-,root,root,-)
