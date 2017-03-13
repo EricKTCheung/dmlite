@@ -77,7 +77,7 @@ void DomeIOFactory::configure(const std::string& key, const std::string& value) 
   else gotit = false;
 
   if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "DomeIOFactory", key, value);
+    LogCfgParm(Logger::Lvl4, Logger::unregistered, "DomeIOFactory", key, value);
 }
 
 IODriver* DomeIOFactory::createIODriver(PluginManager* pm) throw (DmException)

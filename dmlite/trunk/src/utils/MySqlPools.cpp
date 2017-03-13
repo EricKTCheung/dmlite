@@ -130,7 +130,7 @@ bool MySqlHolder::configure(const std::string& key, const std::string& value) {
   else gotit = false;
 
   if (gotit)
-    LogCfgParm(Logger::Lvl1,  mysqlpoolslogmask, mysqlpoolslogname, key, value);
+    LogCfgParm(Logger::Lvl4,  mysqlpoolslogmask, mysqlpoolslogname, key, value);
 
   return gotit;
 }

@@ -63,7 +63,7 @@ void BuiltInCatalogFactory::configure(const std::string& key, const std::string&
   else gotit = false;
 
   if (gotit)
-    Log(Logger::Lvl1, Logger::unregistered, "BuiltInCatalogFactory", "Setting BuiltInCatalogFactory parms. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, Logger::unregistered, "BuiltInCatalogFactory", "Setting BuiltInCatalogFactory parms. Key: " << key << " Value: " << value);
 
 }
 

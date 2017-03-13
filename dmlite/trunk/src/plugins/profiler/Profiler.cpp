@@ -103,7 +103,7 @@ void ProfilerFactory::configure(const std::string& key, const std::string& value
     gotit = false;
   
   if (gotit)
-    LogCfgParm(Logger::Lvl1, profilerlogmask, profilerlogname, key, value);
+    LogCfgParm(Logger::Lvl4, profilerlogmask, profilerlogname, key, value);
 
 }
 

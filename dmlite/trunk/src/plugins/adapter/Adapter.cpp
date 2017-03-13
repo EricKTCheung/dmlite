@@ -93,7 +93,7 @@ void NsAdapterFactory::configure(const std::string& key, const std::string& valu
   else gotit = false;
   
   if (gotit)
-    LogCfgParm(Logger::Lvl1, adapterlogmask, adapterlogname, key, value);
+    LogCfgParm(Logger::Lvl4, adapterlogmask, adapterlogname, key, value);
     
   
     
@@ -176,7 +176,7 @@ void DpmAdapterFactory::configure(const std::string& key, const std::string& val
   }
   
   if (gotit)
-    Log(Logger::Lvl1, adapterlogmask, adapterlogname, "Setting parms. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, adapterlogmask, adapterlogname, "Setting parms. Key: " << key << " Value: " << value);
   
 }
 

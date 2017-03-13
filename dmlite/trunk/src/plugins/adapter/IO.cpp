@@ -55,7 +55,7 @@ void StdIOFactory::configure(const std::string& key, const std::string& value) t
   else gotit = false;
   
   if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", key, value);
+    LogCfgParm(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory", key, value);
    
 }
 
