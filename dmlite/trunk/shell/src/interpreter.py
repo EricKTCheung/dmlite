@@ -542,6 +542,7 @@ class InitCommand(ShellCommand):
 
     try:
       self.interpreter.stackInstance = pydmlite.StackInstance(self.interpreter.pluginManager)
+      self.interpreter.stackInstance.manager = self.interpreter.pluginManager
       self.interpreter.stackInstance.setSecurityContext(self.interpreter.securityContext)
     except Exception, e:
       return self.error('Could not initialise a StackInstance.\n' + e.__str__())
