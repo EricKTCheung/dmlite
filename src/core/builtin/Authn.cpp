@@ -328,7 +328,7 @@ void BuiltInAuthnFactory::configure(const std::string& key,
   else gotit = false;
   
   if (gotit)
-    Log(Logger::Lvl1, Logger::unregistered, "BuiltInAuthnFactory", "Setting parms. Key: " << key << " Value: " << value);
+    Log(Logger::Lvl4, Logger::unregistered, "BuiltInAuthnFactory", "Setting parms. Key: " << key << " Value: " << value);
     
 }
 

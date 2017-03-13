@@ -101,11 +101,11 @@ int Config::ProcessFile(char *filename) {
   // Do the parsing
   if (!filename || (strlen(filename) == 0)) {
     strcpy(fn, "/etc/dome.conf");
-    Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Using default config file " << fn);
+    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Using default config file " << fn);
   }
   else {
     strcpy(fn, filename);
-    Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Reading config file " << fn);
+    Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Reading config file " << fn);
   }
 
   string line, token, val;
@@ -167,14 +167,14 @@ int Config::ProcessFile(char *filename) {
                     token = buf2;
                     // check if key already exist
                     if(arrdata.count(token) == 1) {
-                        Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
+                        Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
                     }
                     Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, token << "[" << arrdata[token].size() << "] <-" << val);
                 arrdata[token].push_back(val);
               }
                   else {
                     if(data.count(token) == 1) {
-                        Log(Logger::Lvl1, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
+                        Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, "Duplicate key, overwritting original value. fn: " << fn << " line: '" << line << "'");
                     }
                     Log(Logger::Lvl4, Logger::unregistered, Logger::unregisteredname, token << "<-" << val);
                     data[token] = val;

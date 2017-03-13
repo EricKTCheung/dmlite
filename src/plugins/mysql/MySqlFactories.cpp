@@ -73,7 +73,7 @@ void NsMySqlFactory::configure(const std::string& key, const std::string& value)
     gotit = MySqlHolder::configure(key, value);
   
   if (gotit)
-    LogCfgParm(Logger::Lvl1,  mysqllogmask, mysqllogname, key, value);
+    LogCfgParm(Logger::Lvl4,  mysqllogmask, mysqllogname, key, value);
   
 }
 

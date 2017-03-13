@@ -145,7 +145,7 @@ void ConfigFactory::configure(const std::string& key,
   
  
   if (gotit)
-    LogCfgParm(Logger::Lvl1, Logger::unregistered, "ConfigFactory", key, value);
+    LogCfgParm(Logger::Lvl4, Logger::unregistered, "ConfigFactory", key, value);
     
 }
 
