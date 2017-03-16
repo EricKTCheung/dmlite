@@ -13,6 +13,7 @@ set(Dome_SOURCES DomeGenQueue.cpp
                  DomeMysql_authn.cpp
                  DomeStatus.cpp
                  DomeDmlitePool.cpp
+                 DomeMetadataCache.cpp
                  ../utils/MySqlPools.cpp
                  ../utils/MySqlWrapper.cpp
                  ../utils/Config.cc

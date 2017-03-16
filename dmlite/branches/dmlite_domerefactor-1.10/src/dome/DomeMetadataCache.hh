@@ -55,14 +55,23 @@ typedef atomic<int> IntAtomic;
 #include <boost/bimap.hpp>
 
 /// Typedef for the fileid used as key
-typedef long64_t DomeFileID;
+typedef int64_t DomeFileID;
 
 /// Also the couple (parent_fileid, name) is a key (sob)
 struct DomeFileInfoParent {
   DomeFileID parentfileid;
   std::string name;
 };
-
+bool operator < (const DomeFileInfoParent &s1, const DomeFileInfoParent &s2) {
+  if (s1.parentfileid < s2.parentfileid)
+    return true;
+  else {
+    if (s1.parentfileid == s2.parentfileid)
+      return (s1.name < s2.name);
+    
+    return false;
+  }
+}
 
 /// Defines the information that is kept about a file
 /// Note that this object is lockable. It's supposed to be locked (if necessary)
@@ -77,19 +86,12 @@ public:
   /// @param fileid The fileid that univocally identifies a file or dir
   /// @param parentfileid The parent fileid that together with the name univocally identifies this file or dir
   /// @param name The name (not path!)  that together with the parentfileid univocally identifies this file or dir
-  DomeFileInfo(DomeFileID fileid, DomeFileID parentfileid, std::string name);
-  
-  /// Indicates that this entry cannot be purged from the 1st level cache
-  /// because it is in temporary use.
-  /// The typical usage of this is between opendir/closedir
-  int pinned;
-  
-  void pin() { pinned++; };
-  void unpin() { if (pinned > 0) pinned--; };
-  int ispinned() { return pinned; };
+  DomeFileInfo(DomeFileID file_id);
+  DomeFileInfo(DomeFileID parentfileid, std::string fname);
+  ~DomeFileInfo();
   
   /// The name of this file relative to its parent directory
-  std::string name;
+  std::string locfilename;
   /// The fileid
   DomeFileID fileid;
   /// The parent fileid
@@ -183,7 +185,7 @@ public:
       // Decrease the pending count with respect to the stat op
       pending_statinfo--;
     } else
-      Error("DomeFileInfo::notifyStatNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
+      Err("DomeFileInfo::notifyStatNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
     
     signalSomeUpdate();
   }
@@ -200,12 +202,12 @@ public:
   /// Called by plugins when they end a search, to subtract 1 from the pending counter
   /// and wake up the clients that are waiting for something to happen to a file info
   void notifyLocationNotPending() {
-    const char *fname = "DomeFileInfo::notifyLocationNotPending";
+
     if (pending_locations > 0) {
       // Decrease the pending count with respect to the stat op
       pending_locations--;
     } else
-      Error("DomeFileInfo::notifyLocationNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
+      Err("DomeFileInfo::notifyLocationNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
     
     signalSomeUpdate();
   }
@@ -245,7 +247,7 @@ public:
   /// @param sectmout Wait timeout in seconds
   int waitStat(boost::unique_lock<boost::mutex> &l, int sectmout);
   
-  /// Wait for the locate info to be available
+  /// Wait for the replica info to be available
   /// @param l lock to be held
   /// @param sectmout Wait timeout in seconds
   int waitLocations(boost::unique_lock<boost::mutex> &l, int sectmout);
@@ -263,14 +265,15 @@ public:
   
   /// Fill the fields from a stat struct
   /// @param st the stat struct to copy fields from
-  void takeStat(const dmlite::ExtendedStat st);
+  void takeStat(const dmlite::ExtendedStat &st);
   
-  /// Add a replica to the replicas list
+  /// Helper. add a replica to the replicas list
   /// @params replica struct to add
   void addReplica( const dmlite::Replica & replica );
   
-  /// Get All replicas into a vector
-  void getReplicaList( std::vector<dmlite::Replica> &reps );
+  /// Helper. add a vector of replicas to the replicas list
+  /// @params replica struct to add
+  void addReplica( const std::vector<dmlite::Replica> &reps );
 };
 
 /// Instances of DomeFileInfo may be kept in a quasi-sorted way.
@@ -317,27 +320,40 @@ private:
   /// A simple implementation of an lru queue, based on a bimap
   lrudatarepo lrudata;
   
+  /// A simple implementation of an lru queue, based on a bimap
+  typedef boost::bimap< time_t, DomeFileInfoParent > lrudatarepo_parent;
+  /// A simple implementation of an lru queue, based on a bimap
+  typedef lrudatarepo_parent::value_type lrudataitem_parent;
+  /// A simple implementation of an lru queue, based on a bimap
+  lrudatarepo_parent lrudata_parent;
+  
   /// The information repo itself. Basically a map key->DomeFileInfo
   /// where the key is a numeric fileid.
   std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> > databyfileid;
   /// Unfortunately we have to keep TWO indexes, because items in
   /// the lcgdm database have two keys. In this case the key
   /// is a couple (parent_fileid, filename)
-  std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp> databyparent;
+  std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo> > databyparent;
   
   /// Purge an item from the buffer, to make space
-  int purgeLRUitem();
+  int purgeLRUitem_fileid();
+  int purgeLRUitem_parent();
   
   /// Purge the old items from the buffer
-  void purgeExpired();
-  
-  
+  void purgeExpired_fileid();
+  /// Purge the old items from the buffer
+  void purgeExpired_parent();
+  /// Purge the old items from the buffer
+  void purgeExpired() {
+    purgeExpired_fileid();
+    purgeExpired_parent();
+  }
   
 public:
   
-  LocationInfoHandler() : lrutick(0) {  };
+  DomeMetadataCache() : lrutick(0) {  };
   
-  void Init(ExtCacheHandler *cache) {
+  void Init() {
     // Get the max capacity from the config
     maxitems = CFG->GetLong("mdcache.maxitems", 1000000);
     // Get the lifetime of an entry after the last reference
@@ -353,11 +369,10 @@ public:
   //
   
   /// Get a pointer to a FileInfo, or create a new one, marked as pending, identified only with its fileid
-  UgrFileInfo *getFileInfoOrCreateNewOne(DomeFileID fileid);
+  boost::shared_ptr <DomeFileInfo > getFileInfoOrCreateNewOne(DomeFileID fileid);
   /// Get a pointer to a FileInfo, or create a new one, marked as pending, identified only with its parentfileid+name
-  UgrFileInfo *getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name);
-  /// Get a pointer to a FileInfo, or create a new one, marked as pending, identified by both keys
-  UgrFileInfo *getFileInfoOrCreateNewOne(DomeFileID fileid, DomeFileID parentfileid, std::string name);
+  boost::shared_ptr <DomeFileInfo > getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name);
+
   
   /// Forcefully purge an entry using its fileid
   void purgeEntry(DomeFileID fileid);
@@ -365,9 +380,9 @@ public:
   void purgeEntry(DomeFileID parentfileid, std::string name);
   
   /// For DB compatibility reasons, this cache has two keys, so it may happen that
-  /// two objects get created with two different key types (sob)
-  /// If we detect that two cache entries refer to the same file but through different keys
-  /// then we delete them both from the cache, to avoid confusion and inconsistencies
+  /// two different objects get created with two different key types (sob)
+  /// If we detect that two cache entries refer to the same file but through different types of key
+  /// then we make sure that they are both filled with the same information
   int fixupFileInfoKeys(DomeFileID fileid, DomeFileID parentfileid, std::string name);
   
   

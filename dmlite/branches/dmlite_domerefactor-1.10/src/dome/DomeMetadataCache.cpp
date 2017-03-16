@@ -21,3 +21,522 @@
  * @author Fabrizio Furano
  * @date   Mar 2017
  */
+
+
+
+#include "DomeMetadataCache.hh"
+#include <time.h>
+#include <boost/shared_ptr.hpp>
+//
+// ******************************************
+// ******************* DomeFileInfo
+//
+
+DomeFileInfo::DomeFileInfo(DomeFileID file_id) {
+  
+  this->fileid = file_id;
+  parentfileid = 0;
+  locfilename = "";
+  
+  status_statinfo = NoInfo;
+  status_locations = NoInfo;
+  pending_statinfo = 0;
+  pending_locations = 0;
+  
+  time_t t = time(0);
+  lastupdtime = t;
+  lastupdreqtime = t;
+  lastreftime = t;
+  
+  
+
+}
+
+DomeFileInfo::DomeFileInfo(DomeFileID parentfileid, std::string name) {
+  
+  this->fileid = 0;
+  parentfileid = parentfileid;
+  locfilename = name;
+  
+  status_statinfo = NoInfo;
+  status_locations = NoInfo;
+  pending_statinfo = 0;
+  pending_locations = 0;
+  
+  time_t t = time(0);
+  lastupdtime = t;
+  lastupdreqtime = t;
+  lastreftime = t;
+  
+  
+  
+}
+
+DomeFileInfo::~DomeFileInfo() {
+  Log(Logger::Lvl4, domelogmask, "~DomeFileInfo", "I am being deleted. fileid: " << fileid);
+}
+
+void DomeFileInfo::setToNoInfo() {
+  const char *fname = "DomeFileInfo::setToNoInfo";
+  Log(Logger::Lvl4, domelogmask, fname, "Entering");
+  
+  boost::unique_lock<mutex> l2(*this);
+  statinfo = dmlite::ExtendedStat();
+  
+  status_statinfo = NoInfo;
+  
+  replicas.clear();
+  status_locations = NoInfo;
+}
+
+
+void DomeFileInfo::takeStat(const dmlite::ExtendedStat &st) {
+  const char *fname = "DomeFileInfo::takeStat";
+  Log(Logger::Lvl4, domelogmask, fname, st.name << " sz:" << st.stat.st_size << " mode:" << st.stat.st_mode);
+  
+  boost::unique_lock<mutex> l2(*this);
+  
+  statinfo = st; 
+  
+  status_statinfo = DomeFileInfo::Ok;
+  
+  
+}
+
+
+void DomeFileInfo::addReplica( const dmlite::Replica & replica ) {
+  const char *fname = "DomeFileInfo::addReplica";
+  Log(Logger::Lvl4, domelogmask, fname, "Adding replica '" << replica.rfn << "' to fileid " << fileid);
+  
+  replicas.push_back(replica);
+}
+
+
+void DomeFileInfo::addReplica( const std::vector<dmlite::Replica> &reps ) {
+  const char *fname = "DomeFileInfo::addReplica";
+  Log(Logger::Lvl4, domelogmask, fname, "Adding " << replicas.size() << "replicas to fileid " << fileid);
+
+  replicas.insert(replicas.end(), reps.begin(), reps.end());
+}
+
+
+//
+// ******************************************
+// ******************* DomeMetadataCache
+//
+
+
+
+// Purge the least recently used element
+// Returns 0 if the element was purged, non0 if it was not possible
+
+int DomeMetadataCache::purgeLRUitem_fileid() {
+  const char *fname = "DomeMetadataCache::purgeLRUitem";
+  
+  {
+    // No LRU item, the LRU list is empty
+    if (lrudata.empty()) {
+      Log(Logger::Lvl4, domelogmask, fname, "LRU list is empty. Nothing to purge.");
+      return 1;
+    }
+    
+    // Take the key of the lru item   
+    DomeFileID s = lrudata.left.begin()->second;
+    Log(Logger::Lvl4, domelogmask, fname, "LRU item is fileid " << s);
+    
+    // Lookup its instance in the cache
+    boost::shared_ptr<DomeFileInfo> fi = databyfileid[s];
+    
+    if (!fi) {
+      Err(fname, "Could not find the LRU item in the cache. Fixing the internal inconsistency.");
+      
+      // Purge it from the lru list
+      lrudata.right.erase(s);
+      
+      return 2;
+    }
+    
+    
+    {
+      boost::unique_lock<mutex> lck(*fi);
+      if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+        Log(Logger::Lvl4, domelogmask, fname, "The LRU item is marked as pending. Cannot purge fileid " << fi->fileid);
+        return 3;
+      }
+      
+    }
+    
+    // We have decided that we can delete it...
+    
+    // Purge it from the lru list
+    lrudata.right.erase(s);
+    
+    // Remove the item from the map
+    databyfileid.erase(s);   
+    
+    // The object will be deleted as soon as all the references to it disappear
+  }
+  
+  return 0;
+}
+
+
+
+
+int DomeMetadataCache::purgeLRUitem_parent() {
+  const char *fname = "DomeMetadataCache::purgeLRUitem";
+  
+  
+  {
+    // No LRU item, the LRU list is empty
+    if (lrudata_parent.empty()) {
+      Log(Logger::Lvl4, domelogmask, fname, "LRU_parent list is empty. Nothing to purge.");
+      return 1;
+    }
+    
+    // Take the key of the lru item   
+    DomeFileInfoParent s = lrudata_parent.left.begin()->second;
+    Log(Logger::Lvl4, domelogmask, fname, "LRU_parent item is " << s.parentfileid << "'" << s.name << "'");
+    
+    // Lookup its instance in the cache
+    boost::shared_ptr<DomeFileInfo> fi = databyparent[s];
+    
+    if (!fi) {
+      Err(fname, "Could not find the LRU_parent item in the cache.");
+      return 2;
+    }
+    
+    
+    {
+      boost::unique_lock<mutex> lck(*fi);
+      if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+        Log(Logger::Lvl4, domelogmask, fname, "The LRU item is marked as pending. Cannot purge " << fi->fileid);
+        return 3;
+      }
+      
+    }
+    
+    // We have decided that we can delete it...
+    
+    // Purge it from the lru list
+    lrudata_parent.right.erase(s);
+    
+    // Remove the item from the map
+    databyparent.erase(s);   
+    
+    // The object will be deleted as soon as all the references to it disappear
+  }
+  return 0;
+}
+
+
+
+
+// Purge the items that were not touched since a longer time
+
+void DomeMetadataCache::purgeExpired_fileid() {
+  const char *fname = "DomeMetadataCache::purgeExpired";
+  int d = 0;
+  time_t timelimit = time(0) - maxttl;
+  time_t timelimit_max = time(0) - maxmaxttl;
+  time_t timelimit_neg = time(0) - maxttl_negative;
+  
+  bool dodelete = false;
+  std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator i_deleteme;
+  
+  for (std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator i = databyfileid.begin();
+       i != databyfileid.end(); i++) {
+    
+    if (dodelete) {
+      databyfileid.erase(i_deleteme);
+      dodelete = false;
+    }
+    dodelete = false;
+  
+  boost::shared_ptr<DomeFileInfo> fi = i->second;
+  
+  if (fi) {
+    
+    {
+      boost::unique_lock<mutex> lck(*fi);
+      
+      time_t tl = timelimit;
+      if (fi->getInfoStatus() == DomeFileInfo::NotFound){
+        tl = timelimit_neg;
+      }
+      
+      if ((fi->lastreftime < tl) || (fi->lastreftime < timelimit_max)) {
+        // The item is old...
+        Log(Logger::Lvl2, domelogmask, fname, "purging expired fileid " << fi->statinfo.stat.st_ino);
+        
+        if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+          Err(fname, "Found pending expired entry. Cannot purge fileid " << fi->statinfo.stat.st_ino);
+          continue;
+        }
+        
+        lrudata.right.erase(fi->statinfo.stat.st_ino);
+        
+        DomeFileInfoParent k;
+        k.name = fi->statinfo.name;
+        k.parentfileid = fi->statinfo.parent;
+        lrudata_parent.right.erase(k);
+        
+        dodelete = true;
+        i_deleteme = i;
+        
+        d++;
+        
+      }
+    }
+    
+    // The entry will disappear when there are no more references to it
+    
+  }
+  
+       }
+       
+       if (dodelete) {
+         databyfileid.erase(i_deleteme);
+         dodelete = false;
+       }
+       
+       if (d > 0)
+         Log(Logger::Lvl1, domelogmask, fname, "purged " << d << " expired items.");
+}
+
+
+
+
+void DomeMetadataCache::purgeExpired_parent() {
+  const char *fname = "DomeMetadataCache::purgeExpired_parent";
+  int d = 0;
+  time_t timelimit = time(0) - maxttl;
+  time_t timelimit_max = time(0) - maxmaxttl;
+  time_t timelimit_neg = time(0) - maxttl_negative;
+  
+  bool dodelete = false;
+  std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp>::iterator i_deleteme;
+  
+  boost::lock_guard<DomeMetadataCache> l(*this);
+  
+  for (std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp>::iterator i = databyparent.begin();
+       i != databyparent.end(); i++) {
+    
+    if (dodelete) {
+      databyparent.erase(i_deleteme);
+      dodelete = false;
+    }
+    dodelete = false;
+  
+  boost::shared_ptr<DomeFileInfo> fi = i->second;
+  
+  if (fi) {
+    
+    {
+      boost::unique_lock<mutex> lck(*fi);
+      
+      time_t tl = timelimit;
+      if (fi->getInfoStatus() == DomeFileInfo::NotFound){
+        tl = timelimit_neg;
+      }
+      
+      if ((fi->lastreftime < tl) || (fi->lastreftime < timelimit_max)) {
+        // The item is old...
+        Log(Logger::Lvl2, domelogmask, fname, "purging expired parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
+        
+        if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+          Err(fname, "Found pending expired entry. Cannot purge parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
+          continue;
+        }
+        
+        lrudata.right.erase(fi->statinfo.stat.st_ino);
+        
+        DomeFileInfoParent k;
+        k.name = fi->statinfo.name;
+        k.parentfileid = fi->statinfo.parent;
+        lrudata_parent.right.erase(k);
+        
+        dodelete = true;
+        i_deleteme = i;
+        
+        d++;
+        
+      }
+    }
+    
+    // The entry will disappear when there are no more references to it
+    
+  }
+  
+       }
+       
+       if (dodelete) {
+         databyparent.erase(i_deleteme);
+         dodelete = false;
+       }
+       
+       if (d > 0)
+         Log(Logger::Lvl1, domelogmask, fname, "purged " << d << " expired items.");
+}
+
+
+
+boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(DomeFileID fileid) {
+  const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne";
+  boost::shared_ptr <DomeFileInfo > fi;
+  
+  
+  
+  {
+    boost::lock_guard<DomeMetadataCache> l(*this);
+    
+    std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator p;
+    
+    p = databyfileid.find(fileid);
+    if (p == databyfileid.end()) {
+      
+      // If we reached the max number of items, delete as many as we need
+      while (databyfileid.size() > maxitems) {
+        if (purgeLRUitem_fileid()) break;
+      }
+      
+      // If we still have no space, try to garbage collect the old items
+      if (databyfileid.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyfileid.size() << ">" << maxitems << ", running garbage collection...");
+        purgeExpired_fileid();
+      }
+      
+      // If we still have no space, complain and do it anyway.
+      if (databyfileid.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Maximum capacity exceeded. " << databyfileid.size() << ">" << maxitems);
+      }
+      
+      
+      // Create a new item
+      fi.reset( new DomeFileInfo(fileid) );
+      
+      // Make it pending, as it is a new item
+      fi->notifyStatPending();
+      fi->notifyLocationPending();
+      
+      databyfileid[fileid] = boost::shared_ptr <DomeFileInfo >(fi);
+      lrudata.insert(lrudataitem(++lrutick, fileid));
+      
+    } else {
+      // Promote the element to being the most recently used
+      // Don't make it pending, not needed here
+      lrudata.right.erase(fileid);
+      lrudata.insert(lrudataitem(++lrutick, fileid));
+      fi = p->second;
+      fi->touch();
+    }
+  }
+  
+  // Here we have either
+  //  - a new empty UgrFileInfo, marked as pending for both statinfo and locations
+  //  - an UgrFileInfo taken from the 1st level cache
+  
+  
+  return fi;
+  
+}
+
+boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name) {
+  const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne(parent)";
+  boost::shared_ptr<DomeFileInfo> fi;
+  
+  DomeFileInfoParent k;
+  k.name = name;
+  k.parentfileid = parentfileid;
+  
+  {
+    boost::lock_guard<DomeMetadataCache> l(*this);
+    
+    std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp>::iterator p;
+    
+    p = databyparent.find(k);
+    if (p == databyparent.end()) {
+      
+      // If we reached the max number of items, delete as many as we need
+      while (databyparent.size() > maxitems) {
+        if (purgeLRUitem_parent()) break;
+      }
+      
+      // If we still have no space, try to garbage collect the old items
+      if (databyparent.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyparent.size() << ">" << maxitems << ", running garbage collection...");
+        purgeExpired_parent();
+      }
+      
+      // If we still have no space, complain and do it anyway.
+      if (databyparent.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Maximum capacity exceeded. " << databyparent.size() << ">" << maxitems);
+      }
+      
+      
+      // Create a new item
+      fi.reset( new DomeFileInfo(parentfileid, name) );
+      
+      // Make it pending, as it is a new item
+      fi->notifyStatPending();
+      fi->notifyLocationPending();
+      
+      databyparent[k] = fi;
+      lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
+      
+    } else {
+      // Promote the element to being the most recently used
+      // Don't make it pending, not needed here
+      lrudata_parent.right.erase(k);
+      lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
+      fi = p->second;     
+      fi->touch();
+    }
+  }
+  
+  // Here we have either
+  //  - a new empty UgrFileInfo, marked as pending for both statinfo and locations
+  //  - an UgrFileInfo taken from the 1st level cache
+  
+  
+  return fi;
+  
+}
+
+int DomeMetadataCache::fixupFileInfoKeys(DomeFileID fileid, DomeFileID parentfileid, std::string name) {
+  // Lock
+  
+  // Fetch both items
+  
+  // If they are the same, exit
+  
+  // Fill the fileid one from the parent+name one, take the fields that are missing
+  // Signal them both?
+  
+  // Push the fileid one to the parentname map (actually releasing the previous item from the map)
+  
+  // uhmmmmmmm maybe just doing nothing is sufficient
+  return 0;
+}
+
+
+void DomeMetadataCache::tick() {
+  const char *fname = "DomeMetadataCache::tick";
+  Log(Logger::Lvl4, domelogmask, fname, "tick...");
+  
+  boost::lock_guard<DomeMetadataCache> l(*this);
+  
+  purgeExpired();
+  
+  // If we reached the max number of items, delete as much as we can
+  while (databyfileid.size() > maxitems) {
+    if (purgeLRUitem_fileid()) break;
+  }
+  while (databyparent.size() > maxitems) {
+    if (purgeLRUitem_parent()) break;
+  }
+  
+  Log(Logger::Lvl4, domelogmask, fname, "Cache status by fileid. nItems:" << databyfileid.size() << " nLRUItems: " << lrudata.size());
+  Log(Logger::Lvl4, domelogmask, fname, "Cache status by parentid+name. nItems:" << databyparent.size() << " nLRUItems: " << lrudata_parent.size());
+  
+}
