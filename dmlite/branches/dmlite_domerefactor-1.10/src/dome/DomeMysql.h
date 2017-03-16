@@ -30,7 +30,7 @@
 #include <mysql/mysql.h>
 #include "status.h"
 #include "inode.h"
-
+#include "DomeMetadataCache.hh"
 
 
 class DomeStatus;

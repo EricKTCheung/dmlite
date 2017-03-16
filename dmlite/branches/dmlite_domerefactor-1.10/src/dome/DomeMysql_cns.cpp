@@ -828,7 +828,7 @@ DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, const std::string p
   if (path[0] != '/' ) {
 
     // return an error!
-    return DmStatus(ENOTDIR, "'" + meta.name + "' is not an absolute path.");
+    return DmStatus(ENOTDIR, SSTR("'" << meta.name << "' is not an absolute path."));
   }
 
   DmStatus st = getStatbyParentFileid(meta, 0, "/");
@@ -840,7 +840,7 @@ DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, const std::string p
   for (unsigned i = 0; i < components.size(); ) {
     // Check that the parent is a directory first
     if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      return DmStatus(ENOTDIR, "'" + meta.name + "' is not a directory, and is referenced by '" + path + "'. Internal DB error.");
+      return DmStatus(ENOTDIR, SSTR("'" << meta.name << "' is not a directory, and is referenced by '" << path << "'. Internal DB error."));
 
     // Pop next component
     c = components[i];
@@ -982,13 +982,13 @@ DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid)
     bindMetadata(stmt, &cstat);
 
   if (!stmt.fetch())
-    return DmStatus(ENOENT, fileid + " not found");
+    return DmStatus(ENOENT, SSTR(fileid << " not found"));
 
   dumpCStat(cstat, &xstat);
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading stat of fileid " << fileid);
-    return DmStatus(EINVAL, " Exception while reading stat of fileid " + fileid);
+    return DmStatus(EINVAL, SSTR(" Exception while reading stat of fileid " << fileid));
   }
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " name:" << xstat.name << " sz:" << xstat.size());
   return DmStatus();
@@ -1016,13 +1016,13 @@ DmStatus DomeMySql::getStatbyRFN(dmlite::ExtendedStat &xstat, std::string rfn) {
     bindMetadata(stmt, &cstat);
 
     if (!stmt.fetch())
-      return DmStatus(ENOENT, "replica '" + rfn + "' not found");
+      return DmStatus(ENOENT, SSTR("replica '" << rfn << "' not found"));
 
     dumpCStat(cstat, &xstat);
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading stat of rfn " << rfn);
-    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
+    return DmStatus(EINVAL, SSTR(" Exception while reading stat of rfn " << rfn));
   }
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rfn:" << rfn << " name:" << xstat.name << " sz:" << xstat.stat.st_size);
   return DmStatus();
@@ -1085,7 +1085,7 @@ DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
   }
   catch ( ... ) {
     Err(domelogname, " Exception while reading stat of rfn " << rfn);
-    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
+    return DmStatus(EINVAL, SSTR(" Exception while reading stat of rfn " << rfn));
   }
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
@@ -1696,10 +1696,10 @@ DmStatus DomeMySql::setChecksum(const ino_t fid, const std::string &csumtype, co
     k = checksums::fullChecksumName(csumtype);
   
   if (!checksums::isChecksumFullName(k))
-    throw DmException(EINVAL, "'" + csumtype + "' is not a valid checksum type.");
+    return DmStatus(EINVAL, SSTR("'" << csumtype << "' is not a valid checksum type."));
   
   if (csumvalue.length() == 0)
-    throw DmException(EINVAL, "'" + csumvalue + "' is not a valid checksum value.");
+    return DmStatus(EINVAL, SSTR("'" << csumvalue << "' is not a valid checksum value."));
   
   
   ckx[k] = csumvalue;

@@ -73,6 +73,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
   std::vector<std::string> todo;
   std::string name;
   
+  std::string  fname = components.back();
   components.pop_back();
 
   // Make sure that all the parent dirs exist
@@ -143,12 +144,21 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
   // If a miracle took us here, we only miss to create the final file
 
   DmStatus ret = sql.createfile(parentstat, path, 0664, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
-    if (!ret.ok() && (ret.code() != EEXIST)) {
-      // If we can't create the dir then this is a serious error, unless it already exists
-      Err(domelogname, "Cannot create file '" << path << "' err: " << ret.code() << "-" << ret.what());
-      return ret;
-    }
+  if (!ret.ok() && (ret.code() != EEXIST)) {
+    // If we can't create the dir then this is a serious error, unless it already exists
+    Err(domelogname, "Cannot create file '" << path << "' err: " << ret.code() << "-" << ret.what());
+    return ret;
+  }
 
+  
+  // Get the statinfo for the final created file
+  ret = sql.getStatbyParentFileid(statinfo, parentstat.stat.st_ino, fname);
+  if (!ret.ok()) {
+    // If we can't create the dir then this is a serious error, unless it already exists
+    Err(domelogname, "Cannot stat final file '" << path << "' token: '" << fname << "' parent: " << parentstat.stat.st_ino << " err: " << ret.code() << "-" << ret.what());
+    return ret;
+  }
+  
   return DmStatus();
 }
 

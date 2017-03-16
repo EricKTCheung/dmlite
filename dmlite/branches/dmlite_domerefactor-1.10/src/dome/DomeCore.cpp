@@ -601,6 +601,7 @@ void DomeCore::tick(int parm) {
 
     status.tick(timenow);
     DomeTaskExec::tick();
+    //DomeMetadataCache::tick();
 
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
