@@ -17,7 +17,7 @@
 
 
 /** @file  DomeMetadataCache.hh
- * @brief  In-memory cache of frequently accessed file information
+ * @brief  In-memory cache of frequently accessed file information. For simplicity, this is a singleton
  * @author Fabrizio Furano
  * @date   Mar 2017
  */
@@ -62,7 +62,7 @@ struct DomeFileInfoParent {
   DomeFileID parentfileid;
   std::string name;
 };
-bool operator < (const DomeFileInfoParent &s1, const DomeFileInfoParent &s2) {
+inline bool operator < (const DomeFileInfoParent &s1, const DomeFileInfoParent &s2) {
   if (s1.parentfileid < s2.parentfileid)
     return true;
   else {
@@ -302,6 +302,25 @@ public:
 /// be gathered on the fly and kept as in a cache.
 class DomeMetadataCache : public boost::mutex {
 private:
+  
+  
+  
+  /// Private ctor
+  DomeMetadataCache() : lrutick(0) {  };
+  
+  /// Singleton instance
+  static DomeMetadataCache *instance;
+  
+  /// @return the singleton instance
+  static DomeMetadataCache *get()
+  {
+    if (instance == 0)
+      instance = new DomeMetadataCache();
+    return instance;
+  }
+  
+  
+  
   /// Counter for implementing a LRU buffer
   unsigned long long lrutick;
   /// Max number of items allowed
@@ -350,8 +369,6 @@ private:
   }
   
 public:
-  
-  DomeMetadataCache() : lrutick(0) {  };
   
   void Init() {
     // Get the max capacity from the config

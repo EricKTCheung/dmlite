@@ -23,6 +23,8 @@
  * @date   Dec 2015
  */
 
+#ifndef DOMESTATUS_H
+#define DOMESTATUS_H
 
 #include <boost/thread.hpp>
 #include <set>
@@ -376,3 +378,6 @@ private:
   boost::condition_variable queue_cond;
   boost::mutex queue_mtx;
 };
+
+
+#endif
