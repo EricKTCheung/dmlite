@@ -143,7 +143,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
 
   // If a miracle took us here, we only miss to create the final file
 
-  DmStatus ret = sql.createfile(parentstat, path, 0664, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
+  DmStatus ret = sql.createfile(parentstat, fname, 0664, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
   if (!ret.ok() && (ret.code() != EEXIST)) {
     // If we can't create the dir then this is a serious error, unless it already exists
     Err(domelogname, "Cannot create file '" << path << "' err: " << ret.code() << "-" << ret.what());
