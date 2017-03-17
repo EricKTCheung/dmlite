@@ -77,9 +77,11 @@ bool DomeTalker::execute(const std::string &str) {
   req.setParameters(*ds_->parms);
   req.setRequestBody(DomeUtils::unescape_forward_slashes(str));
 
+  Log(Logger::Lvl2, Logger::unregistered, "dometalker", " Sending dome RPC to " << target_ << ": " << DomeUtils::unescape_forward_slashes(str));
   int rc = req.executeRequest(&err_);
   response_ = std::string(req.getAnswerContentVec().begin(), req.getAnswerContentVec().end());
   status_ = req.getRequestCode();
+  Log(Logger::Lvl2, Logger::unregistered, "dometalker", " RPC response - status: " << status_ << ", contents: " << response_);
 
   if(rc || err_) return false;
   return true;
