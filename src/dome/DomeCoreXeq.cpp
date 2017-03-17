@@ -3086,7 +3086,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
     std::vector<Replica> repls;
 
       ret = sql.getReplicas(repls, rep.fileid);
-      if (!ret.ok())
+      if (!ret.ok() && ret.code() != DMLITE_NO_SUCH_REPLICA)
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of fileid " << rep.fileid <<
         " err: " << ret.code() << " what:" << ret.what()) );
 
