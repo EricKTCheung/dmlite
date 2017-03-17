@@ -1687,7 +1687,7 @@ DmStatus DomeMySql::setChecksum(const ino_t fid, const std::string &csumtype, co
 
   ExtendedStat ckx;
   DmStatus ret = this->getStatbyFileid(ckx, fid);
-  if (ret.ok())
+  if (!ret.ok())
     return ret;
 
   std::string k = csumtype;
