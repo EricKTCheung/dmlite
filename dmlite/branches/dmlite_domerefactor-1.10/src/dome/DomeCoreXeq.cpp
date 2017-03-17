@@ -72,7 +72,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
   std::vector<std::string> components = Url::splitPath(path);
   std::vector<std::string> todo;
   std::string name;
-  
+
   std::string  fname = components.back();
   components.pop_back();
 
@@ -98,7 +98,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
         parentpath = ppath;
         // This means that we successfully processed at least the parent dir
         // that we have to return
-        
+
         break;
       }
 
@@ -110,18 +110,18 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
 
   // Here we have a todo list of directories that we have to create
   // .... so we do it
-  
+
   // But first check the permissions
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parentstat.acl, parentstat.stat, S_IWRITE) != 0)
     return DmStatus(EPERM, SSTR("Need write access on '" << parentpath << "'"));
-  
+
   while (!todo.empty()) {
     std::string p = todo.back();
     todo.pop_back();
 
-    
-    
+
+
     DmStatus ret = sql.makedir(parentstat, p, 0774, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
     if (!ret.ok()) {
       // If we can't create the dir then this is a serious error, unless it already exists
@@ -131,7 +131,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
 
     // Set proper ownership
     //catalog->setOwner(parentpath, parentstat.stat.st_uid, parentstat.stat.st_gid);
-    
+
     // Update the parent for the next round
     ret = sql.getStatbyParentFileid(parentstat, parentstat.stat.st_ino, p);
     if (!ret.ok()) {
@@ -150,7 +150,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
     return ret;
   }
 
-  
+
   // Get the statinfo for the final created file
   ret = sql.getStatbyParentFileid(statinfo, parentstat.stat.st_ino, fname);
   if (!ret.ok()) {
@@ -158,7 +158,7 @@ DmStatus mkdirminuspandcreate(SecurityContext ctx, DomeMySql &sql,
     Err(domelogname, "Cannot stat final file '" << path << "' token: '" << fname << "' parent: " << parentstat.stat.st_ino << " err: " << ret.code() << "-" << ret.what());
     return ret;
   }
-  
+
   return DmStatus();
 }
 
@@ -222,24 +222,24 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   Log(Logger::Lvl1, domelogmask, domelogname, "Entering. lfn: '" << lfn <<
     "' addreplica: " << addreplica << " pool: '" << pool <<
     "' host: '" << host << "' fs: '" << fs << "'");
-  
+
   if(status.role == status.roleDisk) {
     return DomeReq::SendSimpleResp(request, 500, "dome_put only available on head nodes");
   }
-  
+
   // Fill the security context
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   DmStatus ret;
   DomeMySql sql;
-  {   
+  {
     ExtendedStat parent;
     std::string parentPath, name;
     ret = sql.getParent(parent, lfn, parentPath, name);
     if (!ret.ok())
       return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
-    
+
     ret = sql.traverseBackwards(ctx, parent);
     if (!ret.ok()) {
       return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
@@ -248,7 +248,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
     if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403, SSTR("Need WRITE access on '" << parentPath << "'"));
   }
-  
+
   // if(!req.remoteclientdn.size() || !req.remoteclienthost.size()) {
   //   return DomeReq::SendSimpleResp(request, 501, SSTR("Invalid remote client or remote host credentials: " << req.remoteclientdn << " - " << req.remoteclienthost));
   // }
@@ -356,7 +356,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
         return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << lfn << "' err: " <<
         ret.code() << ":" << ret.what()));
       }
-      
+
       // remove from the fslist the filesystems that match with any replica
       for (int i = selectedfss.size()-1; i >= 0; i--) {
         bool dropfs = false;
@@ -511,7 +511,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
   r["filesystem"] = selectedfss[fspos].fs;
   r.setname = token.s_token;
   r["accountedspacetokenname"] = token.u_token;
-  
+
   ret = sql.addReplica(r);
   if (!ret.ok()) {
     std::ostringstream os;
@@ -569,19 +569,19 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_access only available on head nodes.");
   }
-  
+
   std::string absPath = DomeUtils::trim_trailing_slashes(req.bodyfields.get<std::string>("path", ""));
   int mode = req.bodyfields.get<int>("mode", 0);
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "' mode: " << mode);
-  
-  
+
+
   if ( !absPath.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
   }
-  
+
   ExtendedStat xstat;
-  boost::property_tree::ptree jresp;  
+  boost::property_tree::ptree jresp;
   DmStatus ret;
   {
     DomeMySql sql;
@@ -592,23 +592,23 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("File not found '" << absPath << "'"));
     return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
   }
-  
+
   mode_t perm = 0;
   if (mode & R_OK) perm  = S_IREAD;
   if (mode & W_OK) perm |= S_IWRITE;
   if (mode & X_OK) perm |= S_IEXEC;
-                                     
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
   bool ok = false;
-  
+
   try {
     ok = !checkPermissions(&ctx, xstat.acl, xstat.stat, perm);
   } catch (DmException e) {}
-  
+
   if (!ok)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << absPath << "' err: "<< ret.what()));
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 };
 
@@ -621,58 +621,58 @@ int DomeCore::dome_accessreplica(DomeReq &req, FCGX_Request &request)
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_accessreplica only available on head nodes.");
   }
-  
+
   std::string rfn =  req.bodyfields.get<std::string>("rfn", "");
   int mode = req.bodyfields.get<int>("mode", 0);
   DmStatus ret;
   struct dmlite::Replica r;
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << rfn << "' mode: " << mode);
-  
+
   if ( !rfn.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
   }
-  
+
   DomeMySql sql;
   ret = sql.getReplicabyRFN(r, rfn);
-  
+
   if (ret.code() != DMLITE_SUCCESS) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   ExtendedStat xstat;
   ret = sql.getStatbyFileid(xstat, r.fileid);
   if (ret.code() != DMLITE_SUCCESS) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << r.fileid << " of rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   bool replicaAllowed = true;
   mode_t perm = 0;
-  
+
   if (mode & R_OK)
     perm  = S_IREAD;
-  
+
   if (mode & W_OK) {
     perm |= S_IWRITE;
     replicaAllowed = (r.status == Replica::kBeingPopulated);
   }
-  
+
   if (mode & X_OK)
     perm |= S_IEXEC;
-  
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
   bool ok = false;
-  
+
   try {
     ok = !checkPermissions(&ctx, xstat.acl, xstat.stat, perm);
   } catch (DmException e) {}
-  
+
   if (!ok)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible '" << rfn << "'"));
   if (!replicaAllowed)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not accessible with replica status " << r.status << " '" << rfn << "'"));
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -695,24 +695,24 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
   r.type = static_cast<dmlite::Replica::ReplicaType>(
     req.bodyfields.get<char>("type", (char)dmlite::Replica::kPermanent) );
   r.setname =  req.bodyfields.get<std::string>("setname", "");
-  
+
   r.deserialize(req.bodyfields.get<std::string>("xattr", ""));
-  
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   DmStatus ret;
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << r.rfn << "' fileid: " << r.fileid);
-  
+
   if ( !r.rfn.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty rfn"));
   }
-  
+
   DomeMySql sql;
-  
+
   try {
-    
+
     ExtendedStat xstat;
     ret = sql.getStatbyFileid(xstat, r.fileid);
     if (!ret.ok()) {
@@ -720,7 +720,7 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
     }
     if (!S_ISREG(xstat.stat.st_mode))
       return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << r.fileid << " is not a regular file"));
-    
+
     // Check perms on the parents
     ret = sql.traverseBackwards(ctx, xstat);
     if (!ret.ok()) {
@@ -732,7 +732,7 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
         return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
         << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
       }
-      
+
       // If server is empty, parse the surl
       std::string host;
     if (r.server.empty()) {
@@ -742,18 +742,18 @@ int DomeCore::dome_addreplica(DomeReq &req, FCGX_Request &request)
     else {
       host = r.server;
     }
-    
+
     ret = sql.addReplica(r);
     if (!ret.ok()) {
       return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot add replica " << xstat.stat.st_ino
       << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
     }
-    
+
   } catch (DmException e) {
     return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot add replica rfn: '" <<
       r.rfn << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -771,24 +771,24 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
   struct dmlite::ExtendedStat f;
   std::string path = req.bodyfields.get<std::string>("path", "");
   mode_t mode = req.bodyfields.get<mode_t>("mode", 0);
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << path << "' mode: " << mode);
-  
+
   DomeMySql sql;
   ExtendedStat parent;
   std::string parentPath, name;
-  
+
 
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
-  
-  
-  
+
+
+
+
   if ( !path.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty path"));
   }
-    
+
   DmStatus ret = sql.getParent(parent, path, parentPath, name);
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
@@ -797,11 +797,11 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
   ExtendedStat fstat;
   // Check that the file does not exist, or it has no replicas. The query by parent fileid is faster
   ret = sql.getStatbyParentFileid(fstat, parent.stat.st_ino, name);
-  
+
   if(ret.ok()) {
     std::vector <Replica> reps;
     sql.getReplicas(reps, fstat.stat.st_ino);
-    
+
     if (reps.size() > 0)
       DomeReq::SendSimpleResp(request, 403, SSTR("Exists and has replicas. Can not truncate '" << path << "'"));
       else if (S_ISDIR(fstat.stat.st_mode))
@@ -812,8 +812,8 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     if(ret.code() != ENOENT) DomeReq::SendSimpleResp(request, 422, SSTR("Unexpected error on path '" << path <<
       "' err: " << ret.code() << "'" << ret.what() << "'"));
   }
-  
-  
+
+
   // Effective gid
   gid_t egid;
   if (parent.stat.st_mode & S_ISGID) {
@@ -826,8 +826,8 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     // and I don't really know what to do with this sneaky assumption
     egid = ctx.groups[0].getUnsigned("gid");
   }
-  
-  
+
+
   // Create new
   if (ret.code() == ENOENT) {
     ExtendedStat newFile;
@@ -838,7 +838,7 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
     newFile.stat.st_uid  = ctx.user.getUnsigned("uid");
     newFile.stat.st_gid  = egid;
     newFile.status       = ExtendedStat::kOnline;
-    
+
     // Generate inherited ACL's if there are defaults
     if (parent.acl.has(AclEntry::kDefault | AclEntry::kUserObj))
       newFile.acl = Acl(parent.acl,
@@ -846,22 +846,22 @@ int DomeCore::dome_create(DomeReq &req, FCGX_Request &request)
                         egid,
                         mode,
                         &newFile.stat.st_mode);
-      
+
       ret = sql.create(newFile);
     if (!ret.ok())
-      return DomeReq::SendSimpleResp(request, 422, SSTR("Can't create file '" << path << "'")); 
+      return DomeReq::SendSimpleResp(request, 422, SSTR("Can't create file '" << path << "'"));
   }
-  
+
   // Truncate
   else {
     if (ctx.user.getUnsigned("uid") != fstat.stat.st_uid &&
       checkPermissions(&ctx, fstat.acl, fstat.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to truncate '" << path << "'"));
-    
+
     sql.setSize(fstat.stat.st_ino, 0);
   }
-    
-  
+
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -984,12 +984,12 @@ bool DomeCore::addFilesizeToDirs(DomeMySql &sql, ExtendedStat file, int64_t size
   ino_t hierarchy[MAX_HIERARCHY_SIZE];
   unsigned int idx = 0;
   DmStatus ret;
-  
+
   ExtendedStat st = file;
   while (st.parent) {
     Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
 
-    
+
     ret = sql.getStatbyFileid(st, st.parent);
     if (!ret.ok()) {
       Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
@@ -1086,7 +1086,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
   DomeMySql sql;
   dmlite::Replica rep;
   DmStatus ret;
-  
+
   ret = sql.getReplicabyRFN(rep, rfn);
   if (!ret.ok()) {
     if (ret.code() == ENOENT) {
@@ -1096,7 +1096,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, "Not accessible '" << rfn << "' err: "<< ret.what());
     return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
   }
-  
+
 
   if (rep.status != dmlite::Replica::kBeingPopulated) {
 
@@ -1118,7 +1118,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, "Cannot fetch logical entry for replica '" << rfn << "' err: "<< ret.what());
     return DomeReq::SendSimpleResp(request, 500, SSTR("Not accessible '" << rfn << "' err: "<< ret.what()));
   }
-  
+
 
 
   // We are in the headnode getting a size of zero is fishy and has to be doublechecked, old style
@@ -1168,16 +1168,16 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
     Log(Logger::Lvl4, domelogmask, domelogname, " setting checksum: " << chktype << "," << chkval);
     rep[chktype] = chkval;
   }
-  
+
   ret = sql.updateReplica(rep);
   if (!ret.ok()) {
     std::ostringstream os;
     os << "Cannot update replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
-    
+
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, 500, os);
   }
-  
+
   // If the checksum of the main entry is different, just output a bad warning in the log
   std::string ck;
   if ( !st.getchecksum(chktype, ck) && (ck != chkval) ) {
@@ -1752,12 +1752,12 @@ int DomeCore::dome_chksumstatus(DomeReq &req, FCGX_Request &request) {
     // replace pfn checksum
     Replica replica = pickReplica(lfn, pfn, sql);
     replica[fullchecksum] = checksum;
-   
+
     ret = sql.updateReplica(replica);
     if (!ret.ok()) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot update replica rfn: '" << replica.rfn << "'"));
     }
-    
+
 
     // replace lfn checksum?
     if(updateLfnChecksum) {
@@ -2192,18 +2192,18 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
   DmStatus ret;
   DomeMySql sql;
   std::vector <Replica > replicas;
-    
+
   // Check the perms on the parent folder
   {
     dmlite::SecurityContext ctx;
     fillSecurityContext(ctx, req);
-    
+
     ExtendedStat parent;
     std::string parentPath, name;
     ret = sql.getParent(parent, lfn, parentPath, name);
     if (!ret.ok())
       return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
-    
+
     ret = sql.traverseBackwards(ctx, parent);
     if (!ret.ok()) {
       return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
@@ -2212,20 +2212,20 @@ int DomeCore::dome_get(DomeReq &req, FCGX_Request &request)  {
     if (checkPermissions(&ctx, parent.acl, parent.stat, S_IREAD) != 0)
       return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on '" << parentPath << "'"));
   }
-  
+
   // And now get the replicas of the file
   ret = sql.getReplicas(replicas, lfn);
-  
+
   // Return immediately on errors that are not 'file not found'
   if (!ret.ok() && (ret.code() != ENOENT))
     return DomeReq::SendSimpleResp(request, 404, SSTR("Can't get replicas of '" << lfn <<
     "' err: " << ret.code() << " what:" << ret.what()) );
-  
+
   if (ret.ok()) {
     // We found the file... normal processing of its replicas
-    
+
     Log(Logger::Lvl4, domelogmask, domelogname, "Found " << replicas.size() << " replicas. lfn:'" << lfn << "'");
-    
+
     using boost::property_tree::ptree;
     ptree jresp;
     bool found = false;
@@ -2378,7 +2378,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
 
     dmlite::Replica rep;
     DmStatus ret;
-    
+
     ret = sql.getReplicabyRFN(rep, rfn);
     if (!ret.ok()) {
       std::ostringstream os;
@@ -2399,7 +2399,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
     }
 
     dmlite::ExtendedStat st;
-    
+
     ret = sql.getStatbyFileid(st, rep.fileid);
     if (!ret.ok()) {
       std::ostringstream os;
@@ -2435,7 +2435,7 @@ int DomeCore::dome_pullstatus(DomeReq &req, FCGX_Request &request)  {
       rep[fullchecksum] = checksum;
 
     ret = sql.updateReplica(rep);
-      
+
     if (!ret.ok()) {
       std::ostringstream os;
       os << "Cannot update replica '"<< rfn << "' : " << ret.code() << "-" << ret.what();
@@ -2629,7 +2629,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
 
   DomeMySql sql;
   DmStatus ret;
-  
+
   for (std::multimap<std::string, DomeQuotatoken>::iterator it = localquotas.begin(); it != localquotas.end(); ++it) {
     bool match = false;
 
@@ -2649,9 +2649,9 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     // Get the used space for this path
     long long pathfree = 0LL;
     long long pathused = 0LL;
-    
+
     struct dmlite::ExtendedStat st;
-    ret = sql.getStatbyLFN(st, absPath);  
+    ret = sql.getStatbyLFN(st, absPath);
 
     if (!ret.ok()) {
       std::ostringstream os;
@@ -2662,7 +2662,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     }
 
     pathused = st.stat.st_size;
-    
+
     // Now find the free space in the mentioned pool
     long long ptot, pfree;
     int poolst;
@@ -3006,11 +3006,11 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   std::string rfiopath = srv + ":" + absPath;
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting replica: '" << rfiopath);
   dmlite::Replica rep;
-  
+
   DomeMySql sql;
   DmStatus ret;
   ret = sql.getReplicabyRFN(rep, rfiopath);
-    
+
   if (!ret.ok()) {
     std::ostringstream os;
     os << "Cannot find replica '"<< rfiopath << "' : " << ret.code() << "-" << ret.what();
@@ -3021,16 +3021,16 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
   // Now check the perms
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   ExtendedStat xstat;
-  
+
   ret = sql.getStatbyFileid(xstat, rep.fileid);
   if (!ret.ok()) {
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat fileid " << rep.fileid << " of rfn: '" << rep.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
   if (!S_ISREG(xstat.stat.st_mode))
     return DomeReq::SendSimpleResp(request, 400, SSTR("Inode " << rep.fileid << " is not a regular file"));
-  
+
   // Check perms on the parents
   ret = sql.traverseBackwards(ctx, xstat);
   if (!ret.ok()) {
@@ -3042,10 +3042,10 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify file " << xstat.stat.st_ino
       << " of rfn: '" << rep.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
     }
-    
-  
-  
-  
+
+
+
+
   // We fetched it, which means that many things are fine.
   // Now delete the physical file
   std::string diskurl = "https://" + srv + "/domedisk/";
@@ -3081,7 +3081,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
     // Get the file size :-(
     int64_t sz = xstat.stat.st_size;
-    
+
 
     std::vector<Replica> repls;
 
@@ -3125,7 +3125,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
 
     }
 
-  
+
 
 
 return DomeReq::SendSimpleResp(request, 200, SSTR("Deleted '" << absPath << "' in server '" << srv << "'. Have a nice day."));
@@ -3544,25 +3544,25 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
   Log(Logger::Lvl4, domelogmask, domelogname, " server: '" << server << "' pfn: '" << pfn << "' rfn: '" << rfn << "' lfn: '" << lfn << "'");
 
   struct dmlite::ExtendedStat st;
-  
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   DmStatus ret;
-  
+
   // If lfn is filled then we stat the logical file
   if (lfn.size()) {
-    
+
 
     {
         DomeMySql sql;
-        
+
         ExtendedStat parent;
         std::string parentPath, name;
         ret = sql.getParent(parent, lfn, parentPath, name);
         if (!ret.ok())
           return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << lfn << "'"));
-        
+
         ret = sql.traverseBackwards(ctx, parent);
         if (!ret.ok()) {
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
@@ -3570,8 +3570,8 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         // Need to be able to read the parent
         if (checkPermissions(&ctx, parent.acl, parent.stat, S_IREAD) != 0)
           return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on '" << parentPath << "'"));
-        
-        
+
+
         ret = sql.getStatbyLFN(st, lfn);
     }
 
@@ -3634,8 +3634,8 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
       {
         DomeMySql sql;
         ret = sql.getStatbyRFN(st, rfn);
-        
-        
+
+
         ret = sql.traverseBackwards(ctx, st);
         if (!ret.ok()) {
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
@@ -3643,15 +3643,15 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         // Need to be able to read the parents
         if (checkPermissions(&ctx, st.acl, st.stat, S_IREAD) != 0)
           return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on rfn '" << rfn << "'"));
-        
-        
+
+
       }
       if (ret.code() != DMLITE_SUCCESS) {
         return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat server: '" << server << "' pfn: '" << pfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
       }
   }
 
-  
+
   boost::property_tree::ptree jresp;
   xstat_to_ptree(st, jresp);
 
@@ -3699,7 +3699,7 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
         }
       }
     }
-    
+
 
 
   boost::property_tree::ptree jresp;
@@ -3730,58 +3730,58 @@ int DomeCore::dome_getdir(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getdir only available on head nodes.");
   }
-  
+
   std::string path = req.bodyfields.get<std::string>("path", "");
-  
+
   if (!path.size()) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot list an empty path"));
   }
-  
-  
+
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
-  DomeMySql sql;      
+
+  DomeMySql sql;
   ExtendedStat parent;
   std::string parentPath, name;
   DmStatus ret = sql.getParent(parent, path, parentPath, name);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat the parent of lfn: '" << path << "'"));
-  
+
   ret = sql.traverseBackwards(ctx, parent);
   if (!ret.ok()) {
     return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << path << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
   // Need to be able to read the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IREAD | S_IEXEC) != 0)
-    return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on '" << parentPath << "'"));  
-  
+    return DomeReq::SendSimpleResp(request, 403, SSTR("Need READ access on '" << parentPath << "'"));
+
   boost::property_tree::ptree jresp, jresp2;
   DomeMySqlDir *d;
-  
-  
+
+
   ret = sql.opendir(d, path);
   if (!ret.ok()) {
     return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot open dir: '" << path << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   dmlite::ExtendedStat *st;
   while ( (st = sql.readdirx(d)) ) {
     boost::property_tree::ptree pt;
     pt.put("name", st->name);
-    
-    
+
+
     checksums::fillChecksumInXattr(*st);
     xstat_to_ptree(*st, pt);
-    
-    
+
+
     jresp2.push_back(std::make_pair("", pt));
   }
-  
-  
+
+
   jresp.push_back(std::make_pair("entries", jresp2));
   return DomeReq::SendSimpleResp(request, 200, jresp);
-  
+
 }
 
 
@@ -3791,43 +3791,43 @@ int DomeCore::dome_getidmap(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_getidmap only available on head nodes.");
   }
-  
+
   using namespace boost::property_tree;
-  
+
   try {
     std::string username = req.bodyfields.get<std::string>("username");
     std::vector<std::string> groupnames;
-    
+
     boost::optional<ptree&> groups_in = req.bodyfields.get_child_optional("groupnames");
     if(groups_in) {
       for(ptree::const_iterator it = groups_in->begin(); it != groups_in->end(); it++) {
         groupnames.push_back(it->second.get_value<std::string>());
       }
     }
-    
+
     DomeUserInfo userinfo;
     std::vector<DomeGroupInfo> groupinfo;
-    
+
     DmStatus st = status.getIdMap(username, groupnames, userinfo, groupinfo);
     if (!st.ok()) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get id mapping: " << st.code() << " what: '" << st.what() << "'"));
     }
-    
+
     ptree resp;
     resp.put("uid", userinfo.userid);
-    resp.put("banned", userinfo.banned);
-    
+    resp.put("banned", (int) userinfo.banned);
+
     for(std::vector<DomeGroupInfo>::iterator it = groupinfo.begin(); it != groupinfo.end(); it++) {
       resp.put(boost::property_tree::ptree::path_type("groups^" + it->groupname + "^gid", '^'), it->groupid);
-      resp.put(boost::property_tree::ptree::path_type("groups^" + it->groupname + "^banned", '^'), it->banned);
+      resp.put(boost::property_tree::ptree::path_type("groups^" + it->groupname + "^banned", '^'), (int) it->banned);
     }
-    
+
     return DomeReq::SendSimpleResp(request, 200, resp);
-    
+
   }
   catch(ptree_error e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
-    
+
   }
 }
 
@@ -3835,16 +3835,16 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
   if(status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, 500, "dome_updatexattr only available on head nodes.");
   }
-  
+
   using namespace boost::property_tree;
-  
+
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
   ino_t fileid = req.bodyfields.get<ino_t>("fileid", 0);
   std::string xattr = req.bodyfields.get<std::string>("xattr", "");
-  
+
   if (!lfn.length() && !fileid)
     return DomeReq::SendSimpleResp(request, 422, "No path or fileid specified.");
-  
+
   dmlite::Extensible e;
   try {
     e.deserialize(xattr);
@@ -3853,11 +3853,11 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
     xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
-  
+
   dmlite::ExtendedStat xstat;
   DomeMySql sql;
   DmStatus ret;
-  
+
   if (!fileid) {
     ret = sql.getStatbyLFN(xstat, lfn);
     if (!ret.ok())
@@ -3870,21 +3870,21 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to stat fileid " << fileid <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   // Fill the security context
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Need write permissions
   if (checkPermissions(&ctx, xstat.acl, xstat.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403,
                                    SSTR("Not enough permissions on fileid '" << xstat.stat.st_ino << "' path: '" << lfn << "'"));
-    
+
   ret = sql.updateExtendedAttributes(xstat.stat.st_ino, e);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattrs on fileid " << fileid <<
     "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-  
+
   return DomeReq::SendSimpleResp(request, 200,  "");
 }
 
@@ -3896,19 +3896,19 @@ int DomeCore::dome_deleteuser(DomeReq &req, FCGX_Request &request) {
   }
   std::string username;
   using namespace boost::property_tree;
-  
+
   try {
     username = req.bodyfields.get<std::string>("username");
   }
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
   }
-  
+
   try {
     DomeMySql sql;
     if (!sql.deleteUser(username).ok())
       return DomeReq::SendSimpleResp(request, 500, SSTR("Can't delete user '" << username << "'"));
-    
+
     return DomeReq::SendSimpleResp(request, 200,  "");
   }
   catch(DmException &e) {
@@ -3924,19 +3924,19 @@ int DomeCore::dome_deletegroup(DomeReq &req, FCGX_Request &request) {
   }
   std::string gname;
   using namespace boost::property_tree;
-  
+
   try {
     gname = req.bodyfields.get<std::string>("groupname");
   }
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
   }
-  
+
   try {
     DomeMySql sql;
     if (!sql.deleteGroup(gname).ok())
       return DomeReq::SendSimpleResp(request, 500, SSTR("Can't delete user '" << gname << "'"));
-    
+
     return DomeReq::SendSimpleResp(request, 200,  "");
   }
   catch(DmException &e) {
@@ -3949,16 +3949,16 @@ int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getgroup only available on head nodes.");
   }
-  
+
   std::string groupname = req.bodyfields.get<std::string>("groupname", "");
   int gid = req.bodyfields.get<int>("groupid", 0);
   if (!groupname.size() && !gid) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Groupname or gid not specified"));
   }
-  
-  
+
+
   boost::property_tree::ptree jresp;
-  
+
   try {
     DomeMySql sql;
     DmStatus st;
@@ -3969,15 +3969,15 @@ int DomeCore::dome_getgroup(DomeReq &req, FCGX_Request &request) {
       st = sql.getGroupbyGid(grp, gid);
       if (!st.ok())
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find group gid:" << gid));
-      
+
     } else {
       st = sql.getGroupbyName(grp, groupname);
       if (!st.ok())
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find group name:'" << groupname << "'"));
     }
-      
-      
-    
+
+
+
     boost::property_tree::ptree pt;
     pt.put("groupname", grp.groupname);
     pt.put("gid", grp.groupid);
@@ -3998,25 +3998,25 @@ int DomeCore::dome_setcomment(DomeReq &req, FCGX_Request &request) {
   }
   std::string fname, comm;
   ino_t fid;
-  
+
   using namespace boost::property_tree;
-  
+
   // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
   fname = req.bodyfields.get<std::string>("lfn", "");
   fid = req.bodyfields.get<ino_t>("fileid", 0);
   comm = req.bodyfields.get<std::string>("comment", "");
-  
+
   if (fname == "" && fid == 0)
     return DomeReq::SendSimpleResp(request, 422, "Cannot process empty paths.");
-  
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   try {
     DomeMySql sql;
     ExtendedStat st;
-        
-    
+
+
     // Gather the stat info, precedence to the fileid
     if (!fid) {
       DmStatus ret = sql.getStatbyLFN(st, fname);
@@ -4029,23 +4029,23 @@ int DomeCore::dome_setcomment(DomeReq &req, FCGX_Request &request) {
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find fileid: " << fid));
     }
-    
+
     // Need write permissions in both origin and destination
     if (checkPermissions(&ctx, st.acl, st.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403,
                                      SSTR("Not enough permissions on fileid '" << st.stat.st_ino << "' lfn: '" << fname << "'"));
-      
-      
+
+
     if (sql.setComment(fid = st.stat.st_ino, comm).ok()) {
       boost::property_tree::ptree pt;
       pt.put("comment", comm);
       return DomeReq::SendSimpleResp(request, 200,  pt);
     }
-    else 
+    else
       return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set comment for fileid: " << st.stat.st_ino));
   }
-  
-  
+
+
   catch(DmException &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update comment: '" << e.code() << " what: '" << e.what()));
   }
@@ -4060,24 +4060,24 @@ int DomeCore::dome_setmode(DomeReq &req, FCGX_Request &request) {
   std::string fname;
   ino_t fid;
   mode_t md;
-  
+
   using namespace boost::property_tree;
-  
+
   // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
   fname = req.bodyfields.get<std::string>("path", "");
   fid = req.bodyfields.get<ino_t>("fileid", 0);
   md = req.bodyfields.get<mode_t>("mode", 0);
-  
+
   if (fname == "" && fid == 0)
     return DomeReq::SendSimpleResp(request, 422, "Cannot process empty path and no fileid");
-  
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   try {
     DomeMySql sql;
     ExtendedStat st;
-    
+
     // Gather the stat info, precedence to the fileid
     if (!fid) {
       DmStatus ret = sql.getStatbyLFN(st, fname);
@@ -4089,22 +4089,22 @@ int DomeCore::dome_setmode(DomeReq &req, FCGX_Request &request) {
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find fileid: " << fid));
     }
-    
+
     // Need write permissions
     if (checkPermissions(&ctx, st.acl, st.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403,
                                      SSTR("Not enough permissions on fileid '" << st.stat.st_ino << "' lfn: '" << fname << "'"));
-      
-      
+
+
       if (sql.setMode(st.stat.st_ino, st.stat.st_uid, st.stat.st_gid, md, st.acl).ok()) {
 
         return DomeReq::SendSimpleResp(request, 200,  "");
       }
-      else 
+      else
         return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set mode for fileid: " << fid));
   }
-  
-  
+
+
   catch(DmException &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable toset mode: '" << e.code() << " what: '" << e.what()));
   }
@@ -4117,9 +4117,9 @@ int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
   }
   std::string fname, comm;
   ino_t fid;
-  
+
   using namespace boost::property_tree;
-  
+
   try {
     // We allow both fileid and lfn in the parms. Fileid has precedence, if specified.
     fname = req.bodyfields.get<std::string>("lfn", "");
@@ -4128,7 +4128,7 @@ int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
   }
-  
+
   try {
     DomeMySql sql;
     ExtendedStat st;
@@ -4139,17 +4139,17 @@ int DomeCore::dome_getcomment(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << fname << "'"));
       fid = st.stat.st_ino;
     }
-    
+
     if (sql.getComment(comm, fid).ok()) {
       boost::property_tree::ptree pt;
       pt.put("comment", comm);
       return DomeReq::SendSimpleResp(request, 200,  pt);
     }
-    else 
+    else
       return DomeReq::SendSimpleResp(request, 400, SSTR("Can't find comment for fileid: " << fid));
   }
-    
-  
+
+
   catch(DmException &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to update xattr: '" << e.code() << " what: '" << e.what()));
   }
@@ -4163,23 +4163,23 @@ int DomeCore::dome_getgroupsvec(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getgroupsvec only available on head nodes.");
   }
-  
-  
+
+
   boost::property_tree::ptree jresp, jresp2;
-  
+
   try {
     DomeMySql sql;
     DmStatus st;
     std::vector<DomeGroupInfo> groups;
-    
+
     // Get all the groups and build a json array response
     st = sql.getGroupsVec(groups);
     if (!st.ok())
       return DomeReq::SendSimpleResp(request, 400, "Can't get groups.");
-      
+
     for (uint ii = 0; ii < groups.size(); ii++) {
       boost::property_tree::ptree pt;
-      
+
       pt.put("groupname", groups[ii].groupname);
       pt.put("gid", groups[ii].groupid);
       pt.put("banned", groups[ii].banned);
@@ -4187,7 +4187,7 @@ int DomeCore::dome_getgroupsvec(DomeReq &req, FCGX_Request &request) {
       jresp2.push_back(std::make_pair("", pt));
     }
     jresp.push_back(std::make_pair("groups", jresp2));
-    
+
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
@@ -4200,24 +4200,24 @@ int DomeCore::dome_getusersvec(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getusersvec only available on head nodes.");
   }
-  
-  
+
+
   boost::property_tree::ptree jresp, jresp2;
-  
+
   try {
     DomeMySql sql;
     DmStatus st;
     std::vector<DomeUserInfo> users;
-    
+
     // Get all the groups and build a json array response
     st = sql.getUsersVec(users);
     if (!st.ok())
       return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot get users. err:" <<
       st.code() << " what: '" << st.what()));
-    
+
     for (uint ii = 0; ii < users.size(); ii++) {
       boost::property_tree::ptree pt;
-      
+
       pt.put("username", users[ii].username);
       pt.put("userid", users[ii].userid);
       pt.put("banned", users[ii].banned);
@@ -4225,7 +4225,7 @@ int DomeCore::dome_getusersvec(DomeReq &req, FCGX_Request &request) {
       jresp2.push_back(std::make_pair("", pt));
     }
     jresp.push_back(std::make_pair("users", jresp2));
-    
+
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
@@ -4238,9 +4238,9 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_getreplicavec only available on head nodes.");
   }
-  
+
   using namespace boost::property_tree;
-  
+
   ino_t fid;
   std::string lfn;
   try {
@@ -4253,7 +4253,7 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
 
   boost::property_tree::ptree jresp, jresp2;
   std::vector<Replica> reps;
-  
+
   try {
     DomeMySql sql;
     DmStatus st;
@@ -4271,10 +4271,10 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 400, SSTR("Can't get replicas of fileid " << fid <<
         " err: " << st.code() << " what:" << st.what()) );
     }
-    
+
     for (uint ii = 0; ii < reps.size(); ii++) {
       boost::property_tree::ptree pt;
-      
+
       pt.put("replicaid", reps[ii].replicaid);
       pt.put("fileid", reps[ii].fileid);
       pt.put("nbaccesses", reps[ii].nbaccesses);
@@ -4290,7 +4290,7 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
       jresp2.push_back(std::make_pair("", pt));
     }
     jresp.push_back(std::make_pair("replicas", jresp2));
-    
+
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
@@ -4318,14 +4318,14 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
   catch(ptree_error &e) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
   }
-  
+
   if ( (uid < 0) && (!username.size()) )
     return DomeReq::SendSimpleResp(request, 400, SSTR("It's a hard life without userid or username, dear friend."));
-  
+
   try {
     DmStatus st;
     DomeUserInfo ui;
-    
+
     // Get the user directly from the internal hashes
     {
     boost::unique_lock<boost::recursive_mutex> l(status);
@@ -4341,7 +4341,7 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
     jresp.put("uid", ui.userid);
     jresp.put("banned", ui.banned);
     jresp.put("xattr", ui.xattr);
-    
+
     return DomeReq::SendSimpleResp(request, 200, jresp);
   }
   catch (DmException e) {
@@ -4352,36 +4352,36 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
 
 
 int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
-  
+
   std::string parentpath, path;
   mode_t mode;
-  
+
   path = req.bodyfields.get<std::string>("path", "");
   mode = req.bodyfields.get<mode_t>("mode", -1);
-  
-  
+
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << path << "' mode: " << mode);
-  
+
   if (mode < 0)
     return DomeReq::SendSimpleResp(request, 422, SSTR("No mode specified"));
   if (path.length() <= 0)
     return DomeReq::SendSimpleResp(request, 422, SSTR("No path specified"));
-  
-  
+
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   DomeMySql sql;
   ExtendedStat parent;
   std::string dname;
   DmStatus ret = sql.getParent(parent, path, parentpath, dname);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << path << "'"));
-  
+
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Need write access on '" << parentpath << "'"));
-  
+
   ret = sql.makedir(parent, dname, mode, ctx.user.getUnsigned("uid"), ctx.user.getUnsigned("gid"));
   if (!ret.ok()) {
     std::ostringstream os;
@@ -4389,10 +4389,10 @@ int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
     Err(domelogname, os.str());
     return DomeReq::SendSimpleResp(request, http_status(ret), os);
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
-  
-  
+
+
 }
 
 
@@ -4403,26 +4403,26 @@ int DomeCore::dome_newgroup(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_newgroup only available on head nodes.");
   }
-  
+
   std::string grpname = req.bodyfields.get<std::string>("groupname", "");
   boost::property_tree::ptree pt;
-  
+
   DomeMySql sql;
   DmStatus st;
   DomeGroupInfo g;
-  
+
   if ( !grpname.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty groupname"));
   }
-  
+
   // Create the damn group
   st = sql.newGroup(g, grpname);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 400, SSTR("Can't create group '" << grpname <<
       "' err:" << st.code() << " '" << st.what()));
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
-  
+
 }
 
 
@@ -4432,26 +4432,26 @@ int DomeCore::dome_newuser(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_newuser only available on head nodes.");
   }
-  
+
   std::string usname = req.bodyfields.get<std::string>("username", "");
   boost::property_tree::ptree pt;
-  
+
   DomeMySql sql;
   DmStatus st;
   DomeUserInfo u;
-  
+
   if ( !usname.size() )  {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Empty username"));
   }
-  
+
   // Get all the groups and build a json array response
   st = sql.newUser(u, usname);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 400, SSTR("Can't create user '" << usname <<
       "' err:" << st.code() << " '" << st.what()));
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
-  
+
 }
 
 
@@ -4461,23 +4461,23 @@ int DomeCore::dome_readlink(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_readlink only available on head nodes.");
   }
   std::string lfn = req.bodyfields.get<std::string>("lfn", "");
-  
+
   DomeMySql sql;
   ExtendedStat xstat;
   DmStatus st = sql.getStatbyLFN(xstat, lfn);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat lfn: '" << lfn << "'"));
-  
+
   if (!S_ISLNK(xstat.stat.st_mode))
     return DomeReq::SendSimpleResp(request, 400, SSTR("Not a symlink lfn: '" <<
       lfn << "'"));
-  
+
   SymLink l;
   st = sql.readLink(l, xstat.stat.st_ino);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 400, SSTR("Cannot get link lfn: '" << lfn <<
     "' fileid: " << xstat.stat.st_ino));
-  
+
   boost::property_tree::ptree jresp;
   jresp.put("target", l.link);
   return DomeReq::SendSimpleResp(request, 200, jresp);
@@ -4489,38 +4489,38 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_removedir only available on head nodes.");
   }
   std::string path = req.bodyfields.get<std::string>("path", "");
-  
+
   std::string parentPath, name;
   DomeMySql sql;
-  
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Fail inmediately with '/'
   if ((path == "/") || (path == ""))
     return DomeReq::SendSimpleResp(request, 422, "Can not remove '/' or empty paths.");
-  
+
   // Get the parent of the new folder
   ExtendedStat parent;
   DmStatus ret = sql.getParent(parent, path, parentPath, name);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot get parent of path: '" << path << "' err: " << ret.code() << " what: '" << ret.what() << "'") );
-  
-  
+
+
   // Get the file starting from the parent, and check it is a directory and it is empty
   ExtendedStat entry;
   ret = sql.getStatbyParentFileid(entry, parent.stat.st_ino, name);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat path '" << path <<
   "' err: " << ret.code() << "'" << ret.what() << "'"));
-  
-  
+
+
   if (!S_ISDIR(entry.stat.st_mode))
     return DomeReq::SendSimpleResp(request, 422, SSTR("Not a directory. Can not remove path '" << path << "'"));
-          
+
   if (entry.stat.st_nlink > 0)
     return DomeReq::SendSimpleResp(request, 422, SSTR("Not empty. Can not remove path '" << path << "'"));
-        
+
         // Check we can remove it
   if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
     // Sticky bit set
@@ -4536,12 +4536,12 @@ int DomeCore::dome_removedir(DomeReq &req, FCGX_Request &request) {
     if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to remove " << path));
   }
-  
+
   ret = sql.unlink(entry.stat.st_ino);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to remove path '" << path <<
     "' err: " << ret.code() << "'" << ret.what() << "'"));
-        
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -4552,68 +4552,68 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
   }
-  
+
   std::string oldPath = req.bodyfields.get<std::string>("oldpath", "");
   std::string newPath = req.bodyfields.get<std::string>("newpath", "");
   std::string oldParentPath, newParentPath;
   std::string oldName,       newName;
 
-  
+
   // Do not even bother with '/'
   if (oldPath == "/" || oldPath == ""|| newPath == "/" || newPath == "")
       return DomeReq::SendSimpleResp(request, 422, "Cannot process empty paths or '/'");
 
   DomeMySql sql;
-  
+
   // Get source and destination parent
   ExtendedStat oldParent, newParent;
   DmStatus ret = sql.getParent(oldParent, oldPath, oldParentPath, oldName);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << oldPath << "'"));
-  
+
   ret = sql.getParent(newParent, newPath, newParentPath, newName);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << newPath << "'"));
-  
+
   // Stat source
   ExtendedStat old;
   ret = sql.getStatbyParentFileid(old, oldParent.stat.st_ino, oldName);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot stat path '" << oldPath <<
     "' err: " << ret.code() << "'" << ret.what() << "'"));
-               
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Need write permissions in both origin and destination
   if (checkPermissions(&ctx, oldParent.acl, oldParent.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403,
                                    SSTR("Not enough permissions on origin path '" << oldParentPath << "'"));
-                                
+
   if (checkPermissions(&ctx, newParent.acl, newParent.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403,
                                    SSTR("Not enough permissions on destination path '" << newParentPath << "'"));
-                                  
+
   // If source is a directory, need write permissions there too
   if (S_ISDIR(old.stat.st_mode)) {
     if (checkPermissions(&ctx, old.acl, old.stat, S_IWRITE) != 0)
       return DomeReq::SendSimpleResp(request, 403,
                                      SSTR("Not enough permissions on path '" << oldPath << "'"));
-                                      
+
     // AND destination can not be a child
     ExtendedStat aux = newParent;
-                                    
+
     while (aux.parent > 0) {
       if (aux.stat.st_ino == old.stat.st_ino)
         return DomeReq::SendSimpleResp(request, 422, "Destination is descendant of source");
-      
+
       ret = sql.getStatbyFileid(aux, aux.parent);
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot stat fileid '" << aux.parent <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
   }
-                                  
+
   // Check sticky
   if (oldParent.stat.st_mode & S_ISVTX &&
       ctx.user.getUnsigned("uid") != oldParent.stat.st_uid &&
@@ -4621,21 +4621,21 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
       checkPermissions(&ctx, old.acl, old.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403,
       "Sticky bit set on the parent, and not enough permissions");
-    
+
   // If the destination exists...
-    
+
   ExtendedStat newF;
   ret = sql.getStatbyParentFileid(newF, newParent.stat.st_ino, newName);
   if ( (!ret.ok()) && (ret.code() != ENOENT) )
     return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot stat destination path '" << oldPath <<
     "' err: " << ret.code() << "'" << ret.what() << "'"));
-  
+
   if (ret.ok()) { // The file was found
     // If it is the same, leave the function
     if (newF.stat.st_ino == old.stat.st_ino)
       return DomeReq::SendSimpleResp(request, 200,
                                      "Source is the same as destination, that's funny.");
-    
+
     // It does! It has to be the same type
     if ((newF.stat.st_mode & S_IFMT) != (old.stat.st_mode & S_IFMT)) {
       if (S_ISDIR(old.stat.st_mode))
@@ -4645,7 +4645,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 422,
                           "Source is not directory and destination is.");
     }
-    
+
     // And it has to be empty. Just call remove or unlink
     // and they will fail if it is not
     if (S_ISDIR(newF.stat.st_mode)) {
@@ -4661,18 +4661,18 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         if (reps.size() > 0)
           return DomeReq::SendSimpleResp(request, 422,
                                          SSTR("The destination file '" << newPath << "' exists and has replicas."));
-      
+
       }
       // It's safe to remove it
       sql.unlink(newF.stat.st_ino);
     }
   }
-  
-  
+
+
   // We are good, so we can move now
   {
     DomeMySqlTrans t(&sql);
-    
+
     // Change the name if needed
     if (newName != oldName) {
       ret = sql.rename(old.stat.st_ino, newName);
@@ -4680,7 +4680,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot rename path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
-    
+
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
       ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
@@ -4695,7 +4695,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
       utim.modtime = utim.actime;
       sql.utime(oldParent.stat.st_ino, &utim);
     }
-    
+
     t.Commit();
   }
   // Done!
@@ -4707,16 +4707,16 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_setacl only available on head nodes.");
   }
-  
+
   std::string path = req.bodyfields.get<std::string>("path", "");
   std::string sacl = req.bodyfields.get<std::string>("acl", "");
-  
+
   // Fail inmediately with ''
   if (path == "")
     return DomeReq::SendSimpleResp(request, 422, "Empty lfn.");
   if (sacl == "")
     return DomeReq::SendSimpleResp(request, 422, "Empty acl.");
-  
+
   Acl acl;
   try {
     Acl acl1(sacl);
@@ -4724,24 +4724,24 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   } catch( ... ) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Incorrect acl: '" << sacl << "'"));
   }
-  
+
   DomeMySql sql;
   ExtendedStat meta;
   DmStatus st = sql.getStatbyLFN(meta, path);
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat path: '" << path << "'"));
-  
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Check we can change it
   if (ctx.user.getUnsigned("uid") != meta.stat.st_uid &&
     ctx.user.getUnsigned("uid") != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Only the owner or root can set the ACL of '" << path << "'"));
-    
-  
+
+
   Acl aclCopy(acl);
-  
+
   // Make sure the owner and group matches!
   for (size_t i = 0; i < aclCopy.size(); ++i) {
     if (aclCopy[i].type == AclEntry::kUserObj)
@@ -4751,7 +4751,7 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
     else if (aclCopy[i].type & AclEntry::kDefault && !S_ISDIR(meta.stat.st_mode))
       return DomeReq::SendSimpleResp(request, 422, "Defaults can be only applied to directories");
   }
-  
+
   // Validate the ACL
   try {
     aclCopy.validate();
@@ -4783,7 +4783,7 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
         continue;
     }
   }
-  
+
   // Update the file
   st = sql.setMode(meta.stat.st_ino,
                    meta.stat.st_uid, meta.stat.st_gid,
@@ -4792,8 +4792,8 @@ int DomeCore::dome_setacl(DomeReq &req, FCGX_Request &request) {
   if (!st.ok())
     return DomeReq::SendSimpleResp(request, 400, SSTR("Can't set acl '" << sacl << "' to lfn: '" << path <<
     "' err:" << st.code() << " '" << st.what()));
-  
-  return DomeReq::SendSimpleResp(request, 200, ""); 
+
+  return DomeReq::SendSimpleResp(request, 200, "");
 }
 
 
@@ -4816,11 +4816,11 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, "Can't find uid or gid or path.");
   }
   bool followSymLink = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("gid", "false"));
-  
+
   if(path == "") {
     return DomeReq::SendSimpleResp(request, 422, "Path cannot be empty.");
   }
-  
+
   // Check that uid and gid are known
   DomeUserInfo ui;
   DomeGroupInfo gi;
@@ -4828,26 +4828,26 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, "Invalid uid");
   if (!status.getGroup(newGid, gi))
     return DomeReq::SendSimpleResp(request, 422, "Invalid gid");
-  
+
   DomeMySql sql;
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   ExtendedStat meta;
   DmStatus ret = sql.getStatbyLFN(meta, path, followSymLink);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << path << "'"));
-  
+
   // If -1, no changes
   if (newUid == (uid_t)-1)
     newUid = meta.stat.st_uid;
   if (newGid == (gid_t)-1)
     newGid = meta.stat.st_gid;
-  
+
   // Make sense to do anything?
   if (newUid == meta.stat.st_uid && newGid == meta.stat.st_gid)
     return DomeReq::SendSimpleResp(request, 200, "");
-  
+
   // If root, skip all checks
   if (ctx.user.getUnsigned("uid") != 0) {
     // Only root can change the owner
@@ -4866,7 +4866,7 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
         // If it does, the group exists :)
     }
   }
-  
+
   // Update the ACL's if there is any
   if (!meta.acl.empty()) {
     for (size_t i = 0; i < meta.acl.size(); ++i) {
@@ -4876,12 +4876,12 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
         meta.acl[i].id = newGid;
     }
   }
-  
+
   // Change!
   sql.setMode(meta.stat.st_ino,
               newUid, newGid, meta.stat.st_mode,
               meta.acl);
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -4897,30 +4897,30 @@ int DomeCore::dome_setsize(DomeReq &req, FCGX_Request &request) {
   if(path == "") {
     return DomeReq::SendSimpleResp(request, 422, "Path cannot be empty.");
   }
-  
+
   int64_t newSize = req.bodyfields.get<int64_t>("size", -1);
   if (newSize < 0)
     return DomeReq::SendSimpleResp(request, 422, "Wrong or missing filesize");
-  
-  
+
+
   DomeMySql sql;
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   ExtendedStat meta;
   DmStatus ret = sql.getStatbyLFN(meta, path);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find lfn: '" << path << "'"));
-  
-  
+
+
   if (ctx.user.getUnsigned("uid") != meta.stat.st_uid &&
     checkPermissions(&ctx, meta.acl, meta.stat, S_IWRITE) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Can not set the size of '" << path << "'"));
-    
+
   DmStatus dmst = sql.setSize(meta.stat.st_ino, newSize);
   if (dmst.ok())
     return DomeReq::SendSimpleResp(request, 200, "");
-  
+
   return DomeReq::SendSimpleResp(request, 422, SSTR("Can not set the size of '" << path << "' err:" <<
     dmst.code() << ":" << dmst.what()));
 }
@@ -4931,35 +4931,35 @@ int DomeCore::dome_symlink(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_rename only available on head nodes.");
   }
-  
+
   std::string oldPath = req.bodyfields.get<std::string>("target", "");
   std::string newPath = req.bodyfields.get<std::string>("link", "");
   std::string parentPath, symName;
-  
+
   // Fail inmediately with ''
   if (oldPath == "")
     return DomeReq::SendSimpleResp(request, 422, "Empty link target.");
   if (newPath == "")
     return DomeReq::SendSimpleResp(request, 422, "Empty link name.");
-  
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Get the parent of the destination and file
   ExtendedStat parent;
   DomeMySql sql;
   DmStatus ret = sql.getParent(parent, newPath, parentPath, symName);
   if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot get parent of '" <<
     newPath << "' : " << ret.code() << "-" << ret.what()));
-  
+
   // Check we have write access for the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE | S_IEXEC) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions on '" << parentPath << "'"));
-    
+
   // Effective gid
   gid_t  egid;
   mode_t mode = 0777;
-  
+
   if (parent.stat.st_mode & S_ISGID) {
     egid = parent.stat.st_gid;
     mode |= S_ISGID;
@@ -4967,13 +4967,13 @@ int DomeCore::dome_symlink(DomeReq &req, FCGX_Request &request) {
   else {
     egid = ctx.groups[0].getUnsigned("gid");;
   }
-  
+
   {
     DomeMySqlTrans t(&sql);
-    
+
     // Create file
     ExtendedStat newLink;
-    
+
     newLink.parent = parent.stat.st_ino;
     newLink.name   = symName;
     newLink.stat.st_mode = mode | S_IFLNK;
@@ -4981,21 +4981,21 @@ int DomeCore::dome_symlink(DomeReq &req, FCGX_Request &request) {
     newLink.status       = ExtendedStat::kOnline;
     newLink.stat.st_uid  = ctx.groups[0].getUnsigned("uid");
     newLink.stat.st_gid  = egid;
-    
+
     ret = sql.create(newLink);
     if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot create link '" <<
       newPath << "' : " << ret.code() << "-" << ret.what()));
-    
+
     // Create symlink
     ret = sql.symlink(newLink.stat.st_ino, oldPath);
     if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot symlink to '" <<
       oldPath << "' : " << ret.code() << "-" << ret.what()));
-    
-    
+
+
     t.Commit();
-    
+
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -5006,36 +5006,36 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_unlink only available on head nodes.");
   }
-  
+
   const std::string path = req.bodyfields.get<std::string>("lfn", "");
   if (path == "")
     return DomeReq::SendSimpleResp(request, 422, "Empty lfn.");
-  
+
   std::string  parentPath, name;
-    
+
   dmlite::SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Get the parent of the destination and file
   ExtendedStat parent;
   DomeMySql sql;
   DmStatus ret = sql.getParent(parent, path, parentPath, name);
   if (!ret.ok()) return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot get parent of '" <<
     path << "' : " << ret.code() << "-" << ret.what()));
-  
+
   // Check we have write access for the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IEXEC) != 0)
     return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to list on '" << parentPath << "'"));
-  
+
   ExtendedStat file;
   ret = sql.getStatbyParentFileid(file, parent.stat.st_ino, name);
   if (!ret.ok()) return DomeReq::SendSimpleResp(request, 404, SSTR("Cannot stat '" <<
     path << "' : " << ret.code() << "-" << ret.what()));
-  
+
   // Directories can not be removed with this method!
   if (S_ISDIR(file.stat.st_mode))
     return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot unlink a directory '" << path << "'"));
-    
+
     // Check we can remove it
     if ((parent.stat.st_mode & S_ISVTX) == S_ISVTX) {
       // Sticky bit set
@@ -5052,18 +5052,18 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 403, SSTR("Not enough permissions to unlink '" <<
         path << "'"));
     }
-    
+
     // Check there are no replicas
     if (!S_ISLNK(file.stat.st_mode)) {
       std::vector<Replica> replicas;
-      
+
       ret = sql.getReplicas(replicas, file.stat.st_ino);
       if (!ret.ok()) return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot get replicas of '" << path << "' : " << ret.code() << "-" << ret.what()));
-        
+
       // Try to remove replicas first
       for (unsigned i = 0; i < replicas.size(); ++i) {
-        
-        
+
+
         // Abort+error if the replica belongs to an unknown filesystem
         DomeFsInfo fsinfo;
         std::string pfn = DomeUtils::pfn_from_rfio_syntax(replicas[i].rfn);
@@ -5078,30 +5078,30 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
         if (fsinfo.activitystatus == DomeFsInfo::FsBroken) {
           return DomeReq::SendSimpleResp(request, 500, SSTR("A disabled or broken filesystem is matching replica '" << replicas[i].rfn << "'"));
         }
-        
+
         // Now delete the physical file
         std::string diskurl = "https://" + server + "/domedisk/";
         Log(Logger::Lvl4, domelogmask, domelogname, "Dispatching deletion of replica '" << replicas[i].rfn << "' to disk node: '" << diskurl);
-        
+
         DomeTalker talker(*davixPool, req.creds, diskurl,
                           "POST", "dome_pfnrm");
-        
+
         if(!talker.execute("pfn", pfn)) {
           Err(domelogname, talker.err());
           return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to delete physical replica '" << replicas[i].rfn << "' err:" << talker.err()));
         }
-        
-        
+
+
       }
     }
-    
-    
+
+
     ret = sql.unlink(file.stat.st_ino);
     if (!ret.ok())
       return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot unlink fileid " << file.stat.st_ino << " of '" << path <<
                                                         "' : " << ret.code() << "-" << ret.what()));
-    
-      
+
+
     return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -5112,15 +5112,15 @@ int DomeCore::dome_updategroup(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_updategroup only available on head nodes.");
   }
-  
+
   std::string groupname = req.bodyfields.get<std::string>("groupname", "");
   int gid = req.bodyfields.get<int>("groupid", 0);
   if((groupname == "") && !gid) {
     return DomeReq::SendSimpleResp(request, 422, "No group specified.");
   }
-  
+
   std::string xattr = req.bodyfields.get<std::string>("xattr", "");
-  
+
   // Validate the xattr string, to avoid inserting junk into the db
   dmlite::Extensible e;
   try {
@@ -5130,9 +5130,9 @@ int DomeCore::dome_updategroup(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
     xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
-  
+
   int banned = req.bodyfields.get<int>("banned", 0);
-  
+
   DomeGroupInfo group;
   DomeMySql sql;
   DmStatus ret;
@@ -5148,7 +5148,7 @@ int DomeCore::dome_updategroup(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get group '" << groupname <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   group.xattr = xattr;
   group.banned = banned;
   ret = sql.updateGroup(group);
@@ -5162,7 +5162,7 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_updatereplica only available on head nodes.");
   }
-  
+
   // Get all the parameters
   Replica r;
   r.rfn =  req.bodyfields.get<std::string>("rfn", "");
@@ -5172,14 +5172,14 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
   r.type = static_cast<dmlite::Replica::ReplicaType>(
     req.bodyfields.get<char>("type", (char)dmlite::Replica::kPermanent) );
   r.setname =  req.bodyfields.get<std::string>("setname", "");
-  
+
   r.deserialize(req.bodyfields.get<std::string>("xattr", ""));
-  
+
   DomeMySql sql;
-  
+
   SecurityContext ctx;
   fillSecurityContext(ctx, req);
-  
+
   // Can not trust the fileid of replica!
   Replica      rdata;
   ExtendedStat meta;
@@ -5196,25 +5196,25 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to get replica '" << r.rfn <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   ret = sql.getStatbyFileid(meta, rdata.fileid);
   if (!ret.ok())
     return DomeReq::SendSimpleResp(request, 404, SSTR("Unable to get fileid " << rdata.fileid <<
     " from replicaid " << r.replicaid <<
     " err: " << ret.code() << " what: '" << ret.what() << "'"));
-  
+
   ret = sql.traverseBackwards(ctx, meta);
   if (!ret.ok()) {
     return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on fileid " << rdata.fileid
     << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   if (checkPermissions(&ctx, meta.acl, meta.stat, S_IWRITE) != 0)
     if (!ret.ok()) {
       return DomeReq::SendSimpleResp(request, 403, SSTR("Cannot modify fileid " << rdata.fileid
       << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
     }
-  
+
   // Note, we can't modify the ids
   r.fileid = rdata.fileid;
   r.replicaid = rdata.replicaid;
@@ -5223,7 +5223,7 @@ int DomeCore::dome_updatereplica(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot modify replica " << rdata.fileid
     << " of rfn: '" << r.rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
 
@@ -5231,16 +5231,16 @@ int DomeCore::dome_updateuser(DomeReq &req, FCGX_Request &request) {
   if (status.role != status.roleHead) {
     return DomeReq::SendSimpleResp(request, DOME_HTTP_BAD_REQUEST, "dome_updateuser only available on head nodes.");
   }
-  
+
   std::string username = req.bodyfields.get<std::string>("username", "");
   int uid = req.bodyfields.get<int>("uid", 0);
   if((username == "") && !uid) {
     return DomeReq::SendSimpleResp(request, 422, "No user specified.");
   }
-  
+
   std::string xattr = req.bodyfields.get<std::string>("xattr", "");
   int banned = req.bodyfields.get<int>("banned", 0);
-  
+
   DomeUserInfo user;
   DomeMySql sql;
   DmStatus ret;
@@ -5256,8 +5256,8 @@ int DomeCore::dome_updateuser(DomeReq &req, FCGX_Request &request) {
       return DomeReq::SendSimpleResp(request, 422, SSTR("Unable to get user '" << username <<
       "' err: " << ret.code() << " what: '" << ret.what() << "'"));
   }
-  
-  
+
+
   // Validate the xattr string, to avoid inserting junk into the db
   dmlite::Extensible e;
   try {
@@ -5267,10 +5267,10 @@ int DomeCore::dome_updateuser(DomeReq &req, FCGX_Request &request) {
     return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid xattr content: '" <<
     xattr << "' err: " << e.code() << " what: '" << e.what() << "'"));
   }
-  
+
   user.xattr = xattr;
   user.banned = banned;
   ret = sql.updateUser(user);
-  
+
   return DomeReq::SendSimpleResp(request, 200, "");
 }
