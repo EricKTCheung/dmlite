@@ -1502,6 +1502,7 @@ DmStatus DomeMySql::getParent(ExtendedStat &statinfo,
   components.pop_back();
 
   parentPath = Url::joinPath(components);
+  if(parentPath.empty()) parentPath = "/";
 
   // Get the files now
   return this->getStatbyLFN(statinfo, parentPath);
