@@ -58,7 +58,11 @@ DavixCtxFactory::DavixCtxFactory() {
   params_.addCertificateAuthorityPath("/etc/grid-security/certificates");
   params_.setAcceptedRetry(0);
 
-  // Nothing
+#if (DAVIX_MAJOR > 0) || (DAVIX_MAJOR == 0 && DAVIX_MINOR > 6) || (DAVIX_MAJOR == 0 && DAVIX_MINOR == 6 && DAVIX_PATCH > 5)
+  // we implement the retry loop ourselves (where needed), disable the one in davix
+  params_.setAcceptedRetry(0);
+  params_.setAcceptedRetryDelay(3);
+#endif
 }
 
 void DavixCtxFactory::configure(const std::string &key, const std::string &value) {
