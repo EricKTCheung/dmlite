@@ -3710,8 +3710,8 @@ int DomeCore::dome_getreplicainfo(DomeReq &req, FCGX_Request &request) {
   jresp.put("atime", r.atime);
   jresp.put("ptime", r.ptime);
   jresp.put("ltime", r.ltime);
-  jresp.put("status", (char)r.status);
-  jresp.put("type", (char)r.type);
+  jresp.put("status", r.status);
+  jresp.put("type", r.type);
   jresp.put("server", r.server);
   jresp.put("rfn", rfn);
   jresp.put("setname", r.setname);
@@ -4281,8 +4281,8 @@ int DomeCore::dome_getreplicavec(DomeReq &req, FCGX_Request &request) {
       pt.put("atime", reps[ii].atime);
       pt.put("ptime", reps[ii].ptime);
       pt.put("ltime", reps[ii].ltime);
-      pt.put("status", (char)reps[ii].status);
-      pt.put("type", (char)reps[ii].type);
+      pt.put("status", reps[ii].status);
+      pt.put("type", reps[ii].type);
       pt.put("server", reps[ii].server);
       pt.put("rfn", reps[ii].rfn);
       pt.put("setname", reps[ii].setname);
