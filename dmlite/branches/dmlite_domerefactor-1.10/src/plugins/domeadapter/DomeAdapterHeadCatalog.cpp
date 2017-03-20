@@ -259,3 +259,59 @@ void DomeAdapterHeadCatalog::setSize(const std::string& path, size_t newSize) th
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
+
+Directory* DomeAdapterHeadCatalog::openDir(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
+  using namespace boost::property_tree;
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getdir");
+
+  ptree params;
+  params.put("path", path);
+  params.put("statentries", "true");
+
+  if(!talker.execute(params)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
+  try {
+    DomeDir *domedir = new DomeDir(path);
+
+    ptree entries = talker.jresp().get_child("entries");
+    for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
+      ExtendedStat xstat;
+      xstat.name = it->second.get<std::string>("name");
+
+      Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "entry " << xstat.name);
+
+      ptree_to_xstat(it->second, xstat);
+      domedir->entries_.push_back(xstat);
+    }
+    return domedir;
+  }
+  catch(ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response - " << e.what() << " : " << talker.response()));
+  }
+}
+
+void DomeAdapterHeadCatalog::closeDir(Directory* dir) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+  DomeDir *domedir = static_cast<DomeDir*>(dir);
+  delete domedir;
+}
+
+ExtendedStat* DomeAdapterHeadCatalog::readDirx(Directory* dir) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+  if (dir == NULL) {
+    throw DmException(DMLITE_SYSERR(EFAULT), "Tried to read a null dir");
+  }
+
+  DomeDir *domedir = static_cast<DomeDir*>(dir);
+  if(domedir->pos_ >= domedir->entries_.size()) {
+    return NULL;
+  }
+
+  domedir->pos_++;
+  return &domedir->entries_[domedir->pos_ - 1];
+}

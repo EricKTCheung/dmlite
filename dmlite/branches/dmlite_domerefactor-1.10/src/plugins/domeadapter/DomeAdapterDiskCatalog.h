@@ -13,15 +13,6 @@ namespace dmlite {
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  struct DomeDir : public Directory {
-    std::string path_;
-    size_t pos_;
-    std::vector<dmlite::ExtendedStat> entries_;
-
-    virtual ~DomeDir() {}
-    DomeDir(std::string path) : path_(path), pos_(0) {}
-  };
-
   class DomeAdapterDiskCatalog: public Catalog, public Authn {
   public:
   	/// Constructor
@@ -41,7 +32,7 @@ namespace dmlite {
                              std::string& csumvalue,
                              const std::string& pfn,
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
-                             
+
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string &) throw (DmException);
 
@@ -61,6 +52,15 @@ namespace dmlite {
                                   const Extensible&) throw (DmException);
 
   protected:
+    struct DomeDir : public Directory {
+      std::string path_;
+      size_t pos_;
+      std::vector<dmlite::ExtendedStat> entries_;
+
+      virtual ~DomeDir() {}
+      DomeDir(std::string path) : path_(path), pos_(0) {}
+    };
+
     StackInstance* si_;
     const SecurityContext *sec_;
     DomeAdapterFactory* factory_;
