@@ -23,7 +23,6 @@ namespace dmlite {
 
     void configure(const std::string& key, const std::string& value) throw (DmException);
     Catalog *createCatalog(PluginManager* pm) throw (DmException);
-
   private:
     CatalogFactory *nested_;
     std::string domehead_;
@@ -49,6 +48,7 @@ namespace dmlite {
 
     void changeDir(const std::string& path) throw (DmException);
 
+    // std::vector<Replica> getReplicas(const std::string& path) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
 
     virtual void getChecksum(const std::string& path,
@@ -57,15 +57,20 @@ namespace dmlite {
                              const std::string& pfn,
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
+    void makeDir(const std::string& path, mode_t mode) throw (DmException);
+    void create(const std::string& path, mode_t mode) throw (DmException);
+    void removeDir(const std::string& path) throw (DmException);
+    void setGuid(const std::string& path, const std::string& guid) throw (DmException);
+    void setSize(const std::string& path, size_t newSize) throw (DmException);
    private:
-    std::string cwdPath_;
+     std::string cwdPath_;
 
-    Catalog *decorated_;
-    std::string decorated_id;
-    const SecurityContext* secCtx_;
-    StackInstance* si_;
+     Catalog *decorated_;
+     std::string decorated_id;
+     const SecurityContext* secCtx_;
+     StackInstance* si_;
 
-    DomeAdapterHeadCatalogFactory &factory_;
+     DomeAdapterHeadCatalogFactory &factory_;
   };
 }
 

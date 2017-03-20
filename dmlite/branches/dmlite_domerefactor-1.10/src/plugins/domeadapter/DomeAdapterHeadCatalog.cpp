@@ -211,3 +211,51 @@ void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmExceptio
 
 
 }
+
+void DomeAdapterHeadCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path << "', mode: " << mode);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_makedir");
+
+  if(!talker.execute("path", path, "mode", SSTR(mode))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::create(const std::string& path, mode_t mode) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path << "', mode: " << mode);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_create");
+
+  if(!talker.execute("path", path, "mode", SSTR(mode))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::removeDir(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_removedir");
+
+  if(!talker.execute("path", path)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::setGuid(const std::string& path, const std::string& guid) throw (DmException) {
+  throw DmException(ENOTSUP, "Not supported");
+}
+
+void DomeAdapterHeadCatalog::setSize(const std::string& path, size_t newSize) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path << "', newSize: " << newSize);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_setsize");
+
+  if(!talker.execute("path", path, "size", SSTR(newSize))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
