@@ -10,6 +10,7 @@
 #include "DomeAdapterIO.h"
 #include "DomeAdapterPools.h"
 #include "DomeAdapterDriver.h"
+#include "DomeAdapterAuthn.h"
 
 using namespace dmlite;
 
@@ -69,7 +70,7 @@ Catalog* DomeAdapterFactory::createCatalog(PluginManager*) throw (DmException) {
 }
 
 Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException) {
-  return new DomeAdapterDiskCatalog(this);
+  return new DomeAdapterAuthn(this);
 }
 
 static void registerDomeAdapterDiskCatalog(PluginManager* pm) throw(DmException) {
@@ -111,6 +112,9 @@ static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException
 
   DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory(nestedCAT);
   pm->registerCatalogFactory(factory);
+
+  DomeAdapterFactory *dmFactory = new DomeAdapterFactory();
+  pm->registerAuthnFactory(dmFactory);
 }
 
 PluginIdCard plugin_domeadapter_headcatalog = {

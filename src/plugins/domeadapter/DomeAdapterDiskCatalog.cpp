@@ -35,38 +35,6 @@ void DomeAdapterDiskCatalog::setSecurityContext(const SecurityContext* secCtx) t
   this->sec_ = secCtx;
 }
 
-SecurityContext* DomeAdapterDiskCatalog::createSecurityContext(void) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "");
-
-  UserInfo user;
-  std::vector<GroupInfo> groups;
-  GroupInfo group;
-
-  user.name    = "root";
-  user["uid"]  = 0;
-  group.name   = "root";
-  group["gid"] = 0;
-  groups.push_back(group);
-
-  SecurityContext* sec = new SecurityContext(SecurityCredentials(), user, groups);
-  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, SecurityCredentials().clientName << " " << SecurityCredentials().remoteAddress);
-
-  return sec;
-}
-
-SecurityContext* DomeAdapterDiskCatalog::createSecurityContext(const SecurityCredentials& cred) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, cred.clientName << " " << cred.remoteAddress);
-
-  UserInfo user;
-  std::vector<GroupInfo> groups;
-
-  this->getIdMap(cred.clientName, cred.fqans, &user, &groups);
-  SecurityContext* sec = new SecurityContext(cred, user, groups);
-
-  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, cred.clientName << " " << cred.remoteAddress);
-  return sec;
-}
-
 void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
                                          const std::string& csumtype,
                                          std::string& csumvalue,
@@ -78,10 +46,10 @@ void DomeAdapterDiskCatalog::getChecksum(const std::string& path,
                                                             << csumtype << "'");
   time_t start = time(0);
   bool recalc = forcerecalc;
-  
+
   int waitsecs1 = waitsecs;
   if (waitsecs1 == 0) waitsecs1 = 1800;
-  
+
   while(true) {
     DomeTalker talker(factory_->davixPool_, sec_, factory_->domehead_,
                       "GET", "dome_chksum");
@@ -201,58 +169,6 @@ ExtendedStat DomeAdapterDiskCatalog::extendedStatByRFN(const std::string& rfn)  
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
-}
-
-void DomeAdapterDiskCatalog::getIdMap(const std::string& userName,
-                          const std::vector<std::string>& groupNames,
-                          UserInfo* user,
-                          std::vector<GroupInfo>* groups) throw (DmException)
-{
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Username: " << userName);
-  groups->clear();
-
-  // our own credentials have not been initialized yet
-  DomeTalker talker(factory_->davixPool_, NULL, factory_->domehead_,
-                    "GET", "dome_getidmap");
-
-  using namespace boost::property_tree;
-  ptree params, groups_ptree;
-  params.put("username", userName);
-
-  for(std::vector<std::string>::const_iterator it = groupNames.begin(); it != groupNames.end(); it++) {
-    groups_ptree.push_back(std::make_pair("", *it));
-  }
-
-  if(groupNames.size() != 0) {
-    params.add_child("groupnames", groups_ptree);
-  }
-
-  if(!talker.execute(params)) {
-    throw DmException(EINVAL, talker.err());
-  }
-
-  try {
-    user->name = userName;
-    (*user)["uid"] = talker.jresp().get<uint64_t>("uid");
-    (*user)["banned"] = talker.jresp().get<uint64_t>("banned");
-
-    boost::optional<const ptree&> groups_resp = talker.jresp().get_child_optional("groups");
-    if(groups_resp) {
-      for(ptree::const_iterator it = groups_resp->begin(); it != groups_resp->end(); it++) {
-        GroupInfo ginfo;
-        ginfo.name = it->first;
-        ginfo["gid"] = it->second.get<uint64_t>("gid");
-        ginfo["banned"] = it->second.get<uint64_t>("banned");
-
-        groups->push_back(ginfo);
-      }
-    }
-  }
-  catch(ptree_error &e) {
-    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
-  }
-
-  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "Exiting. Username: " << userName);
 }
 
 Directory* DomeAdapterDiskCatalog::openDir(const std::string& path) throw (DmException) {

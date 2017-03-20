@@ -13,7 +13,7 @@ namespace dmlite {
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  class DomeAdapterDiskCatalog: public Catalog, public Authn {
+  class DomeAdapterDiskCatalog: public Catalog {
   public:
   	/// Constructor
     DomeAdapterDiskCatalog(DomeAdapterFactory *factory) throw (DmException);
@@ -24,9 +24,6 @@ namespace dmlite {
     void setStackInstance(StackInstance* si) throw (DmException);
     void setSecurityContext(const SecurityContext* secCtx) throw (DmException);
 
-    SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
-    SecurityContext* createSecurityContext() throw (DmException);
-
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
                              std::string& csumvalue,
@@ -35,11 +32,6 @@ namespace dmlite {
 
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string &) throw (DmException);
-
-    void getIdMap(const std::string& userName,
-                  const std::vector<std::string>& groupNames,
-                  UserInfo* user,
-                  std::vector<GroupInfo>* groups) throw (DmException);
 
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
     Replica getReplicaByRFN(const std::string& rfn) throw (DmException);

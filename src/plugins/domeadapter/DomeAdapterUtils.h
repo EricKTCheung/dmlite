@@ -24,6 +24,19 @@ inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
   xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
+inline void ptree_to_groupinfo(const boost::property_tree::ptree &ptree, dmlite::GroupInfo &groupInfo) {
+  groupInfo.name = ptree.get<std::string>("groupname");
+  groupInfo["gid"] = ptree.get<uint64_t>("gid");
+
+  std::string banned = ptree.get<std::string>("banned");
+  if(banned == "false") {
+    groupInfo["banned"] = 0;
+  }
+  else {
+    groupInfo["banned"] = 1;
+  }
+}
+
 inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::Replica &replica) {
   replica.replicaid = ptree.get<int64_t>("replicaid");
   replica.fileid = ptree.get<int64_t>("fileid");
