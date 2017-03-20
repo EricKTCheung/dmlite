@@ -12,14 +12,13 @@ set(Dome_SOURCES DomeGenQueue.cpp
                  DomeMysql_cns.cpp
                  DomeMysql_authn.cpp
                  DomeStatus.cpp
-                 DomeDmlitePool.cpp
                  DomeMetadataCache.cpp
                  ../utils/MySqlPools.cpp
                  ../utils/MySqlWrapper.cpp
                  ../utils/Config.cc
                  ${DMLITE_UTILS_SOURCES})
 
-                 
+
 include_directories(${DAVIX_PKG_INCLUDE_DIRS})
 
 set ( CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}" )

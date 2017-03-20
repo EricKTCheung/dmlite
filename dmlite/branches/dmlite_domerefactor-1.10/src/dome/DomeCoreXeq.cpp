@@ -27,7 +27,6 @@
 #include "DomeCore.h"
 #include "DomeLog.h"
 #include "utils/DomeUtils.h"
-#include "DomeDmlitePool.h"
 #include <sys/vfs.h>
 #include <unistd.h>
 #include <time.h>
