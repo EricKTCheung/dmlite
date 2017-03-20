@@ -26,7 +26,6 @@
 
 #include "DomeCore.h"
 #include "DomeLog.h"
-#include "DomeDmlitePool.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <sys/vfs.h>
@@ -86,61 +85,61 @@ DomeCore::~DomeCore() {
 // entry point for worker threads, endless loop that wait for requests from apache
 // pass on processing to handlers depends on (not yet) defined REST methods
 void workerFunc(DomeCore *core, int myidx) {
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " started");
-  
+
   int rc;
-  
-  
+
+
   FCGX_Request request;
   FCGX_InitRequest(&request, core->fcgi_listenSocket, 0);
-  
+
   while( !core->terminationrequested )
   {
     // thread safety seems to be platform dependant... serialise the accept loop just in case
     // NOTE: although we are multithreaded, this is a very naive way of dealing with this. The future, proper
     // implementation should keep 2 threads doing only accept/enqueue, and all the others dequeue/working
-    
+
     {
       boost::lock_guard<boost::mutex> l(core->accept_mutex);
-      
+
       rc = FCGX_Accept_r(&request);
     }
-    
+
     if (rc < 0) {// Something broke in fcgi... maybe we have to exit ? MAH ?
       Err("workerFunc", "Accept returned " << rc);
       break;
     }
-    
+
     if (Logger::get()->getLevel() >= Logger::Lvl4) {
-      
+
       for (char **envp = request.envp ; *envp; ++envp) {
         Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " FCGI env: " << *envp);
       }
     }
-    
+
     // Last barrier against uncatched DmExceptions
     // If any comes, we give a generic error citing it
     try {
       try {
         try {
-          
+
           DomeReq dreq(request);
           Log(Logger::Lvl4, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
           "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
-          
+
           Log(Logger::Lvl4, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " body: " << dreq.bodyfields.size() );
-          
-          
+
+
           // -------------------------
           // Generic authorization
           // Please note that authentication must be configured in the web server, not in DOME
           // -------------------------
-          
+
           int i = 0;
           bool authorize = false;
           while (true) {
-            
+
             char buf[1024];
             char *dn = buf;
             CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
@@ -149,56 +148,56 @@ void workerFunc(DomeCore *core, int myidx) {
               if (i == 0) authorize = false;
               break;
             }
-            
+
             if (buf[0] == '"') {
-              
+
               if (buf[strlen(buf)-1] != '"') {
                 Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
                 continue;
               }
-              
+
               buf[strlen(buf)-1] = '\0';
               dn = buf+1;
-              
+
             }
-            
+
             if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
               // Authorize if the client DN can be found in the config whitelist
               Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dn << "' authorized by whitelist.");
               authorize = true;
               break;
             }
-            
+
             i++;
           }
-          
+
           if (!authorize) {
             // The whitelist in the config file did not authorize
             // Anyway this call may come from a server that was implicitly known, e.g.
             // head node trusts all the disk nodes that are registered in the filesystem table
             // disk node trusts head node as defined in the config file
-            
+
             authorize = core->status.isDNaKnownServer(dreq.clientdn);
             if (authorize)
               Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
           }
-          
+
           // -------------------------
           // Command dispatching
           // -------------------------
-          
+
           if (authorize) {
-            
+
             // Client was authorized. We log the request
             Log(Logger::Lvl1, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
             "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress << "'");
-            
+
             Log(Logger::Lvl1, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
-            
-            
+
+
             // First discriminate on the HTTP request: GET/POST, etc..
             if(dreq.verb == "GET") {
-              
+
               // Now dispatch based on the actual command name
               if ( dreq.domecmd == "dome_access" ) {
                 core->dome_access(dreq, request);
@@ -245,25 +244,25 @@ void workerFunc(DomeCore *core, int myidx) {
               } else {
                 DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
               }
-              
+
             } else if(dreq.verb == "HEAD"){ // meaningless placeholder
               FCGX_FPrintF(request.out,
                            "Content-type: text/html\r\n"
                            "\r\n"
                            "You sent me a HEAD request. Nice, eh ?\r\n");
-              
+
             } else if(dreq.verb == "POST"){
               if ( dreq.domecmd == "dome_put" ) {
                 bool success;
                 core->dome_put(dreq, request, success);
               }
               else if ( dreq.domecmd == "dome_putdone" ) {
-                
+
                 if(core->status.role == core->status.roleHead)
                   core->dome_putdone_head(dreq, request);
                 else
                   core->dome_putdone_disk(dreq, request);
-                
+
               }
               else if (dreq.domecmd == "dome_unlink") {
                 core->dome_unlink(dreq, request);
@@ -326,10 +325,10 @@ void workerFunc(DomeCore *core, int myidx) {
                 core->dome_modquotatoken(dreq, request);
               }
               else if(dreq.domecmd == "dome_create") {
-                core->dome_create(dreq, request); 
+                core->dome_create(dreq, request);
               }
               else if(dreq.domecmd == "dome_makedir") {
-                core->dome_makedir(dreq, request); 
+                core->dome_makedir(dreq, request);
               }
               else if(dreq.domecmd == "dome_deleteuser") {
                 core->dome_deleteuser(dreq, request);
@@ -378,10 +377,10 @@ void workerFunc(DomeCore *core, int myidx) {
               }
               else {
                 DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
-                
+
               }
             }
-            
+
           } // if authorized
           else {
             // only possible to run info when unauthorized
@@ -393,7 +392,7 @@ void workerFunc(DomeCore *core, int myidx) {
               DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
             }
           }
-          
+
         } catch (dmlite::DmException e) {
           Err(domelogname, "Wrong parameters. err: " << e.code() << " what: '" << e.what() << "'");
           DomeReq::SendSimpleResp(request, 422, SSTR("Wrong parameters. err: " << e.code() << " what: '" << e.what() << "'"));
@@ -408,15 +407,15 @@ void workerFunc(DomeCore *core, int myidx) {
       Err(domelogname, "Generic exception.");
       DomeReq::SendSimpleResp(request, 422, "Generic exception.");
     }
-    
+
     FCGX_Finish_r(&request);
   }
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "Worker: " << myidx << " finished");
-  
-  
+
+
 }
-    
+
 static Davix::RequestParams getDavixParams() {
   Davix::RequestParams params;
 
@@ -690,22 +689,22 @@ void DomeCore::onTaskRunning(DomeTask &task) {
 
 
 void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
-  
+
   // Take the info coming from the request
   req.fillSecurityContext(ctx);
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname,
       "clientdn: '" << ctx.credentials.clientName << "' " <<
       "clienthost: '" << ctx.credentials.remoteAddress << "' " <<
       "ctx.user.name: '" << ctx.user.name << "' " <<
       "ctx.groups: " << ctx.groups.size() << "(size) "
   );
-  
-  
-  
-  
+
+
+
+
   // Now map uid and gids into the spooky extensible
-  
+
   if (ctx.user.name == "") {
     // This is a rotten legacy from lcg-dm
     // A client can connect ONLY if it has the right identity, i.e.
@@ -729,7 +728,7 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
       else
         Err(domelogname, "Cannot add unknown user '" << ctx.user.name << "'");
     }
-    
+
     DomeGroupInfo g;
     for(size_t i = 0; i < ctx.groups.size(); i++) {
       if (status.getGroup(ctx.groups[i].name, g)) {
@@ -745,10 +744,9 @@ void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
         else
           Err(domelogname, "Cannot add unknown group '" << ctx.groups[i].name << "'");
       }
-      
-      
+
+
     }
   }
-  
-}
 
+}

@@ -30,7 +30,6 @@
 #include <set>
 #include "DomeGenQueue.h"
 #include "utils/DavixPool.h"
-#include "DomeDmlitePool.h"
 #include "dmlite/cpp/authn.h"
 #include "status.h"
 
@@ -171,7 +170,7 @@ public:
   DomeUserInfo(): userid(-1), banned(false) {};
 
   dmlite::UserInfo getDmLiteUser();
-  
+
   /// The user id
   int16_t userid;
 
@@ -180,7 +179,7 @@ public:
 
   /// Tha banned status
   bool banned;
-  
+
   /// What's this?
   std::string ca;
 
@@ -195,7 +194,7 @@ public:
   DomeGroupInfo(): groupid(-1), banned(false) {};
 
   dmlite::GroupInfo getDmLiteGroup();
-  
+
   /// The user id
   int16_t groupid;
 
@@ -256,12 +255,12 @@ public:
   std::map <std::string, DomeUserInfo> usersbyname;
   std::map <int, DomeGroupInfo> groupsbygid;
   std::map <std::string, DomeGroupInfo> groupsbyname;
-  
+
   dmlite::DmStatus getIdMap(const std::string& userName,
                     const std::vector<std::string>& groupNames,
                     DomeUserInfo &user,
                     std::vector<DomeGroupInfo> &groups);
-  
+
   /// Inserts/overwrites an user
   int insertUser(DomeUserInfo &ui);
   /// Inserts/overwrites a group
