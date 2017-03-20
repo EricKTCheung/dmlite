@@ -1243,15 +1243,15 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
     for (i = groupNames.begin(); i != groupNames.end(); ++i) {
       vo = dmlite::voFromRole(*i);
       
-      if (!getGroup(*i, group)) {
-        Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << *i << "'");
+      if (!getGroup(vo, group)) {
+        Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << vo << "'");
         // lock status
         boost::unique_lock<boost::recursive_mutex> l(*this);
         
         DomeMySql sql;
-        st = sql.newGroup(group, *i);
+        st = sql.newGroup(group, vo);
         if (!st.ok()) {
-          Err(domelogname, "Cannot add group '" << *i << "' err: " << st.code() << "' what: " << st.what());
+          Err(domelogname, "Cannot add group '" << vo << "' err: " << st.code() << "' what: " << st.what());
           return st;
         }
         insertGroup(group);
