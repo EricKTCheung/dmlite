@@ -62,7 +62,20 @@ namespace dmlite {
     void removeDir(const std::string& path) throw (DmException);
     void setGuid(const std::string& path, const std::string& guid) throw (DmException);
     void setSize(const std::string& path, size_t newSize) throw (DmException);
+
+    Directory* openDir (const std::string&) throw (DmException);
+    void       closeDir(Directory*)         throw (DmException);
+    ExtendedStat*  readDirx(Directory*) throw (DmException);
    private:
+     struct DomeDir : public Directory {
+       std::string path_;
+       size_t pos_;
+       std::vector<dmlite::ExtendedStat> entries_;
+
+       virtual ~DomeDir() {}
+       DomeDir(std::string path) : path_(path), pos_(0) {}
+     };
+
      std::string cwdPath_;
 
      Catalog *decorated_;
