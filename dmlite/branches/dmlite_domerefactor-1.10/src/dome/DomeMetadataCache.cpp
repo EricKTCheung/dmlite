@@ -27,7 +27,14 @@
 #include "DomeMetadataCache.hh"
 #include <time.h>
 #include <boost/shared_ptr.hpp>
-//
+#include <boost/thread/thread_time.hpp>
+
+
+DomeMetadataCache *DomeMetadataCache::instance = 0;
+
+
+
+
 // ******************************************
 // ******************* DomeFileInfo
 //
@@ -40,8 +47,6 @@ DomeFileInfo::DomeFileInfo(DomeFileID file_id) {
   
   status_statinfo = NoInfo;
   status_locations = NoInfo;
-  pending_statinfo = 0;
-  pending_locations = 0;
   
   time_t t = time(0);
   lastupdtime = t;
@@ -60,8 +65,6 @@ DomeFileInfo::DomeFileInfo(DomeFileID parentfileid, std::string name) {
   
   status_statinfo = NoInfo;
   status_locations = NoInfo;
-  pending_statinfo = 0;
-  pending_locations = 0;
   
   time_t t = time(0);
   lastupdtime = t;
@@ -120,6 +123,82 @@ void DomeFileInfo::addReplica( const std::vector<dmlite::Replica> &reps ) {
 }
 
 
+int DomeFileInfo::waitForSomeUpdate(boost::unique_lock<boost::mutex> &l, int sectmout) {
+  
+  boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(sectmout);
+  
+  if (!condvar.timed_wait(l, timeout))
+    return 1; // timeout
+  else
+    return 0; // signal catched
+      
+  return 0;
+}
+
+int DomeFileInfo::signalSomeUpdate() {
+  condvar.notify_all();
+  
+  return 0;
+}
+
+int DomeFileInfo::waitStat(boost::unique_lock<boost::mutex> &l, int sectmout)  {
+  const char *fname = "DomeFileInfo::waitStat";
+  
+  // If it's a cache hit we just exit
+  if ((status_statinfo == Ok) || (status_statinfo == NotFound)) {
+    Log(Logger::Lvl4, domelogmask, fname, "Info found. Fileid: " << fileid <<
+    " status_statinfo: " << status_statinfo);
+    
+    return 1;
+  }
+  
+  // By convention, if there is noinfo then it's our responsibility to fill it, hence it becomes pending
+  if (status_statinfo == NoInfo) {
+    Log(Logger::Lvl4, domelogmask, fname, "Shall fill stat info. Fileid: " << fileid << 
+    " status_statinfo: " << status_statinfo);
+    
+    status_statinfo = InProgress;
+    
+    return 0;
+  }
+  
+  // If still pending, we wait for the file object to get a notification
+  // then we recheck...
+  time_t timelimit = time(0) + sectmout;
+  
+  Log(Logger::Lvl4, domelogmask, fname, "Starting check-wait. Fileid: " << fileid <<
+  " status_statinfo: " << status_statinfo);
+  
+  while (status_statinfo == InProgress) {
+    // Ignore the timeouts, exit only on an explicit notification
+    waitForSomeUpdate(l, 1);
+    // On global timeout... stop waiting
+    if (time(0) > timelimit) {
+      Log(Logger::Lvl1, domelogmask, fname, "Timeout. Fileid:" << fileid);
+      break;
+    }
+  }
+  
+  Log(Logger::Lvl3, domelogmask, fname, "Finished check-wait. Fileid: " << fileid <<
+  " status_statinfo: " << status_statinfo);
+  
+  // We are here if someone else's lookup has finished OR in the case of timeout
+  // If the stat is still marked as in progress it means that the information was not filled
+  if (status_statinfo == InProgress)
+    return 2;
+  
+  // If it's a cache hit we just exit
+  if ((status_statinfo == Ok) || (status_statinfo == NotFound)) {
+    Log(Logger::Lvl4, domelogmask, fname, "Info found. Fileid: " << fileid <<
+    " status_statinfo: " << status_statinfo);
+    
+    return 1;
+  }
+  
+  return 3;
+}
+
+
 //
 // ******************************************
 // ******************* DomeMetadataCache
@@ -159,7 +238,8 @@ int DomeMetadataCache::purgeLRUitem_fileid() {
     
     {
       boost::unique_lock<mutex> lck(*fi);
-      if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+      if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
+        (fi->status_locations == DomeFileInfo::InProgress) ) {
         Log(Logger::Lvl4, domelogmask, fname, "The LRU item is marked as pending. Cannot purge fileid " << fi->fileid);
         return 3;
       }
@@ -209,7 +289,8 @@ int DomeMetadataCache::purgeLRUitem_parent() {
     
     {
       boost::unique_lock<mutex> lck(*fi);
-      if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+      if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
+        (fi->status_locations == DomeFileInfo::InProgress) ) {
         Log(Logger::Lvl4, domelogmask, fname, "The LRU item is marked as pending. Cannot purge " << fi->fileid);
         return 3;
       }
@@ -261,7 +342,8 @@ void DomeMetadataCache::purgeExpired_fileid() {
       boost::unique_lock<mutex> lck(*fi);
       
       time_t tl = timelimit;
-      if (fi->getInfoStatus() == DomeFileInfo::NotFound){
+      if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
+        (fi->status_locations == DomeFileInfo::NotFound) ) {
         tl = timelimit_neg;
       }
       
@@ -269,7 +351,8 @@ void DomeMetadataCache::purgeExpired_fileid() {
         // The item is old...
         Log(Logger::Lvl2, domelogmask, fname, "purging expired fileid " << fi->statinfo.stat.st_ino);
         
-        if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+        if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
+          (fi->status_locations == DomeFileInfo::InProgress) ) {
           Err(fname, "Found pending expired entry. Cannot purge fileid " << fi->statinfo.stat.st_ino);
           continue;
         }
@@ -336,7 +419,8 @@ void DomeMetadataCache::purgeExpired_parent() {
       boost::unique_lock<mutex> lck(*fi);
       
       time_t tl = timelimit;
-      if (fi->getInfoStatus() == DomeFileInfo::NotFound){
+      if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
+        (fi->status_locations == DomeFileInfo::NotFound) ) {
         tl = timelimit_neg;
       }
       
@@ -344,7 +428,8 @@ void DomeMetadataCache::purgeExpired_parent() {
         // The item is old...
         Log(Logger::Lvl2, domelogmask, fname, "purging expired parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
         
-        if (fi->getInfoStatus() == DomeFileInfo::InProgress) {
+        if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
+          (fi->status_locations == DomeFileInfo::InProgress) ) {
           Err(fname, "Found pending expired entry. Cannot purge parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
           continue;
         }
@@ -412,13 +497,9 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
       }
       
       
-      // Create a new item
+      // Create a new empty item
       fi.reset( new DomeFileInfo(fileid) );
-      
-      // Make it pending, as it is a new item
-      fi->notifyStatPending();
-      fi->notifyLocationPending();
-      
+            
       databyfileid[fileid] = boost::shared_ptr <DomeFileInfo >(fi);
       lrudata.insert(lrudataitem(++lrutick, fileid));
       
@@ -433,7 +514,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   }
   
   // Here we have either
-  //  - a new empty UgrFileInfo, marked as pending for both statinfo and locations
+  //  - a new empty UgrFileInfo
   //  - an UgrFileInfo taken from the 1st level cache
   
   
@@ -478,8 +559,8 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
       fi.reset( new DomeFileInfo(parentfileid, name) );
       
       // Make it pending, as it is a new item
-      fi->notifyStatPending();
-      fi->notifyLocationPending();
+      fi->status_statinfo = DomeFileInfo::InProgress;
+      fi->status_locations = DomeFileInfo::InProgress;
       
       databyparent[k] = fi;
       lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
