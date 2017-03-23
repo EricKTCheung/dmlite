@@ -1419,8 +1419,6 @@ DmStatus DomeMySql::unlink(ino_t inode)
     // Start transaction
     DomeMySqlTrans trans(this);
 
-    DOMECACHE->purgeEntry(inode);
-    DOMECACHE->purgeEntry(file.parent, file.name);
     
     {
       // Scope to make sure that the local objects that involve mysql
@@ -1478,7 +1476,9 @@ DmStatus DomeMySql::unlink(ino_t inode)
   }
 
 
-
+  
+  DOMECACHE->purgeEntry(inode);
+  DOMECACHE->purgeEntry(file.parent, file.name);
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode);
   return DmStatus();
@@ -1788,6 +1788,9 @@ DmStatus DomeMySql::setChecksum(const ino_t fid, const std::string &csumtype, co
   ckx[k] = csumvalue;
   updateExtendedAttributes(fid, ckx);
 
+  DOMECACHE->purgeEntry(ckx.stat.st_ino);
+  DOMECACHE->purgeEntry(ckx.parent, ckx.name);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid: " << fid);
 
   return DmStatus();
