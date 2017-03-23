@@ -1403,6 +1403,7 @@ DmStatus DomeMySql::unlink(ino_t inode)
   ExtendedStat file;
   DmStatus r = this->getStatbyFileid(file, inode);
   if (!r.ok()) return r;
+  
 
   // Non empty directories can not be removed with this method
   if (S_ISDIR(file.stat.st_mode) && file.stat.st_nlink > 0)
@@ -1418,6 +1419,9 @@ DmStatus DomeMySql::unlink(ino_t inode)
     // Start transaction
     DomeMySqlTrans trans(this);
 
+    DOMECACHE->purgeEntry(inode);
+    DOMECACHE->purgeEntry(file.parent, file.name);
+    
     {
       // Scope to make sure that the local objects that involve mysql
       // are destroyed before the transaction is closed
