@@ -5149,7 +5149,7 @@ int DomeCore::dome_updategroup(DomeReq &req, FCGX_Request &request) {
   }
 
   group.xattr = xattr;
-  group.banned = banned;
+  group.banned = (DomeGroupInfo::BannedStatus)banned;
   ret = sql.updateGroup(group);
 
   return DomeReq::SendSimpleResp(request, 200, "");
@@ -5268,7 +5268,7 @@ int DomeCore::dome_updateuser(DomeReq &req, FCGX_Request &request) {
   }
 
   user.xattr = xattr;
-  user.banned = banned;
+  user.banned = (DomeUserInfo::BannedStatus)banned;
   ret = sql.updateUser(user);
 
   return DomeReq::SendSimpleResp(request, 200, "");
