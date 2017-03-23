@@ -621,3 +621,12 @@ void DomeMetadataCache::tick() {
   Log(Logger::Lvl4, domelogmask, fname, "Cache status by parentid+name. nItems:" << databyparent.size() << " nLRUItems: " << lrudata_parent.size());
   
 }
+
+
+/// Forcefully purge an entry using its fileid
+void DomeMetadataCache::purgeEntry(DomeFileID fileid) {
+}
+
+/// Forcefully purge an entry using its parentfileid+name
+void DomeMetadataCache::purgeEntry(DomeFileID parentfileid, std::string name) {
+}
