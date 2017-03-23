@@ -155,7 +155,8 @@ int DomeFileInfo::waitStat(boost::unique_lock<boost::mutex> &l, int sectmout)  {
   // By convention, if there is noinfo then it's our responsibility to fill it, hence it becomes pending
   if (status_statinfo == NoInfo) {
     Log(Logger::Lvl4, domelogmask, fname, "Shall fill stat info. Fileid: " << fileid << 
-    " status_statinfo: " << status_statinfo);
+    "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+    "' status_statinfo: " << status_statinfo);
     
     status_statinfo = InProgress;
     
@@ -167,20 +168,23 @@ int DomeFileInfo::waitStat(boost::unique_lock<boost::mutex> &l, int sectmout)  {
   time_t timelimit = time(0) + sectmout;
   
   Log(Logger::Lvl4, domelogmask, fname, "Starting check-wait. Fileid: " << fileid <<
-  " status_statinfo: " << status_statinfo);
+  "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+  "' status_statinfo: " << status_statinfo << "'");
   
   while (status_statinfo == InProgress) {
     // Ignore the timeouts, exit only on an explicit notification
     waitForSomeUpdate(l, 1);
     // On global timeout... stop waiting
     if (time(0) > timelimit) {
-      Log(Logger::Lvl1, domelogmask, fname, "Timeout. Fileid:" << fileid);
+      Log(Logger::Lvl1, domelogmask, fname, "Timeout. Fileid:" << fileid <<
+      "parent_fileid: " << parentfileid << " locfilename: '" << locfilename << "'");
       break;
     }
   }
   
   Log(Logger::Lvl3, domelogmask, fname, "Finished check-wait. Fileid: " << fileid <<
-  " status_statinfo: " << status_statinfo);
+  "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+  "' status_statinfo: " << status_statinfo);
   
   // We are here if someone else's lookup has finished OR in the case of timeout
   // If the stat is still marked as in progress it means that the information was not filled
@@ -557,10 +561,6 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
       
       // Create a new item
       fi.reset( new DomeFileInfo(parentfileid, name) );
-      
-      // Make it pending, as it is a new item
-      fi->status_statinfo = DomeFileInfo::InProgress;
-      fi->status_locations = DomeFileInfo::InProgress;
       
       databyparent[k] = fi;
       lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
