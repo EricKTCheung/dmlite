@@ -51,6 +51,9 @@ typedef std::atomic<int> IntAtomic;
 typedef atomic<int> IntAtomic;
 #endif
 
+
+#define DOMECACHE (DomeMetadataCache::get())
+
 #include <boost/thread.hpp>
 #include <boost/bimap.hpp>
 
@@ -107,110 +110,18 @@ public:
   };
   
   /// Status of this object with respect to the pending stat operations
-  /// carried on by plugins
   /// If a request is in progress, the responsibility of
   /// performing it is of the plugin(s) that are treating it.
   InfoStatus status_statinfo;
   
   /// Status of this object with respect to the pending locate operations
-  /// carried on by plugins
   /// If a request is in progress, the responsibility of
   /// performing it is of the plugin(s) that are treating it.
   InfoStatus status_locations;
   
   
-  /// Count of the plugins that are gathering stat info
-  /// for an instance
-  int pending_statinfo;
-  
-  /// Count of the plugins that are gathering locate info
-  /// for an instance
-  int pending_locations;
-  
-  /// Tells if the stat information is ready
-  InfoStatus getStatStatus() {
-    // To stat successfully a file we just need one information source to answer positively
-    // Hence, if we have the stat info here, we just return Ok, regardless
-    // of how many plugins are still active
-    if (!status_statinfo) return Ok;
-    
-    // If we have no stat info, then the file was not found or it's early to tell
-    // Hence the info is inprogress if there are queries that are still active
-    if (pending_statinfo > 0) return InProgress;
-    
-    
-    return status_statinfo;
-  }
-  
-  /// Tells if the locate information is ready
-  InfoStatus getLocationStatus() {
-    // In the case of a pending op that tries to find all the locations, we need to
-    // wait for the result
-    // Hence, this info is inprogress if there are still queries that are active on it
-    
-    if (status_locations == Ok) return Ok;
-    return status_locations;
-  }
-  
-  /// Builds a summary of the status
-  /// If some info part is pending then the whole thing is pending
-  InfoStatus getInfoStatus() {
-    if ((pending_statinfo > 0) ||
-      (pending_locations > 0))
-      return InProgress;
-    
-    if ((status_statinfo == Ok) ||
-      (status_locations == Ok))
-      return Ok;
-    
-    if ((status_statinfo == NotFound) ||
-      (status_locations == NotFound))
-      return NotFound;
-    
-    return NoInfo;
-  };
-  
-  /// Called by plugins when they start a query, to add 1 to the pending counter
-  void notifyStatPending() {
-    if (pending_statinfo >= 0) {
-      // Set the file status to pending with respect to the stat op
-      pending_statinfo++;
-    }
-  }
-  
-  /// Called by plugins when they end a search, to subtract 1 from the pending counter
-  /// and wake up the clients that are waiting for something to happen to a file info
-  void notifyStatNotPending() {
-    if (pending_statinfo > 0) {
-      // Decrease the pending count with respect to the stat op
-      pending_statinfo--;
-    } else
-      Err("DomeFileInfo::notifyStatNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
-    
-    signalSomeUpdate();
-  }
-  
-  
-  // Called by plugins when they start a search, to add 1 to the pending counter
-  void notifyLocationPending() {
-    if (pending_locations >= 0) {
-      // Set the file status to pending with respect to the stat op
-      pending_locations++;
-    }
-  }
-  
-  /// Called by plugins when they end a search, to subtract 1 from the pending counter
-  /// and wake up the clients that are waiting for something to happen to a file info
-  void notifyLocationNotPending() {
 
-    if (pending_locations > 0) {
-      // Decrease the pending count with respect to the stat op
-      pending_locations--;
-    } else
-      Err("DomeFileInfo::notifyLocationNotPending", "The fileinfo seemed not to be pending?!? fileid:" << fileid);
-    
-    signalSomeUpdate();
-  }
+  
   
   /// The stat information about this entity, in its original data structure
   dmlite::ExtendedStat statinfo;
@@ -232,7 +143,7 @@ public:
   void touch() {
     // only update reference time if the entry exist, otherwise it may be stuck in internal cache 
     // until max ttl expires
-    if(getInfoStatus() == DomeFileInfo::NotFound)
+    if (status_statinfo == DomeFileInfo::NotFound)
       return;
     lastreftime = time(0);
   }
@@ -240,17 +151,17 @@ public:
   /// Wait until any notification update comes
   /// Useful to recheck if what came is what we were waiting for
   /// 0 if notif received, nonzero if tmout
-  int waitForSomeUpdate(boost::unique_lock<boost::mutex> &l, int sectmout);
+  int waitForSomeUpdate(boost::unique_lock<boost::mutex> &l, int sectmout = 180);
   
   /// Wait for the stat info to be available
   /// @param l lock to be held
   /// @param sectmout Wait timeout in seconds
-  int waitStat(boost::unique_lock<boost::mutex> &l, int sectmout);
+  int waitStat(boost::unique_lock<boost::mutex> &l, int sectmout = 180);
   
   /// Wait for the replica info to be available
   /// @param l lock to be held
   /// @param sectmout Wait timeout in seconds
-  int waitLocations(boost::unique_lock<boost::mutex> &l, int sectmout);
+  int waitLocations(boost::unique_lock<boost::mutex> &l, int sectmout = 180);
     
   /// Signal that something changed here
   int signalSomeUpdate();
@@ -311,13 +222,7 @@ private:
   /// Singleton instance
   static DomeMetadataCache *instance;
   
-  /// @return the singleton instance
-  static DomeMetadataCache *get()
-  {
-    if (instance == 0)
-      instance = new DomeMetadataCache();
-    return instance;
-  }
+
   
   
   
@@ -369,6 +274,14 @@ private:
   }
   
 public:
+  
+  /// @return the singleton instance
+  static DomeMetadataCache *get()
+  {
+    if (instance == 0)
+      instance = new DomeMetadataCache();
+    return instance;
+  }
   
   void Init() {
     // Get the max capacity from the config

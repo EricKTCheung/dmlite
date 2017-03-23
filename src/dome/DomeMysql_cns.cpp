@@ -36,6 +36,8 @@
 #include <boost/thread.hpp>
 #include <time.h>
 
+#include "DomeMetadataCache.hh"
+
 using namespace dmlite;
 
 #define CNS_DB "cns_db"
@@ -966,30 +968,67 @@ dmlite::DmStatus DomeMySql::readLink(SymLink &link, int64_t fileid)
 /// Extended stat for inodes
 DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid) {
   Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
-  try {
-    Statement    stmt(conn_, CNS_DB,
-                    "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-                    filesize, atime, mtime, ctime, fileclass, status,\
-                    csumtype, csumvalue, acl, xattr\
-                    FROM Cns_file_metadata\
-                    WHERE fileid = ?");
-    CStat        cstat;
-    xstat = ExtendedStat();
-
-    stmt.bindParam(0, fileid);
-    stmt.execute();
-
-    bindMetadata(stmt, &cstat);
-
-  if (!stmt.fetch())
-    return DmStatus(ENOENT, SSTR(fileid << " not found"));
-
-  dumpCStat(cstat, &xstat);
+  
+  // Get the correponding item from the cache, it can be empty or pending. It's unlocked
+  boost::shared_ptr <DomeFileInfo > dfi = DOMECACHE->getFileInfoOrCreateNewOne(fileid);
+  int done = 0;
+  {
+    boost::unique_lock<boost::mutex> l(*dfi);
+    done = dfi->waitStat(l);
+    if(done) {
+      xstat = dfi->statinfo;
+    }
+    
   }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading stat of fileid " << fileid);
-    return DmStatus(EINVAL, SSTR(" Exception while reading stat of fileid " << fileid));
+  
+  if (!done) {
+    // The cache entry was empty and not pending. Now it's pending and we have to fill it with the query
+    
+    try {
+      Statement    stmt(conn_, CNS_DB,
+                        "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
+                        filesize, atime, mtime, ctime, fileclass, status,\
+                        csumtype, csumvalue, acl, xattr\
+                        FROM Cns_file_metadata\
+                        WHERE fileid = ?");
+      CStat        cstat;
+      xstat = ExtendedStat();
+      
+      stmt.bindParam(0, fileid);
+      stmt.execute();
+      
+      bindMetadata(stmt, &cstat);
+      
+      if (!stmt.fetch()) {
+        
+        boost::unique_lock<boost::mutex> l(*dfi);
+        dfi->status_statinfo = DomeFileInfo::NotFound;
+        dfi->signalSomeUpdate();
+        return DmStatus(ENOENT, SSTR(fileid << " not found"));
+      }
+      
+      dumpCStat(cstat, &xstat);
+    }
+    catch ( ... ) {
+      Err(domelogname, " Exception while reading stat of fileid " << fileid);
+      
+      boost::unique_lock<boost::mutex> l(*dfi);
+      dfi->status_statinfo = DomeFileInfo::NotFound;
+      dfi->signalSomeUpdate();
+      
+      return DmStatus(EINVAL, SSTR(" Exception while reading stat of fileid " << fileid));
+    }
+    
+    // Now insert the new stat info into the cache and signal it.
+    {
+      boost::unique_lock<boost::mutex> l(*dfi);
+      dfi->statinfo = xstat;
+      dfi->status_statinfo = DomeFileInfo::Ok;
+      dfi->signalSomeUpdate();
+    }
   }
+
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " name:" << xstat.name << " sz:" << xstat.size());
   return DmStatus();
 }
