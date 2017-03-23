@@ -167,7 +167,7 @@ public:
 class DomeUserInfo {
 public:
 
-  DomeUserInfo(): userid(-1), banned(false) {};
+  DomeUserInfo(): userid(-1), banned(NoBan) {};
 
   dmlite::UserInfo getDmLiteUser();
 
@@ -176,9 +176,16 @@ public:
 
   /// The username
   std::string username;
-
+  
+  
+  enum BannedStatus {
+    NoBan = 0,
+    ArgusBan, //1
+    LocalBan  //2
+  };
+  
   /// Tha banned status
-  bool banned;
+  BannedStatus banned;
 
   /// What's this?
   std::string ca;
@@ -191,7 +198,7 @@ public:
 class DomeGroupInfo {
 public:
 
-  DomeGroupInfo(): groupid(-1), banned(false) {};
+  DomeGroupInfo(): groupid(-1), banned(NoBan) {};
 
   dmlite::GroupInfo getDmLiteGroup();
 
@@ -201,8 +208,14 @@ public:
   /// The username
   std::string groupname;
 
+  enum BannedStatus {
+    NoBan = 0,
+    ArgusBan, //1
+    LocalBan  //2
+  };
+
   /// Tha banned status
-  bool banned;
+  BannedStatus banned;
 
   /// additional info
   std::string xattr;

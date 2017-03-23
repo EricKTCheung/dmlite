@@ -213,7 +213,7 @@ int DomeStatus::loadUsersGroups() {
   // Make sure that group 0 (root) always exists
   DomeGroupInfo gi;
   if ( !getGroup(0, gi) ) {
-    gi.banned = 0;
+    gi.banned = DomeGroupInfo::NoBan;
     gi.groupid = 0;
     gi.groupname = "root";
     gi.xattr = "";
