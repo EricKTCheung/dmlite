@@ -1263,4 +1263,5 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
   }
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. usr:" << userName);
+  return DmStatus();
 }
