@@ -2170,6 +2170,8 @@ int DomeCore::dome_pull(DomeReq &req, FCGX_Request &request) {
       neededspace = pool_defsize*2;
     }
 
+    Log(Logger::Lvl2, domelogmask, domelogname, "Checking if we need to makespace. fsinfo.freespace: " << fsinfo.freespace << ", neededspace: " << neededspace);
+
     // Make sure that there is enough space to fit filesz bytes
     if (fsinfo.freespace < neededspace) {
       Log(Logger::Lvl1, domelogmask, domelogname, "Filesystem can only accommodate " << fsinfo.freespace << "B, filesize is : " << neededspace << " ... trying to purge volatile files.");
