@@ -57,7 +57,9 @@ bool DomeFsInfo::canPullFile(DomeStatus &st) {
   char pooltype;
   int64_t defsz;
   st.getPoolInfo(poolname, defsz, pooltype);
-  return ( ((pooltype == 'V') || (pooltype == 'v')) && (freespace > defsz) );
+//  return ( ((pooltype == 'V') || (pooltype == 'v')) && (freespace > defsz) );
+  return ( ((pooltype == 'V') || (pooltype == 'v')) && (physicalsize > defsz) );
+
 }
 
 DomeStatus::DomeStatus() {
