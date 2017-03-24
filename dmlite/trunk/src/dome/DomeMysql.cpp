@@ -129,8 +129,11 @@ int DomeMySql::commit()
       merrno = mysql_errno(this->conn_);
       merror = mysql_error(this->conn_);
     }
-    MySqlHolder::getMySqlPool().release(conn_);
-    conn_ = 0;
+    
+//    MySqlHolder::getMySqlPool().release(conn_);
+//    conn_ = 0;
+    
+    
     if  (qret != 0) {
       Err(fname, "Cannot commit: " << DMLITE_DBERR(merrno) << " " << merror);
       return -1;
@@ -161,8 +164,8 @@ int DomeMySql::rollback()
       merror = mysql_error(this->conn_);
     }
 
-    MySqlHolder::getMySqlPool().release(conn_);
-    conn_ = 0;
+//    MySqlHolder::getMySqlPool().release(conn_);
+//    conn_ = 0;
 
     if (qret != 0) {
       Err(domelogname, "Cannot rollback: " << DMLITE_DBERR(merrno) << " " << merror);
