@@ -358,7 +358,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   // Remove the filesystems that have less than the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
-    if ( !selectedfss[i].canPullFile(status) && (selectedfss[i].freespace < minfreespace_bytes) )
+    if ( !selectedfss[i].canPullFile(status) && (selectedfss[i].freespace < minfreespace_bytes) ) {
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
           "' has less than " << minfreespace_bytes << "bytes free");
         selectedfss.erase(selectedfss.begin()+i);
