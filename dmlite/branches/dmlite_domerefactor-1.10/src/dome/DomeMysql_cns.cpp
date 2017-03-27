@@ -790,6 +790,16 @@ int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
     return 1;
   }
 
+  dmlite::ExtendedStat xstat;
+  DomeMySql sql;
+  dmlite::DmStatus ret;
+  
+  ret = sql.getStatbyFileid(xstat, fileid);
+  if (ret.ok()) {
+    xstat.stat.st_size += increment; 
+    DOMECACHE->pushXstatInfo(xstat, DomeFileInfo::Ok);
+  }
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Directory size updated. fileid: '" << fileid <<
   "' increment: " << increment << " nrows: " << nrows );
 
@@ -1625,6 +1635,8 @@ DmStatus DomeMySql::rename(ino_t inode, const std::string& name) {
     return DmStatus(EINVAL, SSTR("Cannot rename fileid: " << inode << " to name '" << name << "'"));
   }
 
+  DOMECACHE->wipeEntry(inode);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode << " name:" << name);
 
   return DmStatus();
