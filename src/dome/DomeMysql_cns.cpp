@@ -336,6 +336,8 @@ DmStatus DomeMySql::create(ExtendedStat& nf)
 
   nf.stat.st_ino = newFileId;
 
+  DOMECACHE->pushXstatInfo(nf, DomeFileInfo::Ok);
+  
   if (S_ISDIR(nf.stat.st_mode))
     Log(Logger::Lvl1, domelogmask, domelogname, "Created new directory. name: '" << nf.name <<
       "' parent: " << nf.parent << " flags: " << nf.stat.st_mode << " fileid: " << newFileId);
