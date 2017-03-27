@@ -398,11 +398,26 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   // Remove the filesystems that have less than the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
-    if ( !selectedfss[i].canPullFile(status) && (selectedfss[i].freespace < minfreespace_bytes) ) {
+    
+    if ( selectedfss[i].canPullFile(status) ) {
+      // If the filesystem belongs to a volatile pool then we filter it out
+      // only if the volume is too small, because we assume that files can be purged
+      if ( selectedfss[i].physicalsize < minfreespace_bytes ) {
+        Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" <<
+          selectedfss[i].server << ":" << selectedfss[i].fs <<
+          "' is smaller than " << minfreespace_bytes << "bytes");
+        selectedfss.erase(selectedfss.begin()+i);
+      }
+    }
+    else {
+      // The filesystem does not belong to a volatile pool, hence we check the free space
+      if (selectedfss[i].freespace < minfreespace_bytes) {
         Log(Logger::Lvl2, domelogmask, domelogname, "Filesystem: '" << selectedfss[i].server << ":" << selectedfss[i].fs <<
           "' has less than " << minfreespace_bytes << "bytes free");
         selectedfss.erase(selectedfss.begin()+i);
+      }
     }
+    
   }
 
   // If no filesystems remain, return error "filesystems full for path ..."
@@ -3844,7 +3859,7 @@ int DomeCore::dome_updatexattr(DomeReq &req, FCGX_Request &request) {
   if (!lfn.length() && !fileid)
     return DomeReq::SendSimpleResp(request, 422, "No path or fileid specified.");
 
-  dmlite::Extensible e;
+  dmlite::ExtendedStat e;
   try {
     e.deserialize(xattr);
   }
