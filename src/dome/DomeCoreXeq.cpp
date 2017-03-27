@@ -596,7 +596,7 @@ int DomeCore::dome_access(DomeReq &req, FCGX_Request &request) {
 
   ExtendedStat xstat;
   boost::property_tree::ptree jresp;
-  DmStatus ret;
+  dmlite::DmStatus ret;
   {
     DomeMySql sql;
     ret = sql.getStatbyLFN(xstat, absPath);

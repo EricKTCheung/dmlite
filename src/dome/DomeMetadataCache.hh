@@ -303,7 +303,10 @@ public:
   /// Get a pointer to a FileInfo, or create a new one, marked as pending, identified only with its parentfileid+name
   boost::shared_ptr <DomeFileInfo > getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name);
 
-  
+  /// Tag an entry so that it will be soon purged
+  void wipeEntry(dmlite::ExtendedStat xstat);
+  /// Tag an entry so that it will be soon purged. More expensive version that does a stat inside
+  void wipeEntry(DomeFileID fileid);
   /// Tag an entry so that it will be soon purged or reloaded if needed again
   void wipeEntry(DomeFileID fileid, DomeFileID parentfileid, std::string name);
   

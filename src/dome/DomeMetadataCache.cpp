@@ -28,7 +28,8 @@
 #include <time.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread_time.hpp>
-
+#include "DomeMysql.h"
+#include "status.h"
 
 DomeMetadataCache *DomeMetadataCache::instance = 0;
 
@@ -612,6 +613,26 @@ void DomeMetadataCache::tick() {
   
 }
 
+/// Tag an entry so that it will be soon purged
+void DomeMetadataCache::wipeEntry(dmlite::ExtendedStat xstat) {
+  wipeEntry(xstat.stat.st_ino, xstat.parent, xstat.name);
+}
+
+/// Tag an entry so that it will be soon purged. More expensive version that does a stat inside
+void DomeMetadataCache::wipeEntry(DomeFileID fileid) {
+  const char *fname = "DomeMetadataCache::wipeEntry";
+  Log(Logger::Lvl4, domelogmask, fname, "fileid: " << fileid);
+  
+  dmlite::ExtendedStat xstat;
+  DomeMySql sql;
+  dmlite::DmStatus ret;
+
+  ret = sql.getStatbyFileid(xstat, fileid);
+  if (ret.ok())
+    wipeEntry(xstat.stat.st_ino, xstat.parent, xstat.name);
+  
+  
+}
 
 /// Tag an entry so that it will be soon purged
 void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, std::string name) {
