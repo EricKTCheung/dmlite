@@ -287,9 +287,9 @@ public:
     // Get the max capacity from the config
     maxitems = CFG->GetLong("mdcache.maxitems", 1000000);
     // Get the lifetime of an entry after the last reference
-    maxttl = CFG->GetLong("mdcache.itemttl", 3600);
+    maxttl = CFG->GetLong("mdcache.itemttl", 60);
     // Get the maximum allowed lifetime of an entry
-    maxmaxttl = CFG->GetLong("mdcache.itemmaxttl", 7200);
+    maxmaxttl = CFG->GetLong("mdcache.itemmaxttl", 120);
     maxttl_negative = CFG->GetLong("mdcache.itemttl_negative", 10);
   }
   
