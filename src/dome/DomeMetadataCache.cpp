@@ -661,6 +661,9 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
 
 
 int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::InfoStatus newstatus_statinfo) {
+  const char *fname = "DomeMetadataCache::pushXstatInfo";
+  Log(Logger::Lvl4, domelogmask, fname, "Adjusting fileid: " << xstat.stat.st_ino << " parentfileid: " <<
+  xstat.parent << " name: '" << xstat.name << "'");
   
   boost::lock_guard<DomeMetadataCache> l(*this);
   
@@ -670,6 +673,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
     // Fix the item got through the fileid
     p = databyfileid.find(xstat.stat.st_ino);
     if (p != databyfileid.end()) {
+      Log(Logger::Lvl4, domelogmask, fname, "Adjusting fileid: " << xstat.stat.st_ino );
       boost::shared_ptr<DomeFileInfo> fi;
       fi = p->second;
       
@@ -689,6 +693,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
     std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo> >::iterator p;
     p = databyparent.find(k);
     if (p != databyparent.end()) {
+      Log(Logger::Lvl4, domelogmask, fname, "Adjusting parentfileid: " << xstat.parent << " name: '" << xstat.name << "'");
       boost::shared_ptr<DomeFileInfo> fi;
       fi = p->second;
       
@@ -699,6 +704,8 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
     }
   }
   
+  Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << xstat.stat.st_ino << " parentfileid: " <<
+  xstat.parent << " name: '" << xstat.name << "'");
   return 0;
 }
 

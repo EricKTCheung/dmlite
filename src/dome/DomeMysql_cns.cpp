@@ -1546,7 +1546,7 @@ DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const ExtendedStat& at
     return DmStatus(EINVAL, SSTR("Cannot update xattrs for fileid: " << inode << " xattrs: '" << attr.serialize() << "'"));
   }
   
-  DOMECACHE->wipeEntry(attr.stat.st_ino, attr.parent, attr.name);
+  DOMECACHE->pushXstatInfo(attr, DomeFileInfo::Ok);
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
   return DmStatus();
