@@ -974,6 +974,11 @@ DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid)
   int done = 0;
   {
     boost::unique_lock<boost::mutex> l(*dfi);
+    
+    
+    if (dfi->status_statinfo == DomeFileInfo::NotFound)
+      return DmStatus(ENOENT, SSTR("fileid " << fileid << "' not found (cached)"));
+    
     done = dfi->waitStat(l);
     if(done) {
       xstat = dfi->statinfo;
@@ -1004,7 +1009,7 @@ DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid)
         boost::unique_lock<boost::mutex> l(*dfi);
         dfi->status_statinfo = DomeFileInfo::NotFound;
         dfi->signalSomeUpdate();
-        return DmStatus(ENOENT, SSTR(fileid << " not found"));
+        return DmStatus(ENOENT, SSTR("fileid "<< fileid << " not found"));
       }
       
       dumpCStat(cstat, &xstat);
@@ -1290,6 +1295,10 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
   int done = 0;
   {
     boost::unique_lock<boost::mutex> l(*dfi);
+    
+    if (dfi->status_statinfo == DomeFileInfo::NotFound)
+      return DmStatus(ENOENT, SSTR("file " << fileid << ":'" << name << "' not found (cached)"));
+    
     done = dfi->waitStat(l);
     if(done) {
       xstat = dfi->statinfo;
@@ -1322,7 +1331,7 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
         boost::unique_lock<boost::mutex> l(*dfi);
         dfi->status_statinfo = DomeFileInfo::NotFound;
         dfi->signalSomeUpdate();
-        return DmStatus(ENOENT, SSTR(fileid << ":'" << name << "' not found"));
+        return DmStatus(ENOENT, SSTR("file " << fileid << ":'" << name << "' not found"));
       }
       
       dumpCStat(cstat, &xstat);
@@ -1477,8 +1486,7 @@ DmStatus DomeMySql::unlink(ino_t inode)
 
 
   
-  DOMECACHE->purgeEntry(inode);
-  DOMECACHE->purgeEntry(file.parent, file.name);
+  DOMECACHE->wipeEntry(inode, file.parent, file.name);
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode);
   return DmStatus();
@@ -1486,7 +1494,7 @@ DmStatus DomeMySql::unlink(ino_t inode)
 
 
 
-DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr)
+DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const ExtendedStat& attr)
 {
   Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode << " nattrs:" << attr.size() );
 
@@ -1537,7 +1545,9 @@ DmStatus DomeMySql::updateExtendedAttributes(ino_t inode, const Extensible& attr
   catch ( ... ) {
     return DmStatus(EINVAL, SSTR("Cannot update xattrs for fileid: " << inode << " xattrs: '" << attr.serialize() << "'"));
   }
-
+  
+  DOMECACHE->wipeEntry(attr.stat.st_ino, attr.parent, attr.name);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nattrs:" << attr.size() );
   return DmStatus();
 }
@@ -1788,8 +1798,6 @@ DmStatus DomeMySql::setChecksum(const ino_t fid, const std::string &csumtype, co
   ckx[k] = csumvalue;
   updateExtendedAttributes(fid, ckx);
 
-  DOMECACHE->purgeEntry(ckx.stat.st_ino);
-  DOMECACHE->purgeEntry(ckx.parent, ckx.name);
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid: " << fid);
 
