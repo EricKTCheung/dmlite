@@ -1391,6 +1391,7 @@ DmStatus DomeMySql::setSize(ino_t inode, int64_t filesize) {
     return DmStatus(EINVAL, SSTR(" Exception while setting filesize for fileid: " << inode << "err: '" << e.what()));
   }
 
+  DOMECACHE->wipeEntry(inode);
   Log(Logger::Lvl4, domelogmask, domelogname, "Exiting. inode: " << inode << " size: " << filesize );
   return DmStatus();
 }
