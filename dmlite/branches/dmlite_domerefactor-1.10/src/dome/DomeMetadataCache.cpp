@@ -347,7 +347,9 @@ void DomeMetadataCache::purgeExpired_fileid() {
       
       time_t tl = timelimit;
       if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NotFound) ) {
+        (fi->status_locations == DomeFileInfo::NotFound) ||
+        (fi->status_locations == DomeFileInfo::NoInfo) ||
+        (fi->status_locations == DomeFileInfo::NoInfo) ) {
         tl = timelimit_neg;
       }
       
@@ -404,7 +406,6 @@ void DomeMetadataCache::purgeExpired_parent() {
   bool dodelete = false;
   std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp>::iterator i_deleteme;
   
-  boost::lock_guard<DomeMetadataCache> l(*this);
   
   for (std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo>,  DomeFileInfoParentComp>::iterator i = databyparent.begin();
        i != databyparent.end(); i++) {
@@ -424,7 +425,9 @@ void DomeMetadataCache::purgeExpired_parent() {
       
       time_t tl = timelimit;
       if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NotFound) ) {
+        (fi->status_locations == DomeFileInfo::NotFound) ||
+        (fi->status_locations == DomeFileInfo::NoInfo) ||
+        (fi->status_locations == DomeFileInfo::NoInfo) ) {
         tl = timelimit_neg;
       }
       
@@ -474,7 +477,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne";
   boost::shared_ptr <DomeFileInfo > fi;
   
-  
+  Log(Logger::Lvl4, domelogmask, fname, "fileid: " << fileid);
   
   {
     boost::lock_guard<DomeMetadataCache> l(*this);
@@ -521,7 +524,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   //  - a new empty UgrFileInfo
   //  - an UgrFileInfo taken from the 1st level cache
   
-  
+  Log(Logger::Lvl3, domelogmask, fname, "fileid: " << fileid);
   return fi;
   
 }
@@ -529,6 +532,8 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
 boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name) {
   const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne(parent)";
   boost::shared_ptr<DomeFileInfo> fi;
+  
+  Log(Logger::Lvl4, domelogmask, fname, "parentfileid: " << parentfileid << " name: '" << name << "'");
   
   DomeFileInfoParent k;
   k.name = name;
@@ -579,26 +584,11 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
   //  - a new empty UgrFileInfo, marked as pending for both statinfo and locations
   //  - an UgrFileInfo taken from the 1st level cache
   
-  
+  Log(Logger::Lvl3, domelogmask, fname, "Exiting. parentfileid: " << parentfileid << " name: '" << name << "'");
   return fi;
   
 }
 
-int DomeMetadataCache::fixupFileInfoKeys(DomeFileID fileid, DomeFileID parentfileid, std::string name) {
-  // Lock
-  
-  // Fetch both items
-  
-  // If they are the same, exit
-  
-  // Fill the fileid one from the parent+name one, take the fields that are missing
-  // Signal them both?
-  
-  // Push the fileid one to the parentname map (actually releasing the previous item from the map)
-  
-  // uhmmmmmmm maybe just doing nothing is sufficient
-  return 0;
-}
 
 
 void DomeMetadataCache::tick() {
@@ -623,10 +613,94 @@ void DomeMetadataCache::tick() {
 }
 
 
-/// Forcefully purge an entry using its fileid
-void DomeMetadataCache::purgeEntry(DomeFileID fileid) {
+/// Tag an entry so that it will be soon purged
+void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, std::string name) {
+  const char *fname = "DomeMetadataCache::wipeEntry";
+  Log(Logger::Lvl4, domelogmask, fname, "fileid: " << fileid << " parentfileid: " << parentfileid << " name: '" << name << "'");
+  
+  boost::lock_guard<DomeMetadataCache> l(*this);
+  
+  {
+    std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator p;
+    
+    // Fix the item got through the fileid
+    p = databyfileid.find(fileid);
+    if (p != databyfileid.end()) {
+      Log(Logger::Lvl4, domelogmask, fname, "Found fileid: " << fileid );
+      boost::shared_ptr<DomeFileInfo> fi;
+      fi = p->second;
+      
+      boost::unique_lock<boost::mutex> l(*fi);
+      fi->status_statinfo = DomeFileInfo::NoInfo;
+      fi->signalSomeUpdate();
+    }
+  }
+  
+  {
+    // Fix the item got through the parentfileid+name
+    DomeFileInfoParent k;
+    k.name = name;
+    k.parentfileid = parentfileid;
+    
+    std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo> >::iterator p;
+    p = databyparent.find(k);
+    if (p != databyparent.end()) {
+      Log(Logger::Lvl4, domelogmask, fname, "Found parentfileid: " << parentfileid << " name: '" << name << "'");
+      boost::shared_ptr<DomeFileInfo> fi;
+      fi = p->second;
+      
+      boost::unique_lock<boost::mutex> l(*fi);
+      fi->status_statinfo = DomeFileInfo::NoInfo;
+      fi->signalSomeUpdate();
+    }
+  }
+  
+  Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << fileid << " parentfileid: " << parentfileid << " name: '" << name << "'");
+  return;
 }
 
-/// Forcefully purge an entry using its parentfileid+name
-void DomeMetadataCache::purgeEntry(DomeFileID parentfileid, std::string name) {
+
+int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::InfoStatus newstatus_statinfo) {
+  
+  boost::lock_guard<DomeMetadataCache> l(*this);
+  
+  {
+    std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator p;
+    
+    // Fix the item got through the fileid
+    p = databyfileid.find(xstat.stat.st_ino);
+    if (p != databyfileid.end()) {
+      boost::shared_ptr<DomeFileInfo> fi;
+      fi = p->second;
+      
+      boost::unique_lock<boost::mutex> l(*fi);
+      fi->statinfo = xstat;
+      fi->status_statinfo = newstatus_statinfo;
+      fi->signalSomeUpdate();
+    }
+  }
+  
+  {
+    // Fix the item got through the parentfileid+name
+    DomeFileInfoParent k;
+    k.name = xstat.name;
+    k.parentfileid = xstat.parent;
+    
+    std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo> >::iterator p;
+    p = databyparent.find(k);
+    if (p != databyparent.end()) {
+      boost::shared_ptr<DomeFileInfo> fi;
+      fi = p->second;
+      
+      boost::unique_lock<boost::mutex> l(*fi);
+      fi->statinfo = xstat;
+      fi->status_statinfo = newstatus_statinfo;
+      fi->signalSomeUpdate();
+    }
+  }
+  
+  return 0;
 }
+
+
+

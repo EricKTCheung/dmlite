@@ -177,7 +177,7 @@ public:
   dmlite::DmStatus utime(ino_t inode, const utimbuf *utim);
   
   /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
-  dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::Extensible& attr);
+  dmlite::DmStatus updateExtendedAttributes(ino_t inode, const dmlite::ExtendedStat& attr);
   /// Update the ext attributes of a file/dir Also propagates checksums to the legacy fields
   dmlite::DmStatus setChecksum(const ino_t fid, const std::string &csumtype, const std::string &csumvalue);
   

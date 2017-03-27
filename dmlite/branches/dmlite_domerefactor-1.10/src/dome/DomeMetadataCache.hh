@@ -304,16 +304,11 @@ public:
   boost::shared_ptr <DomeFileInfo > getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name);
 
   
-  /// Forcefully purge an entry using its fileid
-  void purgeEntry(DomeFileID fileid);
-  /// Forcefully purge an entry using its parentfileid+name
-  void purgeEntry(DomeFileID parentfileid, std::string name);
+  /// Tag an entry so that it will be soon purged or reloaded if needed again
+  void wipeEntry(DomeFileID fileid, DomeFileID parentfileid, std::string name);
   
-  /// For DB compatibility reasons, this cache has two keys, so it may happen that
-  /// two different objects get created with two different key types (sob)
-  /// If we detect that two cache entries refer to the same file but through different types of key
-  /// then we make sure that they are both filled with the same information
-  int fixupFileInfoKeys(DomeFileID fileid, DomeFileID parentfileid, std::string name);
+  /// Push the stat information into the cache, update both indexes atomically
+  int pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::InfoStatus newstatus_statinfo);
   
   
   /// Gives life to this obj, purges expired items, etc
