@@ -302,9 +302,10 @@ DomeIOHandler::DomeIOHandler(const std::string& path,
 
   this->fd_ = ::open(path.c_str(), flags, mode);
   if (this->fd_ == -1) {
+    int myerrno = errno;
     char errbuffer[128];
-    strerror_r(errno, errbuffer, sizeof(errbuffer));
-    throw DmException(errno, "Could not open %s err: %s", path.c_str(), errbuffer);
+    strerror_r(myerrno, errbuffer, sizeof(errbuffer));
+    throw DmException(errno, "Could not open %s errno: '%d' err: '%s'", path.c_str(), myerrno, errbuffer);
   }
 }
 
