@@ -490,9 +490,11 @@ int DomeCore::init(const char *cfgfile) {
 
     // Initialize the metadata cache
     DomeMetadataCache *dmc = DOMECACHE;
-    if (dmc)
+    if (dmc) {
+      dmc->Init();
       Log(Logger::Lvl1, domelogmask, domelogname, "Cache successfully started. maxitems: " <<
       CFG->GetLong("mdcache.maxitems", 1000000) << " itemttl:" << CFG->GetLong("mdcache.itemttl", 3600));
+    }
     else
       Log(Logger::Lvl1, domelogmask, domelogname, "Could not start the DOME cache.");
     
