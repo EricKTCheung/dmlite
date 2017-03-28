@@ -204,7 +204,7 @@ DmStatus DomeMySql::createfile(const dmlite::ExtendedStat &parent, std::string f
     // Register
     ret = this->create(newFile);
   if (!ret.ok())
-    return DmStatus(EINVAL, SSTR("Can't create folder '" << fname << "'"));
+    return DmStatus(EINVAL, SSTR("Can't create file '" << fname << "'"));
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Created: '" << fname << "' mode: " << mode);
 
