@@ -374,7 +374,7 @@ DmStatus DomeMySql::makedir(const ExtendedStat &parent, std::string dname, mode_
   else {
     // We take the gid of the first group of the user
     // Note by FF 06/02/2017: this makes little sense, I ported it from Catalog.cpp
-    // and I don't really know what to do
+    // and I don't really know what else to do
     egid = gid;
   }
   newFolder.stat.st_gid = egid;
@@ -498,6 +498,8 @@ DmStatus DomeMySql::setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, cons
     return DmStatus(e);
   }
 
+  DOMECACHE->wipeEntry(inode);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " mode:" << mode);
   return DmStatus();
 }
@@ -597,7 +599,8 @@ DmStatus DomeMySql::move(ino_t inode, ino_t dest)
     return DmStatus(e);
   }
 
-
+  DOMECACHE->wipeEntry(inode);
+  
   Log(Logger::Lvl1, domelogmask, domelogname, "Exiting.  inode:" << inode << " dest:" << dest);
   return DmStatus();
 }
