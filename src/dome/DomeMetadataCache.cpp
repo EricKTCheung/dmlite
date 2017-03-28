@@ -488,20 +488,23 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
     p = databyfileid.find(fileid);
     if (p == databyfileid.end()) {
       
-      // If we reached the max number of items, delete as many as we need
-      while (databyfileid.size() > maxitems) {
-        if (purgeLRUitem_fileid()) break;
-      }
       
       // If we still have no space, try to garbage collect the old items
       if (databyfileid.size() > maxitems) {
-        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyfileid.size() << ">" << maxitems << ", running garbage collection...");
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyfileid.size() << ">" << maxitems << ", running fileid garbage collection...");
         purgeExpired_fileid();
+      }
+      
+      
+      // If we reached the max number of items, delete as many as we need
+      while (databyfileid.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyfileid.size() << ">" << maxitems << ", purging fileid LRU items...");
+        if (purgeLRUitem_fileid()) break;
       }
       
       // If we still have no space, complain and do it anyway.
       if (databyfileid.size() > maxitems) {
-        Log(Logger::Lvl4, domelogmask, fname, "Maximum capacity exceeded. " << databyfileid.size() << ">" << maxitems);
+        Log(Logger::Lvl4, domelogmask, fname, "Maximum fileid cache capacity exceeded. " << databyfileid.size() << ">" << maxitems);
       }
       
       
@@ -548,20 +551,23 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
     p = databyparent.find(k);
     if (p == databyparent.end()) {
       
-      // If we reached the max number of items, delete as many as we need
-      while (databyparent.size() > maxitems) {
-        if (purgeLRUitem_parent()) break;
-      }
-      
       // If we still have no space, try to garbage collect the old items
       if (databyparent.size() > maxitems) {
-        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyparent.size() << ">" << maxitems << ", running garbage collection...");
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyparent.size() << ">" << maxitems << ", running parent garbage collection...");
         purgeExpired_parent();
       }
       
+      // If we reached the max number of items, delete as many as we need
+      while (databyparent.size() > maxitems) {
+        Log(Logger::Lvl4, domelogmask, fname, "Too many items " << databyparent.size() << ">" << maxitems << ", purging parent LRU items...");
+        if (purgeLRUitem_parent()) break;
+      }
+      
+
+      
       // If we still have no space, complain and do it anyway.
       if (databyparent.size() > maxitems) {
-        Log(Logger::Lvl4, domelogmask, fname, "Maximum capacity exceeded. " << databyparent.size() << ">" << maxitems);
+        Log(Logger::Lvl4, domelogmask, fname, "Maximum parent cache capacity exceeded. " << databyparent.size() << ">" << maxitems);
       }
       
       
