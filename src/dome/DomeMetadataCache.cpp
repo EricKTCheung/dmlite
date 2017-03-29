@@ -210,7 +210,7 @@ int DomeFileInfo::waitLocations(boost::unique_lock<boost::mutex> &l, int sectmou
   // If it's a cache hit we just exit
   if ((status_locations == Ok) || (status_locations == NotFound)) {
     Log(Logger::Lvl4, domelogmask, fname, "Info found. Fileid: " << fileid <<
-    " status_locations: " << status_statinfo);
+    " status_statinfo: " << status_statinfo << " status_locations: " << status_locations);
     
     return 1;
   }
@@ -592,7 +592,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   //  - a new empty UgrFileInfo
   //  - an UgrFileInfo taken from the 1st level cache
   
-  Log(Logger::Lvl3, domelogmask, fname, "fileid: " << fileid);
+  Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << fileid);
   return fi;
   
 }
