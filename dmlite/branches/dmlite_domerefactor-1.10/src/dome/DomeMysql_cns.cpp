@@ -1238,65 +1238,102 @@ DmStatus DomeMySql::getReplicas(std::vector<Replica> &reps, ino_t inode)
   char      cmeta[4096];
   char      ctype, cstatus;
   int i = 0;
-
+  
   Log(Logger::Lvl4, domelogmask, domelogname, " inode:" << inode);
-
-  // MySQL statement
-  try {
-    Statement stmt(conn_, CNS_DB, "SELECT rowid, fileid, nbaccesses,\
-    atime, ptime, ltime,\
-    status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
-    FROM Cns_file_replica\
-    WHERE fileid = ?");
-
-    // Execute query
-    stmt.bindParam(0, inode);
-    stmt.execute();
-
-    // Bind results
-    stmt.bindResult( 0, &replica.replicaid);
-    stmt.bindResult( 1, &replica.fileid);
-    stmt.bindResult( 2, &replica.nbaccesses);
-    stmt.bindResult( 3, &replica.atime);
-    stmt.bindResult( 4, &replica.ptime);
-    stmt.bindResult( 5, &replica.ltime);
-    stmt.bindResult( 6, &cstatus, 1);
-    stmt.bindResult( 7, &ctype, 1);
-    stmt.bindResult( 8, setnm,       sizeof(setnm));
-    stmt.bindResult( 9, cpool,       sizeof(cpool));
-    stmt.bindResult( 10, cserver,     sizeof(cserver));
-    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
-    stmt.bindResult(12, crfn,        sizeof(crfn));
-    stmt.bindResult(13, cmeta,       sizeof(cmeta));
-
-    reps.clear();
-
-    // Fetch
-    while (stmt.fetch()) {
-      replica.clear();
-
-      replica.rfn    = crfn;
-      replica.server = cserver;
-      replica.status = static_cast<Replica::ReplicaStatus>(cstatus);
-      replica.type   = static_cast<Replica::ReplicaType>(ctype);
-      replica.setname       = std::string(setnm);
-      replica.deserialize(cmeta);
-
-      replica["pool"]       = std::string(cpool);
-      replica["filesystem"] = std::string(cfilesystem);
-
-      reps.push_back(replica);
-      ++i;
-    };
-
-    if (!i)
-      return DmStatus(DMLITE_NO_SUCH_REPLICA, SSTR("No replicas for fileid " << inode));
+  
+  // Get the correponding item from the cache, it can be empty or pending. It's unlocked
+  boost::shared_ptr <DomeFileInfo > dfi = DOMECACHE->getFileInfoOrCreateNewOne(inode);
+  int done = 0;
+  {
+    boost::unique_lock<boost::mutex> l(*dfi);
+    
+    if (dfi->status_statinfo == DomeFileInfo::NotFound)
+      return DmStatus(ENOENT, SSTR("fileid " << inode << "' not found (cached)"));
+    
+    if (dfi->status_locations == DomeFileInfo::NotFound)
+      return DmStatus(ENOENT, SSTR("fileid " << inode << "' replicas not found (cached)"));
+    
+    done = dfi->waitLocations(l);
+    if(done) {
+      reps = dfi->replicas;
+    }
+    
   }
-  catch ( ... ) {
-    Err(domelogname, " Exception while getting replicas of fileid " << inode);
-    return DmStatus(EINVAL, SSTR(" Exception while getting replicas of fileid " << inode));
+  
+  if (!done) {
+    
+    // MySQL statement
+    try {
+      Statement stmt(conn_, CNS_DB, "SELECT rowid, fileid, nbaccesses,\
+      atime, ptime, ltime,\
+      status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
+      FROM Cns_file_replica\
+      WHERE fileid = ?");
+      
+      // Execute query
+      stmt.bindParam(0, inode);
+      stmt.execute();
+      
+      // Bind results
+      stmt.bindResult( 0, &replica.replicaid);
+      stmt.bindResult( 1, &replica.fileid);
+      stmt.bindResult( 2, &replica.nbaccesses);
+      stmt.bindResult( 3, &replica.atime);
+      stmt.bindResult( 4, &replica.ptime);
+      stmt.bindResult( 5, &replica.ltime);
+      stmt.bindResult( 6, &cstatus, 1);
+      stmt.bindResult( 7, &ctype, 1);
+      stmt.bindResult( 8, setnm,       sizeof(setnm));
+      stmt.bindResult( 9, cpool,       sizeof(cpool));
+      stmt.bindResult( 10, cserver,     sizeof(cserver));
+      stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
+      stmt.bindResult(12, crfn,        sizeof(crfn));
+      stmt.bindResult(13, cmeta,       sizeof(cmeta));
+      
+      reps.clear();
+      
+      // Fetch
+      while (stmt.fetch()) {
+        replica.clear();
+        
+        replica.rfn    = crfn;
+        replica.server = cserver;
+        replica.status = static_cast<Replica::ReplicaStatus>(cstatus);
+        replica.type   = static_cast<Replica::ReplicaType>(ctype);
+        replica.setname       = std::string(setnm);
+        replica.deserialize(cmeta);
+        
+        replica["pool"]       = std::string(cpool);
+        replica["filesystem"] = std::string(cfilesystem);
+        
+        reps.push_back(replica);
+        ++i;
+      };
+      
+      if (!i)
+        return DmStatus(DMLITE_NO_SUCH_REPLICA, SSTR("No replicas for fileid " << inode));
+    }
+    catch ( ... ) {
+      Err(domelogname, " Exception while getting replicas of fileid " << inode);
+      
+      
+      boost::unique_lock<boost::mutex> l(*dfi);
+      dfi->status_locations = DomeFileInfo::NotFound;
+      dfi->signalSomeUpdate();
+      
+      return DmStatus(EINVAL, SSTR(" Exception while getting replicas of fileid " << inode));
+    }
+    
+    // Now insert the new replica info into the cache and signal it.
+    {
+      boost::unique_lock<boost::mutex> l(*dfi);
+      dfi->replicas = reps;
+      dfi->status_locations = DomeFileInfo::Ok;
+      dfi->signalSomeUpdate();
+    }
+    
   }
-
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. inode:" << inode << " nrepls:" << i);
   return DmStatus();
 }
