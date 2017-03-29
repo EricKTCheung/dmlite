@@ -204,6 +204,70 @@ int DomeFileInfo::waitStat(boost::unique_lock<boost::mutex> &l, int sectmout)  {
 }
 
 
+int DomeFileInfo::waitLocations(boost::unique_lock<boost::mutex> &l, int sectmout)  {
+  const char *fname = "DomeFileInfo::waitLocations";
+  
+  // If it's a cache hit we just exit
+  if ((status_locations == Ok) || (status_locations == NotFound)) {
+    Log(Logger::Lvl4, domelogmask, fname, "Info found. Fileid: " << fileid <<
+    " status_locations: " << status_statinfo);
+    
+    return 1;
+  }
+  
+  // By convention, if there is noinfo then it's our responsibility to fill it, hence it becomes pending
+  if (status_locations == NoInfo) {
+    Log(Logger::Lvl4, domelogmask, fname, "Shall fill locations info. Fileid: " << fileid << 
+    "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+    "' status_statinfo: " << status_statinfo << " status_locations: " << status_locations);
+    
+    status_locations = InProgress;
+    
+    return 0;
+  }
+  
+  // If still pending, we wait for the file object to get a notification
+  // then we recheck...
+  time_t timelimit = time(0) + sectmout;
+  
+  Log(Logger::Lvl4, domelogmask, fname, "Starting check-wait. Fileid: " << fileid <<
+  "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+  "' status_statinfo: " << status_statinfo << " status_locations: " << status_locations);
+  
+  while (status_statinfo == InProgress) {
+    // Ignore the timeouts, exit only on an explicit notification
+    waitForSomeUpdate(l, 1);
+    // On global timeout... stop waiting
+    if (time(0) > timelimit) {
+      Log(Logger::Lvl1, domelogmask, fname, "Timeout. Fileid:" << fileid <<
+      "parent_fileid: " << parentfileid << " locfilename: '" << locfilename << "'");
+      break;
+    }
+  }
+  
+  Log(Logger::Lvl3, domelogmask, fname, "Finished check-wait. Fileid: " << fileid <<
+  "parent_fileid: " << parentfileid << " locfilename: '" << locfilename <<
+  "' status_statinfo: " << status_statinfo << " status_locations: " << status_locations);
+  
+  // We are here if someone else's lookup has finished OR in the case of timeout
+  // If the stat is still marked as in progress it means that the information was not filled
+  if (status_locations == InProgress)
+    return 2;
+  
+  // If it's a cache hit we just exit
+  if ((status_locations == Ok) || (status_locations == NotFound)) {
+    Log(Logger::Lvl4, domelogmask, fname, "Info found. Fileid: " << fileid <<
+    " status_statinfo: " << status_statinfo << " status_locations: " << status_locations);
+    
+    return 1;
+  }
+  
+  return 3;
+}
+
+
+
+
 //
 // ******************************************
 // ******************* DomeMetadataCache
