@@ -420,13 +420,21 @@ void DomeMetadataCache::purgeExpired_fileid() {
       
       if ((fi->lastreftime < tl) || (fi->lastreftime < timelimit_max)) {
         // The item is old...
-        Log(Logger::Lvl2, domelogmask, fname, "purging expired fileid " << fi->statinfo.stat.st_ino);
-        
+       
         if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
           (fi->status_locations == DomeFileInfo::InProgress) ) {
           Err(fname, "Found pending expired entry. Cannot purge fileid " << fi->statinfo.stat.st_ino);
           continue;
         }
+        
+        if (Logger::get()->getLevel() >= 4)
+          Log(Logger::Lvl4, domelogmask, fname, "purging expired fileid " << fi->statinfo.stat.st_ino <<
+            " name: '" << fi->statinfo.name << "' status_statinfo: " << fi->status_statinfo <<
+            " status_locations: " << fi->status_locations <<
+            " lastreftime: " << fi->lastreftime << " timelimit: " << tl << " timelimit_max: " << timelimit_max);
+        else
+          Log(Logger::Lvl2, domelogmask, fname, "purging expired fileid " << fi->statinfo.stat.st_ino <<
+            " name: '" << fi->statinfo.name << "'");
         
         lrudata.right.erase(fi->statinfo.stat.st_ino);
         
