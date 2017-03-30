@@ -412,9 +412,7 @@ void DomeMetadataCache::purgeExpired_fileid() {
       
       time_t tl = timelimit;
       if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NoInfo) ||
-        (fi->status_locations == DomeFileInfo::NoInfo) ) {
+        (fi->status_locations == DomeFileInfo::NotFound) ) {
         tl = timelimit_neg;
       }
       
@@ -498,21 +496,27 @@ void DomeMetadataCache::purgeExpired_parent() {
       
       time_t tl = timelimit;
       if ( (fi->status_statinfo == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NotFound) ||
-        (fi->status_locations == DomeFileInfo::NoInfo) ||
-        (fi->status_locations == DomeFileInfo::NoInfo) ) {
+        (fi->status_locations == DomeFileInfo::NotFound) ) {
         tl = timelimit_neg;
       }
       
       if ((fi->lastreftime < tl) || (fi->lastreftime < timelimit_max)) {
         // The item is old...
-        Log(Logger::Lvl2, domelogmask, fname, "purging expired parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
+        
         
         if ( (fi->status_statinfo == DomeFileInfo::InProgress) ||
           (fi->status_locations == DomeFileInfo::InProgress) ) {
           Err(fname, "Found pending expired entry. Cannot purge parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
           continue;
         }
+        
+        if (Logger::get()->getLevel() >= 4)
+          Log(Logger::Lvl4, domelogmask, fname, "purging expired parentfileid " << fi->statinfo.parent <<
+            " name: '" << fi->statinfo.name << "' status_statinfo: " << fi->status_statinfo <<
+            " status_locations: " << fi->status_locations <<
+            " lastreftime: " << fi->lastreftime << " timelimit: " << tl << " timelimit_max: " << timelimit_max);
+        else
+          Log(Logger::Lvl2, domelogmask, fname, "purging expired parentfileid " << fi->statinfo.parent << "'" << fi->statinfo.name << "'");
         
         lrudata.right.erase(fi->statinfo.stat.st_ino);
         
