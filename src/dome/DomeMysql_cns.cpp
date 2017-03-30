@@ -1310,8 +1310,12 @@ DmStatus DomeMySql::getReplicas(std::vector<Replica> &reps, ino_t inode)
         ++i;
       };
       
-      if (!i)
+      if (!i) {
+        boost::unique_lock<boost::mutex> l(*dfi);
+        dfi->status_locations = DomeFileInfo::Ok;
+        dfi->signalSomeUpdate();
         return DmStatus(DMLITE_NO_SUCH_REPLICA, SSTR("No replicas for fileid " << inode));
+      }
     }
     catch ( ... ) {
       Err(domelogname, " Exception while getting replicas of fileid " << inode);
