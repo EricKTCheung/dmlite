@@ -58,10 +58,10 @@ DomeFileInfo::DomeFileInfo(DomeFileID file_id) {
 
 }
 
-DomeFileInfo::DomeFileInfo(DomeFileID parentfileid, std::string name) {
+DomeFileInfo::DomeFileInfo(DomeFileID parentfid, std::string name) {
   
   this->fileid = 0;
-  parentfileid = parentfileid;
+  this->parentfileid = parentfid;
   locfilename = name;
   
   status_statinfo = NoInfo;

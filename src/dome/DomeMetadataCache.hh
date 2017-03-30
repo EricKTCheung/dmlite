@@ -90,7 +90,7 @@ public:
   /// @param parentfileid The parent fileid that together with the name univocally identifies this file or dir
   /// @param name The name (not path!)  that together with the parentfileid univocally identifies this file or dir
   DomeFileInfo(DomeFileID file_id);
-  DomeFileInfo(DomeFileID parentfileid, std::string fname);
+  DomeFileInfo(DomeFileID parentfid, std::string fname);
   ~DomeFileInfo();
   
   /// The name of this file relative to its parent directory
