@@ -549,6 +549,7 @@ void DomeMetadataCache::purgeExpired_parent() {
 boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(DomeFileID fileid) {
   const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne";
   boost::shared_ptr <DomeFileInfo > fi;
+  bool hit = true;
   
   Log(Logger::Lvl4, domelogmask, fname, "fileid: " << fileid);
   
@@ -582,7 +583,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
       
       // Create a new empty item
       fi.reset( new DomeFileInfo(fileid) );
-            
+      hit = false;
       databyfileid[fileid] = boost::shared_ptr <DomeFileInfo >(fi);
       lrudata.insert(lrudataitem(++lrutick, fileid));
       
@@ -599,8 +600,11 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   // Here we have either
   //  - a new empty UgrFileInfo
   //  - an UgrFileInfo taken from the 1st level cache
+  if (hit)
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (hit). fileid: " << fileid);
+  else
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (miss). fileid: " << fileid);
   
-  Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << fileid);
   return fi;
   
 }
@@ -608,6 +612,7 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
 boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(DomeFileID parentfileid, std::string name) {
   const char *fname = "DomeMetadataCache::getFileInfoOrCreateNewOne(parent)";
   boost::shared_ptr<DomeFileInfo> fi;
+  bool hit = true;
   
   Log(Logger::Lvl4, domelogmask, fname, "parentfileid: " << parentfileid << " name: '" << name << "'");
   
@@ -645,7 +650,7 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
       
       // Create a new item
       fi.reset( new DomeFileInfo(parentfileid, name) );
-      
+      hit = false;
       databyparent[k] = fi;
       lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
       
@@ -663,7 +668,11 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
   //  - a new empty UgrFileInfo, marked as pending for both statinfo and locations
   //  - an UgrFileInfo taken from the 1st level cache
   
-  Log(Logger::Lvl3, domelogmask, fname, "Exiting. parentfileid: " << parentfileid << " name: '" << name << "'");
+  if (hit)
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (hit). parentfileid: " << parentfileid << " name: '" << name << "'");
+  else
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (miss). parentfileid: " << parentfileid << " name: '" << name << "'");
+  
   return fi;
   
 }
@@ -779,6 +788,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       boost::unique_lock<boost::mutex> l(*fi);
       fi->statinfo = xstat;
       fi->status_statinfo = newstatus_statinfo;
+      fi->fileid = xstat.stat.st_ino;
       fi->signalSomeUpdate();
     }
   }
@@ -799,6 +809,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       boost::unique_lock<boost::mutex> l(*fi);
       fi->statinfo = xstat;
       fi->status_statinfo = newstatus_statinfo;
+      fi->parentfileid = xstat.parent;
       fi->signalSomeUpdate();
     }
   }
