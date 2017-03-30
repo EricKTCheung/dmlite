@@ -847,7 +847,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       // To disable the cache, set maxitems to 0
       if (maxitems > 0) {
         databyparent[k] = fi;
-        lrudata.insert(lrudataitem(++lrutick, xstat.stat.st_ino));
+        lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
       }
     }
     
