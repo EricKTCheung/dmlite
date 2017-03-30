@@ -584,8 +584,11 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
       // Create a new empty item
       fi.reset( new DomeFileInfo(fileid) );
       hit = false;
-      databyfileid[fileid] = boost::shared_ptr <DomeFileInfo >(fi);
-      lrudata.insert(lrudataitem(++lrutick, fileid));
+      // To disable the cache, set maxitems to 0
+      if (maxitems > 0) {
+        databyfileid[fileid] = boost::shared_ptr <DomeFileInfo >(fi);
+        lrudata.insert(lrudataitem(++lrutick, fileid));
+      }
       
     } else {
       // Promote the element to being the most recently used
@@ -651,8 +654,12 @@ boost::shared_ptr<DomeFileInfo> DomeMetadataCache::getFileInfoOrCreateNewOne(Dom
       // Create a new item
       fi.reset( new DomeFileInfo(parentfileid, name) );
       hit = false;
-      databyparent[k] = fi;
-      lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
+      
+      // To disable the cache, set maxitems to 0
+      if (maxitems > 0) {
+        databyparent[k] = fi;
+        lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
+      }
       
     } else {
       // Promote the element to being the most recently used
