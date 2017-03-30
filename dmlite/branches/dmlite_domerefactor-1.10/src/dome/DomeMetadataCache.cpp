@@ -802,6 +802,17 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       fi->fileid = xstat.stat.st_ino;
       fi->signalSomeUpdate();
     }
+    else {
+      // Create a new item
+      boost::shared_ptr <DomeFileInfo > fi( new DomeFileInfo(xstat.stat.st_ino) );
+      fi->statinfo = xstat;
+      fi->status_statinfo = DomeFileInfo::Ok;
+      // To disable the cache, set maxitems to 0
+      if (maxitems > 0) {
+        databyfileid[xstat.stat.st_ino] = fi;
+        lrudata.insert(lrudataitem(++lrutick, xstat.stat.st_ino));
+      }
+    }
   }
   
   {
@@ -823,6 +834,23 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       fi->parentfileid = xstat.parent;
       fi->signalSomeUpdate();
     }
+    else {
+      // Create a new item
+      boost::shared_ptr <DomeFileInfo > fi( new DomeFileInfo(xstat.parent, xstat.name) );
+
+      DomeFileInfoParent k;
+      k.name = xstat.name;
+      k.parentfileid = xstat.parent;
+      
+      fi->statinfo = xstat;
+      fi->status_statinfo = DomeFileInfo::Ok;
+      // To disable the cache, set maxitems to 0
+      if (maxitems > 0) {
+        databyparent[k] = fi;
+        lrudata.insert(lrudataitem(++lrutick, xstat.stat.st_ino));
+      }
+    }
+    
   }
   
   Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << xstat.stat.st_ino << " parentfileid: " <<
