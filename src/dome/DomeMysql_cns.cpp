@@ -1046,6 +1046,9 @@ DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid)
       dfi->status_statinfo = DomeFileInfo::Ok;
       dfi->signalSomeUpdate();
     }
+    
+    DOMECACHE->pushXstatInfo(xstat, DomeFileInfo::Ok);
+    
   }
 
   
@@ -1410,6 +1413,8 @@ DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t f
       dfi->status_statinfo = DomeFileInfo::Ok;
       dfi->signalSomeUpdate();
     }
+    
+    DOMECACHE->pushXstatInfo(xstat, DomeFileInfo::Ok);
   }
   
   
