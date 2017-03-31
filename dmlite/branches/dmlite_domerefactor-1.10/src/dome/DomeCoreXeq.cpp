@@ -2665,7 +2665,7 @@ int DomeCore::dome_getquotatoken(DomeReq &req, FCGX_Request &request) {
     long long pathused = 0LL;
 
     struct dmlite::ExtendedStat st;
-    ret = sql.getStatbyLFN(st, absPath);
+    ret = sql.getStatbyLFN(st, it->second.path);
 
     if (!ret.ok()) {
       std::ostringstream os;
