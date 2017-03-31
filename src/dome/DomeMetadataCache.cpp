@@ -781,40 +781,13 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
 
 int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::InfoStatus newstatus_statinfo) {
   const char *fname = "DomeMetadataCache::pushXstatInfo";
+  
   Log(Logger::Lvl4, domelogmask, fname, "Adjusting fileid: " << xstat.stat.st_ino << " parentfileid: " <<
   xstat.parent << " name: '" << xstat.name << "'");
   
-  boost::lock_guard<DomeMetadataCache> l(*this);
+  boost::shared_ptr <DomeFileInfo > fi;
   
-  {
-    std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator p;
-    
-    // Fix the item got through the fileid
-    p = databyfileid.find(xstat.stat.st_ino);
-    if (p != databyfileid.end()) {
-      Log(Logger::Lvl4, domelogmask, fname, "Adjusting fileid: " << xstat.stat.st_ino );
-      boost::shared_ptr<DomeFileInfo> fi;
-      fi = p->second;
-      
-      boost::unique_lock<boost::mutex> l(*fi);
-      fi->statinfo = xstat;
-      fi->status_statinfo = newstatus_statinfo;
-      fi->fileid = xstat.stat.st_ino;
-      fi->signalSomeUpdate();
-    }
-    else {
-      // Create a new item
-      boost::shared_ptr <DomeFileInfo > fi( new DomeFileInfo(xstat.stat.st_ino) );
-      fi->statinfo = xstat;
-      fi->status_statinfo = DomeFileInfo::Ok;
-      // To disable the cache, set maxitems to 0
-      if (maxitems > 0) {
-        databyfileid[xstat.stat.st_ino] = fi;
-        lrudata.insert(lrudataitem(++lrutick, xstat.stat.st_ino));
-      }
-    }
-  }
-  
+  boost::lock_guard<DomeMetadataCache> l(*this);  
   {
     // Fix the item got through the parentfileid+name
     DomeFileInfoParent k;
@@ -825,7 +798,7 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
     p = databyparent.find(k);
     if (p != databyparent.end()) {
       Log(Logger::Lvl4, domelogmask, fname, "Adjusting parentfileid: " << xstat.parent << " name: '" << xstat.name << "'");
-      boost::shared_ptr<DomeFileInfo> fi;
+      
       fi = p->second;
       
       boost::unique_lock<boost::mutex> l(*fi);
@@ -836,8 +809,8 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
     }
     else {
       // Create a new item
-      boost::shared_ptr <DomeFileInfo > fi( new DomeFileInfo(xstat.parent, xstat.name) );
-
+      fi.reset( new DomeFileInfo(xstat.parent, xstat.name) );
+      
       DomeFileInfoParent k;
       k.name = xstat.name;
       k.parentfileid = xstat.parent;
@@ -848,6 +821,39 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
       if (maxitems > 0) {
         databyparent[k] = fi;
         lrudata_parent.insert(lrudataitem_parent(++lrutick, k));
+      }
+    }
+    
+    
+    
+    {
+      std::map< DomeFileID, boost::shared_ptr<DomeFileInfo> >::iterator p;
+      
+      // Fix the item got through the fileid
+      p = databyfileid.find(xstat.stat.st_ino);
+      if (p != databyfileid.end()) {
+        Log(Logger::Lvl4, domelogmask, fname, "Adjusting fileid: " << xstat.stat.st_ino );
+        
+        fi = p->second;
+        
+        boost::unique_lock<boost::mutex> l(*fi);
+        fi->statinfo = xstat;
+        fi->status_statinfo = newstatus_statinfo;
+        fi->fileid = xstat.stat.st_ino;
+        fi->signalSomeUpdate();
+      }
+      else {
+        // Create a new item if fi has not been set
+        if (!fi)
+          fi.reset( new DomeFileInfo(xstat.stat.st_ino) );
+        
+        fi->statinfo = xstat;
+        fi->status_statinfo = DomeFileInfo::Ok;
+        // To disable the cache, set maxitems to 0
+        if (maxitems > 0) {
+          databyfileid[xstat.stat.st_ino] = fi;
+          lrudata.insert(lrudataitem(++lrutick, xstat.stat.st_ino));
+        }
       }
     }
     
