@@ -337,3 +337,23 @@ void DomeAdapterHeadCatalog::unlink(const std::string& path) throw (DmException)
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
+
+ExtendedStat DomeAdapterHeadCatalog::extendedStatByRFN(const std::string& rfn)  throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rfn: " << rfn );
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getstatinfo");
+
+  if(!talker.execute("rfn", rfn)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    ExtendedStat xstat;
+    ptree_to_xstat(talker.jresp(), xstat);
+    return xstat;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
