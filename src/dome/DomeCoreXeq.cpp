@@ -992,57 +992,6 @@ int DomeCore::dome_putdone_disk(DomeReq &req, FCGX_Request &request) {
   return DomeReq::SendSimpleResp(request, DOME_HTTP_OK, talker.response());
 }
 
-// Add this filesize to the size of its parent dirs, only the first N levels
-bool DomeCore::addFilesizeToDirs(DomeMySql &sql, ExtendedStat file, int64_t size) {
-  const size_t MAX_HIERARCHY_SIZE = 128;
-  ino_t hierarchy[MAX_HIERARCHY_SIZE];
-  unsigned int idx = 0;
-  DmStatus ret;
-
-  ExtendedStat st = file;
-  while (st.parent) {
-    Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
-
-
-    ret = sql.getStatbyFileid(st, st.parent);
-    if (!ret.ok()) {
-      Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
-      return false;
-    }
-
-    hierarchy[idx] = st.stat.st_ino;
-
-    Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
-    " is " << st.stat.st_size << " with idx " << idx);
-
-    idx++;
-
-    if (idx >= MAX_HIERARCHY_SIZE) {
-      Err( domelogname , " Too many parent directories for file " << file.stat.st_ino);
-      return false;
-    }
-  }
-
-  {
-    DomeMySqlTrans t(&sql);
-
-    // Update the filesize in the first levels
-    // Avoid the contention on /dpm/voname/home
-    if (idx > 0) {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
-      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
-        Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << size);
-        sql.addtoDirectorySize(hierarchy[i], size);
-      }
-    }
-    else {
-      Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
-    }
-
-    t.Commit();
-  }
-  return true;
-}
 
 int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
@@ -1217,7 +1166,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
   }
 
-  if(!addFilesizeToDirs(sql, st, size)) {
+  if(!sql.addFilesizeToDirs(st, size).ok()) {
     Err(domelogname, SSTR("Unable to add filesize to parent directories of  " << st.stat.st_ino << ". Directory sizes will be inconsistent."));
   }
 
@@ -3116,7 +3065,7 @@ int DomeCore::dome_delreplica(DomeReq &req, FCGX_Request &request) {
       }
     }
 
-    if(!addFilesizeToDirs(sql, xstat, -sz)) {
+    if(!sql.addFilesizeToDirs(xstat, -sz).ok()) {
       Err(domelogname, SSTR("Unable to decrease filesize from parent directories of fileid: " << xstat.stat.st_ino ));
     }
 
@@ -5105,7 +5054,10 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
           return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to delete physical replica '" << replicas[i].rfn << "' err:" << talker.err()));
         }
 
-
+        
+        if(!sql.addFilesizeToDirs(file, -file.stat.st_size).ok()) {
+          Err(domelogname, SSTR("Unable to decrease filesize from parent directories of fileid: " << file.stat.st_ino ));
+        }
       }
     }
 

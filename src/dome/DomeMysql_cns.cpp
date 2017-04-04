@@ -32,7 +32,7 @@
 #include "DomeLog.h"
 #include "inode.h"
 #include "utils/urls.h"
-
+#include <sys/param.h>
 #include <boost/thread.hpp>
 #include <time.h>
 
@@ -1460,6 +1460,57 @@ DmStatus DomeMySql::setSize(ino_t inode, int64_t filesize) {
 
 
 
+// Add this filesize to the size of its parent dirs, only the first N levels
+DmStatus DomeMySql::addFilesizeToDirs(ExtendedStat file, int64_t size) {
+  const size_t MAX_HIERARCHY_SIZE = 128;
+  ino_t hierarchy[MAX_HIERARCHY_SIZE];
+  unsigned int idx = 0;
+  DmStatus ret;
+  
+  ExtendedStat st = file;
+  while (st.parent) {
+    Log(Logger::Lvl4, domelogmask, domelogname, " Going to stat " << st.parent << " parent of " << st.stat.st_ino << " with idx " << idx);
+    
+    
+    ret = getStatbyFileid(st, st.parent);
+    if (!ret.ok()) {
+      Err( domelogname , " Cannot stat inode " << st.parent << " parent of " << st.stat.st_ino);
+      return ret;
+    }
+    
+    hierarchy[idx] = st.stat.st_ino;
+    
+    Log(Logger::Lvl4, domelogmask, domelogname, " Size of inode " << st.stat.st_ino <<
+    " is " << st.stat.st_size << " with idx " << idx);
+    
+    idx++;
+    
+    if (idx >= MAX_HIERARCHY_SIZE) {
+      Err( domelogname , " Too many parent directories for file " << file.stat.st_ino);
+      return DmStatus(EINVAL, SSTR(" Too many parent directories for file " << file.stat.st_ino));
+    }
+  }
+  
+  {
+    DomeMySqlTrans t(this);
+    
+    // Update the filesize in the first levels
+    // Avoid the contention on /dpm/voname/home
+    if (idx > 0) {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Going to set sizes. Max depth found: " << idx);
+      for (int i = MAX(0, idx-3); i >= MAX(0, idx-1-CFG->GetLong("head.dirspacereportdepth", 6)); i--) {
+        Log(Logger::Lvl4, domelogmask, domelogname, " Inode: " << hierarchy[i] << " Size increment: " << size);
+        addtoDirectorySize(hierarchy[i], size);
+      }
+    }
+    else {
+      Log(Logger::Lvl4, domelogmask, domelogname, " Cannot set any size. Max depth found: " << idx);
+    }
+    
+    t.Commit();
+  }
+  return DmStatus();
+}
 
 
 
@@ -1511,7 +1562,7 @@ DmStatus DomeMySql::unlink(ino_t inode)
       WHERE fileid = ?");
       delReplicas.bindParam(0, inode);
       delReplicas.execute();
-
+      
       // Remove file itself
       Log(Logger::Lvl4, domelogmask, domelogname, "Deleting file entry.  inode:" << inode);
 
@@ -1542,6 +1593,8 @@ DmStatus DomeMySql::unlink(ino_t inode)
     // Commit the local trans object
     trans.Commit();
   }
+  
+
   catch (DmException e) {
     return DmStatus(EINVAL, SSTR("Cannot unlink fileid: " << inode << "err: '" << e.what()));
   }
