@@ -132,7 +132,8 @@ public:
   dmlite::DmStatus setMode(ino_t inode, uid_t uid, gid_t gid, mode_t mode, const dmlite::Acl& acl);
   /// Removes a logical file entry
   dmlite::DmStatus unlink(ino_t inode);
-  
+  /// Adjust the size of the parent directories by a certain amount
+  dmlite::DmStatus addFilesizeToDirs(dmlite::ExtendedStat file, int64_t sizediff);
   /// Add a symlink
   dmlite::DmStatus symlink(ino_t inode, const std::string &link);
   
