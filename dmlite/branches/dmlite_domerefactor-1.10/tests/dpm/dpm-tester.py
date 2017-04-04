@@ -772,6 +772,26 @@ class ProtocolTester:
 
         return hammer_tester(functions, arguments)
 
+    def Delete_files_in_parallel(self, target):
+        ensure_safe_path(target)
+        desc = """Delete the contents of '{0}' in parallel""".format(target)
+        result = self.new_result(desc)
+
+        res = run_gfal_expect_ok(self.ctx.opendir, [target])
+        if not result.absorb(res): return result
+        dirp = res.status.output
+
+        listing = []
+        while True:
+            res = run_gfal_expect_ok(dirp.readpp, [])
+            if not result.absorb(res): return result
+            (dirent, fstat) = res.status.output
+            if not dirent: break
+
+            listing.append([path_join(target, dirent.d_name)])
+
+        return hammer_tester([self.Remove_file]*len(listing), listing)
+
     def Upload_delete_loop(self, source, destination, ntimes):
         result = self.new_result()
         result.write(f("{source} => {destination}"))
@@ -1142,8 +1162,22 @@ def single_protocol_tests(args, scope):
 
     nfiles = args.hammer_parallel_uploads
     if nfiles > 0:
-        descr = "Hammer test - upload {0} files in parallel: {1}".format(nfiles, extract_path(target))
-        orch.add(tester.Upload_files_in_parallel, [ ["/etc/services"]*nfiles, target], descr)
+        target_parallel = path_join(target, "parallel")
+        descr = "Create testdir: " + extract_path(target_parallel)
+        orch.add(tester.Create_directory, [target_parallel], descr)
+
+        descr = "Hammer test - upload {0} files in parallel: {1}".format(nfiles, extract_path(target_parallel))
+        orch.add(tester.Upload_files_in_parallel, [ ["/etc/services"]*nfiles, target_parallel], descr)
+
+        st = os.stat("/etc/services")
+        descr = "Verify size of " + extract_path(target_parallel)
+        orch.add(tester.Verify_size, [target_parallel, st.st_size * nfiles, True], descr)
+
+        descr = "Delete contents in parallel: " + extract_path(target_parallel)
+        orch.add(tester.Delete_files_in_parallel, [target_parallel], descr)
+
+        descr = "Verify size of " + extract_path(target_parallel)
+        orch.add(tester.Verify_size, [target_parallel, 0, True], descr)
 
     ntimes = args.upload_delete_loop
     if ntimes > 0:
