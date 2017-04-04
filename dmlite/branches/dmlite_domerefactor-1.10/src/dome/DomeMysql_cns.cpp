@@ -681,6 +681,11 @@ DmStatus DomeMySql::addReplica(const Replica& replica)
   catch ( DmException e ) {
     return DmStatus(e);
   }
+  
+  
+  // Wipe the file entry from the cache
+  DOMECACHE->wipeEntry(s.stat.st_ino, s.parent, s.name);
+  
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. replica:" << replica.rfn);
   return DmStatus();
@@ -732,6 +737,10 @@ DmStatus DomeMySql::updateReplica(const Replica& rdata)
     return DmStatus(e);
   }
 
+  
+  // Wipe the file entry from the cache
+  DOMECACHE->wipeEntry(rdata.fileid);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rdata:" << rdata.rfn);
   return DmStatus();
 }
@@ -764,6 +773,10 @@ int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
     return 1;
   }
 
+  
+  // Wipe the file entry from the cache
+  DOMECACHE->wipeEntry(fileid);
+  
   Log(Logger::Lvl3, domelogmask, domelogname, "Replica deleted. fileid: '" << fileid << "' rfn: " << rfn
       << " nrows: " << nrows; );
 
