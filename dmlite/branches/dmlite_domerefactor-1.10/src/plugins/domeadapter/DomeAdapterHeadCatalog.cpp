@@ -315,3 +315,25 @@ ExtendedStat* DomeAdapterHeadCatalog::readDirx(Directory* dir) throw (DmExceptio
   domedir->pos_++;
   return &domedir->entries_[domedir->pos_ - 1];
 }
+
+void DomeAdapterHeadCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_rename");
+
+  if(!talker.execute("oldpath", oldPath, "newpath", newPath)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::unlink(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_unlink");
+
+  if(!talker.execute("lfn", path)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}

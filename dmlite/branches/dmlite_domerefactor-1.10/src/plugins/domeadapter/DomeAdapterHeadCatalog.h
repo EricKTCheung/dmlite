@@ -44,7 +44,7 @@ namespace dmlite {
     void setStackInstance(StackInstance* si) throw (DmException);
 
     DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw (DmException);
-    ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
+    ExtendedStat extendedStat(const std::string&, bool followSym = true) throw (DmException);
 
     void changeDir(const std::string& path) throw (DmException);
 
@@ -62,6 +62,9 @@ namespace dmlite {
     void removeDir(const std::string& path) throw (DmException);
     void setGuid(const std::string& path, const std::string& guid) throw (DmException);
     void setSize(const std::string& path, size_t newSize) throw (DmException);
+
+    void rename(const std::string& oldPath, const std::string& newPath) throw (DmException);
+    void unlink(const std::string& path) throw (DmException);
 
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
