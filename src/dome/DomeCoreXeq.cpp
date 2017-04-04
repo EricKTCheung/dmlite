@@ -3528,6 +3528,9 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
 
         ret = sql.traverseBackwards(ctx, parent);
         if (!ret.ok()) {
+          if (ret.code() == ENOENT)
+            return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on the parents of lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+          
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
         }
         // Need to be able to read the parent
@@ -3597,10 +3600,14 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
       {
         DomeMySql sql;
         ret = sql.getStatbyRFN(st, rfn);
-
-
+        if (!ret.ok())
+          return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+     
         ret = sql.traverseBackwards(ctx, st);
         if (!ret.ok()) {
+          if (ret.code() == ENOENT)
+            return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on the parents of rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
+          
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
         }
         // Need to be able to read the parents

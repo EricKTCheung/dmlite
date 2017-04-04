@@ -351,7 +351,8 @@ int DomeMetadataCache::purgeLRUitem_parent() {
     boost::shared_ptr<DomeFileInfo> fi = databyparent[s];
     
     if (!fi) {
-      Err(fname, "Could not find the LRU_parent item in the cache.");
+      Err(fname, "Could not find the LRU_parent item in the cache. Fixing.");
+      lrudata_parent.right.erase(s);
       return 2;
     }
     
