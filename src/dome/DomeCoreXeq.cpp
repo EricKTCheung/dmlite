@@ -398,7 +398,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
 
   // Remove the filesystems that have less than the minimum free space available
   for (int i = selectedfss.size()-1; i >= 0; i--) {
-    
+
     if ( selectedfss[i].canPullFile(status) ) {
       // If the filesystem belongs to a volatile pool then we filter it out
       // only if the volume is too small, because we assume that files can be purged
@@ -417,7 +417,7 @@ int DomeCore::dome_put(DomeReq &req, FCGX_Request &request, bool &success, struc
         selectedfss.erase(selectedfss.begin()+i);
       }
     }
-    
+
   }
 
   // If no filesystems remain, return error "filesystems full for path ..."
