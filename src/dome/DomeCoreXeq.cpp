@@ -4651,12 +4651,17 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
 
+    DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
+    DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
+    
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
       ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
+      DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, oldName);
+      DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, newName);
     }
     else {
       // Parent is the same, but change its mtime
