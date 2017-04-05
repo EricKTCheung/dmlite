@@ -4662,6 +4662,8 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         "' err: " << ret.code() << "'" << ret.what() << "'"));
       DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, oldName);
       DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, newName);
+      DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
+      DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
     }
     else {
       // Parent is the same, but change its mtime
