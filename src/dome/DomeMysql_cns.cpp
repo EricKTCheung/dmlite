@@ -1751,8 +1751,6 @@ DmStatus DomeMySql::rename(ino_t inode, const std::string& name) {
   catch ( ... ) {
     return DmStatus(EINVAL, SSTR("Cannot rename fileid: " << inode << " to name '" << name << "'"));
   }
-
-  DOMECACHE->wipeEntry(inode);
   
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode << " name:" << name);
 
