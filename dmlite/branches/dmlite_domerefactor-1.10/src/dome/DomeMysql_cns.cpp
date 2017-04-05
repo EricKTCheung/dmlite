@@ -599,7 +599,6 @@ DmStatus DomeMySql::move(ino_t inode, ino_t dest)
     return DmStatus(e);
   }
 
-  DOMECACHE->wipeEntry(inode);
   
   Log(Logger::Lvl1, domelogmask, domelogname, "Exiting.  inode:" << inode << " dest:" << dest);
   return DmStatus();
