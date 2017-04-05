@@ -723,12 +723,13 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid) {
   Log(Logger::Lvl4, domelogmask, fname, "fileid: " << fileid);
   
   dmlite::ExtendedStat xstat;
+  xstat.parent = 0;
+  xstat.name = "";
   DomeMySql sql;
-  dmlite::DmStatus ret;
 
-  ret = sql.getStatbyFileid(xstat, fileid);
-  if (ret.ok())
-    wipeEntry(xstat.stat.st_ino, xstat.parent, xstat.name);
+  sql.getStatbyFileid(xstat, fileid);
+
+  wipeEntry(xstat.stat.st_ino, xstat.parent, xstat.name);
   
   
 }
@@ -757,7 +758,7 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
     }
   }
   
-  {
+  if (name.length() || (parentfileid > 0)) {
     // Fix the item got through the parentfileid+name
     DomeFileInfoParent k;
     k.name = name;
