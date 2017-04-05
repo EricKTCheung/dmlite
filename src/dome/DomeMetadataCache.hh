@@ -313,6 +313,8 @@ public:
   /// Push the stat information into the cache, update both indexes atomically
   int pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::InfoStatus newstatus_statinfo);
   
+  /// Purge an item
+  int removeInfo(DomeFileID fileid, DomeFileID parentfileid, std::string name);
   
   /// Gives life to this obj, purges expired items, etc
   void tick();

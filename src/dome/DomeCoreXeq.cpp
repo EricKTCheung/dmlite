@@ -4653,10 +4653,8 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
 
-    DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
-    old.name = newName;
-    DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
-
+    DOMECACHE->removeInfo(old.stat.st_ino, old.parent, oldName);
+    DOMECACHE->removeInfo(old.stat.st_ino, old.parent, newName);
     
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
@@ -4665,10 +4663,8 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
       
-      DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
-      old.parent = newParent.stat.st_ino;
-      DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
-      
+      DOMECACHE->removeInfo(old.stat.st_ino, newParent.stat.st_ino, oldName);
+      DOMECACHE->removeInfo(old.stat.st_ino, newParent.stat.st_ino, newName);           
 
     }
     else {

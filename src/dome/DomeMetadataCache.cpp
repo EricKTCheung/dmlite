@@ -872,3 +872,29 @@ int DomeMetadataCache::pushXstatInfo(dmlite::ExtendedStat xstat, DomeFileInfo::I
 
 
 
+
+int DomeMetadataCache::removeInfo(DomeFileID fileid, DomeFileID parentfileid, std::string name) {
+  const char *fname = "DomeMetadataCache::removeInfo";
+  
+  Log(Logger::Lvl4, domelogmask, fname, "Removing fileid: " << fileid << " parentfileid: " <<
+  parentfileid << " name: '" << name << "'");
+  
+  
+  boost::lock_guard<DomeMetadataCache> l(*this);  
+  {
+    // Remove the item got through the parentfileid+name
+    DomeFileInfoParent k;
+    k.name = name;
+    k.parentfileid = parentfileid;
+    
+    databyparent.erase(k);
+      
+    // Remove the item got through the fileid
+    databyfileid.erase(fileid);
+    
+  }
+  
+  Log(Logger::Lvl3, domelogmask, fname, "Exiting. fileid: " << fileid << " parentfileid: " <<
+  parentfileid << " name: '" << name << "'");
+  return 0;
+}
