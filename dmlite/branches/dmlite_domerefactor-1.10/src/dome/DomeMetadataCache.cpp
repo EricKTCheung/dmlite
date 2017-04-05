@@ -609,9 +609,9 @@ boost::shared_ptr <DomeFileInfo > DomeMetadataCache::getFileInfoOrCreateNewOne(D
   //  - a new empty UgrFileInfo
   //  - an UgrFileInfo taken from the 1st level cache
   if (hit)
-    Log(Logger::Lvl3, domelogmask, fname, "Exiting (hit). fileid: " << fileid);
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (hit). fileid: " << fileid << " addr: " << fi);
   else
-    Log(Logger::Lvl3, domelogmask, fname, "Exiting (miss). fileid: " << fileid);
+    Log(Logger::Lvl3, domelogmask, fname, "Exiting (miss). fileid: " << fileid << " addr: " << fi);
   
   return fi;
   
@@ -747,7 +747,7 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
     // Fix the item got through the fileid
     p = databyfileid.find(fileid);
     if (p != databyfileid.end()) {
-      Log(Logger::Lvl4, domelogmask, fname, "Found fileid: " << fileid );
+      Log(Logger::Lvl4, domelogmask, fname, "Found fileid: " << fileid << " addr: " << p->second);
       boost::shared_ptr<DomeFileInfo> fi;
       fi = p->second;
       
@@ -768,7 +768,7 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
     std::map< DomeFileInfoParent, boost::shared_ptr<DomeFileInfo> >::iterator p;
     p = databyparent.find(k);
     if (p != databyparent.end()) {
-      Log(Logger::Lvl4, domelogmask, fname, "Found parentfileid: " << parentfileid << " name: '" << name << "'");
+      Log(Logger::Lvl4, domelogmask, fname, "Found parentfileid: " << parentfileid << " name: '" << name << "'" << " addr: " << p->second);
       boost::shared_ptr<DomeFileInfo> fi;
       fi = p->second;
       
