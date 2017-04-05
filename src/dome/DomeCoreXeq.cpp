@@ -4642,7 +4642,9 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   // We are good, so we can move now
   {
     DomeMySqlTrans t(&sql);
-
+    
+    
+    
     // Change the name if needed
     if (newName != oldName) {
       ret = sql.rename(old.stat.st_ino, newName);
@@ -4651,10 +4653,10 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
         "' err: " << ret.code() << "'" << ret.what() << "'"));
     }
 
-    DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
-    DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
-    DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, newName);
-    DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, oldName);
+    DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
+    old.name = newName;
+    DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
+
     
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
@@ -4662,12 +4664,12 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
-      DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, oldName);
-      DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, newName);
-      DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
-      DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
-      DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, newName);
-      DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, oldName);
+      
+      DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
+      old.parent = newParent.stat.st_ino;
+      DOMECACHE->pushXstatInfo(old, DomeFileInfo::NoInfo);
+      
+
     }
     else {
       // Parent is the same, but change its mtime
