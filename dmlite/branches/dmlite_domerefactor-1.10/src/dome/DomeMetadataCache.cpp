@@ -754,6 +754,7 @@ void DomeMetadataCache::wipeEntry(DomeFileID fileid, DomeFileID parentfileid, st
       boost::unique_lock<boost::mutex> l(*fi);
       fi->status_statinfo = DomeFileInfo::NoInfo;
       fi->status_locations = DomeFileInfo::NoInfo;
+      fi->replicas.clear();
       fi->signalSomeUpdate();
     }
   }
