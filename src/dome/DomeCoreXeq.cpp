@@ -4527,7 +4527,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   std::string newPath = req.bodyfields.get<std::string>("newpath", "");
   std::string oldParentPath, newParentPath;
   std::string oldName,       newName;
-
+  ExtendedStat newF;
 
   // Do not even bother with '/'
   if (oldPath == "/" || oldPath == ""|| newPath == "/" || newPath == "")
@@ -4594,7 +4594,7 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
 
   // If the destination exists...
 
-  ExtendedStat newF;
+
   ret = sql.getStatbyParentFileid(newF, newParent.stat.st_ino, newName);
   if ( (!ret.ok()) && (ret.code() != ENOENT) )
     return DomeReq::SendSimpleResp(request, 500, SSTR("Cannot stat destination path '" << oldPath <<
@@ -4653,6 +4653,8 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
 
     DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
     DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
+    DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, newName);
+    DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, oldName);
     
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
@@ -4664,6 +4666,8 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
       DOMECACHE->wipeEntry(old.stat.st_ino, newParent.stat.st_ino, newName);
       DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, oldName);
       DOMECACHE->wipeEntry(old.stat.st_ino, old.parent, newName);
+      DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, newName);
+      DOMECACHE->wipeEntry(newF.stat.st_ino, newF.parent, oldName);
     }
     else {
       // Parent is the same, but change its mtime
