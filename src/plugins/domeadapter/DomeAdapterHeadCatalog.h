@@ -49,7 +49,6 @@ namespace dmlite {
 
     void changeDir(const std::string& path) throw (DmException);
 
-    // std::vector<Replica> getReplicas(const std::string& path) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
 
     virtual void getChecksum(const std::string& path,
@@ -58,6 +57,7 @@ namespace dmlite {
                              const std::string& pfn,
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
+    std::string getComment(const std::string& path) throw (DmException);
     void makeDir(const std::string& path, mode_t mode) throw (DmException);
     void create(const std::string& path, mode_t mode) throw (DmException);
     void removeDir(const std::string& path) throw (DmException);
@@ -72,6 +72,8 @@ namespace dmlite {
     ExtendedStat*  readDirx(Directory*) throw (DmException);
     struct dirent* readDir(Directory* dir) throw (DmException);
    private:
+     std::string absPath(const std::string &relpath);
+
      struct DomeDir : public Directory {
        std::string path_;
        size_t pos_;
