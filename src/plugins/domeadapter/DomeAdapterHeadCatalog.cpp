@@ -21,7 +21,7 @@ using namespace dmlite;
 using namespace Davix;
 using boost::property_tree::ptree;
 
-DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(CatalogFactory *nested): nested_(nested), davixPool_(&davixFactory_, 10) {
+DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(): davixPool_(&davixFactory_, 10) {
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
 }
@@ -52,15 +52,11 @@ void DomeAdapterHeadCatalogFactory::configure(const std::string& key, const std:
 }
 
 Catalog* DomeAdapterHeadCatalogFactory::createCatalog(PluginManager* pm) throw (DmException) {
-  if(this->nested_ == 0x00)
-    return 0x00;
-
-  return new DomeAdapterHeadCatalog(this,
-                                    CatalogFactory::createCatalog(this->nested_, pm));
+  return new DomeAdapterHeadCatalog(this);
 }
 
-DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory, Catalog *nested) :
-  DummyCatalog(nested), decorated_(nested), secCtx_(0), factory_(*factory)
+DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory) :
+  secCtx_(0), factory_(*factory)
 {
   // Nothing
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
@@ -68,23 +64,20 @@ DomeAdapterHeadCatalog::DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *fa
 
 DomeAdapterHeadCatalog::~DomeAdapterHeadCatalog()
 {
-  // Nothing, dummy catalog deletes the nested catalog
 }
 
 std::string DomeAdapterHeadCatalog::getImplId() const throw ()
 {
-  return "DomeAdapterHeadCatalog over " + decorated_->getImplId();
+  return "DomeAdapterHeadCatalog";
 }
 
 void DomeAdapterHeadCatalog::setSecurityContext(const SecurityContext* ctx) throw (DmException)
 {
-  BaseInterface::setSecurityContext(this->decorated_, ctx);
   this->secCtx_ = ctx;
 }
 
 void DomeAdapterHeadCatalog::setStackInstance(StackInstance* si) throw (DmException)
 {
-  BaseInterface::setStackInstance(this->decorated_, si);
   this->si_ = si;
 }
 
@@ -134,6 +127,10 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
       throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
     }
   }
+}
+
+std::string DomeAdapterHeadCatalog::getWorkingDir() throw (DmException) {
+  return this->cwdPath_;
 }
 
 void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmException) {

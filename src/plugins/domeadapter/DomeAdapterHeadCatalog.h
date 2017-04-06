@@ -18,13 +18,12 @@ namespace dmlite {
 
   class DomeAdapterHeadCatalogFactory : public CatalogFactory {
   public:
-    DomeAdapterHeadCatalogFactory(CatalogFactory *nested);
+    DomeAdapterHeadCatalogFactory();
     virtual ~DomeAdapterHeadCatalogFactory();
 
     void configure(const std::string& key, const std::string& value) throw (DmException);
     Catalog *createCatalog(PluginManager* pm) throw (DmException);
   private:
-    CatalogFactory *nested_;
     std::string domehead_;
 
     DavixCtxFactory davixFactory_;
@@ -33,9 +32,9 @@ namespace dmlite {
     friend class DomeAdapterHeadCatalog;
   };
 
-  class DomeAdapterHeadCatalog : public DummyCatalog {
+  class DomeAdapterHeadCatalog : public Catalog {
   public:
-    DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory, Catalog *nested);
+    DomeAdapterHeadCatalog(DomeAdapterHeadCatalogFactory *factory);
     virtual ~DomeAdapterHeadCatalog();
 
     std::string getImplId() const throw();
@@ -47,6 +46,7 @@ namespace dmlite {
     ExtendedStat extendedStat(const std::string&, bool followSym = true) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn)  throw (DmException);
 
+    std::string getWorkingDir() throw (DmException);
     void changeDir(const std::string& path) throw (DmException);
 
     void deleteReplica(const Replica&) throw (DmException);
@@ -86,8 +86,6 @@ namespace dmlite {
 
      std::string cwdPath_;
 
-     Catalog *decorated_;
-     std::string decorated_id;
      const SecurityContext* secCtx_;
      StackInstance* si_;
 
