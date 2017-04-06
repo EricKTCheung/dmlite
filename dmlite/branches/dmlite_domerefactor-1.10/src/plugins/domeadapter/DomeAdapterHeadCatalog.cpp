@@ -96,7 +96,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
                                          const bool forcerecalc,
                                          const int waitsecs) throw (DmException) {
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path '"
-                                                            << path << "', csumtype '"
+                                                            << absPath(path) << "', csumtype '"
                                                             << csumtype << "'");
   time_t start = time(0);
   bool recalc = forcerecalc;
@@ -110,7 +110,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
 
     boost::property_tree::ptree params;
     params.put("checksum-type", csumtype);
-    params.put("lfn", path);
+    params.put("lfn", absPath(path));
     params.put("force-recalc", DomeUtils::bool_to_str(recalc));
     recalc = false; // no force-recalc in subsequent requests
 
@@ -121,7 +121,7 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
     // checksum calculation in progress
     if(talker.status() == 202) {
       if(time(0) - start >= waitsecs1)
-        throw DmException(EAGAIN, SSTR(waitsecs << "s were not sufficient to checksum '" << csumtype << ":" << path << "'. Try again later."));
+        throw DmException(EAGAIN, SSTR(waitsecs << "s were not sufficient to checksum '" << csumtype << ":" << absPath(path) << "'. Try again later."));
       sleep(5);
       continue;
     }
@@ -138,7 +138,6 @@ void DomeAdapterHeadCatalog::getChecksum(const std::string& path,
 
 void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. path: '" << path << "'");
-  this->decorated_->changeDir(path);
 
   if (path.empty()) {
     this->cwdPath_.clear();
@@ -154,18 +153,7 @@ void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmExcepti
 
 DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
-  std::string targetpath;
-
-  if (path[0] == '/') {
-    // path is absolute
-    targetpath = path;
-  }
-  else {
-    // path is relative, no matter what the current path is
-    // we can prefix the / anyway
-    targetpath = SSTR(cwdPath_ << "/" << path);
-  }
-
+  std::string targetpath = absPath(path);
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getstatinfo");
@@ -218,7 +206,7 @@ void DomeAdapterHeadCatalog::makeDir(const std::string& path, mode_t mode) throw
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_makedir");
 
-  if(!talker.execute("path", path, "mode", SSTR(mode))) {
+  if(!talker.execute("path", absPath(path), "mode", SSTR(mode))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
@@ -229,18 +217,18 @@ void DomeAdapterHeadCatalog::create(const std::string& path, mode_t mode) throw 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_create");
 
-  if(!talker.execute("path", path, "mode", SSTR(mode))) {
+  if(!talker.execute("path", absPath(path), "mode", SSTR(mode))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
 void DomeAdapterHeadCatalog::removeDir(const std::string& path) throw (DmException) {
-  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path);
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << absPath(path));
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_removedir");
 
-  if(!talker.execute("path", path)) {
+  if(!talker.execute("path", absPath(path))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
@@ -250,25 +238,25 @@ void DomeAdapterHeadCatalog::setGuid(const std::string& path, const std::string&
 }
 
 void DomeAdapterHeadCatalog::setSize(const std::string& path, size_t newSize) throw (DmException) {
-  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << path << "', newSize: " << newSize);
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << absPath(path) << "', newSize: " << newSize);
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_setsize");
 
-  if(!talker.execute("path", path, "size", SSTR(newSize))) {
+  if(!talker.execute("path", absPath(path), "size", SSTR(newSize))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
 
 Directory* DomeAdapterHeadCatalog::openDir(const std::string& path) throw (DmException) {
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << path);
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Path: " << absPath(path));
   using namespace boost::property_tree;
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path);
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getdir");
 
   ptree params;
-  params.put("path", path);
+  params.put("path", absPath(path));
   params.put("statentries", "true");
 
   if(!talker.execute(params)) {
@@ -276,7 +264,7 @@ Directory* DomeAdapterHeadCatalog::openDir(const std::string& path) throw (DmExc
   }
 
   try {
-    DomeDir *domedir = new DomeDir(path);
+    DomeDir *domedir = new DomeDir(absPath(path));
 
     ptree entries = talker.jresp().get_child("entries");
     for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
@@ -340,7 +328,7 @@ void DomeAdapterHeadCatalog::rename(const std::string& oldPath, const std::strin
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_rename");
 
-  if(!talker.execute("oldpath", oldPath, "newpath", newPath)) {
+  if(!talker.execute("oldpath", absPath(oldPath), "newpath", absPath(newPath))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
@@ -351,7 +339,7 @@ void DomeAdapterHeadCatalog::unlink(const std::string& path) throw (DmException)
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_unlink");
 
-  if(!talker.execute("lfn", path)) {
+  if(!talker.execute("lfn", absPath(path))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 }
@@ -374,4 +362,26 @@ ExtendedStat DomeAdapterHeadCatalog::extendedStatByRFN(const std::string& rfn)  
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
+}
+
+std::string DomeAdapterHeadCatalog::getComment(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path );
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getcomment");
+
+  if(!talker.execute("lfn", absPath(path))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    return talker.jresp().get<std::string>("comment");
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
+
+std::string DomeAdapterHeadCatalog::absPath(const std::string &relpath) {
+  if(relpath.size() > 0 && relpath[0] == '/') return relpath;
+  return SSTR(this->cwdPath_ + "/" + relpath);
 }
