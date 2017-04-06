@@ -70,11 +70,13 @@ namespace dmlite {
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
     ExtendedStat*  readDirx(Directory*) throw (DmException);
+    struct dirent* readDir(Directory* dir) throw (DmException);
    private:
      struct DomeDir : public Directory {
        std::string path_;
        size_t pos_;
        std::vector<dmlite::ExtendedStat> entries_;
+       std::vector<dirent> dirents_;
 
        virtual ~DomeDir() {}
        DomeDir(std::string path) : path_(path), pos_(0) {}
