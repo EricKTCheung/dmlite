@@ -337,6 +337,7 @@ DmStatus DomeMySql::create(ExtendedStat& nf)
   nf.stat.st_ino = newFileId;
 
   DOMECACHE->pushXstatInfo(nf, DomeFileInfo::Ok);
+  DOMECACHE->pushXstatInfo(parentMeta, DomeFileInfo::Ok);
   
   if (S_ISDIR(nf.stat.st_mode))
     Log(Logger::Lvl1, domelogmask, domelogname, "Created new directory. name: '" << nf.name <<
@@ -1614,6 +1615,7 @@ DmStatus DomeMySql::unlink(ino_t inode)
 
   
   DOMECACHE->wipeEntry(inode, file.parent, file.name);
+  DOMECACHE->pushXstatInfo(parent, DomeFileInfo::Ok);
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting.  inode:" << inode);
   return DmStatus();
