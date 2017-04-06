@@ -288,6 +288,7 @@ Directory* DomeAdapterHeadCatalog::openDir(const std::string& path) throw (DmExc
       ptree_to_xstat(it->second, xstat);
       domedir->entries_.push_back(xstat);
     }
+    domedir->dirents_.resize(domedir->entries_.size()); // will fill later, if needed
     return domedir;
   }
   catch(ptree_error &e) {
@@ -314,6 +315,23 @@ ExtendedStat* DomeAdapterHeadCatalog::readDirx(Directory* dir) throw (DmExceptio
 
   domedir->pos_++;
   return &domedir->entries_[domedir->pos_ - 1];
+}
+
+struct dirent* DomeAdapterHeadCatalog::readDir(Directory* dir) throw (DmException) {
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Entering.");
+  if (dir == NULL) {
+    throw DmException(DMLITE_SYSERR(EFAULT), "Tried to read a null dir");
+  }
+
+  ExtendedStat *st = this->readDirx(dir);
+  if(st == NULL) return NULL;
+
+  DomeDir *domedir = static_cast<DomeDir*>(dir);
+  struct dirent *entry = &domedir->dirents_[domedir->pos_ - 1];
+  entry->d_ino = st->stat.st_ino;
+  strncpy(entry->d_name, st->name.c_str(), sizeof(entry->d_name));
+
+  return entry;
 }
 
 void DomeAdapterHeadCatalog::rename(const std::string& oldPath, const std::string& newPath) throw (DmException) {
