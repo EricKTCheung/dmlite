@@ -858,7 +858,7 @@ def getargs():
 
     parser.add_argument('--enable-dir-accounting', dest='dir_accounting', action='store_true',
                         help="Enable directory accounting tests. (only works on very recent versions of DPM)")
-    parser.set_defaults(dir_accounting=False)
+    parser.set_defaults(dir_accounting=True)
 
     parser.add_argument('--ignore-errors', dest='ignore_errors', action='store_true')
     parser.set_defaults(ignore_errors=False)
@@ -1189,6 +1189,9 @@ def single_protocol_tests(args, scope):
 
     descr = "Remove directory: " + extract_path(target)
     orch.add_cleanup(tester.Remove_directory, [target], descr)
+
+    descr = "Verify testdir does not exist: " + extract_path(target)
+    orch.add_cleanup(tester.Verify_directory_does_not_exist, [target], descr)
 
     orch.run()
 
