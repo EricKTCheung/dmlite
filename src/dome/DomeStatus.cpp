@@ -98,6 +98,15 @@ DomeStatus::DomeStatus() {
   myhostname = CFG->GetString("glb.myhostname", myhostname.c_str());
   Log(Logger::Lvl1, domelogmask, domelogname, "Overriding my hostname to: " << myhostname);
 
+  // Set root user and group
+  rootUserInfo.userid = 0;
+  rootUserInfo.username = "root";
+  rootUserInfo.banned = DomeUserInfo::NoBan;
+
+  rootGroupInfo.groupid = 0;
+  rootGroupInfo.groupname = "root";
+  rootGroupInfo.banned = DomeGroupInfo::NoBan;
+
   // Create a dmlite pool
   //dmpool = new DmlitePool(CFG->GetString("glb.dmlite.configfile", (char *)"/etc/dmlite.conf"));
 
@@ -285,7 +294,7 @@ int DomeStatus::loadUsersGroups() {
     cnt++;
   }
 
-  
+
   Log(Logger::Lvl1, domelogmask, domelogname, "Loaded " << cnt << " mapfile entries.");
 
   if (fclose(mf))
@@ -1077,6 +1086,11 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
 
 /// Gets user info from uid. Returns 0 on failure
 int DomeStatus::getUser(int uid, DomeUserInfo &ui) {
+  if(uid == 0) {
+    ui = rootUserInfo;
+    return 1;
+  }
+
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
@@ -1093,6 +1107,11 @@ int DomeStatus::getUser(int uid, DomeUserInfo &ui) {
 
 /// Gets user info from name. Returns 0 on failure
 int DomeStatus::getUser(std::string username, DomeUserInfo &ui) {
+  if(username == "root") {
+    ui = rootUserInfo;
+    return 1;
+  }
+
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
@@ -1108,6 +1127,11 @@ int DomeStatus::getUser(std::string username, DomeUserInfo &ui) {
 }
 /// Gets group info from uid. Returns 0 on failure
 int DomeStatus::getGroup(int gid, DomeGroupInfo &gi) {
+  if(gid == 0) {
+    gi = rootGroupInfo;
+    return 1;
+  }
+
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
@@ -1122,6 +1146,11 @@ int DomeStatus::getGroup(int gid, DomeGroupInfo &gi) {
 }
 /// Gets user info from name. Returns 0 on failure
 int DomeStatus::getGroup(std::string groupname, DomeGroupInfo &gi) {
+  if(groupname == "root") {
+    gi = rootGroupInfo;
+    return 1;
+  }
+
   // lock status
   boost::unique_lock<boost::recursive_mutex> l(*this);
 
@@ -1175,18 +1204,18 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
   std::string vo;
   DomeGroupInfo group;
   DmStatus st;
-  
+
   // Clear
   groups.clear();
-  
+
   Log(Logger::Lvl4, domelogmask, domelogname, "usr:" << userName);
-  
+
   // user mapping
   if (!getUser(userName, user)) {
     DomeMySql sql;
     // lock status
     boost::unique_lock<boost::recursive_mutex> l(*this);
-    
+
     Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown user: '" << userName << "'");
     st = sql.newUser(user, userName);
     if (!st.ok()) {
@@ -1195,33 +1224,33 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
     }
     insertUser(user);
   }
-  
-  
-  
-  
-  
+
+
+
+
+
   // No VO information, so use the mapping file to get the group
   if (groupNames.empty()) {
     std::pair<std::multimap<std::string, std::string>::iterator,
               std::multimap<std::string, std::string>::iterator> ppp;
 
-    {          
+    {
       // lock status
       boost::unique_lock<boost::recursive_mutex> l(*this);
       ppp = gridmap.equal_range(userName);
     }
-    
+
     // Now loop on the matches and get the relevant groups
     for (std::multimap<std::string, std::string>::iterator it2 = ppp.first;
          it2 != ppp.second; ++it2) {
-      
-      Log(Logger::Lvl4, domelogmask, domelogname, "User: '" << userName << "' is a member of '" << (*it2).second); 
-    
+
+      Log(Logger::Lvl4, domelogmask, domelogname, "User: '" << userName << "' is a member of '" << (*it2).second);
+
       if (!getGroup((*it2).second, group)) {
         Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << (*it2).second << "'");
         // lock status
         boost::unique_lock<boost::recursive_mutex> l(*this);
-        
+
         DomeMySql sql;
         st = sql.newGroup(group, (*it2).second);
         if (!st.ok()) {
@@ -1231,23 +1260,23 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
         insertGroup(group);
 
       }
-      
+
       groups.push_back(group);
     }
-         
-    
+
+
   }
   else {
     // Get group info, typically this is the case for VOMS proxy certificates
     std::vector<std::string>::const_iterator i;
     for (i = groupNames.begin(); i != groupNames.end(); ++i) {
       vo = dmlite::voFromRole(*i);
-      
+
       if (!getGroup(vo, group)) {
         Log(Logger::Lvl1, domelogmask, domelogname, "Adding unknown group: '" << vo << "'");
         // lock status
         boost::unique_lock<boost::recursive_mutex> l(*this);
-        
+
         DomeMySql sql;
         st = sql.newGroup(group, vo);
         if (!st.ok()) {
@@ -1255,13 +1284,13 @@ DmStatus DomeStatus::getIdMap(const std::string& userName,
           return st;
         }
         insertGroup(group);
-        
+
       }
-      
+
       groups.push_back(group);
     }
   }
-  
+
   Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. usr:" << userName);
   return DmStatus();
 }
