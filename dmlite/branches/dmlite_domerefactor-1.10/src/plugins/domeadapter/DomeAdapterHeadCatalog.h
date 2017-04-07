@@ -42,13 +42,20 @@ namespace dmlite {
     void setSecurityContext(const SecurityContext* ctx) throw (DmException);
     void setStackInstance(StackInstance* si) throw (DmException);
 
+    void changeDir(const std::string& path) throw (DmException);
+    std::string getWorkingDir() throw (DmException);
+
     DmStatus extendedStat(ExtendedStat &xstat, const std::string&, bool) throw (DmException);
     ExtendedStat extendedStat(const std::string&, bool followSym = true) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string& rfn)  throw (DmException);
 
-    std::string getWorkingDir() throw (DmException);
-    void changeDir(const std::string& path) throw (DmException);
+    bool access(const std::string&, int) throw (DmException);
+    bool accessReplica(const std::string& replica, int mode) throw (DmException);
 
+
+    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
+
+    void addReplica   (const Replica&) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
 
     virtual void getChecksum(const std::string& path,
