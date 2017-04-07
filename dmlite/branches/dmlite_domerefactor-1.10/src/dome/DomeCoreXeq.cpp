@@ -4794,7 +4794,7 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
   catch ( ... ) {
     return DomeReq::SendSimpleResp(request, 422, "Can't find uid or gid or path.");
   }
-  bool followSymLink = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("gid", "false"));
+  bool followSymLink = DomeUtils::str_to_bool(req.bodyfields.get<std::string>("follow", "false"));
 
   if(path == "") {
     return DomeReq::SendSimpleResp(request, 422, "Path cannot be empty.");
@@ -4804,9 +4804,9 @@ int DomeCore::dome_setowner(DomeReq &req, FCGX_Request &request) {
   DomeUserInfo ui;
   DomeGroupInfo gi;
   if (!status.getUser(newUid, ui))
-    return DomeReq::SendSimpleResp(request, 422, "Invalid uid");
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid uid: " << newUid));
   if (!status.getGroup(newGid, gi))
-    return DomeReq::SendSimpleResp(request, 422, "Invalid gid");
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Invalid gid: " << newGid));
 
   DomeMySql sql;
   dmlite::SecurityContext ctx;

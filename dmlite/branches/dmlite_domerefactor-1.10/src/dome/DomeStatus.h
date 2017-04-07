@@ -176,14 +176,14 @@ public:
 
   /// The username
   std::string username;
-  
-  
+
+
   enum BannedStatus {
     NoBan = 0,
     ArgusBan, //1
     LocalBan  //2
   };
-  
+
   /// Tha banned status
   BannedStatus banned;
 
@@ -383,6 +383,9 @@ public:
 
   //DmlitePool *dmpool;
 private:
+  DomeUserInfo rootUserInfo;
+  DomeGroupInfo rootGroupInfo;
+
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
 

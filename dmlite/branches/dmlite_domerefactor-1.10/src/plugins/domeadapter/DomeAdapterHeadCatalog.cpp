@@ -386,6 +386,34 @@ void DomeAdapterHeadCatalog::setGuid(const std::string& path, const std::string&
   throw DmException(ENOTSUP, "Not supported");
 }
 
+void DomeAdapterHeadCatalog::setOwner(const std::string& path, uid_t uid, gid_t gid, bool follow) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << absPath(path) << "', uid: " << uid << ", gid: " << gid);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_setowner");
+
+  boost::property_tree::ptree params;
+  params.put("path", absPath(path));
+  params.put("uid", SSTR(uid));
+  params.put("gid", SSTR(gid));
+  params.put("follow", DomeUtils::bool_to_str(follow));
+
+  if(!talker.execute(params)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::setMode(const std::string& path, mode_t mode) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << absPath(path) << "', mode: " << mode);
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_setmode");
+
+  if(!talker.execute("path", absPath(path), "mode", SSTR(mode))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
 void DomeAdapterHeadCatalog::setSize(const std::string& path, size_t newSize) throw (DmException) {
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, path: '" << absPath(path) << "', newSize: " << newSize);
 
