@@ -238,6 +238,67 @@ Replica DomeAdapterHeadCatalog::getReplicaByRFN(const std::string& rfn) throw (D
   }
 }
 
+Replica DomeAdapterHeadCatalog::getReplica(int64_t rid) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rid: " << rid);
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getreplicainfo");
+
+  if(!talker.execute("replicaid", SSTR(rid))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    Replica replica;
+    ptree_to_replica(talker.jresp(), replica);
+    return replica;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: '" << e.what() << "'. Contents: '" << talker.response() << "'"));
+  }
+}
+
+std::vector<Replica> DomeAdapterHeadCatalog::getReplicas(const std::string& lfn) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "lfn: " << lfn);
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getreplicavec");
+
+  if(!talker.execute("lfn", lfn)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    std::vector<Replica> replicas;
+    ptree entries = talker.jresp().get_child("replicas");
+    for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
+      Replica replica;
+      ptree_to_replica(it->second, replica);
+      replicas.push_back(replica);
+    }
+    return replicas;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: '" << e.what() << "'. Contents: '" << talker.response() << "'"));
+  }
+}
+
+void DomeAdapterHeadCatalog::updateReplica(const Replica& replica) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rfn: " << replica.rfn);
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_updatereplica");
+
+  boost::property_tree::ptree params;
+  params.put("rfn", replica.rfn);
+  params.put("replicaid", replica.replicaid);
+  params.put("status", replica.status);
+  params.put("type", replica.type);
+  params.put("setname", replica.setname);
+  params.put("xattr", replica.serialize());
+
+  if(!talker.execute(params)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
 void DomeAdapterHeadCatalog::addReplica(const Replica& rep) throw (DmException) {
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, replica: '" << rep.rfn << "'");
 
@@ -275,6 +336,17 @@ void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmExceptio
     }
 
 
+}
+
+void DomeAdapterHeadCatalog::symlink(const std::string &target, const std::string &link) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, target: '" << target << "', link: '" << link << "'");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_symlink");
+
+  if(!talker.execute("target", absPath(target), "link", absPath(link))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 }
 
 void DomeAdapterHeadCatalog::makeDir(const std::string& path, mode_t mode) throw (DmException) {
@@ -455,6 +527,28 @@ std::string DomeAdapterHeadCatalog::getComment(const std::string& path) throw (D
   }
   catch(boost::property_tree::ptree_error &e) {
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
+
+void DomeAdapterHeadCatalog::setComment(const std::string& path, const std::string& comment) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path );
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_setcomment");
+
+  if(!talker.execute("lfn", absPath(path), "comment", comment)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+}
+
+void DomeAdapterHeadCatalog::updateExtendedAttributes(const std::string& lfn,
+                                                  const Extensible& ext) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_updatexattr");
+
+  if(!talker.execute("lfn", lfn, "xattr", ext.serialize())) {
+    throw DmException(EINVAL, talker.err());
   }
 }
 
