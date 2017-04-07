@@ -18,7 +18,6 @@
 #include "DomeAdapterHeadCatalog.h"
 
 using namespace dmlite;
-using namespace Davix;
 using boost::property_tree::ptree;
 
 DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(): davixPool_(&davixFactory_, 10) {
@@ -175,6 +174,87 @@ ExtendedStat DomeAdapterHeadCatalog::extendedStat(const std::string& path, bool 
   DmStatus st = this->extendedStat(ret, path, follow);
   if(!st.ok()) throw st.exception();
   return ret;
+}
+
+bool DomeAdapterHeadCatalog::access(const std::string& sfn, int mode) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "sfn: '" << sfn << "' mode: '" << mode << "'");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_access");
+
+  if(!talker.execute("path", sfn, "mode", SSTR(mode))) {
+    if(talker.status() == 403) return false;
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  return true;
+}
+
+// taken from built-in catalog and slightly modified
+bool DomeAdapterHeadCatalog::accessReplica(const std::string& rfn, int mode) throw (DmException) {
+  try {
+    Replica      replica = this->getReplicaByRFN(rfn);
+    // ExtendedStat xstat   = this->extendedStat(replica.fileid);
+
+    bool replicaAllowed = true;
+    mode_t perm = 0;
+
+    if (mode & R_OK)
+      perm  = S_IREAD;
+
+    if (mode & W_OK) {
+      perm |= S_IWRITE;
+      replicaAllowed = (replica.status == Replica::kBeingPopulated);
+    }
+
+    if (mode & X_OK)
+      perm |= S_IEXEC;
+
+    // bool metaAllowed    = (checkPermissions(sec_, xstat.acl, xstat.stat, perm) == 0);
+    return replicaAllowed;
+  }
+  catch (DmException& e) {
+    if (e.code() != EACCES) throw;
+    return false;
+  }
+}
+
+Replica DomeAdapterHeadCatalog::getReplicaByRFN(const std::string& rfn) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "rfn: " << rfn);
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_getreplicainfo");
+
+  if(!talker.execute("rfn", rfn)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    Replica replica;
+    ptree_to_replica(talker.jresp(), replica);
+    return replica;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: '" << e.what() << "'. Contents: '" << talker.response() << "'"));
+  }
+}
+
+void DomeAdapterHeadCatalog::addReplica(const Replica& rep) throw (DmException) {
+  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, " Entering, replica: '" << rep.rfn << "'");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_addreplica");
+
+  boost::property_tree::ptree params;
+  params.put("rfn", rep.rfn);
+  params.put("status", rep.status);
+  params.put("type", rep.type);
+  params.put("setname", rep.setname);
+  params.put("xattr", rep.serialize());
+
+  if(!talker.execute(params)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
 }
 
 void DomeAdapterHeadCatalog::deleteReplica(const Replica &rep) throw (DmException) {
