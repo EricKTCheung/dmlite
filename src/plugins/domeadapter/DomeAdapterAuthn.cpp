@@ -112,10 +112,15 @@ void DomeAdapterAuthn::getIdMap(const std::string& userName,
 
 GroupInfo DomeAdapterAuthn::newGroup(const std::string& gname) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Group name: " << gname);
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_newgroup");
+
+  if(!talker.execute("groupname", gname)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 
   return this->getGroup(gname);
-  Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "Exiting. Group name: " << gname);
 }
 
 GroupInfo DomeAdapterAuthn::getGroup(const std::string& groupName) throw (DmException) {
@@ -165,14 +170,30 @@ GroupInfo DomeAdapterAuthn::getGroup(const std::string& key, const boost::any& v
 }
 
 void DomeAdapterAuthn::updateGroup(const GroupInfo& group) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering: groupName: '" << group.name << "'");
 
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_updategroup");
 
+  boost::property_tree::ptree params;
+  params.put("groupname", group.name);
+  params.put("banned", group.getLong("banned"));
+  params.put("xattr", group.serialize());
+
+  if(!talker.execute(params)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 }
 
 void DomeAdapterAuthn::deleteGroup(const std::string& groupName) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering: groupName: '" << groupName << "'");
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_deletegroup");
+
+  if(!talker.execute("groupname", groupName)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 }
 
 UserInfo DomeAdapterAuthn::newUser(const std::string& uname) throw (DmException) {
@@ -221,11 +242,31 @@ std::vector<GroupInfo> DomeAdapterAuthn::getGroups(void) throw (DmException) {
     return groups;
   }
   catch(boost::property_tree::ptree_error &e) {
-    throw DmException(EINVAL, SSTR(e.what() << " adfadfa Error when parsing json response: " << talker.response() << ": " << e.what()));
+    throw DmException(EINVAL, SSTR(e.what() << " Error when parsing json response: " << talker.response() << ": " << e.what()));
   }
 }
 
 std::vector<UserInfo> DomeAdapterAuthn::getUsers(void) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "GET", "dome_getusersvec");
+
+  if(!talker.execute()) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    std::vector<UserInfo> users;
+    ptree entries = talker.jresp().get_child("users");
+    for(ptree::const_iterator it = entries.begin(); it != entries.end(); it++) {
+      UserInfo user;
+      ptree_to_userinfo(it->second, user);
+      users.push_back(user);
+    }
+    return users;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR(e.what() << " Error when parsing json response: " << talker.response() << ": " << e.what()));
+  }
 }

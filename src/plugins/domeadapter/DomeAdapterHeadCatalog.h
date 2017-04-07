@@ -52,11 +52,19 @@ namespace dmlite {
     bool access(const std::string&, int) throw (DmException);
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
 
-
-    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
+    SymLink readLink(ino_t) throw (DmException);
 
     void addReplica   (const Replica&) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
+    std::vector<Replica> getReplicas(const std::string&) throw (DmException);
+
+    Replica getReplica   (int64_t rid) throw (DmException);
+    // Replica getReplica   (const std::string& sfn) throw (DmException);
+    void    updateReplica(const Replica& replica) throw (DmException);
+
+
+    Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
+
 
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
@@ -65,19 +73,31 @@ namespace dmlite {
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
 
     std::string getComment(const std::string& path) throw (DmException);
-    void makeDir(const std::string& path, mode_t mode) throw (DmException);
-    void create(const std::string& path, mode_t mode) throw (DmException);
-    void removeDir(const std::string& path) throw (DmException);
+    void setComment(const std::string& path, const std::string& comment) throw (DmException);
+    // void deleteComment(const std::string& path) throw (DmException);
+
     void setGuid(const std::string& path, const std::string& guid) throw (DmException);
+
+    void makeDir(const std::string& path, mode_t mode) throw (DmException);
+    void removeDir(const std::string& path) throw (DmException);
     void setSize(const std::string& path, size_t newSize) throw (DmException);
 
+
+    void symlink(const std::string&, const std::string&) throw (DmException);
+
     void rename(const std::string& oldPath, const std::string& newPath) throw (DmException);
+
     void unlink(const std::string& path) throw (DmException);
+    void create(const std::string& path, mode_t mode) throw (DmException);
+
+    void updateExtendedAttributes(const std::string&,
+                                  const Extensible&) throw (DmException);
 
     Directory* openDir (const std::string&) throw (DmException);
     void       closeDir(Directory*)         throw (DmException);
     ExtendedStat*  readDirx(Directory*) throw (DmException);
     struct dirent* readDir(Directory* dir) throw (DmException);
+
    private:
      std::string absPath(const std::string &relpath);
 
