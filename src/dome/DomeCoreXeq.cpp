@@ -3530,7 +3530,7 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         if (!ret.ok()) {
           if (ret.code() == ENOENT)
             return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on the parents of lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-          
+
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on lfn: '" << lfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
         }
         // Need to be able to read the parent
@@ -3602,12 +3602,12 @@ int DomeCore::dome_getstatinfo(DomeReq &req, FCGX_Request &request) {
         ret = sql.getStatbyRFN(st, rfn);
         if (!ret.ok())
           return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-     
+
         ret = sql.traverseBackwards(ctx, st);
         if (!ret.ok()) {
           if (ret.code() == ENOENT)
             return DomeReq::SendSimpleResp(request, 404, SSTR("File not found on the parents of rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
-          
+
           return DomeReq::SendSimpleResp(request, 403, SSTR("Permission denied on rfn: '" << rfn << "' err: " << ret.code() << " what: '" << ret.what() << "'"));
         }
         // Need to be able to read the parents
@@ -4308,7 +4308,7 @@ int DomeCore::dome_getuser(DomeReq &req, FCGX_Request &request) {
     }
 
     jresp.put("username", ui.username);
-    jresp.put("uid", ui.userid);
+    jresp.put("userid", ui.userid);
     jresp.put("banned", ui.banned);
     jresp.put("xattr", ui.xattr);
 
@@ -4642,9 +4642,9 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
   // We are good, so we can move now
   {
     DomeMySqlTrans t(&sql);
-    
-    
-    
+
+
+
     // Change the name if needed
     if (newName != oldName) {
       ret = sql.rename(old.stat.st_ino, newName);
@@ -4655,16 +4655,16 @@ int DomeCore::dome_rename(DomeReq &req, FCGX_Request &request) {
 
     DOMECACHE->removeInfo(old.stat.st_ino, old.parent, oldName);
     DOMECACHE->removeInfo(old.stat.st_ino, old.parent, newName);
-    
+
     // Change the parent if needed
     if (newParent.stat.st_ino != oldParent.stat.st_ino) {
       ret = sql.move(old.stat.st_ino, newParent.stat.st_ino);
       if (!ret.ok())
         return DomeReq::SendSimpleResp(request, 422, SSTR("Cannot move path '" << oldPath <<
         "' err: " << ret.code() << "'" << ret.what() << "'"));
-      
+
       DOMECACHE->removeInfo(old.stat.st_ino, newParent.stat.st_ino, oldName);
-      DOMECACHE->removeInfo(old.stat.st_ino, newParent.stat.st_ino, newName);           
+      DOMECACHE->removeInfo(old.stat.st_ino, newParent.stat.st_ino, newName);
 
     }
     else {
@@ -5070,7 +5070,7 @@ int DomeCore::dome_unlink(DomeReq &req, FCGX_Request &request) {
           return DomeReq::SendSimpleResp(request, 500, SSTR("Unable to delete physical replica '" << replicas[i].rfn << "' err:" << talker.err()));
         }
 
-        
+
         if(!sql.addFilesizeToDirs(file, -file.stat.st_size).ok()) {
           Err(domelogname, SSTR("Unable to decrease filesize from parent directories of fileid: " << file.stat.st_ino ));
         }

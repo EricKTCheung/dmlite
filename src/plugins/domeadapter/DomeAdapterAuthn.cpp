@@ -148,7 +148,7 @@ GroupInfo DomeAdapterAuthn::getGroup(const std::string& key, const boost::any& v
 
   if (key != "gid")
     throw DmException(DMLITE_UNKNOWN_KEY,
-                      "DomeAdapterAuthn AuthnMySql does not support querying by %s",
+                      "DomeAdapterAuthn does not support querying by %s",
                       key.c_str());
 
   gid_t gid = Extensible::anyToUnsigned(value);
@@ -197,28 +197,89 @@ void DomeAdapterAuthn::deleteGroup(const std::string& groupName) throw (DmExcept
 }
 
 UserInfo DomeAdapterAuthn::newUser(const std::string& uname) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. User name: " << uname);
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_newuser");
+
+  if(!talker.execute("username", uname)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  return this->getUser(uname);
 }
 
 UserInfo DomeAdapterAuthn::getUser(const std::string& userName) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. User name: " << userName);
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "GET", "dome_getuser");
+
+  if(!talker.execute("username", userName)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    UserInfo userinfo;
+    ptree_to_userinfo(talker.jresp(), userinfo);
+    return userinfo;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("adfasdf Error when parsing json response: ==" << e.what() << "==" << talker.response() << " :" << e.what()));
+  }
 }
 
 UserInfo DomeAdapterAuthn::getUser(const std::string& key, const boost::any& value) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
 
+  if (key != "uid")
+    throw DmException(DMLITE_UNKNOWN_KEY,
+                      "DomeAdapterAuthn does not support querying by %s",
+                      key.c_str());
+
+  uid_t uid = Extensible::anyToUnsigned(value);
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "GET", "dome_getuser");
+
+  if(!talker.execute("userid", SSTR(uid))) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
+
+  try {
+    UserInfo userinfo;
+    ptree_to_userinfo(talker.jresp(), userinfo);
+    return userinfo;
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
 }
 
 void DomeAdapterAuthn::updateUser(const UserInfo& user) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering: username: '" << user.name << "'");
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_updateuser");
+
+  boost::property_tree::ptree params;
+  params.put("username", user.name);
+  params.put("banned", user.getLong("banned"));
+  params.put("xattr", user.serialize());
+
+  if(!talker.execute(params)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 }
 
 void DomeAdapterAuthn::deleteUser(const std::string& userName) throw (DmException) {
-  throw DmException(ENOTSUP, "SENTINEL-IMPLEMENT-ME");
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering: userName: '" << userName << "'");
 
+  DomeTalker talker(factory_->davixPool_, emptycreds, factory_->domehead_,
+                    "POST", "dome_deleteuser");
+
+  if(!talker.execute("username", userName)) {
+    throw DmException(talker.dmlite_code(), talker.err());
+  }
 }
 
 std::vector<GroupInfo> DomeAdapterAuthn::getGroups(void) throw (DmException) {

@@ -34,7 +34,11 @@ inline void ptree_to_userinfo(const boost::property_tree::ptree &ptree, dmlite::
   userInfo.name = ptree.get<std::string>("username");
   userInfo["uid"] = ptree.get<uint64_t>("userid");
   userInfo["banned"] = ptree.get<int>("banned");
-  userInfo.deserialize(ptree.get<std::string>("xattr"));
+
+  std::string xattr = ptree.get<std::string>("xattr");
+  if(!xattr.empty()) {
+    userInfo.deserialize(xattr);
+  }
 }
 
 inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::Replica &replica) {
