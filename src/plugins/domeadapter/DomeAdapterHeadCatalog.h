@@ -39,8 +39,9 @@ namespace dmlite {
 
     std::string getImplId() const throw();
 
-    void setSecurityContext(const SecurityContext* ctx) throw (DmException);
     void setStackInstance(StackInstance* si) throw (DmException);
+
+    void setSecurityContext(const SecurityContext* ctx) throw (DmException);
 
     void changeDir(const std::string& path) throw (DmException);
     std::string getWorkingDir() throw (DmException);
@@ -52,18 +53,12 @@ namespace dmlite {
     bool access(const std::string&, int) throw (DmException);
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
 
-    SymLink readLink(ino_t) throw (DmException);
-
     void addReplica   (const Replica&) throw (DmException);
     void deleteReplica(const Replica&) throw (DmException);
     std::vector<Replica> getReplicas(const std::string&) throw (DmException);
 
-    Replica getReplica   (int64_t rid) throw (DmException);
-    // Replica getReplica   (const std::string& sfn) throw (DmException);
-
-
-
     void symlink(const std::string&, const std::string&) throw (DmException);
+    std::string readLink(const std::string& path) throw (DmException);
 
     void unlink(const std::string& path) throw (DmException);
 
@@ -72,6 +67,16 @@ namespace dmlite {
     // mode_t umask   (mode_t)                           throw ();
     void   setMode (const std::string&, mode_t)       throw (DmException);
     void   setOwner(const std::string&, uid_t, gid_t, bool) throw (DmException);
+
+    void setSize(const std::string& path, size_t newSize) throw (DmException);
+
+    Replica getReplica   (int64_t rid) throw (DmException);
+    // Replica getReplica   (const std::string& sfn) throw (DmException);
+
+
+
+
+
 
 
     virtual void getChecksum(const std::string& path,
@@ -82,7 +87,6 @@ namespace dmlite {
 
 
 
-    void setSize(const std::string& path, size_t newSize) throw (DmException);
 
 
 

@@ -580,6 +580,24 @@ void DomeAdapterHeadCatalog::updateExtendedAttributes(const std::string& lfn,
   }
 }
 
+std::string DomeAdapterHeadCatalog::readLink(const std::string& path) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "GET", "dome_readlink");
+
+  if(!talker.execute("lfn", path)) {
+    throw DmException(EINVAL, talker.err());
+  }
+
+  try {
+    return talker.jresp().get<std::string>("target");
+  }
+  catch(boost::property_tree::ptree_error &e) {
+    throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
+  }
+}
+
 std::string DomeAdapterHeadCatalog::absPath(const std::string &relpath) {
   if(relpath.size() > 0 && relpath[0] == '/') return relpath;
   return SSTR(this->cwdPath_ + "/" + relpath);
