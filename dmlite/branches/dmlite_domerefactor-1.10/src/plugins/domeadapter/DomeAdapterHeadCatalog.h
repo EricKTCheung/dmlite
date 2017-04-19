@@ -70,6 +70,8 @@ namespace dmlite {
 
     void setSize(const std::string& path, size_t newSize) throw (DmException);
 
+    void setAcl(const std::string&, const Acl&) throw (DmException);
+
     Replica getReplica   (int64_t rid) throw (DmException);
     // Replica getReplica   (const std::string& sfn) throw (DmException);
 

@@ -182,7 +182,7 @@ bool DomeAdapterHeadCatalog::access(const std::string& sfn, int mode) throw (DmE
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_access");
 
-  if(!talker.execute("path", sfn, "mode", SSTR(mode))) {
+  if(!talker.execute("path", absPath(sfn), "mode", SSTR(mode))) {
     if(talker.status() == 403) return false;
     throw DmException(talker.dmlite_code(), talker.err());
   }
@@ -262,7 +262,7 @@ std::vector<Replica> DomeAdapterHeadCatalog::getReplicas(const std::string& lfn)
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getreplicavec");
 
-  if(!talker.execute("lfn", lfn)) {
+  if(!talker.execute("lfn", absPath(lfn))) {
     throw DmException(talker.dmlite_code(), talker.err());
   }
 
@@ -575,7 +575,7 @@ void DomeAdapterHeadCatalog::updateExtendedAttributes(const std::string& lfn,
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "POST", "dome_updatexattr");
 
-  if(!talker.execute("lfn", lfn, "xattr", ext.serialize())) {
+  if(!talker.execute("lfn", absPath(lfn), "xattr", ext.serialize())) {
     throw DmException(EINVAL, talker.err());
   }
 }
@@ -586,7 +586,7 @@ std::string DomeAdapterHeadCatalog::readLink(const std::string& path) throw (DmE
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_readlink");
 
-  if(!talker.execute("lfn", path)) {
+  if(!talker.execute("lfn", absPath(path))) {
     throw DmException(EINVAL, talker.err());
   }
 
@@ -597,6 +597,18 @@ std::string DomeAdapterHeadCatalog::readLink(const std::string& path) throw (DmE
     throw DmException(EINVAL, SSTR("Error when parsing json response: " << talker.response()));
   }
 }
+
+void DomeAdapterHeadCatalog::setAcl(const std::string& path, const Acl& acl) throw (DmException) {
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering.");
+
+  DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
+                    "POST", "dome_setacl");
+
+  if(!talker.execute("path", absPath(path), "acl", acl.serialize())) {
+    throw DmException(EINVAL, talker.err());
+  }
+}
+
 
 std::string DomeAdapterHeadCatalog::absPath(const std::string &relpath) {
   if(relpath.size() > 0 && relpath[0] == '/') return relpath;
