@@ -149,12 +149,11 @@ void DomeAdapterHeadCatalog::changeDir(const std::string& path) throw (DmExcepti
 
 DmStatus DomeAdapterHeadCatalog::extendedStat(ExtendedStat &xstat, const std::string& path, bool follow) throw (DmException) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "path: " << path << " follow (ignored) :" << follow);
-  std::string targetpath = absPath(path);
 
   DomeTalker talker(factory_.davixPool_, secCtx_, factory_.domehead_,
                     "GET", "dome_getstatinfo");
 
-  if(!talker.execute("lfn", targetpath)) {
+  if(!talker.execute("lfn", absPath(path))) {
     if(talker.dmlite_code() == ENOENT) return DmStatus(ENOENT, SSTR(path << " not found"));
     throw DmException(talker.dmlite_code(), talker.err());
   }
