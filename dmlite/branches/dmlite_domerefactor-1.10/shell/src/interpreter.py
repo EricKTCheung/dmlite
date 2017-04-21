@@ -200,6 +200,41 @@ class DMLiteInterpreter:
     self.catalog.closeDir(hDir)
     return flist
 
+  def remove_recursive(self, folder):
+    gfiles = self.list_folder(folder)
+    for f in gfiles:
+      name = os.path.join(folder, f['name'])
+      if f['isDir']:
+        self.remove_recursive(name)
+      else:
+        self.catalog.unlink(name)
+    self.catalog.removeDir(folder)
+
+  def list_folder(self,folder):
+    try:
+          hDir = self.catalog.openDir(folder)
+    except:
+          self.error("cannot open the folder: " + folder)
+          return []
+
+    flist = []
+
+    while True:
+      finfo = {}
+      try:
+        f = self.catalog.readDirx(hDir)
+        if f.stat.isDir():
+          finfo['isDir'] = True
+        else:
+          finfo['isDir'] = False
+        finfo['name'] = f.name
+
+        flist.append(finfo)
+      except:
+        break
+
+    self.catalog.closeDir(hDir)
+    return flist
 
 class ShellCommand:
   """
@@ -762,47 +797,11 @@ class RmDirCommand(ShellCommand):
         try:
                 f = self.interpreter.catalog.extendedStat(dirname, True)
                 if f.stat.isDir():
-                        return  self._remove_recursive(dirname)
+                        return  self.interpreter.remove_recursive(dirname)
                 else:
                         self.error('The given parameter is not a folder: Parameter(s): ' + ', '.join(given))
         except Exception, e:
               return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
-
-  def _remove_recursive(self, folder):
-    gfiles = self._list_folder(folder)
-    for f in gfiles:
-      name = os.path.join(folder, f['name'])
-      if f['isDir']:
-        self._remove_recursive(name)
-      else:
-        self.interpreter.catalog.unlink(name)
-    self.interpreter.catalog.removeDir(folder)
-
-  def _list_folder(self,folder):
-    try:
-          hDir = self.interpreter.catalog.openDir(folder)
-    except:
-          self.error("cannot open the folder: " + folder)
-          return []
-
-    flist = []
-
-    while True:
-      finfo = {}
-      try:
-        f = self.interpreter.catalog.readDirx(hDir)
-        if f.stat.isDir():
-          finfo['isDir'] = True
-        else:
-          finfo['isDir'] = False
-        finfo['name'] = f.name
-
-        flist.append(finfo)
-      except:
-        break
-
-    self.interpreter.catalog.closeDir(hDir)
-    return flist
 
 class MvCommand(ShellCommand):
   """Move or rename a file."""
@@ -1129,7 +1128,7 @@ class UtimeCommand(ShellCommand):
 class ACLCommand(ShellCommand):
   """Set or read the ACL of a file.
 
-The expected syntax is : acl <file> <ACL> command
+The expected syntax is : acl <file> <ACL> command [-r]
 
 Where command could be set, modify or delete.
 
@@ -1146,6 +1145,8 @@ The ACL can be specified in the following form
 
 and multiple ACLs can be included separated by a comma
 
+the -r options passed to a folder, will apply the command (set, modify, delete) to all files and subfolders resursively
+
 N.B. In case the DN or the GROUP contain spaces  the ACL expression should be sorrounded by either " or ' e.g. acl <file> '<ACL>' set
 
 Default ACLs can be also set by specifying default: or d: in front of the ACL expression:
@@ -1154,7 +1155,7 @@ Default ACLs can be also set by specifying default: or d: in front of the ACL ex
 * d:user::rwx"""
 
   def _init(self):
-    self.parameters = ['Dfile', '*?ACL', '*Ocommand=modify:set:modify:delete']
+    self.parameters = ['Dfile', '*?ACL', '*Ocommand=modify:set:modify:delete','*?-r']
 
   def getACL(self, interpreter, file):
     f = interpreter.catalog.extendedStat(file, False)
@@ -1233,132 +1234,155 @@ Default ACLs can be also set by specifying default: or d: in front of the ACL ex
     #output.append(f.acl.serialize())
     return output
 
+  def setACL(self, given,  file):
+      f = self.interpreter.catalog.extendedStat(file, True)
+      list_acl = f.acl.serialize().split(',')
+      try:
+          command = given[2]
+      except:
+          command = "modify"
+      if command == 'set':
+          list_acl = []
+      acls = given[1].split(',')
+      for acl in acls:
+          result = ""
+
+          default = False
+          if acl.startswith('default:') or acl.startswith('d:') :
+              acl = acl[acl.find(':')+1:]
+              default = True
+          if acl.find(':') < 0:
+              continue
+          tag = acl[:acl.find(':')]
+          acl = acl[acl.find(':')+1:]
+          if acl.find(':') < 0:
+              continue
+          id = acl[:acl.rfind(':')]
+          perm_rwx = acl[acl.find(':')+1:]
+          perm_count = 0
+          if 'r' in perm_rwx:
+              perm_count += 4
+          if 'w' in perm_rwx:
+              perm_count += 2
+          if 'x' in perm_rwx:
+              perm_count += 1
+          perm = str(perm_count)  
+            
+          if tag in ['user', 'u'] and not id:
+              if default:
+                  result = "a" + perm + str(f.stat.st_uid)
+              else:
+                  result = "A" + perm + str(f.stat.st_uid)
+          elif tag in ['user', 'u']:
+              if not id.isdigit():
+                  u = self.interpreter.authn.getUser(id)
+                  id = u.getString('uid','')
+              if default:
+                  result = "b" + perm + id
+              else:
+                  result = "B" + perm + id
+          elif tag in ['group', 'g'] and not id:
+              if default:
+                  result = "c" + perm + str(f.stat.st_gid)
+              else:
+                  result = "C" + perm + str(f.stat.st_gid)
+          elif tag in ['group', 'g']:
+              if not id.isdigit():
+                  g = self.interpreter.authn.getGroup(id)
+                  id = g.getString('gid','')
+              if default:
+                  result = "d" + perm + id
+              else:
+                  result = "D" + perm + id
+          elif tag in ['mask', 'm']:
+              if default:
+                  result = "e" + perm + '0'
+              else:
+                  result = "E" + perm + '0'
+          elif tag in ['other', 'o']:
+              if default:
+                  result = "f" + perm + '0'
+              else:
+                  result = "F" + perm + '0'
+
+          if command == 'delete':
+              for p in list_acl:
+                  p2 = p[:1] + "[0-7]" + p[2:]
+                  if re.search(p2, result):
+                      list_acl.remove(p)
+                      break
+          else:
+              modification = False
+              for i, p in enumerate(list_acl):
+                  p = p[:1] + "[0-7]" + p[2:]
+                  if re.search(p, result):
+                      list_acl[i] = result
+                      modification = True
+                      break
+              if not modification:
+                  list_acl.append(result)
+      list_acl.sort()
+      myacl = pydmlite.Acl(','.join(list_acl))
+      self.interpreter.catalog.setAcl(file, myacl) 
+ 
+  def getUserInfo(self, f, filename):
+      if not filename.startswith('/'):
+          filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
+      output = "# file: " + filename
+      try:
+          uid = pydmlite.boost_any()
+          uid.setUnsigned(f.stat.st_uid)
+          u = self.interpreter.authn.getUser('uid', uid)
+          uname = u.name
+      except Exception, e:
+          if f.stat.st_uid == 0:
+              uname = "root"
+          else:
+              uname = '???'
+      output += "\n# owner: %s (ID: %d)" % (uname, f.stat.st_uid)
+      try:
+          gid = pydmlite.boost_any()
+          gid.setUnsigned(f.stat.st_gid)
+          g = self.interpreter.authn.getGroup('gid', gid)
+          gname = g.name
+      except Exception, e:
+          if f.stat.st_gid == 0:
+              gname = "root"
+          else:
+              gname = '???'
+      output += "\n# group: %s (ID: %d)" % (gname, f.stat.st_gid)
+      return output
+
+  def acl_recursive(self, given, folder):
+      gfiles = self.interpreter.list_folder(folder)
+      for f in gfiles:
+          name = os.path.join(folder, f['name'])
+          if f['isDir']:
+              self.acl_recursive(given,name)
+          else:
+              self.setACL(given,name)
+              
+      self.setACL(given,folder)
+
+
   def _execute(self, given):
       try:
           filename = given[0]
-          f = self.interpreter.catalog.extendedStat(filename, False)
+          f = self.interpreter.catalog.extendedStat(filename, True)
+          if '-r' in given and len(given) > 3:
+          #recursive mode
+             if f.stat.isDir():
+                 return  self.acl_recursive(given,filename)
+             else:
+                 self.error('The given parameter is not a folder, cannot apply recursive changes to a file: Parameter(s): ' + ', '.join(given))
+          else:
+              # Set the ACL
+              if len(given) > 1:
+                  self.setACL(given, filename)
 
-          # Set the ACL
-          if len(given) > 1:
-            list_acl = f.acl.serialize().split(',')
-            try:
-                command = given[2]
-            except:
-                command = "modify"
-            if command == 'set':
-                list_acl = []
-            acls = given[1].split(',')
-            for acl in acls:
-                result = ""
-
-                default = False
-                if acl.startswith('default:') or acl.startswith('d:') :
-                    acl = acl[acl.find(':')+1:]
-                    default = True
-                if acl.find(':') < 0:
-                    continue
-                tag = acl[:acl.find(':')]
-                acl = acl[acl.find(':')+1:]
-                if acl.find(':') < 0:
-                    continue
-                id = acl[:acl.rfind(':')]
-                perm_rwx = acl[acl.find(':')+1:]
-                perm_count = 0
-                if 'r' in perm_rwx:
-                    perm_count += 4
-                if 'w' in perm_rwx:
-                    perm_count += 2
-                if 'x' in perm_rwx:
-                    perm_count += 1
-                perm = str(perm_count)
-
-                if tag in ['user', 'u'] and not id:
-                    if default:
-                        result = "a" + perm + str(f.stat.st_uid)
-                    else:
-                        result = "A" + perm + str(f.stat.st_uid)
-                elif tag in ['user', 'u']:
-                    if not id.isdigit():
-                        u = self.interpreter.authn.getUser(id)
-                        id = u.getString('uid','')
-                    if default:
-                        result = "b" + perm + id
-                    else:
-                        result = "B" + perm + id
-                elif tag in ['group', 'g'] and not id:
-                    if default:
-                        result = "c" + perm + str(f.stat.st_gid)
-                    else:
-                        result = "C" + perm + str(f.stat.st_gid)
-                elif tag in ['group', 'g']:
-                    if not id.isdigit():
-                        g = self.interpreter.authn.getGroup(id)
-                        id = g.getString('gid','')
-                    if default:
-                        result = "d" + perm + id
-                    else:
-                        result = "D" + perm + id
-                elif tag in ['mask', 'm']:
-                    if default:
-                        result = "e" + perm + '0'
-                    else:
-                        result = "E" + perm + '0'
-                elif tag in ['other', 'o']:
-                    if default:
-                        result = "f" + perm + '0'
-                    else:
-                        result = "F" + perm + '0'
-
-                if command == 'delete':
-                    for p in list_acl:
-                        p2 = p[:1] + "[0-7]" + p[2:]
-                        if re.search(p2, result):
-                            list_acl.remove(p)
-                            break
-                else:
-                    modification = False
-                    for i, p in enumerate(list_acl):
-                        p = p[:1] + "[0-7]" + p[2:]
-                        if re.search(p, result):
-                            list_acl[i] = result
-                            modification = True
-                            break
-                    if not modification:
-                        list_acl.append(result)
-            list_acl.sort()
-            myacl = pydmlite.Acl(','.join(list_acl))
-            self.interpreter.catalog.setAcl(filename, myacl)
-
-
-
-          # Get the ACL
-          if not filename.startswith('/'):
-              filename = os.path.normpath(os.path.join(self.interpreter.catalog.getWorkingDir(), filename))
-          output = "# file: " + filename
-          try:
-              uid = pydmlite.boost_any()
-              uid.setUnsigned(f.stat.st_uid)
-              u = self.interpreter.authn.getUser('uid', uid)
-              uname = u.name
-          except Exception, e:
-              if f.stat.st_uid == 0:
-                  uname = "root"
-              else:
-                  uname = '???'
-          output += "\n# owner: %s (ID: %d)" % (uname, f.stat.st_uid)
-          try:
-              gid = pydmlite.boost_any()
-              gid.setUnsigned(f.stat.st_gid)
-              g = self.interpreter.authn.getGroup('gid', gid)
-              gname = g.name
-          except Exception, e:
-              if f.stat.st_gid == 0:
-                  gname = "root"
-              else:
-                  gname = '???'
-          output += "\n# group: %s (ID: %d)" % (gname, f.stat.st_gid)
-          self.ok(output)
-          return self.ok("\n".join(self.getACL(self.interpreter, filename)))
+              # Get the ACL
+              self.ok(self.getUserInfo(f, filename))
+              return self.ok("\n".join(self.getACL(self.interpreter, filename)))
 
       except Exception, e:
           return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
