@@ -297,9 +297,9 @@ Requires:     python
 Requires:     gfal2-python
 Requires:     python-argparse
 Requires:     gfal2-plugin-http
-Requires      gfal2-plugin-xrootd
-Requires      gfal2-plugin-srm
-Requires      gfal2-plugin-gridftp
+Requires:     gfal2-plugin-xrootd
+Requires:     gfal2-plugin-srm
+Requires:     gfal2-plugin-gridftp
 
 %description dpm-tester
 Tool that is useful to test the main features of a DPM setup
