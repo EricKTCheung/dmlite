@@ -91,7 +91,7 @@ Conflicts: dpm%{?_isa}
 Conflicts: dpm-devel%{?_isa}
 Conflicts: dpm-name-server-mysql%{?_isa}
 Conflicts: dpm-perl%{?_isa}
-Conflicts: dpm-python%{?_isa}
+#Conflicts: dpm-python%{?_isa}
 Conflicts: dpm-rfio-server%{?_isa}
 Conflicts: dpm-server-mysql%{?_isa}
 Conflicts: dpm-srm-server-mysql%{?_isa}
