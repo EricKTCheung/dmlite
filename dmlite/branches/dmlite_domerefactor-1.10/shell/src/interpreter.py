@@ -2103,7 +2103,7 @@ class FsDelCommand(ShellCommand):
 class Util(object):
         #check if mysql plugin is properly configured
         @staticmethod
-        def checkConf():
+        def checkConf(interpreter):
             #check which implementations are loaded
             domeadapter = True
             catalogImpl = interpreter.catalog.getImplId()
@@ -2423,7 +2423,7 @@ ex:
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        adminUserName = Util.checkConf()
+        adminUserName = Util.checkConf(self.interpreter)
 
         if not adminUserName:
             return self.error("DPM configuration is not correct")
@@ -2557,7 +2557,7 @@ The replicate command accepts the following parameters:
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        adminUserName = Util.checkConf()
+        adminUserName = Util.checkConf(self.interpreter)
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
@@ -2916,7 +2916,7 @@ The drainpool command accepts the following parameters:
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        adminUserName = Util.checkConf()
+        adminUserName = Util.checkConf(self.interpreter)
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
@@ -3026,7 +3026,7 @@ The drainfs command accepts the following parameters:
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        adminUserName = Util.checkConf()
+        adminUserName = Util.checkConf(self.interpreter)
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
@@ -3139,7 +3139,7 @@ The drainserver command accepts the following parameters:
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
 
-        adminUserName = Util.checkConf()
+        adminUserName = Util.checkConf(self.interpreter)
         if not adminUserName:
             return self.error("DPM configuration is not correct")
 
