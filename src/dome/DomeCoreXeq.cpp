@@ -4346,7 +4346,7 @@ int DomeCore::dome_makedir(DomeReq &req, FCGX_Request &request) {
   std::string dname;
   DmStatus ret = sql.getParent(parent, path, parentpath, dname);
   if (!ret.ok())
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Can't find parent path of '" << path << "'"));
+    return DomeReq::SendSimpleResp(request, 404, SSTR("Can't find parent path of '" << path << "'"));
 
   // Need to be able to write to the parent
   if (checkPermissions(&ctx, parent.acl, parent.stat, S_IWRITE) != 0)
