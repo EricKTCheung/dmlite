@@ -67,8 +67,8 @@ logic for data management and storage for the Lcg grid.
 
 
 
-%package dpmhead-dome
-Summary:  DPM Head Node (MySQL)
+%package dpmhead-domeonly
+Summary:  DPM Head Node (MySQL) in DOME-only configuration
 Group:    Applications/Internet
 Requires: bdii
 
@@ -86,6 +86,7 @@ Requires: davix
 
 Obsoletes: emi-dpm_mysql
 Obsoletes: dpmhead
+Obsoletes: dpmhead-dome
 Conflicts: dpm%{?_isa}
 Conflicts: dpm-devel%{?_isa}
 Conflicts: dpm-name-server-mysql%{?_isa}
@@ -96,13 +97,14 @@ Conflicts: dpm-server-mysql%{?_isa}
 Conflicts: dpm-srm-server-mysql%{?_isa}
 Conflicts: dmlite-plugins-adapter
 
-%description dpmhead-dome
+%description dpmhead-domeonly
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
 of disk servers. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
-This is a metapackage providing all required daemons for a DPM Head Node.
+This is a metapackage providing all required daemons for a DPM Head Node that
+does not contain the legacy servers.
 
-%package dpmdisk-dome
+%package dpmdisk-domeonly
 Summary:  DPM Disk Node
 Group:    Applications/Internet
 
@@ -119,6 +121,7 @@ Requires: davix
 
 Obsoletes: emi-dpm_disk
 Obsoletes: dpmdisk
+Obsoletes: dpmdisk-dome
 Conflicts: dpm%{?_isa}
 Conflicts: dpm-devel%{?_isa}
 Conflicts: dpm-perl%{?_isa}
@@ -126,12 +129,12 @@ Conflicts: dpm-python%{?_isa}
 Conflicts: dpm-rfio-server%{?_isa}
 Conflicts: dmlite-plugins-adapter = %{version}
 
-%description dpmdisk-dome
+%description dpmdisk-domeonly
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
 of disk servers. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
 This is a metapackage providing all required daemons for a DPM
-Disk Node.
+Disk Node that does not contain the legacy servers.
 
 
 
