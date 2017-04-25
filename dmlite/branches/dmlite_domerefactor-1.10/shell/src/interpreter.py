@@ -604,9 +604,6 @@ class InitCommand(ShellCommand):
     if not self.interpreter.quietMode:
       self.ok('Using configuration "' + configFile + '" as root.')
 
-    if 'dpm2' not in sys.modules:
-        self.ok("DPM-python has not been found. Please do 'yum install dpm-python' or the following commands will not work properly: drainfs, drainpool, drainserver .")
-
     if log != '0':
         self.ok("Log Level set to %s." % log)
 
@@ -2154,7 +2151,7 @@ class Util(object):
             return adminUserName
 
         @staticmethod
-        def setFSReadonly(dpm2,interpreter,sourceFS):
+        def setFSReadonly(interpreter,sourceFS):
             #check which implementations are loaded
 
             catalogImpl = interpreter.catalog.getImplId()
@@ -2494,7 +2491,7 @@ ex:
 
             #set as READONLY the FS  to drain
             if not parameters['dryrun']:
-                if Util.setFSReadonly(dpm2,self.interpreter,sourceFS):
+                if Util.setFSReadonly(self.interpreter,sourceFS):
                     return
             else:
                 Util.printComments(self.interpreter)
@@ -2918,8 +2915,6 @@ The drainpool command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
@@ -2988,7 +2983,7 @@ The drainpool command accepts the following parameters:
                 #step 1 : set as READONLY all FS in the pool to drain
                 if not parameters['dryrun']:
                         for fs in listFStoDrain:
-                                if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
+                                if Util.setFSReadonly(self.interpreter,fsToDrain):
                                         return
                 else:
                         Util.printComments(self.interpreter)
@@ -3030,8 +3025,6 @@ The drainfs command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
@@ -3103,7 +3096,7 @@ The drainfs command accepts the following parameters:
 
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
-                        if Util.setFSReadonly(dpm2,self.interpreter,fsToDrain):
+                        if Util.setFSReadonly(self.interpreter,fsToDrain):
                                 return
                 else:
                         Util.printComments(self.interpreter)
@@ -3145,8 +3138,6 @@ The drainserver command accepts the following parameters:
             return self.error('There is no stack Instance.')
         if self.interpreter.poolManager is None:
             return self.error('There is no pool manager.')
-        if 'dpm2' not in sys.modules:
-            return self.error("DPM-python is missing. Please do 'yum install dpm-python'.")
 
         adminUserName = Util.checkConf()
         if not adminUserName:
@@ -3221,7 +3212,7 @@ The drainserver command accepts the following parameters:
                 #set as READONLY the FS  to drain
                 if not parameters['dryrun']:
                         for fs in db.getFilesystemsInServer(servername):
-                                if Util.setFSReadonly(dpm2,self.interpreter,fs):
+                                if Util.setFSReadonly(self.interpreter,fs):
                                         return
                 else:
                         Util.printComments(self.interpreter)
