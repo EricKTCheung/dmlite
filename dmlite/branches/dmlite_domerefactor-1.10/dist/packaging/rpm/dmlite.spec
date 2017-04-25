@@ -483,13 +483,13 @@ rm -rf %{buildroot}
 
 
 
-%files dpmhead-dome
+%files dpmhead-domeonly
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/dbscripts
 %{_prefix}/share/dmlite/filepull
 
 
-%files dpmdisk-dome
+%files dpmdisk-domeonly
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/filepull
 
