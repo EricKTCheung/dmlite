@@ -2107,16 +2107,27 @@ class Util(object):
         #check if mysql plugin is properly configured
         @staticmethod
         def checkConf():
-            try :
-                conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
-            except Exception, e:
-                print e.__str__()
-                return False
-
+            #check which implementations are loaded
+            domeadapter = True
+            catalogImpl = interpreter.catalog.getImplId()
+            if 'DomeAdapterHeadCatalog' not in catalogImpl:
+                domeadapter = False
+            #use mysql plugin conf
+                try :
+                    conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
+                except Exception, e:
+                    print e.__str__()
+                    return False
+            else:
+                try :
+                    conf = open("/etc/dmlite.conf.d/domeadapter.conf", 'r')
+                except Exception, e:
+                    print e.__str__()
+                    return False
             adminUserName = None
             dnisroot = None
             hostcert = False
-
+	       
             for line in conf:
                 if line.startswith("AdminUsername"):
                     adminUserName = line[len("AdminUserName")+1:len(line)].strip()
@@ -2126,14 +2137,19 @@ class Util(object):
                     hostcert = True
             conf.close()
 
-            if (dnisroot is None) or (dnisroot == 'no'):
-                print 'HostDNIsRoot must be set to yes on the configuration files'
-                return False
-            if  adminUserName is None:
-                print 'No AdminUserName defined on the configuration files'
-                return False
-            if not hostcert:
-                print 'No HostCertificate defined on the configuration files'
+            if domeadapter:
+                if  adminUserName is None:
+                    print 'No AdminUserName defined on the configuration files'
+                    return False
+            else:
+                if  adminUserName is None:
+                    print 'No AdminUserName defined on the configuration files'
+                    return False
+                if (dnisroot is None) or (dnisroot == 'no'):
+                    print 'HostDNIsRoot must be set to yes on the configuration files'
+                    return False
+                if not hostcert:
+                    print 'No HostCertificate defined on the configuration files'
 
             return adminUserName
 
@@ -2451,7 +2467,7 @@ ex:
 
         #instantiating DPMDB
         try:
-            db = DPMDB()
+            db = DPMDB(self.interpreter)
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -2944,7 +2960,7 @@ The drainpool command accepts the following parameters:
 
         #instantiating DPMDB
         try:
-                db = DPMDB()
+                db = DPMDB(self.interpreter)
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -3057,7 +3073,7 @@ The drainfs command accepts the following parameters:
 
         #instantiating DPMDB
         try:
-                db = DPMDB()
+                db = DPMDB(self.interpreter)
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
@@ -3172,7 +3188,7 @@ The drainserver command accepts the following parameters:
 
         #instantiating DPMDB
         try:
-                db = DPMDB()
+                db = DPMDB(self.interpreter)
         except Exception, e:
                 return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
