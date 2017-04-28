@@ -2079,6 +2079,11 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   long long poolfree = 0LL;
   std::string tkname = "<unknown>";
   std::string poolname = "<unknown>";
+  
+  
+  // Get dir used space before crawling upwards  
+  usedspace = status.getDirUsedSpace(absPath);
+  
   // Crawl
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
@@ -2105,7 +2110,6 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
           tkname = it->second.u_token;
           poolname = it->second.poolname;
           quotausedspace = status.getQuotatokenUsedSpace(it->second);
-          usedspace = status.getDirUsedSpace(absPath);
         }
         break;
       }
@@ -2123,7 +2127,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   //   In limit cases the tot quota can be less than the used space, hence it's better
   //   to publish the tot space rather than the free space in the quota.
   //   One of these cases could be when the sysadmin (with punitive mood) manually assigns
-  //   a quota that is lower than the occupied space. This is a legitimate attempt
+  //   a quota that is lower than the occupied space. This would be a legitimate attempt
   //   to prevent clients from writing there until the space decreases...
   boost::property_tree::ptree jresp;
   jresp.put("quotatotspace", totspace);
