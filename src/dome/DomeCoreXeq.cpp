@@ -3424,12 +3424,12 @@ int DomeCore::dome_modifyfs(DomeReq &req, FCGX_Request &request) {
   }
 
   if (rc) {
-    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not insert new fs: '" << newfs << "' It likely already exists."));
+    return DomeReq::SendSimpleResp(request, 422, SSTR("Could not modify fs: '" << newfs << "'."));
     return 1;
   }
 
   status.loadFilesystems();
-  return DomeReq::SendSimpleResp(request, 200, SSTR("New filesystem added."));
+  return DomeReq::SendSimpleResp(request, 200, SSTR("Filesystem modified."));
 }
 
 
