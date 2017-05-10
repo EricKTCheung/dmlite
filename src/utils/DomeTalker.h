@@ -33,8 +33,11 @@
 namespace dmlite {
 
 struct DomeCredentials {
+  /// The remote user that originated a request. Typically a DN
   std::string clientName;
+  /// The remote address of the user's machine
   std::string remoteAddress;
+  /// The groups the user belongs to
   std::vector<std::string> groups;
 
   DomeCredentials(std::string cn, std::string ra, std::vector<std::string> gr) :
@@ -54,6 +57,10 @@ struct DomeCredentials {
       }
     }
   }
+  
+
+  
+  
 };
 
 enum DomeHttpCode {
@@ -69,7 +76,10 @@ enum DomeHttpCode {
   DOME_HTTP_INSUFFICIENT_STORAGE = 507
 };
 
-int http_status(const dmlite::DmException &e);
+int http_status(const DmException &e);
+
+class DmStatus;
+int http_status(const DmStatus &e);
 
 class DomeTalker {
 public:

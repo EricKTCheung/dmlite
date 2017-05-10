@@ -134,7 +134,8 @@ public:
   int dome_pfnrm(DomeReq &req, FCGX_Request &request);
   /// Disk server only. Removes a replica, both from the catalog and the disk
   int dome_delreplica(DomeReq &req, FCGX_Request &request);
-
+  /// Updates the fields of a replica
+  int dome_updatereplica(DomeReq &req, FCGX_Request &request);
   /// Adds a new pool
   int dome_addpool(DomeReq &req, FCGX_Request &request);
   /// Modify an existing pool
@@ -149,16 +150,37 @@ public:
   int dome_modifyfs(DomeReq &req, FCGX_Request &request);
 
 
+  /// Creates a directory
+  int dome_makedir(DomeReq &req, FCGX_Request &request);
+  
   /// Fecthes logical stat information for an LFN or file ID or a pfn
   int dome_getstatinfo(DomeReq &req, FCGX_Request &request);
   /// Fecthes replica info from a rfn
   int dome_getreplicainfo(DomeReq &req, FCGX_Request &request);
+  /// Get all the replicas of a given file
+  int dome_getreplicavec(DomeReq &req, FCGX_Request &request);
   /// Like an HTTP GET on a directory, gets all the content
   int dome_getdir(DomeReq &req, FCGX_Request &request);
   /// Get user information
   int dome_getuser(DomeReq &req, FCGX_Request &request);
+  /// Get all the uses in one shot
+  int dome_getusersvec(DomeReq &req, FCGX_Request &request);
+  /// Adds an user
+  int dome_newuser(DomeReq &req, FCGX_Request &request);
+  /// Delete an user
+  int dome_deleteuser(DomeReq &req, FCGX_Request &request);
+  /// Update an user
+  int dome_updateuser(DomeReq &req, FCGX_Request &request);
   /// Get group information
   int dome_getgroup(DomeReq &req, FCGX_Request &request);
+  /// Update a group
+  int dome_updategroup(DomeReq &req, FCGX_Request &request);
+  /// Get all the groups in one shot
+  int dome_getgroupsvec(DomeReq &req, FCGX_Request &request);
+  /// Delete a group
+  int dome_deletegroup(DomeReq &req, FCGX_Request &request);
+  /// Create a new group
+  int dome_newgroup(DomeReq &req, FCGX_Request &request);
   /// Get id mapping
   int dome_getidmap(DomeReq &req, FCGX_Request &request);
   /// Update extended attributes
@@ -168,9 +190,47 @@ public:
 
   /// Send a simple info message
   int dome_info(DomeReq &req, FCGX_Request &request, int myidx, bool authorized);
-
+  
+  /// Tells if a n user can access a file
+  int dome_access(DomeReq &req, FCGX_Request &request);
+  /// Tells if an user can access a replica
+  int dome_accessreplica(DomeReq &req, FCGX_Request &request);
+  /// Add a replica to a file
+  int dome_addreplica(DomeReq &req, FCGX_Request &request);
+  /// Create a new file
+  int dome_create(DomeReq &req, FCGX_Request &request);
+  /// Get the comment associated to a file
+  int dome_getcomment(DomeReq &req, FCGX_Request &request);
+  /// Get the destination of a symlink
+  int dome_readlink(DomeReq &req, FCGX_Request &request);
+  /// Remove a directory
+  int dome_removedir(DomeReq &req, FCGX_Request &request);
+  /// Like the unix command 'mv'
+  int dome_rename(DomeReq &req, FCGX_Request &request);
+  /// Oh no! Setting an Acl can perturb the Universe!
+  int dome_setacl(DomeReq &req, FCGX_Request &request);
+  /// Set a comment
+  int dome_setcomment(DomeReq &req, FCGX_Request &request);
+  /// Sets various file metadata fields
+  int dome_setmode(DomeReq &req, FCGX_Request &request);
+  /// Set the uid/gid
+  int dome_setowner(DomeReq &req, FCGX_Request &request);
+  /// Set the size of a file
+  int dome_setsize(DomeReq &req, FCGX_Request &request);
+  /// Create a symlink
+  int dome_symlink(DomeReq &req, FCGX_Request &request);
+  /// Delete a file and all its replicas
+  int dome_unlink(DomeReq &req, FCGX_Request &request);
+  
+  
   int makespace(std::string fsplusvo, int size);
-  bool addFilesizeToDirs(dmlite::INode *inodeintf, dmlite::ExtendedStat file, int64_t size);
+  bool addFilesizeToDirs(DomeMySql &sql, dmlite::ExtendedStat file, int64_t size);
+  /// Utility: fill a dmlite security context with ALL the information we have
+  /// about the client that is sending the request and the user that originated it
+  /// NOTE: This is a relevant part of the authorization policy for users
+  void fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req);
+  
+  
 
 private:
   bool initdone, terminationrequested;

@@ -37,6 +37,8 @@
 
 using namespace dmlite;
 
+#define DPM_DB "dpm_db"
+
 
 DomeMySql::DomeMySql() {
   this->transactionLevel_ = 0;
@@ -130,9 +132,8 @@ int DomeMySql::commit()
       merror = mysql_error(this->conn_);
     }
     
-//    MySqlHolder::getMySqlPool().release(conn_);
-//    conn_ = 0;
-    
+    //MySqlHolder::getMySqlPool().release(conn_);
+    //conn_ = 0;
     
     if  (qret != 0) {
       Err(fname, "Cannot commit: " << DMLITE_DBERR(merrno) << " " << merror);
@@ -164,8 +165,8 @@ int DomeMySql::rollback()
       merror = mysql_error(this->conn_);
     }
 
-//    MySqlHolder::getMySqlPool().release(conn_);
-//    conn_ = 0;
+    //MySqlHolder::getMySqlPool().release(conn_);
+    //conn_ = 0;
 
     if (qret != 0) {
       Err(domelogname, "Cannot rollback: " << DMLITE_DBERR(merrno) << " " << merror);
@@ -188,7 +189,7 @@ int DomeMySql::getQuotaTokenByKeys(DomeQuotatoken &qtk)
     char buf1[1024], buf2[1024], buf3[1024], buf4[1024], buf5[1024];
 
     // Get it from the DB, using path and poolname as keys
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "SELECT rowid, u_token, t_space, poolname, path, s_token, groups\
                     FROM dpm_space_reserv WHERE path = ? AND poolname = ?"
     );
@@ -243,7 +244,7 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   try {
     Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
 
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "SELECT rowid, u_token, t_space, poolname, path, s_token, groups, s_uid, s_gid\
                     FROM dpm_space_reserv"
     );
@@ -303,108 +304,6 @@ int DomeMySql::getSpacesQuotas(DomeStatus &st)
   return cnt;
 }
 
-int DomeMySql::getGroups(DomeStatus &st)
-{
-  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-  int cnt = 0;
-
-  try {
-    Statement stmt(conn_, "cns_db",
-                   "SELECT gid, groupname, banned, xattr\
-                    FROM Cns_groupinfo"
-    );
-    stmt.execute();
-
-    DomeGroupInfo gi;
-    char buf1[1024], buf2[1024];
-    int banned;
-
-    stmt.bindResult(0, &gi.groupid);
-
-    memset(buf1, 0, sizeof(buf1));
-    stmt.bindResult(1, buf1, 256);
-
-    stmt.bindResult(2, &banned);
-
-    memset(buf2, 0, sizeof(buf2));
-    stmt.bindResult(3, buf2, 256);
-
-    {
-      boost::unique_lock<boost::recursive_mutex> l(st);
-      while ( stmt.fetch() ) {
-        gi.groupname = buf1;
-        gi.xattr = buf2;
-        gi.banned = (banned != 0);
-
-        Log(Logger::Lvl2, domelogmask, domelogname, " Fetched group. id:" << gi.groupid <<
-        " groupname:" << gi.groupname << " banned:" << gi.banned << " xattr: '" << gi.xattr);
-
-        st.insertGroup(gi);
-
-        cnt++;
-      }
-    }
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading groups. Groups read:" << cnt);
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Groups read:" << cnt);
-  return cnt;
-}
-
-
-int DomeMySql::getUsers(DomeStatus &st)
-{
-  int cnt = 0;
-  Log(Logger::Lvl4, domelogmask, domelogname, " Entering ");
-
-  try {
-    Statement stmt(conn_, "cns_db",
-                   "SELECT userid, username, banned, xattr\
-                    FROM Cns_userinfo"
-    );
-    stmt.execute();
-
-    DomeUserInfo ui;
-    char buf1[1024], buf2[1024];
-    int banned;
-
-    stmt.bindResult(0, &ui.userid);
-
-    memset(buf1, 0, sizeof(buf1));
-    stmt.bindResult(1, buf1, 256);
-
-    stmt.bindResult(2, &banned);
-
-    memset(buf2, 0, sizeof(buf2));
-    stmt.bindResult(3, buf2, 256);
-
-    {
-    boost::unique_lock<boost::recursive_mutex> l(st);
-
-    while ( stmt.fetch() ) {
-      ui.username = buf1;
-      ui.xattr = buf2;
-      ui.banned = (banned != 0);
-
-      Log(Logger::Lvl2, domelogmask, domelogname, " Fetched user. id:" << ui.userid <<
-      " username:" << ui.username << " banned:" << ui.banned << " xattr: '" << ui.xattr);
-
-      st.insertUser(ui);
-
-      cnt++;
-    }
-    }
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading users. Users read:" << cnt);
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, " Exiting. Users read:" << cnt);
-  return cnt;
-}
-
 int DomeMySql::setQuotatokenByStoken(DomeQuotatoken &qtk) {
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
@@ -413,7 +312,7 @@ int DomeMySql::setQuotatokenByStoken(DomeQuotatoken &qtk) {
   long unsigned int nrows = 0;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv SET u_token = ?, t_space = ?, groups = ?, "
                    "path = ?, poolname = ? WHERE s_token = ?");
 
@@ -451,7 +350,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
 
   try {
     // First try updating it. Makes sense just to overwrite only description, space and pool and groups
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, s_token = ?, groups = ? \
                     WHERE path = ? AND poolname = ?");
 
@@ -472,7 +371,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
       if (qtk.s_token.size() > 0) {
         // If the client also gave an s_token (usually an uuid) then use it, because likely the
         // client wants to recreate a quotatk for files that already exist in the db
-        Statement stmt(conn_, "dpm_db",
+        Statement stmt(conn_, DPM_DB,
                      "INSERT INTO dpm_space_reserv(client_dn, s_uid, s_gid,\
                      ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
                      poolname, assign_time, expire_time, path, s_token, groups)\
@@ -506,7 +405,7 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
 
       } else {
         // The client did not specify a s_token. Let the db create one for us
-        Statement stmt(conn_, "dpm_db",
+        Statement stmt(conn_, DPM_DB,
           "INSERT INTO dpm_space_reserv(s_token, client_dn, s_uid, s_gid,\
           ret_policy, ac_latency, s_type, u_token, t_space, g_space, u_space,\
           poolname, assign_time, expire_time, groups, path)\
@@ -561,7 +460,7 @@ int DomeMySql::delQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
     " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "DELETE FROM dpm_space_reserv\
                     WHERE path = ? AND poolname = ?");
     stmt.bindParam(0, qtk.path);
@@ -594,7 +493,7 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   long unsigned int nrows = 0;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv\
                     SET u_space = u_space + cast(? AS SIGNED)\
                     WHERE path = ? AND poolname = ?");
@@ -620,65 +519,7 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   return 0;
 };
 
-/// Delete a replica
-int DomeMySql::delReplica(int64_t fileid, const std::string &rfn) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' rfn: " << rfn);
-  bool ok = true;
-  long unsigned int nrows = 0;
 
-  try {
-    Statement stmt(conn_, "cns_db",
-                   "DELETE FROM Cns_file_replica "
-                   "WHERE fileid = ? AND sfn = ?");
-
-    stmt.bindParam(0, fileid);
-    stmt.bindParam(1, rfn);
-
-    if ( (nrows = stmt.execute() == 0) ) ok = false;
-  }
-  catch ( ... ) { ok = false; }
-
-  if (!ok) {
-    Err( domelogname, "Could not delete replica from DB. fileid: '" << fileid << "' rfn: " << rfn << " nrows: " << nrows);
-    return 1;
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Replica deleted. fileid: '" << fileid << "' rfn: " << rfn
-      << " nrows: " << nrows; );
-
-  return 0;
-}
-
-int DomeMySql::addtoDirectorySize(int64_t fileid, int64_t increment) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. fileid: '" << fileid << "' increment: " << increment );
-  bool ok = true;
-  long unsigned int nrows;
-
-  try {
-    Statement stmt(conn_, "cns_db",
-                   "UPDATE Cns_file_metadata\
-                    SET filesize = filesize + cast( ? AS SIGNED)\
-                    WHERE fileid = ?");
-
-    stmt.bindParam(0, increment);
-    stmt.bindParam(1, fileid);
-
-    if( (nrows = stmt.execute() == 0) )
-      ok = false;
-  }
-  catch ( ... ) { ok = false; }
-
-  if (!ok) {
-    Err( domelogname, "Could not update directory size from DB. s_token: '" << fileid <<
-      "' increment: " << increment << " nrows: " << nrows );
-    return 1;
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Directory size updated. fileid: '" << fileid <<
-  "' increment: " << increment << " nrows: " << nrows );
-
-  return 0;
-}
 
 /// Add/subtract an integer to the u_space of a quota(space)token
 /// u_space is the free space for the legacy DPM daemon, to be decremented on write
@@ -688,7 +529,7 @@ int DomeMySql::addtoQuotatokenUspace(std::string &s_token, int64_t increment) {
   long unsigned int nrows;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv\
                     SET u_space = u_space + ( ? )\
                     WHERE s_token = ?");
@@ -721,7 +562,7 @@ int DomeMySql::rmPool(std::string &poolname)  {
 
   try {
     // Delete the pool itself
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "DELETE FROM dpm_pool\
                     WHERE poolname = ?");
 
@@ -737,7 +578,7 @@ int DomeMySql::rmPool(std::string &poolname)  {
 
   try {
     // Now remove all the filesystems it had
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "DELETE FROM dpm_fs\
                     WHERE poolname = ?");
 
@@ -771,7 +612,7 @@ int DomeMySql::getPools(DomeStatus &st)
   int cnt = 0;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "SELECT poolname, defsize, s_type FROM dpm_pool " );
     stmt.execute();
 
@@ -823,7 +664,7 @@ int DomeMySql::getFilesystems(DomeStatus &st)
   int cnt = 0;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "SELECT poolname, server, fs, status "
                    "FROM dpm_fs " );
     stmt.execute();
@@ -890,7 +731,7 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
   long unsigned int nrows = 0;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "INSERT INTO dpm_pool\
                    (poolname, defsize, gc_start_thresh, gc_stop_thresh,\
                    def_lifetime, defpintime, max_lifetime, maxpintime,\
@@ -917,7 +758,7 @@ int DomeMySql::addPool(std::string& poolname, long defsize, char stype) {
       ok = true;
 
       try {
-        Statement stmt(conn_, "dpm_db",
+        Statement stmt(conn_, DPM_DB,
                      "UPDATE dpm_pool SET\
                      defsize=?, s_type=? WHERE poolname=?");
 
@@ -951,7 +792,7 @@ int DomeMySql::addFs(DomeFsInfo &newfs) {
   try {
 
     // Now insert the filesystem, using poolname
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "INSERT INTO dpm_fs\
                    (poolname, server, fs, status, weight)\
                    VALUES \
@@ -982,7 +823,7 @@ int DomeMySql::modifyFs(DomeFsInfo &newfs) {
   try {
 
     // Now insert the filesystem, using poolname
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_fs\
                     SET poolname=?, status=? WHERE server=? AND fs=?");
 
@@ -1010,7 +851,7 @@ int DomeMySql::rmFs(std::string& server, std::string& fs) {
   long unsigned int nrows;
 
   try {
-    Statement stmt(conn_, "dpm_db",
+    Statement stmt(conn_, DPM_DB,
                    "DELETE FROM dpm_fs\
                     WHERE server = ? AND fs = ?");
     stmt.bindParam(0, server);
@@ -1032,433 +873,6 @@ int DomeMySql::rmFs(std::string& server, std::string& fs) {
 }
 
 
-DmStatus DomeMySql::getStatbyLFN(dmlite::ExtendedStat &meta, std::string path, bool followSym) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << path << "'" );
 
 
-  // Split the path always assuming absolute
-  std::vector<std::string> components = Url::splitPath(path);
 
-  // Iterate starting from absolute root (parent of /) (0)
-  uint64_t     parent       = 0;
-  unsigned     symLinkLevel = 0;
-  std::string  c;
-
-  meta = ExtendedStat(); // ensure it's clean
-
-  // We process only absolute paths here
-  if (path[0] != '/' ) {
-
-    // return an error!
-    return DmStatus(ENOTDIR, "'" + meta.name + "' is not an absolute path.");
-  }
-
-  DmStatus st = getStatbyParentFileid(meta, 0, "/");
-  if(!st.ok()) return st;
-
-  parent = meta.stat.st_ino;
-  components.erase(components.begin());
-
-  for (unsigned i = 0; i < components.size(); ) {
-    // Check that the parent is a directory first
-    if (!S_ISDIR(meta.stat.st_mode) && !S_ISLNK(meta.stat.st_mode))
-      return DmStatus(ENOTDIR, "'" + meta.name + "' is not a directory, and is referenced by '" + path + "'. Internal DB error.");
-
-    // Pop next component
-    c = components[i];
-
-    // Stay here
-    if (c == ".") {
-      // Nothing
-    }
-    // Up one level
-    else if (c == "..") {
-      parent = meta.parent;
-      DmStatus st = getStatbyFileid(meta, parent);
-      if(!st.ok()) return st;
-    }
-    // Regular entry
-    else {
-      // Stat, but capture ENOENT to improve error code
-      DmStatus st = getStatbyParentFileid(meta, parent, c);
-      if(!st.ok()) {
-        if(st.code() != ENOENT) return st;
-
-        while (i < components.size()) {
-          components.pop_back();
-        }
-
-        //re-add / at the beginning
-        components.insert( components.begin(),std::string(1,'/'));
-        return DmStatus(ENOENT, "Entry '%s' not found under '%s'",
-                        c.c_str(), Url::joinPath(components).c_str());
-      }
-
-      // Symbolic link!, follow that instead
-      if (S_ISLNK(meta.stat.st_mode) && followSym) {
-        SymLink link;
-        DmStatus res = readLink(link, meta.stat.st_ino);
-        if (res.code() != DMLITE_SUCCESS)
-          return res;
-
-        ++symLinkLevel;
-        if (symLinkLevel > 16) {
-          return DmStatus(DMLITE_SYSERR(ELOOP),
-                          "Symbolic links limit exceeded: > %d",
-                          16);
-        }
-
-        // We have the symbolic link now. Split it and push
-        // into the component
-        std::vector<std::string> symPath = Url::splitPath(link.link);
-
-        for (unsigned j = i + 1; j < components.size(); ++j)
-          symPath.push_back(components[j]);
-
-        components.swap(symPath);
-        i = 0;
-
-        // If absolute, need to reset parent
-        if (link.link[0] == '/') {
-          parent = 0;
-          meta.stat.st_mode = S_IFDIR | 0555;
-        }
-        // If not, meta has the symlink data, which isn't nice.
-        // Stat the parent again!
-        else {
-          DmStatus st = getStatbyFileid(meta, meta.parent);
-          if(!st.ok()) return st;
-        }
-
-        continue; // Jump directly to the beginning of the loop
-      }
-      // Next one!
-      else {
-        parent = meta.stat.st_ino;
-      }
-    }
-    ++i; // Next in array
-  }
-
-  checksums::fillChecksumInXattr(meta);
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Stat-ed '" << path << "' sz: " << meta.stat.st_size);
-  return DmStatus();
-
-}
-
-
-
-
-/// Struct used internally to bind when reading
-struct CStat {
-  ino_t       parent;
-  struct stat stat;
-  char        status;
-  short       type;
-  char        name[256];
-  char        guid[37];
-  char        csumtype[4];
-  char        csumvalue[34];
-  char        acl[300 * 13]; // Maximum 300 entries of 13 bytes each
-  char        xattr[1024];
-};
-
-
-/// Takes the content of a CStat structure, as it comes from the queries
-/// and use it to fill the final ExtendedStat object
-/// We also take some corrective action on checksums, to make sure that
-/// the legacy chksum fields and the xattrs are somehow coherent, or at least
-/// not half empty
-static inline void dumpCStat(const CStat& cstat, ExtendedStat* xstat)
-{
-
-  xstat->clear();
-  Log(Logger::Lvl4, domelogmask, domelogname,
-      " name: " << cstat.name <<
-      " parent: " << cstat.parent <<
-      " csumtype: " << cstat.csumtype <<
-      " csumvalue: " << cstat.csumvalue <<
-      " acl: " << cstat.acl);
-
-  xstat->stat      = cstat.stat;
-  xstat->csumtype  = cstat.csumtype;
-  xstat->csumvalue = cstat.csumvalue;
-  xstat->guid      = cstat.guid;
-  xstat->name      = cstat.name;
-  xstat->parent    = cstat.parent;
-  xstat->status    = static_cast<ExtendedStat::FileStatus>(cstat.status);
-  xstat->acl       = Acl(cstat.acl);
-  xstat->clear();
-  xstat->deserialize(cstat.xattr);
-
-  // From LCGDM-1742
-  xstat->fixchecksums();
-
-  (*xstat)["type"] = cstat.type;
-}
-
-
-static inline void bindMetadata(Statement& stmt, CStat* meta) throw(DmException)
-{
-  memset(meta, 0, sizeof(CStat));
-  stmt.bindResult( 0, &meta->stat.st_ino);
-  stmt.bindResult( 1, &meta->parent);
-  stmt.bindResult( 2, meta->guid, sizeof(meta->guid));
-  stmt.bindResult( 3, meta->name, sizeof(meta->name));
-  stmt.bindResult( 4, &meta->stat.st_mode);
-  stmt.bindResult( 5, &meta->stat.st_nlink);
-  stmt.bindResult( 6, &meta->stat.st_uid);
-  stmt.bindResult( 7, &meta->stat.st_gid);
-  stmt.bindResult( 8, &meta->stat.st_size);
-  stmt.bindResult( 9, &meta->stat.st_atime);
-  stmt.bindResult(10, &meta->stat.st_mtime);
-  stmt.bindResult(11, &meta->stat.st_ctime);
-  stmt.bindResult(12, &meta->type);
-  stmt.bindResult(13, &meta->status, 1);
-  stmt.bindResult(14, meta->csumtype,  sizeof(meta->csumtype));
-  stmt.bindResult(15, meta->csumvalue, sizeof(meta->csumvalue));
-  stmt.bindResult(16, meta->acl, sizeof(meta->acl), 0);
-  stmt.bindResult(17, meta->xattr, sizeof(meta->xattr));
-}
-
-
-
-
-
-dmlite::DmStatus DomeMySql::readLink(SymLink link, int64_t fileid)
-{
-  Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
-
-  try {
-    Statement stmt(conn_, "cns_db",
-                   "SELECT fileid, linkname FROM Cns_symlinks WHERE fileid = ?");
-
-    char      clink[4096];
-
-    memset(clink, 0, sizeof(clink));
-    stmt.bindParam(0, fileid);
-    stmt.execute();
-
-    stmt.bindResult(0, &link.inode);
-    stmt.bindResult(1, clink, sizeof(clink), 0);
-
-    if (!stmt.fetch())
-      return DmStatus(ENOENT, "Link %ld not found", fileid);
-
-    link.link = clink;
-
-    }
-    catch ( ... ) {
-      Err(domelogname, " Exception while reading symlink " << fileid);
-      return DmStatus(ENOENT, "Cannot fetch link %ld", fileid);
-    }
-    Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " --> " << link.link);
-  return DmStatus();
-}
-
-
-
-
-
-/// Extended stat for inodes
-DmStatus DomeMySql::getStatbyFileid(dmlite::ExtendedStat& xstat, int64_t fileid) {
-  Log(Logger::Lvl4, domelogmask, domelogname, " fileid:" << fileid);
-  try {
-    Statement    stmt(conn_, "cns_db",
-                    "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-                    filesize, atime, mtime, ctime, fileclass, status,\
-                    csumtype, csumvalue, acl, xattr\
-                    FROM Cns_file_metadata\
-                    WHERE fileid = ?");
-    CStat        cstat;
-    xstat = ExtendedStat();
-
-    stmt.bindParam(0, fileid);
-    stmt.execute();
-
-    bindMetadata(stmt, &cstat);
-
-  if (!stmt.fetch())
-    return DmStatus(ENOENT, fileid + " not found");
-
-  dumpCStat(cstat, &xstat);
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading stat of fileid " << fileid);
-    return DmStatus(EINVAL, " Exception while reading stat of fileid " + fileid);
-  }
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. fileid:" << fileid << " name:" << xstat.name << " sz:" << xstat.size());
-  return DmStatus();
-}
-
-
-
-
-// Extended stat for replica file names in rfio syntax
-DmStatus DomeMySql::getStatbyRFN(dmlite::ExtendedStat &xstat, std::string rfn) {
-  Log(Logger::Lvl4, domelogmask, domelogname, " rfn:" << rfn);
-  try {
-    Statement    stmt(conn_, "cns_db",
-                      "SELECT m.fileid, m.parent_fileid, m.guid, m.name, m.filemode, m.nlink, m.owner_uid, m.gid,\
-                      m.filesize, m.atime, m.mtime, m.ctime, m.fileclass, m.status,\
-                      m.csumtype, m.csumvalue, m.acl, m.xattr\
-                      FROM Cns_file_metadata m, Cns_file_replica r\
-                      WHERE r.sfn = ? AND r.fileid = m.fileid");
-    CStat        cstat;
-    xstat = ExtendedStat();
-
-    stmt.bindParam(0, rfn);
-    stmt.execute();
-
-    bindMetadata(stmt, &cstat);
-
-    if (!stmt.fetch())
-      return DmStatus(ENOENT, "replica '" + rfn + "' not found");
-
-    dumpCStat(cstat, &xstat);
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading stat of rfn " << rfn);
-    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
-  }
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. rfn:" << rfn << " name:" << xstat.name << " sz:" << xstat.stat.st_size);
-  return DmStatus();
-}
-
-
-// Extended stat for replica file names in rfio syntax
-DmStatus DomeMySql::getReplicabyRFN(dmlite::Replica &r, std::string rfn) {
-  Log(Logger::Lvl4, domelogmask, domelogname, " rfn:" << rfn);
-  try {
-    Statement    stmt(conn_, "cns_db",
-                      "SELECT rowid, fileid, nbaccesses,\
-                      atime, ptime, ltime,\
-                      status, f_type, setname, poolname, host, fs, sfn, COALESCE(xattr, '')\
-                      FROM Cns_file_replica\
-                      WHERE sfn = ?");
-
-
-    stmt.bindParam(0, rfn);
-
-    stmt.execute();
-
-    r = Replica();
-
-    char setnm[512];
-    char cpool[512];
-    char cserver[512];
-    char cfilesystem[512];
-    char crfn[4096];
-    char cmeta[4096];
-    char ctype, cstatus;
-
-    stmt.bindResult( 0, &r.replicaid);
-    stmt.bindResult( 1, &r.fileid);
-    stmt.bindResult( 2, &r.nbaccesses);
-    stmt.bindResult( 3, &r.atime);
-    stmt.bindResult( 4, &r.ptime);
-    stmt.bindResult( 5, &r.ltime);
-    stmt.bindResult( 6, &cstatus, 1);
-    stmt.bindResult( 7, &ctype, 1);
-    stmt.bindResult( 8, setnm,       sizeof(setnm));
-    stmt.bindResult( 9, cpool,       sizeof(cpool));
-    stmt.bindResult(10, cserver,     sizeof(cserver));
-    stmt.bindResult(11, cfilesystem, sizeof(cfilesystem));
-    stmt.bindResult(12, crfn,        sizeof(crfn));
-    stmt.bindResult(13, cmeta,       sizeof(cmeta));
-
-    if (!stmt.fetch())
-      return DmStatus(DMLITE_NO_SUCH_REPLICA, "Replica %s not found", rfn.c_str());
-
-    r.rfn           = crfn;
-    r.server        = cserver;
-    r.setname       = std::string(setnm);
-    r.status        = static_cast<Replica::ReplicaStatus>(cstatus);
-    r.type          = static_cast<Replica::ReplicaType>(ctype);
-    r.deserialize(cmeta);
-
-    r["pool"]       = std::string(cpool);
-    r["filesystem"] = std::string(cfilesystem);
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading stat of rfn " << rfn);
-    return DmStatus(EINVAL, " Exception while reading stat of rfn " + rfn);
-  }
-
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. repl:" << r.rfn);
-  return DmStatus();
-}
-
-
-
-
-/// Extended stat for inodes
-DmStatus DomeMySql::getStatbyParentFileid(dmlite::ExtendedStat& xstat, int64_t fileid, std::string name) {
-  Log(Logger::Lvl4, domelogmask, domelogname, " parent_fileid:" << fileid << " name: '" << name << "'");
-  try {
-    Statement    stmt(conn_, "cns_db",
-                      "SELECT fileid, parent_fileid, guid, name, filemode, nlink, owner_uid, gid,\
-                      filesize, atime, mtime, ctime, fileclass, status,\
-                      csumtype, csumvalue, acl, xattr\
-                      FROM Cns_file_metadata\
-                      WHERE parent_fileid = ? AND name = ?");
-    CStat        cstat;
-    xstat = ExtendedStat();
-
-    stmt.bindParam(0, fileid);
-    stmt.bindParam(1, name);
-    stmt.execute();
-
-    bindMetadata(stmt, &cstat);
-
-    if (!stmt.fetch())
-      return DmStatus(ENOENT, SSTR(fileid << " not found"));
-
-    dumpCStat(cstat, &xstat);
-  }
-  catch ( ... ) {
-    Err(domelogname, " Exception while reading stat of parent_fileid " << fileid);
-    return DmStatus(ENOENT, SSTR(" Exception while reading stat of parent_fileid " << fileid));
-  }
-  Log(Logger::Lvl3, domelogmask, domelogname, "Exiting. parent_fileid:" << fileid << " name:" << name << " sz:" << xstat.size());
-  return DmStatus();
-}
-
-
-
-
-
-
-
-DmStatus DomeMySql::setSize(std::string lfn, int64_t filesize) {
-  Log(Logger::Lvl4, domelogmask, domelogname, "Entering. lfn: '" << lfn << "' size: " << filesize );
-
-  long unsigned int nrows = 0;
-  dmlite::ExtendedStat st;
-
-  // Do a stat to get the fileid
-  DmStatus ret = getStatbyLFN(st, lfn);
-  if (!ret.ok())
-    return ret;
-
-  try {
-    // Just do the query on the fileid
-    Statement stmt(conn_, "cns_db",
-                   "UPDATE Cns_file_metadata SET filesize = ?, ctime = UNIX_TIMESTAMP() WHERE fileid = ?");
-
-    stmt.bindParam(0, filesize);
-    stmt.bindParam(1, st.stat.st_ino);
-
-    // If no rows are affected then error
-    if ( (nrows = stmt.execute() == 0) )
-      return DmStatus(EINVAL, SSTR("Cannot set filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << " nrows: " << nrows));
-
-  }
-  catch (DmException e) {
-    Err(domelogname, " Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what());
-    return DmStatus(EINVAL, SSTR(" Exception while setting filesize for lfn: '" << lfn << "' fileid: " << st.stat.st_ino << "err: '" << e.what()));
-  }
-
-  return DmStatus();
-}
