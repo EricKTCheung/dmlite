@@ -79,7 +79,10 @@ public:
     // dmlite::SecurityContext sec;
     // std::string remoteclientdn;
     // std::string remoteclienthost;
-
+    
+    /// Utility: fill a dmlite security context with the information we have
+    /// about the client that is sending the request and the user that originated it
+    void fillSecurityContext(dmlite::SecurityContext &ctx);
 
     /// Utility function to send a quick response. Returns <= 0 if error
     static int SendSimpleResp(FCGX_Request &request, int httpcode, const std::ostringstream &body, const char *logwhereiam = 0);

@@ -24,6 +24,7 @@
 #include "DomeTalker.h"
 #include "utils/DomeUtils.h"
 #include <boost/property_tree/json_parser.hpp>
+#include "status.h"
 
 using namespace dmlite;
 
@@ -164,6 +165,14 @@ int dmlite::http_status(const dmlite::DmException &e) {
   return DOME_HTTP_INTERNAL_SERVER_ERROR;
 }
 
+int dmlite::http_status(const dmlite::DmStatus &e) {
+  for(size_t i = 0; i < sizeof(pairs) / sizeof(pairs[0]); i++) {
+    if(pairs[i].code == DMLITE_ERRNO(e.code())) {
+      return pairs[i].status;
+    }
+  }
+  return DOME_HTTP_INTERNAL_SERVER_ERROR;
+}
 int DomeTalker::dmlite_code() {
   for(size_t i = 0; i < sizeof(pairs); i++) {
     if(pairs[i].status == status_) {

@@ -23,17 +23,19 @@
  * @date   Dec 2015
  */
 
+#ifndef DOMESTATUS_H
+#define DOMESTATUS_H
 
 #include <boost/thread.hpp>
 #include <set>
 #include "DomeGenQueue.h"
 #include "utils/DavixPool.h"
-#include "DomeDmlitePool.h"
+#include "dmlite/cpp/authn.h"
+#include "status.h"
 
 class DomeReq;
 class DomeQuotatoken;
 class DomeStatus;
-
 
 class DomePoolInfo {
 
@@ -165,7 +167,9 @@ public:
 class DomeUserInfo {
 public:
 
-  DomeUserInfo(): userid(-1), banned(false) {};
+  DomeUserInfo(): userid(-1), banned(NoBan) {};
+
+  dmlite::UserInfo getDmLiteUser();
 
   /// The user id
   int16_t userid;
@@ -173,8 +177,18 @@ public:
   /// The username
   std::string username;
 
+
+  enum BannedStatus {
+    NoBan = 0,
+    ArgusBan, //1
+    LocalBan  //2
+  };
+
   /// Tha banned status
-  bool banned;
+  BannedStatus banned;
+
+  /// What's this?
+  std::string ca;
 
   /// additional info
   std::string xattr;
@@ -184,7 +198,9 @@ public:
 class DomeGroupInfo {
 public:
 
-  DomeGroupInfo(): groupid(-1), banned(false) {};
+  DomeGroupInfo(): groupid(-1), banned(NoBan) {};
+
+  dmlite::GroupInfo getDmLiteGroup();
 
   /// The user id
   int16_t groupid;
@@ -192,8 +208,14 @@ public:
   /// The username
   std::string groupname;
 
+  enum BannedStatus {
+    NoBan = 0,
+    ArgusBan, //1
+    LocalBan  //2
+  };
+
   /// Tha banned status
-  bool banned;
+  BannedStatus banned;
 
   /// additional info
   std::string xattr;
@@ -208,10 +230,10 @@ public:
   DomeStatus();
   ~DomeStatus() {
 
-    if(dmpool) {
-      delete dmpool;
-      dmpool = NULL;
-    }
+    //if(dmpool) {
+    //  delete dmpool;
+    //  dmpool = NULL;
+    //}
   }
 
   // Head node or disk server ?
@@ -246,6 +268,11 @@ public:
   std::map <std::string, DomeUserInfo> usersbyname;
   std::map <int, DomeGroupInfo> groupsbygid;
   std::map <std::string, DomeGroupInfo> groupsbyname;
+
+  dmlite::DmStatus getIdMap(const std::string& userName,
+                    const std::vector<std::string>& groupNames,
+                    DomeUserInfo &user,
+                    std::vector<DomeGroupInfo> &groups);
 
   /// Inserts/overwrites an user
   int insertUser(DomeUserInfo &ui);
@@ -354,8 +381,11 @@ public:
   int tick(time_t timenow);
   int tickQueues(time_t timenow);
 
-  DmlitePool *dmpool;
+  //DmlitePool *dmpool;
 private:
+  DomeUserInfo rootUserInfo;
+  DomeGroupInfo rootGroupInfo;
+
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
 
@@ -363,3 +393,6 @@ private:
   boost::condition_variable queue_cond;
   boost::mutex queue_mtx;
 };
+
+
+#endif

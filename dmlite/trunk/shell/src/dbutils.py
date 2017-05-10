@@ -7,52 +7,71 @@ except:
 
 class DPMDB(object):
 
-	def __init__(self):
-		#getting the mysql conf from configuration
-		#TO DO: read the conf from the conf file
-        	try :
-                	conf = open("/etc/dmlite.conf.d/mysql.conf", 'r')
-        	except Exception, e:
-                	return self.error(e.__str__())
-
-		username = None
-        	password = None
-		host = None
-		port = None
-		nsDBName = None
-		dpmDBName = None
+	def __init__(self, interpreter):
+                #check where to get the mysql conf from
+                username = None
+                password = None
+                host = None
+                port = None
+                nsDBName = None
+                dpmDBName = None
                 self.dirhash = {}
 
-        	for line in conf:
-                	if line.startswith("MySqlHost"):
-                        	host  = line[len("MySqlHost")+1:len(line)].strip()
-                	if line.startswith("MySqlUsername"):
-                        	username=  line[len("MySqlUsername")+1:len(line)].strip()
-			if line.startswith("MySqlPassword"):
-        	                password=  line[len("MySqlPassword")+1:len(line)].strip()
-			if line.startswith("MySqlPort"):
-                	        port=  line[len("MySqlPort")+1:len(line)].strip()
-			if line.startswith("NsDatabase"):
-                	        nsDBName=  line[len("NsDatabase")+1:len(line)].strip()
-			if line.startswith("DpmDatabase"):
-				dpmDBName= line[len("DpmDatabase")+1:len(line)].strip()
-		conf.close()
+                catalogImpl = interpreter.catalog.getImplId()
+                if 'DomeAdapterHeadCatalog' not in catalogImpl:
+                        try:
+                                conf = open("/etc/dmlite.conf.d/mysql.conf", 'r') 
+                        except Exception, e:
+                                return self.error(e.__str__())
+                        for line in conf:
+                                if line.startswith("MySqlHost"):
+                                         host  = line[len("MySqlHost")+1:len(line)].strip()
+                                if line.startswith("MySqlUsername"):
+                                         username=  line[len("MySqlUsername")+1:len(line)].strip()
+	                        if line.startswith("MySqlPassword"):
+        	                         password=  line[len("MySqlPassword")+1:len(line)].strip()
+			        if line.startswith("MySqlPort"):
+                	                 port=  line[len("MySqlPort")+1:len(line)].strip()
+                                if line.startswith("NsDatabase"):
+                	                 nsDBName=  line[len("NsDatabase")+1:len(line)].strip()
+		                if line.startswith("DpmDatabase"):
+			                dpmDBName= line[len("DpmDatabase")+1:len(line)].strip()
+                        conf.close()
+		        if int(port) == 0:
+			        port =3306
+                else:
+                        try :
+                                conf = open("/etc/domehead.conf", 'r')
+                        except Exception, e:
+                                return self.error(e.__str__())
+                        for line in conf:
+                                if line.startswith("head.db.host:"):
+                                        host  = line[len("head.db.host:")+1:len(line)].strip()
+                                if line.startswith("head.db.user:"):
+                                        username=  line[len("head.db.user:")+1:len(line)].strip()
+                                if line.startswith("head.db.password:"):
+                                        password=  line[len("head.db.password:")+1:len(line)].strip()
+                                if line.startswith("head.db.port:"):
+                                        port=  line[len("head.db.port:")+1:len(line)].strip()
+                        conf.close()
+                        #not configurable in dome for now
+                        nsDBName='cns_db'
+                        dpmDBName='dpm_db'
 
-		if int(port) == 0:
-			port =3306
+                        if int(port) == 0:
+                                port =3306
+		try:
+		        dpmdb = MySQLdb.connect(host=host, user=username, passwd=password, db=dpmDBName,port= port )
+        	        self.dpmdb_c = dpmdb.cursor()
+        	except MySQLdb.Error, e:
+	                sys.exit("Error %d: %s" % (e.args[0], e.args[1]))
 
 		try:
-		  	dpmdb = MySQLdb.connect(host=host, user=username, passwd=password, db=dpmDBName,port= port )
-        		self.dpmdb_c = dpmdb.cursor()
+                        nsdb = MySQLdb.connect(host=host, user=username, passwd=password, db=nsDBName,port= port )
+                        self.nsdb_c = nsdb.cursor()
         	except MySQLdb.Error, e:
-			sys.exit("Error %d: %s" % (e.args[0], e.args[1]))
-
-		try:
-                	nsdb = MySQLdb.connect(host=host, user=username, passwd=password, db=nsDBName,port= port )
-                	self.nsdb_c = nsdb.cursor()
-        	except MySQLdb.Error, e:
-                	print "Error %d: %s" % (e.args[0], e.args[1])
-                        raise e
+                       print "Error %d: %s" % (e.args[0], e.args[1])
+                       raise e
 
 	def getReplicasInServer(self,server):
   		"""Method to get all the file replica for a single server."""
@@ -305,7 +324,7 @@ class DPMDB(object):
 			return None
 	        except ValueError,v:
 	                print "The replica %s does not correspond to a file in the DPM DB" % sfn
-                        return None
+			return None
 	        namelist.reverse() #put entries in "right" order for joining together
 		name = '/'.join(namelist)[1:]#and sfn and print dpns name (minus srm bits)
 		return name[:-1] #remove last "/"

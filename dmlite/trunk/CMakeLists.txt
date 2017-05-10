@@ -7,9 +7,9 @@ project (dmlite)
 include(FindPkgConfig)
 
 # Version
-set(dmlite_MAJOR 0)
-set(dmlite_MINOR 8)
-set(dmlite_PATCH 6)
+set(dmlite_MAJOR 1)
+set(dmlite_MINOR 10)
+set(dmlite_PATCH 0)
 
 # Optional builds
 option (BUILD_PYTHON "Build Python bindings" ON)
@@ -65,7 +65,7 @@ set (Boost_ADDITIONAL_VERSIONS "1.48" "1.48.0")
 #needed for GCC6
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 
-find_package (Boost 1.41 COMPONENTS date_time system thread regex REQUIRED)
+find_package (Boost 1.48 COMPONENTS date_time system thread regex REQUIRED)
 
 if (Boost_FOUND)
   # Hack for SL5 with EPEL5 enabled
