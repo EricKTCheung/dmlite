@@ -49,6 +49,7 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
   dbcurs = dbconn.cursor()
   cnsname = repname
   cnsparentid = parentid
+  cnsfileid = fileid
   dirtokens = []
   
   
@@ -87,16 +88,17 @@ def gulpreplica(dbconn, dirhash, repname, repsize, fileid, parentid):
       dbcurs.execute("select parent_fileid, name, filesize from cns_db.Cns_file_metadata where fileid = %s", (cnsparentid,))
       res = dbcurs.fetchone()
       if (res != None):
-        (cnsfileid, cnsname, cnssize) = res
+        (cnsgpid, cnsname, cnssize) = res
         
         # create new entry for the in memory hash
-        item = ( cnsname, repsize, cnsfileid, 0 )
-        
+        item = ( cnsname, repsize, cnsgpid, 0 )
+
         if options.verbose:
           print "New item ", item
           
         dirhash[cnsparentid] = item
-        cnsparentid = cnsfileid
+        cnsfileid = cnsparentid
+        cnsparentid = cnsgpid
       else:        
         # This is an error, we have found an entry whose parent is missing!
         print "Error. Could not find one of the parents of fileid:", cnsfileid
