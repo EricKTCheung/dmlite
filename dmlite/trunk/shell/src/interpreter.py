@@ -3480,7 +3480,7 @@ find "" -d
              folder = True;
          ret = list()
          try:
-             db = DPMDB()
+             db = DPMDB(self.interpreter)
              ret = db.find(pattern,folder)
          except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -3504,7 +3504,7 @@ class GetLfnCommand(ShellCommand):
          sfn = given[0]
          lfn = ""
          try:
-             db = DPMDB()
+             db = DPMDB(self.interpreter)
              lfn = db.getLFNFromSFN(sfn)
              if lfn is None:
                  return self.error("Cannot find the given SFN")
