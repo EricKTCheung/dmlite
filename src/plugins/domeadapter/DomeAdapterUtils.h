@@ -51,7 +51,8 @@ inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::R
 
   char status = atoi(ptree.get<std::string>("status").c_str());
   char type = atoi(ptree.get<std::string>("type").c_str());
-
+  
+  replica.rfn = ptree.get<std::string>("rfn", "");
   replica.status = static_cast<dmlite::Replica::ReplicaStatus>(status);
   replica.type = static_cast<dmlite::Replica::ReplicaType>(type);
 
