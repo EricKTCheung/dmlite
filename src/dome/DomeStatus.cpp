@@ -1080,7 +1080,7 @@ bool DomeStatus::canwriteintoQuotatoken(DomeReq &req, DomeQuotatoken &token) {
       }
   }
 
-  Err(domelogname, "Cannot write in quotatoken " << token.s_token);
+  Err(domelogname, "User: '" << req.creds.clientName << "' Cannot write in quotatoken " << token.s_token);
   return false;
 }
 
