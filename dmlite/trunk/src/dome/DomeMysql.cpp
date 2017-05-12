@@ -495,7 +495,7 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   try {
     Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv\
-                    SET u_space = u_space + ?\
+                    SET u_space = u_space + (CAST ? AS SIGNED)\
                     WHERE path = ? AND poolname = ?");
     stmt.bindParam(0, increment);
     stmt.bindParam(1, qtk.path);
