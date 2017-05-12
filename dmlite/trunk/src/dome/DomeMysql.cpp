@@ -493,17 +493,39 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   long unsigned int nrows = 0;
 
   try {
-    Statement stmt(conn_, DPM_DB,
-                   "UPDATE dpm_space_reserv\
-                    SET u_space = u_space + (CAST ? AS SIGNED)\
-                    WHERE path = ? AND poolname = ?");
-    stmt.bindParam(0, increment);
-    stmt.bindParam(1, qtk.path);
-    stmt.bindParam(2, qtk.poolname);
-
-    // If no rows are affected then we should insert
-    if ( (nrows = stmt.execute()) == 0 )
-      ok = false;
+    // Ugly hack to work around mysql math issues across versions
+    if (increment >= 0) {
+      
+      Statement stmt(conn_, DPM_DB,
+                     "UPDATE dpm_space_reserv \
+                     SET u_space = (u_space + ?) \
+                     WHERE path = ? AND poolname = ?");
+      stmt.bindParam(0, increment);
+      stmt.bindParam(1, qtk.path);
+      stmt.bindParam(2, qtk.poolname);
+      
+      // If no rows are affected then we should insert
+      if ( (nrows = stmt.execute()) == 0 )
+        ok = false;
+      
+    }
+    else {
+      
+      
+      Statement stmt(conn_, DPM_DB,
+                     "UPDATE dpm_space_reserv \
+                     SET u_space = (u_space - ?) \
+                     WHERE path = ? AND poolname = ?");
+      stmt.bindParam(0, -increment);
+      stmt.bindParam(1, qtk.path);
+      stmt.bindParam(2, qtk.poolname);
+      
+      // If no rows are affected then we should insert
+      if ( (nrows = stmt.execute()) == 0 )
+        ok = false;
+      
+    }
+    
   }
   catch ( ... ) { ok = false; }
 
