@@ -536,7 +536,7 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   }
 
   Log(Logger::Lvl3, domelogmask, domelogname, "Quotatoken u_space updated. u_token: '" << qtk.u_token << "' t_space: " << qtk.t_space <<
-      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' increment: " << increment << " nrows: " << nrows; );
+      " poolname: '" << qtk.poolname << "' path: '" << qtk.path << "' increment: " << increment << " nrows: " << nrows );
 
   return 0;
 };

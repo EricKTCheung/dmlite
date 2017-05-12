@@ -1184,6 +1184,7 @@ int DomeCore::dome_putdone_head(DomeReq &req, FCGX_Request &request) {
 
       // Occupy some space
       sql.addtoQuotatokenUspace(rep.setname, -size);
+      t.Commit();
     }
 
   }
