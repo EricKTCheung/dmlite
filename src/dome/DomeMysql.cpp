@@ -495,14 +495,14 @@ int DomeMySql::addtoQuotatokenUspace(DomeQuotatoken &qtk, int64_t increment) {
   try {
     Statement stmt(conn_, DPM_DB,
                    "UPDATE dpm_space_reserv\
-                    SET u_space = u_space + cast(? AS SIGNED)\
+                    SET u_space = u_space + ?\
                     WHERE path = ? AND poolname = ?");
     stmt.bindParam(0, increment);
     stmt.bindParam(1, qtk.path);
     stmt.bindParam(2, qtk.poolname);
 
     // If no rows are affected then we should insert
-    if ( (nrows = stmt.execute() == 0) )
+    if ( (nrows = stmt.execute()) == 0 )
       ok = false;
   }
   catch ( ... ) { ok = false; }
