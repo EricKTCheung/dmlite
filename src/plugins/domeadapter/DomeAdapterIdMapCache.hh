@@ -82,19 +82,16 @@ namespace dmlite {
       std::map<CacheKey, CacheContents>::const_iterator it = cache.find(key);
 
       if(it == cache.end()) {
-        Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "SENTINEL NOT FOUND");
         return false;
       }
 
       if(it->second.expired()) {
-        Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "SENTINEL EXPIRED");
         return false;
       }
 
       *user = it->second.getUserInfo();
       *groups = it->second.getGroupInfo();
 
-      Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "SENTINEL FOUND");
       return true;
     }
 
