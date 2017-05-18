@@ -17,6 +17,8 @@
 using namespace dmlite;
 using namespace boost::property_tree;
 
+IdMapCache DomeAdapterAuthn::idmapCache;
+
 DomeAdapterAuthn::DomeAdapterAuthn(DomeAdapterFactory *factory)
 : factory_(factory) {
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "");
@@ -58,6 +60,16 @@ SecurityContext* DomeAdapterAuthn::createSecurityContext(const SecurityCredentia
   return sec;
 }
 
+static std::string vecToStr(const std::vector<std::string> &vec) {
+  std::ostringstream ss;
+  for(size_t i = 0; i < vec.size(); i++) {
+    ss << vec[i];
+    if(i != vec.size()) ss << ",";
+  }
+  return ss.str();
+}
+
+
 void DomeAdapterAuthn::getIdMap(const std::string& userName,
                           const std::vector<std::string>& groupNames,
                           UserInfo* user,
@@ -67,13 +79,14 @@ void DomeAdapterAuthn::getIdMap(const std::string& userName,
 
   CacheKey key(userName, groupNames);
   if(!idmapCache.lookup(key, user, groups)) {
-    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache miss for user: '" << userName << "'");
+    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache miss for user: '" << userName << "', groups: '" << vecToStr(groupNames) << "'");
+
     uncachedGetIdMap(userName, groupNames, user, groups);
     idmapCache.update(key, *user, *groups);
     return;
   }
 
-  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache hit for user: '" << userName << "'");
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache hit for user: '" << userName << "', groups: '" << vecToStr(groupNames) << "'");
 }
 
 void DomeAdapterAuthn::uncachedGetIdMap(const std::string& userName,
