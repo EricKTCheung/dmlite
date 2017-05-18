@@ -58,12 +58,11 @@ SecurityContext* DomeAdapterAuthn::createSecurityContext(const SecurityCredentia
   return sec;
 }
 
-void DomeAdapterAuthn::getIdMap(const std::string& userName,
-                          const std::vector<std::string>& groupNames,
-                          UserInfo* user,
-                          std::vector<GroupInfo>* groups) throw (DmException)
-{
-  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. Username: " << userName);
+void DomeAdapterAuthn::uncachedGetIdMap(const std::string& userName,
+                  const std::vector<std::string>& groupNames,
+                  UserInfo* user,
+                  std::vector<GroupInfo>* groups) throw (DmException) {
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "Entering. Performing uncached getIdMap lookup. Username: " << userName);
   groups->clear();
 
   // our own credentials have not been initialized yet
@@ -108,6 +107,24 @@ void DomeAdapterAuthn::getIdMap(const std::string& userName,
   }
 
   Log(Logger::Lvl3, domeadapterlogmask, domeadapterlogname, "Exiting. Username: " << userName);
+}
+
+void DomeAdapterAuthn::getIdMap(const std::string& userName,
+                          const std::vector<std::string>& groupNames,
+                          UserInfo* user,
+                          std::vector<GroupInfo>* groups) throw (DmException)
+{
+  Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "Entering. User name: " << userName);
+
+  CacheKey key(userName, groupNames);
+  if(!idmapCache.lookup(key, user, groups)) {
+    Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache miss for user: '" << userName << "'");
+    uncachedGetIdMap(userName, groupNames, user, groups);
+    idmapCache.update(key, *user, *groups);
+    return;
+  }
+
+  Log(Logger::Lvl1, domeadapterlogmask, domeadapterlogname, "IdMap cache hit for user: '" << userName << "'");
 }
 
 GroupInfo DomeAdapterAuthn::newGroup(const std::string& gname) throw (DmException) {
