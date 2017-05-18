@@ -55,7 +55,7 @@ namespace dmlite {
                   UserInfo* user,
                   std::vector<GroupInfo>* groups) throw (DmException);
 
-    IdMapCache idmapCache;
+    static IdMapCache idmapCache;
 
     StackInstance* si_;
     const DomeCredentials emptycreds;
