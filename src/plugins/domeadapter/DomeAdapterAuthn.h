@@ -9,6 +9,7 @@
 #include <dmlite/cpp/dmlite.h>
 #include "DomeAdapter.h"
 #include "utils/DomeTalker.h"
+#include "DomeAdapterIdMapCache.hh"
 
 namespace dmlite {
 
@@ -49,6 +50,13 @@ namespace dmlite {
                   std::vector<GroupInfo>* groups) throw (DmException);
 
   protected:
+    void uncachedGetIdMap(const std::string& userName,
+                  const std::vector<std::string>& groupNames,
+                  UserInfo* user,
+                  std::vector<GroupInfo>* groups) throw (DmException);
+
+    IdMapCache idmapCache;
+
     StackInstance* si_;
     const DomeCredentials emptycreds;
     DomeAdapterFactory* factory_;
