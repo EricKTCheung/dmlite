@@ -312,19 +312,49 @@ int DomeMySql::setQuotatokenByStoken(DomeQuotatoken &qtk) {
   long unsigned int nrows = 0;
 
   try {
+    int64_t t_spc = 0, g_spc = 0, u_spc = 0, delta = 0;
+    // Get the current numbers, to precalculate them idiot-proof
     Statement stmt(conn_, DPM_DB,
-                   "UPDATE dpm_space_reserv SET u_token = ?, t_space = ?, groups = ?, "
-                   "path = ?, poolname = ? WHERE s_token = ?");
-
-    stmt.bindParam(0, qtk.u_token);
-    stmt.bindParam(1, qtk.t_space);
-    stmt.bindParam(2, qtk.getGroupsString(true));
-    stmt.bindParam(3, qtk.path);
-    stmt.bindParam(4, qtk.poolname);
-    stmt.bindParam(5, qtk.s_token);
-
-    nrows = stmt.execute();
-    ok = (nrows != 0);
+                   "SELECT t_space, g_space, u_space \
+                   FROM dpm_space_reserv WHERE s_token = ?"
+    );
+    stmt.bindParam(0, qtk.s_token);  
+    
+    // If no rows are affected then we should insert
+    if ( (nrows = stmt.execute() == 0) )
+      ok = false;
+    
+    
+    if (ok) {
+      stmt.bindResult(0, &t_spc);
+      stmt.bindResult(1, &g_spc);
+      stmt.bindResult(2, &u_spc);
+      if (stmt.fetch()) {
+        
+        Log(Logger::Lvl4, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+        " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+        
+        delta = qtk.t_space - g_spc;
+        g_spc += delta;
+        u_spc += delta;
+        
+        Statement stmt(conn_, DPM_DB,
+                       "UPDATE dpm_space_reserv SET u_token = ?, t_space = ?, g_space = ?, u_space = ?, groups = ?, "
+                       "path = ?, poolname = ? WHERE s_token = ?");
+        
+        stmt.bindParam(0, qtk.u_token);
+        stmt.bindParam(1, qtk.t_space);
+        stmt.bindParam(2, g_spc);
+        stmt.bindParam(3, u_spc);
+        stmt.bindParam(4, qtk.getGroupsString(true));
+        stmt.bindParam(5, qtk.path);
+        stmt.bindParam(6, qtk.poolname);
+        stmt.bindParam(7, qtk.s_token);
+        
+        nrows = stmt.execute();
+        ok = (nrows != 0);
+      }
+    }
   }
   catch (...) {
     ok = false;
@@ -349,21 +379,57 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
   long unsigned int nrows = 0;
 
   try {
-    // First try updating it. Makes sense just to overwrite only description, space and pool and groups
+    int64_t t_spc = 0, g_spc = 0, u_spc = 0, delta = 0;
+    // Get the current numbers, to precalculate them idiot-proof
     Statement stmt(conn_, DPM_DB,
-                   "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, s_token = ?, groups = ? \
-                    WHERE path = ? AND poolname = ?");
-
-    stmt.bindParam(0, qtk.u_token);
-    stmt.bindParam(1, qtk.t_space);
-    stmt.bindParam(2, qtk.s_token);
-    stmt.bindParam(3, qtk.getGroupsString(true));
-    stmt.bindParam(4, qtk.path);
-    stmt.bindParam(5, qtk.poolname);
-
+                   "SELECT t_space, g_space, u_space \
+                   FROM dpm_space_reserv WHERE path = ? AND poolname = ?"
+    );
+    stmt.bindParam(0, qtk.path);
+    stmt.bindParam(1, qtk.poolname);
+    
+    
     // If no rows are affected then we should insert
     if ( (nrows = stmt.execute() == 0) )
       ok = false;
+    
+    if (ok) {
+      stmt.bindResult(0, &t_spc);
+      stmt.bindResult(1, &g_spc);
+      stmt.bindResult(2, &u_spc);
+      if (stmt.fetch()) {
+        
+        Log(Logger::Lvl4, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+        " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+        
+        delta = qtk.t_space - g_spc;
+        g_spc += delta;
+        u_spc += delta;
+        
+        // First try updating it. Makes sense just to overwrite only description, space and pool and groups
+        Statement stmt(conn_, DPM_DB,
+                       "UPDATE dpm_space_reserv SET u_token = ? , t_space = ?, g_space = ?, u_space = ?, s_token = ?, groups = ? \
+                       WHERE path = ? AND poolname = ?");
+        
+        stmt.bindParam(0, qtk.u_token);
+        stmt.bindParam(1, qtk.t_space);
+        stmt.bindParam(2, g_spc);
+        stmt.bindParam(3, u_spc);
+        stmt.bindParam(4, qtk.s_token);
+        stmt.bindParam(5, qtk.getGroupsString(true));
+        stmt.bindParam(6, qtk.path);
+        stmt.bindParam(7, qtk.poolname);
+        
+        
+        // If no rows are affected then we should insert
+        if ( (nrows = stmt.execute() == 0) )
+          ok = false;
+        
+      } // fetch
+      else 
+        ok = false;
+      
+    } // if ok
 
     // If updating the spacetk failed then we try adding a brand new one. In this case we also write the clientid,
     // and we initialize the other fields with default values.

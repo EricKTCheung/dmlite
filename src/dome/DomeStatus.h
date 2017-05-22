@@ -145,7 +145,8 @@ public:
   /// Pool referred to by this quotatoken
   std::string poolname;
 
-  /// Total space of this quota or spacetoken
+  /// Total space of this quota or spacetoken. Please note that this may
+  /// refer to the column g_space
   int64_t t_space;
 
   /// Path prefix this structure is assigned to, in the quotatoken use case
