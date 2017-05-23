@@ -20,7 +20,7 @@
 using namespace dmlite;
 using boost::property_tree::ptree;
 
-DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(): davixPool_(&davixFactory_, 10) {
+DomeAdapterHeadCatalogFactory::DomeAdapterHeadCatalogFactory(): davixPool_(&davixFactory_, 256) {
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, " Ctor");
 }
