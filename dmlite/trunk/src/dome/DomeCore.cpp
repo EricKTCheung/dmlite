@@ -30,6 +30,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <sys/vfs.h>
 #include <unistd.h>
+#include <fastcgi.h>
 
 DomeCore::DomeCore() {
   domelogmask = Logger::get()->getMask(domelogname);
@@ -92,6 +93,7 @@ void workerFunc(DomeCore *core, int myidx) {
 
 
   FCGX_Request request;
+
   FCGX_InitRequest(&request, core->fcgi_listenSocket, 0);
 
   while( !core->terminationrequested )
@@ -105,6 +107,8 @@ void workerFunc(DomeCore *core, int myidx) {
 
       rc = FCGX_Accept_r(&request);
     }
+
+    Log(Logger::Lvl1, domelogmask, domelogname, "Accepted connection, ipcfd: " << request.ipcFd << ", keepConnection: " << request.keepConnection);
 
     if (rc < 0) {// Something broke in fcgi... maybe we have to exit ? MAH ?
       Err("workerFunc", "Accept returned " << rc);
