@@ -331,12 +331,19 @@ int DomeMySql::setQuotatokenByStoken(DomeQuotatoken &qtk) {
       stmt.bindResult(2, &u_spc);
       if (stmt.fetch()) {
         
-        Log(Logger::Lvl4, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+        Log(Logger::Lvl1, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
         " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
         
         delta = qtk.t_space - g_spc;
         g_spc += delta;
         u_spc += delta;
+        
+        
+        if (u_spc > g_spc)
+          u_spc = g_spc;
+        
+        Log(Logger::Lvl1, domelogmask, domelogname, "New values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+        " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
         
         Statement stmt(conn_, DPM_DB,
                        "UPDATE dpm_space_reserv SET u_token = ?, t_space = ?, g_space = ?, u_space = ?, groups = ?, "
@@ -399,12 +406,19 @@ int DomeMySql::setQuotatoken(DomeQuotatoken &qtk, std::string &clientid) {
       stmt.bindResult(2, &u_spc);
       if (stmt.fetch()) {
         
-        Log(Logger::Lvl4, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+        Log(Logger::Lvl1, domelogmask, domelogname, "Got previous values. u_space: '" << u_spc << "' t_space: " << t_spc <<
         " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
         
         delta = qtk.t_space - g_spc;
         g_spc += delta;
         u_spc += delta;
+        
+        if (u_spc > g_spc)
+          u_spc = g_spc;
+        
+        Log(Logger::Lvl1, domelogmask, domelogname, "New values. u_space: '" << u_spc << "' t_space: " << t_spc <<
+          " g_spc: " << g_spc << " poolname: '" << qtk.poolname << "' path: '" << qtk.path );
+        
         
         // First try updating it. Makes sense just to overwrite only description, space and pool and groups
         Statement stmt(conn_, DPM_DB,
