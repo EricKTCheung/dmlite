@@ -55,7 +55,6 @@ DavixCtxFactory::DavixCtxFactory() {
   spec_timeout.tv_nsec = 0;
   params_.setConnectionTimeout(&spec_timeout);
   params_.setOperationTimeout(&spec_timeout);
-	params_.setKeepAlive(true);
   params_.addCertificateAuthorityPath("/etc/grid-security/certificates");
 
 #if (DAVIX_MAJOR > 0) || (DAVIX_MAJOR == 0 && DAVIX_MINOR > 6) || (DAVIX_MAJOR == 0 && DAVIX_MINOR == 6 && DAVIX_PATCH >= 5)

@@ -10,7 +10,6 @@
 #include "DomeAdapterIO.h"
 #include "DomeAdapterPools.h"
 #include "DomeAdapterDriver.h"
-#include "DomeAdapterAuthn.h"
 
 using namespace dmlite;
 
@@ -70,7 +69,7 @@ Catalog* DomeAdapterFactory::createCatalog(PluginManager*) throw (DmException) {
 }
 
 Authn* DomeAdapterFactory::createAuthn(PluginManager*) throw (DmException) {
-  return new DomeAdapterAuthn(this);
+  return new DomeAdapterDiskCatalog(this);
 }
 
 static void registerDomeAdapterDiskCatalog(PluginManager* pm) throw(DmException) {
@@ -102,11 +101,16 @@ static void registerDomeAdapterHeadCatalog(PluginManager* pm) throw (DmException
   domeadapterlogmask = Logger::get()->getMask(domeadapterlogname);
   Log(Logger::Lvl4, domeadapterlogmask, domeadapterlogname, "registerDomeAdapterHeadCatalog");
 
-  DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory();
-  pm->registerCatalogFactory(factory);
+  CatalogFactory* nestedCAT = pm->getCatalogFactory();
 
-  DomeAdapterFactory *dmFactory = new DomeAdapterFactory();
-  pm->registerAuthnFactory(dmFactory);
+  if (nestedCAT == NULL)
+    throw DmException(DMLITE_SYSERR(DMLITE_NO_CATALOG),
+        std::string("Head catalog wraps another catalog (usually the mysql one) and cannot be loaded first. "
+                     "You probably need to load the head catalog after the mysql plugin - remember the config files are "
+                     "processed by lexicographical order. "));
+
+  DomeAdapterHeadCatalogFactory *factory = new DomeAdapterHeadCatalogFactory(nestedCAT);
+  pm->registerCatalogFactory(factory);
 }
 
 PluginIdCard plugin_domeadapter_headcatalog = {

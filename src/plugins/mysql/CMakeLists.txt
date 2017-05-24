@@ -30,8 +30,8 @@ install(TARGETS       mysql
 
 # Configuration files
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/mysql.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/mysql.conf.example
+                ${CMAKE_CURRENT_BINARY_DIR}/mysql.conf
                 @ONLY)
 
-install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/mysql.conf.example
+install (FILES       ${CMAKE_CURRENT_BINARY_DIR}/mysql.conf
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)

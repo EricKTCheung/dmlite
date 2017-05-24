@@ -28,7 +28,7 @@
 \title{DOME\\A rest-inspired engine for DPM}
 \author{}
 
-\subtitle{DMLite 1.10.0}
+\subtitle{DMLite 0.8.0}
 
 \begin{document}
 \maketitle
@@ -429,44 +429,8 @@ The DN of the original client that submitted the request. Typically, a Grid user
 \subsubsection{remoteclienthost}
 The hostname of the original client that submitted the request.
 
-\subsubsection{remoteclientgroups}
-The groups of the original client that submitted the request.
 
 \subsection{Head node operation}
-
-
-\subsubsection{dome\_access}
-Tells if the identity of the remote client can access a logical file or a directory for r/w/x operations.
-
-Command:
-\lstinline"GET /dome/command/dome_access"\\
-Request header:\\
- no particular fields in the header\\
-Params:
-\begin{itemize}
- \item path: logical file name of the entry
- \item mode: the POSIX mode bits to check for access
-\end{itemize}
-
-Returns 200 if the access can be granted, 403 if it's denied. Other HTTP codes for the corresponding errors.\\
-
-
-\subsubsection{dome\_accessreplica}
-Tells if the identity of the remote client can access a logical file or a directory. 
-
-Command:
-\lstinline"GET /dome/command/dome_access"\\
-Request header:\\
- no particular fields in the header\\
-Params:
-\begin{itemize}
- \item rfn: logical file name of the entry
- \item mode: the POSIX mode bits to check for access
-\end{itemize}
-
-Returns 200 if the access can be granted, 403 if it's denied. Other HTTP codes for the corresponding errors.\\
-
-
 
 \subsubsection{dome\_put}
 initiates a replica upload. The client is given a location where to write the replica (redirection)
@@ -517,116 +481,6 @@ Params:
 \end{itemize}
 
 Returns 200 if OK. Other HTTP codes for the corresponding errors.\\
-
-
-\subsubsection{dome\_addreplica}
-Adds a replica metadata entry to a logical file
-
-Command:
-\lstinline"GET /dome/command/dome_addreplica"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: a logical file name
- \item fileid: a fileid (as an alternative to the lfn)
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-The body is a JSON vector of replica elements defined as follows:
-\begin{itemize}
- \item rfn
- \item fileid
- \item status
- \item type
- \item setname
- \item xattrs: the replica's extended attributes in JSON format
-\end{itemize}
-
-
-\subsubsection{dome\_create}
-Adds a logical file (or directory) metadata entry
-
-Command:
-\lstinline"POST /dome/command/dome_create"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: a logical file name, can be a directory
- \item mode: UNIX mode bits (drwxrwxrwx) for the entry
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-
-\subsubsection{dome\_makedir}
-Adds a logical directory metadata entry
-
-Command:
-\lstinline"POST /dome/command/dome_makedir"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item path: a logical file name, can be a directory
- \item mode: UNIX mode bits (drwxrwxrwx) for the entry
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-
-
-
-\subsubsection{dome\_symlink}
-Creates a symbolic link to a file or directory
-
-Command:
-\lstinline"POST /dome/command/dome_symlink"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item target: a logical file name, can be a directory
- \item link: a logical file name for the new link
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-
-
-
-
-
-\subsubsection{dome\_readlink}
-Retrieves the target of a symbolic link
-
-Command:
-\lstinline"POST /dome/command/dome_readlink"\\
-
-Request header:\\
-\begin{itemize}
- \item link: path to the link to be read
-\end{itemize}
-
-Params:
-\begin{itemize}
- \item target: the target logical file name, can be a directory
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-
-
 
 
 \subsubsection{dome\_delreplica}
@@ -1111,49 +965,6 @@ Params:
  \item pool\_stype: the space type of the pool this filesystem belongs to. P=permanent, V=volatile. Default is P. This value will affect all the filesystems belonging to the same pool.
 \end{itemize}
 
-\subsubsection{dome\_setcomment}
-
-Sets the comment of a file
-
-Command:
-\lstinline"POST /dome/command/dome_setcomment"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: the logical file name to set the comment to
- \item fileid: the fileid to set the comment to. A fileid has precedence over an lfn.
- \item comment: ... guess what
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-\subsubsection{dome\_getcomment}
-
-Get information about a user
-
-Command:
-\lstinline"GET /dome/command/dome_getcomment"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: the logical file name to extract information about
- \item fileid: the fileid to extract information about. A fileid has precedence over an lfn.
-\end{itemize}
-
-Returns:
-Code: 200 or error
-\begin{itemize}
- \item comment: the comment we are looking for
-\end{itemize}
-
 
 \subsubsection{dome\_getstatinfo}
 Returns stat information about a logical or physical file managed by DPM.
@@ -1181,61 +992,13 @@ Code: 200 or pending
  \item parentfileid: private DPM core information
  \item size: file size
  \item mode: unix flags
- \item atime: access time
- \item mtime: modification time
- \item ctime: creation time
- \item uid: user id
- \item gid: group id
- \item nlink: numbe of child entries
- \item acl: access control list in string format
- \item name: the name
- \item xattrs: the extended attributes in JSON format
+ \item isdir: tells if it's a directory
 \end{itemize}
-
-\subsubsection{dome\_updatereplica}
-Overwrites the fields of a replica with the given ones. The replica is identified by its RFN or its replicaid.
-
-Command:
-\lstinline"POST /dome/command/dome_updatereplica"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item rfn: a physical file name in the rfio syntax
- \item replicaid: a numerical replica id
- \item status: the new status (default: dmlite::Replica::kAvailable)
- \item type: the new status (default: dmlite::Replica::kPermanent)
- \item setname: the new setname, used for spacetoke accounting (default: empty string)
- \item xattr: replica extended attributes
-\end{itemize}
-
-Returns:
-Code: 200 or pending
-\begin{itemize}
-
- \item replicaid
- \item fileid
- \item nbaccesses
- \item atime
- \item ptime
- \item ltime
- \item status
- \item type
- \item pool
- \item server
- \item filesystem
- \item rfn
- \item setname
- \item xattrs: the replica's extended attributes in JSON format
-\end{itemize}
-
 
 
 
 \subsubsection{dome\_getreplicainfo}
-Returns replica information about a replica, identified by its RFN or its replicaid
+Returns replica information about a replica, identified by its RFN.
 
 Command:
 \lstinline"GET /dome/command/dome_getreplicainfo"\\
@@ -1245,8 +1008,7 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
- \item rfn: a physical file name in the rfio syntax
- \item replicaid: a numerical replica id
+ \item rfn: a physical file name in the rfio syntax.
 \end{itemize}
 
 Returns:
@@ -1269,43 +1031,6 @@ Code: 200 or pending
  \item xattrs: the replica's extended attributes in JSON format
 \end{itemize}
 
-
-
-\subsubsection{dome\_getreplicavec}
-Returns replica information about all the replicas of a file, identified by its fileid or lfn.
-
-Command:
-\lstinline"GET /dome/command/dome_getreplicainfo"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: a logical file name
- \item fileid: a fileid (as an alternative to the lfn)
-\end{itemize}
-
-Returns:
-Code: 200 or other errors
-The body is a JSON vector of replica elements defined as follows:
-\begin{itemize}
-
- \item replicaid
- \item fileid
- \item nbaccesses
- \item atime
- \item ptime
- \item ltime
- \item status
- \item type
- \item pool
- \item server
- \item filesystem
- \item rfn
- \item setname
- \item xattrs: the replica's extended attributes in JSON format
-\end{itemize}
 
 
 \subsubsection{dome\_addfstopool}
@@ -1337,27 +1062,20 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
- \item path: a logical path to return information about
-
+ \item lfn: a logical path to return information about. Can be omitted if a physical file name is provided.
+ \item server: the server part of a physical file name. Can be omitted if a logical file name is provided.
+ \item pfn: the path/filename part of a physical file name. Can be omitted if a logical file name is provided.
+ \item rfn: a physical file name in the rfio syntax. Can be omitted if a logical file name is provided.
 \end{itemize}
 
 Returns:
-Code: 200 if OK
-A JSON array containing the entries of that listing. Each entry has the following fields
+Code: 200 or pending
 \begin{itemize}
  \item fileid: private DPM core information
  \item parentfileid: private DPM core information
  \item size: file size
  \item mode: unix flags
- \item atime: access time
- \item mtime: modification time
- \item ctime: creation time
- \item uid: user id
- \item gid: group id
- \item nlink: numbe of child entries
- \item acl: access control list in string format
- \item name: the name
- \item xattrs: the extended attributes in JSON format
+ \item isdir: tells if it's a directory
 \end{itemize}
 
 
@@ -1374,308 +1092,18 @@ no particular fields in the header\\
 Params:
 \begin{itemize}
  \item username: the username to extract information about
- \item userid: the uid to extract information about
 \end{itemize}
 
 Returns:
 Code: 200 or error
 \begin{itemize}
- \item username: the user name
  \item uid: the user's uid
  \item banned: whether the user is banned or not
- \item xattr: extended attributes in JSON format
 \end{itemize}
-
-
-\subsubsection{dome\_getusersvec}
-
-Get information about all the known users
-
-Command:
-\lstinline"GET /dome/command/dome_getusersvec"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-no parameters\\
-
-Returns:
-Code: 200 or error\\
-A JSON array of:
-\begin{itemize}
- \item username: the user name
- \item uid: the user's uid
- \item banned: whether the user is banned or not
- \item xattr: extended attributes in JSON format
-\end{itemize}
-
-
-\subsubsection{dome\_newuser}
-
-Creates a new user. By default a new user is not banned.
-
-Command:
-\lstinline"POST /dome/command/dome_newgroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item username: the name of the user to create
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-\subsubsection{dome\_deleteuser}
-
-Deletes an user
-
-Command:
-\lstinline"POST /dome/command/dome_deleteuser"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item username: the name of the user to delete
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-\subsubsection{dome\_updateuser}
-
-Changes information in an existing user record
-
-Command:
-\lstinline"POST /dome/command/dome_updateuser"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item username: the name of the group to fetch (in the absence of a gid)
- \item userid: the gid of the group to fetch
- \item banned
- \item xattr: JSON-formatted string containing free extended attributes
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-\subsubsection{dome\_deletegroup}
-
-Deletes a group
-
-Command:
-\lstinline"POST /dome/command/dome_deletegroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item groupname: the name of the group to delete
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-
-\subsubsection{dome\_getgroup}
-
-Retrieves information about a group
-
-Command:
-\lstinline"POST /dome/command/dome_getgroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item groupname: the name of the group to fetch (in the absence of a gid)
- \item groupid: the gid of the group to fetch
-\end{itemize}
-
-Returns:
-Code: 200 or error
-\begin{itemize}
- \item groupname: the name of the group to fetch (in the absence of a gid)
- \item gid: the gid of the group to fetch
- \item banned
- \item xattr: JSON-formatted string containing free extended attributes
-\end{itemize}
-
-
-\subsubsection{dome\_updategroup}
-
-Changes information ni an existing group
-
-Command:
-\lstinline"POST /dome/command/dome_updategroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item groupname: the name of the group to fetch (in the absence of a gid)
- \item groupid: the gid of the group to fetch
- \item banned
- \item xattr: JSON-formatted string containing free extended attributes
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-\subsubsection{dome\_getgroupsvec}
-
-Retrieves information about all the groups
-
-Command:
-\lstinline"POST /dome/command/dome_getgroupsvec"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-no parameters\\
-
-Returns:
-Code: 200 or error\\
-A JSON arrray of group information:\\
-\begin{itemize}
- \item groupname: the name of the group to fetch (in the absence of a gid)
- \item gid: the gid of the group to fetch
- \item banned
- \item xattr: JSON-formatted string containing free extended attributes
-\end{itemize}
-
-
-
-
-\subsubsection{dome\_newgroup}
-
-Creates a new group
-
-Command:
-\lstinline"POST /dome/command/dome_newgroup"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item groupname: the name of the group to create
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-\subsubsection{dome\_setacl}
-
-Update the ACL of a file or directory
-
-Command:
-\lstinline"GET /dome/command/dome_setacl"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
-  \item path: absolute path to the file/directory
-  \item acl: the ACL in the same format returned by dome\_getstatinfo
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-\subsubsection{dome\_setmode}
-
-Update the mode of a file or directory
-
-Command:
-\lstinline"GET /dome/command/dome_setmode"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
-  \item path: absolute path to the file/directory
-  \item fileid: fileid of the file/directory
-  \item mode: the mode to set
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-\subsubsection{dome\_setowner}
-
-Update the owner and main group of a file or directory
-
-Command:
-\lstinline"GET /dome/command/dome_setowner"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
-  \item path: absolute path to the file/directory
-  \item uid: userid of the new owner
-  \item gid: groupid if the new main group
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-\subsubsection{dome\_setsize}
-
-Update the size of a file or directory. NB: changing the size of a directory
-should be considered as a maintenance operation rather than the normality.
-
-Command:
-\lstinline"GET /dome/command/dome_setsize"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
-  \item path: absolute path to the file/directory
-  \item size: new size
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
 
 \subsubsection{dome\_updatexattr}
 
-Update the extended attributes associated with a file or directory.
+Update the extended attributes associated with a file.
 
 Command:
 \lstinline"GET /dome/command/dome_updatexattr"\\
@@ -1685,18 +1113,12 @@ no particular fields in the header\\
 
 Params:
 \begin{itemize}
-  \item fileid: the fileid of the file to modify
-  \item lfn: the file name of the entry to modify
-  \item xattr: the serialized extended attributes to apply
+  \item lfn: the lfn
+  \item xattr: the serialized extended attributes
 \end{itemize}
 
 Returns:
 Code: 200 or error
-
-
-
-
-
 
 \subsubsection{dome\_getidmap}
 
@@ -1745,67 +1167,6 @@ Example response:\\
     }
 }
 \end{lstlisting}
-
-
-\subsubsection{dome\_unlink}
-
-Removes a replica, both from the logical name space and physically from the disks. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_unlink"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item lfn: absolute lfn
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-
-
-\subsubsection{dome\_removedir}
-
-Removes a non empty directory. Valid only in head nodes.\\
-Command:
-\lstinline"POST /dome/command/dome_removedir"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item path: absolute path
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
-
-\subsubsection{dome\_rename}
-
-Renames a file or directory.\\
-Command:
-\lstinline"POST /dome/command/dome_rename"\\
-
-Request header:\\
-no particular fields in the header\\
-
-Params:
-\begin{itemize}
- \item newpath: source absolute path name
- \item oldpath: destination absolute path name
-\end{itemize}
-
-Returns:
-Code: 200 or error
-
-
 
 
 \subsection{Disk node operation}

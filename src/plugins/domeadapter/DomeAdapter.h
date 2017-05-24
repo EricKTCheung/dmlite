@@ -49,7 +49,6 @@ namespace dmlite {
   friend class DomeAdapterPoolDriver;
   friend class DomeAdapterPoolHandler;
   friend class DomeAdapterDiskCatalog;
-  friend class DomeAdapterAuthn;
   };
 
 }

@@ -10,6 +10,7 @@ add_library(dmlite SHARED ${DMLITE_CAPI_SOURCES}
                           ${DMLITE_CORE_SOURCES}
                           ${DMLITE_UTILS_SOURCES})
 
+                          
 set_target_properties(dmlite PROPERTIES COMPILE_FLAGS -rdynamic )
 
 
@@ -22,11 +23,15 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 set_target_properties(dmlite PROPERTIES
                              VERSION ${dmlite_MAJOR}.${dmlite_MINOR}.${dmlite_PATCH}
-                             SOVERSION 0) # ${dmlite_MAJOR})
+                             SOVERSION ${dmlite_MAJOR})
 
 install(TARGETS dmlite
         LIBRARY DESTINATION ${INSTALL_PFX_LIB})
 
+        
+        
+        
+        
 add_subdirectory (plugins)
 
 if (BUILD_DOME)

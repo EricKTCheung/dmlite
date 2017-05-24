@@ -26,11 +26,11 @@
 
 #include "DomeCore.h"
 #include "DomeLog.h"
+#include "DomeDmlitePool.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <sys/vfs.h>
 #include <unistd.h>
-#include <fastcgi.h>
 
 DomeCore::DomeCore() {
   domelogmask = Logger::get()->getMask(domelogname);
@@ -93,7 +93,6 @@ void workerFunc(DomeCore *core, int myidx) {
 
 
   FCGX_Request request;
-
   FCGX_InitRequest(&request, core->fcgi_listenSocket, 0);
 
   while( !core->terminationrequested )
@@ -108,8 +107,6 @@ void workerFunc(DomeCore *core, int myidx) {
       rc = FCGX_Accept_r(&request);
     }
 
-    Log(Logger::Lvl1, domelogmask, domelogname, "Accepted connection, ipcfd: " << request.ipcFd << ", keepConnection: " << request.keepConnection);
-
     if (rc < 0) {// Something broke in fcgi... maybe we have to exit ? MAH ?
       Err("workerFunc", "Accept returned " << rc);
       break;
@@ -122,295 +119,202 @@ void workerFunc(DomeCore *core, int myidx) {
       }
     }
 
-    // Last barrier against uncatched DmExceptions
-    // If any comes, we give a generic error citing it
-    try {
-      try {
-        try {
+    DomeReq dreq(request);
+    Log(Logger::Lvl4, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
+    "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
 
-          DomeReq dreq(request);
-          Log(Logger::Lvl4, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
+    Log(Logger::Lvl4, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " body: " << dreq.bodyfields.size() );
+
+
+    // -------------------------
+    // Generic authorization
+    // Please note that authentication must be configured in the web server, not in DOME
+    // -------------------------
+
+    int i = 0;
+    bool authorize = false;
+    while (true) {
+
+      char buf[1024];
+      char *dn = buf;
+      CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
+      if ( !buf[0] ) {
+        // If there ar eno directives at all then this service is closed
+        if (i == 0) authorize = false;
+        break;
+      }
+
+      if (buf[0] == '"') {
+
+        if (buf[strlen(buf)-1] != '"') {
+          Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
+          continue;
+        }
+
+        buf[strlen(buf)-1] = '\0';
+        dn = buf+1;
+
+      }
+
+      if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
+        // Authorize if the client DN can be found in the config whitelist
+        Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dn << "' authorized by whitelist.");
+        authorize = true;
+        break;
+      }
+
+      i++;
+    }
+
+    if (!authorize) {
+      // The whitelist in the config file did not authorize
+      // Anyway this call may come from a server that was implicitly known, e.g.
+      // head node trusts all the disk nodes that are registered in the filesystem table
+      // disk node trusts head node as defined in the config file
+
+      authorize = core->status.isDNaKnownServer(dreq.clientdn);
+      if (authorize)
+        Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
+    }
+
+    // -------------------------
+    // Command dispatching
+    // -------------------------
+
+    if (authorize) {
+
+      // Client was authorized. We log the request
+      Log(Logger::Lvl1, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
           "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress);
 
-          Log(Logger::Lvl4, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " body: " << dreq.bodyfields.size() );
+      Log(Logger::Lvl1, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
 
 
-          // -------------------------
-          // Generic authorization
-          // Please note that authentication must be configured in the web server, not in DOME
-          // -------------------------
+      // First discriminate on the HTTP request: GET/POST, etc..
+      if(dreq.verb == "GET") {
 
-          int i = 0;
-          bool authorize = false;
-          while (true) {
+        // Now dispatch based on the actual command name
+        if ( dreq.domecmd == "dome_getspaceinfo" ) {
+          core->dome_getspaceinfo(dreq, request);
+        } else if(dreq.domecmd == "dome_chksum") {
+          core->dome_chksum(dreq, request);
+        } else if(dreq.domecmd == "dome_getdirspaces") {
+          core->dome_getdirspaces(dreq, request);
+        }else if(dreq.domecmd == "dome_getquotatoken") {
+          core->dome_getquotatoken(dreq, request);
+        }else if(dreq.domecmd == "dome_get") {
+          core->dome_get(dreq, request);
+        } else if ( dreq.domecmd == "dome_statpool" ) {
+            core->dome_statpool(dreq, request);
+        } else if ( dreq.domecmd == "dome_statpfn" ) {
+            core->dome_statpfn(dreq, request);
+        } else if ( dreq.domecmd == "dome_getstatinfo" ) {
+            core->dome_getstatinfo(dreq, request);
+        } else if ( dreq.domecmd == "dome_getreplicainfo" ) {
+          core->dome_getreplicainfo(dreq, request);
+        } else if ( dreq.domecmd == "dome_getdir" ) {
+            core->dome_getdir(dreq, request);
+        } else if ( dreq.domecmd == "dome_getuser" ) {
+            core->dome_getuser(dreq, request);
+        } else if ( dreq.domecmd == "dome_getidmap" ) {
+            core->dome_getidmap(dreq, request);
+        } else if (dreq.domecmd == "dome_info") {
+            core->dome_info(dreq, request, myidx, authorize);
+        } else {
+            DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
+        }
 
-            char buf[1024];
-            char *dn = buf;
-            CFG->ArrayGetString("glb.auth.authorizeDN", buf, i);
-            if ( !buf[0] ) {
-              // If there ar eno directives at all then this service is closed
-              if (i == 0) authorize = false;
-              break;
-            }
+      } else if(dreq.verb == "HEAD"){ // meaningless placeholder
+        FCGX_FPrintF(request.out,
+                     "Content-type: text/html\r\n"
+                     "\r\n"
+                     "You sent me a HEAD request. Nice, eh ?\r\n");
 
-            if (buf[0] == '"') {
+      } else if(dreq.verb == "POST"){
+        if ( dreq.domecmd == "dome_put" ) {
+          bool success;
+          core->dome_put(dreq, request, success);
+        }
+        else if ( dreq.domecmd == "dome_putdone" ) {
 
-              if (buf[strlen(buf)-1] != '"') {
-                Err("workerFunc", "Mismatched quotes in authorizeDN directive. Can't authorize DN " << dreq.clientdn);
-                continue;
-              }
+          if(core->status.role == core->status.roleHead)
+            core->dome_putdone_head(dreq, request);
+          else
+            core->dome_putdone_disk(dreq, request);
 
-              buf[strlen(buf)-1] = '\0';
-              dn = buf+1;
+        }
+        else if ( dreq.domecmd == "dome_setquotatoken" ) {
+          core->dome_setquotatoken(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_delreplica" ) {
+          core->dome_delreplica(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_pfnrm" ) {
+          core->dome_pfnrm(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_addfstopool" ) {
+          core->dome_addfstopool(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_modifyfs" ) {
+          core->dome_modifyfs(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_rmfs" ) {
+          core->dome_rmfs(dreq, request);
+        }
+        else if ( dreq.domecmd == "dome_delquotatoken" ) {
+          core->dome_delquotatoken(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_chksumstatus") {
+          core->dome_chksumstatus(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_dochksum") {
+          core->dome_dochksum(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_addfstopool") {
+          core->dome_addfstopool(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_rmpool") {
+          core->dome_rmpool(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_addpool") {
+          core->dome_addpool(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_modifypool") {
+          core->dome_modifypool(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_pull") {
+          core->dome_pull(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_pullstatus") {
+          core->dome_pullstatus(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_updatexattr") {
+          core->dome_updatexattr(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_makespace") {
+          core->dome_makespace(dreq, request);
+        }
+        else if(dreq.domecmd == "dome_modquotatoken") {
+          core->dome_modquotatoken(dreq, request);
+        }
+        else {
+          DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
 
-            }
-
-            if ( !strncmp(dn, dreq.clientdn.c_str(), sizeof(buf)) ) {
-              // Authorize if the client DN can be found in the config whitelist
-              Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dn << "' authorized by whitelist.");
-              authorize = true;
-              break;
-            }
-
-            i++;
-          }
-
-          if (!authorize) {
-            // The whitelist in the config file did not authorize
-            // Anyway this call may come from a server that was implicitly known, e.g.
-            // head node trusts all the disk nodes that are registered in the filesystem table
-            // disk node trusts head node as defined in the config file
-
-            authorize = core->status.isDNaKnownServer(dreq.clientdn);
-            if (authorize)
-              Log(Logger::Lvl2, domelogmask, domelogname, "DN '" << dreq.clientdn << "' is authorized as a known server of this cluster.");
-          }
-
-          // -------------------------
-          // Command dispatching
-          // -------------------------
-
-          if (authorize) {
-
-            // Client was authorized. We log the request
-            Log(Logger::Lvl1, domelogmask, domelogname, "clientdn: '" << dreq.clientdn << "' clienthost: '" << dreq.clienthost <<
-            "' remoteclient: '" << dreq.creds.clientName << "' remoteclienthost: '" << dreq.creds.remoteAddress << "'");
-
-            Log(Logger::Lvl1, domelogmask, domelogname, "req:" << dreq.verb << " cmd:" << dreq.domecmd << " query:" << dreq.object << " bodyitems: " << dreq.bodyfields.size());
-
-
-            // First discriminate on the HTTP request: GET/POST, etc..
-            if(dreq.verb == "GET") {
-
-              // Now dispatch based on the actual command name
-              if ( dreq.domecmd == "dome_access" ) {
-                core->dome_access(dreq, request);
-              } else if ( dreq.domecmd == "dome_statpfn" ) {
-                core->dome_statpfn(dreq, request);
-              } else if ( dreq.domecmd == "dome_getstatinfo" ) {
-                core->dome_getstatinfo(dreq, request);
-              } else if ( dreq.domecmd == "dome_getreplicainfo" ) {
-                core->dome_getreplicainfo(dreq, request);
-              } else if ( dreq.domecmd == "dome_accessreplica" ) {
-                core->dome_accessreplica(dreq, request);
-              } else if ( dreq.domecmd == "dome_getspaceinfo" ) {
-                core->dome_getspaceinfo(dreq, request);
-              } else if(dreq.domecmd == "dome_chksum") {
-                core->dome_chksum(dreq, request);
-              } else if(dreq.domecmd == "dome_getdirspaces") {
-                core->dome_getdirspaces(dreq, request);
-              }else if(dreq.domecmd == "dome_getquotatoken") {
-                core->dome_getquotatoken(dreq, request);
-              }else if(dreq.domecmd == "dome_get") {
-                core->dome_get(dreq, request);
-              } else if ( dreq.domecmd == "dome_statpool" ) {
-                core->dome_statpool(dreq, request);
-              } else if ( dreq.domecmd == "dome_getdir" ) {
-                core->dome_getdir(dreq, request);
-              } else if ( dreq.domecmd == "dome_getuser" ) {
-                core->dome_getuser(dreq, request);
-              } else if ( dreq.domecmd == "dome_getusersvec" ) {
-                core->dome_getusersvec(dreq, request);
-              } else if ( dreq.domecmd == "dome_getidmap" ) {
-                core->dome_getidmap(dreq, request);
-              } else if (dreq.domecmd == "dome_info") {
-                core->dome_info(dreq, request, myidx, authorize);
-              } else if (dreq.domecmd == "dome_getcomment") {
-                core->dome_getcomment(dreq, request);
-              } else if (dreq.domecmd == "dome_getgroup") {
-                core->dome_getgroup(dreq, request);
-              } else if (dreq.domecmd == "dome_getgroupsvec") {
-                core->dome_getgroupsvec(dreq, request);
-              } else if (dreq.domecmd == "dome_getreplicavec") {
-                core->dome_getreplicavec(dreq, request);
-              } else if (dreq.domecmd == "dome_readlink") {
-                core->dome_readlink(dreq, request);
-              } else {
-                DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.object << "' unknown for a GET request. I like your style."));
-              }
-
-            } else if(dreq.verb == "HEAD"){ // meaningless placeholder
-              FCGX_FPrintF(request.out,
-                           "Content-type: text/html\r\n"
-                           "\r\n"
-                           "You sent me a HEAD request. Nice, eh ?\r\n");
-
-            } else if(dreq.verb == "POST"){
-              if ( dreq.domecmd == "dome_put" ) {
-                bool success;
-                core->dome_put(dreq, request, success);
-              }
-              else if ( dreq.domecmd == "dome_putdone" ) {
-
-                if(core->status.role == core->status.roleHead)
-                  core->dome_putdone_head(dreq, request);
-                else
-                  core->dome_putdone_disk(dreq, request);
-
-              }
-              else if (dreq.domecmd == "dome_unlink") {
-                core->dome_unlink(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_setquotatoken" ) {
-                core->dome_setquotatoken(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_addreplica" ) {
-                core->dome_addreplica(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_delreplica" ) {
-                core->dome_delreplica(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_pfnrm" ) {
-                core->dome_pfnrm(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_addfstopool" ) {
-                core->dome_addfstopool(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_modifyfs" ) {
-                core->dome_modifyfs(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_rmfs" ) {
-                core->dome_rmfs(dreq, request);
-              }
-              else if ( dreq.domecmd == "dome_delquotatoken" ) {
-                core->dome_delquotatoken(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_chksumstatus") {
-                core->dome_chksumstatus(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_dochksum") {
-                core->dome_dochksum(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_addfstopool") {
-                core->dome_addfstopool(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_rmpool") {
-                core->dome_rmpool(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_addpool") {
-                core->dome_addpool(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_modifypool") {
-                core->dome_modifypool(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_pull") {
-                core->dome_pull(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_pullstatus") {
-                core->dome_pullstatus(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_updatexattr") {
-                core->dome_updatexattr(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_makespace") {
-                core->dome_makespace(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_modquotatoken") {
-                core->dome_modquotatoken(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_create") {
-                core->dome_create(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_makedir") {
-                core->dome_makedir(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_deleteuser") {
-                core->dome_deleteuser(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_newuser") {
-                core->dome_newuser(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_updateuser") {
-                core->dome_updateuser(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_deletegroup") {
-                core->dome_deletegroup(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_newgroup") {
-                core->dome_newgroup(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_updategroup") {
-                core->dome_updategroup(dreq, request);
-              }
-              else if(dreq.domecmd == "dome_setcomment") {
-                core->dome_setcomment(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_removedir") {
-                core->dome_removedir(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_symlink") {
-                core->dome_symlink(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_rename") {
-                core->dome_rename(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_setacl") {
-                core->dome_setacl(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_setmode") {
-                core->dome_setmode(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_setowner") {
-                core->dome_setowner(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_setsize") {
-                core->dome_setsize(dreq, request);
-              }
-              else if (dreq.domecmd == "dome_updatereplica") {
-                core->dome_updatereplica(dreq, request);
-              }
-              else {
-                DomeReq::SendSimpleResp(request, 418, SSTR("Command '" << dreq.domecmd << "' unknown for a POST request.  Nice joke, eh ?"));
-
-              }
-            }
-
-          } // if authorized
-          else {
-            // only possible to run info when unauthorized
-            if(dreq.domecmd == "dome_info") {
-              core->dome_info(dreq, request, myidx, authorize);
-            }
-            else {
-              Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
-              DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
-            }
-          }
-
-        } catch (dmlite::DmException e) {
-          Err(domelogname, "Wrong parameters. err: " << e.code() << " what: '" << e.what() << "'");
-          DomeReq::SendSimpleResp(request, 422, SSTR("Wrong parameters. err: " << e.code() << " what: '" << e.what() << "'"));
         }
       }
-      catch(boost::property_tree::ptree_error &e) {
-        Err(domelogname, "Error while parsing json body: " << e.what());
-        DomeReq::SendSimpleResp(request, 422, SSTR("Error while parsing json body: " << e.what()));
+
+    } // if authorized
+    else {
+      // only possible to run info when unauthorized
+      if(dreq.domecmd == "dome_info") {
+        core->dome_info(dreq, request, myidx, authorize);
+      }
+      else {
+        Err(domelogname, "DN '" << dreq.clientdn << " has NOT been authorized.");
+        DomeReq::SendSimpleResp(request, 403, SSTR(dreq.clientdn << " is unauthorized. Sorry :-)"));
       }
     }
-    catch(...) {
-      Err(domelogname, "Generic exception.");
-      DomeReq::SendSimpleResp(request, 422, "Generic exception.");
-    }
+
 
     FCGX_Finish_r(&request);
   }
@@ -492,16 +396,6 @@ int DomeCore::init(const char *cfgfile) {
     long debuglevel = CFG->GetLong("glb.debug", 1);
     Logger::get()->setLevel((Logger::Level)debuglevel);
 
-    // Initialize the metadata cache
-    DomeMetadataCache *dmc = DOMECACHE;
-    if (dmc) {
-      dmc->Init();
-      Log(Logger::Lvl1, domelogmask, domelogname, "Cache successfully started. maxitems: " <<
-      CFG->GetLong("mdcache.maxitems", 1000000) << " itemttl:" << CFG->GetLong("mdcache.itemttl", 3600));
-    }
-    else
-      Log(Logger::Lvl1, domelogmask, domelogname, "Could not start the DOME cache.");
-    
     std::string r = CFG->GetString("glb.role", (char *)"head");
     if (r == "head") status.role = status.roleHead;
     else if (r == "disk") status.role = status.roleDisk;
@@ -614,8 +508,6 @@ void DomeCore::tick(int parm) {
 
     status.tick(timenow);
     DomeTaskExec::tick();
-    
-    DOMECACHE->tick();
 
     sleep(CFG->GetLong("glb.tickfreq", 10));
   }
@@ -700,68 +592,4 @@ void DomeCore::onTaskRunning(DomeTask &task) {
 
   // This would be an internal error or just a stat request.
   Err(domelogname, "Cannot match task notification. key: " << task.key);
-}
-
-
-void DomeCore::fillSecurityContext(dmlite::SecurityContext &ctx, DomeReq &req) {
-
-  // Take the info coming from the request
-  req.fillSecurityContext(ctx);
-
-  Log(Logger::Lvl4, domelogmask, domelogname,
-      "clientdn: '" << ctx.credentials.clientName << "' " <<
-      "clienthost: '" << ctx.credentials.remoteAddress << "' " <<
-      "ctx.user.name: '" << ctx.user.name << "' " <<
-      "ctx.groups: " << ctx.groups.size() << "(size) "
-  );
-
-
-
-
-  // Now map uid and gids into the spooky extensible
-
-  if (ctx.user.name == "") {
-    // This is a rotten legacy from lcg-dm
-    // A client can connect ONLY if it has the right identity, i.e.
-    // it's a machine in the cluster
-    // If such a client claims to be root by not giving any remote identity then he is root
-    ctx.user["uid"] = 0;
-    ctx.user["banned"] = false;
-  }
-  else {
-    DomeUserInfo u;
-    if (status.getUser(ctx.user.name, u)) {
-      ctx.user["uid"] = u.userid;
-      ctx.user["banned"] = u.banned;
-    } else {
-      // Maybe we have to do something if the user was unknown?
-      DomeMySql sql;
-      if ((ctx.user.name.length() > 0) && sql.newUser(u, ctx.user.name).ok()) {
-        ctx.user["uid"] = u.userid;
-        ctx.user["banned"] = u.banned;
-      }
-      else
-        Err(domelogname, "Cannot add unknown user '" << ctx.user.name << "'");
-    }
-
-    DomeGroupInfo g;
-    for(size_t i = 0; i < ctx.groups.size(); i++) {
-      if (status.getGroup(ctx.groups[i].name, g)) {
-        ctx.groups[i]["gid"] = g.groupid;
-        ctx.groups[i]["banned"] = g.banned;
-      } else {
-        // Maybe we have to do something if the group was unknown?
-        DomeMySql sql;
-        if ((ctx.groups[i].name.length() > 0) && sql.newGroup(g, ctx.groups[i].name).ok()) {
-          ctx.groups[i]["gid"] = g.groupid;
-          ctx.groups[i]["banned"] = g.banned;
-        }
-        else
-          Err(domelogname, "Cannot add unknown group '" << ctx.groups[i].name << "'");
-      }
-
-
-    }
-  }
-
 }

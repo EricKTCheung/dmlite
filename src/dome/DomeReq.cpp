@@ -142,24 +142,3 @@ int DomeReq::SendSimpleResp(FCGX_Request &request, int httpcode, const std::stri
 
   return 1;
 }
-
-
-
-
-void DomeReq::fillSecurityContext(dmlite::SecurityContext &ctx) {
-  // Fill the information we have about the client machine that is
-  // submitting the request
-  ctx.credentials.clientName = clientdn;
-  ctx.credentials.remoteAddress = clienthost;
-  
-  // Fill the information we have about the user that
-  // sent the original request
-  ctx.user.name = creds.clientName;
-  
-  for(size_t i = 0; i < creds.groups.size(); i++) {
-    dmlite::GroupInfo g;
-    g.name = creds.groups[i];
-    ctx.groups.push_back(g);
-  }
-  
-}

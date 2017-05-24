@@ -1,21 +1,18 @@
 
-LoadPlugin plugin_domeadapter_io /usr/lib64/dmlite/plugin_domeadapter.so
+# LoadPlugin plugin_domeadapter_headcatalog /usr/lib64/dmlite/plugin_domeadapter.so
+# LoadPlugin plugin_domeadapter_diskcatalog /usr/lib64/dmlite/plugin_domeadapter.so
 
+LoadPlugin plugin_domeadapter_io /usr/lib64/dmlite/plugin_domeadapter.so
 LoadPlugin plugin_domeadapter_pools /usr/lib64/dmlite/plugin_domeadapter.so
 
-LoadPlugin plugin_domeadapter_headcatalog /usr/lib64/dmlite/plugin_domeadapter.so
-
-
-DavixCAPath  /etc/grid-security/certificates
+DavixCAPath /etc/grid-security/certificates
 DavixCertPath /etc/grid-security/dpmmgr/dpmcert.pem
 DavixPrivateKeyPath /etc/grid-security/dpmmgr/dpmkey.pem
 
+DomeDisk https://domedisk-trunk.cern.ch/domedisk
 DomeHead https://domehead-trunk.cern.ch/domehead
 
 # Token generation
 TokenPassword change-this
 TokenId ip
 TokenLife 1000
-
-# Adminuser for replication and filesystem selection
-AdminUsername /DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=amanzi/CN=683749/CN=Andrea Manzi

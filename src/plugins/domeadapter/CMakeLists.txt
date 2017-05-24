@@ -6,7 +6,6 @@ add_library (domeadapter MODULE DomeAdapter.cpp
                 DomeAdapterPools.cpp
                 DomeAdapterDriver.cpp
 							  DomeAdapterHeadCatalog.cpp
-                DomeAdapterAuthn.cpp
 							  ${DMLITE_DAVIX_POOL_SOURCES})
 
 include_directories (${DAVIX_PKG_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})

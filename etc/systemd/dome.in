@@ -1,6 +1,5 @@
 [Unit]
 Description=Startup script for dome, running with config /etc/@STARTUP_SCRIPT@.conf
-After=mariadb.service
 
 [Service]
 User=dpmmgr

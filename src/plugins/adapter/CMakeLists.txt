@@ -22,8 +22,8 @@ install (TARGETS       adapter
 
 # Configuration files
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/adapter.conf.in
-                ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf.example
+                ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf
                 @ONLY)
 
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf.example
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/adapter.conf
          DESTINATION ${INSTALL_PFX_ETC}/dmlite.conf.d)

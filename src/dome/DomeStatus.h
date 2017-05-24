@@ -23,19 +23,17 @@
  * @date   Dec 2015
  */
 
-#ifndef DOMESTATUS_H
-#define DOMESTATUS_H
 
 #include <boost/thread.hpp>
 #include <set>
 #include "DomeGenQueue.h"
 #include "utils/DavixPool.h"
-#include "dmlite/cpp/authn.h"
-#include "status.h"
+#include "DomeDmlitePool.h"
 
 class DomeReq;
 class DomeQuotatoken;
 class DomeStatus;
+
 
 class DomePoolInfo {
 
@@ -145,8 +143,7 @@ public:
   /// Pool referred to by this quotatoken
   std::string poolname;
 
-  /// Total space of this quota or spacetoken. Please note that this may
-  /// refer to the column g_space
+  /// Total space of this quota or spacetoken
   int64_t t_space;
 
   /// Path prefix this structure is assigned to, in the quotatoken use case
@@ -168,9 +165,7 @@ public:
 class DomeUserInfo {
 public:
 
-  DomeUserInfo(): userid(-1), banned(NoBan) {};
-
-  dmlite::UserInfo getDmLiteUser();
+  DomeUserInfo(): userid(-1), banned(false) {};
 
   /// The user id
   int16_t userid;
@@ -178,18 +173,8 @@ public:
   /// The username
   std::string username;
 
-
-  enum BannedStatus {
-    NoBan = 0,
-    ArgusBan, //1
-    LocalBan  //2
-  };
-
   /// Tha banned status
-  BannedStatus banned;
-
-  /// What's this?
-  std::string ca;
+  bool banned;
 
   /// additional info
   std::string xattr;
@@ -199,9 +184,7 @@ public:
 class DomeGroupInfo {
 public:
 
-  DomeGroupInfo(): groupid(-1), banned(NoBan) {};
-
-  dmlite::GroupInfo getDmLiteGroup();
+  DomeGroupInfo(): groupid(-1), banned(false) {};
 
   /// The user id
   int16_t groupid;
@@ -209,14 +192,8 @@ public:
   /// The username
   std::string groupname;
 
-  enum BannedStatus {
-    NoBan = 0,
-    ArgusBan, //1
-    LocalBan  //2
-  };
-
   /// Tha banned status
-  BannedStatus banned;
+  bool banned;
 
   /// additional info
   std::string xattr;
@@ -231,10 +208,10 @@ public:
   DomeStatus();
   ~DomeStatus() {
 
-    //if(dmpool) {
-    //  delete dmpool;
-    //  dmpool = NULL;
-    //}
+    if(dmpool) {
+      delete dmpool;
+      dmpool = NULL;
+    }
   }
 
   // Head node or disk server ?
@@ -269,11 +246,6 @@ public:
   std::map <std::string, DomeUserInfo> usersbyname;
   std::map <int, DomeGroupInfo> groupsbygid;
   std::map <std::string, DomeGroupInfo> groupsbyname;
-
-  dmlite::DmStatus getIdMap(const std::string& userName,
-                    const std::vector<std::string>& groupNames,
-                    DomeUserInfo &user,
-                    std::vector<DomeGroupInfo> &groups);
 
   /// Inserts/overwrites an user
   int insertUser(DomeUserInfo &ui);
@@ -382,11 +354,8 @@ public:
   int tick(time_t timenow);
   int tickQueues(time_t timenow);
 
-  //DmlitePool *dmpool;
+  DmlitePool *dmpool;
 private:
-  DomeUserInfo rootUserInfo;
-  DomeGroupInfo rootGroupInfo;
-
   time_t lastreload, lastfscheck, lastreloadusersgroups;
   long globalputcount;
 
@@ -394,6 +363,3 @@ private:
   boost::condition_variable queue_cond;
   boost::mutex queue_mtx;
 };
-
-
-#endif

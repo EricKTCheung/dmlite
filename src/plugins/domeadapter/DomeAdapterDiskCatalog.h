@@ -13,7 +13,16 @@ namespace dmlite {
   extern Logger::bitmask domeadapterlogmask;
   extern Logger::component domeadapterlogname;
 
-  class DomeAdapterDiskCatalog: public Catalog {
+  struct DomeDir : public Directory {
+    std::string path_;
+    size_t pos_;
+    std::vector<dmlite::ExtendedStat> entries_;
+
+    virtual ~DomeDir() {}
+    DomeDir(std::string path) : path_(path), pos_(0) {}
+  };
+
+  class DomeAdapterDiskCatalog: public Catalog, public Authn {
   public:
   	/// Constructor
     DomeAdapterDiskCatalog(DomeAdapterFactory *factory) throw (DmException);
@@ -24,14 +33,22 @@ namespace dmlite {
     void setStackInstance(StackInstance* si) throw (DmException);
     void setSecurityContext(const SecurityContext* secCtx) throw (DmException);
 
+    SecurityContext* createSecurityContext(const SecurityCredentials& cred) throw (DmException);
+    SecurityContext* createSecurityContext() throw (DmException);
+
     virtual void getChecksum(const std::string& path,
                              const std::string& csumtype,
                              std::string& csumvalue,
                              const std::string& pfn,
                              const bool forcerecalc = false, const int waitsecs = 0) throw (DmException);
-
+                             
     ExtendedStat extendedStat(const std::string&, bool) throw (DmException);
     ExtendedStat extendedStatByRFN(const std::string &) throw (DmException);
+
+    void getIdMap(const std::string& userName,
+                  const std::vector<std::string>& groupNames,
+                  UserInfo* user,
+                  std::vector<GroupInfo>* groups) throw (DmException);
 
     bool accessReplica(const std::string& replica, int mode) throw (DmException);
     Replica getReplicaByRFN(const std::string& rfn) throw (DmException);
@@ -44,15 +61,6 @@ namespace dmlite {
                                   const Extensible&) throw (DmException);
 
   protected:
-    struct DomeDir : public Directory {
-      std::string path_;
-      size_t pos_;
-      std::vector<dmlite::ExtendedStat> entries_;
-
-      virtual ~DomeDir() {}
-      DomeDir(std::string path) : path_(path), pos_(0) {}
-    };
-
     StackInstance* si_;
     const SecurityContext *sec_;
     DomeAdapterFactory* factory_;

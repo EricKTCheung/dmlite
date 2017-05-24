@@ -24,23 +24,6 @@ inline void ptree_to_xstat(const boost::property_tree::ptree &ptree, dmlite::Ext
   xstat.deserialize(ptree.get<std::string>("xattrs"));
 }
 
-inline void ptree_to_groupinfo(const boost::property_tree::ptree &ptree, dmlite::GroupInfo &groupInfo) {
-  groupInfo.name = ptree.get<std::string>("groupname");
-  groupInfo["gid"] = ptree.get<uint64_t>("gid");
-  groupInfo["banned"] = ptree.get<uint64_t>("banned");
-}
-
-inline void ptree_to_userinfo(const boost::property_tree::ptree &ptree, dmlite::UserInfo &userInfo) {
-  userInfo.name = ptree.get<std::string>("username");
-  userInfo["uid"] = ptree.get<uint64_t>("userid");
-  userInfo["banned"] = ptree.get<int>("banned");
-
-  std::string xattr = ptree.get<std::string>("xattr");
-  if(!xattr.empty()) {
-    userInfo.deserialize(xattr);
-  }
-}
-
 inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::Replica &replica) {
   replica.replicaid = ptree.get<int64_t>("replicaid");
   replica.fileid = ptree.get<int64_t>("fileid");
@@ -51,8 +34,7 @@ inline void ptree_to_replica(const boost::property_tree::ptree &ptree, dmlite::R
 
   char status = atoi(ptree.get<std::string>("status").c_str());
   char type = atoi(ptree.get<std::string>("type").c_str());
-  
-  replica.rfn = ptree.get<std::string>("rfn", "");
+
   replica.status = static_cast<dmlite::Replica::ReplicaStatus>(status);
   replica.type = static_cast<dmlite::Replica::ReplicaType>(type);
 

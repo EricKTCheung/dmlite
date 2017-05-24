@@ -13,7 +13,7 @@
 
 
 Name:					dmlite
-Version:				1.10.0
+Version:				0.8.6
 Release:				1%{?dist}
 Summary:				Lcgdm grid data management and storage framework
 Group:					Applications/Internet
@@ -67,8 +67,8 @@ logic for data management and storage for the Lcg grid.
 
 
 
-%package dpmhead-domeonly
-Summary:  DPM Head Node (MySQL) in DOME-only configuration
+%package dpmhead-dome
+Summary:  DPM Head Node (MySQL)
 Group:    Applications/Internet
 Requires: bdii
 
@@ -86,25 +86,23 @@ Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_mysql
 Obsoletes: dpmhead
-Obsoletes: dpmhead-dome
 Conflicts: dpm%{?_isa}
 Conflicts: dpm-devel%{?_isa}
 Conflicts: dpm-name-server-mysql%{?_isa}
 Conflicts: dpm-perl%{?_isa}
-#Conflicts: dpm-python%{?_isa}
+Conflicts: dpm-python%{?_isa}
 Conflicts: dpm-rfio-server%{?_isa}
 Conflicts: dpm-server-mysql%{?_isa}
 Conflicts: dpm-srm-server-mysql%{?_isa}
 Conflicts: dmlite-plugins-adapter
 
-%description dpmhead-domeonly
+%description dpmhead-dome
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
 of disk servers. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
-This is a metapackage providing all required daemons for a DPM Head Node that
-does not contain the legacy servers.
+This is a metapackage providing all required daemons for a DPM Head Node.
 
-%package dpmdisk-domeonly
+%package dpmdisk-dome
 Summary:  DPM Disk Node
 Group:    Applications/Internet
 
@@ -121,7 +119,6 @@ Requires: davix >= 0.6.5
 
 Obsoletes: emi-dpm_disk
 Obsoletes: dpmdisk
-Obsoletes: dpmdisk-dome
 Conflicts: dpm%{?_isa}
 Conflicts: dpm-devel%{?_isa}
 Conflicts: dpm-perl%{?_isa}
@@ -129,12 +126,12 @@ Conflicts: dpm-python%{?_isa}
 Conflicts: dpm-rfio-server%{?_isa}
 Conflicts: dmlite-plugins-adapter = %{version}
 
-%description dpmdisk-domeonly
+%description dpmdisk-dome
 The Disk Pool Manager (DPM) creates a Grid storage element from a set
 of disk servers. It provides several interfaces for storing and retrieving
 data such as HTTP, Xrootd, GridFTP
 This is a metapackage providing all required daemons for a DPM
-Disk Node that does not contain the legacy servers.
+Disk Node.
 
 
 
@@ -298,11 +295,6 @@ Summary:      The dpm tester tool
 Group:        Applications/Internet
 Requires:     python
 Requires:     gfal2-python
-Requires:     python-argparse
-Requires:     gfal2-plugin-http
-Requires:     gfal2-plugin-xrootd
-Requires:     gfal2-plugin-srm
-Requires:     gfal2-plugin-gridftp
 
 %description dpm-tester
 Tool that is useful to test the main features of a DPM setup
@@ -483,13 +475,13 @@ rm -rf %{buildroot}
 
 
 
-%files dpmhead-domeonly
+%files dpmhead-dome
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/dbscripts
 %{_prefix}/share/dmlite/filepull
 
 
-%files dpmdisk-domeonly
+%files dpmdisk-dome
 %defattr(-,root,root,-)
 %{_prefix}/share/dmlite/filepull
 
@@ -566,13 +558,13 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_memcache.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/zmemcache.conf.example
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/zmemcache.conf
 
 %files plugins-profiler
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_profiler.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf.example
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/profiler.conf
 
 %files plugins-librarian
 %defattr(-,root,root,-)
@@ -595,13 +587,13 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_mysql.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf.example
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/mysql.conf
 
 %files plugins-adapter
 %defattr(-,root,root,-)
 %{_libdir}/dmlite/plugin_adapter.so
 %doc LICENSE README RELEASE-NOTES
-%config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf.example
+%config(noreplace) %{_sysconfdir}/dmlite.conf.d/adapter.conf
 
 %files plugins-domeadapter
 %defattr(-,root,root,-)
