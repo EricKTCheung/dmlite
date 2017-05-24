@@ -1735,33 +1735,33 @@ int DomeCore::dome_statpool(DomeReq &req, FCGX_Request &request) {
 };
 
 int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
-
+  
   // Crawl upwards the directory hierarchy of the given path
   // stopping when a matching one is found
   // The quota tokens indicate the pools that host the files written into
   // this directory subtree
-
+  
   Log(Logger::Lvl4, domelogmask, domelogname, "Entering");
-
+  
   std::string absPath =  req.bodyfields.get<std::string>("path", "");
   if ( !absPath.size() ) {
     std::ostringstream os;
     os << "Path '" << absPath << "' is empty.";
     return DomeReq::SendSimpleResp(request, 422, os);
   }
-
+  
   // Make sure it's an absolute lfn path
   if (absPath[0] != '/')  {
     std::ostringstream os;
     os << "Path '" << absPath << "' is not an absolute path.";
     return DomeReq::SendSimpleResp(request, 422, os);
   }
-
+  
   // Remove any trailing slash
   while (absPath[ absPath.size()-1 ] == '/') {
     absPath.erase(absPath.size() - 1);
   }
-
+  
   Log(Logger::Lvl4, domelogmask, domelogname, "Getting spaces for path: '" << absPath << "'");
   long long totspace = 0LL;
   long long usedspace = 0LL;
@@ -1769,37 +1769,41 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   long long poolfree = 0LL;
   std::string tkname = "<unknown>";
   std::string poolname = "<unknown>";
+  
+  
+  // Get dir used space before crawling upwards  
+  usedspace = status.getDirUsedSpace(absPath);
+  
   // Crawl
   {
     boost::unique_lock<boost::recursive_mutex> l(status);
     while (absPath.length() > 0) {
-
+      
       Log(Logger::Lvl4, domelogmask, domelogname, "Processing: '" << absPath << "'");
       // Check if any matching quotatoken exists
       std::pair <std::multimap<std::string, DomeQuotatoken>::iterator, std::multimap<std::string, DomeQuotatoken>::iterator> myintv;
       myintv = status.quotas.equal_range(absPath);
-
+      
       if (myintv.first != myintv.second) {
         for (std::multimap<std::string, DomeQuotatoken>::iterator it = myintv.first; it != myintv.second; ++it) {
           totspace += it->second.t_space;
-
+          
           // Now find the free space in the mentioned pool
           long long ptot, pfree;
           int poolst;
           status.getPoolSpaces(it->second.poolname, ptot, pfree, poolst);
           poolfree += pfree;
-
+          
           Log(Logger::Lvl1, domelogmask, domelogname, "Quotatoken '" << it->second.u_token << "' of pool: '" <<
           it->second.poolname << "' matches path '" << absPath << "' totspace: " << totspace);
-
+          
           tkname = it->second.u_token;
           poolname = it->second.poolname;
           quotausedspace = status.getQuotatokenUsedSpace(it->second);
-          usedspace = status.getDirUsedSpace(absPath);
         }
         break;
       }
-
+      
       // No match found, look upwards by trimming the last token from absPath
       size_t pos = absPath.rfind("/");
       absPath.erase(pos);
@@ -1813,7 +1817,7 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   //   In limit cases the tot quota can be less than the used space, hence it's better
   //   to publish the tot space rather than the free space in the quota.
   //   One of these cases could be when the sysadmin (with punitive mood) manually assigns
-  //   a quota that is lower than the occupied space. This is a legitimate attempt
+  //   a quota that is lower than the occupied space. This would be a legitimate attempt
   //   to prevent clients from writing there until the space decreases...
   boost::property_tree::ptree jresp;
   jresp.put("quotatotspace", totspace);
@@ -1824,11 +1828,11 @@ int DomeCore::dome_getdirspaces(DomeReq &req, FCGX_Request &request) {
   jresp.put("dirusedspace", usedspace);
   jresp.put("quotatoken", tkname);
   jresp.put("poolname", poolname);
-
+  
   int rc = DomeReq::SendSimpleResp(request, 200, jresp);
   Log(Logger::Lvl3, domelogmask, domelogname, "Result: " << rc);
   return rc;
-
+  
 }
 
 
