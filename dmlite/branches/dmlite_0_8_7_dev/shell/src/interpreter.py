@@ -519,7 +519,7 @@ class InitCommand(ShellCommand):
     try:
       self.interpreter.API_VERSION = pydmlite.API_VERSION
       if not self.interpreter.quietMode:
-        self.ok('DMLite shell v0.8.6 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
+        self.ok('DMLite shell v0.8.7 (using DMLite API v' + str(self.interpreter.API_VERSION) + ')')
     except Exception, e:
       return self.error('Could not import the Python module pydmlite.\nThus, no bindings for the DMLite library are available.')
 
