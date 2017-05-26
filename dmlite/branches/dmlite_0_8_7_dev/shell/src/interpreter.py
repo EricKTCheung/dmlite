@@ -1562,7 +1562,10 @@ def pprint_dictionary(dpool, indent=4):
                 ret.write(pprint_dictionary(item, indent+4))
             ret.write("\n")
         else:
-            ret.write(str(value))
+            if key in ['freespace', 'physicalsize','defsize']:
+              ret.write(str(self.prettySize(value)))
+            else:
+              ret.write(str(value))
             ret.write("\n")
     return ret.getvalue()
 
@@ -3242,20 +3245,23 @@ class QuotaTokenGetCommand(ShellCommand):
 The command accepts the following paramameter:
 
 * <path>        : the path
-* -s            : the command will print the quota token associated to the subfolders of the given path (optional)"""
-
+* -s            : the command will print the quota token associated to the subfolders of the given path (optional)
+* -p            : the command will print the quota token associated to the parent folders of the given path (optional)"""
+ 
     def _init(self):
-         self.parameters = ['Dpath','*O--subfolders:-s']
+         self.parameters = ['Dpath','*O--subfolders:-s:--parentfolders:-p','*O--subfolders:-s:--parentfolders:-p']
 
     def _execute(self, given):
          if len(given) < 1:
              return self.error("Incorrect number of parameters")
          path = given[0]
          getsubdirs = False
-         getparentdirs = True
-         if (len(given) == 2 and given[1].lower() in ['-s', '--subfolders']):
-             getsubdirs = True
-             getparentdirs = False
+         getparentdirs = False
+         for i in range(1, len(given)):
+             if given[i].lower() in ['-s', '--subfolders']:
+                 getsubdirs = True
+             elif given[i].lower() in ['-p', '--parentfolders']:
+                 getparentdirs = True
 
          out,err =  self.interpreter.executor.getquotatoken(self.interpreter.domeheadurl,path,getparentdirs,getsubdirs)
          try:
