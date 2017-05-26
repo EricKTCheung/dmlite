@@ -122,8 +122,9 @@ class DMLiteInterpreter:
       return self.completionOptions[state]
     except IndexError:
       return None
-
-  def prettySize(self, size=0):
+  
+  @staticmethod
+  def prettySize( size=0):
       size = int(size)
       if size < 1024:
         prettySize = str(size) + 'B '
@@ -160,26 +161,6 @@ class DMLiteInterpreter:
       return size
 
 
-  def pprint_dictionary(dpool, indent=4):
-    ret = StringIO.StringIO()
-    for key, value in dpool.iteritems():
-        ret.write(" " * indent)
-        ret.write(key)
-        ret.write(": ")
-        if type(value) is dict:
-            ret.write(pprint_dictionary(value, indent+4))
-        elif type(value) is list and len(value) > 0 and type(value[0]) is dict:
-            for item in value:
-                ret.write("\n")
-                ret.write(pprint_dictionary(item, indent+4))
-            ret.write("\n")
-        else:
-            if key in ['freespace', 'physicalsize','defsize']:
-              ret.write(str(self.prettySize(value)))
-            else:
-              ret.write(str(value))
-            ret.write("\n")
-    return ret.getvalue()
   
   def listDirectory(self, directory, readComments = False):
     # list information about files in a directory
@@ -199,7 +180,7 @@ class DMLiteInterpreter:
           finfo['size'] = 0
           finfo['isDir'] = True
         else:
-          finfo['prettySize'] = self.prettySize(f.stat.st_size)
+          finfo['prettySize'] = DMLiteInterpreter.prettySize(f.stat.st_size)
           finfo['size'] = f.stat.st_size
           finfo['isDir'] = False
         finfo['name'] = f.name
@@ -222,6 +203,26 @@ class DMLiteInterpreter:
     self.catalog.closeDir(hDir)
     return flist
 
+def pprint_dictionary(dpool, indent=4):
+  ret = StringIO.StringIO()
+  for key, value in dpool.iteritems():
+      ret.write(" " * indent)
+      ret.write(key)
+      ret.write(": ")
+      if type(value) is dict:
+          ret.write(pprint_dictionary(value, indent+4))
+      elif type(value) is list and len(value) > 0 and type(value[0]) is dict:
+          for item in value:
+              ret.write("\n")
+              ret.write(pprint_dictionary(item, indent+4))
+          ret.write("\n")
+      else:
+          if key in ['freespace', 'physicalsize','defsize']:
+            ret.write(str(DMLiteInterpreter.prettySize(value)))
+          else:
+            ret.write(str(value))
+          ret.write("\n")
+  return ret.getvalue()
 
 class ShellCommand:
   """
@@ -297,7 +298,7 @@ class ShellCommand:
     return '<' + parameter[1:] + '>'
 
   def prettySize(self, size=0):
-      return self.interpreter.prettySize(size)
+      return DMLiteInterpreter.prettySize(size)
 
   def checkSyntax(self, given):
     if len(given) > len(self.parameters):
@@ -933,7 +934,7 @@ class InfoCommand(ShellCommand):
       else:
         self.ok('File type:  Unknown')
 
-      self.ok('Size:       ' + str(f.stat.st_size) + 'B')
+      self.ok('Size:       ' + str(DMLiteInterpreter.prettySize(f.stat.st_size)))
       if f.status == pydmlite.FileStatus.kOnline:
         self.ok('Status:     Online')
       elif f.status == pydmlite.FileStatus.kMigrated:
@@ -1597,7 +1598,7 @@ class PoolInfoCommand(ShellCommand):
             if pool is None:
                 return self.ok("No Pool configured")
             dpool = json.loads(pool.serialize())
-            self.ok("%s (%s)\n%s" % (pool.name, pool.type, self.interpreter.pprint_dictionary(dpool)))
+            self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint_dictionary(dpool)))
         return self.ok()
     except Exception, e:
         return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
@@ -3251,7 +3252,7 @@ The command accepts the following paramameter:
 * -p            : the command will print the quota token associated to the parent folders of the given path (optional)"""
  
     def _init(self):
-         self.parameters = ['Dpath','*O--subfolders:-','*O:--parentfolders:-p']
+         self.parameters = ['Dpath','*O:-p:-s','*O:-p:-s']
 
     def _execute(self, given):
          if len(given) < 1:
