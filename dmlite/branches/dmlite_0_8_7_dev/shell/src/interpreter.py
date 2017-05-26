@@ -3251,7 +3251,7 @@ The command accepts the following paramameter:
 * -p            : the command will print the quota token associated to the parent folders of the given path (optional)"""
  
     def _init(self):
-         self.parameters = ['Dpath','*O--subfolders:-s:--parentfolders:-p','*O--subfolders:-s:--parentfolders:-p']
+         self.parameters = ['Dpath','*O--subfolders:-','*O:--parentfolders:-p']
 
     def _execute(self, given):
          if len(given) < 1:
