@@ -1987,7 +1987,7 @@ class UserDelCommand(ShellCommand):
 
 restart_dpm_reminder = ("\n\n" + "*" * 80 + "\n"
   "If your storage system is using the legacy DPM stack, please don't forget\n"
-  "to restart the DPM daemon after any filesystem changes.\n"
+  "to restart the DPM daemon after any filesystem/quotatoken changes.\n"
   "Running 'service dpm restart' should be enough.\n"
   + "*" * 80 + "\n")
 
@@ -3339,7 +3339,7 @@ The command accepts the following parameters:
         if err:
             self.error(out)
         else:
-            self.ok(out)
+            self.ok(restart_dpm_reminder)
 
 class QuotaTokenSetCommand(ShellCommand):
     """Set a quota token for the given path
@@ -3386,7 +3386,7 @@ The command accepts the following parameter:
         if err:
             self.error(out)
         else:
-            self.ok(out)
+            self.ok(restart_dpm_reminder)
 
 class QuotaTokenDelCommand(ShellCommand):
     """Del the quota token for the given path
@@ -3408,7 +3408,7 @@ The command accepts the following parameters:
          if err:
             self.error(out)
          else:
-            self.ok(out)
+            self.ok(restart_dpm_reminder)
  
 class FindCommand(ShellCommand):
     """Find a file in the namespace based on the given pattern
