@@ -159,6 +159,28 @@ class DMLiteInterpreter:
         size = int(prettysize)
       return size
 
+
+  def pprint_dictionary(dpool, indent=4):
+    ret = StringIO.StringIO()
+    for key, value in dpool.iteritems():
+        ret.write(" " * indent)
+        ret.write(key)
+        ret.write(": ")
+        if type(value) is dict:
+            ret.write(pprint_dictionary(value, indent+4))
+        elif type(value) is list and len(value) > 0 and type(value[0]) is dict:
+            for item in value:
+                ret.write("\n")
+                ret.write(pprint_dictionary(item, indent+4))
+            ret.write("\n")
+        else:
+            if key in ['freespace', 'physicalsize','defsize']:
+              ret.write(str(self.prettySize(value)))
+            else:
+              ret.write(str(value))
+            ret.write("\n")
+    return ret.getvalue()
+  
   def listDirectory(self, directory, readComments = False):
     # list information about files in a directory
     try:
@@ -1548,26 +1570,6 @@ The latter is the default.
         except Exception, e:
             return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
 
-def pprint_dictionary(dpool, indent=4):
-    ret = StringIO.StringIO()
-    for key, value in dpool.iteritems():
-        ret.write(" " * indent)
-        ret.write(key)
-        ret.write(": ")
-        if type(value) is dict:
-            ret.write(pprint_dictionary(value, indent+4))
-        elif type(value) is list and len(value) > 0 and type(value[0]) is dict:
-            for item in value:
-                ret.write("\n")
-                ret.write(pprint_dictionary(item, indent+4))
-            ret.write("\n")
-        else:
-            if key in ['freespace', 'physicalsize','defsize']:
-              ret.write(str(self.prettySize(value)))
-            else:
-              ret.write(str(value))
-            ret.write("\n")
-    return ret.getvalue()
 
 class PoolInfoCommand(ShellCommand):
   """List the pools."""
@@ -1595,7 +1597,7 @@ class PoolInfoCommand(ShellCommand):
             if pool is None:
                 return self.ok("No Pool configured")
             dpool = json.loads(pool.serialize())
-            self.ok("%s (%s)\n%s" % (pool.name, pool.type, pprint_dictionary(dpool)))
+            self.ok("%s (%s)\n%s" % (pool.name, pool.type, self.interpreter.pprint_dictionary(dpool)))
         return self.ok()
     except Exception, e:
         return self.error(e.__str__() + '\nParameter(s): ' + ', '.join(given))
