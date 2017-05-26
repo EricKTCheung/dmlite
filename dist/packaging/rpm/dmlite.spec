@@ -471,8 +471,9 @@ rm -rf %{buildroot}
 %endif
 
 
-%postun libs -p /sbin/ldconfig
-
+%postun libs 
+/sbin/ldconfig
+/sbin/service rsyslog condrestart || true
 
 
 %files dpmhead-dome
