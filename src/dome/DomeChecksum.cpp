@@ -34,8 +34,8 @@ int zlib_crc32(string checksumtype, int fd) {
     crc = crc32(crc, buffer, nbytes);
   }
 
-  cout << ">>>>> HASH " << hexPrinter((unsigned char*) &crc, 4) << endl;
   cout << ">>>>> HASH " << crc << endl;
+  cout << ">>>>> HASH " << hexPrinter((unsigned char*) &crc, 4) << endl;
   return 0;
 }
 
